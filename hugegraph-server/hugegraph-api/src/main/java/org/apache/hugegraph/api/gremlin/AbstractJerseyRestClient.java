@@ -17,36 +17,17 @@
 
 package org.apache.hugegraph.api.gremlin;
 
-import java.net.URI;
-import java.security.KeyManagementException;
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
 import org.apache.commons.collections.MapUtils;
 import org.apache.http.HttpHeaders;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.pool.PoolStats;
 import org.apache.hugegraph.rest.ClientException;
-import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ExecutorUtil;
-import org.glassfish.jersey.SslConfigurator;
 import org.glassfish.jersey.apache.connector.ApacheClientProperties;
 import org.glassfish.jersey.apache.connector.ApacheConnectorProvider;
 import org.glassfish.jersey.client.ClientConfig;
@@ -54,7 +35,6 @@ import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.JerseyClientBuilder;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.message.GZipEncoder;
-import org.glassfish.jersey.uri.UriComponent;
 
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientRequestContext;
@@ -66,16 +46,20 @@ import jakarta.ws.rs.core.Response;
 
 /**
  * This class is a simplified class of AbstractRestClient from hugegraph-common.
- * For some reason we replace the rest implementation from jersey to okhttp.
- * But GremlinClient still use jersey-client to forward request, so we copy the old
+ * For some reason, we replace the rest implementation from jersey to okhttp.
+ * But GremlinClient still uses jersey-client to forward request, so we copy the old
  * AbstractRestClient from hugegraph-common and rename the name to AbstractJerseyRestClient.
  * Because we don't need the full feature of AbstractRestClient, so we reduce some useless code.
  */
 public abstract class AbstractJerseyRestClient {
 
-    // Time unit: hours
+    /**
+     * Time unit: hours
+     */
     private static final long TTL = 24L;
-    // Time unit: ms
+    /**
+     * Time unit: ms
+     */
     private static final long IDLE_TIME = 40L * 1000L;
 
     private static final String TOKEN_KEY = "tokenKey";
@@ -85,8 +69,7 @@ public abstract class AbstractJerseyRestClient {
     private final PoolingHttpClientConnectionManager pool;
     private ScheduledExecutorService cleanExecutor;
 
-    public AbstractJerseyRestClient(String url, int timeout,
-                                    int maxTotal, int maxPerRoute) {
+    public AbstractJerseyRestClient(String url, int timeout, int maxTotal, int maxPerRoute) {
         this(url, new ConfigBuilder().configTimeout(timeout)
                                      .configPool(maxTotal, maxPerRoute)
                                      .build());
@@ -98,14 +81,13 @@ public abstract class AbstractJerseyRestClient {
         this.client = JerseyClientBuilder.newClient(config);
         this.client.register(GZipEncoder.class);
         this.target = this.client.target(url);
-        this.pool = (PoolingHttpClientConnectionManager) config.getProperty(
-            ApacheClientProperties.CONNECTION_MANAGER);
+        this.pool = (PoolingHttpClientConnectionManager) config
+            .getProperty(ApacheClientProperties.CONNECTION_MANAGER);
+
         if (this.pool != null) {
-            this.cleanExecutor = ExecutorUtil.newScheduledThreadPool(
-                "conn-clean-worker-%d");
+            this.cleanExecutor = ExecutorUtil.newScheduledThreadPool("conn-clean-worker-%d");
             Number idleTimeProp = (Number) config.getProperty("idleTime");
-            final long idleTime = idleTimeProp == null ?
-                                  IDLE_TIME : idleTimeProp.longValue();
+            final long idleTime = idleTimeProp == null ? IDLE_TIME : idleTimeProp.longValue();
             final long checkPeriod = idleTime / 2L;
             this.cleanExecutor.scheduleWithFixedDelay(() -> {
                 PoolStats stats = this.pool.getTotalStats();
@@ -144,9 +126,11 @@ public abstract class AbstractJerseyRestClient {
          * jersey connector. But the jersey that has been released in the maven central
          * repository seems to have a bug: https://github.com/jersey/jersey/pull/3752
          */
-        PoolingHttpClientConnectionManager pool = new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
+        PoolingHttpClientConnectionManager pool =
+            new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
         Object maxTotal = conf.getProperty("maxTotal");
         Object maxPerRoute = conf.getProperty("maxPerRoute");
+
         if (maxTotal != null) {
             pool.setMaxTotal((int) maxTotal);
         }
@@ -191,14 +175,13 @@ public abstract class AbstractJerseyRestClient {
             /*
              * NOTE: don't use non-preemptive mode
              * In non-preemptive mode the authentication information is added
-             * only when server refuses the request with 401 status code and
+             * only when the server refuses the request with 401 status codes and
              * then the request is repeated.
-             * Non-preemptive has negative impact on the performance. The
-             * advantage is it doesn't send credentials when they are not needed
+             * Non-preemptive has a negative impact on the performance.
+             * The advantage is it doesn't send credentials when they are not needed
              * https://jersey.github.io/documentation/latest/client.html#d0e5461
              */
-            this.config.register(HttpAuthenticationFeature.basic(username,
-                                                                 password));
+            this.config.register(HttpAuthenticationFeature.basic(username, password));
             return this;
         }
 
@@ -219,8 +202,7 @@ public abstract class AbstractJerseyRestClient {
             return this;
         }
 
-        public ConfigBuilder configSSL(String trustStoreFile,
-                                       String trustStorePassword) {
+        public ConfigBuilder configSSL(String trustStoreFile, String trustStorePassword) {
             if (trustStoreFile == null || trustStoreFile.isEmpty() ||
                 trustStorePassword == null) {
                 this.config.property("protocol", "http");
@@ -241,10 +223,9 @@ public abstract class AbstractJerseyRestClient {
 
         @Override
         public void filter(ClientRequestContext context) {
-            String token = context.getClient().getConfiguration()
-                                  .getProperty(TOKEN_KEY).toString();
-            context.getHeaders().add(HttpHeaders.AUTHORIZATION,
-                                     "Bearer " + token);
+            String token = context.getClient().getConfiguration().getProperty(TOKEN_KEY)
+                                  .toString();
+            context.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         }
     }
 }

@@ -31,17 +31,35 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
+/**
+ * GremlinClient is a client for interacting with a Gremlin server.
+ * It extends the AbstractJerseyRestClient and provides methods for sending GET and POST requests.
+ */
 public class GremlinClient extends AbstractJerseyRestClient {
 
     private final WebTarget webTarget;
 
-    public GremlinClient(String url, int timeout,
-                         int maxTotal, int maxPerRoute) {
+    /**
+     * Constructs a GremlinClient with the specified URL, timeout, maxTotal, and maxPerRoute.
+     *
+     * @param url         The URL of the Gremlin server this client will interact with.
+     * @param timeout     The timeout for the client.
+     * @param maxTotal    The maximum total connections for the client.
+     * @param maxPerRoute The maximum connections per route for the client.
+     */
+    public GremlinClient(String url, int timeout, int maxTotal, int maxPerRoute) {
         super(url, timeout, maxTotal, maxPerRoute);
         this.webTarget = Whitebox.getInternalState(this, "target");
         E.checkNotNull(this.webTarget, "target");
     }
 
+    /**
+     * Sends a POST request to the Gremlin server.
+     *
+     * @param auth The authorization token for the request.
+     * @param req The body of the request.
+     * @return The response from the server.
+     */
     public Response doPostRequest(String auth, String req) {
         Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
         return this.webTarget.request()
@@ -51,13 +69,18 @@ public class GremlinClient extends AbstractJerseyRestClient {
                              .post(body);
     }
 
-    public Response doGetRequest(String auth,
-                                 MultivaluedMap<String, String> params) {
+    /**
+     * Sends a GET request to the Gremlin server.
+     *
+     * @param auth   The authorization token for the request.
+     * @param params The query parameters for the request.
+     * @return The response from the server.
+     */
+    public Response doGetRequest(String auth, MultivaluedMap<String, String> params) {
         WebTarget target = this.webTarget;
         for (Map.Entry<String, List<String>> entry : params.entrySet()) {
             E.checkArgument(entry.getValue().size() == 1,
-                            "Invalid query param '%s', can only accept " +
-                            "one value, but got %s",
+                            "Invalid query param '%s', can only accept one value, but got %s",
                             entry.getKey(), entry.getValue());
             target = target.queryParam(entry.getKey(), entry.getValue().get(0));
         }

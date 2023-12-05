@@ -2,6 +2,7 @@ accessors-smart-1.2.jar
 airline-0.8.jar
 animal-sniffer-annotations-1.19.jar
 annotations-4.1.1.4.jar
+annotations-13.0.jar
 ansj_seg-5.1.6.jar
 antlr-runtime-3.5.2.jar
 aopalliance-repackaged-3.0.1.jar
@@ -45,6 +46,7 @@ commons-configuration2-2.8.0.jar
 commons-io-2.7.jar
 commons-lang-2.6.jar
 commons-lang3-3.11.jar
+commons-lang3-3.12.0.jar
 commons-logging-1.1.1.jar
 commons-logging-1.2.jar
 commons-math3-3.2.jar
@@ -127,6 +129,7 @@ jackson-jaxrs-base-2.14.0-rc1.jar
 jackson-jaxrs-json-provider-2.14.0-rc1.jar
 jackson-module-jakarta-xmlbind-annotations-2.15.2.jar
 jackson-module-jaxb-annotations-2.14.0-rc1.jar
+jakarta.activation-2.0.0.jar
 jakarta.activation-2.0.1.jar
 jakarta.activation-api-1.2.2.jar
 jakarta.annotation-api-2.0.0.jar
@@ -134,7 +137,7 @@ jakarta.inject-api-2.0.0.jar
 jakarta.servlet-api-5.0.0.jar
 jakarta.validation-api-3.0.0.jar
 jakarta.ws.rs-api-3.0.0.jar
-jakarta.xml.bind-api-4.0.0-RC2.jar
+jakarta.xml.bind-api-3.0.0.jar
 jamm-0.3.2.jar
 java-cup-runtime-11b-20160615.jar
 javapoet-1.8.0.jar
@@ -201,10 +204,15 @@ kerby-config-2.0.0.jar
 kerby-pkix-2.0.0.jar
 kerby-util-2.0.0.jar
 kerby-xdr-2.0.0.jar
+kotlin-stdlib-1.6.20.jar
+kotlin-stdlib-common-1.5.31.jar
+kotlin-stdlib-jdk7-1.6.10.jar
+kotlin-stdlib-jdk8-1.6.10.jar
 listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar
 log4j-api-2.17.1.jar
 log4j-core-2.17.1.jar
 log4j-slf4j-impl-2.17.1.jar
+logging-interceptor-4.10.0.jar
 lookout-api-1.4.1.jar
 lucene-analyzers-common-8.11.2.jar
 lucene-analyzers-smartcn-8.11.2.jar
@@ -232,6 +240,8 @@ nlp-lang-1.7.7.jar
 objenesis-2.6.jar
 ohc-core-0.7.4.jar
 ohc-core-j8-0.5.1.jar
+okhttp-4.10.0.jar
+okio-jvm-3.0.0.jar
 opentracing-api-0.22.0.jar
 opentracing-mock-0.22.0.jar
 opentracing-noop-0.22.0.jar
