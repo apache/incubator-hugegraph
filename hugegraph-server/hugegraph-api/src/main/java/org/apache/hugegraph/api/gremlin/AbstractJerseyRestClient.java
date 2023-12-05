@@ -17,13 +17,10 @@
 
 package org.apache.hugegraph.api.gremlin;
 
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.collections.MapUtils;
-import org.apache.http.HttpHeaders;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.pool.PoolStats;
 import org.apache.hugegraph.rest.ClientException;
@@ -33,15 +30,10 @@ import org.glassfish.jersey.apache.connector.ApacheConnectorProvider;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.JerseyClientBuilder;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.message.GZipEncoder;
 
 import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientRequestContext;
-import jakarta.ws.rs.client.ClientRequestFilter;
 import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
 /**
@@ -61,11 +53,8 @@ public abstract class AbstractJerseyRestClient {
      * Time unit: ms
      */
     private static final long IDLE_TIME = 40L * 1000L;
-
-    private static final String TOKEN_KEY = "tokenKey";
-
     private final Client client;
-    private final WebTarget target;
+    private final WebTarget webTarget;
     private final PoolingHttpClientConnectionManager pool;
     private ScheduledExecutorService cleanExecutor;
 
@@ -76,11 +65,11 @@ public abstract class AbstractJerseyRestClient {
     }
 
     public AbstractJerseyRestClient(String url, ClientConfig config) {
-        configConnectionManager(url, config);
+        configConnectionManager(config);
 
         this.client = JerseyClientBuilder.newClient(config);
         this.client.register(GZipEncoder.class);
-        this.target = this.client.target(url);
+        this.webTarget = this.client.target(url);
         this.pool = (PoolingHttpClientConnectionManager) config
             .getProperty(ApacheClientProperties.CONNECTION_MANAGER);
 
@@ -103,24 +92,7 @@ public abstract class AbstractJerseyRestClient {
         }
     }
 
-    /**
-     * parse user custom content-type, returns MediaType.APPLICATION_JSON_TYPE default.
-     *
-     * @param headers custom http header
-     */
-    private static MediaType parseCustomContentType(MultivaluedMap<String, Object> headers) {
-        String customContentType = null;
-        if (MapUtils.isNotEmpty(headers) && headers.get("Content-Type") != null) {
-            List<?> contentTypeObj = headers.get("Content-Type");
-            if (contentTypeObj != null && !contentTypeObj.isEmpty()) {
-                customContentType = contentTypeObj.get(0).toString();
-            }
-            return MediaType.valueOf(customContentType);
-        }
-        return MediaType.APPLICATION_JSON_TYPE;
-    }
-
-    private static void configConnectionManager(String url, ClientConfig conf) {
+    private static void configConnectionManager(ClientConfig conf) {
         /*
          * Using httpclient with connection pooling, and configuring the
          * jersey connector. But the jersey that has been released in the maven central
@@ -141,12 +113,8 @@ public abstract class AbstractJerseyRestClient {
         conf.connectorProvider(new ApacheConnectorProvider());
     }
 
-    protected Response request(Callable<Response> method) {
-        try {
-            return method.call();
-        } catch (Exception e) {
-            throw new ClientException("Failed to do request", e);
-        }
+    public WebTarget getWebTarget() {
+        return this.webTarget;
     }
 
     public void close() {
@@ -171,61 +139,14 @@ public abstract class AbstractJerseyRestClient {
             return this;
         }
 
-        public ConfigBuilder configUser(String username, String password) {
-            /*
-             * NOTE: don't use non-preemptive mode
-             * In non-preemptive mode the authentication information is added
-             * only when the server refuses the request with 401 status codes and
-             * then the request is repeated.
-             * Non-preemptive has a negative impact on the performance.
-             * The advantage is it doesn't send credentials when they are not needed
-             * https://jersey.github.io/documentation/latest/client.html#d0e5461
-             */
-            this.config.register(HttpAuthenticationFeature.basic(username, password));
-            return this;
-        }
-
-        public ConfigBuilder configToken(String token) {
-            this.config.property(TOKEN_KEY, token);
-            this.config.register(BearerRequestFilter.class);
-            return this;
-        }
-
         public ConfigBuilder configPool(int maxTotal, int maxPerRoute) {
             this.config.property("maxTotal", maxTotal);
             this.config.property("maxPerRoute", maxPerRoute);
             return this;
         }
 
-        public ConfigBuilder configIdleTime(int idleTime) {
-            this.config.property("idleTime", idleTime);
-            return this;
-        }
-
-        public ConfigBuilder configSSL(String trustStoreFile, String trustStorePassword) {
-            if (trustStoreFile == null || trustStoreFile.isEmpty() ||
-                trustStorePassword == null) {
-                this.config.property("protocol", "http");
-            } else {
-                this.config.property("protocol", "https");
-            }
-            this.config.property("trustStoreFile", trustStoreFile);
-            this.config.property("trustStorePassword", trustStorePassword);
-            return this;
-        }
-
         public ClientConfig build() {
             return this.config;
-        }
-    }
-
-    public static class BearerRequestFilter implements ClientRequestFilter {
-
-        @Override
-        public void filter(ClientRequestContext context) {
-            String token = context.getClient().getConfiguration().getProperty(TOKEN_KEY)
-                                  .toString();
-            context.getHeaders().add(HttpHeaders.AUTHORIZATION, "Bearer " + token);
         }
     }
 }

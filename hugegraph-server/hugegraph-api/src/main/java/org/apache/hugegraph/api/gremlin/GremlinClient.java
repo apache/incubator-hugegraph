@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.api.filter.CompressInterceptor;
-import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.E;
 
 import jakarta.ws.rs.client.Entity;
@@ -37,8 +36,6 @@ import jakarta.ws.rs.core.Response;
  */
 public class GremlinClient extends AbstractJerseyRestClient {
 
-    private final WebTarget webTarget;
-
     /**
      * Constructs a GremlinClient with the specified URL, timeout, maxTotal, and maxPerRoute.
      *
@@ -49,24 +46,22 @@ public class GremlinClient extends AbstractJerseyRestClient {
      */
     public GremlinClient(String url, int timeout, int maxTotal, int maxPerRoute) {
         super(url, timeout, maxTotal, maxPerRoute);
-        this.webTarget = Whitebox.getInternalState(this, "target");
-        E.checkNotNull(this.webTarget, "target");
     }
 
     /**
      * Sends a POST request to the Gremlin server.
      *
      * @param auth The authorization token for the request.
-     * @param req The body of the request.
+     * @param req  The body of the request.
      * @return The response from the server.
      */
     public Response doPostRequest(String auth, String req) {
         Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
-        return this.webTarget.request()
-                             .header(HttpHeaders.AUTHORIZATION, auth)
-                             .accept(MediaType.APPLICATION_JSON)
-                             .acceptEncoding(CompressInterceptor.GZIP)
-                             .post(body);
+        return super.getWebTarget().request()
+                    .header(HttpHeaders.AUTHORIZATION, auth)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .acceptEncoding(CompressInterceptor.GZIP)
+                    .post(body);
     }
 
     /**
@@ -77,7 +72,7 @@ public class GremlinClient extends AbstractJerseyRestClient {
      * @return The response from the server.
      */
     public Response doGetRequest(String auth, MultivaluedMap<String, String> params) {
-        WebTarget target = this.webTarget;
+        WebTarget target = super.getWebTarget();
         for (Map.Entry<String, List<String>> entry : params.entrySet()) {
             E.checkArgument(entry.getValue().size() == 1,
                             "Invalid query param '%s', can only accept one value, but got %s",
