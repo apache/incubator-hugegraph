@@ -54,10 +54,16 @@ public class IntMapByDynamicHash implements IntMap {
      */
     private int[] partitionedSize;
 
-    private static final Entry RESIZING = new Entry(NULL_VALUE, NULL_VALUE, 1);
-    private static final Entry RESIZED = new Entry(NULL_VALUE, NULL_VALUE, 2);
+    /**
+     * updated via atomic field updater
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    private volatile int size;
 
-    private static final Entry RESIZE_SENTINEL = new Entry(NULL_VALUE, NULL_VALUE, 3);
+    private static final Entry RESIZING = new Entry(NULL_VALUE, NULL_VALUE, (byte) 1);
+    private static final Entry RESIZED = new Entry(NULL_VALUE, NULL_VALUE, (byte) 2);
+
+    private static final Entry RESIZE_SENTINEL = new Entry(NULL_VALUE, NULL_VALUE, (byte) 3);
 
     /**
      * must be 2^n - 1
@@ -72,12 +78,10 @@ public class IntMapByDynamicHash implements IntMap {
                                         ENTRY_ARRAY_BASE);
     }
 
-    private static boolean casTableAt(Object[] array, int index, Object expected, Object newValue) {
+    private static boolean casTableAt(Object[] array, int idx, Object e, Object v) {
         return UNSAFE.compareAndSwapObject(
             array,
-            ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE,
-            expected,
-            newValue);
+            ((long) idx << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE, e, v);
     }
 
     private static void setTableAt(Object[] array, int index, Object newValue) {
@@ -94,12 +98,6 @@ public class IntMapByDynamicHash implements IntMap {
         n |= n >>> 16;
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
-
-    /**
-     * updated via atomic field updater
-     */
-    @SuppressWarnings("UnusedDeclaration")
-    private volatile int size;
 
     public IntMapByDynamicHash() {
         this(DEFAULT_INITIAL_CAPACITY);
@@ -637,13 +635,13 @@ public class IntMapByDynamicHash implements IntMap {
     private static final class ResizeContainer extends Entry {
         private static final int QUEUE_INCREMENT =
             Math.min(1 << 10,
-                     Integer.highestOneBit(Runtime.getRuntime().availableProcessors()) << 4);
+                     Integer.highestOneBit(IntSet.CPUS) << 4);
         private final AtomicInteger resizers = new AtomicInteger(1);
         private final Entry[] nextArray;
         private final AtomicInteger queuePosition;
 
         private ResizeContainer(Entry[] nextArray, int oldSize) {
-            super(NULL_VALUE, NULL_VALUE, 4);
+            super(NULL_VALUE, NULL_VALUE, (byte) 4);
             this.nextArray = nextArray;
             this.queuePosition = new AtomicInteger(oldSize);
         }
@@ -689,7 +687,7 @@ public class IntMapByDynamicHash implements IntMap {
                         try {
                             this.wait();
                         } catch (InterruptedException e) {
-                            //ginore
+                            // ignore
                         }
                     }
                 }
@@ -706,6 +704,7 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     private static class Entry {
+
         final int key;
         volatile int value;
         volatile Entry next;
@@ -715,11 +714,11 @@ public class IntMapByDynamicHash implements IntMap {
          * 1 RESIZING
          * 2 RESIZED
          * 3 RESIZE_SENTINEL
-         * 4 ResizeContainer
+         * 4 RESIZE_CONTAINER
          */
-        final int state;
+        final byte state;
 
-        public Entry(int key, int value, int state) {
+        public Entry(int key, int value, byte state) {
             this.key = key;
             this.value = value;
             this.state = state;
@@ -760,6 +759,7 @@ public class IntMapByDynamicHash implements IntMap {
     /* ---------------- Iterator -------------- */
 
     private static final class IteratorState {
+
         private Entry[] currentTable;
         private int start;
         private int end;
@@ -777,6 +777,7 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     private abstract class HashIterator implements IntIterator {
+
         private List<IteratorState> todo;
         private IteratorState currentState;
         private Entry next;
