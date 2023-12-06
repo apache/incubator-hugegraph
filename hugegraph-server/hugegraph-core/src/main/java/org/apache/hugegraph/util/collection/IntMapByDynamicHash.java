@@ -124,15 +124,17 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     /* ---------------- Table element access -------------- */
+
+    private static long entryOffset(int index) {
+        return ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE;
+    }
+
     private static Object tableAt(Object[] array, int index) {
-        return UNSAFE.getObjectVolatile(array,
-                                        ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE);
+        return UNSAFE.getObjectVolatile(array, entryOffset(index));
     }
 
     private static boolean casTableAt(Object[] array, int index, Object expected, Object newValue) {
-        return UNSAFE.compareAndSwapObject(array,
-                                           ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE,
-                                           expected, newValue);
+        return UNSAFE.compareAndSwapObject(array, entryOffset(index), expected, newValue);
     }
 
     /**

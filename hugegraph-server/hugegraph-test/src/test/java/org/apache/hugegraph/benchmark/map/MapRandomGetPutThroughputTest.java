@@ -54,15 +54,15 @@ public class MapRandomGetPutThroughputTest {
     @Param(value = {"1000", "10000", "100000", "1000000"})
     private int MAP_CAPACITY;
 
-    private ConcurrentHashMap<Integer, Integer> concurrentHashMapNonCap;
+    private ConcurrentHashMap<Integer, Integer> concurrentHashMapWithoutCap;
 
-    private ConcurrentHashMap<Integer, Integer> concurrentHashMap;
+    private ConcurrentHashMap<Integer, Integer> concurrentHashMapWithCap;
 
-    private IntMap intMapBySegments;
+    private IntMap intMapBySegmentsWithCap;
 
-    private IntMap intMapByDynamicHashNonCap;
+    private IntMap intMapByDynamicHashWithoutCap;
 
-    private IntMap intMapByDynamicHash;
+    private IntMap intMapByDynamicHashWithCap;
 
     private static final int THREAD_COUNT = 8;
 
@@ -70,11 +70,11 @@ public class MapRandomGetPutThroughputTest {
 
     @Setup(Level.Trial)
     public void prepareMap() {
-        this.concurrentHashMapNonCap = new ConcurrentHashMap<>();
-        this.concurrentHashMap = new ConcurrentHashMap<>(MAP_CAPACITY);
-        this.intMapBySegments = new IntMap.IntMapBySegments(MAP_CAPACITY);
-        this.intMapByDynamicHashNonCap = new IntMapByDynamicHash();
-        this.intMapByDynamicHash = new IntMapByDynamicHash(MAP_CAPACITY);
+        this.concurrentHashMapWithoutCap = new ConcurrentHashMap<>();
+        this.concurrentHashMapWithCap = new ConcurrentHashMap<>(MAP_CAPACITY);
+        this.intMapBySegmentsWithCap = new IntMap.IntMapBySegments(MAP_CAPACITY);
+        this.intMapByDynamicHashWithoutCap = new IntMapByDynamicHash();
+        this.intMapByDynamicHashWithCap = new IntMapByDynamicHash(MAP_CAPACITY);
     }
 
     /**
@@ -94,50 +94,50 @@ public class MapRandomGetPutThroughputTest {
     @Threads(THREAD_COUNT)
     public void randomGetPutOfConcurrentHashMapWithNoneInitCap(ThreadState state) {
         int key = state.next();
-        if (!this.concurrentHashMapNonCap.containsKey(key)) {
-            this.concurrentHashMapNonCap.put(key, state.next());
+        if (!this.concurrentHashMapWithoutCap.containsKey(key)) {
+            this.concurrentHashMapWithoutCap.put(key, state.next());
         }
-        this.concurrentHashMapNonCap.get(key);
+        this.concurrentHashMapWithoutCap.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
     public void randomGetPutOfConcurrentHashMapWithInitCap(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
-        if (!this.concurrentHashMap.containsKey(key)) {
-            this.concurrentHashMap.put(key, state.next());
+        if (!this.concurrentHashMapWithCap.containsKey(key)) {
+            this.concurrentHashMapWithCap.put(key, state.next());
         }
-        this.concurrentHashMap.get(key);
+        this.concurrentHashMapWithCap.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
     public void randomGetPutOfIntMapBySegmentsWithInitCap(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
-        if (!this.intMapBySegments.containsKey(key)) {
-            this.intMapBySegments.put(key, state.next());
+        if (!this.intMapBySegmentsWithCap.containsKey(key)) {
+            this.intMapBySegmentsWithCap.put(key, state.next());
         }
-        this.intMapBySegments.get(key);
+        this.intMapBySegmentsWithCap.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
     public void randomGetPutOfIntMapByDynamicHashWithNoneCap(ThreadState state) {
         int key = state.next();
-        if (!this.intMapByDynamicHashNonCap.containsKey(key)) {
-            this.intMapByDynamicHashNonCap.put(key, state.next());
+        if (!this.intMapByDynamicHashWithoutCap.containsKey(key)) {
+            this.intMapByDynamicHashWithoutCap.put(key, state.next());
         }
-        this.intMapByDynamicHashNonCap.get(key);
+        this.intMapByDynamicHashWithoutCap.get(key);
     }
 
     @Benchmark
     @Threads(THREAD_COUNT)
     public void randomGetPutOfIntMapByDynamicHashWithInitCap(ThreadState state) {
         int key = state.next() & (MAP_CAPACITY - 1);
-        if (!this.intMapByDynamicHash.containsKey(key)) {
-            this.intMapByDynamicHash.put(key, state.next());
+        if (!this.intMapByDynamicHashWithCap.containsKey(key)) {
+            this.intMapByDynamicHashWithCap.put(key, state.next());
         }
-        this.intMapByDynamicHash.get(key);
+        this.intMapByDynamicHashWithCap.get(key);
     }
 
     public static void main(String[] args) throws RunnerException {
