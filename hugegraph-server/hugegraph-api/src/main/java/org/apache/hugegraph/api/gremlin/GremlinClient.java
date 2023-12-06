@@ -57,11 +57,11 @@ public class GremlinClient extends AbstractJerseyRestClient {
      */
     public Response doPostRequest(String auth, String req) {
         Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
-        return super.getWebTarget().request()
-                    .header(HttpHeaders.AUTHORIZATION, auth)
-                    .accept(MediaType.APPLICATION_JSON)
-                    .acceptEncoding(CompressInterceptor.GZIP)
-                    .post(body);
+        return this.getWebTarget().request()
+                   .header(HttpHeaders.AUTHORIZATION, auth)
+                   .accept(MediaType.APPLICATION_JSON)
+                   .acceptEncoding(CompressInterceptor.GZIP)
+                   .post(body);
     }
 
     /**
@@ -72,7 +72,7 @@ public class GremlinClient extends AbstractJerseyRestClient {
      * @return The response from the server.
      */
     public Response doGetRequest(String auth, MultivaluedMap<String, String> params) {
-        WebTarget target = super.getWebTarget();
+        WebTarget target = this.getWebTarget();
         for (Map.Entry<String, List<String>> entry : params.entrySet()) {
             E.checkArgument(entry.getValue().size() == 1,
                             "Invalid query param '%s', can only accept one value, but got %s",

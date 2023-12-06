@@ -116,7 +116,7 @@ public abstract class AbstractJerseyRestClient {
         }, checkPeriod, checkPeriod, TimeUnit.MILLISECONDS);
     }
 
-    public WebTarget getWebTarget() {
+    protected WebTarget getWebTarget() {
         return this.webTarget;
     }
 
