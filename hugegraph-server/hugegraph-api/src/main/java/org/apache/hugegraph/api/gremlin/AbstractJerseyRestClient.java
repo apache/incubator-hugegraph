@@ -17,13 +17,11 @@
 
 package org.apache.hugegraph.api.gremlin;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.pool.PoolStats;
-import org.apache.hugegraph.rest.ClientException;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.glassfish.jersey.apache.connector.ApacheClientProperties;
 import org.glassfish.jersey.apache.connector.ApacheConnectorProvider;
@@ -34,7 +32,6 @@ import org.glassfish.jersey.message.GZipEncoder;
 
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.Response;
 
 /**
  * This class is a simplified class of AbstractRestClient from hugegraph-common.
@@ -46,13 +43,18 @@ import jakarta.ws.rs.core.Response;
 public abstract class AbstractJerseyRestClient {
 
     /**
-     * Time unit: hours
+     * Time unit: hour
      */
     private static final long TTL = 24L;
     /**
      * Time unit: ms
      */
     private static final long IDLE_TIME = 40L * 1000L;
+    private static final String PROPERTY_MAX_TOTAL = "maxTotal";
+    private static final String PROPERTY_MAX_PER_ROUTE = "maxPerRoute";
+    private static final String PROPERTY_IDLE_TIME = "idleTime";
+    private static final String CONNECTION_MANAGER = ApacheClientProperties.CONNECTION_MANAGER;
+
     private final Client client;
     private final WebTarget webTarget;
     private final PoolingHttpClientConnectionManager pool;
@@ -65,34 +67,16 @@ public abstract class AbstractJerseyRestClient {
     }
 
     public AbstractJerseyRestClient(String url, ClientConfig config) {
-        configConnectionManager(config);
+        this.pool = configConnectionManager(config);
 
         this.client = JerseyClientBuilder.newClient(config);
         this.client.register(GZipEncoder.class);
         this.webTarget = this.client.target(url);
-        this.pool = (PoolingHttpClientConnectionManager) config
-            .getProperty(ApacheClientProperties.CONNECTION_MANAGER);
 
-        if (this.pool != null) {
-            this.cleanExecutor = ExecutorUtil.newScheduledThreadPool("conn-clean-worker-%d");
-            Number idleTimeProp = (Number) config.getProperty("idleTime");
-            final long idleTime = idleTimeProp == null ? IDLE_TIME : idleTimeProp.longValue();
-            final long checkPeriod = idleTime / 2L;
-            this.cleanExecutor.scheduleWithFixedDelay(() -> {
-                PoolStats stats = this.pool.getTotalStats();
-                int using = stats.getLeased() + stats.getPending();
-                if (using > 0) {
-                    // Do clean only when all connections are idle
-                    return;
-                }
-                // Release connections when all clients are inactive
-                this.pool.closeIdleConnections(idleTime, TimeUnit.MILLISECONDS);
-                this.pool.closeExpiredConnections();
-            }, checkPeriod, checkPeriod, TimeUnit.MILLISECONDS);
-        }
+        cleanThreadPoolExecutor(config);
     }
 
-    private static void configConnectionManager(ClientConfig conf) {
+    private static PoolingHttpClientConnectionManager configConnectionManager(ClientConfig conf) {
         /*
          * Using httpclient with connection pooling, and configuring the
          * jersey connector. But the jersey that has been released in the maven central
@@ -100,17 +84,36 @@ public abstract class AbstractJerseyRestClient {
          */
         PoolingHttpClientConnectionManager pool =
             new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
-        Object maxTotal = conf.getProperty("maxTotal");
-        Object maxPerRoute = conf.getProperty("maxPerRoute");
+        Integer maxTotal = (Integer) conf.getProperty(PROPERTY_MAX_TOTAL);
+        Integer maxPerRoute = (Integer) conf.getProperty(PROPERTY_MAX_PER_ROUTE);
 
         if (maxTotal != null) {
-            pool.setMaxTotal((int) maxTotal);
+            pool.setMaxTotal(maxTotal);
         }
         if (maxPerRoute != null) {
-            pool.setDefaultMaxPerRoute((int) maxPerRoute);
+            pool.setDefaultMaxPerRoute(maxPerRoute);
         }
-        conf.property(ApacheClientProperties.CONNECTION_MANAGER, pool);
+        conf.property(CONNECTION_MANAGER, pool);
         conf.connectorProvider(new ApacheConnectorProvider());
+        return pool;
+    }
+
+    private void cleanThreadPoolExecutor(ClientConfig config) {
+        this.cleanExecutor = ExecutorUtil.newScheduledThreadPool("conn-clean-worker-%d");
+        Number idleTimeProp = (Number) config.getProperty(PROPERTY_IDLE_TIME);
+        final long idleTime = idleTimeProp == null ? IDLE_TIME : idleTimeProp.longValue();
+        final long checkPeriod = idleTime / 2L;
+        this.cleanExecutor.scheduleWithFixedDelay(() -> {
+            PoolStats stats = this.pool.getTotalStats();
+            int using = stats.getLeased() + stats.getPending();
+            if (using > 0) {
+                // Do clean only when all connections are idle
+                return;
+            }
+            // Release connections when all clients are inactive
+            this.pool.closeIdleConnections(idleTime, TimeUnit.MILLISECONDS);
+            this.pool.closeExpiredConnections();
+        }, checkPeriod, checkPeriod, TimeUnit.MILLISECONDS);
     }
 
     public WebTarget getWebTarget() {
@@ -118,11 +121,14 @@ public abstract class AbstractJerseyRestClient {
     }
 
     public void close() {
-        if (this.pool != null) {
-            this.pool.close();
-            this.cleanExecutor.shutdownNow();
+        try {
+            if (this.pool != null) {
+                this.pool.close();
+                this.cleanExecutor.shutdownNow();
+            }
+        } finally {
+            this.client.close();
         }
-        this.client.close();
     }
 
     private static class ConfigBuilder {
@@ -140,8 +146,8 @@ public abstract class AbstractJerseyRestClient {
         }
 
         public ConfigBuilder configPool(int maxTotal, int maxPerRoute) {
-            this.config.property("maxTotal", maxTotal);
-            this.config.property("maxPerRoute", maxPerRoute);
+            this.config.property(PROPERTY_MAX_TOTAL, maxTotal);
+            this.config.property(PROPERTY_MAX_PER_ROUTE, maxPerRoute);
             return this;
         }
 
