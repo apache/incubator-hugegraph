@@ -25,6 +25,12 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 import sun.misc.Unsafe;
 
+/**
+ * This class implements a concurrent hash map specifically designed for integer keys and values.
+ * It uses low-level programming techniques such as direct memory access via `sun.misc.Unsafe` to
+ * achieve high performance.
+ * The class is part of the Apache HugeGraph project.
+ */
 public class IntMapByDynamicHash implements IntMap {
 
     private static final int DEFAULT_INITIAL_CAPACITY = 16;
@@ -44,8 +50,7 @@ public class IntMapByDynamicHash implements IntMap {
 
     private static final AtomicReferenceFieldUpdater<IntMapByDynamicHash, Entry[]>
         TABLE_UPDATER =
-        AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash.class, Entry[].class,
-                                               "table");
+        AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash.class, Entry[].class, "table");
 
     private volatile Entry[] table;
 
@@ -66,22 +71,41 @@ public class IntMapByDynamicHash implements IntMap {
     private static final Entry RESIZE_SENTINEL = new Entry(NULL_VALUE, NULL_VALUE, (byte) 3);
 
     /**
-     * must be 2^n - 1
+     * must be (2^n) - 1
      */
     private static final int SIZE_BUCKETS = 7;
 
-
-    /* ---------------- Table element access -------------- */
-    private static Object tableAt(Object[] array, int index) {
-        return UNSAFE.getObjectVolatile(array,
-                                        ((long) index << ENTRY_ARRAY_SHIFT) +
-                                        ENTRY_ARRAY_BASE);
+    /**
+     * Constructor for the IntMapByDynamicHash class.
+     *
+     * @param initialCapacity the initial capacity of the map.
+     */
+    public IntMapByDynamicHash(int initialCapacity) {
+        if (initialCapacity < 0) {
+            throw new IllegalArgumentException("Illegal Initial Capacity: " + initialCapacity);
+        }
+        if (initialCapacity > MAXIMUM_CAPACITY) {
+            initialCapacity = MAXIMUM_CAPACITY;
+        }
+        long size = (long) (1.0 + (long) initialCapacity / LOAD_FACTOR);
+        int cap = (size >= (long) MAXIMUM_CAPACITY) ?
+                  MAXIMUM_CAPACITY : tableSizeFor((int) size);
+        if (cap >= PARTITIONED_SIZE_THRESHOLD) {
+            // we want 7 extra slots, and 64 bytes for each slot int are 4 bytes,
+            // so 64 bytes are 16 ints.
+            this.partitionedSize =
+                new int[SIZE_BUCKETS * 16];
+        }
+        // The end index is for resizeContainer
+        this.table = new Entry[cap + 1];
     }
 
-    private static boolean casTableAt(Object[] array, int idx, Object e, Object v) {
-        return UNSAFE.compareAndSwapObject(
-            array,
-            ((long) idx << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE, e, v);
+    /**
+     * Default constructor for the IntMapByDynamicHash class.
+     * Initializes the map with the default initial capacity.
+     */
+    public IntMapByDynamicHash() {
+        this(DEFAULT_INITIAL_CAPACITY);
     }
 
     private static void setTableAt(Object[] array, int index, Object newValue) {
@@ -99,30 +123,26 @@ public class IntMapByDynamicHash implements IntMap {
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
 
-    public IntMapByDynamicHash() {
-        this(DEFAULT_INITIAL_CAPACITY);
+    /* ---------------- Table element access -------------- */
+    private static Object tableAt(Object[] array, int index) {
+        return UNSAFE.getObjectVolatile(array,
+                                        ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE);
     }
 
-    public IntMapByDynamicHash(int initialCapacity) {
-        if (initialCapacity < 0) {
-            throw new IllegalArgumentException("Illegal Initial Capacity: " + initialCapacity);
-        }
-        if (initialCapacity > MAXIMUM_CAPACITY) {
-            initialCapacity = MAXIMUM_CAPACITY;
-        }
-        long size = (long) (1.0 + (long) initialCapacity / LOAD_FACTOR);
-        int cap = (size >= (long) MAXIMUM_CAPACITY) ?
-                  MAXIMUM_CAPACITY : tableSizeFor((int) size);
-        if (cap >= PARTITIONED_SIZE_THRESHOLD) {
-            // we want 7 extra slots and 64 bytes for each
-            // slot. int is 4 bytes, so 64 bytes is 16 ints.
-            this.partitionedSize =
-                new int[SIZE_BUCKETS * 16];
-        }
-        // The end index is for resizeContainer
-        this.table = new Entry[cap + 1];
+    private static boolean casTableAt(Object[] array, int index, Object expected, Object newValue) {
+        return UNSAFE.compareAndSwapObject(array,
+                                           ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE,
+                                           expected, newValue);
     }
 
+    /**
+     * Puts a key-value pair into the map. If the key already exists in the map, its value is
+     * updated.
+     *
+     * @param key   the key to be put into the map.
+     * @param value the value to be associated with the key.
+     * @return true if the operation is successful.
+     */
     @Override
     public boolean put(int key, int value) {
         int hash = this.hash(key);
@@ -141,6 +161,16 @@ public class IntMapByDynamicHash implements IntMap {
         return true;
     }
 
+    /**
+     * This method is used when the normal put operation fails due to a hash collision.
+     * It searches for the key in the chain and if found, replaces the entry.
+     * If the key is not found, it adds a new entry.
+     *
+     * @param key          the key to be put into the map.
+     * @param value        the value to be associated with the key.
+     * @param currentTable the current table where the key-value pair is to be put.
+     * @return the old value if the key is already present in the map, otherwise NULL_VALUE.
+     */
     private int slowPut(int key, int value, Entry[] currentTable) {
         int length;
         int index;
@@ -187,6 +217,13 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
+    /**
+     * Retrieves the value associated with the given key from the map.
+     *
+     * @param key the key whose associated value is to be returned.
+     * @return the value associated with the given key, or NULL_VALUE if the key does not exist
+     * in the map.
+     */
     @Override
     public int get(int key) {
         int hash = this.hash(key);
@@ -197,6 +234,7 @@ public class IntMapByDynamicHash implements IntMap {
         }
         for (Entry e = o; e != null; e = e.getNext()) {
             int k;
+            // TODO: check why key == k is always false
             if ((k = e.getKey()) == key || key == k) {
                 return e.value;
             }
@@ -204,6 +242,15 @@ public class IntMapByDynamicHash implements IntMap {
         return NULL_VALUE;
     }
 
+    /**
+     * This method is used when the normal get operation fails due to a hash collision.
+     * It searches for the key in the chain and returns the associated value if found.
+     *
+     * @param key          the key whose associated value is to be returned.
+     * @param currentArray the current table where the key-value pair is located.
+     * @return the value associated with the given key, or NULL_VALUE if the key does not exist
+     * in the map.
+     */
     private int slowGet(int key, Entry[] currentArray) {
         while (true) {
             int length = currentArray.length;
@@ -225,6 +272,12 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
+    /**
+     * Removes the key-value pair with the given key from the map.
+     *
+     * @param key the key whose associated key-value pair is to be removed.
+     * @return true if the key-value pair was found and removed, false otherwise.
+     */
     @Override
     public boolean remove(int key) {
         int hash = this.hash(key);
@@ -250,6 +303,14 @@ public class IntMapByDynamicHash implements IntMap {
         return false;
     }
 
+    /**
+     * This method is used when the normal remove operation fails due to a hash collision.
+     * It searches for the key in the chain and if found, removes the entry.
+     *
+     * @param key          the key whose associated key-value pair is to be removed.
+     * @param currentTable the current table where the key-value pair is located.
+     * @return the removed entry if the key is found, otherwise null.
+     */
     private Entry slowRemove(int key, Entry[] currentTable) {
         int length;
         int index;
@@ -281,13 +342,19 @@ public class IntMapByDynamicHash implements IntMap {
                 }
 
                 if (prev != null) {
-                    // Key not found
+                    // Key doesn't found
                     return null;
                 }
             }
         }
     }
 
+    /**
+     * Checks if the map contains a key-value pair with the given key.
+     *
+     * @param key the key to be checked.
+     * @return true if the map contains a key-value pair with the given key, false otherwise.
+     */
     @Override
     public boolean containsKey(int key) {
         return this.getEntry(key) != null;
@@ -303,6 +370,9 @@ public class IntMapByDynamicHash implements IntMap {
         return new ValueIterator();
     }
 
+    /**
+     * Removes all the mappings from this map. The map will be empty after this call returns.
+     */
     @Override
     public void clear() {
         Entry[] currentArray = this.table;
@@ -312,9 +382,9 @@ public class IntMapByDynamicHash implements IntMap {
             for (int i = 0; i < currentArray.length - 1; i++) {
                 Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, i);
                 if (o == RESIZED || o == RESIZING) {
-                    resizeContainer = (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                                                    currentArray.length -
-                                                                                    1);
+                    resizeContainer =
+                        (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
+                                                                      currentArray.length - 1);
                 } else if (o != null) {
                     Entry e = o;
                     if (IntMapByDynamicHash.casTableAt(currentArray, i, o, null)) {
@@ -419,8 +489,7 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
-    private Entry createReplacementChainForRemoval(Entry original,
-                                                   Entry toRemove) {
+    private Entry createReplacementChainForRemoval(Entry original, Entry toRemove) {
         if (original == toRemove) {
             return original.getNext();
         }
@@ -463,7 +532,15 @@ public class IntMapByDynamicHash implements IntMap {
         this.resize(oldTable, (oldTable.length - 1 << 1) + 1);
     }
 
-    // newSize must be a power of 2 + 1
+    /**
+     * Resizes the map to a new capacity. This method is called when the map's size exceeds its
+     * threshold. It creates a new array with the new capacity and transfers all entries from the
+     * old array to the new one.
+     * Note: newSize must be a power of 2 + 1
+     *
+     * @param oldTable The old table to resize.
+     * @param newSize  The new size for the table.
+     */
     @SuppressWarnings("JLM_JSR166_UTILCONCURRENT_MONITORENTER")
     private void resize(Entry[] oldTable, int newSize) {
         int oldCapacity = oldTable.length;
@@ -512,7 +589,15 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     /**
-     * Transfer all entries from src to dest tables
+     * Transfers all entries from the source table to the destination table. This method is
+     * called during the resize operation. It iterates over the source table and for each non-null
+     * entry, it copies the entry to the destination table. If the entry in the source table is
+     * marked as RESIZED or RESIZING, it helps with the resize operation.
+     * After all entries are transferred, it notifies the ResizeContainer that the resize operation
+     * is done.
+     *
+     * @param src             The source table from which entries are to be transferred.
+     * @param resizeContainer The container that holds the state of the resize operation.
      */
     private void transfer(Entry[] src, ResizeContainer resizeContainer) {
         Entry[] dest = resizeContainer.nextArray;
@@ -558,8 +643,7 @@ public class IntMapByDynamicHash implements IntMap {
      */
     private Entry[] helpWithResize(Entry[] currentArray) {
         ResizeContainer resizeContainer =
-            (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                          currentArray.length - 1);
+            (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray, currentArray.length - 1);
         Entry[] newTable = resizeContainer.nextArray;
         if (resizeContainer.getQueuePosition() > ResizeContainer.QUEUE_INCREMENT) {
             resizeContainer.incrementResizer();
@@ -569,6 +653,15 @@ public class IntMapByDynamicHash implements IntMap {
         return newTable;
     }
 
+    /**
+     * Transfers entries from the old table to the new table in reverse order. This method is used
+     * to help the resize operation by spreading the work among multiple threads. Each thread
+     * transfers a portion of the entries from the end of the old table to the beginning of the new
+     * table.
+     *
+     * @param src             The old table to transfer entries from.
+     * @param resizeContainer The container that holds the state of the resize operation.
+     */
     private void reverseTransfer(Entry[] src, ResizeContainer resizeContainer) {
         Entry[] dest = resizeContainer.nextArray;
         while (resizeContainer.getQueuePosition() > 0) {
@@ -603,6 +696,14 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
+    /**
+     * Copies an entry from the old table to the new table. This method is called during the resize
+     * operation. It does not check if the entry already exists in the new table, so it should only
+     * be called with entries that are not in the new table yet.
+     *
+     * @param dest        The new table to copy the entry to.
+     * @param toCopyEntry The entry to copy.
+     */
     private void unconditionalCopy(Entry[] dest, Entry toCopyEntry) {
         Entry[] currentArray = dest;
         while (true) {
@@ -610,9 +711,9 @@ public class IntMapByDynamicHash implements IntMap {
             int index = this.hash(toCopyEntry.getKey(), length);
             Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, index);
             if (o == RESIZED || o == RESIZING) {
-                currentArray = ((ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                                              length -
-                                                                              1)).nextArray;
+                currentArray =
+                    ((ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
+                                                                   length - 1)).nextArray;
             } else {
                 Entry newEntry;
                 if (o == null) {
@@ -622,8 +723,7 @@ public class IntMapByDynamicHash implements IntMap {
                         newEntry = new Entry(toCopyEntry.getKey(), toCopyEntry.getValue());
                     }
                 } else {
-                    newEntry =
-                        new Entry(toCopyEntry.getKey(), toCopyEntry.getValue(), o);
+                    newEntry = new Entry(toCopyEntry.getKey(), toCopyEntry.getValue(), o);
                 }
                 if (IntMapByDynamicHash.casTableAt(currentArray, index, o, newEntry)) {
                     return;
@@ -632,7 +732,14 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
+    /**
+     * The ResizeContainer class is used to hold the state of the resize operation.
+     * It contains the new array to which entries are transferred, the number of threads
+     * participating in the resize operation, and the position in the old array from which
+     * entries are transferred.
+     */
     private static final class ResizeContainer extends Entry {
+
         private static final int QUEUE_INCREMENT =
             Math.min(1 << 10,
                      Integer.highestOneBit(IntSet.CPUS) << 4);
@@ -759,7 +866,6 @@ public class IntMapByDynamicHash implements IntMap {
     /* ---------------- Iterator -------------- */
 
     private static final class IteratorState {
-
         private Entry[] currentTable;
         private int start;
         private int end;
@@ -776,6 +882,12 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
+    /**
+     * The HashIterator class is an abstract base class for iterators over the map.
+     * It maintains the current state of the iteration, which includes the current table
+     * being iterated over and the index of the next entry to be returned.
+     * The findNext() method is used to advance the iterator to the next entry.
+     */
     private abstract class HashIterator implements IntIterator {
 
         private List<IteratorState> todo;
@@ -788,6 +900,14 @@ public class IntMapByDynamicHash implements IntMap {
             this.findNext();
         }
 
+        /**
+         * This method is used to advance the iterator to the next entry.
+         * It iterates over the entries in the current table from the current index
+         * until it finds a non-null entry. If it encounters a RESIZED or RESIZING entry,
+         * it helps with the resize operation and continues the iteration in the new table.
+         * If it reaches the end of the current table and there are still tables left to be
+         * iterated over, it switches to the next table.
+         */
         private void findNext() {
             while (this.index < this.currentState.end) {
                 Entry o =
