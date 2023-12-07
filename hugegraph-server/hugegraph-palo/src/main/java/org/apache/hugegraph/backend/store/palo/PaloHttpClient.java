@@ -19,14 +19,14 @@ package org.apache.hugegraph.backend.store.palo;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.MultivaluedHashMap;
-import jakarta.ws.rs.core.MultivaluedMap;
-import jakarta.ws.rs.core.Response;
-
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.rest.AbstractRestClient;
 import org.apache.hugegraph.rest.RestClient;
+import org.apache.hugegraph.rest.RestHeaders;
+
 import com.google.common.collect.ImmutableMap;
+
+import okhttp3.Response;
 
 public class PaloHttpClient {
 
@@ -51,8 +51,8 @@ public class PaloHttpClient {
         // Format path
         String path = table + "/_load";
         // Format headers
-        MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
-        headers.putSingle("Expect", "100-continue");
+        RestHeaders headers = new RestHeaders();
+        headers.add("Expect", "100-continue");
         // Format params
         Map<String, Object> params = ImmutableMap.of("label", label);
         // Send request
@@ -68,8 +68,7 @@ public class PaloHttpClient {
         }
 
         @Override
-        protected void checkStatus(Response response,
-                                   Response.Status... statuses) {
+        protected void checkStatus(Response response, int... statuses) {
             // pass
         }
     }

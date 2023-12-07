@@ -17,7 +17,7 @@
 #
 set -ev
 
-TRAVIS_DIR=`dirname $0`
+TRAVIS_DIR=$(dirname $0)
 HBASE_DOWNLOAD_ADDRESS="http://archive.apache.org/dist/hbase"
 HBASE_VERSION="2.0.2"
 HBASE_PACKAGE="hbase-${HBASE_VERSION}"

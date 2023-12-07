@@ -141,7 +141,7 @@ function wait_for_startup() {
             return 1
         fi
 
-        status=$(curl -I -s -w "%{http_code}" -o /dev/null "$server_url")
+        status=$(curl -I -s -k -w "%{http_code}" -o /dev/null "$server_url")
         if [[ $status -eq 200 || $status -eq 401 ]]; then
             echo "OK"
             echo "Started [pid $pid]"
