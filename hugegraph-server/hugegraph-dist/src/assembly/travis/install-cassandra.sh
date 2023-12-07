@@ -17,7 +17,6 @@
 #
 set -ev
 
-TRAVIS_DIR=`dirname $0`
 CASS_DOWNLOAD_ADDRESS="http://archive.apache.org/dist/cassandra"
 CASS_VERSION="4.0.10"
 CASS_PACKAGE="apache-cassandra-${CASS_VERSION}"
