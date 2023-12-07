@@ -20,6 +20,11 @@ package org.apache.hugegraph.version;
 import org.apache.hugegraph.util.VersionUtil;
 import org.apache.hugegraph.util.VersionUtil.Version;
 
+/**
+ * This class represents the API version of the HugeGraph system.
+ * It contains a version number and a method to check the compatibility
+ * with the core version of the system.
+ */
 public final class ApiVersion {
 
     /*

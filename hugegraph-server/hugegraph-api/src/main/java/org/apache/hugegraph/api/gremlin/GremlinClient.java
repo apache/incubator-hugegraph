@@ -20,6 +20,9 @@ package org.apache.hugegraph.api.gremlin;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.api.filter.CompressInterceptor;
+import org.apache.hugegraph.util.E;
+
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -27,43 +30,52 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
-import org.apache.hugegraph.api.filter.CompressInterceptor;
-import org.apache.hugegraph.rest.AbstractRestClient;
-import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.util.E;
+/**
+ * GremlinClient is a client for interacting with a Gremlin server.
+ * It extends the AbstractJerseyRestClient and provides methods for sending GET and POST requests.
+ */
+public class GremlinClient extends AbstractJerseyRestClient {
 
-public class GremlinClient extends AbstractRestClient {
-
-    private final WebTarget webTarget;
-
-    public GremlinClient(String url, int timeout,
-                         int maxTotal, int maxPerRoute) {
+    /**
+     * Constructs a GremlinClient with the specified URL, timeout, maxTotal, and maxPerRoute.
+     *
+     * @param url         The URL of the Gremlin server this client will interact with.
+     * @param timeout     The timeout for the client.
+     * @param maxTotal    The maximum total connections for the client.
+     * @param maxPerRoute The maximum connections per route for the client.
+     */
+    public GremlinClient(String url, int timeout, int maxTotal, int maxPerRoute) {
         super(url, timeout, maxTotal, maxPerRoute);
-        this.webTarget = Whitebox.getInternalState(this, "target");
-        E.checkNotNull(this.webTarget, "target");
     }
 
-    @Override
-    protected void checkStatus(Response response, Response.Status... statuses) {
-        // pass
-    }
-
+    /**
+     * Sends a POST request to the Gremlin server.
+     *
+     * @param auth The authorization token for the request.
+     * @param req  The body of the request.
+     * @return The response from the server.
+     */
     public Response doPostRequest(String auth, String req) {
         Entity<?> body = Entity.entity(req, MediaType.APPLICATION_JSON);
-        return this.webTarget.request()
-                             .header(HttpHeaders.AUTHORIZATION, auth)
-                             .accept(MediaType.APPLICATION_JSON)
-                             .acceptEncoding(CompressInterceptor.GZIP)
-                             .post(body);
+        return this.getWebTarget().request()
+                   .header(HttpHeaders.AUTHORIZATION, auth)
+                   .accept(MediaType.APPLICATION_JSON)
+                   .acceptEncoding(CompressInterceptor.GZIP)
+                   .post(body);
     }
 
-    public Response doGetRequest(String auth,
-                                 MultivaluedMap<String, String> params) {
-        WebTarget target = this.webTarget;
+    /**
+     * Sends a GET request to the Gremlin server.
+     *
+     * @param auth   The authorization token for the request.
+     * @param params The query parameters for the request.
+     * @return The response from the server.
+     */
+    public Response doGetRequest(String auth, MultivaluedMap<String, String> params) {
+        WebTarget target = this.getWebTarget();
         for (Map.Entry<String, List<String>> entry : params.entrySet()) {
             E.checkArgument(entry.getValue().size() == 1,
-                            "Invalid query param '%s', can only accept " +
-                            "one value, but got %s",
+                            "Invalid query param '%s', can only accept one value, but got %s",
                             entry.getKey(), entry.getValue());
             target = target.queryParam(entry.getKey(), entry.getValue().get(0));
         }
