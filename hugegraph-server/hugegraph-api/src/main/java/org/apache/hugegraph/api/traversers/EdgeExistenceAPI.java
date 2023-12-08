@@ -22,6 +22,7 @@ import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_LIM
 import java.util.Iterator;
 
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.graph.VertexAPI;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.structure.HugeVertex;
@@ -72,8 +73,8 @@ public class EdgeExistenceAPI extends TraverserAPI {
         E.checkArgumentNotNull(source, "The source can't be null");
         E.checkArgumentNotNull(target, "The target can't be null");
 
-        Id sourceId = HugeVertex.getIdValue(source);
-        Id targetId = HugeVertex.getIdValue(target);
+        Id sourceId = VertexAPI.checkAndParseVertexId(source);
+        Id targetId = VertexAPI.checkAndParseVertexId(target);
         HugeGraph hugegraph = graph(manager, graph);
         EdgeExistenceTraverser traverser = new EdgeExistenceTraverser(hugegraph);
         Iterator<Edge> edges = traverser.queryEdgeExistence(sourceId, targetId, edgeLabel,
