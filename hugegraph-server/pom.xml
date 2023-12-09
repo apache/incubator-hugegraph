@@ -311,6 +311,17 @@
                             <fileset>
                                 <directory>${final.name}</directory>
                             </fileset>
+                            <!-- remove the artifacts in root directory -->
+                            <!-- REMOVE ME after revision 1.5.0 -->
+                            <fileset>
+                                <directory>../${project.basedir}</directory>
+                                <includes>
+                                    <include>*.tar.gz</include>
+                                </includes>
+                            </fileset>
+                            <fileset>
+                                <directory>../${final.name}</directory>
+                            </fileset>
                         </filesets>
                     </configuration>
                 </plugin>
