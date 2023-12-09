@@ -293,6 +293,22 @@
                                                 <include name="${final.name}/**"/>
                                             </tarfileset>
                                         </tar>
+                                        <!-- copy the artifacts to root
+                                             directory for better user experience -->
+                                        <!-- REMOVE ME after revision 1.5.0 -->
+                                        <exec executable="cp"
+                                              dir="${project.basedir}"
+                                              failonerror="false">
+                                            <arg value="-r"/>
+                                            <arg value="../${final.name}"/>
+                                            <arg value="../../${final.name}"/>
+                                        </exec>
+                                        <exec executable="cp"
+                                              dir="${project.basedir}"
+                                              failonerror="false">
+                                            <arg value="../${final.name}.tar.gz"/>
+                                            <arg value="../../${final.name}.tar.gz"/>
+                                        </exec>
                                     </target>
                                 </configuration>
                             </execution>
