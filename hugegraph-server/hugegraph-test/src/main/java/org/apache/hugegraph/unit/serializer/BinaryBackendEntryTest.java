@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.unit.serializer;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 
 public class BinaryBackendEntryTest extends BaseUnitTest {
