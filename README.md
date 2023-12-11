@@ -38,7 +38,10 @@ Billions of vertices and edges can be easily stored into and queried from HugeGr
 We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
 HugeGraph server with `RocksDB` in background.
 
-Optional: use `docker exec -it graph bash` to enter the container to do some operations.
+Optional: 
+
+1. use `docker exec -it graph bash` to enter the container to do some operations.
+2. use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD="true" hugegraph/hugegraph` to start with a **built-in** (example) graph.
 
 ### 2. Download Way
 
@@ -54,9 +57,9 @@ The project [doc page](https://hugegraph.apache.org/docs/) contains more informa
 and provides detailed documentation for users. (Structure / Usage / API / Configs...)
 
 And here are links of other **HugeGraph** component/repositories:
-1. [hugegraph-toolchain](https://github.com/apache/incubator-hugegraph-toolchain) (graph **loader/dashboard/tool/client**)
-2. [hugegraph-computer](https://github.com/apache/incubator-hugegraph-computer) (matched **graph computing** system)
-3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** module)
+1. [hugegraph-toolchain](https://github.com/apache/incubator-hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-client)**)
+2. [hugegraph-computer](https://github.com/apache/incubator-hugegraph-computer) (integrated **graph computing** system)
+3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** libs)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
 
 ## License

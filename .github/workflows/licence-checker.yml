@@ -10,8 +10,10 @@ on:
 jobs:
   check-license:
     runs-on: ubuntu-latest
+    env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Check License Header
         uses: apache/skywalking-eyes@main
@@ -21,11 +23,6 @@ jobs:
           log: info
           token: ${{ github.token }}
           config: .licenserc.yaml
-
-      - uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'adopt'
 
       - name: License check(RAT)
         run: |
