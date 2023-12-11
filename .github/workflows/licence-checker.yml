@@ -10,6 +10,8 @@ on:
 jobs:
   check-license:
     runs-on: ubuntu-latest
+    env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
     steps:
       - uses: actions/checkout@v4
 
