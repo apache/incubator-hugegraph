@@ -89,7 +89,7 @@
     </prerequisites>
 
     <properties>
-        <revision>1.5.0</revision>
+        <revision>1.2.0</revision>
     </properties>
 
     <modules>
