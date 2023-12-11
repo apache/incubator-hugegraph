@@ -93,9 +93,10 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
     private static final String TABLE_GENERAL_KEY = "general";
     private static final String DB_OPEN = "db-open-%s";
+
     private static final long DB_OPEN_TIMEOUT = 600L; // unit s
     private static final long DB_CLOSE_TIMEOUT = 30L; // unit s
-    /*
+    /**
      * This is threads number used to concurrently opening RocksDB dbs,
      * 8 is supposed enough due to configurable data disks and
      * disk number of one machine
@@ -286,7 +287,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         boolean terminated;
         openPool.shutdown();
         try {
-            terminated = openPool.awaitTermination(OPEN_TIMEOUT, TimeUnit.SECONDS);
+            terminated = openPool.awaitTermination(DB_OPEN_TIMEOUT,
+                                                   TimeUnit.SECONDS);
         } catch (Throwable e) {
             throw new BackendException("Failed to wait db-open thread pool shutdown", e);
         }

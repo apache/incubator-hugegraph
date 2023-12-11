@@ -269,10 +269,9 @@ public class RocksDBSstSessions extends RocksDBSessions {
                     }
 
                     // TODO: limit individual SST file size
-                    try (SstFileWriter sst = table(table.getKey())) {
-                        for (Pair<byte[], byte[]> change : table.getValue()) {
-                            sst.put(change.getKey(), change.getValue());
-                        }
+                    SstFileWriter sst = table(table.getKey());
+                    for (Pair<byte[], byte[]> change : table.getValue()) {
+                        sst.put(change.getKey(), change.getValue());
                     }
                 }
             } catch (RocksDBException e) {
