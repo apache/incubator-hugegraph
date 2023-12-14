@@ -17,10 +17,15 @@
 
 package org.apache.hugegraph;
 
+import com.google.common.base.Strings;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -97,6 +102,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.LockUtil;
 import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.StringUtil;
 import org.apache.hugegraph.variables.HugeVariables;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -968,6 +974,12 @@ public class StandardHugeGraph implements HugeGraph {
             LockUtil.destroy(this.name);
         }
         // Make sure that all transactions are closed in all threads
+        if (!tx.closed()) {
+            for (Map.Entry<String, Exception> info : tx.txSnapshots.entrySet()) {
+                LOG.error("Tx '{}' is not closed in thread",
+                          info.getKey(), info.getValue());
+            }
+        }
         E.checkState(this.tx.closed(),
                      "Ensure tx closed in all threads when closing graph '%s'",
                      this.name);
@@ -1323,12 +1335,20 @@ public class StandardHugeGraph implements HugeGraph {
         // Backend transactions
         private final ThreadLocal<Txs> transactions;
 
+        private final Map<String, Exception> txSnapshots;
+
         public TinkerPopTransaction(Graph graph) {
             super(graph);
 
             this.refs = new AtomicInteger();
             this.opened = ThreadLocal.withInitial(() -> false);
             this.transactions = ThreadLocal.withInitial(() -> null);
+            this.txSnapshots = new HashMap<>();
+        }
+
+        public String txThreadKey() {
+            Thread thread = Thread.currentThread();
+            return Strings.isNullOrEmpty(thread.getName()) ? thread.getName() : thread.getId() + "";
         }
 
         public boolean closed() {
@@ -1433,6 +1453,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.opened.set(true);
             this.transactions.get().openedTime(DateUtil.now().getTime());
             this.refs.incrementAndGet();
+            this.txSnapshots.put(txThreadKey(), new Exception());
         }
 
         private void setClosed() {
@@ -1440,6 +1461,7 @@ public class StandardHugeGraph implements HugeGraph {
             if (this.opened.get()) {
                 this.opened.set(false);
                 this.refs.decrementAndGet();
+                this.txSnapshots.remove(txThreadKey());
             }
         }
 
