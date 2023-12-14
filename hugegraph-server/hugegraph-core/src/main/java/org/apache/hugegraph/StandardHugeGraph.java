@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
@@ -1343,7 +1344,7 @@ public class StandardHugeGraph implements HugeGraph {
             this.refs = new AtomicInteger();
             this.opened = ThreadLocal.withInitial(() -> false);
             this.transactions = ThreadLocal.withInitial(() -> null);
-            this.txSnapshots = new HashMap<>();
+            this.txSnapshots = new ConcurrentHashMap<>();
         }
 
         public String txThreadKey() {
