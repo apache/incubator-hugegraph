@@ -21,9 +21,9 @@ BACKEND=$1
 SUITE=$2
 
 if [[ "$SUITE" == "structure" || "$SUITE" == "tinkerpop" ]]; then
-    mvn test -fn -pl hugegraph-server/hugegraph-test -am -P tinkerpop-structure-test,$BACKEND -Dmaven.test.failure.ignore=true
+    mvn test -pl hugegraph-server/hugegraph-test -am -P tinkerpop-structure-test,$BACKEND
 fi
 
 if [[ "$SUITE" == "process" || "$SUITE" == "tinkerpop" ]]; then
-    mvn test -fn -pl hugegraph-server/hugegraph-test -am -P tinkerpop-process-test,$BACKEND -Dmaven.test.failure.ignore=true
+    mvn test -pl hugegraph-server/hugegraph-test -am -P tinkerpop-process-test,$BACKEND
 fi
