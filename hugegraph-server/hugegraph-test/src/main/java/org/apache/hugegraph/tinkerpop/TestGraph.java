@@ -874,6 +874,10 @@ public class TestGraph implements Graph {
         schema.indexLabel("bTOcByGremlinPartition").onE("bTOc")
               .by("gremlin.partitionGraphStrategy.partition")
               .ifNotExist().create();
+        schema.edgeLabel("blah1").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("blah2").link(defaultVL, defaultVL)
+              .ifNotExist().create();
     }
 
     public void initEdgeLabelDefaultKnowsDefault(String defaultVL) {
