@@ -30,6 +30,7 @@ import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.FeatureRequirement;
 import org.apache.tinkerpop.gremlin.FeatureRequirements;
@@ -267,7 +268,8 @@ public class TestGraphProvider extends AbstractGraphProvider {
         String graphName = config.getString(CoreOptions.STORE.name());
         Class<?> testClass = (Class<?>) config.getProperty(TEST_CLASS);
         String testMethod = config.getString(TEST_METHOD);
-
+        config.setProperty(RocksDBOptions.DATA_PATH.name(), config.getString(RocksDBOptions.DATA_PATH.name()) + "/" + graphName);
+        config.setProperty(RocksDBOptions.WAL_PATH.name(), config.getString(RocksDBOptions.WAL_PATH.name()) + "/" + graphName);
         TestGraph testGraph = this.graphs.get(graphName);
         if (testGraph == null) {
             this.graphs.putIfAbsent(graphName, this.newTestGraph(config));
