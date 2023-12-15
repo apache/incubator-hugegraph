@@ -1,5 +1,9 @@
 # Deploy Hugegraph server with docker
 
+> Note: The docker image of hugegraph is a convenience release, not official distribution artifacts from ASF. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
+
+> Note: Recommand to use `release tag`(like `1.0.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+
 ## 1. Deploy
 
 We can use docker to quickly start an inner HugeGraph server with RocksDB in background.
@@ -18,7 +22,7 @@ We can use docker to quickly start an inner HugeGraph server with RocksDB in bac
       graph:
         image: hugegraph/hugegraph
         ports:
-          - 18080:8080
+          - 8080:8080
     ```
 
 ## 2. Create Sample Graph on Server Startup
@@ -46,7 +50,7 @@ If you want to customize the pre-loaded data, please mount the the groovy script
         volumes:
           - /path/to/yourscript:/hugegraph/scripts/example.groovy
         ports:
-          - 18080:8080
+          - 8080:8080
     ```
 
 3. Using start-hugegraph.sh
