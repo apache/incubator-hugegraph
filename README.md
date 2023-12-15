@@ -8,11 +8,8 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202-0E78BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 [![HugeGraph-CI](https://github.com/apache/incubator-hugegraph/actions/workflows/ci.yml/badge.svg)](https://github.com/apache/incubator-hugegraph/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/apache/incubator-hugegraph/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/apache/incubator-hugegraph/actions/workflows/codeql-analysis.yml)
 [![License checker](https://github.com/apache/incubator-hugegraph/actions/workflows/licence-checker.yml/badge.svg)](https://github.com/apache/incubator-hugegraph/actions/workflows/licence-checker.yml)
-[![Codecov](https://codecov.io/gh/apache/incubator-hugegraph/branch/master/graph/badge.svg)](https://app.codecov.io/gh/apache/incubator-hugegraph)
 [![GitHub Releases Downloads](https://img.shields.io/github/downloads/apache/hugegraph/total.svg)](https://github.com/apache/hugegraph/releases)
-[![stars](https://img.shields.io/github/stars/apache/hugegraph)](https://github.com/apache/incubator-hugegraph/stargazers)
 
 </div>
 
@@ -27,7 +24,7 @@ Billions of vertices and edges can be easily stored into and queried from HugeGr
 - Compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/), support [Gremlin](https://tinkerpop.apache.org/gremlin.html) & [Cypher](https://en.wikipedia.org/wiki/Cypher) language
 - Schema Metadata Management, including VertexLabel, EdgeLabel, PropertyKey and IndexLabel
 - Multi-type Indexes, supporting exact query, range query and complex conditions combination query
-- Plug-in Backend Store Driver Framework, support `RocksDB`, `Cassandra`, `HBase`, `ScyllaDB`, and `MySQL/Postgre` now and easy to add other backend store driver if needed
+- Plug-in Backend Store Driver Framework, support `RocksDB`, `Cassandra`, `HBase`, `ScyllaDB`, and `MySQL/Postgre` now and easy to add another backend store driver if needed
 - Integration with `Flink/Spark/HDFS`, and friendly to connect other big data platforms
 
 
@@ -36,7 +33,7 @@ Billions of vertices and edges can be easily stored into and queried from HugeGr
 ### 1. Docker Way
 
 We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
-HugeGraph server with `RocksDB` in background.
+HugeGraph server with `RocksDB` in backgrounds. (Use `release tag`(like `1.0.0`) for the stable version)
 
 Optional: 
 
@@ -81,7 +78,8 @@ HugeGraph is licensed under Apache 2.0 License.
 HugeGraph relies on the [TinkerPop](http://tinkerpop.apache.org) framework, we refer to the storage structure of Titan and the schema definition of DataStax. 
 Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
 
-You are welcome to contribute to HugeGraph, and we are looking forward to working with you to build an excellent open source community.
+You are welcome to contribute to HugeGraph, 
+and we are looking forward to working with you to build an excellent open-source community.
 
 
 ## Contact Us
