@@ -22,3 +22,5 @@
 ./bin/init-store.sh
 
 ./bin/start-hugegraph.sh -j "$JAVA_OPTS" -g zgc
+
+tail -f /dev/null
