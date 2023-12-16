@@ -971,8 +971,8 @@ public class StandardHugeGraph implements HugeGraph {
             this.closeTx();
         } finally {
             this.closed = true;
-            this.storeProvider.close();
             LockUtil.destroy(this.name);
+            this.storeProvider.close();
         }
         // Make sure that all transactions are closed in all threads
         if (!tx.closed()) {

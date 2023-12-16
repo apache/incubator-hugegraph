@@ -423,6 +423,16 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         this.closeSessions();
     }
 
+    public void forceClose() {
+        try {
+            this.checkOpened();
+            this.closeSessions();
+        } catch (Throwable ignore) {
+            return;
+        }
+        ((RocksDBStdSessions)this.sessions).forceClose();
+    }
+
     @Override
     public boolean opened() {
         this.checkDbOpened();
