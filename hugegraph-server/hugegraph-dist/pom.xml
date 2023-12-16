@@ -294,9 +294,6 @@
                                             </tarfileset>
                                         </tar>
                                     </target>
-                                    <!-- Description: 
-                                    due to we already have the release script in dist module,
-                                    we don't need cp the pkg now -->
                                 </configuration>
                             </execution>
                         </executions>
