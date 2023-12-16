@@ -18,7 +18,7 @@
 import org.apache.hugegraph.HugeFactory
 import org.apache.hugegraph.dist.RegisterUtil
 
-// register all the backend to avoid changes if needs to support othre backend
+// register all the backend to avoid changes if needs to support other backend
 RegisterUtil.registerPlugins()
 RegisterUtil.registerRocksDB()
 RegisterUtil.registerCassandra()
