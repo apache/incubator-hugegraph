@@ -33,13 +33,13 @@ WORK_DIR=$(
   pwd
 )
 cd "${WORK_DIR}" || exit
-echo "In the work dir: $(pwd)"
+echo "Current work dir: $(pwd)"
 
 # clean old dir then build a new one
 rm -rf dist && mkdir -p dist/apache-${REPO}
 
 # step1: package the source code
-cd ../../
+cd ../../../ && echo "Package source in: $(pwd)"
 git archive --format=tar.gz \
   --output="hugegraph-server/hugegraph-dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
   --prefix=apache-${REPO}-incubating-"${RELEASE_VERSION}"-src/ "${GIT_BRANCH}" || exit
