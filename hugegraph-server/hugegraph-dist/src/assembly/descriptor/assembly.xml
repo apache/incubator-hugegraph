@@ -34,6 +34,10 @@
         <fileSet>
             <directory>${assembly.static.dir}</directory>
             <outputDirectory>/</outputDirectory>
+            <filtered>false</filtered>
+            <excludes>
+                <exclude>README.txt</exclude>
+            </excludes>
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>
