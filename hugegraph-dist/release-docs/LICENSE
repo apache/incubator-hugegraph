@@ -219,12 +219,6 @@ The following components are provided under the Apache 2.0 License.
 See licenses/ for text of these licenses.
 
     (Apache License, 2.0) Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
-    (Apache License, 2.0) jersey-connectors-apache (org.glassfish.jersey.connectors:jersey-apache-connector:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-apache-connector)
-    (Apache License, 2.0) jersey-core-client (org.glassfish.jersey.core:jersey-client:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-client)
-    (Apache License, 2.0) jersey-core-common (org.glassfish.jersey.core:jersey-common:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/jersey-common)
-    (Apache License, 2.0) jersey-ext-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-entity-filtering)
-    (Apache License, 2.0) jersey-inject-hk2 (org.glassfish.jersey.inject:jersey-hk2:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-hk2)
-    (Apache License, 2.0) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:3.0.3 - https://projects.eclipse.org/projects/ee4j.jersey/project/jersey-media-json-jackson)
     (Apache License, Version 2.0) * Apache Commons BeanUtils:- commons-beanutils:commons-beanutils:1.9.4 (https://commons.apache.org/proper/commons-beanutils/)
     (Apache License, Version 2.0) * Apache Commons Codec:- commons-codec:commons-codec:1.13 (https://commons.apache.org/proper/commons-codec/)
     (Apache License, Version 2.0) * Apache Commons Collections:- commons-collections:commons-collections:3.2.2 (http://commons.apache.org/collections/)
@@ -256,7 +250,6 @@ See licenses/ for text of these licenses.
     (Apache License, Version 2.0) * Jackson-annotations:- com.fasterxml.jackson.core:jackson-annotations:2.14.0-rc1 (https://github.com/FasterXML/jackson)
     (Apache License, Version 2.0) * Jackson-core:- com.fasterxml.jackson.core:jackson-core:2.14.0-rc1 (https://github.com/FasterXML/jackson-core)
     (Apache License, Version 2.0) * Jackson-dataformat-YAML:- com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.3 (https://github.com/FasterXML/jackson-dataformats-text)
-    (Apache License, Version 2.0) * Jakarta Dependency Injection:- jakarta.inject:jakarta.inject-api:2.0.0 (https://github.com/eclipse-ee4j/injection-api)
     (Apache License, Version 2.0) * Joda-Time:- joda-time:joda-time:2.10.8 (https://www.joda.org/joda-time/)
     (Apache License, Version 2.0) * Netty/All-in-One:- io.netty:netty-all:4.1.42.Final (https://netty.io/netty-all/)
     (Apache License, Version 2.0) * Objenesis:- org.objenesis:objenesis:3.2 (http://objenesis.org/objenesis)
@@ -285,6 +278,8 @@ See licenses/ for text of these licenses.
     (Apache License, Version 2.0) * swagger-core:- io.swagger:swagger-core:1.5.18 (https://github.com/swagger-api/swagger-core/modules/swagger-core)
     (Apache License, Version 2.0) * swagger-models:- io.swagger:swagger-models:1.5.18 (https://github.com/swagger-api/swagger-core/modules/swagger-models)
     (Apache License, Version 2.0) * tracer-core:- com.alipay.sofa:tracer-core:3.0.8 (https://projects.spring.io/spring-boot/#/spring-boot-starter-parent/sofaboot-dependencies/tracer-all-parent/tracer-core)
+    (Apache License, Version 2.0) * OkHttp (com.squareup.okhttp3:okhttp:4.10.0 - https://github.com/square/okhttp)
+    (Apache License, Version 2.0) * OkHttp (com.squareup.okhttp3:logging-interceptor:4.10.0 - https://github.com/square/okhttp)
 
 ========================================================================
 Third party CDDL licenses
@@ -305,11 +300,9 @@ The following components are provided under the EPL License.
 See licenses/ for text of these licenses.
     (Eclipse Public License - v2.0) * HK2 API module:- org.glassfish.hk2:hk2-api:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-api)
     (Eclipse Public License - v2.0) * HK2 Implementation Utilities:- org.glassfish.hk2:hk2-utils:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-utils)
-    (Eclipse Public License - v2.0) * Jakarta Annotations API:- jakarta.annotation:jakarta.annotation-api:2.0.0 (https://projects.eclipse.org/projects/ee4j.ca)
     (Eclipse Public License - v2.0) * OSGi resource locator:- org.glassfish.hk2:osgi-resource-locator:1.0.3 (https://projects.eclipse.org/projects/ee4j/osgi-resource-locator)
     (Eclipse Public License - v2.0) * ServiceLocator Default Implementation:- org.glassfish.hk2:hk2-locator:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/hk2-locator)
     (Eclipse Public License - v2.0) * aopalliance version 1.0 repackaged as a module:- org.glassfish.hk2.external:aopalliance-repackaged:3.0.1 (https://github.com/eclipse-ee4j/glassfish-hk2/external/aopalliance-repackaged)
-    (Eclipse Public License - v2.0) * jakarta.ws.rs-api:- jakarta.ws.rs:jakarta.ws.rs-api:3.0.0 (https://github.com/eclipse-ee4j/jaxrs-api)
     (Eclipse Public License - v2.0) * JUnit:- junit:junit:4.13.1 (http://junit.org)
 
 ========================================================================
@@ -320,7 +313,6 @@ The following components are provided under the EDL License.
 See licenses/ for text of these licenses.
     (Eclipse Distribution License - v1.0) * Jakarta Activation:- com.sun.activation:jakarta.activation:2.0.1 (https://github.com/eclipse-ee4j/jaf/jakarta.activation)
     (Eclipse Distribution License - v1.0) * Jakarta Activation API jar:- jakarta.activation:jakarta.activation-api:1.2.2 (https://github.com/eclipse-ee4j/jaf/jakarta.activation-api)
-    (Eclipse Distribution License - v1.0) * Jakarta XML Binding API:- jakarta.xml.bind:jakarta.xml.bind-api:4.0.0-RC2 (https://github.com/eclipse-ee4j/jaxb-api/jakarta.xml.bind-api)
     (Eclipse Distribution License - v1.0) * Old JAXB Core:- com.sun.xml.bind:jaxb-core:3.0.2 (https://eclipse-ee4j.github.io/jaxb-ri/)
     (Eclipse Distribution License - v1.0) * Old JAXB Runtime:- com.sun.xml.bind:jaxb-impl:3.0.2 (https://eclipse-ee4j.github.io/jaxb-ri/)
 
