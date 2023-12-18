@@ -76,6 +76,33 @@ Copyright 2010 Cedric Beust <cedric@beust.com>
 
 ========================================================================
 
+animal-sniffer-annotations NOTICE
+
+========================================================================
+
+Copyright (c) 2009 codehaus.org.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE. 
+
+
+========================================================================
+
 audience-annotations NOTICE
 
 ========================================================================
@@ -85,6 +112,16 @@ Copyright 2015-2017 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
+
+========================================================================
+
+asm NOTICE
+
+========================================================================
+
+ASM: a very small and fast Java bytecode manipulation framework
+Copyright (c) 2000-2011 INRIA, France Telecom
+All rights reserved.
 
 
 ========================================================================
@@ -105,11 +142,14 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+
 ========================================================================
 
 byte-buddy-agent NOTICE
 
 ========================================================================
+
 Copyright 2014 - 2019 Rafael Winterhalter
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -123,6 +163,44 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+
+========================================================================
+
+checker-qual NOTICE
+
+========================================================================
+
+Checker Framework qualifiers
+Copyright 2004-present by the Checker Framework developers
+
+
+========================================================================
+
+classgraph NOTICE
+
+========================================================================
+
+Copyright (c) 2019 Luke Hutchison
+
+
+========================================================================
+
+failureaccess NOTICE
+
+========================================================================
+
+Copyright (C) 2018 The Guava Authors
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+in compliance with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License
+is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+or implied. See the License for the specific language governing permissions and limitations under
+the License.
 
 ========================================================================
 
@@ -1434,6 +1512,8 @@ FasterXML.com (http://fasterxml.com).
 A list of contributors may be found from CREDITS file, which is included
 in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
+
+
 ========================================================================
 
 jackson-jaxrs-json-provider-2.12.1 NOTICE
@@ -1459,6 +1539,8 @@ FasterXML.com (http://fasterxml.com).
 A list of contributors may be found from CREDITS file, which is included
 in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
+
+
 ========================================================================
 
 jackson-jaxrs-json-provider NOTICE
@@ -1484,6 +1566,8 @@ FasterXML.com (http://fasterxml.com).
 A list of contributors may be found from CREDITS file, which is included
 in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
+
+
 ========================================================================
 
 jackson-module-jaxb-annotations NOTICE
@@ -1509,6 +1593,8 @@ FasterXML.com (http://fasterxml.com).
 A list of contributors may be found from CREDITS file, which is included
 in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
+
+
 ========================================================================
 
 kerb-admin NOTICE
@@ -1718,6 +1804,7 @@ The Apache Software Foundation (http://www.apache.org/).
 ResolverUtil.java
 Copyright 2005-2006 Tim Fennell
 
+
 ========================================================================
 
 log4j-slf4j-impl NOTICE
@@ -1736,6 +1823,7 @@ The Apache Software Foundation (http://www.apache.org/).
 objenesis NOTICE
 
 ========================================================================
+
 // ------------------------------------------------------------------
 // NOTICE file corresponding to the section 4d of The Apache License,
 // Version 2.0, in this case for Objenesis
@@ -1771,8 +1859,6 @@ This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
 
-
-
 ========================================================================
 
 Commons-beanutils NOTICE
@@ -1785,22 +1871,26 @@ Copyright 2000-2019 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+
 ========================================================================
 
  Commons-cli NOTICE
 
  ========================================================================
+
 Apache Commons CLI
 Copyright 2001-2015 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+
 ========================================================================
 
  Commons-codec NOTICE
 
  ========================================================================
+
 Apache Commons Codec
 Copyright 2002-2009 The Apache Software Foundation
 
@@ -1816,11 +1906,13 @@ and distribution of this entire article is permitted in any medium,
 provided this notice is preserved.
 --------------------------------------------------------------------------------
 
+
 ========================================================================
 
  Commons-collections NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Collections
 Copyright 2001-2015 The Apache Software Foundation
 
@@ -1832,7 +1924,8 @@ The Apache Software Foundation (http://www.apache.org/).
 
  Commons-compress NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Compress
 Copyright 2002-2014 The Apache Software Foundation
 
@@ -1845,43 +1938,51 @@ which has been placed in the public domain:
 
 "LZMA SDK is placed in the public domain." (http://www.7-zip.org/sdk.html)
 
+
 ========================================================================
 
  Commons-configuration NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Configuration
 Copyright 2001-2012 The Apache Software Foundation
 
 This product includes software developed by
 The Apache Software Foundation (http://www.apache.org/).
 
+
 ========================================================================
 
  Commons-daemon NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Daemon
 Copyright 1999-2013 The Apache Software Foundation
 
 This product includes software developed by
 The Apache Software Foundation (http://www.apache.org/).
 
+
 ========================================================================
  Commons-io NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons IO
 Copyright 2002-2020 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
+
 ========================================================================
 
  Commons-lang NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Lang
 Copyright 2001-2011 The Apache Software Foundation
 
@@ -1892,7 +1993,8 @@ The Apache Software Foundation (http://www.apache.org/).
 
  Commons-lang3 NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Lang
 Copyright 2001-2018 The Apache Software Foundation
 
@@ -1903,7 +2005,8 @@ The Apache Software Foundation (http://www.apache.org/).
 
  Commons-logging NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Logging
 Copyright 2003-2014 The Apache Software Foundation
 
@@ -1915,7 +2018,8 @@ The Apache Software Foundation (http://www.apache.org/).
 
  Commons-math3 NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Math
 Copyright 2001-2015 The Apache Software Foundation
 
@@ -1931,18 +2035,21 @@ Copyright 2010-2012 CS Systèmes d'Information
 
  Commons-text NOTICE
 
- ========================================================================
+========================================================================
+
 Apache Commons Text
 Copyright 2014-2018 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
+
 ========================================================================
 
  Compress-lzf NOTICE
 
- ========================================================================
+========================================================================
+
 # Compress LZF
 
 This library contains efficient implementation of LZF compression format,
@@ -1968,11 +2075,12 @@ Other contributors include:
 Various community members have contributed bug reports, and suggested minor
 fixes; these can be found from file "VERSION.txt" in SCM.
 
+
 ========================================================================
 
  opencypher NOTICE
 
- ========================================================================
+========================================================================
 
 Copyright (c) Neo4j Sweden AB (http://neo4j.com)
 
@@ -2002,8 +2110,6 @@ cassandra NOTICE
 
 ========================================================================
 
-
-
 Apache Cassandra
 Copyright 2009-2022 The Apache Software Foundation
 
@@ -2015,12 +2121,12 @@ Copyright 2005-2008 The Android Open Source Project
 This product includes software developed as part of
 The Android Open Source Project (http://source.android.com).
 
+
 ========================================================================
 
 concurrentlinkedhashmap NOTICE
 
 ========================================================================
-
 
 ConcurrentLinkedHashMap
 Copyright 2008, Ben Manes
@@ -2037,7 +2143,6 @@ Groovy NOTICE
 
 ========================================================================
 
-
 Apache Groovy
 Copyright 2003-2022 The Apache Software Foundation
 
@@ -2052,12 +2157,12 @@ The Java source file src/main/java/org/apache/groovy/util/concurrent/ConcurrentR
 is from https://github.com/hazelcast/hazelcast and the following notice applies:
 Copyright (c) 2008-2020, Hazelcast, Inc. All Rights Reserved.
 
+
 ========================================================================
 
 hppc NOTICE
 
 ========================================================================
-
 
 ACKNOWLEDGEMENT
 ===============
@@ -2072,13 +2177,11 @@ HPPC borrowed code, ideas or both from:
    (Apache license)
 
 
-
 ========================================================================
 
 Arthas NOTICE
 
 ========================================================================
-
 
 Arthas
 Copyright 2018 Alibaba Group
@@ -2092,7 +2195,6 @@ The greys-anatomy Project
 =================
 Please visit Github for more information:
 * https://github.com/oldmanpushcart/greys-anatomy
-
 
 -------------------------------------------------------------------------------
 This product contains a modified portion of 'Apache Commons Lang':
