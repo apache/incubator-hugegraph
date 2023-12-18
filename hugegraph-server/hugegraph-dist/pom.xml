@@ -167,8 +167,7 @@
                             <configuration>
                                 <attach>false</attach>
                                 <appendAssemblyId>false</appendAssemblyId>
-                                <outputDirectory>${top.level.dir}
-                                </outputDirectory>
+                                <outputDirectory>${top.level.dir}</outputDirectory>
                                 <descriptor>
                                     ${assembly.descriptor.dir}/assembly.xml
                                 </descriptor>
