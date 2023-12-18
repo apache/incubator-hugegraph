@@ -457,7 +457,6 @@ See licenses/ for text of these licenses.
     (Apache License, Version 2.0) * OpenHFT/Chronicle-Wire (net.openhft:chronicle-wire:2.20.117 - https://chronicle.software/java-parent-pom/chronicle-wire)
     (Apache License, Version 2.0) * jackson-databind (com.fasterxml.jackson.core:jackson-databind:2.15.2 - https://github.com/FasterXML/jackson)
     (Apache License, Version 2.0) * org.gridkit.lab::jvm-attach-api (org.gridkit.lab:jvm-attach-api:1.5 - http://code.google.com/p/gridkit/jvm-attach-api)
-    (Apache License, Version 2.0) * Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:3.0.0 - https://github.com/eclipse-ee4j/jaxb-api/jakarta.xml.bind-api)
     (Apache License, Version 2.0) * Lucene QueryParsers (org.apache.lucene:lucene-queryparser:4.7.2 - http://lucene.apache.org/lucene-parent/lucene-queryparser)
     (Apache License, Version 2.0) * Kotlin Stdlib Common (org.jetbrains.kotlin:kotlin-stdlib-common:1.5.31 - https://kotlinlang.org/)
     (Apache License, Version 2.0) * JCommander (com.beust:jcommander:1.30 - http://beust.com/jcommander)
@@ -530,6 +529,7 @@ See licenses/ for text of these licenses.
 	(Eclipse Distribution License - v1.0) * Old JAXB Core (com.sun.xml.bind:jaxb-core:3.0.2 - https://eclipse-ee4j.github.io/jaxb-ri/)
 	(Eclipse Distribution License - v1.0) * Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:3.0.2 - https://eclipse-ee4j.github.io/jaxb-ri/)
     (Eclipse Distribution License - v1.0) * Jakarta Activation (com.sun.activation:jakarta.activation:2.0.0 - https://github.com/eclipse-ee4j/jaf/jakarta.activation)
+    (Eclipse Distribution License - v1.0) * Jakarta XML Binding API (jakarta.xml.bind:jakarta.xml.bind-api:3.0.0 - https://github.com/eclipse-ee4j/jaxb-api/jakarta.xml.bind-api)
 
 ========================================================================
 Third party BSD licenses
