@@ -30,7 +30,7 @@ Billions of vertices and edges can be easily stored into and queried from HugeGr
 
 ## Quick Start
 
-### 1. Docker Way
+### 1. Download Way
 
 We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
 HugeGraph server with `RocksDB` in backgrounds. (Use `release tag`(like `1.0.0`) for the stable version)
@@ -42,10 +42,11 @@ Optional:
 
 ### 2. Download Way
 
-Visit [Download Page](https://hugegraph.apache.org/docs/download/download/) and refer the [doc](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#33-source-code-compilation) 
+Visit [Download Page](https://hugegraph.apache.org/docs/download/download/) and refer the [doc](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#32-download-the-binary-tar-tarball) 
+
 to download the latest release package and start the server.
 
-### 3. Source Building Way
+### 2. Source Building Way
 
 Visit [Source Building Page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#33-source-code-compilation) and follow the 
 steps to build the source code and start the server.
@@ -58,6 +59,18 @@ And here are links of other **HugeGraph** component/repositories:
 2. [hugegraph-computer](https://github.com/apache/incubator-hugegraph-computer) (integrated **graph computing** system)
 3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** libs)
 4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
+
+### 3. Docker Way (Convenient for Test)
+
+We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
+HugeGraph server with `RocksDB` (in backgrounds) for **test/dev**.
+You can visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy) or the [README](hugegraph-server/hugegraph-dist/docker/READEME.md) for more details.
+
+> Note:
+>  
+> 1. The docker image of hugegraph is a convenience release, but not **official distribution** artifacts. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
+> 
+> 2. Recommand to use `release tag`(like `1.0.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ## License
 

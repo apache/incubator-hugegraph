@@ -47,6 +47,7 @@ RUN set -x \
        procps \
        curl \
        lsof \
+       vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
