@@ -592,3 +592,11 @@ Third party ISC licenses
 
 The following components are provided under the ISC License.
 	(ISC) * jBCrypt (org.mindrot:jbcrypt:0.4 - https://github.com/djmdjm/jBCrypt)
+
+========================================================================
+Third party Historical Permission Notice and Disclaimer
+========================================================================
+The following components are provided under the Historical Permission Notice and Disclaimer.
+	(Permission Notice and Disclaimer) * java-cup-time (com.github.vbmacher:java-cup-runtime:11b-20160615 - https://czt.sourceforge.net/dev/java-cup-runtime/)
+
+
