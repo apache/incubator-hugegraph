@@ -2046,38 +2046,6 @@ The Apache Software Foundation (http://www.apache.org/).
 
 ========================================================================
 
- Compress-lzf NOTICE
-
-========================================================================
-
-# Compress LZF
-
-This library contains efficient implementation of LZF compression format,
-as well as additional helper classes that build on JDK-provided gzip (deflat)
-codec.
-
-## Licensing
-
-Library is licensed under Apache License 2.0, as per accompanying LICENSE file.
-
-## Credit
-
-Library has been written by Tatu Saloranta (tatu.saloranta@iki.fi).
-It was started at Ning, inc., as an official Open Source process used by
-platform backend, but after initial versions has been developed outside of
-Ning by supporting community.
-
-Other contributors include:
-
-* Jon Hartlaub (first versions of streaming reader/writer; unit tests)
-* Cedrik Lime: parallel LZF implementation
-
-Various community members have contributed bug reports, and suggested minor
-fixes; these can be found from file "VERSION.txt" in SCM.
-
-
-========================================================================
-
  opencypher NOTICE
 
 ========================================================================
@@ -2120,21 +2088,6 @@ Android Code
 Copyright 2005-2008 The Android Open Source Project
 This product includes software developed as part of
 The Android Open Source Project (http://source.android.com).
-
-
-========================================================================
-
-concurrentlinkedhashmap NOTICE
-
-========================================================================
-
-ConcurrentLinkedHashMap
-Copyright 2008, Ben Manes
-Copyright 2010, Google Inc.
-
-Some alternate data structures provided by JSR-166e
-from http://gee.cs.oswego.edu/dl/concurrency-interest/.
-Written by Doug Lea and released as Public Domain.
 
 
 ========================================================================
