@@ -63,7 +63,7 @@ You can visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-
 
 ## License
 
-HugeGraph is licensed under [Apache 2.0 License](https://github.com/apache/incubator-hugegraph/blob/master/LICENSE).
+HugeGraph is licensed under [Apache 2.0 License](LICENSE).
 
 
 ## Contributing
