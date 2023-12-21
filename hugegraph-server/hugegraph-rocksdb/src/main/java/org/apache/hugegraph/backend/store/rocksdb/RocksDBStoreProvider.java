@@ -88,7 +88,7 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
                 return;
             }
             try {
-                ((RocksDBStore)store).forceClose();
+                ((RocksDBStore) store).forceClose();
             } catch (Exception e) {
                 LOG.error("Failed to close store '%s'", store.store(), e);
                 throw new BackendException("Failed to close store '%s'", store.store(), e);
