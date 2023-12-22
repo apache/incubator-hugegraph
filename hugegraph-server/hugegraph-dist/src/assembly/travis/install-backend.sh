@@ -31,12 +31,14 @@ fi
 
 case $BACKEND in
     cassandra)
+        # TODO: replace it with docker
         "$TRAVIS_DIR"/install-cassandra.sh
         ;;
     scylladb)
         "$TRAVIS_DIR"/install-scylladb.sh
         ;;
     hbase)
+        # TODO: replace it with hbase2.3+ to avoid java8 env
         "$TRAVIS_DIR"/install-hbase.sh
         ;;
     mysql)

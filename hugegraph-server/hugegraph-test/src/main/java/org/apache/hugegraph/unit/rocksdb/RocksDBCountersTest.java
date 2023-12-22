@@ -21,16 +21,15 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.rocksdb.RocksDBException;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBTables;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
+import org.junit.Before;
+import org.junit.Test;
+import org.rocksdb.RocksDBException;
 
 public class RocksDBCountersTest extends BaseRocksDBUnitTest {
 
@@ -104,7 +103,7 @@ public class RocksDBCountersTest extends BaseRocksDBUnitTest {
     private Id nextId(Session session, HugeType type) {
         final int MAX_TIMES = 1000;
         // Do get-increase-get-compare operation
-        long counter = 0L;
+        long counter;
         long expect = -1L;
         synchronized (this) {
             for (int i = 0; i < MAX_TIMES; i++) {

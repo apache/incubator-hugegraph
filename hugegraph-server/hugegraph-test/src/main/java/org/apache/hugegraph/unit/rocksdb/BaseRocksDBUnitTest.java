@@ -23,23 +23,21 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.rocksdb.RocksDBException;
-
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBStdSessions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.rocksdb.RocksDBException;
 
 public class BaseRocksDBUnitTest extends BaseUnitTest {
 
     private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
     protected static final String DB_PATH = TMP_DIR + "/" + "rocksdb";
     protected static final String SNAPSHOT_PATH = TMP_DIR + "/" + "snapshot";
-
     protected static final String TABLE = "test-table";
 
     protected RocksDBSessions rocks;
@@ -74,10 +72,9 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
         return getString(this.rocks.session().get(TABLE, getBytes(key)));
     }
 
-    protected void clearData() throws RocksDBException {
+    protected void clearData() {
         for (String table : new ArrayList<>(this.rocks.openedTables())) {
-            this.rocks.session().deleteRange(table,
-                                             new byte[]{0}, new byte[]{-1});
+            this.rocks.session().deleteRange(table, new byte[]{0}, new byte[]{-1});
         }
         this.commit();
     }
@@ -119,7 +116,7 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
 
     private static void close(RocksDBSessions rocks) throws RocksDBException {
         for (String table : new ArrayList<>(rocks.openedTables())) {
-            if (table.equals("default")) {
+            if ("default".equals(table)) {
                 continue;
             }
             rocks.dropTable(table);

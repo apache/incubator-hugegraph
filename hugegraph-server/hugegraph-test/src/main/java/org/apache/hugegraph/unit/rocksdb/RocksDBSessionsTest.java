@@ -21,9 +21,6 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.Test;
-import org.rocksdb.RocksDBException;
-
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBMetrics;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions;
@@ -32,6 +29,9 @@ import org.apache.hugegraph.backend.store.rocksdbsst.RocksDBSstSessions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.FakeObjects;
+import org.junit.Test;
+import org.rocksdb.RocksDBException;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -162,9 +162,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         HugeConfig config = FakeObjects.newConfig();
         String sstPath = DB_PATH + "/sst";
         config.addProperty(RocksDBOptions.SST_PATH.name(), sstPath);
-        RocksDBSstSessions sstSessions = new RocksDBSstSessions(config,
-                                                                "sst", "store",
-                                                                sstPath);
+        RocksDBSstSessions sstSessions = new RocksDBSstSessions(config, "sst", "store", sstPath);
         final String TABLE1 = "test-table1";
         final String TABLE2 = "test-table2";
         sstSessions.createTable(TABLE1);
@@ -192,8 +190,7 @@ public class RocksDBSessionsTest extends BaseRocksDBUnitTest {
         Assert.assertFalse(sstSessions.existsTable(TABLE1));
         Assert.assertFalse(sstSessions.existsTable(TABLE2));
 
-        RocksDBSessions rocks = new RocksDBStdSessions(config, "db", "store",
-                                                       sstPath, sstPath);
+        RocksDBSessions rocks = new RocksDBStdSessions(config, "db", "store", sstPath, sstPath);
         // Will ingest sst file of TABLE1
         rocks.createTable(TABLE1);
         Assert.assertEquals(ImmutableList.of("1000"),

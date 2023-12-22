@@ -21,12 +21,14 @@ FROM maven:3.9.0-eclipse-temurin-11 AS build
 
 COPY . /pkg
 WORKDIR /pkg
-RUN mvn package -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
+ARG MAVEN_ARGS
+
+RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
 
 # 2nd stage: runtime env
 FROM openjdk:11-slim
 # TODO: get the version from the pom.xml
-ENV version=1.5.0
+ENV version=1.2.0
 COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-$version/ /hugegraph-server
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
@@ -45,6 +47,7 @@ RUN set -x \
        procps \
        curl \
        lsof \
+       vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

@@ -42,16 +42,15 @@ public class EdgeExistenceTraverser extends HugeTraverser {
             return queryByNeighbors(sourceId, targetId, limit);
         }
 
-        Id edgeLabelId = getEdgeLabelId(label);
-        EdgeLabel edgeLabel = graph().edgeLabel(edgeLabelId);
+        EdgeLabel edgeLabel = graph().edgeLabel(label);
         ConditionQuery conditionQuery = new ConditionQuery(HugeType.EDGE);
         conditionQuery.eq(HugeKeys.OWNER_VERTEX, sourceId);
         conditionQuery.eq(HugeKeys.OTHER_VERTEX, targetId);
-        conditionQuery.eq(HugeKeys.LABEL, edgeLabelId);
+        conditionQuery.eq(HugeKeys.LABEL, edgeLabel.id());
         conditionQuery.eq(HugeKeys.DIRECTION, Directions.OUT);
         conditionQuery.limit(limit);
 
-        if (edgeLabel.existSortKeys()) {
+        if (edgeLabel.existSortKeys() && !sortValues.isEmpty()) {
             conditionQuery.eq(HugeKeys.SORT_VALUES, sortValues);
         } else {
             conditionQuery.eq(HugeKeys.SORT_VALUES, "");

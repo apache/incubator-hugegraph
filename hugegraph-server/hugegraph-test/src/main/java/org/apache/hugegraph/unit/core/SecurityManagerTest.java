@@ -32,23 +32,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeFactory;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.job.GremlinJob;
+import org.apache.hugegraph.job.JobBuilder;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.security.HugeSecurityManager;
+import org.apache.hugegraph.task.HugeTask;
+import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.unit.FakeObjects;
+import org.apache.hugegraph.util.JsonUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeFactory;
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.job.GremlinJob;
-import org.apache.hugegraph.job.JobBuilder;
-import org.apache.hugegraph.security.HugeSecurityManager;
-import org.apache.hugegraph.task.HugeTask;
-import org.apache.hugegraph.testutil.Assert;
-import org.apache.hugegraph.type.define.NodeRole;
-import org.apache.hugegraph.unit.FakeObjects;
-import org.apache.hugegraph.util.JsonUtil;
 import com.google.common.collect.ImmutableMap;
 
 public class SecurityManagerTest {
@@ -319,7 +318,7 @@ public class SecurityManagerTest {
             graph.clearBackend();
         }
         graph.initBackend();
-        graph.serverStarted(IdGenerator.of("server1"), NodeRole.MASTER);
+        graph.serverStarted(GlobalMasterInfo.master("server1"));
 
         return graph;
     }

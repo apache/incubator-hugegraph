@@ -4,8 +4,8 @@ on:
   push:
     branches: [ master, release-* ]
   pull_request:
-    # The branches below must be a subset of the branches above
-    # branches: [ master ] # enable in all PR
+  # The branches below must be a subset of the branches above
+  # branches: [ master ] # enable in all PRs
   schedule:
     - cron: '33 0 * * 5'
 
@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Java JDK
         uses: actions/setup-java@v3
