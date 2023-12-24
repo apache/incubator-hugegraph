@@ -142,6 +142,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public <V> void restoreTasks() {
         Id selfServer = this.serverManager().selfNodeId();
+        List<HugeTask<V>> taskList = new ArrayList<>();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
@@ -151,13 +152,17 @@ public class StandardTaskScheduler implements TaskScheduler {
                      iter.hasNext();) {
                     HugeTask<V> task = iter.next();
                     if (selfServer.equals(task.server())) {
-                        this.restore(task);
+                        taskList.add(task);
                     }
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(iter);
                 }
             } while (page != null);
+        }
+        for (HugeTask<V> task : taskList){
+            LOG.info("restore task {}",task );
+            this.restore(task);
         }
     }
 
