@@ -32,8 +32,7 @@ else
     ./bin/init-store.sh
 fi
 
+# start hugegraph
 ./bin/start-hugegraph.sh -j "$JAVA_OPTS" -g zgc
 
 tail -f /dev/null
-# start hugegraph
-./bin/start-hugegraph.sh -d false -j "$JAVA_OPTS" -g zgc
