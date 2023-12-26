@@ -16,9 +16,21 @@
 # under the License.
 #
 
-
+# wait for storage like cassandra
 ./bin/wait-storage.sh
 
-./bin/init-store.sh
+# set auth if needed 
+if [[ $AUTH == "true" ]]; then
+    # set password if use do not provide
+    if [ -z "$PASSWORD" ]; then
+        echo "you have not set the password, we will use the default password"
+        PASSWORD="hugegraph"
+    fi
+    echo "init hugegraph with auth"
+    echo "$PASSWORD" | ./bin/init-store.sh
+else
+    ./bin/init-store.sh
+fi
 
+# start hugegraph
 ./bin/start-hugegraph.sh -d false -j "$JAVA_OPTS" -g zgc

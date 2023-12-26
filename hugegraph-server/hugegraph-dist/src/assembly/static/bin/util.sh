@@ -17,10 +17,10 @@
 #
 function command_available() {
     local cmd=$1
-    if [ "$(command -v "$cmd" >/dev/null 2>&1)" ]; then
-        return 1
-    else
+    if command -v "$cmd" &> /dev/null; then
         return 0
+    else
+        return 1
     fi
 }
 
