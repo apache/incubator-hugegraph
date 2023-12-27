@@ -17,7 +17,7 @@
 #
 function command_available() {
     local cmd=$1
-    if command -v "$cmd" &> /dev/null; then
+    if [[ -x "$(command -v "$cmd")" ]]; then
         return 0
     else
         return 1
