@@ -161,7 +161,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             } while (page != null);
         }
         for (HugeTask<V> task : taskList){
-            LOG.info("restore task {}", task );
+            LOG.info("restore task {}", task);
             this.restore(task);
         }
     }
