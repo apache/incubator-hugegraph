@@ -287,7 +287,7 @@ function download() {
         wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
         wget "${link_url}" -P "${path}" $progress_opt
     else
-        echo "Required wget or curl but they are unavailable"
+        echo "Required curl or wget but they are unavailable"
         exit 1
     fi
 }

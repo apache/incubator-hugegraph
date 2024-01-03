@@ -27,7 +27,7 @@ if [[ ! -f hugegraph-server.keystore ]]; then
   curl -s -S -L -o hugegraph-server.keystore \
     https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore ||
     {
-      echo 'ERROR: Download `hugegraph-server.keystore` failed, please check your network connection'
+      echo 'ERROR: Download `hugegraph-server.keystore` from GitHub failed, please check your network connection'
       exit
     }
 fi
