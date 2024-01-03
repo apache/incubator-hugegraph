@@ -62,6 +62,9 @@ COPY hugegraph-server/hugegraph-dist/docker/scripts/detect-storage.groovy ./scri
 COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
 RUN chmod 755 ./docker-entrypoint.sh 
 
+# 4. Pre-download binary file 
+RUN curl -L https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore -o ./conf/hugegraph-server.keystore
+
 EXPOSE 8080
 VOLUME /hugegraph-server
 
