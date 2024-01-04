@@ -35,9 +35,11 @@ REST_SERVER_CONF="rest-server.properties"
 GRAPH_CONF="hugegraph.properties"
 
 # make a backup
-cp "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}/${GREMLIN_SERVER_CONF}.bak"
-cp "${CONF}/${REST_SERVER_CONF}" "${CONF}/${REST_SERVER_CONF}.bak"
-cp "${CONF}/graphs/${GRAPH_CONF}" "${CONF}/graphs/${GRAPH_CONF}.bak"
+BAK_CONF="$TOP/conf-bak"
+mkdir -p "$BAK_CONF"
+cp "${CONF}/${GREMLIN_SERVER_CONF}" "${BAK_CONF}/${GREMLIN_SERVER_CONF}.bak"
+cp "${CONF}/${REST_SERVER_CONF}" "${BAK_CONF}/${REST_SERVER_CONF}.bak"
+cp "${CONF}/graphs/${GRAPH_CONF}" "${BAK_CONF}/${GRAPH_CONF}.bak"
 
 
 sed -i -e '$a\authentication: {' \

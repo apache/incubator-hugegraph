@@ -27,7 +27,7 @@ if [[ $AUTH == "true" ]]; then
         PASSWORD="hugegraph"
     fi
     echo "init hugegraph with auth"
-    ./bin/set-auth.sh
+    ./bin/enable-auth.sh
     echo "$PASSWORD" | ./bin/init-store.sh
 else
     ./bin/init-store.sh

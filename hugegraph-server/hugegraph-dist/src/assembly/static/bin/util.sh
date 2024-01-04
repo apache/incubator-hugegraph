@@ -131,7 +131,7 @@ function wait_for_startup() {
     local stop_s=$((now_s + timeout_s))
 
     local status
-    local error_file_name="wait_for_startup_error.txt"
+    local error_file_name="startup_error.txt"
 
     echo -n "Connecting to $server_name ($server_url)"
     while [ "$now_s" -le $stop_s ]; do
@@ -274,7 +274,7 @@ function get_ip() {
 
 function download() {
     local path=$1
-    local link_url=$2
+    local download_url=$2
     if command_available "curl"; then
         if [ ! -d "$path" ]; then
             mkdir -p "$path" || {
@@ -282,10 +282,10 @@ function download() {
                 exit 1
             }
         fi
-        curl -L "${link_url}" -o "${path}/$(basename "${link_url}")"
+        curl -L "${download_url}" -o "${path}/$(basename "${download_url}")"
     elif command_available "wget"; then
         wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
-        wget "${link_url}" -P "${path}" $progress_opt
+        wget "${download_url}" -P "${path}" $progress_opt
     else
         echo "Required curl or wget but they are unavailable"
         exit 1
