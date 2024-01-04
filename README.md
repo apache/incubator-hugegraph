@@ -30,7 +30,7 @@ Billions of vertices and edges can be easily stored into and queried from HugeGr
 
 ## Quick Start
 
-### 1. Docker Way
+### 1. Docker Way (Convenient for Test)
 
 We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
 HugeGraph server with `RocksDB` (in backgrounds) for **test/dev**.
