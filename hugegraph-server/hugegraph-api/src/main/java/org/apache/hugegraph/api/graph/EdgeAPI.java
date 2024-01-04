@@ -292,6 +292,7 @@ public class EdgeAPI extends BatchAPI {
 
         GraphTraversal<?, Edge> traversal;
 
+        // Optimize edge query. Return early when the EdgeLabel does not exist.
         if (label != null && !g.existsEdgeLabel(label)) {
             try {
                 traversal = g.traversal().E().limit(0);
