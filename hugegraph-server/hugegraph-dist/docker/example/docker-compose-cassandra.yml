@@ -39,7 +39,7 @@ services:
       retries: 3
 
   cassandra:
-    image: cassandra:3.11
+    image: cassandra:4
     container_name: cas-cassandra
     ports:
       - 7000:7000
