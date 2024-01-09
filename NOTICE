@@ -1,5 +1,5 @@
 Apache HugeGraph(incubating)
-Copyright 2022-2023 The Apache Software Foundation
+Copyright 2022-2024 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -12,9 +12,6 @@ This product contains code form the Apache TinkerPop Project:
 -----------------------------------------------------------------------
 Apache TinkerPop
 Copyright 2015-2022 The Apache Software Foundation.
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 
 ------------------------------------------------------------------------
 Activiti
@@ -42,7 +39,7 @@ This product contains code form the JanusGraph Project:
 -----------------------------------------------------------------------
 ==============================================================
  JanusGraph: Distributed Graph Database
- Copyright 2012 and onwards JanusGraph Authors
+ Copyright 2012 with JanusGraph Authors
 ==============================================================
 
 This product includes software developed by JanusGraph contributors listed
@@ -56,36 +53,3 @@ DataStax) and the following individuals:
  * Marko A. Rodriguez
  * Stephen Mallette
  * Pavel Yaskevich
-
-It also includes software from other open source projects including, but not limited to (check pom.xml for complete listing):
-
- * Apache Cassandra [https://cassandra.apache.org/]
- * Apache Commons [https://commons.apache.org/]
- * Apache Groovy [http://groovy-lang.org/]
- * Apache HBase [https://hbase.apache.org/]
- * Apache Hadoop [https://hadoop.apache.org/]
- * Apache Kerby [https://github.com/apache/directory-kerby]
- * Apache Log4j [https://logging.apache.org/log4j]
- * Apache Lucene [https://lucene.apache.org/]
- * Apache Solr [https://lucene.apache.org/solr/]
- * Apache TinkerPop [https://tinkerpop.apache.org/]
- * Astyanax [https://github.com/Netflix/astyanax]
- * DataStax Driver for Apache Cassandra  [https://github.com/datastax/java-driver]
- * EasyMock [http://easymock.org/]
- * Elasticsearch [https://www.elastic.co/]
- * Google Cloud Bigtable [https://github.com/googlecloudplatform/cloud-bigtable-client]
- * Google Guava [https://github.com/google/guava]
- * HPPC [https://labs.carrotsearch.com/hppc.html]
- * JUnit [https://www.junit.org/]
- * Jackson [https://github.com/FasterXML/jackson]
- * Kryo [https://github.com/EsotericSoftware/kryo]
- * Metrics [https://metrics.dropwizard.io]
- * Mockito [https://site.mockito.org/]
- * Noggit [https://github.com/yonik/noggit]
- * OpenRDF [http://rdf4j.org/]
- * Oracle BerkeleyDB Java Edition [https://www.oracle.com/technetwork/products/berkeleydb/] (see license below)
- * Project Lombok [https://projectlombok.org/]
- * Reflections8 [https://github.com/aschoerk/reflections8]
- * SLF4J [https://www.slf4j.org/]
- * Spatial4j [https://github.com/locationtech/spatial4j]
- * Vavr [https://www.vavr.io/]

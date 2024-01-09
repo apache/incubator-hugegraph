@@ -1,5 +1,5 @@
 Apache HugeGraph(incubating)
-Copyright 2022-2023 The Apache Software Foundation
+Copyright 2022-2024 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -13,7 +13,7 @@ JanusGraph NOTICE
 ========================================================================
 ==============================================================
  JanusGraph: Distributed Graph Database
- Copyright 2012 and onwards JanusGraph Authors
+ Copyright 2012 with JanusGraph Authors
 ==============================================================
 
 This product includes software developed by JanusGraph contributors listed
@@ -27,40 +27,6 @@ DataStax) and the following individuals:
  * Marko A. Rodriguez
  * Stephen Mallette
  * Pavel Yaskevich
-
-It also includes software from other open source projects including, but not limited to (check pom.xml for complete listing):
-
- * Apache Cassandra [https://cassandra.apache.org/]
- * Apache Commons [https://commons.apache.org/]
- * Apache Groovy [http://groovy-lang.org/]
- * Apache HBase [https://hbase.apache.org/]
- * Apache Hadoop [https://hadoop.apache.org/]
- * Apache Kerby [https://github.com/apache/directory-kerby]
- * Apache Log4j [https://logging.apache.org/log4j]
- * Apache Lucene [https://lucene.apache.org/]
- * Apache Solr [https://lucene.apache.org/solr/]
- * Apache TinkerPop [https://tinkerpop.apache.org/]
- * Astyanax [https://github.com/Netflix/astyanax]
- * DataStax Driver for Apache Cassandra  [https://github.com/datastax/java-driver]
- * EasyMock [http://easymock.org/]
- * Elasticsearch [https://www.elastic.co/]
- * Google Cloud Bigtable [https://github.com/googlecloudplatform/cloud-bigtable-client]
- * Google Guava [https://github.com/google/guava]
- * HPPC [https://labs.carrotsearch.com/hppc.html]
- * JUnit [https://www.junit.org/]
- * Jackson [https://github.com/FasterXML/jackson]
- * Kryo [https://github.com/EsotericSoftware/kryo]
- * Metrics [https://metrics.dropwizard.io]
- * Mockito [https://site.mockito.org/]
- * Noggit [https://github.com/yonik/noggit]
- * OpenRDF [http://rdf4j.org/]
- * Oracle BerkeleyDB Java Edition [https://www.oracle.com/technetwork/products/berkeleydb/] (see license below)
- * Project Lombok [https://projectlombok.org/]
- * Reflections8 [https://github.com/aschoerk/reflections8]
- * SLF4J [https://www.slf4j.org/]
- * Spatial4j [https://github.com/locationtech/spatial4j]
- * Vavr [https://www.vavr.io/]
-
 
 ========================================================================
 
@@ -109,9 +75,6 @@ audience-annotations NOTICE
 
 Apache Yetus - Audience Annotations
 Copyright 2015-2017 The Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 
 ========================================================================
 
@@ -210,9 +173,6 @@ Apache TinkerPop NOTICE
 Apache TinkerPop
 Copyright 2015-2022 The Apache Software Foundation.
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
 ------------------------------------------------------------------------
 Activiti
 ------------------------------------------------------------------------
@@ -243,10 +203,6 @@ gremlin-console NOTICE
 Apache TinkerPop :: Gremlin Console
 Copyright 2013-2021 Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
-
 ========================================================================
 
 gremlin-core NOTICE
@@ -257,10 +213,6 @@ This product contains code form the JanusGraph Project:
 Apache TinkerPop :: Gremlin Core
 Copyright 2013-2021 Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
-
 ========================================================================
 
 gremlin-driver NOTICE
@@ -269,10 +221,6 @@ gremlin-driver NOTICE
 
 Apache TinkerPop :: Gremlin Driver
 Copyright 2013-2021 Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
 
 ========================================================================
 
@@ -283,10 +231,6 @@ gremlin-groovy NOTICE
 Apache TinkerPop :: Gremlin Groovy
 Copyright 2013-2021 Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
-
 ========================================================================
 
 gremlin-server NOTICE
@@ -295,10 +239,6 @@ gremlin-server NOTICE
 
 Apache TinkerPop :: Gremlin Server
 Copyright 2013-2021 Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
 
 ========================================================================
 
@@ -309,10 +249,6 @@ gremlin-shaded NOTICE
 Apache TinkerPop :: Gremlin Shaded
 Copyright 2013-2021 Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
-
 ========================================================================
 
 gremlin-test NOTICE
@@ -321,9 +257,6 @@ gremlin-test NOTICE
 
 Apache TinkerPop :: Gremlin Test
 Copyright 2013-2021 Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 
 
 ========================================================================
@@ -347,8 +280,6 @@ groovy-cli-picocli NOTICE
 Apache Groovy
 Copyright 2003-2020 The Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 ========================================================================
 
 groovy-console NOTICE
@@ -356,9 +287,6 @@ groovy-console NOTICE
 ========================================================================
 Apache Groovy
 Copyright 2003-2020 The Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 
 ========================================================================
 
@@ -368,8 +296,6 @@ groovy-swing NOTICE
 Apache Groovy
 Copyright 2003-2020 The Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 ========================================================================
 
 groovy-templates NOTICE
@@ -378,8 +304,6 @@ groovy-templates NOTICE
 Apache Groovy
 Copyright 2003-2020 The Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 ========================================================================
 
 groovy-xml NOTICE
@@ -388,8 +312,6 @@ groovy-xml NOTICE
 Apache Groovy
 Copyright 2003-2020 The Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 ========================================================================
 
 hbase-shaded-endpoint NOTICE
@@ -399,11 +321,6 @@ hbase-shaded-endpoint NOTICE
 hugegraph-hbase-shaded-endpoint
 Copyright 2007-2021 The Apache Software Foundation
 
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
 ====
 hugegraph-hbase-shaded-endpoint contained works
 
