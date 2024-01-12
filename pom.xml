@@ -94,9 +94,8 @@
 
     <modules>
         <module>hugegraph-server</module>
-        <!-- TODO: uncomment when merge into pd and store -->
-        <!-- <module>hugegraph-pd</module> -->
-        <!-- <module>hugegraph-store</module> -->
+        <module>hugegraph-pd</module>
+        <module>hugegraph-store</module>
     </modules>
 
     <build>
