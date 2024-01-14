@@ -314,7 +314,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();
                 // NOTE: only support BinaryBackendEntry currently
-                entry = new BinaryBackendEntry(type, col.name, isOlap);
+                entry = new BinaryBackendEntry(type, col.name, false, isOlap);
             }
             entry.columns(col);
             return entry;
