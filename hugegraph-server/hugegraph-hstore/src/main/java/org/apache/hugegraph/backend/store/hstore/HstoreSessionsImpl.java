@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -47,7 +48,9 @@ import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgScanQuery;
 import org.apache.hugegraph.store.HgStoreClient;
 import org.apache.hugegraph.store.HgStoreSession;
+import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
+import org.apache.hugegraph.store.grpc.common.ScanOrderType;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.util.Bytes;
@@ -619,56 +622,55 @@ public class HstoreSessionsImpl extends HstoreSessions {
             String table,
             Iterator<HgOwnerKey> keys,
             int scanType, Query queryParam, byte[] query) {
-            //ScanOrderType orderType;
-            //switch (queryParam.orderType()) {
-            //    case ORDER_NONE:
-            //        orderType = ScanOrderType.ORDER_NONE;
-            //        break;
-            //    case ORDER_WITHIN_VERTEX:
-            //        orderType = ScanOrderType.ORDER_WITHIN_VERTEX;
-            //        break;
-            //    case ORDER_STRICT:
-            //        orderType = ScanOrderType.ORDER_STRICT;
-            //        break;
-            //    default:
-            //        throw new RuntimeException("not implement");
-            //}
-            //HgScanQuery scanQuery = HgScanQuery.prefixIteratorOf(table, keys)
-            //                                   .builder()
-            //                                   .setScanType(scanType)
-            //                                   .setQuery(query)
-            //                                   .setPerKeyMax(queryParam.limit())
-            //                                   .setOrderType(orderType)
-            //                                   .setOnlyKey(
-            //                                           !queryParam.withProperties())
-            //                                   .setSkipDegree(
-            //                                           queryParam.skipDegree())
-            //                                   .build();
-            //KvCloseableIterator<HgKvIterator<HgKvEntry>> scanIterators =
-            //        this.graph.scanBatch2(scanQuery);
-            //return new BackendEntry.BackendIterator<>() {
-            //    @Override
-            //    public void close() {
-            //        scanIterators.close();
-            //    }
-            //
-            //    @Override
-            //    public byte[] position() {
-            //        throw new NotImplementedException();
-            //    }
-            //
-            //    @Override
-            //    public boolean hasNext() {
-            //        return scanIterators.hasNext();
-            //    }
-            //
-            //    @Override
-            //    public BackendColumnIterator next() {
-            //        return new ColumnIterator<HgKvIterator>(table,
-            //                                                scanIterators.next());
-            //    }
-            //};
-            return null;
+            ScanOrderType orderType;
+            switch (queryParam.orderType()) {
+                case ORDER_NONE:
+                    orderType = ScanOrderType.ORDER_NONE;
+                    break;
+                case ORDER_WITHIN_VERTEX:
+                    orderType = ScanOrderType.ORDER_WITHIN_VERTEX;
+                    break;
+                case ORDER_STRICT:
+                    orderType = ScanOrderType.ORDER_STRICT;
+                    break;
+                default:
+                    throw new RuntimeException("not implement");
+            }
+            HgScanQuery scanQuery = HgScanQuery.prefixIteratorOf(table, keys)
+                                               .builder()
+                                               .setScanType(scanType)
+                                               .setQuery(query)
+                                               .setPerKeyMax(queryParam.limit())
+                                               .setOrderType(orderType)
+                                               .setOnlyKey(
+                                                       !queryParam.withProperties())
+                                               .setSkipDegree(
+                                                       queryParam.skipDegree())
+                                               .build();
+            KvCloseableIterator<HgKvIterator<HgKvEntry>> scanIterators =
+                    this.graph.scanBatch2(scanQuery);
+            return new BackendEntry.BackendIterator<BackendColumnIterator>() {
+                @Override
+                public void close() {
+                    scanIterators.close();
+                }
+
+                @Override
+                public byte[] position() {
+                    throw new NotImplementedException();
+                }
+
+                @Override
+                public boolean hasNext() {
+                    return scanIterators.hasNext();
+                }
+
+                @Override
+                public BackendColumnIterator next() {
+                    return new ColumnIterator<HgKvIterator>(table,
+                                                            scanIterators.next());
+                }
+            };
         }
 
         @Override

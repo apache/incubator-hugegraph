@@ -230,6 +230,31 @@ public class ConditionQuery extends IdQuery {
         return null;
     }
 
+    public boolean containsLabelOrUserpropRelation() {
+        for (Condition c : this.conditions) {
+            while (c instanceof Condition.Not) {
+                c = ((Condition.Not) c).condition();
+            }
+            if (c.isLogic()) {
+                Condition.BinCondition binCondition =
+                    (Condition.BinCondition) c;
+                ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+                query.query(binCondition.left());
+                query.query(binCondition.right());
+                if (query.containsLabelOrUserpropRelation()) {
+                    return true;
+                }
+            } else {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(HugeKeys.LABEL) ||
+                    c instanceof Condition.UserpropRelation) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Watched
     public <T> T condition(Object key) {
         List<Object> valuesEQ = InsertionOrderUtil.newList();
@@ -308,6 +333,19 @@ public class ConditionQuery extends IdQuery {
             }
         }
         return false;
+    }
+
+    public boolean containsCondition(Condition.RelationType type) {
+        for (Relation r : this.relations()) {
+            if (r.relation().equals(type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean containsScanCondition() {
+        return this.containsCondition(Condition.RelationType.SCAN);
     }
 
     public boolean containsRelation(HugeKeys key, Condition.RelationType type) {

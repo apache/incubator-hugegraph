@@ -42,6 +42,7 @@ import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
 import org.apache.hugegraph.backend.store.BackendTable;
 import org.apache.hugegraph.backend.store.Shard;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.iterator.FlatMapperIterator;
 import org.apache.hugegraph.type.HugeType;
@@ -147,6 +148,15 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
             return Collections.emptyIterator();
         }
         return newEntryIterator(this.queryBy(session, query), query);
+    }
+
+    @Override
+    public Iterator<BackendEntry> queryOlap(Session session, Query query) {
+        if (query.limit() == 0L && !query.noLimit()) {
+            // LOG.debug("Return empty result(limit=0) for query {}", query);
+            return Collections.emptyIterator();
+        }
+        return newEntryIteratorOlap(this.queryBy(session, query), query, true);
     }
 
     protected BackendColumnIterator queryBy(RocksDBSessions.Session session, Query query) {
@@ -292,6 +302,19 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
                 entry = new BinaryBackendEntry(type, col.name);
             } else {
                 assert !Bytes.equals(entry.id().asBytes(), col.name);
+            }
+            entry.columns(col);
+            return entry;
+        });
+    }
+
+    protected static BackendEntryIterator newEntryIteratorOlap(
+        BackendColumnIterator cols, Query query, boolean isOlap) {
+        return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
+            if (entry == null || !entry.belongToMe(col)) {
+                HugeType type = query.resultType();
+                // NOTE: only support BinaryBackendEntry currently
+                entry = new BinaryBackendEntry(type, col.name, isOlap);
             }
             entry.columns(col);
             return entry;
