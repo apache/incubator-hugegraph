@@ -802,6 +802,12 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         @Override
         public void removeOlapTable(Id pkId) {
         }
+
+        @Override
+        public boolean existOlapTable(Id pkId) {
+            String tableName = this.olapTableName(pkId);
+            return super.sessions.existsTable(tableName);
+        }
     }
 
     @Override
