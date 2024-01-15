@@ -434,8 +434,8 @@ public class BinarySerializer extends AbstractSerializer {
         Collection<HugeProperty<?>> properties = vertex.getProperties();
         if (properties.size() != 1) {
             E.checkArgument(false,
-                "Expect 1 property for olap vertex, but got %s",
-                properties.size());
+                            "Expect 1 property for olap vertex, but got %s",
+                            properties.size());
         }
         HugeProperty<?> property = properties.iterator().next();
         PropertyKey propertyKey = property.propertyKey();
@@ -444,7 +444,7 @@ public class BinarySerializer extends AbstractSerializer {
 
         // Fill column
         byte[] name = this.keyWithIdPrefix ?
-            entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
+                      entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         entry.column(name, buffer.bytes());
         entry.subId(propertyKey.id());
         entry.olap(true);
