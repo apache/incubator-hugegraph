@@ -427,24 +427,24 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeOlapVertex(HugeVertex vertex) {
+        // TODO: adapt to hstore (merge olap table)
+        BinaryBackendEntry entry = newBackendEntry(HugeType.OLAP, vertex.id());
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16);
 
-        HugeProperty<?> hugeProperty = vertex.getProperties().iterator().next();
-        PropertyKey propertyKey = hugeProperty.propertyKey();
+        Collection<HugeProperty<?>> properties = vertex.getProperties();
+        if (properties.size() != 1) {
+            E.checkArgument(false,
+                "Expect 1 property for olap vertex, but got %s",
+                properties.size());
+        }
+        HugeProperty<?> property = properties.iterator().next();
+        PropertyKey propertyKey = property.propertyKey();
         buffer.writeVInt(SchemaElement.schemaId(propertyKey.id()));
-        buffer.writeProperty(propertyKey, hugeProperty.value());
-
-        // olap表合并, key为 {property_key_id}{vertex_id}
-        BytesBuffer bufferName =
-            BytesBuffer.allocate(1 + propertyKey.id().length() + 1 + vertex.id().length());
-        bufferName.writeId(propertyKey.id());
-        byte[] idBytes = bufferName.writeId(vertex.id()).bytes();
+        buffer.writeProperty(propertyKey, property.value());
 
         // Fill column
-        BinaryBackendEntry entry = new BinaryBackendEntry(HugeType.OLAP,
-            new BinaryId(idBytes, vertex.id()));
-
-        byte[] name = entry.id().asBytes();
+        byte[] name = this.keyWithIdPrefix ?
+            entry.id().asBytes() : BytesBuffer.BYTES_EMPTY;
         entry.column(name, buffer.bytes());
         entry.subId(propertyKey.id());
         entry.olap(true);
