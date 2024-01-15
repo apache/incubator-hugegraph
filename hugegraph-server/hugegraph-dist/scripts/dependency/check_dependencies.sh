@@ -16,17 +16,20 @@
 # under the License.
 #
 
-BASE_PATH=$(cd $(dirname $0); pwd)
+BASE_PATH=$(
+    cd "$(dirname "$0")" || exit 1
+    pwd
+)
 
 # check whether there are new third-party dependencies by diff command,
 # diff generated 'current-dependencies.txt' file with 'known-dependencies.txt' file.
-diff -w -B -U0 <(sort < ${BASE_PATH}/known-dependencies.txt) \
-<(sort < ${BASE_PATH}/current-dependencies.txt) > ${BASE_PATH}/result.txt
+diff -w -B -U0 <(sort <"${BASE_PATH}"/known-dependencies.txt) \
+    <(sort <"${BASE_PATH}"/current-dependencies.txt) >${BASE_PATH}/result.txt
 
 # if has new third-party,the Action will fail and print diff
-if [ -s ${BASE_PATH}/result.txt ]; then
-  cat ${BASE_PATH}/result.txt
-  exit 1
+if [ -s "${BASE_PATH}"/result.txt ]; then
+    cat "${BASE_PATH}"/result.txt
+    exit 1
 else
-  echo 'All third dependencies is known!'
+    echo 'All third dependencies is known!'
 fi

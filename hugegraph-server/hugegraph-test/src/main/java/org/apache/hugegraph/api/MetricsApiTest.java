@@ -27,14 +27,14 @@ import jakarta.ws.rs.core.Response;
 
 public class MetricsApiTest extends BaseApiTest {
 
-    private static final String path = "/metrics";
-    private static final String statisticsPath = path + "/statistics";
+    private static final String PATH = "/metrics";
+    private static final String STATISTICS_PATH = PATH + "/statistics";
 
     @Test
     public void testBaseMetricsAll() {
         Map<String, Object> params = new HashMap<>();
         params.put("type", "json");
-        Response r = client().get(path, params);
+        Response r = client().get(PATH, params);
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "gauges");
         assertJsonContains(result, "counters");
@@ -45,7 +45,7 @@ public class MetricsApiTest extends BaseApiTest {
 
     @Test
     public void testBaseMetricsPromAll() {
-        Response r = client().get(path);
+        Response r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
@@ -53,19 +53,19 @@ public class MetricsApiTest extends BaseApiTest {
     public void testStatisticsMetricsAll() {
         Map<String, String> params = new HashMap<>();
         params.put("type", "json");
-        Response r = client().get(path);
+        Response r = client().get(PATH);
         assertResponseStatus(200, r);
     }
 
     @Test
     public void testStatisticsMetricsPromAll() {
-        Response r = client().get(statisticsPath);
+        Response r = client().get(STATISTICS_PATH);
         assertResponseStatus(200, r);
     }
 
     @Test
     public void testMetricsSystem() {
-        Response r = client().get(path, "system");
+        Response r = client().get(PATH, "system");
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "basic");
         assertJsonContains(result, "heap");
@@ -77,7 +77,7 @@ public class MetricsApiTest extends BaseApiTest {
 
     @Test
     public void testMetricsBackend() {
-        Response r = client().get(path, "backend");
+        Response r = client().get(PATH, "backend");
         String result = assertResponseStatus(200, r);
         Object value = assertJsonContains(result, "hugegraph");
 
@@ -125,10 +125,8 @@ public class MetricsApiTest extends BaseApiTest {
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
-                    Assert.assertTrue(String.format(
-                                      "Expect map value for key %s but got %s",
-                                      key, value),
-                                      value instanceof Map);
+                    Assert.assertTrue(String.format("Expect map value for key %s but got %s",
+                                                    key, value), value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
                     assertMapContains(host, "mem_committed");
@@ -188,10 +186,8 @@ public class MetricsApiTest extends BaseApiTest {
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
-                    Assert.assertTrue(String.format(
-                                      "Expect map value for key %s but got %s",
-                                      key, value),
-                                      value instanceof Map);
+                    Assert.assertTrue(String.format("Expect map value for key %s but got %s",
+                                                    key, value), value instanceof Map);
                     host = (Map<?, ?>) value;
                     assertMapContains(host, "mem_max");
                     assertMapContains(host, "mem_committed");
@@ -257,10 +253,8 @@ public class MetricsApiTest extends BaseApiTest {
                 for (Map.Entry<?, ?> e : servers.entrySet()) {
                     String key = (String) e.getKey();
                     value = e.getValue();
-                    Assert.assertTrue(String.format(
-                                      "Expect map value for key %s but got %s",
-                                      key, value),
-                                      value instanceof Map);
+                    Assert.assertTrue(String.format("Expect map value for key %s but got %s",
+                                                    key, value), value instanceof Map);
                     Map<?, ?> regionServer = (Map<?, ?>) value;
                     assertMapContains(regionServer, "mem_max");
                     assertMapContains(regionServer, "mem_used");
@@ -275,8 +269,7 @@ public class MetricsApiTest extends BaseApiTest {
                     assertMapContains(regionServer, "request_count_per_second");
                     assertMapContains(regionServer, "coprocessor_names");
 
-                    Map<?, ?> regions = assertMapContains(regionServer,
-                                                          "regions");
+                    Map<?, ?> regions = assertMapContains(regionServer, "regions");
                     Assert.assertGte(1, regions.size());
                     for (Map.Entry<?, ?> e2 : regions.entrySet()) {
                         Map<?, ?> region = (Map<?, ?>) e2.getValue();
@@ -307,7 +300,7 @@ public class MetricsApiTest extends BaseApiTest {
                 }
                 break;
             default:
-                Assert.assertTrue("Unexpected backend " + backend, false);
+                Assert.fail("Unexpected backend " + backend);
                 break;
         }
     }

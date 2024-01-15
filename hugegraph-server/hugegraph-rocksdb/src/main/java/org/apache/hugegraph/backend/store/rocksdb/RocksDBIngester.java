@@ -27,14 +27,13 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.util.Log;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.IngestExternalFileOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.util.Log;
 
 public class RocksDBIngester {
 
@@ -52,8 +51,7 @@ public class RocksDBIngester {
         this.options.setMoveFiles(true);
     }
 
-    public List<String> ingest(Path path, ColumnFamilyHandle cf)
-                               throws RocksDBException {
+    public List<String> ingest(Path path, ColumnFamilyHandle cf) throws RocksDBException {
         SuffixFileVisitor visitor = new SuffixFileVisitor(SST);
         try {
             Files.walkFileTree(path, visitor);
@@ -74,10 +72,8 @@ public class RocksDBIngester {
         return ssts;
     }
 
-    public void ingest(ColumnFamilyHandle cf, List<String> ssts)
-                       throws RocksDBException {
-        LOG.info("Ingest sst files to CF '{}': {}",
-                 RocksDBStdSessions.decode(cf.getName()), ssts);
+    public void ingest(ColumnFamilyHandle cf, List<String> ssts) throws RocksDBException {
+        LOG.info("Ingest sst files to CF '{}': {}", RocksDBStdSessions.decode(cf.getName()), ssts);
         if (!ssts.isEmpty()) {
             this.rocksdb.ingestExternalFile(cf, ssts, this.options);
         }

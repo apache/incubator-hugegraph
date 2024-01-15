@@ -32,16 +32,15 @@ import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.apache.commons.configuration2.tree.NodeHandler;
 import org.apache.commons.configuration2.tree.NodeModel;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.ParameterUtil;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.job.ComputerJob;
 import org.apache.hugegraph.job.Job;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.ParameterUtil;
+import org.slf4j.Logger;
 
 public abstract class AbstractComputer implements Computer {
 
@@ -85,7 +84,6 @@ public abstract class AbstractComputer implements Computer {
 
     @Override
     public Object call(Job<Object> job, Map<String, Object> parameters) {
-
         this.checkAndCollectParameters(parameters);
         // Read configuration
         try {

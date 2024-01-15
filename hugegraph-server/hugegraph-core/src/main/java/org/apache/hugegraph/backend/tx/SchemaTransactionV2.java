@@ -611,10 +611,9 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         this.graphParams().loadGraphStore().createOlapTable(id);
     }
 
-    // TODO: uncomment later - olap
-    //public boolean existOlapTable(Id id) {
-    //    return this.graphParams().loadGraphStore().existOlapTable(id);
-    //}
+    public boolean existOlapTable(Id id) {
+        return this.graphParams().loadGraphStore().existOlapTable(id);
+    }
 
     public void initAndRegisterOlapTables() {
         for (PropertyKey pk : this.getPropertyKeys()) {

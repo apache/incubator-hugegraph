@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.backend.store.hstore;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -38,6 +39,7 @@ import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.backend.serializer.MergeIterator;
 import org.apache.hugegraph.backend.store.AbstractBackendStore;
 import org.apache.hugegraph.backend.store.BackendAction;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -331,7 +333,7 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         }
     }
 
-
+    // TODO: uncomment later - sub edge labels
     //@Override
     //public Iterator<Iterator<BackendEntry>> query(Iterator<Query> queries,
     //                                              Function<Query, Query> queryWriter,
@@ -550,19 +552,19 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     private Iterator<BackendEntry> getBackendEntryIterator(
         Iterator<BackendEntry> entries,
         Query query) {
-        //HstoreTable table;
-        //Set<Id> olapPks = query.olapPks();
-        //if (this.isGraphStore && !olapPks.isEmpty()) {
-        //    List<Iterator<BackendEntry>> iterators = new ArrayList<>();
-        //    for (Id pk : olapPks) {
-        //        // 构造olap表查询query condition
-        //        Query q = this.constructOlapQueryCondition(pk, query);
-        //        table = this.table(HugeType.OLAP);
-        //        iterators.add(table.queryOlap(this.session(HugeType.OLAP), q));
-        //    }
-        //    entries = new MergeIterator<>(entries, iterators,
-        //                                  BackendEntry::mergable);
-        //}
+        HstoreTable table;
+        Set<Id> olapPks = query.olapPks();
+        if (this.isGraphStore && !olapPks.isEmpty()) {
+            List<Iterator<BackendEntry>> iterators = new ArrayList<>();
+            for (Id pk : olapPks) {
+                // 构造olap表查询query condition
+                Query q = this.constructOlapQueryCondition(pk, query);
+                table = this.table(HugeType.OLAP);
+                iterators.add(table.queryOlap(this.session(HugeType.OLAP), q));
+            }
+            entries = new MergeIterator<>(entries, iterators,
+                                          BackendEntry::mergeable);
+        }
         return entries;
     }
 
@@ -801,6 +803,12 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
         @Override
         public void removeOlapTable(Id pkId) {
+        }
+
+        @Override
+        public boolean existOlapTable(Id pkId) {
+            String tableName = this.olapTableName(pkId);
+            return super.sessions.existsTable(tableName);
         }
     }
 

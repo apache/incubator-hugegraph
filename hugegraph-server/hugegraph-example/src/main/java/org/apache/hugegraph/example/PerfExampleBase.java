@@ -26,12 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CyclicBarrier;
 import java.util.function.Consumer;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
@@ -45,6 +39,11 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 public abstract class PerfExampleBase {
 
@@ -54,8 +53,7 @@ public abstract class PerfExampleBase {
 
     protected static final Logger LOG = Log.logger(PerfExampleBase.class);
 
-    protected Set<Object> vertices = Collections.newSetFromMap(
-                                     new ConcurrentHashMap<Object, Boolean>());
+    protected Set<Object> vertices = Collections.newSetFromMap(new ConcurrentHashMap<>());
     protected boolean profile = false;
 
     public int test(String[] args) throws Exception {
@@ -69,8 +67,8 @@ public abstract class PerfExampleBase {
         int multiple = Integer.parseInt(args[2]);
         this.profile = Boolean.parseBoolean(args[3]);
 
-        // NOTE: this test with HugeGraph is for local, change it into
-        // client if test with restful server from remote
+        // NOTE: this test with HugeGraph is for local,
+        // change it into a client if test with restful server from remote
         HugeGraph hugegraph = ExampleUtil.loadGraph(true, this.profile);
         GraphManager graph = new GraphManager(hugegraph);
 
@@ -88,24 +86,19 @@ public abstract class PerfExampleBase {
 
     /**
      * Multi-threaded and multi-commits and batch insertion test
-     * @param graph     graph
-     * @param threadCount
-     *        The count of threads that perform the insert operation at the
-     *        same time
-     * @param times
-     *        The transaction commit times for each thread
-     * @param multiple
-     *        The coefficient to multiple number of vertices(100) and edges(100)
-     *        for each transaction commit
-     * @throws Exception    execute may throw Exception
+     *
+     * @param graph       graph
+     * @param threadCount The count of threads that perform the insert operation at the
+     *                    same time
+     * @param times       The transaction commit times for each thread
+     * @param multiple    The coefficient to multiple number of vertices(100) and edges(100)
+     *                    for each transaction commit
+     * @throws Exception execute may throw Exception
      */
-    public void testInsertPerf(GraphManager graph,
-                               int threadCount,
-                               int times,
-                               int multiple)
-                               throws Exception {
+    public void testInsertPerf(GraphManager graph, int threadCount, int times, int multiple)
+        throws Exception {
         // Total vertices/edges
-        long n = threadCount * times * multiple;
+        long n = (long) threadCount * times * multiple;
         long vertices = (PERSON_NUM + SOFTWARE_NUM) * n;
         long edges = EDGE_NUM * n;
 
@@ -115,37 +108,29 @@ public abstract class PerfExampleBase {
 
         LOG.info("Insert rate with threads: {} vertices/s & {} edges/s, " +
                  "insert total {} vertices & {} edges, cost time: {}ms",
-                 vertices * 1000 / cost, edges * 1000 / cost,
-                 vertices, edges, cost);
-
+                 vertices * 1000 / cost, edges * 1000 / cost, vertices, edges, cost);
         graph.clearVertexCache();
     }
 
-    public void testQueryVertexPerf(GraphManager graph,
-                                    int threadCount,
-                                    int times,
-                                    int multiple)
-                                    throws Exception {
+    public void testQueryVertexPerf(GraphManager graph, int threadCount, int times, int multiple)
+        throws Exception {
         long cost = this.execute(graph, i -> {
             this.testQueryVertex(graph, threadCount, i, multiple);
         }, threadCount);
 
-        final long size = (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
+        final long size = (long) (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
         LOG.info("Query rate with threads: {} vertices/s, " +
                  "query total vertices {}, cost time: {}ms",
                  size * 1000 / cost, size, cost);
     }
 
-    public void testQueryEdgePerf(GraphManager graph,
-                                  int threadCount,
-                                  int times,
-                                  int multiple)
-                                  throws Exception {
+    public void testQueryEdgePerf(GraphManager graph, int threadCount, int times, int multiple)
+        throws Exception {
         long cost = this.execute(graph, i -> {
             this.testQueryEdge(graph, threadCount, i, multiple);
         }, threadCount);
 
-        final long size = (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
+        final long size = (long) (PERSON_NUM + SOFTWARE_NUM) * threadCount * times;
         LOG.info("Query rate with threads: {} vedges/s, " +
                  "query total vedges {}, cost time: {}ms",
                  size * 1000 / cost, size, cost);
@@ -153,8 +138,8 @@ public abstract class PerfExampleBase {
 
     protected long execute(GraphManager graph, Consumer<Integer> task,
                            int threadCount) throws Exception {
-        CyclicBarrier startBarrier  = new CyclicBarrier(threadCount + 1);
-        CyclicBarrier endBarrier  = new CyclicBarrier(threadCount + 1);
+        CyclicBarrier startBarrier = new CyclicBarrier(threadCount + 1);
+        CyclicBarrier endBarrier = new CyclicBarrier(threadCount + 1);
         List<Thread> threads = new ArrayList<>(threadCount);
         for (int i = 0; i < threadCount; i++) {
             int j = i;
@@ -201,14 +186,9 @@ public abstract class PerfExampleBase {
 
     protected abstract void initSchema(SchemaManager schema);
 
-    protected abstract void testInsert(GraphManager graph,
-                                       int times,
-                                       int multiple);
+    protected abstract void testInsert(GraphManager graph, int times, int multiple);
 
-    protected void testQueryVertex(GraphManager graph,
-                                   int threads,
-                                   int thread,
-                                   int multiple) {
+    protected void testQueryVertex(GraphManager graph, int threads, int thread, int multiple) {
         int i = 0;
         int j = 0;
         int total = 0;
@@ -230,10 +210,7 @@ public abstract class PerfExampleBase {
         LOG.debug("Query vertices with thread({}): {}", thread, total);
     }
 
-    protected void testQueryEdge(GraphManager graph,
-                                 int threads,
-                                 int thread,
-                                 int multiple) {
+    protected void testQueryEdge(GraphManager graph, int threads, int thread, int multiple) {
         int i = 0;
         int j = 0;
         int totalV = 0;
@@ -259,9 +236,8 @@ public abstract class PerfExampleBase {
     }
 
     protected static class GraphManager {
-        private HugeGraph hugegraph;
-        private Cache<Id, Object> cache = CacheManager.instance()
-                                                      .cache("perf-test");
+        private final HugeGraph hugegraph;
+        private final Cache<Id, Object> cache = CacheManager.instance().cache("perf-test");
 
         public GraphManager(HugeGraph hugegraph) {
             this.hugegraph = hugegraph;
@@ -269,13 +245,11 @@ public abstract class PerfExampleBase {
 
         public void initEnv() {
             // Cost about 6s
-            Whitebox.invoke(this.hugegraph.getClass(),
-                            "graphTransaction", this.hugegraph);
+            Whitebox.invoke(this.hugegraph.getClass(), "graphTransaction", this.hugegraph);
         }
 
         public void destroyEnv() {
-            Whitebox.invoke(this.hugegraph.getClass(),
-                            "closeTx", this.hugegraph);
+            Whitebox.invoke(this.hugegraph.getClass(), "closeTx", this.hugegraph);
         }
 
         public Transaction tx() {

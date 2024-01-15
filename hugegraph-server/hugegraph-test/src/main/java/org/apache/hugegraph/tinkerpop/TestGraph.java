@@ -24,6 +24,17 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.store.BackendStoreInfo;
+import org.apache.hugegraph.io.HugeGraphIoRegistry;
+import org.apache.hugegraph.io.HugeGraphSONModule;
+import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.task.TaskScheduler;
+import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -31,20 +42,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.Io;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.store.BackendStoreInfo;
-import org.apache.hugegraph.io.HugeGraphIoRegistry;
-import org.apache.hugegraph.io.HugeGraphSONModule;
-import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.task.TaskScheduler;
-import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.type.define.IdStrategy;
-import org.apache.hugegraph.type.define.NodeRole;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -85,8 +82,7 @@ public class TestGraph implements Graph {
             assert sysInfo.exists() && !this.graph.closed();
         }
 
-        Id id = IdGenerator.of("server-tinkerpop");
-        this.graph.serverStarted(id, NodeRole.MASTER);
+        this.graph.serverStarted(GlobalMasterInfo.master("server-tinkerpop"));
 
         this.initedBackend = true;
     }
@@ -877,6 +873,10 @@ public class TestGraph implements Graph {
               .ifNotExist().create();
         schema.indexLabel("bTOcByGremlinPartition").onE("bTOc")
               .by("gremlin.partitionGraphStrategy.partition")
+              .ifNotExist().create();
+        schema.edgeLabel("blah1").link(defaultVL, defaultVL)
+              .ifNotExist().create();
+        schema.edgeLabel("blah2").link(defaultVL, defaultVL)
               .ifNotExist().create();
     }
 

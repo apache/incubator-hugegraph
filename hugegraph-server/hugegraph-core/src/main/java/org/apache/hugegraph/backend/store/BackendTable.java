@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
@@ -33,6 +34,7 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
+
 import com.google.common.collect.ImmutableList;
 
 public abstract class BackendTable<Session extends BackendSession, Entry> {
@@ -91,7 +93,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     }
 
     /**
-     *  Mapping query-type to table-type
+     * Mapping query-type to table-type
+     *
      * @param query origin query
      * @return corresponding table type
      */
@@ -133,6 +136,10 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public abstract void clear(Session session);
 
     public abstract Iterator<BackendEntry> query(Session session, Query query);
+
+    public Iterator<BackendEntry> queryOlap(Session session, Query query) {
+        throw new NotImplementedException();
+    }
 
     public abstract Number queryNumber(Session session, Query query);
 
@@ -231,12 +238,11 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
         public static class Range {
 
-            private byte[] startKey;
-            private byte[] endKey;
+            private final byte[] startKey;
+            private final byte[] endKey;
 
             public Range(byte[] startKey, byte[] endKey) {
-                this.startKey = Arrays.equals(EMPTY, startKey) ?
-                                START_BYTES : startKey;
+                this.startKey = Arrays.equals(EMPTY, startKey) ? START_BYTES : startKey;
                 this.endKey = Arrays.equals(EMPTY, endKey) ? END_BYTES : endKey;
             }
 
@@ -361,8 +367,7 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             private static byte[] align(byte[] array, int length) {
                 int len = array.length;
                 E.checkArgument(len <= length,
-                                "The length of array '%s' exceed " +
-                                "align length '%s'", len, length);
+                                "The length of array '%s' exceed align length '%s'", len, length);
                 byte[] target = new byte[length];
                 System.arraycopy(array, 0, target, length - len, len);
                 return target;

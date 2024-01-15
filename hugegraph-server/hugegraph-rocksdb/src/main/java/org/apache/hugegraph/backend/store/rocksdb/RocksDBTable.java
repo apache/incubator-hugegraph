@@ -25,9 +25,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.query.Aggregate;
@@ -45,6 +42,7 @@ import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
 import org.apache.hugegraph.backend.store.BackendTable;
 import org.apache.hugegraph.backend.store.Shard;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.iterator.FlatMapperIterator;
 import org.apache.hugegraph.type.HugeType;
@@ -52,6 +50,8 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
 
 public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendEntry> {
 
@@ -67,8 +67,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
     @Override
     protected void registerMetaHandlers() {
         this.registerMetaHandler("splits", (session, meta, args) -> {
-            E.checkArgument(args.length == 1,
-                            "The args count of %s must be 1", meta);
+            E.checkArgument(args.length == 1, "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
             return this.shardSplitter.getSplits(session, splitSize);
         });
@@ -151,6 +150,15 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
         return newEntryIterator(this.queryBy(session, query), query);
     }
 
+    @Override
+    public Iterator<BackendEntry> queryOlap(Session session, Query query) {
+        if (query.limit() == 0L && !query.noLimit()) {
+            // LOG.debug("Return empty result(limit=0) for query {}", query);
+            return Collections.emptyIterator();
+        }
+        return newEntryIteratorOlap(this.queryBy(session, query), query, true);
+    }
+
     protected BackendColumnIterator queryBy(RocksDBSessions.Session session, Query query) {
         // Query all
         if (query.empty()) {
@@ -203,7 +211,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
 
         // NOTE: this will lead to lazy create rocksdb iterator
         return BackendColumnIterator.wrap(new FlatMapperIterator<>(
-               ids.iterator(), id -> this.queryById(session, id)
+            ids.iterator(), id -> this.queryById(session, id)
         ));
     }
 
@@ -233,8 +241,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
         int type = query.inclusiveStart() ?
                    RocksDBSessions.Session.SCAN_GTE_BEGIN : RocksDBSessions.Session.SCAN_GT_BEGIN;
         type |= RocksDBSessions.Session.SCAN_PREFIX_END;
-        return session.scan(this.table(), query.start().asBytes(),
-                            query.prefix().asBytes(), type);
+        return session.scan(this.table(), query.start().asBytes(), query.prefix().asBytes(), type);
     }
 
     protected BackendColumnIterator queryByRange(RocksDBSessions.Session session,
@@ -268,8 +275,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
         byte[] end = this.shardSplitter.position(shard.end());
         if (page != null && !page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
-            E.checkArgument(start == null ||
-                            Bytes.compare(position, start) >= 0,
+            E.checkArgument(start == null || Bytes.compare(position, start) >= 0,
                             "Invalid page out of lower bound");
             start = position;
         }
@@ -302,6 +308,19 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
         });
     }
 
+    protected static BackendEntryIterator newEntryIteratorOlap(
+        BackendColumnIterator cols, Query query, boolean isOlap) {
+        return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
+            if (entry == null || !entry.belongToMe(col)) {
+                HugeType type = query.resultType();
+                // NOTE: only support BinaryBackendEntry currently
+                entry = new BinaryBackendEntry(type, col.name, false, isOlap);
+            }
+            entry.columns(col);
+            return entry;
+        });
+    }
+
     protected static long sizeOfBackendEntry(BackendEntry entry) {
         return BinaryEntryIterator.sizeOfEntry(entry);
     }
@@ -310,7 +329,6 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
 
         private static final String MEM_SIZE = "rocksdb.size-all-mem-tables";
         private static final String SST_SIZE = "rocksdb.total-sst-files-size";
-
         private static final String NUM_KEYS = "rocksdb.estimate-num-keys";
 
         public RocksDBShardSplitter(String table) {
@@ -338,8 +356,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
                 count = 1;
             }
 
-            Range range = new Range(keyRange.getLeft(),
-                                    Range.increase(keyRange.getRight()));
+            Range range = new Range(keyRange.getLeft(), Range.increase(keyRange.getRight()));
             List<Shard> splits = new ArrayList<>((int) count);
             splits.addAll(range.splitEven((int) count));
             return splits;
@@ -359,6 +376,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
 
         @Override
         public byte[] position(String position) {
+            // TODO: START & END is same & be empty now? remove one?
             if (START.equals(position) || END.equals(position)) {
                 return null;
             }

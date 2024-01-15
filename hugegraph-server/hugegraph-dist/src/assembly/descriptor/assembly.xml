@@ -35,8 +35,6 @@
             <directory>${assembly.static.dir}</directory>
             <outputDirectory>/</outputDirectory>
             <filtered>false</filtered>
-            <includes>
-            </includes>
             <excludes>
                 <exclude>README.txt</exclude>
             </excludes>
@@ -49,11 +47,11 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${top.level.dir}/hugegraph-server/hugegraph-dist/release-docs/</directory>
+            <directory>${top.level.dir}/hugegraph-dist/release-docs/</directory>
             <outputDirectory>/</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>${top.level.dir}</directory>
+            <directory>${top.level.dir}/../</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>DISCLAIMER*</include>

@@ -44,8 +44,21 @@ import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import jakarta.ws.rs.ApplicationPath;
 
+@SecurityScheme(
+    name = "basic",
+    type = SecuritySchemeType.HTTP,
+    scheme = "basic"
+)
+@SecurityScheme(
+    name = "bearer",
+    type = SecuritySchemeType.HTTP,
+    scheme = "bearer"
+)
 @ApplicationPath("/")
 @OpenAPIDefinition(
     info = @Info(
@@ -53,7 +66,8 @@ import jakarta.ws.rs.ApplicationPath;
         version = CoreVersion.DEFAULT_VERSION,
         description = "All management API for HugeGraph",
         contact = @Contact(url = "https://github.com/apache/hugegraph", name = "HugeGraph")
-    )
+    ),
+    security = {@SecurityRequirement(name = "basic"), @SecurityRequirement(name = "bearer")}
 )
 public class ApplicationConfig extends ResourceConfig {
 

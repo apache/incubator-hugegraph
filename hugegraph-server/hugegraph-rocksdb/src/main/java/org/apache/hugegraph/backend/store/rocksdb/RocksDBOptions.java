@@ -23,17 +23,17 @@ import static org.apache.hugegraph.config.OptionChecker.inValues;
 import static org.apache.hugegraph.config.OptionChecker.rangeDouble;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
-import org.rocksdb.CompactionStyle;
-import org.rocksdb.CompressionType;
-import org.rocksdb.DataBlockIndexType;
-import org.rocksdb.IndexType;
-
 import org.apache.hugegraph.config.ConfigConvOption;
 import org.apache.hugegraph.config.ConfigListConvOption;
 import org.apache.hugegraph.config.ConfigListOption;
 import org.apache.hugegraph.config.ConfigOption;
 import org.apache.hugegraph.config.OptionHolder;
 import org.apache.hugegraph.util.Bytes;
+import org.rocksdb.CompactionStyle;
+import org.rocksdb.CompressionType;
+import org.rocksdb.DataBlockIndexType;
+import org.rocksdb.IndexType;
+
 import com.google.common.collect.ImmutableList;
 
 public class RocksDBOptions extends OptionHolder {
@@ -52,6 +52,7 @@ public class RocksDBOptions extends OptionHolder {
         return instance;
     }
 
+    // TODO: the entire align style is wrong, change it to 4 space later
     public static final ConfigOption<String> DATA_PATH =
             new ConfigOption<>(
                     "rocksdb.data_path",

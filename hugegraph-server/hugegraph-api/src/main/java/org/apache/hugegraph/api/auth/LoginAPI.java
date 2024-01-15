@@ -17,9 +17,27 @@
 
 package org.apache.hugegraph.api.auth;
 
+import javax.security.sasl.AuthenticationException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.filter.AuthenticationFilter;
+import org.apache.hugegraph.api.filter.StatusFilter.Status;
+import org.apache.hugegraph.auth.AuthConstant;
+import org.apache.hugegraph.auth.UserWithRole;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.Checkable;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
-import javax.security.sasl.AuthenticationException;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -32,23 +50,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.Checkable;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.AuthenticationFilter;
-import org.apache.hugegraph.api.filter.StatusFilter.Status;
-import org.apache.hugegraph.auth.AuthConstant;
-import org.apache.hugegraph.auth.UserWithRole;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/auth")
 @Singleton
@@ -63,8 +64,7 @@ public class LoginAPI extends API {
     @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public String login(@Context GraphManager manager,
-                        @PathParam("graph") String graph,
+    public String login(@Context GraphManager manager, @PathParam("graph") String graph,
                         JsonLogin jsonLogin) {
         LOG.debug("Graph [{}] user login: {}", graph, jsonLogin);
         checkCreatingBody(jsonLogin);
@@ -94,13 +94,10 @@ public class LoginAPI extends API {
         LOG.debug("Graph [{}] user logout: {}", graph, auth);
 
         if (!auth.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
-            throw new BadRequestException(
-                  "Only HTTP Bearer authentication is supported");
+            throw new BadRequestException("Only HTTP Bearer authentication is supported");
         }
 
-        String token = auth.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX
-                                                          .length());
-
+        String token = auth.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX.length());
         manager.authManager().logoutUser(token);
     }
 
@@ -119,12 +116,10 @@ public class LoginAPI extends API {
         LOG.debug("Graph [{}] get user: {}", graph, token);
 
         if (!token.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
-            throw new BadRequestException(
-                      "Only HTTP Bearer authentication is supported");
+            throw new BadRequestException("Only HTTP Bearer authentication is supported");
         }
 
-        token = token.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX
-                                                    .length());
+        token = token.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX.length());
         UserWithRole userWithRole = manager.authManager().validateUser(token);
 
         HugeGraph g = graph(manager, graph);
@@ -144,8 +139,7 @@ public class LoginAPI extends API {
 
         @Override
         public void checkCreate(boolean isBatch) {
-            E.checkArgument(!StringUtils.isEmpty(this.name),
-                            "The name of user can't be null");
+            E.checkArgument(!StringUtils.isEmpty(this.name), "The name of user can't be null");
             E.checkArgument(!StringUtils.isEmpty(this.password),
                             "The password of user can't be null");
         }

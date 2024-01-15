@@ -76,6 +76,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -154,6 +155,12 @@ public class VertexCoreTest extends BaseCoreTest {
               .ttlStartTime("birth")
               .ifNotExist()
               .create();
+    }
+
+    @After
+    public void resetGraphMode() {
+        // In OLAP-related tests, if an error occurs midway, the graph mode will not be reset.
+        graph().readMode(GraphReadMode.OLTP_ONLY);
     }
 
     protected void initPersonIndex(boolean indexCity) {

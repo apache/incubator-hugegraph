@@ -18,11 +18,10 @@
 package org.apache.hugegraph.api;
 
 import org.apache.hugegraph.api.traversers.TraversersApiTestSuite;
+import org.apache.hugegraph.dist.RegisterUtil;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
-
-import org.apache.hugegraph.dist.RegisterUtil;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({

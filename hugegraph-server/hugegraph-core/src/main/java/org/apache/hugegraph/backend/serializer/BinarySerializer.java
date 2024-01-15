@@ -427,6 +427,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeOlapVertex(HugeVertex vertex) {
+        // TODO: adapt to hstore (merge olap table)
         BinaryBackendEntry entry = newBackendEntry(HugeType.OLAP, vertex.id());
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16);
 
