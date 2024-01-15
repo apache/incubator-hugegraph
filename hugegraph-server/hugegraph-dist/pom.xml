@@ -187,7 +187,7 @@
                                     <exec executable="${shell-executable}"
                                           dir="${project.basedir}"
                                           failonerror="false">
-                                        <arg line="./dist.sh"/>
+                                        <arg line="./download_swagger_ui.sh"/>
                                     </exec>
                                 </target>
                             </configuration>

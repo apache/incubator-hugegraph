@@ -22,7 +22,7 @@ curl --version >/dev/null 2>&1 ||
     exit
   }
 
-# TODO: perhaps it's necessary verify the checksum before reusing the existing tar
+# TODO: perhaps it's necessary verify the checksum before reusing the existing keystore
 if [[ ! -f hugegraph-server.keystore ]]; then
   curl -s -S -L -o hugegraph-server.keystore \
     https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore ||
