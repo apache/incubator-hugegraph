@@ -22,7 +22,7 @@ services:
     image: hugegraph/hugegraph
     container_name: cas-graph
     ports:
-      - 18080:8080
+      - 8080:8080
     environment:
       hugegraph.backend: cassandra
       hugegraph.serializer: cassandra
