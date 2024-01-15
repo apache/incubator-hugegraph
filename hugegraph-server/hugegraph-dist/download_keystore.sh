@@ -16,9 +16,20 @@
 # under the License.
 #
 
+curl --version >/dev/null 2>&1 ||
+  {
+    echo 'ERROR: Please install `curl` first if you need `hugegraph-server.keystore`'
+    exit
+  }
 
-./bin/wait-storage.sh
+# TODO: perhaps it's necessary verify the checksum before reusing the existing keystore
+if [[ ! -f hugegraph-server.keystore ]]; then
+  curl -s -S -L -o hugegraph-server.keystore \
+    https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore ||
+    {
+      echo 'ERROR: Download `hugegraph-server.keystore` from GitHub failed, please check your network connection'
+      exit
+    }
+fi
 
-./bin/init-store.sh
-
-./bin/start-hugegraph.sh -d false -j "$JAVA_OPTS" -g zgc
+echo 'INFO: Successfully download `hugegraph-server.keystore`'
