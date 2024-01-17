@@ -54,7 +54,7 @@
         <dependency>
             <groupId>io.github.lognet</groupId>
             <artifactId>grpc-spring-boot-starter</artifactId>
-            <version>4.8.0</version>
+            <version>4.5.5</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.springframework.boot</groupId>
