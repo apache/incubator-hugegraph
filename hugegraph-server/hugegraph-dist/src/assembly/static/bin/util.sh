@@ -17,10 +17,10 @@
 #
 function command_available() {
     local cmd=$1
-    if [ "$(command -v "$cmd" >/dev/null 2>&1)" ]; then
-        return 1
-    else
+    if [[ -x "$(command -v "$cmd")" ]]; then
         return 0
+    else
+        return 1
     fi
 }
 
@@ -131,6 +131,7 @@ function wait_for_startup() {
     local stop_s=$((now_s + timeout_s))
 
     local status
+    local error_file_name="startup_error.txt"
 
     echo -n "Connecting to $server_name ($server_url)"
     while [ "$now_s" -le $stop_s ]; do
@@ -141,16 +142,22 @@ function wait_for_startup() {
             return 1
         fi
 
-        status=$(curl -I -s -k -w "%{http_code}" -o /dev/null "$server_url")
+        status=$(curl -I -sS -k -w "%{http_code}" -o /dev/null "$server_url" 2> "$error_file_name")
         if [[ $status -eq 200 || $status -eq 401 ]]; then
             echo "OK"
             echo "Started [pid $pid]"
+            if [ -e "$error_file_name" ]; then
+                rm "$error_file_name"
+            fi
             return 0
         fi
         sleep 2
         now_s=$(date '+%s')
     done
 
+    echo ""
+    cat "$error_file_name"
+    rm "$error_file_name"
     echo "The operation timed out(${timeout_s}s) when attempting to connect to $server_url" >&2
     return 1
 }
@@ -267,15 +274,20 @@ function get_ip() {
 
 function download() {
     local path=$1
-    local link_url=$2
-
-    if command_available "wget"; then
+    local download_url=$2
+    if command_available "curl"; then
+        if [ ! -d "$path" ]; then
+            mkdir -p "$path" || {
+                echo "Failed to create directory: $path"
+                exit 1
+            }
+        fi
+        curl -L "${download_url}" -o "${path}/$(basename "${download_url}")"
+    elif command_available "wget"; then
         wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
-        wget "${link_url}" -P "${path}" $progress_opt
-    elif command_available "curl"; then
-        curl "${link_url}" -o "${path}"/"${link_url}"
+        wget "${download_url}" -P "${path}" $progress_opt
     else
-        echo "Required wget or curl but they are unavailable"
+        echo "Required curl or wget but they are unavailable"
         exit 1
     fi
 }
