@@ -89,7 +89,8 @@
     </prerequisites>
 
     <properties>
-        <os.detected.classifier>osx-x86_64</os.detected.classifier>
+<!--        NOTE: Mac with M-series chip users can add this line below to avoid dependencies-resolving problems -->
+<!--        <os.detected.classifier>osx-x86_64</os.detected.classifier>-->
         <revision>1.5.0.1</revision>
     </properties>
 
