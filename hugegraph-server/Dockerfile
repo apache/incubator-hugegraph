@@ -26,6 +26,7 @@ ARG MAVEN_ARGS
 RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
 
 # 2nd stage: runtime env
+# remove zgc, which is only available on mac with java > 13 
 FROM openjdk:11-slim
 # TODO: get the version from the pom.xml
 ENV version=1.2.0
