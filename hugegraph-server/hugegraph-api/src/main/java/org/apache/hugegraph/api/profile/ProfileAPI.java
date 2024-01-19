@@ -55,7 +55,7 @@ public class ProfileAPI {
     private static final String SERVICE = "hugegraph";
     private static final String DOC = "https://hugegraph.apache.org/docs/";
     private static final String API_DOC = DOC + "clients/";
-    private static final String SWAGGER_UI = "http://{ip/domain}:{port}/swagger-ui/index.html#/";
+    private static final String SWAGGER_UI = "http://{domain/ip}:{port}/swagger-ui/index.html#/";
 
     private static String SERVER_PROFILES = null;
     private static String API_PROFILES = null;
