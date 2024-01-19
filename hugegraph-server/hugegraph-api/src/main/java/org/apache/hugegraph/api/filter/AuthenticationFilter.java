@@ -72,9 +72,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
     private static final List<String> WHITE_API_LIST = ImmutableList.of(
-            "**/auth/login",
-            "**/versions",
-            "**/openapi.json"
+            "graphs/*/auth/login",
+            "versions",
+            "openapi.json"
     );
     private static final AntPathMatcher MATCHER = new AntPathMatcher();
 
