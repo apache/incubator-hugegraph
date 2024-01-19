@@ -41,6 +41,7 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
+import org.gridkit.jvmtool.cmd.AntPathMatcher;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.util.StringUtils;
@@ -71,10 +72,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
     private static final List<String> WHITE_API_LIST = ImmutableList.of(
-            "auth/login",
-            "versions",
-            "openapi.json"
+            "**/auth/login",
+            "**/versions",
+            "**/openapi.json"
     );
+    private static final AntPathMatcher MATCHER = new AntPathMatcher();
 
     private static String whiteIpStatus;
 
@@ -314,9 +316,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     public static boolean isWhiteAPI(ContainerRequestContext context) {
         String path = context.getUriInfo().getPath();
-
         for (String whiteApi : WHITE_API_LIST) {
-            if (path.endsWith(whiteApi)) {
+            if (MATCHER.match(whiteApi, path)) {
                 return true;
             }
         }
