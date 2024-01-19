@@ -34,7 +34,7 @@ else
 fi
 
 # start hugegraph
-# remove -g zgc, which is only available on mac with java > 13 
+# remove "-g zgc" now, which is only available on ARM-Mac with java > 13 
 ./bin/start-hugegraph.sh -j "$JAVA_OPTS" 
 
 tail -f /dev/null
