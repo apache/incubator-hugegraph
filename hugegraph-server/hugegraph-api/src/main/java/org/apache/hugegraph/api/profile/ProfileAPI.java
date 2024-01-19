@@ -55,6 +55,7 @@ public class ProfileAPI {
     private static final String SERVICE = "hugegraph";
     private static final String DOC = "https://hugegraph.apache.org/docs/";
     private static final String API_DOC = DOC + "clients/";
+    private static final String SWAGGER_UI = "http://{ip/domain}:{port}/swagger-ui/index.html#/";
 
     private static String SERVER_PROFILES = null;
     private static String API_PROFILES = null;
@@ -73,6 +74,7 @@ public class ProfileAPI {
         profiles.put("version", CoreVersion.VERSION.toString());
         profiles.put("doc", DOC);
         profiles.put("api_doc", API_DOC);
+        profiles.put("swagger_ui", SWAGGER_UI);
         Set<String> apis = new TreeSet<>();
         for (Class<?> clazz : application.getClasses()) {
             if (!isAnnotatedPathClass(clazz)) {
