@@ -288,7 +288,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
          */
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         EdgeLabel schema = this.getEdgeLabel(id);
-        // TODO: uncomment later - el
+        // TODO: uncomment later - sub edge labels
         //if (schema.edgeLabelType().parent()) {
         //    List<EdgeLabel> edgeLabels = this.getEdgeLabels();
         //    for (EdgeLabel edgeLabel : edgeLabels) {
@@ -375,7 +375,29 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
 
     @Override
     public void removeIndexLabelFromBaseLabel(IndexLabel indexLabel) {
+        HugeType baseType = indexLabel.baseType();
+        Id baseValue = indexLabel.baseValue();
+        SchemaLabel baseLabel;
+        if (baseType == HugeType.VERTEX_LABEL) {
+            baseLabel = this.getVertexLabel(baseValue);
+        } else {
+            assert baseType == HugeType.EDGE_LABEL;
+            baseLabel = this.getEdgeLabel(baseValue);
+        }
 
+        if (baseLabel == null) {
+            LOG.info("The base label '{}' of index label '{}' " +
+                "may be deleted before", baseValue, indexLabel);
+            return;
+        }
+        if (baseLabel.equals(VertexLabel.OLAP_VL)) {
+            return;
+        }
+
+        this.updateSchema(baseLabel, schema -> {
+            // NOTE: Do schema update in the lock block
+            baseLabel.removeIndexLabel(indexLabel.id());
+        });
     }
 
     protected void updateSchema(SchemaElement schema,

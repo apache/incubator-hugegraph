@@ -924,8 +924,10 @@ public class BinarySerializer extends AbstractSerializer {
              * the page to id and use it as the starting row for this query
              */
             byte[] position = PageState.fromString(query.page()).position();
-            E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of the position of the RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
+            //                "Invalid page out of lower bound");
             BinaryId start = new BinaryId(position, null);
             newQuery = new IdPrefixQuery(query, start, prefix);
         } else {
