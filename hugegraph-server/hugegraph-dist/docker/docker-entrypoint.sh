@@ -16,6 +16,28 @@
 # under the License.
 #
 
+# create a folder to save the docker-related file
+DOCKER_FOLDER='./docker'
+mkdir -p $DOCKER_FOLDER
+
+INIT_FLAG_FILE="init_complete"
+
+if [ ! -f "${DOCKER_FOLDER}/${INIT_FLAG_FILE}" ]; then
+    # wait for storage backend
+    ./bin/wait-storage.sh
+    if [ -z "$PASSWORD" ]; then
+        ./bin/init-store.sh
+    else
+        echo "init hugegraph with auth"
+        ./bin/enable-auth.sh
+        echo "$PASSWORD" | ./bin/init-store.sh
+    fi
+    # create a flag file to avoid re-init when restarting
+    touch ${DOCKER_FOLDER}/${INIT_FLAG_FILE}
+else
+    echo "Hugegraph Initialization already done. Skipping re-init..."
+fi
+
 # start hugegraph
 # remove "-g zgc" now, which is only available on ARM-Mac with java > 13 
 ./bin/start-hugegraph.sh -j "$JAVA_OPTS" 

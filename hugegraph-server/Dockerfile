@@ -28,9 +28,8 @@ RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && 
 # 2nd stage: runtime env
 # remove zgc, which is only available on ARM-Mac with java > 13 
 FROM openjdk:11-slim
-# TODO: get the version from the pom.xml
-ENV version=1.2.0
-COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-$version/ /hugegraph-server
+
+COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-*/ /hugegraph-server
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
@@ -64,12 +63,10 @@ RUN set -e \
 COPY hugegraph-server/hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
-COPY hugegraph-server/hugegraph-dist/docker/docker-init.sh .
 RUN chmod 755 ./docker-entrypoint.sh 
-RUN chmod 755 ./docker-init.sh
 
 EXPOSE 8080
 VOLUME /hugegraph-server
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--" ,"/bin/bash", "docker-init.sh"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./docker-entrypoint.sh"]
