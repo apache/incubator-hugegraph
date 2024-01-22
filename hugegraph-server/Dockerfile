@@ -24,12 +24,13 @@ WORKDIR /pkg
 ARG MAVEN_ARGS
 
 RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
+RUN find . -name 'apache-hugegraph-incubating-*.tar.gz' -delete
 
 # 2nd stage: runtime env
 # remove zgc, which is only available on ARM-Mac with java > 13 
 FROM openjdk:11-slim
 
-COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-*/ /hugegraph-server
+COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-*/ /hugegraph-server/
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
