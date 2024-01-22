@@ -16,8 +16,13 @@
 # under the License.
 #
 
-# start hugegraph
-# remove "-g zgc" now, which is only available on ARM-Mac with java > 13 
-./bin/start-hugegraph.sh -j "$JAVA_OPTS" 
+# wait for storage backend
+./bin/wait-storage.sh
 
-tail -f /dev/null
+if [ -z "$PASSWORD" ]; then
+    ./bin/init-store.sh
+else
+    echo "init hugegraph with auth"
+    ./bin/enable-auth.sh
+    echo "$PASSWORD" | ./bin/init-store.sh
+fi

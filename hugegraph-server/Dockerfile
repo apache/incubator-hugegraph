@@ -49,8 +49,11 @@ RUN set -x \
        curl \
        lsof \
        vim \
+       cron \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+RUN service cron start
 
 # 2. Init HugeGraph Sever
 RUN set -e \
@@ -61,10 +64,12 @@ RUN set -e \
 COPY hugegraph-server/hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
+COPY hugegraph-server/hugegraph-dist/docker/docker-init.sh .
 RUN chmod 755 ./docker-entrypoint.sh 
+RUN chmod 755 ./docker-init.sh
 
 EXPOSE 8080
 VOLUME /hugegraph-server
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--" ,"/bin/bash", "docker-init.sh"]
 CMD ["./docker-entrypoint.sh"]
