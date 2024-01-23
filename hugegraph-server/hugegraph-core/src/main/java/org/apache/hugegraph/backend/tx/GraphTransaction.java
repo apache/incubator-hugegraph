@@ -1457,7 +1457,7 @@ public class GraphTransaction extends IndexableTransaction {
             EdgeLabel edgeLabel = this.graph().edgeLabel(label);
 
             if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.IN)) {
-                // For IN queries, filter out non-adjacent vertices.
+                // For IN query, filter schema non-adjacent vertices.
                 ArrayList<Id> vertexIdList = query.condition(HugeKeys.OWNER_VERTEX);
                 List<Id> filterVertexList = vertexIdList.stream().filter(vertexId -> {
                     Vertex vertex = this.graph().vertex(vertexId);
@@ -1467,11 +1467,12 @@ public class GraphTransaction extends IndexableTransaction {
                 vertexIdList.clear();
                 vertexIdList.addAll(filterVertexList);
             } else if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.EQ)) {
-                // For EQ queries, return emptyQuery() if it is a non-adjacent vertex.
+                // For EQ query, just skip query if adjacent schema is unavailable.
                 Id vertexId = query.condition(HugeKeys.OWNER_VERTEX);
                 Vertex vertex = this.graph().vertex(vertexId);
                 VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
                 if (!edgeLabel.linkWithLabel(vertexLabel.id(), dir.type())) {
+                    // Return empty query to skip storage query
                     return new Query(query.resultType());
                 }
             }
@@ -1482,9 +1483,8 @@ public class GraphTransaction extends IndexableTransaction {
                 query = query.copy();
                 // Serialize sort-values
                 List<Id> keys = this.graph().edgeLabel(label).sortKeys();
-                List<Condition> conditions =
-                    GraphIndexTransaction.constructShardConditions(
-                        query, keys, HugeKeys.SORT_VALUES);
+                List<Condition> conditions = GraphIndexTransaction.constructShardConditions(
+                    query, keys, HugeKeys.SORT_VALUES);
                 query.query(conditions);
                 /*
                  * Reset all userprop since transferred to sort-keys, ignore other

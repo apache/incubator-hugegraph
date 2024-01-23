@@ -105,7 +105,7 @@ public class InitStore {
                  */
                 graph.initSystemInfo();
                 LOG.info("Skip init-store due to the backend store of '{}' " +
-                    "had been initialized", graph.name());
+                         "had been initialized", graph.name());
             } else {
                 initBackend(graph);
             }
