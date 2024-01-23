@@ -39,7 +39,7 @@ ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:Max
 #COPY . /hugegraph/hugegraph-server
 WORKDIR /hugegraph-server/
 
-# 1. Install environment
+# 1. Install environment and init HugeGraph Sever
 RUN set -x \
     && apt-get -q update \
     && apt-get -q install -y --no-install-recommends --no-install-suggests \
@@ -51,14 +51,11 @@ RUN set -x \
        cron \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && service cron start
-
-# 2. Init HugeGraph Sever
-RUN set -e \
+    && service cron start \
     && pwd && cd /hugegraph-server/ \
     && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties
 
-# 3. Init docker script
+# 2. Init docker script
 COPY hugegraph-server/hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
