@@ -26,9 +26,10 @@ if [ ! -f "${DOCKER_FOLDER}/${INIT_FLAG_FILE}" ]; then
     # wait for storage backend
     ./bin/wait-storage.sh
     if [ -z "$PASSWORD" ]; then
+        echo "init hugegraph with non-auth mode"
         ./bin/init-store.sh
     else
-        echo "init hugegraph with auth"
+        echo "init hugegraph with auth mode"
         ./bin/enable-auth.sh
         echo "$PASSWORD" | ./bin/init-store.sh
     fi
