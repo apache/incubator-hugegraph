@@ -1466,6 +1466,10 @@ public class GraphTransaction extends IndexableTransaction {
                 }).collect(Collectors.toList());
                 vertexIdList.clear();
                 vertexIdList.addAll(filterVertexList);
+                if (CollectionUtils.isEmpty(vertexIdList)) {
+                    // Return empty query to skip storage query
+                    return new Query(query.resultType());
+                }
             } else if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.EQ)) {
                 // For EQ query, just skip query if adjacent schema is unavailable.
                 Id vertexId = query.condition(HugeKeys.OWNER_VERTEX);
