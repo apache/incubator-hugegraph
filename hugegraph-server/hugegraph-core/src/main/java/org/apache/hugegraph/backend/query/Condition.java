@@ -565,6 +565,10 @@ public abstract class Condition {
             return this.value;
         }
 
+        public void setValue(Object value) {
+            this.value = value;
+        }
+
         public void serialKey(Object key) {
             this.serialKey = key;
         }

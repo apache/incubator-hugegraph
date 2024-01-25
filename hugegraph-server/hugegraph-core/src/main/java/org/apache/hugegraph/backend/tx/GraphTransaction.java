@@ -1464,20 +1464,25 @@ public class GraphTransaction extends IndexableTransaction {
                     VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
                     return edgeLabel.linkWithLabel(vertexLabel.id(), dir.type());
                 }).collect(Collectors.toList());
-                vertexIdList.clear();
-                vertexIdList.addAll(filterVertexList);
-                if (CollectionUtils.isEmpty(vertexIdList)) {
+                if (CollectionUtils.isEmpty(filterVertexList)) {
                     // Return empty query to skip storage query
                     return new Query(query.resultType());
+                } else if (vertexIdList.size() != filterVertexList.size()) {
+                    // Modify on the copied relation to avoid affecting other query
+                    Condition.Relation relation = query.copyRelation(HugeKeys.OWNER_VERTEX);
+                    relation.setValue(filterVertexList);
                 }
             } else if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.EQ)) {
                 // For EQ query, just skip query if adjacent schema is unavailable.
                 Id vertexId = query.condition(HugeKeys.OWNER_VERTEX);
-                Vertex vertex = this.graph().vertex(vertexId);
-                VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
-                if (!edgeLabel.linkWithLabel(vertexLabel.id(), dir.type())) {
-                    // Return empty query to skip storage query
-                    return new Query(query.resultType());
+                Iterator<Vertex> iter = this.queryVertices(vertexId);
+                Vertex vertex = QueryResults.one(iter);
+                if (vertex != null) {
+                    VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
+                    if (!edgeLabel.linkWithLabel(vertexLabel.id(), dir.type())) {
+                        // Return empty query to skip storage query
+                        return new Query(query.resultType());
+                    }
                 }
             }
 
