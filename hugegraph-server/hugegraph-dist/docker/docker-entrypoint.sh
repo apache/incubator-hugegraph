@@ -16,24 +16,31 @@
 # under the License.
 #
 
-# wait for storage like cassandra
-./bin/wait-storage.sh
+# create a folder to save the docker-related file
+DOCKER_FOLDER='./docker'
+mkdir -p $DOCKER_FOLDER
 
-# set auth if needed 
-if [[ $AUTH == "true" ]]; then
-    # set password if use do not provide
+INIT_FLAG_FILE="init_complete"
+
+if [ ! -f "${DOCKER_FOLDER}/${INIT_FLAG_FILE}" ]; then
+    # wait for storage backend
+    ./bin/wait-storage.sh
     if [ -z "$PASSWORD" ]; then
-        echo "you have not set the password, we will use the default password"
-        PASSWORD="hugegraph"
+        echo "init hugegraph with non-auth mode"
+        ./bin/init-store.sh
+    else
+        echo "init hugegraph with auth mode"
+        ./bin/enable-auth.sh
+        echo "$PASSWORD" | ./bin/init-store.sh
     fi
-    echo "init hugegraph with auth"
-    ./bin/enable-auth.sh
-    echo "$PASSWORD" | ./bin/init-store.sh
+    # create a flag file to avoid re-init when restarting
+    touch ${DOCKER_FOLDER}/${INIT_FLAG_FILE}
 else
-    ./bin/init-store.sh
+    echo "Hugegraph Initialization already done. Skipping re-init..."
 fi
 
 # start hugegraph
-./bin/start-hugegraph.sh -j "$JAVA_OPTS" -g zgc
+# remove "-g zgc" now, which is only available on ARM-Mac with java > 13 
+./bin/start-hugegraph.sh -j "$JAVA_OPTS" 
 
 tail -f /dev/null

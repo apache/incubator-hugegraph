@@ -139,6 +139,9 @@ function wait_for_startup() {
         process_status "$server_name" "$pid" >/dev/null
         if [ $? -eq 1 ]; then
             echo "Starting $server_name failed"
+            if [ -e "$error_file_name" ]; then
+                rm "$error_file_name"
+            fi
             return 1
         fi
 

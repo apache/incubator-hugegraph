@@ -23,13 +23,13 @@ COPY . /pkg
 WORKDIR /pkg
 ARG MAVEN_ARGS
 
-RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
+RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l && rm ./hugegraph-server/*.tar.gz
 
 # 2nd stage: runtime env
+# Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13 
 FROM openjdk:11-slim
-# TODO: get the version from the pom.xml
-ENV version=1.2.0
-COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-$version/ /hugegraph-server
+
+COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-*/ /hugegraph-server/
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
@@ -39,7 +39,7 @@ ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:Max
 #COPY . /hugegraph/hugegraph-server
 WORKDIR /hugegraph-server/
 
-# 1. Install environment
+# 1. Install environment and init HugeGraph Sever
 RUN set -x \
     && apt-get -q update \
     && apt-get -q install -y --no-install-recommends --no-install-suggests \
@@ -48,15 +48,14 @@ RUN set -x \
        curl \
        lsof \
        vim \
+       cron \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# 2. Init HugeGraph Sever
-RUN set -e \
+    && rm -rf /var/lib/apt/lists/* \
+    && service cron start \
     && pwd && cd /hugegraph-server/ \
     && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties
 
-# 3. Init docker script
+# 2. Init docker script
 COPY hugegraph-server/hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
