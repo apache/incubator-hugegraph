@@ -36,19 +36,21 @@ GRAPH_CONF="hugegraph.properties"
 
 # make a backup
 BAK_CONF="$TOP/conf-bak"
-mkdir -p "$BAK_CONF"
-cp "${CONF}/${GREMLIN_SERVER_CONF}" "${BAK_CONF}/${GREMLIN_SERVER_CONF}.bak"
-cp "${CONF}/${REST_SERVER_CONF}" "${BAK_CONF}/${REST_SERVER_CONF}.bak"
-cp "${CONF}/graphs/${GRAPH_CONF}" "${BAK_CONF}/${GRAPH_CONF}.bak"
+if [ ! -d "$BAK_CONF" ]; then
+    mkdir -p "$BAK_CONF"
+    cp "${CONF}/${GREMLIN_SERVER_CONF}" "${BAK_CONF}/${GREMLIN_SERVER_CONF}.bak"
+    cp "${CONF}/${REST_SERVER_CONF}" "${BAK_CONF}/${REST_SERVER_CONF}.bak"
+    cp "${CONF}/graphs/${GRAPH_CONF}" "${BAK_CONF}/${GRAPH_CONF}.bak"
 
 
-sed -i -e '$a\authentication: {' \
-       -e '$a\  authenticator: org.apache.hugegraph.auth.StandardAuthenticator,' \
-       -e '$a\  authenticationHandler: org.apache.hugegraph.auth.WsAndHttpBasicAuthHandler,' \
-       -e '$a\  config: {tokens: conf/rest-server.properties}' \
-       -e '$a\}' ${CONF}/${GREMLIN_SERVER_CONF}
+    sed -i -e '$a\authentication: {' \
+        -e '$a\  authenticator: org.apache.hugegraph.auth.StandardAuthenticator,' \
+        -e '$a\  authenticationHandler: org.apache.hugegraph.auth.WsAndHttpBasicAuthHandler,' \
+        -e '$a\  config: {tokens: conf/rest-server.properties}' \
+        -e '$a\}' ${CONF}/${GREMLIN_SERVER_CONF}
 
-sed -i -e '$a\auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator' \
-       -e '$a\auth.graph_store=hugegraph' ${CONF}/${REST_SERVER_CONF}
+    sed -i -e '$a\auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator' \
+        -e '$a\auth.graph_store=hugegraph' ${CONF}/${REST_SERVER_CONF}
 
-sed -i 's/gremlin.graph=org.apache.hugegraph.HugeFactory/gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy/g' ${CONF}/graphs/${GRAPH_CONF}
+    sed -i 's/gremlin.graph=org.apache.hugegraph.HugeFactory/gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy/g' ${CONF}/graphs/${GRAPH_CONF}
+fi
