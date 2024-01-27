@@ -34,6 +34,8 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 import org.glassfish.jersey.model.Parameter.Source;
 import org.glassfish.jersey.server.model.Parameter;
@@ -55,7 +57,7 @@ public class ProfileAPI {
     private static final String SERVICE = "hugegraph";
     private static final String DOC = "https://hugegraph.apache.org/docs/";
     private static final String API_DOC = DOC + "clients/";
-    private static final String SWAGGER_UI = "http://{domain/ip}:{port}/swagger-ui/index.html#/";
+    private static final String SWAGGER_UI = "/swagger-ui/index.html";
 
     private static String SERVER_PROFILES = null;
     private static String API_PROFILES = null;
@@ -63,7 +65,7 @@ public class ProfileAPI {
     @GET
     @Timed
     @Produces(MediaType.APPLICATION_JSON)
-    public String getProfile(@Context Application application) {
+    public String getProfile(@Context HugeConfig conf, @Context Application application) {
         // May init multi times by multi threads, but no effect on the results
         if (SERVER_PROFILES != null) {
             return SERVER_PROFILES;
@@ -74,7 +76,7 @@ public class ProfileAPI {
         profiles.put("version", CoreVersion.VERSION.toString());
         profiles.put("doc", DOC);
         profiles.put("api_doc", API_DOC);
-        profiles.put("swagger_ui", SWAGGER_UI);
+        profiles.put("swagger_ui", conf.get(ServerOptions.REST_SERVER_URL) + SWAGGER_UI);
         Set<String> apis = new TreeSet<>();
         for (Class<?> clazz : application.getClasses()) {
             if (!isAnnotatedPathClass(clazz)) {
