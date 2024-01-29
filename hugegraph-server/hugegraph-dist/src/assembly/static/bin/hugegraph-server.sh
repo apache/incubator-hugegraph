@@ -127,6 +127,7 @@ if [[ $JAVA_VERSION -gt 9 ]]; then
 fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
+# mention: zgc is only available on ARM-Mac with java > 13
 case "$GC_OPTION" in
     g1|G1|g1gc)
         echo "Using G1GC as the default garbage collector"
