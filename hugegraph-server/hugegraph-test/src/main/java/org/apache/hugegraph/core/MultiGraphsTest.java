@@ -211,8 +211,8 @@ public class MultiGraphsTest extends BaseCoreTest {
         g1.serverStarted(GlobalMasterInfo.master("server-g1c"));
         g2.serverStarted(GlobalMasterInfo.master("server-g2c"));
 
-        g1.schema().propertyKey("id").asInt().create();
-        g2.schema().propertyKey("id").asText().create();
+        g1.schema().propertyKey("id").asInt().checkExist(false).create();
+        g2.schema().propertyKey("id").asText().checkExist(false).create();
 
         Assert.assertThrows(ExistedException.class, () -> {
             g2.schema().copyFrom(g1.schema());
