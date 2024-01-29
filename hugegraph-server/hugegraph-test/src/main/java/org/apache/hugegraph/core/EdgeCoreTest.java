@@ -517,7 +517,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                 Assert.assertContains("Zero bytes may not occur in string " +
                                       "parameters", e.getCause().getMessage());
             });
-        } else if (backend.equals("rocksdb") || backend.equals("hbase")) {
+        } else if (ImmutableSet.of("rocksdb", "hbase", "hstore").contains(backend)) {
             Assert.assertThrows(IllegalArgumentException.class, () -> {
                 james.addEdge("write", book, "time", "2017-5-27\u0000");
                 graph.tx().commit();
@@ -5822,7 +5822,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         String backend = graph.backend();
         Set<String> nonZeroBackends = ImmutableSet.of("postgresql",
-                                                      "rocksdb", "hbase");
+                                                      "rocksdb", "hbase", "hstore");
         if (nonZeroBackends.contains(backend)) {
             Assert.assertThrows(Exception.class, () -> {
                 louise.addEdge("strike", sean, "id", 4,

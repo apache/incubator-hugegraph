@@ -6254,7 +6254,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         String backend = graph.backend();
         Set<String> nonZeroBackends = ImmutableSet.of("postgresql",
-                                                      "rocksdb", "hbase");
+                                                      "rocksdb", "hbase", "hstore");
         if (nonZeroBackends.contains(backend)) {
             Assert.assertThrows(Exception.class, () -> {
                 graph.addVertex(T.label, "person", "name", "0",
@@ -9071,7 +9071,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, vertices.size());
 
         String backend = graph.backend();
-        if (ImmutableSet.of("rocksdb", "hbase").contains(backend)) {
+        if (ImmutableSet.of("rocksdb", "hbase", "hstore").contains(backend)) {
             Assert.assertThrows(Exception.class, () -> {
                 graph.addVertex(T.label, "person", "name", "0",
                                 "city", "xyz\u0000efg", "age", 0);
