@@ -19,27 +19,27 @@ package org.apache.hugegraph.unit.rocksdb;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
+import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
+import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.junit.Assume;
 import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
-import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
-import org.apache.hugegraph.testutil.Assert;
-
 public class RocksDBSessionTest extends BaseRocksDBUnitTest {
 
     @Test
-    public void testPutAndGet() throws RocksDBException {
+    public void testPutAndGet() {
         String value = getString(this.rocks.session().get(TABLE, getBytes("person:1gname")));
-        Assert.assertEquals(null, value);
+        Assert.assertNull(value);
 
         this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James"));
         this.rocks.session().put(TABLE, getBytes("person:1gage"), getBytes(19));
@@ -57,9 +57,9 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testPutAndMultiGet() throws RocksDBException {
-        BackendColumnIterator values = this.rocks.session().get(TABLE,
-                                       Arrays.asList(getBytes("person:1gname")));
+    public void testPutAndMultiGet() {
+        BackendColumnIterator values =
+            this.rocks.session().get(TABLE, Collections.singletonList(getBytes("person:1gname")));
         Assert.assertFalse(values.hasNext());
 
         this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James"));
@@ -67,9 +67,8 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         this.rocks.session().put(TABLE, getBytes("person:1gcity"), getBytes("Beijing"));
         this.commit();
 
-        values = this.rocks.session().get(TABLE, Arrays.asList(
-                                                 getBytes("person:1gname"),
-                                                 getBytes("person:1gage")));
+        values = this.rocks.session().get(TABLE, Arrays.asList(getBytes("person:1gname"),
+                                                               getBytes("person:1gage")));
         Assert.assertTrue(values.hasNext());
         Assert.assertEquals("James", getString(values.next().value));
         Assert.assertEquals(19, getLong(values.next().value));
@@ -123,7 +122,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testMergeWithCounter() throws RocksDBException {
+    public void testMergeWithCounter() {
         this.rocks.session().put(TABLE, getBytes("person:1gage"), getBytes(19));
         this.commit();
 
@@ -163,7 +162,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testScanByAll() throws RocksDBException {
+    public void testScanByAll() {
         put("person:1gname", "James");
         put("person:2gname", "Lisa");
 
@@ -397,7 +396,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         this.commit();
 
         Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
+        Assert.assertNull(get("person:1gage"));
         Assert.assertEquals("Beijing", get("person:1gcity"));
     }
 
@@ -436,9 +435,9 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         this.rocks.session().deletePrefix(TABLE, getBytes("person:1"));
         this.commit();
 
-        Assert.assertEquals(null, get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
-        Assert.assertEquals(null, get("person:1gcity"));
+        Assert.assertNull(get("person:1gname"));
+        Assert.assertNull(get("person:1gage"));
+        Assert.assertNull(get("person:1gcity"));
 
         Assert.assertEquals("Lisa", get("person:2gname"));
     }
@@ -464,13 +463,13 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         this.rocks.session().deleteRange(TABLE, getBytes("person:1"), getBytes("person:3"));
         this.commit();
 
-        Assert.assertEquals(null, get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
-        Assert.assertEquals(null, get("person:1gcity"));
+        Assert.assertNull(get("person:1gname"));
+        Assert.assertNull(get("person:1gage"));
+        Assert.assertNull(get("person:1gcity"));
 
-        Assert.assertEquals(null, get("person:2gname"));
-        Assert.assertEquals(null, get("person:2gage"));
-        Assert.assertEquals(null, get("person:2gcity"));
+        Assert.assertNull(get("person:2gname"));
+        Assert.assertNull(get("person:2gage"));
+        Assert.assertNull(get("person:2gcity"));
 
         Assert.assertEquals("Hebe", get("person:3gname"));
         Assert.assertEquals("21", get("person:3gage"));
@@ -543,7 +542,7 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
     }
 
     @Test
-    public void testDeleteByRangeWithMinMaxByteValue() throws RocksDBException {
+    public void testDeleteByRangeWithMinMaxByteValue() {
         Session session = this.rocks.session();
 
         byte[] key11 = new byte[]{1, 0};
@@ -601,17 +600,17 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         this.commit();
 
         Assert.assertEquals("James2", get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
+        Assert.assertNull(get("person:1gage"));
 
         // deleteSingle after put twice
         this.rocks.session().deleteSingle(TABLE, getBytes("person:1gname"));
         this.commit();
 
         // NOTE: maybe return "James" here
-        Assert.assertEquals(null, get("person:1gname"));
+        Assert.assertNull(get("person:1gname"));
         Assert.assertTrue(null == get("person:1gname") ||
                           "James".equals(get("person:1gname")));
-        Assert.assertEquals(null, get("person:1gage"));
+        Assert.assertNull(get("person:1gage"));
     }
 
     @Test
@@ -628,13 +627,13 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         this.commit();
 
         Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
+        Assert.assertNull(get("person:1gage"));
         Assert.assertEquals("Beijing", get("person:1gcity"));
 
         this.rocks.session().compactRange(TABLE);
 
         Assert.assertEquals("James", get("person:1gname"));
-        Assert.assertEquals(null, get("person:1gage"));
+        Assert.assertNull(get("person:1gage"));
         Assert.assertEquals("Beijing", get("person:1gcity"));
     }
 

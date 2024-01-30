@@ -101,6 +101,11 @@ public class InitStore {
                 LOG.info("Skip init-store due to the backend store of '{}' " +
                          "had been initialized", graph.name());
                 backendStoreInfo.checkVersion();
+                /*
+                 * Init the required information for creating the admin account
+                 * (when switch from non-auth mode to auth mode)
+                 */
+                graph.initSystemInfo();
             } else {
                 initBackend(graph);
             }

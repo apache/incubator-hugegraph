@@ -12,7 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-20.04
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      USE_STAGE: 'false' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}
