@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.mysql;
@@ -38,6 +40,7 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.collect.ImmutableMap;
 
 public class MysqlTables {
@@ -61,10 +64,10 @@ public class MysqlTables {
     private static final String LARGE_JSON = LARGE_TEXT;
 
     private static final Map<String, String> TYPES_MAPPING = ImmutableMap.of(
-            SMALL_TEXT, "VARCHAR(255)",
-            MID_TEXT, "VARCHAR(1024)",
-            LARGE_TEXT, "TEXT",
-            HUGE_TEXT, "MEDIUMTEXT"
+        SMALL_TEXT, "VARCHAR(255)",
+        MID_TEXT, "VARCHAR(1024)",
+        LARGE_TEXT, "TEXT",
+        HUGE_TEXT, "MEDIUMTEXT"
     );
 
     public static class MysqlTableTemplate extends MysqlTable {
@@ -124,7 +127,7 @@ public class MysqlTables {
                 return rs.getString(formatKey(HugeKeys.VALUE));
             } catch (SQLException e) {
                 throw new BackendException(
-                          "Failed to get stored version with '%s'", e, select);
+                    "Failed to get stored version with '%s'", e, select);
             }
         }
     }
@@ -161,17 +164,17 @@ public class MysqlTables {
                 }
             } catch (SQLException e) {
                 throw new BackendException(
-                          "Failed to get id from counters with type '%s'",
-                          e, type);
+                    "Failed to get id from counters with type '%s'",
+                    e, type);
             }
         }
 
         public void increaseCounter(MysqlSessions.Session session,
                                     HugeType type, long increment) {
             String update = String.format(
-                            "INSERT INTO %s VALUES ('%s', %s) " +
-                            "ON DUPLICATE KEY UPDATE ID = ID + %s;",
-                            this.table(), type.name(), increment, increment);
+                "INSERT INTO %s VALUES ('%s', %s) " +
+                "ON DUPLICATE KEY UPDATE ID = ID + %s;",
+                this.table(), type.name(), increment, increment);
             try {
                 session.execute(update);
             } catch (SQLException e) {
@@ -325,8 +328,8 @@ public class MysqlTables {
 
             this.direction = direction;
             this.delByLabelTemplate = String.format(
-                                      "DELETE FROM %s WHERE %s = ?;",
-                                      this.table(), formatKey(HugeKeys.LABEL));
+                "DELETE FROM %s WHERE %s = ?;",
+                this.table(), formatKey(HugeKeys.LABEL));
 
             this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.OWNER_VERTEX, SMALL_TEXT);
@@ -341,6 +344,19 @@ public class MysqlTables {
                              HugeKeys.OTHER_VERTEX);
         }
 
+        public static String table(Directions direction) {
+            assert direction == Directions.OUT || direction == Directions.IN;
+            return direction.type().string() + TABLE_SUFFIX;
+        }
+
+        public static MysqlTable out(String store) {
+            return new Edge(store, Directions.OUT);
+        }
+
+        public static MysqlTable in(String store) {
+            return new Edge(store, Directions.IN);
+        }
+
         @Override
         public List<Object> idColumnValue(Id id) {
             EdgeId edgeId;
@@ -350,7 +366,7 @@ public class MysqlTables {
                 String[] idParts = EdgeId.split(id);
                 if (idParts.length == 1) {
                     // Delete edge by label
-                    return Arrays.asList((Object[]) idParts);
+                    return Arrays.asList(idParts);
                 }
                 id = IdUtil.readString(id.asString());
                 edgeId = EdgeId.parse(id.asString());
@@ -412,7 +428,7 @@ public class MysqlTables {
             long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
             if (current != null && current.subRows().size() < maxSize) {
                 Id nextVertexId = IdGenerator.of(
-                                  next.<String>column(HugeKeys.OWNER_VERTEX));
+                    next.<String>column(HugeKeys.OWNER_VERTEX));
                 if (current.id().equals(nextVertexId)) {
                     current.subRow(next.row());
                     return current;
@@ -435,19 +451,6 @@ public class MysqlTables {
 
             vertex.subRow(edge.row());
             return vertex;
-        }
-
-        public static String table(Directions direction) {
-            assert direction == Directions.OUT || direction == Directions.IN;
-            return direction.type().string() + TABLE_SUFFIX;
-        }
-
-        public static MysqlTable out(String store) {
-            return new Edge(store, Directions.OUT);
-        }
-
-        public static MysqlTable in(String store) {
-            return new Edge(store, Directions.IN);
         }
     }
 

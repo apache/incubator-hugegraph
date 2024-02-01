@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.mysql;
@@ -24,8 +26,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
@@ -42,6 +42,7 @@ import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
@@ -71,6 +72,14 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
         this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
+    }
+
+    protected static MysqlBackendEntry castBackendEntry(BackendEntry entry) {
+        if (!(entry instanceof MysqlBackendEntry)) {
+            throw new BackendException(
+                "MySQL store only supports MysqlBackendEntry");
+        }
+        return (MysqlBackendEntry) entry;
     }
 
     private void registerMetaHandlers() {
@@ -236,7 +245,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.checkOpened();
         Session session = this.sessions.session();
 
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
             this.mutate(session, it.next());
         }
     }
@@ -266,7 +275,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported mutate action: %s", item.action()));
+                    "Unsupported mutate action: %s", item.action()));
         }
     }
 
@@ -367,14 +376,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                      "MySQL store has not been initialized");
     }
 
-    protected static MysqlBackendEntry castBackendEntry(BackendEntry entry) {
-        if (!(entry instanceof MysqlBackendEntry)) {
-            throw new BackendException(
-                      "MySQL store only supports MysqlBackendEntry");
-        }
-        return (MysqlBackendEntry) entry;
-    }
-
     public static class MysqlSchemaStore extends MysqlStore {
 
         private final MysqlTables.Counters counters;
@@ -467,13 +468,13 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                      "MysqlGraphStore.increaseCounter()");
+                "MysqlGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "MysqlGraphStore.getCounter()");
+                "MysqlGraphStore.getCounter()");
         }
     }
 

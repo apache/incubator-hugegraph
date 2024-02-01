@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.mysql;
@@ -26,10 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-
-import org.apache.logging.log4j.util.Strings;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
@@ -50,23 +48,25 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.logging.log4j.util.Strings;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
 
 public abstract class MysqlTable
-                extends BackendTable<MysqlSessions.Session, MysqlBackendEntry.Row> {
+    extends BackendTable<MysqlSessions.Session, MysqlBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(MysqlTable.class);
 
     private static final String DECIMAL = "DECIMAL";
-
+    private final MysqlShardSplitter shardSplitter;
     // The template cache for insert and delete statements
     private String insertTemplate;
     private String insertTemplateTtl;
     private String deleteTemplate;
     private String updateIfPresentTemplate;
     private String updateIfAbsentTemplate;
-
-    private final MysqlShardSplitter shardSplitter;
 
     public MysqlTable(String table) {
         super(table);
@@ -77,6 +77,22 @@ public abstract class MysqlTable
         this.updateIfAbsentTemplate = null;
 
         this.shardSplitter = new MysqlShardSplitter(this.table());
+    }
+
+    public static String formatKey(HugeKeys key) {
+        return key.name();
+    }
+
+    public static HugeKeys parseKey(String name) {
+        return HugeKeys.valueOf(name.toUpperCase());
+    }
+
+    public static List<String> formatKeys(List<HugeKeys> keys) {
+        List<String> names = new ArrayList<>(keys.size());
+        for (HugeKeys key : keys) {
+            names.add(formatKey(key));
+        }
+        return names;
     }
 
     @Override
@@ -111,7 +127,7 @@ public abstract class MysqlTable
         sql.append(this.table()).append(" (");
         // Add columns
         for (Map.Entry<HugeKeys, String> entry :
-             tableDefine.columns().entrySet()) {
+            tableDefine.columns().entrySet()) {
             sql.append(formatKey(entry.getKey()));
             sql.append(" ");
             sql.append(entry.getValue());
@@ -458,7 +474,7 @@ public abstract class MysqlTable
 
     protected <R> Iterator<R> query(MysqlSessions.Session session, Query query,
                                     BiFunction<Query, ResultSetWrapper,
-                                               Iterator<R>> parser) {
+                                        Iterator<R>> parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {
@@ -494,7 +510,7 @@ public abstract class MysqlTable
         // Set aggregate
         Aggregate aggregate = query.aggregate();
         if (aggregate != null) {
-            select.append(aggregate.toString());
+            select.append(aggregate);
         } else {
             select.append("*");
         }
@@ -610,8 +626,8 @@ public abstract class MysqlTable
             List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new NotFoundException(
-                          "Unsupported ID format: '%s' (should contain %s)",
-                          id, nameParts);
+                    "Unsupported ID format: '%s' (should contain %s)",
+                    id, nameParts);
             }
             ids.add(idParts);
         }
@@ -714,7 +730,7 @@ public abstract class MysqlTable
         // Set order-by
         select.append(" ORDER BY ");
         for (Map.Entry<HugeKeys, Query.Order> order :
-             query.orders().entrySet()) {
+            query.orders().entrySet()) {
             String key = formatKey(order.getKey());
             Query.Order value = order.getValue();
             select.append(key).append(" ");
@@ -736,7 +752,7 @@ public abstract class MysqlTable
         if (!page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
             Map<HugeKeys, Object> columns = MysqlEntryIterator.PagePosition.fromBytes(position)
-                                                        .columns();
+                                                                           .columns();
 
             List<HugeKeys> idColumnNames = this.idColumnName();
             List<Object> values = new ArrayList<>(idColumnNames.size());
@@ -792,27 +808,11 @@ public abstract class MysqlTable
         return e2;
     }
 
-    public static String formatKey(HugeKeys key) {
-        return key.name();
-    }
-
-    public static HugeKeys parseKey(String name) {
-        return HugeKeys.valueOf(name.toUpperCase());
-    }
-
-    public static List<String> formatKeys(List<HugeKeys> keys) {
-        List<String> names = new ArrayList<>(keys.size());
-        for (HugeKeys key : keys) {
-            names.add(formatKey(key));
-        }
-        return names;
-    }
-
     private static class MysqlShardSplitter extends ShardSplitter<MysqlSessions.Session> {
 
         private static final String BASE64 =
-                "0123456789=?ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-                "abcdefghijklmnopqrstuvwxyz";
+            "0123456789=?ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+            "abcdefghijklmnopqrstuvwxyz";
         private static final int COUNT = 64;
 
         public MysqlShardSplitter(String table) {
