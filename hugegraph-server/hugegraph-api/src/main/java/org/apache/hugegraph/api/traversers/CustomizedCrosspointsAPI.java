@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.api.traversers;
@@ -63,12 +65,12 @@ public class CustomizedCrosspointsAPI extends API {
     private static final Logger LOG = Log.logger(CustomizedCrosspointsAPI.class);
 
     private static List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns(
-            HugeGraph graph, CrosspointsRequest request) {
+        HugeGraph graph, CrosspointsRequest request) {
         int stepSize = request.pathPatterns.size();
         List<CustomizedCrosspointsTraverser.PathPattern> pathPatterns = new ArrayList<>(stepSize);
         for (PathPattern pattern : request.pathPatterns) {
             CustomizedCrosspointsTraverser.PathPattern pathPattern =
-                    new CustomizedCrosspointsTraverser.PathPattern();
+                new CustomizedCrosspointsTraverser.PathPattern();
             for (Step step : pattern.steps) {
                 pathPattern.add(step.jsonToStep(graph));
             }
@@ -105,11 +107,11 @@ public class CustomizedCrosspointsAPI extends API {
         Iterator<Vertex> sources = request.sources.vertices(g);
 
         CustomizedCrosspointsTraverser traverser =
-                new CustomizedCrosspointsTraverser(g);
+            new CustomizedCrosspointsTraverser(g);
 
         List<CustomizedCrosspointsTraverser.PathPattern> patterns = pathPatterns(g, request);
         CustomizedCrosspointsTraverser.CrosspointsPaths paths =
-                traverser.crosspointsPaths(sources, patterns, request.capacity, request.limit);
+            traverser.crosspointsPaths(sources, patterns, request.capacity, request.limit);
 
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());

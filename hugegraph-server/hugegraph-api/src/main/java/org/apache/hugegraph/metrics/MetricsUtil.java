@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.metrics;
@@ -33,7 +35,7 @@ public class MetricsUtil {
     public static final String METRICS_PATH_FAILED_COUNTER = "FAILED_COUNTER";
     public static final String METRICS_PATH_SUCCESS_COUNTER = "SUCCESS_COUNTER";
     public static final String METRICS_PATH_RESPONSE_TIME_HISTOGRAM =
-            "RESPONSE_TIME_HISTOGRAM";
+        "RESPONSE_TIME_HISTOGRAM";
     public static final String P75_ATTR = "{name=\"p75\",} ";
     public static final String P95_ATTR = "{name=\"p95\",} ";
     public static final String P98_ATTR = "{name=\"p98\",} ";
@@ -128,7 +130,7 @@ public class MetricsUtil {
                 promeMetrics.append(helpName)
                             .append(COUNT_ATTR).append(histogram.getCount()).append(END_LSTR);
                 promeMetrics.append(
-                        exportSnapshot(helpName, histogram.getSnapshot()));
+                    exportSnapshot(helpName, histogram.getSnapshot()));
             }
         });
 
@@ -180,7 +182,7 @@ public class MetricsUtil {
                             .append(FIFT_MIN_RATE_ATRR).append(timer.getFifteenMinuteRate())
                             .append(END_LSTR);
                 promeMetrics.append(
-                        exportSnapshot(helpName, timer.getSnapshot()));
+                    exportSnapshot(helpName, timer.getSnapshot()));
             }
         });
     }
@@ -189,27 +191,26 @@ public class MetricsUtil {
         if (snapshot == null) {
             return "";
         }
-        StringBuilder snapMetrics = new StringBuilder();
-        snapMetrics.append(helpName)
-                   .append(MIN_ATTR).append(snapshot.getMin()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(MAX_ATTR).append(snapshot.getMax()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(MEAN_ATTR).append(snapshot.getMean()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(STDDEV_ATTR).append(snapshot.getStdDev()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(P50_ATTR).append(snapshot.getMedian()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(P75_ATTR).append(snapshot.get75thPercentile()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(P95_ATTR).append(snapshot.get95thPercentile()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(P98_ATTR).append(snapshot.get98thPercentile()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(P99_ATTR).append(snapshot.get99thPercentile()).append(END_LSTR);
-        snapMetrics.append(helpName)
-                   .append(P999_ATTR).append(snapshot.get999thPercentile()).append(END_LSTR);
-        return snapMetrics.toString();
+        String snapMetrics = helpName +
+                             MIN_ATTR + snapshot.getMin() + END_LSTR +
+                             helpName +
+                             MAX_ATTR + snapshot.getMax() + END_LSTR +
+                             helpName +
+                             MEAN_ATTR + snapshot.getMean() + END_LSTR +
+                             helpName +
+                             STDDEV_ATTR + snapshot.getStdDev() + END_LSTR +
+                             helpName +
+                             P50_ATTR + snapshot.getMedian() + END_LSTR +
+                             helpName +
+                             P75_ATTR + snapshot.get75thPercentile() + END_LSTR +
+                             helpName +
+                             P95_ATTR + snapshot.get95thPercentile() + END_LSTR +
+                             helpName +
+                             P98_ATTR + snapshot.get98thPercentile() + END_LSTR +
+                             helpName +
+                             P99_ATTR + snapshot.get99thPercentile() + END_LSTR +
+                             helpName +
+                             P999_ATTR + snapshot.get999thPercentile() + END_LSTR;
+        return snapMetrics;
     }
 }

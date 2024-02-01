@@ -1,22 +1,40 @@
 /*
- * Copyright (c) 2018-2019 "Neo4j, Inc." [https://neo4j.com]
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.opencypher;
 
-import io.netty.channel.ChannelHandlerContext;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.Optional.empty;
+import static org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode.SERVER_ERROR;
+import static org.opencypher.gremlin.translation.StatementOption.EXPLAIN;
+import static org.slf4j.LoggerFactory.getLogger;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tinkerpop.gremlin.driver.Tokens;
 import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
@@ -45,19 +63,8 @@ import org.opencypher.gremlin.traversal.ProcedureContext;
 import org.opencypher.gremlin.traversal.ReturnNormalizer;
 import org.slf4j.Logger;
 
+import io.netty.channel.ChannelHandlerContext;
 import scala.collection.Seq;
-
-import java.util.*;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Optional.empty;
-import static org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode.SERVER_ERROR;
-import static org.opencypher.gremlin.translation.StatementOption.EXPLAIN;
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Description of the modifications:
@@ -80,7 +87,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * <p>
  * 3) Set the logger level from info to trace
  * </p>
- *
+ * <p>
  * {@link OpProcessor} implementation for processing Cypher {@link RequestMessage}s:
  * <pre>
  * {

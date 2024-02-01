@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.auth;
@@ -48,11 +50,11 @@ public class ContextGremlinServer extends GremlinServer {
 
     private static final String G_PREFIX = "__g_";
 
-    private final EventHub eventHub;
-
     static {
         HugeGraphAuthProxy.setContext(Context.admin());
     }
+
+    private final EventHub eventHub;
 
     public ContextGremlinServer(final Settings settings, EventHub eventHub) {
         /*
@@ -61,6 +63,15 @@ public class ContextGremlinServer extends GremlinServer {
         super(settings, newGremlinExecutorService(settings));
         this.eventHub = eventHub;
         this.listenChanges();
+    }
+
+    static ExecutorService newGremlinExecutorService(Settings settings) {
+        if (settings.gremlinPool == 0) {
+            settings.gremlinPool = CoreOptions.CPUS;
+        }
+        int size = settings.gremlinPool;
+        ThreadFactory factory = ThreadFactoryUtil.create("exec-%d");
+        return new ContextThreadPoolExecutor(size, size, factory);
     }
 
     private void listenChanges() {
@@ -115,8 +126,8 @@ public class ContextGremlinServer extends GremlinServer {
             String gName = G_PREFIX + graph;
             if (manager.getTraversalSource(gName) != null) {
                 throw new HugeException(
-                          "Found existing name '%s' in global bindings, " +
-                          "it may lead to gremlin query error.", gName);
+                    "Found existing name '%s' in global bindings, " +
+                    "it may lead to gremlin query error.", gName);
             }
             // Add a traversal source for all graphs with customed rule.
             manager.putTraversalSource(gName, g);
@@ -136,7 +147,7 @@ public class ContextGremlinServer extends GremlinServer {
         manager.putTraversalSource(G_PREFIX + name, g);
 
         Whitebox.invoke(executor, "globalBindings",
-                        new Class<?>[]{ String.class, Object.class },
+                        new Class<?>[]{String.class, Object.class},
                         "put", name, graph);
     }
 
@@ -149,20 +160,11 @@ public class ContextGremlinServer extends GremlinServer {
             manager.removeGraph(name);
             manager.removeTraversalSource(G_PREFIX + name);
             Whitebox.invoke(executor, "globalBindings",
-                            new Class<?>[]{ Object.class },
+                            new Class<?>[]{Object.class},
                             "remove", name);
         } catch (Exception e) {
             throw new HugeException("Failed to remove graph '%s' from " +
                                     "gremlin server context", e, name);
         }
-    }
-
-    static ExecutorService newGremlinExecutorService(Settings settings) {
-        if (settings.gremlinPool == 0) {
-            settings.gremlinPool = CoreOptions.CPUS;
-        }
-        int size = settings.gremlinPool;
-        ThreadFactory factory = ThreadFactoryUtil.create("exec-%d");
-        return new ContextThreadPoolExecutor(size, size, factory);
     }
 }

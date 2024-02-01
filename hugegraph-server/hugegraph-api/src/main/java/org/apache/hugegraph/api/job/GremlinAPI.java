@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.api.job;
@@ -66,7 +68,7 @@ public class GremlinAPI extends API {
     private static final int MAX_NAME_LENGTH = 256;
 
     private static final Histogram GREMLIN_JOB_INPUT_HISTOGRAM =
-            MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
+        MetricsUtil.registerHistogram(GremlinAPI.class, "gremlin-input");
 
     @POST
     @Timed
@@ -102,6 +104,26 @@ public class GremlinAPI extends API {
         private String language = "gremlin-groovy";
         @JsonProperty
         private Map<String, String> aliases = new HashMap<>();
+
+        public static GremlinRequest fromJson(String json) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = JsonUtil.fromJson(json, Map.class);
+            String gremlin = (String) map.get("gremlin");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> bindings = (Map<String, Object>)
+                map.get("bindings");
+            String language = (String) map.get("language");
+            @SuppressWarnings("unchecked")
+            Map<String, String> aliases = (Map<String, String>)
+                map.get("aliases");
+
+            GremlinRequest request = new GremlinRequest();
+            request.gremlin(gremlin);
+            request.bindings(bindings);
+            request.language(language);
+            request.aliases(aliases);
+            return request;
+        }
 
         public String gremlin() {
             return this.gremlin;
@@ -182,26 +204,6 @@ public class GremlinAPI extends API {
             map.put("language", this.language);
             map.put("aliases", this.aliases);
             return JsonUtil.toJson(map);
-        }
-
-        public static GremlinRequest fromJson(String json) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> map = JsonUtil.fromJson(json, Map.class);
-            String gremlin = (String) map.get("gremlin");
-            @SuppressWarnings("unchecked")
-            Map<String, Object> bindings = (Map<String, Object>)
-                                           map.get("bindings");
-            String language = (String) map.get("language");
-            @SuppressWarnings("unchecked")
-            Map<String, String> aliases = (Map<String, String>)
-                                          map.get("aliases");
-
-            GremlinRequest request = new GremlinRequest();
-            request.gremlin(gremlin);
-            request.bindings(bindings);
-            request.language(language);
-            request.aliases(aliases);
-            return request;
         }
     }
 }

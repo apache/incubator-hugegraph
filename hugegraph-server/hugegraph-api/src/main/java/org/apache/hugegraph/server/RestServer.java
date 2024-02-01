@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.server;
@@ -23,8 +25,12 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-import jakarta.ws.rs.core.UriBuilder;
-
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.version.ApiVersion;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -36,12 +42,7 @@ import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.hugegraph.event.EventHub;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import org.apache.hugegraph.version.ApiVersion;
+import jakarta.ws.rs.core.UriBuilder;
 
 public class RestServer {
 
@@ -54,6 +55,18 @@ public class RestServer {
     public RestServer(HugeConfig conf, EventHub hub) {
         this.conf = conf;
         this.eventHub = hub;
+    }
+
+    public static RestServer start(String conf, EventHub hub) throws Exception {
+        LOG.info("RestServer starting...");
+        ApiVersion.check();
+
+        HugeConfig config = new HugeConfig(conf);
+        RestServer server = new RestServer(config, hub);
+        server.start();
+        LOG.info("RestServer started");
+
+        return server;
     }
 
     public void start() throws IOException {
@@ -82,13 +95,13 @@ public class RestServer {
         if (protocol != null && protocol.equals("https")) {
             SSLContextConfigurator sslContext = new SSLContextConfigurator();
             String keystoreFile = this.conf.get(
-                                  ServerOptions.SSL_KEYSTORE_FILE);
+                ServerOptions.SSL_KEYSTORE_FILE);
             String keystorePass = this.conf.get(
-                                  ServerOptions.SSL_KEYSTORE_PASSWORD);
+                ServerOptions.SSL_KEYSTORE_PASSWORD);
             sslContext.setKeyStoreFile(keystoreFile);
             sslContext.setKeyStorePass(keystorePass);
             SSLEngineConfigurator sslConfig = new SSLEngineConfigurator(
-                                              sslContext);
+                sslContext);
             sslConfig.setClientMode(false);
             sslConfig.setWantClientAuth(true);
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, true,
@@ -167,18 +180,6 @@ public class RestServer {
     public void shutdownNow() {
         E.checkNotNull(this.httpServer, "http server");
         this.httpServer.shutdownNow();
-    }
-
-    public static RestServer start(String conf, EventHub hub) throws Exception {
-        LOG.info("RestServer starting...");
-        ApiVersion.check();
-
-        HugeConfig config = new HugeConfig(conf);
-        RestServer server = new RestServer(config, hub);
-        server.start();
-        LOG.info("RestServer started");
-
-        return server;
     }
 
     private void calcMaxWriteThreads() {

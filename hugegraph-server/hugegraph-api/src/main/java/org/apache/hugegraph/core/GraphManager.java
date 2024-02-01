@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.core;
@@ -85,12 +87,10 @@ public final class GraphManager {
     private final HugeAuthenticator authenticator;
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
-
-    private RoleElectionStateMachine roleStateMachine;
-    private GlobalMasterInfo globalNodeRoleInfo;
-
     private final HugeConfig conf;
     private final EventHub eventHub;
+    private RoleElectionStateMachine roleStateMachine;
+    private final GlobalMasterInfo globalNodeRoleInfo;
 
     public GraphManager(HugeConfig conf, EventHub hub) {
         this.graphsDir = conf.get(ServerOptions.GRAPHS);
@@ -104,6 +104,31 @@ public final class GraphManager {
 
         this.eventHub = hub;
         this.conf = conf;
+    }
+
+    private static void registerCacheMetrics(Map<String, Cache<?, ?>> caches) {
+        Set<String> names = MetricManager.INSTANCE.getRegistry().getNames();
+        for (Map.Entry<String, Cache<?, ?>> entry : caches.entrySet()) {
+            String key = entry.getKey();
+            Cache<?, ?> cache = entry.getValue();
+
+            String hits = String.format("%s.%s", key, "hits");
+            String miss = String.format("%s.%s", key, "miss");
+            String exp = String.format("%s.%s", key, "expire");
+            String size = String.format("%s.%s", key, "size");
+            String cap = String.format("%s.%s", key, "capacity");
+
+            // Avoid registering multiple times
+            if (names.stream().anyMatch(name -> name.endsWith(hits))) {
+                continue;
+            }
+
+            MetricsUtil.registerGauge(Cache.class, hits, cache::hits);
+            MetricsUtil.registerGauge(Cache.class, miss, cache::miss);
+            MetricsUtil.registerGauge(Cache.class, exp, cache::expire);
+            MetricsUtil.registerGauge(Cache.class, size, cache::size);
+            MetricsUtil.registerGauge(Cache.class, cap, cache::capacity);
+        }
     }
 
     public void init() {
@@ -158,7 +183,7 @@ public final class GraphManager {
         HugeConfig cloneConfig = cloneGraph.cloneConfig(newName);
         if (StringUtils.isNotEmpty(configText)) {
             PropertiesConfiguration propConfig = ConfigUtil.buildConfig(
-                                                 configText);
+                configText);
             // Use the passed config to overwrite the old one
             propConfig.getKeys().forEachRemaining(key -> {
                 cloneConfig.setProperty(key, propConfig.getProperty(key));
@@ -259,7 +284,7 @@ public final class GraphManager {
     }
 
     public HugeAuthenticator.User authenticate(Map<String, String> credentials)
-                                               throws AuthenticationException {
+        throws AuthenticationException {
         return this.authenticator().authenticate(credentials);
     }
 
@@ -346,7 +371,6 @@ public final class GraphManager {
                      "auth.authenticator option in rest-server.properties");
         return this.authenticator;
     }
-
 
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
                          final Transaction.Status tx) {
@@ -436,20 +460,20 @@ public final class GraphManager {
                         this.authenticator().initAdminUser(token);
                     } catch (Exception e) {
                         throw new BackendException(
-                                  "The backend store of '%s' can't " +
-                                  "initialize admin user", hugegraph.name());
+                            "The backend store of '%s' can't " +
+                            "initialize admin user", hugegraph.name());
                     }
                 }
             }
             BackendStoreInfo info = hugegraph.backendStoreInfo();
             if (!info.exists()) {
                 throw new BackendException(
-                          "The backend store of '%s' has not been initialized",
-                          hugegraph.name());
+                    "The backend store of '%s' has not been initialized",
+                    hugegraph.name());
             }
             if (!info.checkVersion()) {
                 throw new BackendException(
-                          "The backend store version is inconsistent");
+                    "The backend store version is inconsistent");
             }
         }
     }
@@ -521,7 +545,7 @@ public final class GraphManager {
         });
 
         // Add metrics for caches
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Map<String, Cache<?, ?>> caches = (Map) CacheManager.instance()
                                                             .caches();
         registerCacheMetrics(caches);
@@ -629,31 +653,6 @@ public final class GraphManager {
             E.checkArgument(!incomingValue.equals(existedValue),
                             "The value '%s' of option '%s' conflicts with " +
                             "existed graph", incomingValue, option.name());
-        }
-    }
-
-    private static void registerCacheMetrics(Map<String, Cache<?, ?>> caches) {
-        Set<String> names = MetricManager.INSTANCE.getRegistry().getNames();
-        for (Map.Entry<String, Cache<?, ?>> entry : caches.entrySet()) {
-            String key = entry.getKey();
-            Cache<?, ?> cache = entry.getValue();
-
-            String hits = String.format("%s.%s", key, "hits");
-            String miss = String.format("%s.%s", key, "miss");
-            String exp = String.format("%s.%s", key, "expire");
-            String size = String.format("%s.%s", key, "size");
-            String cap = String.format("%s.%s", key, "capacity");
-
-            // Avoid registering multiple times
-            if (names.stream().anyMatch(name -> name.endsWith(hits))) {
-                continue;
-            }
-
-            MetricsUtil.registerGauge(Cache.class, hits, cache::hits);
-            MetricsUtil.registerGauge(Cache.class, miss, cache::miss);
-            MetricsUtil.registerGauge(Cache.class, exp, cache::expire);
-            MetricsUtil.registerGauge(Cache.class, size, cache::size);
-            MetricsUtil.registerGauge(Cache.class, cap, cache::capacity);
         }
     }
 }

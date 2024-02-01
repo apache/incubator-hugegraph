@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.api;
@@ -48,22 +50,23 @@ public class API {
     public static final String TEXT_PLAIN = MediaType.TEXT_PLAIN;
     public static final String APPLICATION_JSON = MediaType.APPLICATION_JSON;
     public static final String APPLICATION_JSON_WITH_CHARSET =
-                               APPLICATION_JSON + ";charset=" + CHARSET;
-    public static final String APPLICATION_TEXT_WITH_CHARSET = MediaType.TEXT_PLAIN + ";charset=" + CHARSET;
+        APPLICATION_JSON + ";charset=" + CHARSET;
+    public static final String APPLICATION_TEXT_WITH_CHARSET =
+        MediaType.TEXT_PLAIN + ";charset=" + CHARSET;
     public static final String JSON = MediaType.APPLICATION_JSON_TYPE
-                                               .getSubtype();
+        .getSubtype();
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";
     public static final String ACTION_CLEAR = "clear";
     protected static final Logger LOG = Log.logger(API.class);
     private static final Meter SUCCEED_METER =
-                         MetricsUtil.registerMeter(API.class, "commit-succeed");
+        MetricsUtil.registerMeter(API.class, "commit-succeed");
     private static final Meter ILLEGAL_ARG_ERROR_METER =
-                         MetricsUtil.registerMeter(API.class, "illegal-arg");
+        MetricsUtil.registerMeter(API.class, "illegal-arg");
     private static final Meter EXPECTED_ERROR_METER =
-                         MetricsUtil.registerMeter(API.class, "expected-error");
+        MetricsUtil.registerMeter(API.class, "expected-error");
     private static final Meter UNKNOWN_ERROR_METER =
-                         MetricsUtil.registerMeter(API.class, "unknown-error");
+        MetricsUtil.registerMeter(API.class, "unknown-error");
 
     public static HugeGraph graph(GraphManager manager, String graph) {
         HugeGraph g = manager.graph(graph);

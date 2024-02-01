@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.api.filter;
@@ -71,16 +73,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
     private static final List<String> WHITE_API_LIST = ImmutableList.of(
-            "auth/login",
-            "versions",
-            "openapi.json"
+        "auth/login",
+        "versions",
+        "openapi.json"
     );
-
-    private static String whiteIpStatus;
-
     private static final String STRING_WHITE_IP_LIST = "whiteiplist";
     private static final String STRING_ENABLE = "enable";
-
+    private static String whiteIpStatus;
     @Context
     private jakarta.inject.Provider<GraphManager> managerProvider;
 
@@ -89,6 +88,17 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
+
+    public static boolean isWhiteAPI(ContainerRequestContext context) {
+        String path = context.getUriInfo().getPath();
+
+        for (String whiteApi : WHITE_API_LIST) {
+            if (path.endsWith(whiteApi)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
@@ -133,8 +143,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             if (!path.contains(STRING_WHITE_IP_LIST) && whiteIpEnabled &&
                 !whiteIpList.contains(remoteIp)) {
                 throw new ForbiddenException(
-                        String.format("Remote ip '%s' is not permitted",
-                                      remoteIp));
+                    String.format("Remote ip '%s' is not permitted",
+                                  remoteIp));
             }
         }
 
@@ -143,8 +153,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         String auth = context.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (auth == null) {
             throw new NotAuthorizedException(
-                      "Authentication credentials are required",
-                      "Missing authentication credentials");
+                "Authentication credentials are required",
+                "Missing authentication credentials");
         }
 
         if (auth.startsWith(BASIC_AUTH_PREFIX)) {
@@ -154,7 +164,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             String[] values = auth.split(":");
             if (values.length != 2) {
                 throw new BadRequestException(
-                          "Invalid syntax for username and password");
+                    "Invalid syntax for username and password");
             }
 
             final String username = values[0];
@@ -163,7 +173,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             if (StringUtils.isEmpty(username) ||
                 StringUtils.isEmpty(password)) {
                 throw new BadRequestException(
-                          "Invalid syntax for username and password");
+                    "Invalid syntax for username and password");
             }
 
             credentials.put(HugeAuthenticator.KEY_USERNAME, username);
@@ -173,7 +183,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             credentials.put(HugeAuthenticator.KEY_TOKEN, token);
         } else {
             throw new BadRequestException(
-                      "Only HTTP Basic or Bearer authentication is supported");
+                "Only HTTP Basic or Bearer authentication is supported");
         }
 
         credentials.put(HugeAuthenticator.KEY_ADDRESS, peer);
@@ -310,16 +320,5 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 return Authorizer.this.user.equals(obj);
             }
         }
-    }
-
-    public static boolean isWhiteAPI(ContainerRequestContext context) {
-        String path = context.getUriInfo().getPath();
-
-        for (String whiteApi : WHITE_API_LIST) {
-            if (path.endsWith(whiteApi)) {
-                return true;
-            }
-        }
-        return false;
     }
 }

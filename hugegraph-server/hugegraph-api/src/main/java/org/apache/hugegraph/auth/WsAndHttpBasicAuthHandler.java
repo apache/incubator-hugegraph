@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.auth;
@@ -25,6 +27,7 @@ import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.Credenti
 import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,9 +62,16 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
         super(authenticator, settings);
     }
 
+    public static boolean isWebSocket(final HttpMessage msg) {
+        final String connectionHeader = msg.headers().get(CONNECTION);
+        final String upgradeHeader = msg.headers().get(UPGRADE);
+        return "Upgrade".equalsIgnoreCase(connectionHeader) ||
+               "WebSocket".equalsIgnoreCase(upgradeHeader);
+    }
+
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object obj)
-                            throws Exception {
+        throws Exception {
         if (obj instanceof HttpMessage && !isWebSocket((HttpMessage) obj)) {
             ChannelPipeline pipeline = ctx.pipeline();
             ChannelHandler authHandler = pipeline.get(HTTP_AUTH);
@@ -77,16 +87,9 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
         }
     }
 
-    public static boolean isWebSocket(final HttpMessage msg) {
-        final String connectionHeader = msg.headers().get(CONNECTION);
-        final String upgradeHeader = msg.headers().get(UPGRADE);
-        return "Upgrade".equalsIgnoreCase(connectionHeader) ||
-               "WebSocket".equalsIgnoreCase(upgradeHeader);
-    }
-
     @ChannelHandler.Sharable
     private static class HttpBasicAuthHandler
-                   extends AbstractAuthenticationHandler {
+        extends AbstractAuthenticationHandler {
 
         private final Base64.Decoder decoder = Base64.getUrlDecoder();
 
@@ -122,7 +125,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
                     return;
                 }
                 String authorization = new String(userPass,
-                                                  Charset.forName("UTF-8"));
+                                                  StandardCharsets.UTF_8);
                 String[] split = authorization.split(":");
                 if (split.length != 2) {
                     sendError(ctx, msg);
@@ -134,7 +137,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
                     address = address.substring(1);
                 }
 
-                final Map<String,String> credentials = new HashMap<>();
+                final Map<String, String> credentials = new HashMap<>();
                 credentials.put(PROPERTY_USERNAME, split[0]);
                 credentials.put(PROPERTY_PASSWORD, split[1]);
                 credentials.put(HugeAuthenticator.KEY_ADDRESS, address);

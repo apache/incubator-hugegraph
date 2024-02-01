@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.auth;
@@ -44,6 +46,20 @@ public class StandardAuthenticator implements HugeAuthenticator {
     private static final String INITING_STORE = "initing_store";
 
     private HugeGraph graph = null;
+
+    public static void initAdminUserIfNeeded(String confFile) throws Exception {
+        StandardAuthenticator auth = new StandardAuthenticator();
+        HugeConfig config = new HugeConfig(confFile);
+        String authClass = config.get(ServerOptions.AUTHENTICATOR);
+        if (authClass.isEmpty()) {
+            return;
+        }
+        config.addProperty(INITING_STORE, true);
+        auth.setup(config);
+        if (auth.graph().backendStoreFeatures().supportsPersistence()) {
+            auth.initAdminUser();
+        }
+    }
 
     private void initAdminUser() throws Exception {
         if (this.requireInitAdminUser()) {
@@ -110,7 +126,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
     public void setup(HugeConfig config) {
         String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
         Map<String, String> graphConfs = ConfigUtil.scanGraphsDir(
-                                         config.get(ServerOptions.GRAPHS));
+            config.get(ServerOptions.GRAPHS));
         String graphPath = graphConfs.get(graphName);
         E.checkArgument(graphPath != null,
                         "Can't find graph name '%s' in config '%s' at " +
@@ -137,7 +153,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
         if (StringUtils.isNotEmpty(remoteUrl)) {
             RpcClientProviderWithAuth clientProvider =
-                                      new RpcClientProviderWithAuth(config);
+                new RpcClientProviderWithAuth(config);
             this.graph.switchAuthManager(clientProvider.authManager());
         }
     }
@@ -159,9 +175,10 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     /**
      * Verify if a user is legal
+     *
      * @param username the username for authentication
      * @param password the password for authentication
-     * @param token the token for authentication
+     * @param token    the token for authentication
      * @return String No permission if return ROLE_NONE else return a role
      */
     @Override
@@ -201,20 +218,6 @@ public class StandardAuthenticator implements HugeAuthenticator {
         return new TokenSaslAuthenticator();
     }
 
-    public static void initAdminUserIfNeeded(String confFile) throws Exception {
-        StandardAuthenticator auth = new StandardAuthenticator();
-        HugeConfig config = new HugeConfig(confFile);
-        String authClass = config.get(ServerOptions.AUTHENTICATOR);
-        if (authClass.isEmpty()) {
-            return;
-        }
-        config.addProperty(INITING_STORE, true);
-        auth.setup(config);
-        if (auth.graph().backendStoreFeatures().supportsPersistence()) {
-            auth.initAdminUser();
-        }
-    }
-
     private class TokenSaslAuthenticator implements SaslNegotiator {
 
         private static final byte NUL = 0;
@@ -237,7 +240,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         public AuthenticatedUser getAuthenticatedUser() throws AuthenticationException {
             if (!this.isComplete()) {
                 throw new AuthenticationException(
-                        "The SASL negotiation has not yet been completed.");
+                    "The SASL negotiation has not yet been completed.");
             }
 
             final Map<String, String> credentials = new HashMap<>(6, 1);

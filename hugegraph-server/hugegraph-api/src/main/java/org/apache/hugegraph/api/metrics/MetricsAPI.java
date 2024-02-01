@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.api.metrics;
@@ -72,7 +74,6 @@ import com.codahale.metrics.annotation.Timed;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -246,7 +247,7 @@ public class MetricsAPI extends API {
         // build gauges metric info
         for (String key : reporter.gauges().keySet()) {
             final Gauge<?> gauge
-                    = reporter.gauges().get(key);
+                = reporter.gauges().get(key);
             if (gauge != null) {
                 helpName = replaceDotDashInKey(key);
                 promMetric.append(STR_HELP)
@@ -273,7 +274,7 @@ public class MetricsAPI extends API {
                           .append(COUNT_ATTR)
                           .append(histogram.getCount() + END_LSTR);
                 promMetric.append(
-                        exportSnapshot(helpName, histogram.getSnapshot()));
+                    exportSnapshot(helpName, histogram.getSnapshot()));
             }
         }
 
@@ -331,7 +332,7 @@ public class MetricsAPI extends API {
                           .append(FIFT_MIN_RATE_ATRR)
                           .append(timer.getFifteenMinuteRate() + END_LSTR);
                 promMetric.append(
-                        exportSnapshot(helpName, timer.getSnapshot()));
+                    exportSnapshot(helpName, timer.getSnapshot()));
             }
         }
 
@@ -354,14 +355,14 @@ public class MetricsAPI extends API {
             }
             // metricsName = path/method
             String metricsName =
-                    entryKey.substring(0, entryKey.length() - lastWord.length() - 1);
+                entryKey.substring(0, entryKey.length() - lastWord.length() - 1);
 
             Counter totalCounter = reporter.counters().get(
-                    joinWithSlash(metricsName, METRICS_PATH_TOTAL_COUNTER));
+                joinWithSlash(metricsName, METRICS_PATH_TOTAL_COUNTER));
             Counter failedCounter = reporter.counters().get(
-                    joinWithSlash(metricsName, METRICS_PATH_FAILED_COUNTER));
+                joinWithSlash(metricsName, METRICS_PATH_FAILED_COUNTER));
             Counter successCounter = reporter.counters().get(
-                    joinWithSlash(metricsName, METRICS_PATH_SUCCESS_COUNTER));
+                joinWithSlash(metricsName, METRICS_PATH_SUCCESS_COUNTER));
 
 
             Histogram histogram = entry.getValue();

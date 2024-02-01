@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.define;
@@ -26,6 +28,7 @@ import java.util.Set;
 
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.Sets;
 
 public enum UpdateStrategy {
@@ -113,7 +116,7 @@ public enum UpdateStrategy {
     // Batch update Set should use union because of higher efficiency
     APPEND {
         @Override
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
             ((Collection) oldProperty).addAll((Collection) newProperty);
             return oldProperty;
@@ -127,7 +130,7 @@ public enum UpdateStrategy {
 
     ELIMINATE {
         @Override
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
             ((Collection) oldProperty).removeAll((Collection) newProperty);
             return oldProperty;
@@ -150,6 +153,28 @@ public enum UpdateStrategy {
             // Allow any type
         }
     };
+
+    protected static Object compareNumber(Object oldProperty,
+                                          Object newProperty,
+                                          UpdateStrategy strategy) {
+        Number oldNum = NumericUtil.convertToNumber(oldProperty);
+        Number newNum = NumericUtil.convertToNumber(newProperty);
+        int result = NumericUtil.compareNumber(oldNum, newNum);
+        return strategy == BIGGER ? (result > 0 ? oldProperty : newProperty) :
+               (result < 0 ? oldProperty : newProperty);
+    }
+
+    protected static Set<?> combineSet(Object oldProperty, Object newProperty,
+                                       UpdateStrategy strategy) {
+        Set<?> oldSet = oldProperty instanceof Set ?
+                        (Set<?>) oldProperty :
+                        new HashSet<>((List<?>) oldProperty);
+        Set<?> newSet = newProperty instanceof Set ?
+                        (Set<?>) newProperty :
+                        new HashSet<>((List<?>) newProperty);
+        return strategy == UNION ? Sets.union(oldSet, newSet) :
+               Sets.intersection(oldSet, newSet);
+    }
 
     abstract Object updatePropertyValue(Object oldProperty, Object newProperty);
 
@@ -177,27 +202,5 @@ public enum UpdateStrategy {
                          newProperty instanceof List),
                         this.formatError(oldProperty, newProperty,
                                          "Set or List"));
-    }
-
-    protected static Object compareNumber(Object oldProperty,
-                                          Object newProperty,
-                                          UpdateStrategy strategy) {
-        Number oldNum = NumericUtil.convertToNumber(oldProperty);
-        Number newNum = NumericUtil.convertToNumber(newProperty);
-        int result = NumericUtil.compareNumber(oldNum, newNum);
-        return strategy == BIGGER ? (result > 0 ? oldProperty : newProperty) :
-                                    (result < 0 ? oldProperty : newProperty);
-    }
-
-    protected static Set<?> combineSet(Object oldProperty, Object newProperty,
-                                       UpdateStrategy strategy) {
-        Set<?> oldSet = oldProperty instanceof Set ?
-                        (Set<?>) oldProperty :
-                        new HashSet<>((List<?>) oldProperty);
-        Set<?> newSet = newProperty instanceof Set ?
-                        (Set<?>) newProperty :
-                        new HashSet<>((List<?>) newProperty);
-        return strategy == UNION ? Sets.union(oldSet, newSet) :
-                                   Sets.intersection(oldSet, newSet);
     }
 }

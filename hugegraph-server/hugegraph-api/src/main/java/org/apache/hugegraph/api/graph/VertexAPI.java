@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.api.graph;
@@ -24,6 +26,37 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
+import org.apache.hugegraph.api.filter.DecompressInterceptor.Decompress;
+import org.apache.hugegraph.api.filter.StatusFilter.Status;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.SplicingIdGenerator;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.UpdateStrategy;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.traversal.optimize.QueryHolder;
+import org.apache.hugegraph.traversal.optimize.Text;
+import org.apache.hugegraph.traversal.optimize.TraversalUtil;
+import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -40,43 +73,74 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.UpdateStrategy;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
-import org.apache.hugegraph.api.filter.DecompressInterceptor.Decompress;
-import org.apache.hugegraph.api.filter.StatusFilter.Status;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.SplicingIdGenerator;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.traversal.optimize.QueryHolder;
-import org.apache.hugegraph.traversal.optimize.Text;
-import org.apache.hugegraph.traversal.optimize.TraversalUtil;
-import org.apache.hugegraph.type.define.IdStrategy;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 @Path("graphs/{graph}/graph/vertices")
 @Singleton
 @Tag(name = "VertexAPI")
 public class VertexAPI extends BatchAPI {
 
     private static final Logger LOG = Log.logger(VertexAPI.class);
+
+    public static Id checkAndParseVertexId(String idValue) {
+        if (idValue == null) {
+            return null;
+        }
+        boolean uuid = idValue.startsWith("U\"");
+        if (uuid) {
+            idValue = idValue.substring(1);
+        }
+        try {
+            Object id = JsonUtil.fromJson(idValue, Object.class);
+            return uuid ? Text.uuid((String) id) : HugeVertex.getIdValue(id);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format(
+                "The vertex id must be formatted as Number/String/UUID" +
+                ", but got '%s'", idValue));
+        }
+    }
+
+    private static void checkBatchSize(HugeConfig config,
+                                       List<JsonVertex> vertices) {
+        int max = config.get(ServerOptions.MAX_VERTICES_PER_BATCH);
+        if (vertices.size() > max) {
+            throw new IllegalArgumentException(String.format(
+                "Too many vertices for one time post, " +
+                "the maximum number is '%s'", max));
+        }
+        if (vertices.size() == 0) {
+            throw new IllegalArgumentException(
+                "The number of vertices can't be 0");
+        }
+    }
+
+    private static Id getVertexId(HugeGraph g, JsonVertex vertex) {
+        VertexLabel vertexLabel = g.vertexLabel(vertex.label);
+        String labelId = vertexLabel.id().asString();
+        IdStrategy idStrategy = vertexLabel.idStrategy();
+        E.checkArgument(idStrategy != IdStrategy.AUTOMATIC,
+                        "Automatic Id strategy is not supported now");
+
+        if (idStrategy == IdStrategy.PRIMARY_KEY) {
+            List<Id> pkIds = vertexLabel.primaryKeys();
+            List<Object> pkValues = new ArrayList<>(pkIds.size());
+            for (Id pkId : pkIds) {
+                String propertyKey = g.propertyKey(pkId).name();
+                Object propertyValue = vertex.properties.get(propertyKey);
+                E.checkArgument(propertyValue != null,
+                                "The value of primary key '%s' can't be null",
+                                propertyKey);
+                pkValues.add(propertyValue);
+            }
+
+            String value = ConditionQuery.concatValues(pkValues);
+            return SplicingIdGenerator.splicing(labelId, value);
+        } else if (idStrategy == IdStrategy.CUSTOMIZE_UUID) {
+            return Text.uuid(String.valueOf(vertex.id));
+        } else {
+            assert idStrategy == IdStrategy.CUSTOMIZE_NUMBER ||
+                   idStrategy == IdStrategy.CUSTOMIZE_STRING;
+            return HugeVertex.getIdValue(vertex.id);
+        }
+    }
 
     @POST
     @Timed(name = "single-create")
@@ -319,74 +383,12 @@ public class VertexAPI extends BatchAPI {
                 g.removeVertex(label, id);
             } catch (NotFoundException e) {
                 throw new IllegalArgumentException(String.format(
-                          "No such vertex with id: '%s', %s", id, e));
+                    "No such vertex with id: '%s', %s", id, e));
             } catch (NoSuchElementException e) {
                 throw new IllegalArgumentException(String.format(
-                          "No such vertex with id: '%s'", id));
+                    "No such vertex with id: '%s'", id));
             }
         });
-    }
-
-    public static Id checkAndParseVertexId(String idValue) {
-        if (idValue == null) {
-            return null;
-        }
-        boolean uuid = idValue.startsWith("U\"");
-        if (uuid) {
-            idValue = idValue.substring(1);
-        }
-        try {
-            Object id = JsonUtil.fromJson(idValue, Object.class);
-            return uuid ? Text.uuid((String) id) : HugeVertex.getIdValue(id);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(String.format(
-                      "The vertex id must be formatted as Number/String/UUID" +
-                      ", but got '%s'", idValue));
-        }
-    }
-
-    private static void checkBatchSize(HugeConfig config,
-                                       List<JsonVertex> vertices) {
-        int max = config.get(ServerOptions.MAX_VERTICES_PER_BATCH);
-        if (vertices.size() > max) {
-            throw new IllegalArgumentException(String.format(
-                      "Too many vertices for one time post, " +
-                      "the maximum number is '%s'", max));
-        }
-        if (vertices.size() == 0) {
-            throw new IllegalArgumentException(
-                      "The number of vertices can't be 0");
-        }
-    }
-
-    private static Id getVertexId(HugeGraph g, JsonVertex vertex) {
-        VertexLabel vertexLabel = g.vertexLabel(vertex.label);
-        String labelId = vertexLabel.id().asString();
-        IdStrategy idStrategy = vertexLabel.idStrategy();
-        E.checkArgument(idStrategy != IdStrategy.AUTOMATIC,
-                        "Automatic Id strategy is not supported now");
-
-        if (idStrategy == IdStrategy.PRIMARY_KEY) {
-            List<Id> pkIds = vertexLabel.primaryKeys();
-            List<Object> pkValues = new ArrayList<>(pkIds.size());
-            for (Id pkId : pkIds) {
-                String propertyKey = g.propertyKey(pkId).name();
-                Object propertyValue = vertex.properties.get(propertyKey);
-                E.checkArgument(propertyValue != null,
-                                "The value of primary key '%s' can't be null",
-                                propertyKey);
-                pkValues.add(propertyValue);
-            }
-
-            String value = ConditionQuery.concatValues(pkValues);
-            return SplicingIdGenerator.splicing(labelId, value);
-        } else if (idStrategy == IdStrategy.CUSTOMIZE_UUID) {
-            return Text.uuid(String.valueOf(vertex.id));
-        } else {
-            assert idStrategy == IdStrategy.CUSTOMIZE_NUMBER ||
-                   idStrategy == IdStrategy.CUSTOMIZE_STRING;
-            return HugeVertex.getIdValue(vertex.id);
-        }
     }
 
     private static class BatchVertexRequest {
@@ -435,7 +437,7 @@ public class VertexAPI extends BatchAPI {
                 String key = e.getKey();
                 Object value = e.getValue();
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
-                                       "property '%s' to null for vertex '%s'",
+                                              "property '%s' to null for vertex '%s'",
                                        key, this.id);
             }
         }

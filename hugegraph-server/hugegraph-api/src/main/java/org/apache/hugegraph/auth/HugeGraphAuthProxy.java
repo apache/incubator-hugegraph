@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.auth;
@@ -108,15 +110,16 @@ import jakarta.ws.rs.NotAuthorizedException;
 
 public final class HugeGraphAuthProxy implements HugeGraph {
 
+    private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
+    private static final ThreadLocal<Context> CONTEXTS = new InheritableThreadLocal<>();
+
     static {
         HugeGraph.registerTraversalStrategies(HugeGraphAuthProxy.class);
     }
 
-    private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
     private final Cache<Id, UserWithRole> usersRoleCache;
     private final Cache<Id, RateLimiter> auditLimiters;
     private final double auditLogMaxRate;
-
     private final HugeGraph hugegraph;
     private final TaskSchedulerProxy taskScheduler;
     private final AuthManagerProxy authManager;
@@ -139,6 +142,40 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         LOG.info("Audit log rate limit is {}/s", this.auditLogMaxRate);
     }
 
+    static Context setContext(Context context) {
+        Context old = CONTEXTS.get();
+        CONTEXTS.set(context);
+        return old;
+    }
+
+    static void resetContext() {
+        CONTEXTS.remove();
+    }
+
+    private static Context getContext() {
+        // Return task context first
+        String taskContext = TaskManager.getContext();
+        User user = User.fromJson(taskContext);
+        if (user != null) {
+            return new Context(user);
+        }
+
+        return CONTEXTS.get();
+    }
+
+    private static String getContextString() {
+        Context context = getContext();
+        if (context == null) {
+            return null;
+        }
+        return context.user().toJson();
+    }
+
+    static void logUser(User user, String path) {
+        LOG.info("User '{}' login from client [{}] with path '{}'",
+                 user.username(), user.client(), path);
+    }
+
     @Override
     public HugeGraph hugegraph() {
         this.verifyAdminPermission();
@@ -147,7 +184,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     @Override
     public <C extends GraphComputer> C compute(Class<C> clazz)
-                                               throws IllegalArgumentException {
+        throws IllegalArgumentException {
         this.verifyAnyPermission();
         return this.hugegraph.compute(clazz);
     }
@@ -164,7 +201,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return new GraphTraversalSourceProxy(this);
     }
 
-    @SuppressWarnings({ "rawtypes", "deprecation" })
+    @SuppressWarnings({"rawtypes", "deprecation"})
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         this.verifyAnyPermission();
@@ -832,14 +869,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V extends AuthElement> V verifyUserPermission(
-                                      HugePermission actionPerm,
-                                      V elementFetcher) {
+        HugePermission actionPerm,
+        V elementFetcher) {
         return verifyUserPermission(actionPerm, true, () -> elementFetcher);
     }
 
     private <V extends AuthElement> List<V> verifyUserPermission(
-                                            HugePermission actionPerm,
-                                            List<V> elems) {
+        HugePermission actionPerm,
+        List<V> elems) {
         List<V> results = new ArrayList<>();
         for (V elem : elems) {
             V r = verifyUserPermission(actionPerm, false, () -> elem);
@@ -851,9 +888,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V extends AuthElement> V verifyUserPermission(
-                                      HugePermission actionPerm,
-                                      boolean throwIfNoPerm,
-                                      Supplier<V> elementFetcher) {
+        HugePermission actionPerm,
+        boolean throwIfNoPerm,
+        Supplier<V> elementFetcher) {
         return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
             String graph = this.hugegraph.name();
             V elem = elementFetcher.get();
@@ -869,14 +906,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V extends HugeElement> V verifyElemPermission(
-                                      HugePermission actionPerm,
-                                      Supplier<V> elementFetcher) {
+        HugePermission actionPerm,
+        Supplier<V> elementFetcher) {
         return verifyElemPermission(actionPerm, true, elementFetcher);
     }
 
     private <V extends Element> Iterator<V> verifyElemPermission(
-                                            HugePermission actionPerm,
-                                            Iterator<V> elems) {
+        HugePermission actionPerm,
+        Iterator<V> elems) {
         return new FilterIterator<>(elems, elem -> {
             V r = verifyElemPermission(actionPerm, false, () -> elem);
             return r != null;
@@ -884,9 +921,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V extends Element> V verifyElemPermission(
-                                  HugePermission actionPerm,
-                                  boolean throwIfNoPerm,
-                                  Supplier<V> elementFetcher) {
+        HugePermission actionPerm,
+        boolean throwIfNoPerm,
+        Supplier<V> elementFetcher) {
         return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
             String graph = this.hugegraph.name();
             HugeElement elem = (HugeElement) elementFetcher.get();
@@ -916,8 +953,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V extends SchemaElement> Collection<V> verifySchemaPermission(
-                                                    HugePermission actionPerm,
-                                                    Collection<V> schemas) {
+        HugePermission actionPerm,
+        Collection<V> schemas) {
         List<V> results = new ArrayList<>();
         for (V schema : schemas) {
             V r = verifySchemaPermission(actionPerm, false, () -> schema);
@@ -929,15 +966,15 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private <V extends SchemaElement> V verifySchemaPermission(
-                                        HugePermission actionPerm,
-                                        Supplier<V> schemaFetcher) {
+        HugePermission actionPerm,
+        Supplier<V> schemaFetcher) {
         return verifySchemaPermission(actionPerm, true, schemaFetcher);
     }
 
     private <V extends SchemaElement> V verifySchemaPermission(
-                                        HugePermission actionPerm,
-                                        boolean throwIfNoPerm,
-                                        Supplier<V> schemaFetcher) {
+        HugePermission actionPerm,
+        boolean throwIfNoPerm,
+        Supplier<V> schemaFetcher) {
         return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
             String graph = this.hugegraph.name();
             SchemaElement elem = schemaFetcher.get();
@@ -1012,6 +1049,61 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             throw new ForbiddenException(error);
         }
         return result;
+    }
+
+    static class Context {
+
+        private static final Context ADMIN = new Context(User.ADMIN);
+
+        private final User user;
+
+        public Context(User user) {
+            E.checkNotNull(user, "user");
+            this.user = user;
+        }
+
+        public static Context admin() {
+            return ADMIN;
+        }
+
+        public User user() {
+            return this.user;
+        }
+    }
+
+    static class ContextTask implements Runnable {
+
+        private final Runnable runner;
+        private final Context context;
+
+        public ContextTask(Runnable runner) {
+            this.context = getContext();
+            this.runner = runner;
+        }
+
+        @Override
+        public void run() {
+            setContext(this.context);
+            try {
+                this.runner.run();
+            } finally {
+                resetContext();
+            }
+        }
+    }
+
+    public static class ContextThreadPoolExecutor extends ThreadPoolExecutor {
+
+        public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
+                                         ThreadFactory threadFactory) {
+            super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
+                  new LinkedBlockingQueue<>(), threadFactory);
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            super.execute(new ContextTask(command));
+        }
     }
 
     class TaskSchedulerProxy implements TaskScheduler {
@@ -1099,21 +1191,21 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
         @Override
         public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
-                                                      throws TimeoutException {
+            throws TimeoutException {
             verifyAnyPermission();
             return this.taskScheduler.waitUntilTaskCompleted(id, seconds);
         }
 
         @Override
         public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
-                                                      throws TimeoutException {
+            throws TimeoutException {
             verifyAnyPermission();
             return this.taskScheduler.waitUntilTaskCompleted(id);
         }
 
         @Override
         public void waitUntilAllTasksCompleted(long seconds)
-                                               throws TimeoutException {
+            throws TimeoutException {
             verifyAnyPermission();
             this.taskScheduler.waitUntilAllTasksCompleted(seconds);
         }
@@ -1134,8 +1226,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         private <V> Iterator<HugeTask<V>> verifyTaskPermission(
-                                          HugePermission actionPerm,
-                                          Iterator<HugeTask<V>> tasks) {
+            HugePermission actionPerm,
+            Iterator<HugeTask<V>> tasks) {
             return new FilterIterator<>(tasks, task -> {
                 return verifyTaskPermission(actionPerm, false, task) != null;
             });
@@ -1695,7 +1787,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @SuppressWarnings({"unchecked"})
         @Override
         public TraversalStrategies removeStrategies(
-               Class<? extends TraversalStrategy>... strategyClasses) {
+            Class<? extends TraversalStrategy>... strategyClasses) {
             return this.strategies.removeStrategies(strategyClasses);
         }
 
@@ -1724,14 +1816,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private final class TraversalStrategyProxy<T extends TraversalStrategy<?>>
-                  implements TraversalStrategy<T> {
+        implements TraversalStrategy<T> {
 
         private static final long serialVersionUID = 2071829024642435735L;
 
         private final TraversalStrategy<T> origin;
 
         public TraversalStrategyProxy(TraversalStrategy<?> origin) {
-            @SuppressWarnings({ "rawtypes", "unchecked" })
+            @SuppressWarnings({"rawtypes", "unchecked"})
             TraversalStrategy<T> strategy = (TraversalStrategy) origin;
             this.origin = strategy;
         }
@@ -1807,97 +1899,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public String toString() {
             return this.origin.toString();
-        }
-    }
-
-    private static final ThreadLocal<Context> CONTEXTS = new InheritableThreadLocal<>();
-
-    protected static Context setContext(Context context) {
-        Context old = CONTEXTS.get();
-        CONTEXTS.set(context);
-        return old;
-    }
-
-    protected static void resetContext() {
-        CONTEXTS.remove();
-    }
-
-    protected static Context getContext() {
-        // Return task context first
-        String taskContext = TaskManager.getContext();
-        User user = User.fromJson(taskContext);
-        if (user != null) {
-            return new Context(user);
-        }
-
-        return CONTEXTS.get();
-    }
-
-    protected static String getContextString() {
-        Context context = getContext();
-        if (context == null) {
-            return null;
-        }
-        return context.user().toJson();
-    }
-
-    protected static void logUser(User user, String path) {
-        LOG.info("User '{}' login from client [{}] with path '{}'",
-                 user.username(), user.client(), path);
-    }
-
-    static class Context {
-
-        private static final Context ADMIN = new Context(User.ADMIN);
-
-        private final User user;
-
-        public Context(User user) {
-            E.checkNotNull(user, "user");
-            this.user = user;
-        }
-
-        public User user() {
-            return this.user;
-        }
-
-        public static Context admin() {
-            return ADMIN;
-        }
-    }
-
-    static class ContextTask implements Runnable {
-
-        private final Runnable runner;
-        private final Context context;
-
-        public ContextTask(Runnable runner) {
-            this.context = getContext();
-            this.runner = runner;
-        }
-
-        @Override
-        public void run() {
-            setContext(this.context);
-            try {
-                this.runner.run();
-            } finally {
-                resetContext();
-            }
-        }
-    }
-
-    public static class ContextThreadPoolExecutor extends ThreadPoolExecutor {
-
-        public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
-                                         ThreadFactory threadFactory) {
-            super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
-                  new LinkedBlockingQueue<>(), threadFactory);
-        }
-
-        @Override
-        public void execute(Runnable command) {
-            super.execute(new ContextTask(command));
         }
     }
 }

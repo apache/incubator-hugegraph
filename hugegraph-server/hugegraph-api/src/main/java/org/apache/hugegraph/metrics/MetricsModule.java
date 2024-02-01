@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.metrics;
@@ -46,6 +48,51 @@ public class MetricsModule extends Module {
     private static final Version VERSION = new Version(1, 1, 0, "",
                                                        "org.apache.hugegraph",
                                                        "hugegraph-api");
+    private final TimeUnit rateUnit;
+    private final TimeUnit durationUnit;
+    private final boolean showSamples;
+    private final MetricFilter filter;
+
+    public MetricsModule(TimeUnit rateUnit, TimeUnit durationUnit,
+                         boolean showSamples) {
+        this(rateUnit, durationUnit, showSamples, MetricFilter.ALL);
+    }
+
+    public MetricsModule(TimeUnit rateUnit, TimeUnit durationUnit,
+                         boolean showSamples, MetricFilter filter) {
+        this.rateUnit = rateUnit;
+        this.durationUnit = durationUnit;
+        this.showSamples = showSamples;
+        this.filter = filter;
+    }
+
+    private static String calculateRateUnit(TimeUnit unit, String name) {
+        final String s = unit.toString().toLowerCase(Locale.US);
+        return name + '/' + s.substring(0, s.length() - 1);
+    }
+
+    @Override
+    public String getModuleName() {
+        return "metrics";
+    }
+
+    @Override
+    public Version version() {
+        return VERSION;
+    }
+
+    @Override
+    public void setupModule(Module.SetupContext context) {
+        context.addSerializers(new SimpleSerializers(Arrays.asList(
+            new GaugeSerializer(),
+            new CounterSerializer(),
+            new HistogramSerializer(this.showSamples),
+            new MeterSerializer(this.rateUnit),
+            new TimerSerializer(this.rateUnit, this.durationUnit,
+                                this.showSamples),
+            new MetricRegistrySerializer(this.filter)
+        )));
+    }
 
     @SuppressWarnings("rawtypes")
     private static class GaugeSerializer extends StdSerializer<Gauge> {
@@ -227,7 +274,7 @@ public class MetricsModule extends Module {
     }
 
     private static class MetricRegistrySerializer
-                   extends StdSerializer<MetricRegistry> {
+        extends StdSerializer<MetricRegistry> {
 
         private static final long serialVersionUID = 3717001164181726933L;
 
@@ -252,51 +299,5 @@ public class MetricsModule extends Module {
             json.writeObjectField("timers", registry.getTimers(this.filter));
             json.writeEndObject();
         }
-    }
-
-    private final TimeUnit rateUnit;
-    private final TimeUnit durationUnit;
-    private final boolean showSamples;
-    private final MetricFilter filter;
-
-    public MetricsModule(TimeUnit rateUnit, TimeUnit durationUnit,
-                         boolean showSamples) {
-        this(rateUnit, durationUnit, showSamples, MetricFilter.ALL);
-    }
-
-    public MetricsModule(TimeUnit rateUnit, TimeUnit durationUnit,
-                         boolean showSamples, MetricFilter filter) {
-        this.rateUnit = rateUnit;
-        this.durationUnit = durationUnit;
-        this.showSamples = showSamples;
-        this.filter = filter;
-    }
-
-    @Override
-    public String getModuleName() {
-        return "metrics";
-    }
-
-    @Override
-    public Version version() {
-        return VERSION;
-    }
-
-    @Override
-    public void setupModule(Module.SetupContext context) {
-        context.addSerializers(new SimpleSerializers(Arrays.asList(
-                new GaugeSerializer(),
-                new CounterSerializer(),
-                new HistogramSerializer(this.showSamples),
-                new MeterSerializer(this.rateUnit),
-                new TimerSerializer(this.rateUnit, this.durationUnit,
-                                    this.showSamples),
-                new MetricRegistrySerializer(this.filter)
-        )));
-    }
-
-    private static String calculateRateUnit(TimeUnit unit, String name) {
-        final String s = unit.toString().toLowerCase(Locale.US);
-        return name + '/' + s.substring(0, s.length() - 1);
     }
 }

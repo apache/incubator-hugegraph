@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.api.profile;
@@ -24,6 +26,21 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.version.CoreVersion;
+import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
+import org.glassfish.jersey.model.Parameter.Source;
+import org.glassfish.jersey.server.model.Parameter;
+import org.glassfish.jersey.server.model.Resource;
+import org.glassfish.jersey.server.model.ResourceMethod;
+
+import com.codahale.metrics.annotation.Timed;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -32,22 +49,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
-import org.glassfish.jersey.model.Parameter.Source;
-import org.glassfish.jersey.server.model.Parameter;
-import org.glassfish.jersey.server.model.Resource;
-import org.glassfish.jersey.server.model.ResourceMethod;
-
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.InsertionOrderUtil;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.version.CoreVersion;
-
-import com.codahale.metrics.annotation.Timed;
 
 @Path("/")
 @Singleton
@@ -61,6 +62,18 @@ public class ProfileAPI {
 
     private static String SERVER_PROFILES = null;
     private static String API_PROFILES = null;
+
+    private static boolean isAnnotatedPathClass(Class<?> clazz) {
+        if (clazz.isAnnotationPresent(Path.class)) {
+            return true;
+        }
+        for (Class<?> i : clazz.getInterfaces()) {
+            if (i.isAnnotationPresent(Path.class)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     @GET
     @Timed
@@ -128,18 +141,6 @@ public class ProfileAPI {
         return API_PROFILES;
     }
 
-    private static boolean isAnnotatedPathClass(Class<?> clazz) {
-        if (clazz.isAnnotationPresent(Path.class)) {
-            return true;
-        }
-        for (Class<?> i : clazz.getInterfaces()) {
-            if (i.isAnnotationPresent(Path.class)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static class APIProfiles {
 
         @JsonProperty("apis")
@@ -154,8 +155,8 @@ public class ProfileAPI {
             categories = this.apis.computeIfAbsent(category.dir,
                                                    k -> new TreeMap<>());
             List<APIProfile> profiles = categories.computeIfAbsent(
-                                                   category.category,
-                                                   k -> new ArrayList<>());
+                category.category,
+                k -> new ArrayList<>());
             profiles.add(profile);
         }
     }
