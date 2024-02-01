@@ -10,3 +10,6 @@ apache-release.sh export-ignore
 .github/ export-ignore
 hugegraph-dist/scripts/ export-ignore
 #assembly/ export-ignore
+
+# Configure all files to use LF (Unix/Linux format) line endings
+* text eol=lf
