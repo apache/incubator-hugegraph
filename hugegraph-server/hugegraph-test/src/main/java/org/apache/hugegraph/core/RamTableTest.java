@@ -22,16 +22,6 @@ import java.nio.file.Paths;
 import java.util.Iterator;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -44,6 +34,15 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.After;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.Test;
 
 public class RamTableTest extends BaseCoreTest {
 
@@ -67,13 +66,13 @@ public class RamTableTest extends BaseCoreTest {
         graph.schema().vertexLabel("vl1").useCustomizeNumberId().create();
         graph.schema().vertexLabel("vl2").useCustomizeNumberId().create();
         graph.schema().edgeLabel("el1")
-                      .sourceLabel("vl1")
-                      .targetLabel("vl1")
-                      .create();
+             .sourceLabel("vl1")
+             .targetLabel("vl1")
+             .create();
         graph.schema().edgeLabel("el2")
-                      .sourceLabel("vl2")
-                      .targetLabel("vl2")
-                      .create();
+             .sourceLabel("vl2")
+             .targetLabel("vl2")
+             .create();
     }
 
     @Override

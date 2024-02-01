@@ -39,4 +39,5 @@ import org.junit.runners.Suite;
     RamTableTest.class
 })
 public class CoreTestSuite {
+
 }

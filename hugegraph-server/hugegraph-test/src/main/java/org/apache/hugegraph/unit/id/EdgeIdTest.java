@@ -19,16 +19,16 @@ package org.apache.hugegraph.unit.id;
 
 import java.util.Set;
 
-import org.apache.hugegraph.unit.BaseUnitTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableSet;
 
 public class EdgeIdTest extends BaseUnitTest {

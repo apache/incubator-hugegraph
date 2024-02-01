@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.tinkerpop;
@@ -60,12 +62,13 @@ import org.junit.runners.model.Statement;
  * @author Stephen Mallette (http://stephen.genoprime.com)
  */
 public class StructureBasicSuite extends AbstractGremlinSuite {
+
     /**
      * This list of tests in the suite that will be executed.
      * Gremlin developers should add to this list
      * as needed to enforce tests upon implementations.
      */
-    private static final Class<?>[] ALL_TESTS = new Class<?>[] {
+    private static final Class<?>[] ALL_TESTS = new Class<?>[]{
         CommunityGeneratorTest.class,
         DetachedGraphTest.class,
         DetachedEdgeTest.class,
@@ -98,7 +101,7 @@ public class StructureBasicSuite extends AbstractGremlinSuite {
 
     public StructureBasicSuite(final Class<?> klass,
                                final RunnerBuilder builder)
-                               throws InitializationError {
+        throws InitializationError {
         super(klass, builder, ALL_TESTS, null, true,
               TraversalEngine.Type.STANDARD);
 

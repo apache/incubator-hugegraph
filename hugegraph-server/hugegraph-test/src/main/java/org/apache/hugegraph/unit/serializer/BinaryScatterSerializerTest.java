@@ -31,6 +31,13 @@ import org.junit.Test;
 
 public class BinaryScatterSerializerTest extends BaseUnitTest {
 
+    private static BackendEntry parse(BackendEntry originEntry) {
+        byte[] bytes = originEntry.id().asBytes();
+        BackendEntry parsedEntry = new BinaryBackendEntry(originEntry.type(), bytes);
+        parsedEntry.columns(originEntry.columns());
+        return parsedEntry;
+    }
+
     @Test
     public void testVertex() {
         HugeConfig config = FakeObjects.newConfig();
@@ -79,12 +86,5 @@ public class BinaryScatterSerializerTest extends BaseUnitTest {
         edge = vertex2.getEdges().iterator().next();
         Assert.assertEquals(edge2, edge);
         assertCollectionEquals(edge2.getProperties(), edge.getProperties());
-    }
-
-    private static BackendEntry parse(BackendEntry originEntry) {
-        byte[] bytes = originEntry.id().asBytes();
-        BackendEntry parsedEntry = new BinaryBackendEntry(originEntry.type(), bytes);
-        parsedEntry.columns(originEntry.columns());
-        return parsedEntry;
     }
 }

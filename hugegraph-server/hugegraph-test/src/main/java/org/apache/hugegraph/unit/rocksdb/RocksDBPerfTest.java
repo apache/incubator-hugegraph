@@ -214,12 +214,12 @@ public class RocksDBPerfTest extends BaseRocksDBUnitTest {
         int updateTimes = 300; // 30w
         for (int j = 0; j < updateTimes; j++) {
             for (int i = 0; i < n; i++) {
-                int value =  comms.get(i);
+                int value = comms.get(i);
                 String old = String.format("index:%3d:%d", i, value);
                 session.delete(TABLE, getBytes(old));
 
                 value = r.nextInt(n); // TODO: aggregate
-                value =  i + 1;
+                value = i + 1;
                 comms.put(i, value);
                 String key = String.format("index:%3d:%d", i, value);
                 session.put(TABLE, getBytes(key), empty);

@@ -38,12 +38,12 @@ public class VertexLabelApiTest extends BaseApiTest {
     @Test
     public void testCreate() {
         String vertexLabel = "{" +
-                "\"name\": \"person\"," +
-                "\"id_strategy\": \"PRIMARY_KEY\"," +
-                "\"properties\": [\"name\", \"age\", \"city\"]," +
-                "\"primary_keys\":[\"name\"]," +
-                "\"nullable_keys\":[\"city\"]" +
-                "}";
+                             "\"name\": \"person\"," +
+                             "\"id_strategy\": \"PRIMARY_KEY\"," +
+                             "\"properties\": [\"name\", \"age\", \"city\"]," +
+                             "\"primary_keys\":[\"name\"]," +
+                             "\"nullable_keys\":[\"city\"]" +
+                             "}";
         Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
     }
@@ -51,22 +51,22 @@ public class VertexLabelApiTest extends BaseApiTest {
     @Test
     public void testAppend() {
         String vertexLabel = "{" +
-                "\"name\": \"person\"," +
-                "\"id_strategy\": \"PRIMARY_KEY\"," +
-                "\"properties\": [\"name\", \"age\", \"city\"]," +
-                "\"primary_keys\":[\"name\"]," +
-                "\"nullable_keys\":[\"city\"]" +
-                "}";
+                             "\"name\": \"person\"," +
+                             "\"id_strategy\": \"PRIMARY_KEY\"," +
+                             "\"properties\": [\"name\", \"age\", \"city\"]," +
+                             "\"primary_keys\":[\"name\"]," +
+                             "\"nullable_keys\":[\"city\"]" +
+                             "}";
         Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 
         vertexLabel = "{" +
-                "\"name\": \"person\"," +
-                "\"id_strategy\":\"DEFAULT\"," +
-                "\"properties\":[\"lang\"]," +
-                "\"primary_keys\":[]," +
-                "\"nullable_keys\":[\"lang\"]" +
-                "}";
+                      "\"name\": \"person\"," +
+                      "\"id_strategy\":\"DEFAULT\"," +
+                      "\"properties\":[\"lang\"]," +
+                      "\"primary_keys\":[]," +
+                      "\"nullable_keys\":[\"lang\"]" +
+                      "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
         r = client().put(PATH, "person", vertexLabel, params);
         assertResponseStatus(200, r);
@@ -75,12 +75,12 @@ public class VertexLabelApiTest extends BaseApiTest {
     @Test
     public void testGet() {
         String vertexLabel = "{" +
-                "\"name\": \"person\"," +
-                "\"id_strategy\": \"PRIMARY_KEY\"," +
-                "\"properties\": [\"name\", \"age\", \"city\"]," +
-                "\"primary_keys\":[\"name\"]," +
-                "\"nullable_keys\":[\"city\"]" +
-                "}";
+                             "\"name\": \"person\"," +
+                             "\"id_strategy\": \"PRIMARY_KEY\"," +
+                             "\"properties\": [\"name\", \"age\", \"city\"]," +
+                             "\"primary_keys\":[\"name\"]," +
+                             "\"nullable_keys\":[\"city\"]" +
+                             "}";
         Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 
@@ -92,12 +92,12 @@ public class VertexLabelApiTest extends BaseApiTest {
     @Test
     public void testList() {
         String vertexLabel = "{" +
-                "\"name\": \"person\"," +
-                "\"id_strategy\": \"PRIMARY_KEY\"," +
-                "\"properties\": [\"name\", \"age\", \"city\"]," +
-                "\"primary_keys\":[\"name\"]," +
-                "\"nullable_keys\":[\"city\"]" +
-                "}";
+                             "\"name\": \"person\"," +
+                             "\"id_strategy\": \"PRIMARY_KEY\"," +
+                             "\"properties\": [\"name\", \"age\", \"city\"]," +
+                             "\"primary_keys\":[\"name\"]," +
+                             "\"nullable_keys\":[\"city\"]" +
+                             "}";
         Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 
@@ -108,12 +108,12 @@ public class VertexLabelApiTest extends BaseApiTest {
     @Test
     public void testDelete() {
         String vertexLabel = "{" +
-                "\"name\": \"person\"," +
-                "\"id_strategy\": \"PRIMARY_KEY\"," +
-                "\"properties\": [\"name\", \"age\", \"city\"]," +
-                "\"primary_keys\":[\"name\"]," +
-                "\"nullable_keys\":[\"city\"]" +
-                "}";
+                             "\"name\": \"person\"," +
+                             "\"id_strategy\": \"PRIMARY_KEY\"," +
+                             "\"properties\": [\"name\", \"age\", \"city\"]," +
+                             "\"primary_keys\":[\"name\"]," +
+                             "\"nullable_keys\":[\"city\"]" +
+                             "}";
         Response r = client().post(PATH, vertexLabel);
         assertResponseStatus(201, r);
 

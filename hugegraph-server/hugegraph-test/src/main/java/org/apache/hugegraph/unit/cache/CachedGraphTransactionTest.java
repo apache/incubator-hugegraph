@@ -17,10 +17,6 @@
 
 package org.apache.hugegraph.unit.cache;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -38,6 +34,9 @@ import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.Events;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CachedGraphTransactionTest extends BaseUnitTest {
 
@@ -216,7 +215,7 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
         Assert.assertEquals(0L,
                             Whitebox.invoke(cache, "edgesCache", "size"));
         String name = cache.queryEdgesByVertex(IdGenerator.of(1)).next().outVertex()
-                     .value("name");
+                           .value("name");
         Assert.assertEquals("test-name", name);
     }
 }

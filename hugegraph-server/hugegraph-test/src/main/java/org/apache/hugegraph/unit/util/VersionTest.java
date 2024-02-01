@@ -17,12 +17,11 @@
 
 package org.apache.hugegraph.unit.util;
 
-import org.apache.hugegraph.version.ApiVersion;
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.VersionUtil;
+import org.apache.hugegraph.version.ApiVersion;
 import org.apache.hugegraph.version.CoreVersion;
+import org.junit.Test;
 
 public class VersionTest {
 

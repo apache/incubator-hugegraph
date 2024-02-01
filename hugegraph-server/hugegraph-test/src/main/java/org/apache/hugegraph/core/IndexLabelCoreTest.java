@@ -20,13 +20,6 @@ package org.apache.hugegraph.core;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.Assume;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.exception.ExistedException;
@@ -42,6 +35,13 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.DateUtil;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 
 public class IndexLabelCoreTest extends SchemaCoreTest {
@@ -113,7 +113,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(11, person.indexLabels().size());
         assertContainsIl(person.indexLabels(),
                          "personByName", "personByCity", "personByAge",
-                         "personByBorn", "personByFans","personByHeight",
+                         "personByBorn", "personByFans", "personByHeight",
                          "personByWeight", "personByIdNo", "personByTags",
                          "personByCategory", "personByScore");
 
@@ -411,7 +411,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                   .by("age").search().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "Search index can only build on text"));
+                "Search index can only build on text"));
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -1257,10 +1257,10 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         Vertex vertex = graph().traversal().V().hasLabel("person")
-                        .has("city", "Hongkong").next();
+                               .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("age", P.inside(2, 4)).next();
+                        .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
         schema.indexLabel("personByCity").remove();
@@ -1279,7 +1279,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
                    .has("city", "Hongkong").next();
         });
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("age", P.inside(2, 4)).next();
+                        .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
         schema.indexLabel("personByAge").remove();
@@ -1322,11 +1322,11 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, authored.indexLabels().size());
         assertContainsIl(authored.indexLabels(), "authoredByContri");
 
-        james.addEdge("authored", java1,"contribution", "test");
+        james.addEdge("authored", java1, "contribution", "test");
         graph().tx().commit();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
-                    .has("contribution", "test").next();
+                           .has("contribution", "test").next();
         Assert.assertNotNull(edge);
 
         schema.indexLabel("authoredByContri").remove();
@@ -1375,20 +1375,20 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         Vertex vertex = graph().traversal().V().hasLabel("person")
-                        .has("city", "Hongkong").next();
+                               .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("age", P.inside(2, 4)).next();
+                        .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
         schema.indexLabel("personByCity").rebuild();
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("city", "Hongkong").next();
+                        .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
 
         schema.indexLabel("personByAge").rebuild();
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("age", P.inside(2, 4)).next();
+                        .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
     }
 
@@ -1414,18 +1414,18 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         graph().tx().commit();
 
         Vertex vertex = graph().traversal().V().hasLabel("person")
-                        .has("city", "Hongkong").next();
+                               .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("age", P.inside(2, 4)).next();
+                        .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
 
         schema.vertexLabel("person").rebuildIndex();
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("city", "Hongkong").next();
+                        .has("city", "Hongkong").next();
         Assert.assertNotNull(vertex);
         vertex = graph().traversal().V().hasLabel("person")
-                 .has("age", P.inside(2, 4)).next();
+                        .has("age", P.inside(2, 4)).next();
         Assert.assertNotNull(vertex);
     }
 
@@ -1454,11 +1454,11 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, authored.indexLabels().size());
         assertContainsIl(authored.indexLabels(), "authoredByContri");
 
-        james.addEdge("authored", java1,"contribution", "test");
+        james.addEdge("authored", java1, "contribution", "test");
         graph().tx().commit();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
-                    .has("contribution", "test").next();
+                           .has("contribution", "test").next();
         Assert.assertNotNull(edge);
 
         schema.indexLabel("authoredByContri").rebuild();
@@ -1466,7 +1466,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         assertContainsIl(authored.indexLabels(), "authoredByContri");
 
         edge = graph().traversal().E().hasLabel("authored")
-               .has("contribution", "test").next();
+                      .has("contribution", "test").next();
         Assert.assertNotNull(edge);
     }
 
@@ -1495,18 +1495,18 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(1, authored.indexLabels().size());
         assertContainsIl(authored.indexLabels(), "authoredByContri");
 
-        james.addEdge("authored", java1,"contribution", "test");
+        james.addEdge("authored", java1, "contribution", "test");
         graph().tx().commit();
 
         Edge edge = graph().traversal().E().hasLabel("authored")
-                    .has("contribution", "test").next();
+                           .has("contribution", "test").next();
         Assert.assertNotNull(edge);
 
         schema.edgeLabel("authored").rebuildIndex();
         Assert.assertEquals(1, authored.indexLabels().size());
         assertContainsIl(authored.indexLabels(), "authoredByContri");
         edge = graph().traversal().E().hasLabel("authored")
-               .has("contribution", "test").next();
+                      .has("contribution", "test").next();
         Assert.assertNotNull(edge);
     }
 
@@ -1522,8 +1522,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                e.getMessage().startsWith("Don't accept query by label") &&
+                e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -1550,8 +1550,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                e.getMessage().startsWith("Don't accept query by label") &&
+                e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -1579,8 +1579,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                e.getMessage().startsWith("Don't accept query by label") &&
+                e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -1591,7 +1591,7 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         graph().schema().indexLabel("readerByCity").remove();
 
         Assert.assertThrows(NoIndexException.class, () ->
-                graph().traversal().V().has("city", "Shanghai").toList()
+            graph().traversal().V().has("city", "Shanghai").toList()
         );
     }
 
@@ -1607,8 +1607,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                e.getMessage().startsWith("Don't accept query by label") &&
+                e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -1620,8 +1620,8 @@ public class IndexLabelCoreTest extends SchemaCoreTest {
         graph().schema().indexLabel("readByDate").remove();
 
         Assert.assertThrows(NoIndexException.class, () ->
-                graph().traversal().E()
-                       .has("date", P.lt("2019-12-30 13:00:00")).toList()
+            graph().traversal().E()
+                   .has("date", P.lt("2019-12-30 13:00:00")).toList()
         );
     }
 

@@ -44,7 +44,8 @@ public class UserApiTest extends BaseApiTest {
         String result = r.readEntity(String.class);
         Map<String, List<Map<String, Object>>> resultMap =
             JsonUtil.fromJson(result,
-                              new TypeReference<Map<String, List<Map<String, Object>>>>() {});
+                              new TypeReference<Map<String, List<Map<String, Object>>>>() {
+                              });
         List<Map<String, Object>> users = resultMap.get("users");
         for (Map<String, Object> user : users) {
             if ("admin".equals(user.get("user_name"))) {
@@ -173,7 +174,8 @@ public class UserApiTest extends BaseApiTest {
 
         Map<String, List<Map<String, Object>>> resultMap =
             JsonUtil.fromJson(result,
-                              new TypeReference<Map<String, List<Map<String, Object>>>>() {});
+                              new TypeReference<Map<String, List<Map<String, Object>>>>() {
+                              });
         return resultMap.get("users");
     }
 }

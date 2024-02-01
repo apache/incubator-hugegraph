@@ -137,17 +137,17 @@ public class TaskApiTest extends BaseApiTest {
         String rebuildPath = "/graphs/hugegraph/jobs/rebuild/indexlabels";
         String personByCity = "personByCity";
         Map<String, Object> params = ImmutableMap.of();
-        Response r = client().put(rebuildPath, personByCity, "",  params);
+        Response r = client().put(rebuildPath, personByCity, "", params);
         String content = assertResponseStatus(202, r);
         return assertJsonContains(content, "task_id");
     }
 
     private int gremlinJob() {
         String body = "{" +
-                "\"gremlin\":\"Thread.sleep(1000L)\"," +
-                "\"bindings\":{}," +
-                "\"language\":\"gremlin-groovy\"," +
-                "\"aliases\":{}}";
+                      "\"gremlin\":\"Thread.sleep(1000L)\"," +
+                      "\"bindings\":{}," +
+                      "\"language\":\"gremlin-groovy\"," +
+                      "\"aliases\":{}}";
         String path = "/graphs/hugegraph/jobs/gremlin";
         String content = assertResponseStatus(201, client().post(path, body));
         return assertJsonContains(content, "task_id");

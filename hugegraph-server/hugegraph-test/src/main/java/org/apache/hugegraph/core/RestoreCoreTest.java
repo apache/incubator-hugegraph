@@ -17,16 +17,15 @@
 
 package org.apache.hugegraph.core;
 
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.After;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.After;
+import org.junit.Test;
 
 public class RestoreCoreTest extends BaseCoreTest {
 
@@ -266,9 +265,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(0L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(0L)
+                 .create()
         );
     }
 
@@ -278,9 +277,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(0L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(0L)
+                 .create()
         );
     }
 
@@ -290,9 +289,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(0L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(0L)
+                 .create()
         );
     }
 
@@ -302,9 +301,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(-100L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(-100L)
+                 .create()
         );
     }
 
@@ -314,9 +313,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(-100L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(-100L)
+                 .create()
         );
     }
 
@@ -326,9 +325,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalStateException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(-100L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(-100L)
+                 .create()
         );
     }
 
@@ -338,9 +337,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(100L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(100L)
+                 .create()
         );
     }
 
@@ -350,9 +349,9 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.schema().vertexLabel("person").create();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(100L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(100L)
+                 .create()
         );
     }
 
@@ -385,9 +384,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .targetLabel("person").id(100L)
              .create();
         Assert.assertThrows(ExistedException.class, () ->
-                graph.schema().edgeLabel("knows").sourceLabel("person")
-                     .targetLabel("person").id(100L)
-                     .create()
+            graph.schema().edgeLabel("knows").sourceLabel("person")
+                 .targetLabel("person").id(100L)
+                 .create()
         );
     }
 
@@ -400,9 +399,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .targetLabel("person").id(100L)
              .create();
         Assert.assertThrows(ExistedException.class, () ->
-                graph.schema().edgeLabel("knows1").sourceLabel("person")
-                     .targetLabel("person").id(100L)
-                     .create()
+            graph.schema().edgeLabel("knows1").sourceLabel("person")
+                 .targetLabel("person").id(100L)
+                 .create()
         );
     }
 

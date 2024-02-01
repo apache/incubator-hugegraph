@@ -17,9 +17,6 @@
 
 package org.apache.hugegraph.unit.core;
 
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -28,6 +25,8 @@ import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class SystemSchemaStoreTest {
 

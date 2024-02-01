@@ -57,10 +57,10 @@ public class BaseApiTest {
 
     private static final String BASE_URL = "http://127.0.0.1:8080";
     private static final String GRAPH = "hugegraph";
+    protected static final String URL_PREFIX = "graphs/" + GRAPH;
+    protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "pa";
-
-    protected static final String URL_PREFIX = "graphs/" + GRAPH;
     private static final String SCHEMA_PKS = "/schema/propertykeys";
     private static final String SCHEMA_VLS = "/schema/vertexlabels";
     private static final String SCHEMA_ELS = "/schema/edgelabels";
@@ -68,12 +68,8 @@ public class BaseApiTest {
     private static final String GRAPH_VERTEX = "/graph/vertices";
     private static final String GRAPH_EDGE = "/graph/edges";
     private static final String BATCH = "/batch";
-
-    protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
-
-    private static RestClient client;
-
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static RestClient client;
 
     @BeforeClass
     public static void init() {
@@ -86,113 +82,8 @@ public class BaseApiTest {
         client.close();
     }
 
-    @After
-    public void teardown() throws Exception {
-        BaseApiTest.clearData();
-    }
-
-    public RestClient client() {
-        return client;
-    }
-
     public static RestClient newClient() {
         return new RestClient(BASE_URL);
-    }
-
-    public static class RestClient {
-
-        private Client client;
-        private WebTarget target;
-
-        public RestClient(String url) {
-            this(url, true);
-        }
-
-        public RestClient(String url,Boolean enableAuth) {
-            this.client = ClientBuilder.newClient();
-            this.client.register(EncodingFilter.class);
-            this.client.register(GZipEncoder.class);
-            if(enableAuth) {
-                this.client.register(HttpAuthenticationFeature.basic(USERNAME,
-                                                                     PASSWORD));
-            }
-            this.target = this.client.target(url);
-        }
-
-        public void close() {
-            this.client.close();
-        }
-
-        public WebTarget target() {
-            return this.target;
-        }
-
-        public WebTarget target(String url) {
-            return this.client.target(url);
-        }
-
-        public Response get(String path) {
-            return this.target.path(path).request().get();
-        }
-
-        public Response get(String path, String id) {
-            return this.target.path(path).path(id).request().get();
-        }
-
-        public Response get(String path, MultivaluedMap<String, Object> headers) {
-            return this.target.path(path).request().headers(headers).get();
-        }
-
-        public Response get(String path, Multimap<String, Object> params) {
-            WebTarget target = this.target.path(path);
-            for (Map.Entry<String, Object> entries : params.entries()) {
-                target = target.queryParam(entries.getKey(), entries.getValue());
-            }
-            return target.request().get();
-        }
-
-        public Response get(String path, Map<String, Object> params) {
-            WebTarget target = this.target.path(path);
-            for (Map.Entry<String, Object> i : params.entrySet()) {
-                target = target.queryParam(i.getKey(), i.getValue());
-            }
-            return target.request().get();
-        }
-
-        public Response post(String path, String content) {
-            return this.post(path, Entity.json(content));
-        }
-
-        public Response post(String path, Entity<?> entity) {
-            return this.target.path(path).request().post(entity);
-        }
-
-        public Response put(String path, String id, String content,
-                            Map<String, Object> params) {
-            WebTarget target = this.target.path(path).path(id);
-            for (Map.Entry<String, Object> i : params.entrySet()) {
-                target = target.queryParam(i.getKey(), i.getValue());
-            }
-            return target.request().put(Entity.json(content));
-        }
-
-        public Response delete(String path, String id) {
-            return this.target.path(path).path(id).request().delete();
-        }
-
-        public Response delete(String path, Map<String, Object> params) {
-            WebTarget target = this.target.path(path);
-            for (Map.Entry<String, Object> i : params.entrySet()) {
-                target = target.queryParam(i.getKey(), i.getValue());
-            }
-            return target.request().delete();
-        }
-
-        public Response delete(String path,
-                               MultivaluedMap<String, Object> headers) {
-            WebTarget target = this.target.path(path);
-            return target.request().headers(headers).delete();
-        }
     }
 
     /**
@@ -202,117 +93,117 @@ public class BaseApiTest {
         String path = URL_PREFIX + SCHEMA_PKS;
 
         createAndAssert(path, "{\n" +
-                "\"name\": \"name\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"name\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"age\",\n" +
-                "\"data_type\": \"INT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"age\",\n" +
+                              "\"data_type\": \"INT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"city\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"city\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"lang\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"lang\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"date\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"date\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"price\",\n" +
-                "\"data_type\": \"INT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"price\",\n" +
+                              "\"data_type\": \"INT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"weight\",\n" +
-                "\"data_type\": \"DOUBLE\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"weight\",\n" +
+                              "\"data_type\": \"DOUBLE\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
     }
 
     protected static void initVertexLabel() {
         String path = URL_PREFIX + SCHEMA_VLS;
 
         createAndAssert(path, "{\n" +
-                "\"primary_keys\":[\"name\"],\n" +
-                "\"id_strategy\": \"PRIMARY_KEY\",\n" +
-                "\"name\": \"person\",\n" +
-                "\"properties\":[\"city\", \"name\", \"age\"],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"primary_keys\":[\"name\"],\n" +
+                              "\"id_strategy\": \"PRIMARY_KEY\",\n" +
+                              "\"name\": \"person\",\n" +
+                              "\"properties\":[\"city\", \"name\", \"age\"],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
 
         createAndAssert(path, "{\n" +
-                "\"primary_keys\":[\"name\"],\n" +
-                "\"id_strategy\": \"PRIMARY_KEY\",\n" +
-                "\"name\": \"software\",\n" +
-                "\"properties\":[\"price\", \"name\", \"lang\"],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"primary_keys\":[\"name\"],\n" +
+                              "\"id_strategy\": \"PRIMARY_KEY\",\n" +
+                              "\"name\": \"software\",\n" +
+                              "\"properties\":[\"price\", \"name\", \"lang\"],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
     }
 
     protected static void initEdgeLabel() {
         String path = URL_PREFIX + SCHEMA_ELS;
 
         createAndAssert(path, "{\n" +
-                "\"name\": \"created\",\n" +
-                "\"source_label\": \"person\",\n" +
-                "\"target_label\": \"software\",\n" +
-                "\"frequency\": \"SINGLE\",\n" +
-                "\"properties\":[\"date\", \"weight\"],\n" +
-                "\"sort_keys\":[],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"name\": \"created\",\n" +
+                              "\"source_label\": \"person\",\n" +
+                              "\"target_label\": \"software\",\n" +
+                              "\"frequency\": \"SINGLE\",\n" +
+                              "\"properties\":[\"date\", \"weight\"],\n" +
+                              "\"sort_keys\":[],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"name\": \"knows\",\n" +
-                "\"source_label\": \"person\",\n" +
-                "\"target_label\": \"person\",\n" +
-                "\"frequency\": \"MULTIPLE\",\n" +
-                "\"properties\":[\"date\", \"weight\"],\n" +
-                "\"sort_keys\":[\"date\"],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"name\": \"knows\",\n" +
+                              "\"source_label\": \"person\",\n" +
+                              "\"target_label\": \"person\",\n" +
+                              "\"frequency\": \"MULTIPLE\",\n" +
+                              "\"properties\":[\"date\", \"weight\"],\n" +
+                              "\"sort_keys\":[\"date\"],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
     }
 
     protected static int initIndexLabel() {
         String path = URL_PREFIX + SCHEMA_ILS;
 
         Response r = client.post(path, "{\n" +
-                "\"name\": \"personByCity\",\n" +
-                "\"base_type\": \"VERTEX_LABEL\",\n" +
-                "\"base_value\": \"person\",\n" +
-                "\"index_type\": \"SECONDARY\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"rebuild\": false,\n" +
-                "\"fields\": [\n" +
-                "\"city\"\n" +
-                "]\n" +
-                "}");
+                                       "\"name\": \"personByCity\",\n" +
+                                       "\"base_type\": \"VERTEX_LABEL\",\n" +
+                                       "\"base_value\": \"person\",\n" +
+                                       "\"index_type\": \"SECONDARY\",\n" +
+                                       "\"check_exist\": false,\n" +
+                                       "\"rebuild\": false,\n" +
+                                       "\"fields\": [\n" +
+                                       "\"city\"\n" +
+                                       "]\n" +
+                                       "}");
         String content = assertResponseStatus(202, r);
         return assertJsonContains(content, "task_id");
     }
@@ -378,59 +269,59 @@ public class BaseApiTest {
         String path = URL_PREFIX + GRAPH_VERTEX;
 
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"marko\"," +
-                "\"age\": 29," +
-                "\"city\": \"Beijing\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"marko\"," +
+                              "\"age\": 29," +
+                              "\"city\": \"Beijing\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"vadas\"," +
-                "\"age\": 27," +
-                "\"city\": \"HongKong\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"vadas\"," +
+                              "\"age\": 27," +
+                              "\"city\": \"HongKong\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"josh\"," +
-                "\"age\": 32," +
-                "\"city\": \"Beijing\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"josh\"," +
+                              "\"age\": 32," +
+                              "\"city\": \"Beijing\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"peter\"," +
-                "\"age\": 35," +
-                "\"city\": \"Shanghai\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"peter\"," +
+                              "\"age\": 35," +
+                              "\"city\": \"Shanghai\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"software\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"ripple\"," +
-                "\"lang\": \"java\"," +
-                "\"price\": 199" +
-                "}\n" +
-                "}");
+                              "\"label\": \"software\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"ripple\"," +
+                              "\"lang\": \"java\"," +
+                              "\"price\": 199" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"software\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"lop\"," +
-                "\"lang\": \"java\"," +
-                "\"price\": 328" +
-                "}\n" +
-                "}");
+                              "\"label\": \"software\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"lop\"," +
+                              "\"lang\": \"java\"," +
+                              "\"price\": 328" +
+                              "}\n" +
+                              "}");
     }
 
     protected static Response createAndAssert(String path, String body) {
@@ -480,11 +371,11 @@ public class BaseApiTest {
     }
 
     protected static String getVertexId(String label, String key, String value)
-                                        throws IOException {
+        throws IOException {
         String props = MAPPER.writeValueAsString(ImmutableMap.of(key, value));
         Map<String, Object> params = ImmutableMap.of(
-                "label", label,
-                "properties", URLEncoder.encode(props, "UTF-8")
+            "label", label,
+            "properties", URLEncoder.encode(props, "UTF-8")
         );
         Response r = client.get(URL_PREFIX + GRAPH_VERTEX, params);
         String content = assertResponseStatus(200, r);
@@ -588,14 +479,14 @@ public class BaseApiTest {
             JsonNode element = root.get(key);
             if (element == null) {
                 throw new HugeException(String.format(
-                          "Can't find value of the key: %s in json.", key));
+                    "Can't find value of the key: %s in json.", key));
             }
             JavaType type = MAPPER.getTypeFactory()
                                   .constructParametricType(List.class, clazz);
             return MAPPER.readValue(element.toString(), type);
         } catch (IOException e) {
             throw new HugeException(String.format(
-                      "Failed to deserialize %s", content), e);
+                "Failed to deserialize %s", content), e);
         }
     }
 
@@ -648,5 +539,110 @@ public class BaseApiTest {
         }
         Assert.assertNotNull(message, found);
         return found;
+    }
+
+    @After
+    public void teardown() throws Exception {
+        BaseApiTest.clearData();
+    }
+
+    public RestClient client() {
+        return client;
+    }
+
+    public static class RestClient {
+
+        private Client client;
+        private WebTarget target;
+
+        public RestClient(String url) {
+            this(url, true);
+        }
+
+        public RestClient(String url, Boolean enableAuth) {
+            this.client = ClientBuilder.newClient();
+            this.client.register(EncodingFilter.class);
+            this.client.register(GZipEncoder.class);
+            if (enableAuth) {
+                this.client.register(HttpAuthenticationFeature.basic(USERNAME,
+                                                                     PASSWORD));
+            }
+            this.target = this.client.target(url);
+        }
+
+        public void close() {
+            this.client.close();
+        }
+
+        public WebTarget target() {
+            return this.target;
+        }
+
+        public WebTarget target(String url) {
+            return this.client.target(url);
+        }
+
+        public Response get(String path) {
+            return this.target.path(path).request().get();
+        }
+
+        public Response get(String path, String id) {
+            return this.target.path(path).path(id).request().get();
+        }
+
+        public Response get(String path, MultivaluedMap<String, Object> headers) {
+            return this.target.path(path).request().headers(headers).get();
+        }
+
+        public Response get(String path, Multimap<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> entries : params.entries()) {
+                target = target.queryParam(entries.getKey(), entries.getValue());
+            }
+            return target.request().get();
+        }
+
+        public Response get(String path, Map<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().get();
+        }
+
+        public Response post(String path, String content) {
+            return this.post(path, Entity.json(content));
+        }
+
+        public Response post(String path, Entity<?> entity) {
+            return this.target.path(path).request().post(entity);
+        }
+
+        public Response put(String path, String id, String content,
+                            Map<String, Object> params) {
+            WebTarget target = this.target.path(path).path(id);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().put(Entity.json(content));
+        }
+
+        public Response delete(String path, String id) {
+            return this.target.path(path).path(id).request().delete();
+        }
+
+        public Response delete(String path, Map<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().delete();
+        }
+
+        public Response delete(String path,
+                               MultivaluedMap<String, Object> headers) {
+            WebTarget target = this.target.path(path);
+            return target.request().headers(headers).delete();
+        }
     }
 }

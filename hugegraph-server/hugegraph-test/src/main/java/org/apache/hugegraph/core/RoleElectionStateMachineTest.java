@@ -43,101 +43,6 @@ import org.junit.Test;
 
 public class RoleElectionStateMachineTest {
 
-    private static class LogEntry {
-
-        private final Integer epoch;
-
-        private final String node;
-
-        private final Role role;
-
-        enum Role {
-            master,
-            worker,
-            candidate,
-            abdication,
-            unknown
-        }
-
-        public LogEntry(Integer epoch, String node, Role role) {
-            this.epoch = epoch;
-            this.node = node;
-            this.role = role;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) {
-                return true;
-            }
-            if (!(obj instanceof LogEntry)) {
-                return false;
-            }
-            LogEntry logEntry = (LogEntry) obj;
-            return Objects.equals(this.epoch, logEntry.epoch) &&
-                   Objects.equals(this.node, logEntry.node) &&
-                   this.role == logEntry.role;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(this.epoch, this.node, this.role);
-        }
-
-        @Override
-        public String toString() {
-            return "LogEntry{" +
-                   "epoch=" + this.epoch +
-                   ", node='" + this.node + '\'' +
-                   ", role=" + this.role +
-                   '}';
-        }
-    }
-
-    private static class TestConfig implements Config {
-
-        private final String node;
-
-        public TestConfig(String node) {
-            this.node = node;
-        }
-
-        @Override
-        public String node() {
-            return this.node;
-        }
-
-        @Override
-        public String url() {
-            return "http://127.0.0.1:8080";
-        }
-
-        @Override
-        public int exceedsFailCount() {
-            return 2;
-        }
-
-        @Override
-        public long randomTimeoutMillisecond() {
-            return 400;
-        }
-
-        @Override
-        public long heartBeatIntervalSecond() {
-            return 1;
-        }
-
-        @Override
-        public int masterDeadTimes() {
-            return 5;
-        }
-
-        @Override
-        public long baseTimeoutMillisecond() {
-            return 100;
-        }
-    }
-
     @Test
     public void testStateMachine() throws InterruptedException {
         final int MAX_COUNT = 200;
@@ -206,13 +111,12 @@ public class RoleElectionStateMachineTest {
         };
 
         final List<ClusterRole> clusterRoleLogs = Collections.synchronizedList(
-                                                  new ArrayList<>(100));
+            new ArrayList<>(100));
 
         final ClusterRoleStore clusterRoleStore = new ClusterRoleStore() {
 
-            volatile int epoch = 0;
-
             final Map<Integer, ClusterRole> data = new ConcurrentHashMap<>();
+            volatile int epoch = 0;
 
             ClusterRole copy(ClusterRole clusterRole) {
                 if (clusterRole == null) {
@@ -264,7 +168,7 @@ public class RoleElectionStateMachineTest {
         Thread node1 = new Thread(() -> {
             Config config = new TestConfig("1");
             RoleElectionStateMachine stateMachine =
-                    new StandardRoleElectionStateMachine(config, clusterRoleStore);
+                new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[1] = stateMachine;
             stateMachine.start(callback);
             stop.countDown();
@@ -273,7 +177,7 @@ public class RoleElectionStateMachineTest {
         Thread node2 = new Thread(() -> {
             Config config = new TestConfig("2");
             RoleElectionStateMachine stateMachine =
-                    new StandardRoleElectionStateMachine(config, clusterRoleStore);
+                new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[2] = stateMachine;
             stateMachine.start(callback);
             stop.countDown();
@@ -282,7 +186,7 @@ public class RoleElectionStateMachineTest {
         Thread node3 = new Thread(() -> {
             Config config = new TestConfig("3");
             RoleElectionStateMachine stateMachine =
-                    new StandardRoleElectionStateMachine(config, clusterRoleStore);
+                new StandardRoleElectionStateMachine(config, clusterRoleStore);
             machines[3] = stateMachine;
             stateMachine.start(callback);
             stop.countDown();
@@ -326,5 +230,100 @@ public class RoleElectionStateMachineTest {
         }
 
         Assert.assertGt(0, masters.size());
+    }
+
+    private static class LogEntry {
+
+        private final Integer epoch;
+
+        private final String node;
+
+        private final Role role;
+
+        public LogEntry(Integer epoch, String node, Role role) {
+            this.epoch = epoch;
+            this.node = node;
+            this.role = role;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (!(obj instanceof LogEntry)) {
+                return false;
+            }
+            LogEntry logEntry = (LogEntry) obj;
+            return Objects.equals(this.epoch, logEntry.epoch) &&
+                   Objects.equals(this.node, logEntry.node) &&
+                   this.role == logEntry.role;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(this.epoch, this.node, this.role);
+        }
+
+        @Override
+        public String toString() {
+            return "LogEntry{" +
+                   "epoch=" + this.epoch +
+                   ", node='" + this.node + '\'' +
+                   ", role=" + this.role +
+                   '}';
+        }
+
+        enum Role {
+            master,
+            worker,
+            candidate,
+            abdication,
+            unknown
+        }
+    }
+
+    private static class TestConfig implements Config {
+
+        private final String node;
+
+        public TestConfig(String node) {
+            this.node = node;
+        }
+
+        @Override
+        public String node() {
+            return this.node;
+        }
+
+        @Override
+        public String url() {
+            return "http://127.0.0.1:8080";
+        }
+
+        @Override
+        public int exceedsFailCount() {
+            return 2;
+        }
+
+        @Override
+        public long randomTimeoutMillisecond() {
+            return 400;
+        }
+
+        @Override
+        public long heartBeatIntervalSecond() {
+            return 1;
+        }
+
+        @Override
+        public int masterDeadTimes() {
+            return 5;
+        }
+
+        @Override
+        public long baseTimeoutMillisecond() {
+            return 100;
+        }
     }
 }

@@ -24,15 +24,14 @@ import java.util.List;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class Utils {
 
@@ -45,7 +44,7 @@ public class Utils {
         }
         try {
             confPath = Utils.class.getClassLoader()
-                            .getResource(confPath).getPath();
+                                  .getResource(confPath).getPath();
         } catch (Exception ignored) {
             // ignored Exception
         }

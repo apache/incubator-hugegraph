@@ -19,11 +19,10 @@ package org.apache.hugegraph.testutil;
 
 import java.util.Map;
 
+import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-
-import org.apache.hugegraph.structure.HugeEdge;
 
 public class FakeObjects {
 

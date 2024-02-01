@@ -75,9 +75,9 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         Assert.assertFalse(values.hasNext());
 
         values = this.rocks.session().get(TABLE, Arrays.asList(
-                                                 getBytes("person:1gname"),
-                                                 getBytes("person:1gage"),
-                                                 getBytes("person:1gcity")));
+            getBytes("person:1gname"),
+            getBytes("person:1gage"),
+            getBytes("person:1gcity")));
         Assert.assertTrue(values.hasNext());
         Assert.assertEquals("James", getString(values.next().value));
         Assert.assertEquals(19, getLong(values.next().value));
@@ -85,19 +85,19 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         Assert.assertFalse(values.hasNext());
 
         values = this.rocks.session().get(TABLE, Arrays.asList(
-                                                 getBytes("person:1gname"),
-                                                 getBytes("person:1gage-non-exist"),
-                                                 getBytes("person:1gcity")));
+            getBytes("person:1gname"),
+            getBytes("person:1gage-non-exist"),
+            getBytes("person:1gcity")));
         Assert.assertTrue(values.hasNext());
         Assert.assertEquals("James", getString(values.next().value));
         Assert.assertEquals("Beijing", getString(values.next().value));
         Assert.assertFalse(values.hasNext());
 
         values = this.rocks.session().get(TABLE, Arrays.asList(
-                                                 getBytes("person:1gname"),
-                                                 getBytes("person:1gage-non-exist"),
-                                                 getBytes("person:1gcity"),
-                                                 getBytes("person:1gname")));
+            getBytes("person:1gname"),
+            getBytes("person:1gage-non-exist"),
+            getBytes("person:1gcity"),
+            getBytes("person:1gname")));
         Assert.assertTrue(values.hasNext());
         Assert.assertEquals("James", getString(values.next().value));
         Assert.assertEquals("Beijing", getString(values.next().value));

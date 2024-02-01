@@ -52,6 +52,56 @@ public class MultiGraphsTest extends BaseCoreTest {
 
     private static final String NAME48 = "g12345678901234567890123456789012345678901234567";
 
+    private static List<HugeGraph> openGraphs(String... graphNames) {
+        List<HugeGraph> graphs = new ArrayList<>(graphNames.length);
+        for (String graphName : graphNames) {
+            Configuration config = buildConfig(graphName);
+            graphs.add((HugeGraph) GraphFactory.open(config));
+        }
+        return graphs;
+    }
+
+    private static void destroyGraphs(List<HugeGraph> graphs) {
+        for (HugeGraph graph : graphs) {
+            try {
+                graph.close();
+            } catch (Exception e) {
+                Assert.fail(e.toString());
+            }
+        }
+    }
+
+    private static HugeGraph openGraphWithBackend(String graph, String backend,
+                                                  String serializer,
+                                                  String... configs) {
+        Configuration config = buildConfig(graph);
+        config.setProperty(CoreOptions.BACKEND.name(), backend);
+        config.setProperty(CoreOptions.SERIALIZER.name(), serializer);
+        for (int i = 0; i < configs.length; ) {
+            config.setProperty(configs[i++], configs[i++]);
+        }
+        return ((HugeGraph) GraphFactory.open(config));
+    }
+
+    private static Configuration buildConfig(String graphName) {
+        PropertiesConfiguration conf = Utils.getConf();
+        Configuration config = new BaseConfiguration();
+        for (Iterator<String> keys = conf.getKeys(); keys.hasNext(); ) {
+            String key = keys.next();
+            config.setProperty(key, conf.getProperty(key));
+        }
+
+        config.setProperty(CoreOptions.STORE.name(), graphName);
+        String dataPath = config.getString(RocksDBOptions.DATA_PATH.name());
+        config.setProperty(RocksDBOptions.DATA_PATH.name(),
+                           Paths.get(dataPath, graphName).toString());
+        String walPath = config.getString(RocksDBOptions.WAL_PATH.name());
+        config.setProperty(RocksDBOptions.WAL_PATH.name(),
+                           Paths.get(walPath, graphName).toString());
+
+        return config;
+    }
+
     @Test
     public void testWriteAndReadVersion() {
         List<HugeGraph> graphs = openGraphs("g_1", NAME48);
@@ -348,55 +398,5 @@ public class MultiGraphsTest extends BaseCoreTest {
         });
 
         destroyGraphs(ImmutableList.of(g1));
-    }
-
-    private static List<HugeGraph> openGraphs(String... graphNames) {
-        List<HugeGraph> graphs = new ArrayList<>(graphNames.length);
-        for (String graphName : graphNames) {
-            Configuration config = buildConfig(graphName);
-            graphs.add((HugeGraph) GraphFactory.open(config));
-        }
-        return graphs;
-    }
-
-    private static void destroyGraphs(List<HugeGraph> graphs) {
-        for (HugeGraph graph : graphs) {
-            try {
-                graph.close();
-            } catch (Exception e) {
-                Assert.fail(e.toString());
-            }
-        }
-    }
-
-    private static HugeGraph openGraphWithBackend(String graph, String backend,
-                                                  String serializer,
-                                                  String... configs) {
-        Configuration config = buildConfig(graph);
-        config.setProperty(CoreOptions.BACKEND.name(), backend);
-        config.setProperty(CoreOptions.SERIALIZER.name(), serializer);
-        for (int i = 0; i < configs.length; ) {
-            config.setProperty(configs[i++], configs[i++]);
-        }
-        return ((HugeGraph) GraphFactory.open(config));
-    }
-
-    private static Configuration buildConfig(String graphName) {
-        PropertiesConfiguration conf = Utils.getConf();
-        Configuration config = new BaseConfiguration();
-        for (Iterator<String> keys = conf.getKeys(); keys.hasNext(); ) {
-            String key = keys.next();
-            config.setProperty(key, conf.getProperty(key));
-        }
-
-        config.setProperty(CoreOptions.STORE.name(), graphName);
-        String dataPath = config.getString(RocksDBOptions.DATA_PATH.name());
-        config.setProperty(RocksDBOptions.DATA_PATH.name(),
-                           Paths.get(dataPath, graphName).toString());
-        String walPath = config.getString(RocksDBOptions.WAL_PATH.name());
-        config.setProperty(RocksDBOptions.WAL_PATH.name(),
-                           Paths.get(walPath, graphName).toString());
-
-        return config;
     }
 }

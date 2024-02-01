@@ -47,7 +47,7 @@ public class CypherApiTest extends BaseApiTest {
     @Test
     public void testGet() {
         Map<String, Object> params = ImmutableMap.of("cypher", QUERY);
-        Response r =  client().get(PATH, params);
+        Response r = client().get(PATH, params);
 
         this.validStatusAndTextContains(QUERY_RESULT, r);
     }

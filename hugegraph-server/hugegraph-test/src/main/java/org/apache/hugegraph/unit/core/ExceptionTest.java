@@ -19,10 +19,10 @@ package org.apache.hugegraph.unit.core;
 
 import java.util.Map;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.exception.HugeGremlinException;
 import org.apache.hugegraph.testutil.Assert;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -31,10 +31,10 @@ public class ExceptionTest {
     @Test
     public void testHugeGremlinException() {
         Map<String, Object> response = ImmutableMap.of(
-                "message", "Not allowed to call System.exit() via Gremlin",
-                "Exception-Class", "java.lang.SecurityException",
-                "exceptions", ImmutableList.of("java.lang.SecurityException"),
-                "stackTrace", ""
+            "message", "Not allowed to call System.exit() via Gremlin",
+            "Exception-Class", "java.lang.SecurityException",
+            "exceptions", ImmutableList.of("java.lang.SecurityException"),
+            "stackTrace", ""
         );
         HugeGremlinException e = new HugeGremlinException(200, response);
         Assert.assertEquals(200, e.statusCode());

@@ -21,15 +21,18 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.unit.BaseUnitTest;
+import org.apache.hugegraph.util.collection.IntSet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
-import org.apache.hugegraph.unit.BaseUnitTest;
-import org.apache.hugegraph.util.collection.IntSet;
-
 public class IntSetTest extends BaseUnitTest {
+
+    static final int THREADS_NUM = 4;
+    static final int BATCH_COUNT = 2000;
+    static final int EACH_COUNT = 10000;
 
     @Before
     public void setup() {
@@ -40,10 +43,6 @@ public class IntSetTest extends BaseUnitTest {
     public void teardown() throws Exception {
         // pass
     }
-
-    static final int THREADS_NUM = 4;
-    static final int BATCH_COUNT = 2000;
-    static final int EACH_COUNT = 10000;
 
     @Test
     public void testIntFixedSet() {
@@ -119,14 +118,14 @@ public class IntSetTest extends BaseUnitTest {
 
                 Assert.assertFalse(set.add(k));
                 Assert.assertTrue(set.remove(k));
-                Assert.assertFalse("unexpect " + k,  set.contains(k));
+                Assert.assertFalse("unexpect " + k, set.contains(k));
                 Assert.assertEquals(--count, set.size());
             } else {
                 Assert.assertFalse("unexpect " + k, exist);
 
                 Assert.assertFalse(set.remove(k));
                 Assert.assertTrue(set.add(k));
-                Assert.assertTrue("expect " + k,  set.contains(k));
+                Assert.assertTrue("expect " + k, set.contains(k));
                 Assert.assertEquals(++count, set.size());
             }
         }

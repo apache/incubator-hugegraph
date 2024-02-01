@@ -40,6 +40,10 @@ import org.junit.Test;
 
 public class IntMapTest extends BaseUnitTest {
 
+    static final int THREADS_NUM = 4;
+    static final int BATCH_COUNT = 2000;
+    static final int EACH_COUNT = 10000;
+
     @Before
     public void setup() {
         // pass
@@ -49,10 +53,6 @@ public class IntMapTest extends BaseUnitTest {
     public void teardown() throws Exception {
         // pass
     }
-
-    static final int THREADS_NUM = 4;
-    static final int BATCH_COUNT = 2000;
-    static final int EACH_COUNT = 10000;
 
     @Test
     public void testIntFixedMap() {

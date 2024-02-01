@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.unit.serializer;
 
-import java.awt.Point;
+import java.awt.*;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -26,8 +26,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
-
-import org.junit.Test;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -40,10 +38,33 @@ import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.Blob;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class BytesBufferTest extends BaseUnitTest {
+
+    private static String genString(int len) {
+        return new String(new char[len]).replace("\0", "a");
+    }
+
+    private static PropertyKey genPkey(DataType type) {
+        Id id = IdGenerator.of(0L);
+        return new FakeObjects().newPropertyKey(id, "fake-name", type);
+    }
+
+    private static PropertyKey genListPkey(DataType type) {
+        Id id = IdGenerator.of(0L);
+        return new FakeObjects().newPropertyKey(id, "fake-name", type,
+                                                Cardinality.LIST);
+    }
+
+    private static PropertyKey genSetPkey(DataType type) {
+        Id id = IdGenerator.of(0L);
+        return new FakeObjects().newPropertyKey(id, "fake-name", type,
+                                                Cardinality.SET);
+    }
 
     @Test
     public void testAllocate() {
@@ -558,7 +579,7 @@ public class BytesBufferTest extends BaseUnitTest {
         }
 
         Random random = new Random();
-        for (int i = Integer.MIN_VALUE; i < Integer.MAX_VALUE;) {
+        for (int i = Integer.MIN_VALUE; i < Integer.MAX_VALUE; ) {
             BytesBuffer buf = BytesBuffer.allocate(5).writeVInt(i);
             Assert.assertEquals(i, buf.forReadWritten().readVInt());
 
@@ -627,7 +648,7 @@ public class BytesBufferTest extends BaseUnitTest {
         }
 
         Random random = new Random();
-        for (long i = Long.MIN_VALUE; i < Long.MAX_VALUE;) {
+        for (long i = Long.MIN_VALUE; i < Long.MAX_VALUE; ) {
             BytesBuffer buf = BytesBuffer.allocate(10).writeVLong(i);
             Assert.assertEquals(i, buf.forReadWritten().readVLong());
 
@@ -770,7 +791,7 @@ public class BytesBufferTest extends BaseUnitTest {
         buf.forReadWritten();
         Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
         Assert.assertArrayEquals((int[]) value, (int[])
-                                 BytesBuffer.wrap(bytes).readProperty(pkey));
+            BytesBuffer.wrap(bytes).readProperty(pkey));
     }
 
     @Test
@@ -1037,10 +1058,6 @@ public class BytesBufferTest extends BaseUnitTest {
         Assert.assertEquals("ab\uffff", buf.readStringWithEnding());
     }
 
-    private static String genString(int len) {
-        return new String(new char[len]).replace("\0", "a");
-    }
-
     private byte[] genBytes(int len) {
         byte[] bytes = new byte[len];
         Arrays.fill(bytes, (byte) 'a');
@@ -1055,22 +1072,5 @@ public class BytesBufferTest extends BaseUnitTest {
             bytes[i] = Integer.valueOf(b, 16).byteValue();
         }
         return bytes;
-    }
-
-    private static PropertyKey genPkey(DataType type) {
-        Id id = IdGenerator.of(0L);
-        return new FakeObjects().newPropertyKey(id, "fake-name", type);
-    }
-
-    private static PropertyKey genListPkey(DataType type) {
-        Id id = IdGenerator.of(0L);
-        return new FakeObjects().newPropertyKey(id, "fake-name", type,
-                                                Cardinality.LIST);
-    }
-
-    private static PropertyKey genSetPkey(DataType type) {
-        Id id = IdGenerator.of(0L);
-        return new FakeObjects().newPropertyKey(id, "fake-name", type,
-                                                Cardinality.SET);
     }
 }

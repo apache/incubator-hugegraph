@@ -25,19 +25,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.testutil.Utils;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.util.Blob;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -130,104 +130,6 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
                             "set_time", "set_uuid", "set_blob")
               .link("person", "person")
               .create();
-    }
-
-    public static class VertexPropertyCoreTest extends PropertyCoreTest {
-
-        @Override
-        protected <V> V property(String key, V value) {
-            HugeGraph graph = graph();
-            Vertex vertex = graph.addVertex(T.label, "person", "id", 1,
-                                            key, value);
-            graph.tx().commit();
-
-            vertex = graph.vertices(vertex.id()).next();
-            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
-                                                         value));
-            return vertex.value(key);
-        }
-
-        @Override
-        protected <V> V propertyList(String key, Object... values) {
-            HugeGraph graph = graph();
-            key = "list_" + key;
-            Vertex vertex = graph.addVertex(T.label, "person", "id", 2,
-                                            key, Arrays.asList(values));
-            graph.tx().commit();
-
-            vertex = graph.vertices(vertex.id()).next();
-            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
-                                                         Arrays.asList(values)));
-            return vertex.value(key);
-        }
-
-        @Override
-        protected <V> V propertySet(String key, Object... values) {
-            HugeGraph graph = graph();
-            key = "set_" + key;
-            Vertex vertex = graph.addVertex(T.label, "person", "id", 3,
-                                            key, Arrays.asList(values));
-            graph.tx().commit();
-
-            vertex = graph.vertices(vertex.id()).next();
-            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
-                                            ImmutableSet.copyOf(values)));
-            Assert.assertFalse(TraversalUtil.testProperty(vertex.property(key),
-                                             ImmutableList.copyOf(values)));
-            return vertex.value(key);
-        }
-    }
-
-    public static class EdgePropertyCoreTest extends PropertyCoreTest {
-
-        @Override
-        protected <V> V property(String key, V value) {
-            HugeGraph graph = graph();
-            Vertex vertex1 = graph.addVertex(T.label, "person", "id", 1);
-            Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
-            Edge edge = vertex1.addEdge("transfer", vertex2, "id", 1,
-                                        key, value);
-            graph.tx().commit();
-
-            edge = graph.edges(edge.id()).next();
-            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
-                                                         value));
-            return edge.value(key);
-        }
-
-        @Override
-        protected <V> V propertyList(String key, Object... values) {
-            HugeGraph graph = graph();
-            Vertex vertex1 = graph.addVertex(T.label, "person", "id", 1);
-            Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
-            key = "list_" + key;
-            Edge edge = vertex1.addEdge("transfer", vertex2, "id", 2,
-                                        key, Arrays.asList(values));
-            graph.tx().commit();
-
-            edge = graph.edges(edge.id()).next();
-            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
-                                                         Arrays.asList(values)));
-            return edge.value(key);
-        }
-
-        @Override
-        protected <V> V propertySet(String key, Object... values) {
-            HugeGraph graph = graph();
-            Vertex vertex1 = graph.addVertex(T.label, "person", "id", 1);
-            Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
-            key = "set_" + key;
-            Edge edge = vertex1.addEdge("transfer", vertex2, "id", 3,
-                                        key, Arrays.asList(values));
-            graph.tx().commit();
-
-            edge = graph.edges(edge.id()).next();
-            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
-                                            ImmutableSet.copyOf(values)));
-            Assert.assertFalse(TraversalUtil.testProperty(edge.property(key),
-                                             ImmutableList.copyOf(values)));
-            return edge.value(key);
-        }
     }
 
     @Test
@@ -798,5 +700,103 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
             Assert.assertContains("expect a value of type Set<Blob>",
                                   e.getMessage());
         });
+    }
+
+    public static class VertexPropertyCoreTest extends PropertyCoreTest {
+
+        @Override
+        protected <V> V property(String key, V value) {
+            HugeGraph graph = graph();
+            Vertex vertex = graph.addVertex(T.label, "person", "id", 1,
+                                            key, value);
+            graph.tx().commit();
+
+            vertex = graph.vertices(vertex.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
+                                                         value));
+            return vertex.value(key);
+        }
+
+        @Override
+        protected <V> V propertyList(String key, Object... values) {
+            HugeGraph graph = graph();
+            key = "list_" + key;
+            Vertex vertex = graph.addVertex(T.label, "person", "id", 2,
+                                            key, Arrays.asList(values));
+            graph.tx().commit();
+
+            vertex = graph.vertices(vertex.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
+                                                         Arrays.asList(values)));
+            return vertex.value(key);
+        }
+
+        @Override
+        protected <V> V propertySet(String key, Object... values) {
+            HugeGraph graph = graph();
+            key = "set_" + key;
+            Vertex vertex = graph.addVertex(T.label, "person", "id", 3,
+                                            key, Arrays.asList(values));
+            graph.tx().commit();
+
+            vertex = graph.vertices(vertex.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
+                                                         ImmutableSet.copyOf(values)));
+            Assert.assertFalse(TraversalUtil.testProperty(vertex.property(key),
+                                                          ImmutableList.copyOf(values)));
+            return vertex.value(key);
+        }
+    }
+
+    public static class EdgePropertyCoreTest extends PropertyCoreTest {
+
+        @Override
+        protected <V> V property(String key, V value) {
+            HugeGraph graph = graph();
+            Vertex vertex1 = graph.addVertex(T.label, "person", "id", 1);
+            Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
+            Edge edge = vertex1.addEdge("transfer", vertex2, "id", 1,
+                                        key, value);
+            graph.tx().commit();
+
+            edge = graph.edges(edge.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
+                                                         value));
+            return edge.value(key);
+        }
+
+        @Override
+        protected <V> V propertyList(String key, Object... values) {
+            HugeGraph graph = graph();
+            Vertex vertex1 = graph.addVertex(T.label, "person", "id", 1);
+            Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
+            key = "list_" + key;
+            Edge edge = vertex1.addEdge("transfer", vertex2, "id", 2,
+                                        key, Arrays.asList(values));
+            graph.tx().commit();
+
+            edge = graph.edges(edge.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
+                                                         Arrays.asList(values)));
+            return edge.value(key);
+        }
+
+        @Override
+        protected <V> V propertySet(String key, Object... values) {
+            HugeGraph graph = graph();
+            Vertex vertex1 = graph.addVertex(T.label, "person", "id", 1);
+            Vertex vertex2 = graph.addVertex(T.label, "person", "id", 2);
+            key = "set_" + key;
+            Edge edge = vertex1.addEdge("transfer", vertex2, "id", 3,
+                                        key, Arrays.asList(values));
+            graph.tx().commit();
+
+            edge = graph.edges(edge.id()).next();
+            Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
+                                                         ImmutableSet.copyOf(values)));
+            Assert.assertFalse(TraversalUtil.testProperty(edge.property(key),
+                                                          ImmutableList.copyOf(values)));
+            return edge.value(key);
+        }
     }
 }

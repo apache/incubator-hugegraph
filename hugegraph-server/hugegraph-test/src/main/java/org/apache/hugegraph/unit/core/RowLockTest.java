@@ -17,29 +17,27 @@
 
 package org.apache.hugegraph.unit.core;
 
+import static org.apache.hugegraph.unit.core.LocksTableTest.destroyLockGroup;
+import static org.apache.hugegraph.unit.core.LocksTableTest.genLockGroup;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.hugegraph.unit.BaseUnitTest;
+import org.apache.hugegraph.util.LockUtil;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import org.apache.hugegraph.unit.BaseUnitTest;
-import org.apache.hugegraph.util.LockUtil;
-
-import static org.apache.hugegraph.unit.core.LocksTableTest.destroyLockGroup;
-import static org.apache.hugegraph.unit.core.LocksTableTest.genLockGroup;
-
 public class RowLockTest extends BaseUnitTest {
 
+    private static final int THREADS_NUM = 8;
     private static String GRAPH = "graph";
     private static String GROUP = "row_lock";
-
-    private static final int THREADS_NUM = 8;
 
     @BeforeClass
     public static void setup() {

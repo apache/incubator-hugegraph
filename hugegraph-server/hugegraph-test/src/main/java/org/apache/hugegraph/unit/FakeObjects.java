@@ -21,8 +21,6 @@ import java.util.Date;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
@@ -41,6 +39,7 @@ import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.type.define.IndexType;
+import org.mockito.Mockito;
 
 public final class FakeObjects {
 
@@ -142,7 +141,7 @@ public final class FakeObjects {
                                              name.id(), age.id(), city.id());
 
         EdgeLabel el = this.newEdgeLabel(IdGenerator.of(1), "knows",
-                                         Frequency.SINGLE,  vl.id(), vl.id(),
+                                         Frequency.SINGLE, vl.id(), vl.id(),
                                          date.id(), weight.id());
 
         HugeVertex source = new HugeVertex(this.graph(),
@@ -178,14 +177,14 @@ public final class FakeObjects {
         PropertyKey date = this.newPropertyKey(IdGenerator.of(4), "date",
                                                DataType.DATE);
         PropertyKey weight = this.newPropertyKey(IdGenerator.of(5),
-                                                "weight", DataType.DOUBLE);
+                                                 "weight", DataType.DOUBLE);
 
         VertexLabel vl = this.newVertexLabel(IdGenerator.of(1), "person",
                                              IdStrategy.CUSTOMIZE_NUMBER,
                                              name.id(), age.id(), city.id());
 
         EdgeLabel el = this.newEdgeLabel(IdGenerator.of(1), "knows",
-                                         Frequency.SINGLE,  vl.id(), vl.id(),
+                                         Frequency.SINGLE, vl.id(), vl.id(),
                                          date.id(), weight.id());
 
         HugeVertex source = new HugeVertex(this.graph(),

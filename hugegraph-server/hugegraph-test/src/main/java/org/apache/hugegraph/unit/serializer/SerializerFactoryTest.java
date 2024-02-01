@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.unit.serializer;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.serializer.BinaryScatterSerializer;
@@ -29,13 +27,14 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
+import org.junit.Test;
 
 public class SerializerFactoryTest extends BaseUnitTest {
 
     @Test
     public void testSerializer() {
         HugeConfig config = FakeObjects.newConfig();
-        AbstractSerializer serializer = SerializerFactory.serializer(config,"text");
+        AbstractSerializer serializer = SerializerFactory.serializer(config, "text");
         Assert.assertEquals(TextSerializer.class, serializer.getClass());
 
         serializer = SerializerFactory.serializer(config, "binary");

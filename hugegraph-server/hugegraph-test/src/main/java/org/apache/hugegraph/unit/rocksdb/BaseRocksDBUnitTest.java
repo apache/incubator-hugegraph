@@ -35,11 +35,10 @@ import org.rocksdb.RocksDBException;
 
 public class BaseRocksDBUnitTest extends BaseUnitTest {
 
+    protected static final String TABLE = "test-table";
     private static final String TMP_DIR = System.getProperty("java.io.tmpdir");
     protected static final String DB_PATH = TMP_DIR + "/" + "rocksdb";
     protected static final String SNAPSHOT_PATH = TMP_DIR + "/" + "snapshot";
-    protected static final String TABLE = "test-table";
-
     protected RocksDBSessions rocks;
 
     @AfterClass
@@ -49,42 +48,6 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
          * in `org.apache.commons.io` version 2.4
          */
         FileUtils.forceDelete(FileUtils.getFile(DB_PATH));
-    }
-
-    @Before
-    public void setup() throws RocksDBException {
-        this.rocks = open(TABLE);
-        this.rocks.session();
-    }
-
-    @After
-    public void teardown() throws RocksDBException {
-        this.clearData();
-        close(this.rocks);
-    }
-
-    protected void put(String key, String value) {
-        this.rocks.session().put(TABLE, getBytes(key), getBytes(value));
-        this.commit();
-    }
-
-    protected String get(String key) throws RocksDBException {
-        return getString(this.rocks.session().get(TABLE, getBytes(key)));
-    }
-
-    protected void clearData() {
-        for (String table : new ArrayList<>(this.rocks.openedTables())) {
-            this.rocks.session().deleteRange(table, new byte[]{0}, new byte[]{-1});
-        }
-        this.commit();
-    }
-
-    protected void commit() {
-        try {
-            this.rocks.session().commit();
-        } finally {
-            this.rocks.session().rollback();
-        }
     }
 
     protected static byte[] getBytes(String str) {
@@ -122,5 +85,41 @@ public class BaseRocksDBUnitTest extends BaseUnitTest {
             rocks.dropTable(table);
         }
         rocks.close();
+    }
+
+    @Before
+    public void setup() throws RocksDBException {
+        this.rocks = open(TABLE);
+        this.rocks.session();
+    }
+
+    @After
+    public void teardown() throws RocksDBException {
+        this.clearData();
+        close(this.rocks);
+    }
+
+    protected void put(String key, String value) {
+        this.rocks.session().put(TABLE, getBytes(key), getBytes(value));
+        this.commit();
+    }
+
+    protected String get(String key) throws RocksDBException {
+        return getString(this.rocks.session().get(TABLE, getBytes(key)));
+    }
+
+    protected void clearData() {
+        for (String table : new ArrayList<>(this.rocks.openedTables())) {
+            this.rocks.session().deleteRange(table, new byte[]{0}, new byte[]{-1});
+        }
+        this.commit();
+    }
+
+    protected void commit() {
+        try {
+            this.rocks.session().commit();
+        } finally {
+            this.rocks.session().rollback();
+        }
     }
 }

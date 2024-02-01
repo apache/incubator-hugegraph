@@ -25,9 +25,6 @@ import java.util.Map;
 import javax.security.sasl.AuthenticationException;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.junit.After;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.AuthManager;
@@ -49,11 +46,71 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.StringEncoding;
+import org.junit.After;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class AuthTest extends BaseCoreTest {
+
+    private static Id makeProjectAndAddGraph(HugeGraph graph,
+                                             String projectName,
+                                             String graphName) {
+        HugeProject project = makeProject(projectName, "");
+        AuthManager authManager = graph.authManager();
+        Id projectId = authManager.createProject(project);
+        projectId = authManager.projectAddGraphs(projectId,
+                                                 ImmutableSet.of(graphName));
+        Assert.assertNotNull(projectId);
+        return projectId;
+    }
+
+    private static HugeProject makeProject(String name, String desc) {
+        HugeProject project = new HugeProject(name, desc);
+        project.creator("admin");
+        return project;
+    }
+
+    private static HugeUser makeUser(String name, String password) {
+        HugeUser user = new HugeUser(name);
+        user.password(password);
+        user.creator("admin");
+        return user;
+    }
+
+    private static HugeGroup makeGroup(String name) {
+        HugeGroup group = new HugeGroup(name);
+        group.creator("admin");
+        return group;
+    }
+
+    private static HugeTarget makeTarget(String name, String url) {
+        HugeTarget target = new HugeTarget(name, url);
+        target.creator("admin");
+        return target;
+    }
+
+    private static HugeTarget makeTarget(String name, String graph, String url,
+                                         List<HugeResource> ress) {
+        HugeTarget target = new HugeTarget(name, graph, url, ress);
+        target.creator("admin");
+        return target;
+    }
+
+    private static HugeBelong makeBelong(Id user, Id group) {
+        HugeBelong belong = new HugeBelong(user, group);
+        belong.creator("admin");
+        return belong;
+    }
+
+    private static HugeAccess makeAccess(Id group, Id target,
+                                         HugePermission permission) {
+        HugeAccess access = new HugeAccess(group, target, permission);
+        access.creator("admin");
+        return access;
+    }
 
     @After
     public void clearAll() {
@@ -352,7 +409,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals("group2", groups.get(2).name());
 
         groups = authManager.listGroups(ImmutableList.of(
-                                        id1, id2, IdGenerator.of("fake")));
+            id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, groups.size());
     }
 
@@ -497,7 +554,7 @@ public class AuthTest extends BaseCoreTest {
                         "{\"type\":\"EDGE\",\"label\":\"transfer\"," +
                         "\"properties\":null}]";
         Assert.assertEquals(expect, JsonUtil.toJson(target.asMap()
-                                                    .get("target_resources")));
+                                                          .get("target_resources")));
     }
 
     @Test
@@ -509,7 +566,7 @@ public class AuthTest extends BaseCoreTest {
         Id id2 = authManager.createTarget(makeTarget("target2", "url2"));
 
         List<HugeTarget> targets = authManager.listTargets(ImmutableList.of(
-                                                           id1, id2));
+            id1, id2));
         Assert.assertEquals(2, targets.size());
         Assert.assertEquals("target1", targets.get(0).name());
         Assert.assertEquals("target2", targets.get(1).name());
@@ -521,7 +578,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals("target2", targets.get(2).name());
 
         targets = authManager.listTargets(ImmutableList.of(
-                                          id1, id2, IdGenerator.of("fake")));
+            id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, targets.size());
     }
 
@@ -710,7 +767,7 @@ public class AuthTest extends BaseCoreTest {
         Id id2 = authManager.createBelong(makeBelong(user, group2));
 
         List<HugeBelong> belongs = authManager.listBelong(ImmutableList.of(
-                                                          id1, id2));
+            id1, id2));
         Assert.assertEquals(2, belongs.size());
         Assert.assertEquals(user, belongs.get(0).source());
         Assert.assertEquals(user, belongs.get(1).source());
@@ -721,7 +778,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals(3, belongs.size());
 
         belongs = authManager.listBelong(ImmutableList.of(
-                                         id1, id2, IdGenerator.of("fake")));
+            id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, belongs.size());
 
         belongs = authManager.listBelongByUser(user, -1);
@@ -793,7 +850,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id target = authManager.createTarget(makeTarget("graph1", ""));
             Id access = authManager.createAccess(makeAccess(group1, target,
-                                                 HugePermission.READ));
+                                                            HugePermission.READ));
             authManager.getBelong(access);
         });
     }
@@ -865,7 +922,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id target = authManager.createTarget(makeTarget("graph1", ""));
             Id access = authManager.createAccess(makeAccess(group1, target,
-                                                 HugePermission.READ));
+                                                            HugePermission.READ));
             authManager.deleteBelong(access);
         });
     }
@@ -1016,7 +1073,7 @@ public class AuthTest extends BaseCoreTest {
                                                      HugePermission.READ));
 
         List<HugeAccess> access = authManager.listAccess(ImmutableList.of(
-                                                         id1, id2));
+            id1, id2));
         Assert.assertEquals(2, access.size());
         Assert.assertEquals(group, access.get(0).source());
         Assert.assertEquals(group, access.get(1).source());
@@ -1027,7 +1084,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals(3, access.size());
 
         access = authManager.listAccess(ImmutableList.of(
-                                        id1, id2, IdGenerator.of("fake")));
+            id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, access.size());
 
         access = authManager.listAccessByGroup(group, -1);
@@ -1251,27 +1308,29 @@ public class AuthTest extends BaseCoreTest {
         authManager.createAccess(makeAccess(group1, graph1e,
                                             HugePermission.READ));
         Id access1g = authManager.createAccess(makeAccess(group1, graph1gremlin,
-                                               HugePermission.EXECUTE));
+                                                          HugePermission.EXECUTE));
 
         RolePermission role;
         role = authManager.rolePermission(authManager.getUser(user0));
         String expected = "{\"roles\":" +
-                "{\"hugegraph\":{\"READ\":[" +
-                "{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"WRITE\":" +
-                "[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"EXECUTE\":" +
-                "[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}," +
-                "\"hugegraph1\":{\"READ\":[]}}}";
+                          "{\"hugegraph\":{\"READ\":[" +
+                          "{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null}," +
+                          "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                          "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                          "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]," +
+                          "\"WRITE\":" +
+                          "[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                          "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                          "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]," +
+                          "\"EXECUTE\":" +
+                          "[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}," +
+                          "\"hugegraph1\":{\"READ\":[]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getBelong(belong1));
@@ -1282,15 +1341,15 @@ public class AuthTest extends BaseCoreTest {
 
         role = authManager.rolePermission(authManager.getAccess(access1v));
         expected = "{\"roles\":" +
-                "{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\"," +
-                "\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+                   "{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\"," +
+                   "\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                   "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                   "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getAccess(access1g));
         expected = "{\"roles\":{\"hugegraph\":{\"EXECUTE\":[" +
-                "{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}}}";
+                   "{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getUser(user1));
@@ -1303,11 +1362,11 @@ public class AuthTest extends BaseCoreTest {
 
         role = authManager.rolePermission(authManager.getTarget(graph1v));
         expected = "{\"roles\":" +
-                "{\"hugegraph\":" +
-                "{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+                   "{\"hugegraph\":" +
+                   "{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                   "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                   "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                   "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
     }
 
@@ -1483,7 +1542,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNotNull(project);
         Assert.assertFalse(project.graphs().isEmpty());
         projectId = authManager.projectRemoveGraphs(
-                                project.id(), ImmutableSet.of("graph_test"));
+            project.id(), ImmutableSet.of("graph_test"));
         project = authManager.getProject(projectId);
         Assert.assertNotNull(project);
         Assert.assertTrue(project.graphs().isEmpty());
@@ -1515,62 +1574,5 @@ public class AuthTest extends BaseCoreTest {
         projects = authManager.listAllProject(2);
         Assert.assertNotNull(projects);
         Assert.assertTrue(projects.size() == 2);
-    }
-
-    private static Id makeProjectAndAddGraph(HugeGraph graph,
-                                             String projectName,
-                                             String graphName) {
-        HugeProject project = makeProject(projectName, "");
-        AuthManager authManager = graph.authManager();
-        Id projectId = authManager.createProject(project);
-        projectId = authManager.projectAddGraphs(projectId,
-                                                 ImmutableSet.of(graphName));
-        Assert.assertNotNull(projectId);
-        return projectId;
-    }
-
-    private static HugeProject makeProject(String name, String desc) {
-        HugeProject project = new HugeProject(name, desc);
-        project.creator("admin");
-        return project;
-    }
-
-    private static HugeUser makeUser(String name, String password) {
-        HugeUser user = new HugeUser(name);
-        user.password(password);
-        user.creator("admin");
-        return user;
-    }
-
-    private static HugeGroup makeGroup(String name) {
-        HugeGroup group = new HugeGroup(name);
-        group.creator("admin");
-        return group;
-    }
-
-    private static HugeTarget makeTarget(String name, String url) {
-        HugeTarget target = new HugeTarget(name, url);
-        target.creator("admin");
-        return target;
-    }
-
-    private static HugeTarget makeTarget(String name, String graph, String url,
-                                         List<HugeResource> ress) {
-        HugeTarget target = new HugeTarget(name, graph, url, ress);
-        target.creator("admin");
-        return target;
-    }
-
-    private static HugeBelong makeBelong(Id user, Id group) {
-        HugeBelong belong = new HugeBelong(user, group);
-        belong.creator("admin");
-        return belong;
-    }
-
-    private static HugeAccess makeAccess(Id group, Id target,
-                                         HugePermission permission) {
-        HugeAccess access = new HugeAccess(group, target, permission);
-        access.creator("admin");
-        return access;
     }
 }

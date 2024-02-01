@@ -24,12 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.LevelCache;
@@ -42,8 +36,16 @@ import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.Bytes;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.google.common.collect.ImmutableList;
 
 public abstract class CacheTest extends BaseUnitTest {
+
+    private static final int THREADS_NUM = 8;
 
     @Before
     public void setup() {
@@ -65,179 +67,6 @@ public abstract class CacheTest extends BaseUnitTest {
     protected abstract void checkNotInCache(Cache<Id, Object> cache, Id id);
 
     protected abstract void checkInCache(Cache<Id, Object> cache, Id id);
-
-    public static class LimitMap extends LinkedHashMap<Id, Object> {
-
-        private static final long serialVersionUID = 1L;
-        private final int limit;
-
-        public LimitMap(int limit) {
-            super(limit);
-            this.limit = limit;
-        }
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<Id, Object> eldest) {
-            return this.size() > this.limit;
-        }
-    }
-
-    public static class RamCacheTest extends CacheTest {
-
-        @Override
-        protected Cache<Id, Object> newCache() {
-            return new RamCache();
-        }
-
-        @Override
-        protected Cache<Id, Object> newCache(long capacity) {
-            return new RamCache(capacity);
-        }
-
-        @Override
-        protected void checkSize(Cache<Id, Object> cache, long size,
-                                 Map<Id, Object> kvs) {
-            Assert.assertEquals(size, cache.size());
-            if (kvs != null) {
-                for (Map.Entry<Id, Object> kv : kvs.entrySet()) {
-                    Assert.assertEquals(kv.getValue(), cache.get(kv.getKey()));
-                }
-            }
-        }
-
-        @Override
-        protected void checkInCache(Cache<Id, Object> cache, Id id) {
-            Assert.assertTrue(cache.containsKey(id));
-
-            Object queue = Whitebox.getInternalState(cache, "queue");
-            Assert.assertThrows(RuntimeException.class, () -> {
-                Whitebox.invoke(queue.getClass(), new Class[]{Object.class},
-                                "checkNotInQueue", queue, id);
-            }, e -> {
-                Assert.assertContains("should be not in", e.getMessage());
-            });
-
-            @SuppressWarnings("unchecked")
-            Map<Id, ?> map = (Map<Id, ?>) Whitebox.getInternalState(cache,
-                                                                    "map");
-            Assert.assertTrue(Whitebox.invoke(queue.getClass(),
-                                              "checkPrevNotInNext",
-                                              queue, map.get(id)));
-        }
-
-        @Override
-        protected void checkNotInCache(Cache<Id, Object> cache, Id id) {
-            Assert.assertFalse(cache.containsKey(id));
-
-            Object queue = Whitebox.getInternalState(cache, "queue");
-            Assert.assertTrue(Whitebox.invoke(queue.getClass(),
-                                              new Class[]{Object.class},
-                                              "checkNotInQueue", queue, id));
-        }
-    }
-
-    public static class OffheapCacheTest extends CacheTest {
-
-        private static final long ENTRY_SIZE = 40L;
-        private final HugeGraph graph = Mockito.mock(HugeGraph.class);
-
-        @Override
-        protected Cache<Id, Object> newCache() {
-            return newCache(10000L);
-        }
-
-        @Override
-        protected Cache<Id, Object> newCache(long capacity) {
-            return new OffheapCache(this.graph(), capacity, ENTRY_SIZE);
-        }
-
-        @Override
-        protected void checkSize(Cache<Id, Object> cache, long size,
-                                 Map<Id, Object> kvs) {
-            // NOTE: offheap cache is calculated based on bytes, not accurate
-            long apprSize = (long) (size * 1.2);
-            Assert.assertLte(apprSize, cache.size());
-            if (kvs != null) {
-                long matched = 0L;
-                for (Map.Entry<Id, Object> kv : kvs.entrySet()) {
-                    Object value = cache.get(kv.getKey());
-                    if (kv.getValue().equals(value)) {
-                        matched++;
-                    }
-                }
-                Assert.assertGt(0.8d, matched / (double) size);
-            }
-        }
-
-        @Override
-        protected void checkInCache(Cache<Id, Object> cache, Id id) {
-            Assert.assertTrue(cache.containsKey(id));
-        }
-
-        @Override
-        protected void checkNotInCache(Cache<Id, Object> cache, Id id) {
-            Assert.assertFalse(cache.containsKey(id));
-        }
-
-        protected HugeGraph graph() {
-            return this.graph;
-        }
-
-        @Test
-        public void testUpdateAndGetWithInvalidDataType() {
-            Cache<Id, Object> cache = newCache();
-            Id id = IdGenerator.of("1");
-
-            cache.update(id, 'c');
-            Assert.assertNull(cache.get(id));
-
-            cache.update(id, new Object());
-            Assert.assertNull(cache.get(id));
-
-            cache.update(id, new byte[]{1});
-            Assert.assertNull(cache.get(id));
-
-            cache.update(id, "string");
-            Assert.assertEquals("string", cache.get(id));
-        }
-    }
-
-    public static class LevelCacheTest extends OffheapCacheTest {
-
-        @Override
-        protected Cache<Id, Object> newCache() {
-            return newCache(10000L);
-        }
-
-        @Override
-        protected Cache<Id, Object> newCache(long capacity) {
-            RamCache l1cache = new RamCache(capacity);
-            OffheapCache l2cache = (OffheapCache) super.newCache(capacity);
-            return new LevelCache(l1cache, l2cache);
-        }
-
-        @Test
-        @Override
-        public void testUpdateAndGetWithInvalidDataType() {
-            // LevelCache includes level-1 RamCache, which can cache any object
-            Cache<Id, Object> cache = newCache();
-            Id id = IdGenerator.of("1");
-
-            cache.update(id, 'c');
-            Assert.assertEquals('c', cache.get(id));
-
-            Object obj = new Object();
-            cache.update(id, obj);
-            Assert.assertEquals(obj, cache.get(id));
-
-            byte[] bytes = new byte[]{1};
-            cache.update(id, bytes);
-            Assert.assertArrayEquals(bytes, (byte[]) cache.get(id));
-
-            cache.update(id, "string");
-            Assert.assertEquals("string", cache.get(id));
-        }
-    }
 
     @Test
     public void testUpdateAndGet() {
@@ -343,12 +172,12 @@ public abstract class CacheTest extends BaseUnitTest {
         Id id = IdGenerator.of("1");
         Assert.assertNull(cache.get(id));
 
-        Assert.assertEquals("value-1",  cache.getOrFetch(id, key -> {
+        Assert.assertEquals("value-1", cache.getOrFetch(id, key -> {
             return "value-1";
         }));
 
         cache.update(id, "value-2");
-        Assert.assertEquals("value-2",  cache.getOrFetch(id, key -> {
+        Assert.assertEquals("value-2", cache.getOrFetch(id, key -> {
             return "value-1";
         }));
     }
@@ -604,8 +433,6 @@ public abstract class CacheTest extends BaseUnitTest {
         Assert.assertEquals(2, cache.size());
     }
 
-    private static final int THREADS_NUM = 8;
-
     @Test
     public void testMultiThreadsUpdate() {
         Cache<Id, Object> cache = newCache(THREADS_NUM * 10000 * 10);
@@ -613,7 +440,7 @@ public abstract class CacheTest extends BaseUnitTest {
         runWithThreads(THREADS_NUM, () -> {
             for (int i = 0; i < 10000 * 10; i++) {
                 Id id = IdGenerator.of(
-                        Thread.currentThread().getName() + "-" + i);
+                    Thread.currentThread().getName() + "-" + i);
                 cache.update(id, "value-" + i);
             }
         });
@@ -629,7 +456,7 @@ public abstract class CacheTest extends BaseUnitTest {
             int size = 10000 * 100;
             for (int i = 0; i < size; i++) {
                 Id id = IdGenerator.of(
-                        Thread.currentThread().getName() + "-" + i);
+                    Thread.currentThread().getName() + "-" + i);
                 cache.update(id, "value-" + i);
             }
         });
@@ -768,5 +595,178 @@ public abstract class CacheTest extends BaseUnitTest {
         cache.tick();
 
         Assert.assertFalse(cache.containsKey(key));
+    }
+
+    public static class LimitMap extends LinkedHashMap<Id, Object> {
+
+        private static final long serialVersionUID = 1L;
+        private final int limit;
+
+        public LimitMap(int limit) {
+            super(limit);
+            this.limit = limit;
+        }
+
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Id, Object> eldest) {
+            return this.size() > this.limit;
+        }
+    }
+
+    public static class RamCacheTest extends CacheTest {
+
+        @Override
+        protected Cache<Id, Object> newCache() {
+            return new RamCache();
+        }
+
+        @Override
+        protected Cache<Id, Object> newCache(long capacity) {
+            return new RamCache(capacity);
+        }
+
+        @Override
+        protected void checkSize(Cache<Id, Object> cache, long size,
+                                 Map<Id, Object> kvs) {
+            Assert.assertEquals(size, cache.size());
+            if (kvs != null) {
+                for (Map.Entry<Id, Object> kv : kvs.entrySet()) {
+                    Assert.assertEquals(kv.getValue(), cache.get(kv.getKey()));
+                }
+            }
+        }
+
+        @Override
+        protected void checkInCache(Cache<Id, Object> cache, Id id) {
+            Assert.assertTrue(cache.containsKey(id));
+
+            Object queue = Whitebox.getInternalState(cache, "queue");
+            Assert.assertThrows(RuntimeException.class, () -> {
+                Whitebox.invoke(queue.getClass(), new Class[]{Object.class},
+                                "checkNotInQueue", queue, id);
+            }, e -> {
+                Assert.assertContains("should be not in", e.getMessage());
+            });
+
+            @SuppressWarnings("unchecked")
+            Map<Id, ?> map = (Map<Id, ?>) Whitebox.getInternalState(cache,
+                                                                    "map");
+            Assert.assertTrue(Whitebox.invoke(queue.getClass(),
+                                              "checkPrevNotInNext",
+                                              queue, map.get(id)));
+        }
+
+        @Override
+        protected void checkNotInCache(Cache<Id, Object> cache, Id id) {
+            Assert.assertFalse(cache.containsKey(id));
+
+            Object queue = Whitebox.getInternalState(cache, "queue");
+            Assert.assertTrue(Whitebox.invoke(queue.getClass(),
+                                              new Class[]{Object.class},
+                                              "checkNotInQueue", queue, id));
+        }
+    }
+
+    public static class OffheapCacheTest extends CacheTest {
+
+        private static final long ENTRY_SIZE = 40L;
+        private final HugeGraph graph = Mockito.mock(HugeGraph.class);
+
+        @Override
+        protected Cache<Id, Object> newCache() {
+            return newCache(10000L);
+        }
+
+        @Override
+        protected Cache<Id, Object> newCache(long capacity) {
+            return new OffheapCache(this.graph(), capacity, ENTRY_SIZE);
+        }
+
+        @Override
+        protected void checkSize(Cache<Id, Object> cache, long size,
+                                 Map<Id, Object> kvs) {
+            // NOTE: offheap cache is calculated based on bytes, not accurate
+            long apprSize = (long) (size * 1.2);
+            Assert.assertLte(apprSize, cache.size());
+            if (kvs != null) {
+                long matched = 0L;
+                for (Map.Entry<Id, Object> kv : kvs.entrySet()) {
+                    Object value = cache.get(kv.getKey());
+                    if (kv.getValue().equals(value)) {
+                        matched++;
+                    }
+                }
+                Assert.assertGt(0.8d, matched / (double) size);
+            }
+        }
+
+        @Override
+        protected void checkInCache(Cache<Id, Object> cache, Id id) {
+            Assert.assertTrue(cache.containsKey(id));
+        }
+
+        @Override
+        protected void checkNotInCache(Cache<Id, Object> cache, Id id) {
+            Assert.assertFalse(cache.containsKey(id));
+        }
+
+        protected HugeGraph graph() {
+            return this.graph;
+        }
+
+        @Test
+        public void testUpdateAndGetWithInvalidDataType() {
+            Cache<Id, Object> cache = newCache();
+            Id id = IdGenerator.of("1");
+
+            cache.update(id, 'c');
+            Assert.assertNull(cache.get(id));
+
+            cache.update(id, new Object());
+            Assert.assertNull(cache.get(id));
+
+            cache.update(id, new byte[]{1});
+            Assert.assertNull(cache.get(id));
+
+            cache.update(id, "string");
+            Assert.assertEquals("string", cache.get(id));
+        }
+    }
+
+    public static class LevelCacheTest extends OffheapCacheTest {
+
+        @Override
+        protected Cache<Id, Object> newCache() {
+            return newCache(10000L);
+        }
+
+        @Override
+        protected Cache<Id, Object> newCache(long capacity) {
+            RamCache l1cache = new RamCache(capacity);
+            OffheapCache l2cache = (OffheapCache) super.newCache(capacity);
+            return new LevelCache(l1cache, l2cache);
+        }
+
+        @Test
+        @Override
+        public void testUpdateAndGetWithInvalidDataType() {
+            // LevelCache includes level-1 RamCache, which can cache any object
+            Cache<Id, Object> cache = newCache();
+            Id id = IdGenerator.of("1");
+
+            cache.update(id, 'c');
+            Assert.assertEquals('c', cache.get(id));
+
+            Object obj = new Object();
+            cache.update(id, obj);
+            Assert.assertEquals(obj, cache.get(id));
+
+            byte[] bytes = new byte[]{1};
+            cache.update(id, bytes);
+            Assert.assertArrayEquals(bytes, (byte[]) cache.get(id));
+
+            cache.update(id, "string");
+            Assert.assertEquals("string", cache.get(id));
+        }
     }
 }

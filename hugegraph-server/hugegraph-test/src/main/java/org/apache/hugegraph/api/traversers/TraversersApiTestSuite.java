@@ -46,4 +46,5 @@ import org.junit.runners.Suite;
     ResourceAllocationAPITest.class
 })
 public class TraversersApiTestSuite {
+
 }

@@ -42,7 +42,8 @@ public class LoginApiTest extends BaseApiTest {
     @Before
     public void setup() {
         Response r = this.createUser("test", "test");
-        Map<String, Object> user = r.readEntity(new GenericType<Map<String, Object>>(){});
+        Map<String, Object> user = r.readEntity(new GenericType<Map<String, Object>>() {
+        });
         this.userId4Test = (String) user.get("id");
     }
 
@@ -115,7 +116,8 @@ public class LoginApiTest extends BaseApiTest {
         assertJsonContains(result, "user_name");
 
         Map<String, Object> user = JsonUtil.fromJson(result,
-                                                     new TypeReference<Map<String, Object>>(){});
+                                                     new TypeReference<Map<String, Object>>() {
+                                                     });
         Assert.assertEquals(this.userId4Test, user.get("user_id"));
         Assert.assertEquals("test", user.get("user_name"));
 
@@ -157,7 +159,8 @@ public class LoginApiTest extends BaseApiTest {
 
     private String tokenFromResponse(String content) {
         Map<String, Object> data = JsonUtil.fromJson(content,
-                                                     new TypeReference<Map<String, Object>>(){});
+                                                     new TypeReference<Map<String, Object>>() {
+                                                     });
         return (String) data.get("token");
     }
 }

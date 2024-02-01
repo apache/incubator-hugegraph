@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.unit.mysql;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.query.Condition.RelationType;
 import org.apache.hugegraph.backend.store.mysql.WhereBuilder;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 
 public class WhereBuilderTest extends BaseUnitTest {

@@ -20,14 +20,15 @@ package org.apache.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+
+import jakarta.ws.rs.core.Response;
 
 public class EdgesApiTest extends BaseApiTest {
 
@@ -50,8 +51,8 @@ public class EdgesApiTest extends BaseApiTest {
         final String edgeGetPath = "graphs/hugegraph/graph/edges";
         String vadasId = name2Ids.get("vadas");
         Map<String, Object> params = ImmutableMap.of(
-                                     "vertex_id", id2Json(vadasId),
-                                     "direction", "IN");
+            "vertex_id", id2Json(vadasId),
+            "direction", "IN");
         Response r = client().get(edgeGetPath, params);
         String content = assertResponseStatus(200, r);
         List<Map<?, ?>> edges = assertJsonContains(content, "edges");

@@ -29,11 +29,11 @@ public class PropertyKeyApiTest extends BaseApiTest {
     @Test
     public void testCreate() {
         String propertyKey = "{" +
-                "\"name\": \"id\"," +
-                "\"data_type\": \"TEXT\"," +
-                "\"cardinality\": \"SINGLE\"," +
-                "\"properties\":[]" +
-                "}";
+                             "\"name\": \"id\"," +
+                             "\"data_type\": \"TEXT\"," +
+                             "\"cardinality\": \"SINGLE\"," +
+                             "\"properties\":[]" +
+                             "}";
         Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
     }
@@ -41,11 +41,11 @@ public class PropertyKeyApiTest extends BaseApiTest {
     @Test
     public void testGet() {
         String propertyKey = "{" +
-                "\"name\": \"id\"," +
-                "\"data_type\": \"TEXT\"," +
-                "\"cardinality\": \"SINGLE\"," +
-                "\"properties\":[]" +
-                "}";
+                             "\"name\": \"id\"," +
+                             "\"data_type\": \"TEXT\"," +
+                             "\"cardinality\": \"SINGLE\"," +
+                             "\"properties\":[]" +
+                             "}";
         Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
 
@@ -57,11 +57,11 @@ public class PropertyKeyApiTest extends BaseApiTest {
     @Test
     public void testList() {
         String propertyKey = "{" +
-                "\"name\": \"id\"," +
-                "\"data_type\": \"TEXT\"," +
-                "\"cardinality\": \"SINGLE\"," +
-                "\"properties\":[]" +
-                "}";
+                             "\"name\": \"id\"," +
+                             "\"data_type\": \"TEXT\"," +
+                             "\"cardinality\": \"SINGLE\"," +
+                             "\"properties\":[]" +
+                             "}";
         Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
 
@@ -72,11 +72,11 @@ public class PropertyKeyApiTest extends BaseApiTest {
     @Test
     public void testDelete() {
         String propertyKey = "{" +
-                "\"name\": \"id\"," +
-                "\"data_type\": \"TEXT\"," +
-                "\"cardinality\": \"SINGLE\"," +
-                "\"properties\":[]" +
-                "}";
+                             "\"name\": \"id\"," +
+                             "\"data_type\": \"TEXT\"," +
+                             "\"cardinality\": \"SINGLE\"," +
+                             "\"properties\":[]" +
+                             "}";
         Response r = client().post(PATH, propertyKey);
         assertResponseStatus(202, r);
 

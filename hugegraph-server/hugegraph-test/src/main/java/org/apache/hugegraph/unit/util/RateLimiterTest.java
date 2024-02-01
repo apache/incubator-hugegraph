@@ -19,14 +19,13 @@ package org.apache.hugegraph.unit.util;
 
 import java.util.concurrent.atomic.LongAdder;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.FixedTimerWindowRateLimiter;
 import org.apache.hugegraph.util.FixedWatchWindowRateLimiter;
 import org.apache.hugegraph.util.RateLimiter;
+import org.junit.Before;
+import org.junit.Test;
 
 public abstract class RateLimiterTest {
 

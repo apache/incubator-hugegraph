@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.unit.core;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.query.Aggregate.AggregateFunc;
 import org.apache.hugegraph.backend.query.ConditionQuery;
@@ -30,6 +28,8 @@ import org.apache.hugegraph.backend.query.Query.Order;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 

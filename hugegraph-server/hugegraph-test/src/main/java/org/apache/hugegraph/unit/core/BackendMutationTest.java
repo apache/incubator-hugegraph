@@ -19,10 +19,6 @@ package org.apache.hugegraph.unit.core;
 
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
@@ -34,8 +30,30 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BackendMutationTest extends BaseUnitTest {
+
+    private static BackendEntry constructBackendEntry(String id,
+                                                      String... columns) {
+        assert (columns.length == 0 || columns.length == 2);
+        TextBackendEntry entry = new TextBackendEntry(HugeType.VERTEX,
+                                                      IdGenerator.of(id));
+        if (columns.length == 2) {
+            String subId = SplicingIdGenerator.concat(id, columns[0]);
+            entry.subId(IdGenerator.of(subId));
+        }
+        for (int i = 0; i < columns.length; i = i + 2) {
+            entry.column(columns[i], columns[i + 1]);
+        }
+        return entry;
+    }
+
+    private static List<BackendAction> get(BackendMutation mutation, String id) {
+        return mutation.mutation(HugeType.VERTEX, IdGenerator.of(id));
+    }
 
     @Before
     public void setup() {
@@ -333,24 +351,5 @@ public class BackendMutationTest extends BaseUnitTest {
         Assert.assertEquals(1, get(mutation, "1").size());
         Assert.assertEquals(Action.ELIMINATE,
                             get(mutation, "1").get(0).action());
-    }
-
-    private static BackendEntry constructBackendEntry(String id,
-                                                      String... columns) {
-        assert (columns.length == 0 || columns.length == 2);
-        TextBackendEntry entry = new TextBackendEntry(HugeType.VERTEX,
-                                                      IdGenerator.of(id));
-        if (columns.length == 2) {
-            String subId = SplicingIdGenerator.concat(id, columns[0]);
-            entry.subId(IdGenerator.of(subId));
-        }
-        for (int i = 0; i < columns.length; i = i + 2) {
-            entry.column(columns[i], columns[i + 1]);
-        }
-        return entry;
-    }
-
-    private static List<BackendAction> get(BackendMutation mutation, String id) {
-        return mutation.mutation(HugeType.VERTEX, IdGenerator.of(id));
     }
 }

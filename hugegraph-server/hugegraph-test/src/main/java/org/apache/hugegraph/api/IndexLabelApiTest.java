@@ -40,12 +40,12 @@ public class IndexLabelApiTest extends BaseApiTest {
     @Test
     public void testCreate() {
         String indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"base_type\": \"VERTEX_LABEL\"," +
-                "\"base_value\": \"person\"," +
-                "\"index_type\": \"RANGE\"," +
-                "\"fields\":[\"age\"]" +
-                "}";
+                            "\"name\": \"personByAge\"," +
+                            "\"base_type\": \"VERTEX_LABEL\"," +
+                            "\"base_value\": \"person\"," +
+                            "\"index_type\": \"RANGE\"," +
+                            "\"fields\":[\"age\"]" +
+                            "}";
         Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
     }
@@ -53,23 +53,23 @@ public class IndexLabelApiTest extends BaseApiTest {
     @Test
     public void testAppend() {
         String indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"base_type\": \"VERTEX_LABEL\"," +
-                "\"base_value\": \"person\"," +
-                "\"index_type\": \"RANGE\"," +
-                "\"fields\":[\"age\"]" +
-                "}";
+                            "\"name\": \"personByAge\"," +
+                            "\"base_type\": \"VERTEX_LABEL\"," +
+                            "\"base_value\": \"person\"," +
+                            "\"index_type\": \"RANGE\"," +
+                            "\"fields\":[\"age\"]" +
+                            "}";
 
         Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
         indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"user_data\": {" +
-                "\"min\": 0," +
-                "\"max\": 100" +
-                "}" +
-                "}";
+                     "\"name\": \"personByAge\"," +
+                     "\"user_data\": {" +
+                     "\"min\": 0," +
+                     "\"max\": 100" +
+                     "}" +
+                     "}";
         Map<String, Object> params = ImmutableMap.of("action", "append");
         r = client().put(PATH, "personByAge", indexLabel, params);
         assertResponseStatus(200, r);
@@ -78,25 +78,25 @@ public class IndexLabelApiTest extends BaseApiTest {
     @Test
     public void testEliminate() {
         String indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"base_type\": \"VERTEX_LABEL\"," +
-                "\"base_value\": \"person\"," +
-                "\"index_type\": \"RANGE\"," +
-                "\"fields\":[\"age\"]," +
-                "\"user_data\": {" +
-                "\"min\": 0," +
-                "\"max\": 100" +
-                "}" +
-                "}";
+                            "\"name\": \"personByAge\"," +
+                            "\"base_type\": \"VERTEX_LABEL\"," +
+                            "\"base_value\": \"person\"," +
+                            "\"index_type\": \"RANGE\"," +
+                            "\"fields\":[\"age\"]," +
+                            "\"user_data\": {" +
+                            "\"min\": 0," +
+                            "\"max\": 100" +
+                            "}" +
+                            "}";
         Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
         indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"user_data\": {" +
-                "\"min\": 0" +
-                "}" +
-                "}";
+                     "\"name\": \"personByAge\"," +
+                     "\"user_data\": {" +
+                     "\"min\": 0" +
+                     "}" +
+                     "}";
         Map<String, Object> params = ImmutableMap.of("action", "eliminate");
         r = client().put(PATH, "personByAge", indexLabel, params);
         assertResponseStatus(200, r);
@@ -105,12 +105,12 @@ public class IndexLabelApiTest extends BaseApiTest {
     @Test
     public void testGet() {
         String indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"base_type\": \"VERTEX_LABEL\"," +
-                "\"base_value\": \"person\"," +
-                "\"index_type\": \"RANGE\"," +
-                "\"fields\":[\"age\"]" +
-                "}";
+                            "\"name\": \"personByAge\"," +
+                            "\"base_type\": \"VERTEX_LABEL\"," +
+                            "\"base_value\": \"person\"," +
+                            "\"index_type\": \"RANGE\"," +
+                            "\"fields\":[\"age\"]" +
+                            "}";
         Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
@@ -122,12 +122,12 @@ public class IndexLabelApiTest extends BaseApiTest {
     @Test
     public void testList() {
         String indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"base_type\": \"VERTEX_LABEL\"," +
-                "\"base_value\": \"person\"," +
-                "\"index_type\": \"RANGE\"," +
-                "\"fields\":[\"age\"]" +
-                "}";
+                            "\"name\": \"personByAge\"," +
+                            "\"base_type\": \"VERTEX_LABEL\"," +
+                            "\"base_value\": \"person\"," +
+                            "\"index_type\": \"RANGE\"," +
+                            "\"fields\":[\"age\"]" +
+                            "}";
         Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 
@@ -138,12 +138,12 @@ public class IndexLabelApiTest extends BaseApiTest {
     @Test
     public void testDelete() {
         String indexLabel = "{" +
-                "\"name\": \"personByAge\"," +
-                "\"base_type\": \"VERTEX_LABEL\"," +
-                "\"base_value\": \"person\"," +
-                "\"index_type\": \"RANGE\"," +
-                "\"fields\":[\"age\"]" +
-                "}";
+                            "\"name\": \"personByAge\"," +
+                            "\"base_type\": \"VERTEX_LABEL\"," +
+                            "\"base_value\": \"person\"," +
+                            "\"index_type\": \"RANGE\"," +
+                            "\"fields\":[\"age\"]" +
+                            "}";
         Response r = client().post(PATH, indexLabel);
         assertResponseStatus(202, r);
 

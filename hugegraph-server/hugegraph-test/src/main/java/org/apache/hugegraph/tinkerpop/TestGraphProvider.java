@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.tinkerpop;
@@ -30,6 +32,18 @@ import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.HugeProperty;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.testutil.Utils;
+import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.FeatureRequirement;
 import org.apache.tinkerpop.gremlin.FeatureRequirements;
@@ -44,18 +58,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.structure.HugeProperty;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.structure.HugeVertexProperty;
-import org.apache.hugegraph.testutil.Utils;
-import org.apache.hugegraph.type.define.IdStrategy;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 
@@ -65,12 +67,12 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
     @SuppressWarnings("rawtypes")
     private static final Set<Class> IMPLEMENTATIONS = ImmutableSet.of(
-            HugeEdge.class,
-            HugeElement.class,
-            HugeGraph.class,
-            HugeProperty.class,
-            HugeVertex.class,
-            HugeVertexProperty.class);
+        HugeEdge.class,
+        HugeElement.class,
+        HugeGraph.class,
+        HugeProperty.class,
+        HugeVertex.class,
+        HugeVertexProperty.class);
 
     private static final String FILTER = "test.tinkerpop.filter";
     private static final String DEFAULT_FILTER = "methods.filter";
@@ -84,113 +86,36 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
     private static final String GREMLIN_GRAPH_KEY = "gremlin.graph";
     private static final String GREMLIN_GRAPH_VALUE =
-            "org.apache.hugegraph.tinkerpop.TestGraphFactory";
+        "org.apache.hugegraph.tinkerpop.TestGraphFactory";
 
     private static final String AKEY_CLASS_PREFIX =
-            "org.apache.tinkerpop.gremlin.structure." +
-            "PropertyTest.PropertyFeatureSupportTest";
+        "org.apache.tinkerpop.gremlin.structure." +
+        "PropertyTest.PropertyFeatureSupportTest";
     private static final String IO_CLASS_PREFIX =
-            "org.apache.tinkerpop.gremlin.structure.io.IoGraphTest";
+        "org.apache.tinkerpop.gremlin.structure.io.IoGraphTest";
     private static final String IO_TEST_PREFIX =
-            "org.apache.tinkerpop.gremlin.structure.io.IoTest";
+        "org.apache.tinkerpop.gremlin.structure.io.IoTest";
 
     private static final String EXPECT_CUSTOMIZED_ID = "expectCustomizedId";
     private static final Set<String> CUSTOMIZED_ID_METHODS = ImmutableSet.of(
-            "shouldReadWriteSelfLoopingEdges",
-            "shouldEvaluateConnectivityPatterns");
+        "shouldReadWriteSelfLoopingEdges",
+        "shouldEvaluateConnectivityPatterns");
 
     private static final Set<String> ID_TYPES = ImmutableSet.of(
-            VertexPropertyFeatures.FEATURE_USER_SUPPLIED_IDS,
-            VertexPropertyFeatures.FEATURE_NUMERIC_IDS,
-            VertexPropertyFeatures.FEATURE_STRING_IDS);
+        VertexPropertyFeatures.FEATURE_USER_SUPPLIED_IDS,
+        VertexPropertyFeatures.FEATURE_NUMERIC_IDS,
+        VertexPropertyFeatures.FEATURE_STRING_IDS);
 
     private static final RateLimiter LOG_RATE_LIMITER =
-                         RateLimiter.create(1.0 / 300);
-
-    private Map<String, String> blackMethods = new HashMap<>();
-    private Map<String, TestGraph> graphs = new HashMap<>();
+        RateLimiter.create(1.0 / 300);
     private final String suite;
+    private final Map<String, String> blackMethods = new HashMap<>();
+    private final Map<String, TestGraph> graphs = new HashMap<>();
 
     public TestGraphProvider(String suite) throws IOException {
         super();
         this.initBlackList();
         this.suite = suite;
-    }
-
-    private void initBlackList() throws IOException {
-        String filter = Utils.getConf().getString(FILTER);
-        if (filter == null || filter.isEmpty()) {
-            filter = DEFAULT_FILTER;
-        }
-
-        URL blackList = TestGraphProvider.class.getClassLoader()
-                                               .getResource(filter);
-        E.checkArgument(blackList != null,
-                        "Can't find tests filter '%s' in resource directory",
-                        filter);
-        File file = new File(blackList.getPath());
-        E.checkArgument(
-                file.exists() && file.isFile() && file.canRead(),
-                "Need to specify a readable filter file rather than: %s",
-                file.toString());
-        try (FileReader fr = new FileReader(file);
-             BufferedReader reader = new BufferedReader(fr)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isEmpty() || line.startsWith("#")) {
-                    // Empty line or comment line
-                    continue;
-                }
-                String[] parts = line.split(":");
-                Assert.assertEquals("methods.filter proper format is: " +
-                                    "'testMethodName: ignore reason'",
-                                    2, parts.length);
-                Assert.assertTrue(
-                        "Test method name in methods.filter can't be empty",
-                        parts[0] != null && !parts[0].trim().isEmpty());
-                Assert.assertTrue(
-                        "Reason why ignore in methods.filter can't be empty",
-                        parts[1] != null && !parts[1].trim().isEmpty());
-                this.blackMethods.putIfAbsent(parts[0], parts[1]);
-            }
-        }
-    }
-
-    @Override
-    public Map<String, Object> getBaseConfiguration(
-                               String graphName,
-                               Class<?> testClass, String testMethod,
-                               LoadGraphWith.GraphData graphData) {
-        // Check if test in blackList
-        String testFullName = testClass.getCanonicalName() + "." + testMethod;
-        int index = testFullName.indexOf('@') == -1 ?
-                    testFullName.length() : testFullName.indexOf('@');
-
-        testFullName = testFullName.substring(0, index);
-        Assume.assumeFalse(
-               String.format("Test %s will be ignored with reason: %s",
-                             testFullName, this.blackMethods.get(testFullName)),
-               this.blackMethods.containsKey(testFullName));
-
-        LOG.debug("Full name of test is: {}", testFullName);
-        LOG.debug("Prefix of test is: {}", testFullName.substring(0, index));
-        HashMap<String, Object> confMap = new HashMap<>();
-        PropertiesConfiguration config = Utils.getConf();
-        Iterator<String> keys = config.getKeys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            confMap.put(key, config.getProperty(key));
-        }
-        String storePrefix = config.getString(CoreOptions.STORE.name());
-        confMap.put(CoreOptions.STORE.name(),
-                    storePrefix + "_" + this.suite + "_" + graphName);
-        confMap.put(GREMLIN_GRAPH_KEY, GREMLIN_GRAPH_VALUE);
-        confMap.put(TEST_CLASS, testClass);
-        confMap.put(TEST_METHOD, testMethod);
-        confMap.put(LOAD_GRAPH, graphData);
-        confMap.put(EXPECT_CUSTOMIZED_ID, customizedId(testClass, testMethod));
-
-        return confMap;
     }
 
     private static boolean customizedId(Class<?> test, String testMethod) {
@@ -201,7 +126,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
             return false;
         }
         FeatureRequirements features =
-                            method.getAnnotation(FeatureRequirements.class);
+            method.getAnnotation(FeatureRequirements.class);
         if (features == null) {
             return false;
         }
@@ -252,6 +177,82 @@ public class TestGraphProvider extends AbstractGraphProvider {
             idStrategy = IdStrategy.CUSTOMIZE_STRING;
         }
         return idStrategy;
+    }
+
+    private void initBlackList() throws IOException {
+        String filter = Utils.getConf().getString(FILTER);
+        if (filter == null || filter.isEmpty()) {
+            filter = DEFAULT_FILTER;
+        }
+
+        URL blackList = TestGraphProvider.class.getClassLoader()
+                                               .getResource(filter);
+        E.checkArgument(blackList != null,
+                        "Can't find tests filter '%s' in resource directory",
+                        filter);
+        File file = new File(blackList.getPath());
+        E.checkArgument(
+            file.exists() && file.isFile() && file.canRead(),
+            "Need to specify a readable filter file rather than: %s",
+            file.toString());
+        try (FileReader fr = new FileReader(file);
+             BufferedReader reader = new BufferedReader(fr)) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.isEmpty() || line.startsWith("#")) {
+                    // Empty line or comment line
+                    continue;
+                }
+                String[] parts = line.split(":");
+                Assert.assertEquals("methods.filter proper format is: " +
+                                    "'testMethodName: ignore reason'",
+                                    2, parts.length);
+                Assert.assertTrue(
+                    "Test method name in methods.filter can't be empty",
+                    parts[0] != null && !parts[0].trim().isEmpty());
+                Assert.assertTrue(
+                    "Reason why ignore in methods.filter can't be empty",
+                    parts[1] != null && !parts[1].trim().isEmpty());
+                this.blackMethods.putIfAbsent(parts[0], parts[1]);
+            }
+        }
+    }
+
+    @Override
+    public Map<String, Object> getBaseConfiguration(
+        String graphName,
+        Class<?> testClass, String testMethod,
+        LoadGraphWith.GraphData graphData) {
+        // Check if test in blackList
+        String testFullName = testClass.getCanonicalName() + "." + testMethod;
+        int index = testFullName.indexOf('@') == -1 ?
+                    testFullName.length() : testFullName.indexOf('@');
+
+        testFullName = testFullName.substring(0, index);
+        Assume.assumeFalse(
+            String.format("Test %s will be ignored with reason: %s",
+                          testFullName, this.blackMethods.get(testFullName)),
+            this.blackMethods.containsKey(testFullName));
+
+        LOG.debug("Full name of test is: {}", testFullName);
+        LOG.debug("Prefix of test is: {}", testFullName.substring(0, index));
+        HashMap<String, Object> confMap = new HashMap<>();
+        PropertiesConfiguration config = Utils.getConf();
+        Iterator<String> keys = config.getKeys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            confMap.put(key, config.getProperty(key));
+        }
+        String storePrefix = config.getString(CoreOptions.STORE.name());
+        confMap.put(CoreOptions.STORE.name(),
+                    storePrefix + "_" + this.suite + "_" + graphName);
+        confMap.put(GREMLIN_GRAPH_KEY, GREMLIN_GRAPH_VALUE);
+        confMap.put(TEST_CLASS, testClass);
+        confMap.put(TEST_METHOD, testMethod);
+        confMap.put(LOAD_GRAPH, graphData);
+        confMap.put(EXPECT_CUSTOMIZED_ID, customizedId(testClass, testMethod));
+
+        return confMap;
     }
 
     @Watched
@@ -417,9 +418,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Only support GRATEFUL, MODERN and CLASSIC " +
-                          "for @LoadGraphWith(), but '%s' is used ",
-                          loadGraphWith));
+                    "Only support GRATEFUL, MODERN and CLASSIC " +
+                    "for @LoadGraphWith(), but '%s' is used ",
+                    loadGraphWith));
         }
         LOG.debug("Load graph with {} schema", loadGraphWith);
         testGraph.tx().commit();

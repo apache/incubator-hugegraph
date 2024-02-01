@@ -19,13 +19,13 @@ package org.apache.hugegraph.api.traversers;
 
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
-
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class AdamicAdarAPITest extends BaseApiTest {
 

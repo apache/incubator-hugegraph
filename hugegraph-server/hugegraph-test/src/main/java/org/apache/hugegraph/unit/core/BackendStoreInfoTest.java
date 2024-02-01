@@ -17,14 +17,13 @@
 
 package org.apache.hugegraph.unit.core;
 
-import org.apache.hugegraph.config.HugeConfig;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.testutil.Assert;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 public class BackendStoreInfoTest {
 
