@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.cassandra;
@@ -81,6 +83,88 @@ public class CassandraMetrics implements BackendMetrics {
         this.tables = ImmutableList.of(v, oe, ie);
     }
 
+    protected static void appendCounterMetrics(Map<String, Object> metrics,
+                                               NodeProbe probe,
+                                               String keyspace,
+                                               List<String> tables,
+                                               String metric) {
+        // "EstimatedPartitionCount" => "estimated_partition_count"
+        String name = humpToLine(metric);
+
+        // Aggregation of metrics for the whole host tables
+        Number number = 0;
+        for (String table : tables) {
+            // like: "hugegraph", "g_v", "EstimatedPartitionCount"
+            Object value = probe.getColumnFamilyMetric(keyspace, table, metric);
+            if (!(value instanceof Number)) {
+                value = Double.parseDouble(value.toString());
+            }
+            number = NumberHelper.add(number, (Number) value);
+        }
+        metrics.put(name, number);
+    }
+
+    protected static void appendTimerMetrics(Map<String, Object> metrics,
+                                             NodeProbe probe,
+                                             String keyspace,
+                                             String metric) {
+        // "ReadLatency" => "read_latency_hugegraph"
+        String suffix = keyspace == null ? "*" : keyspace;
+        String name = humpToLine(metric + "_" + suffix);
+        // Aggregation of metrics for the whole host if keyspace=null
+        JmxTimerMBean value = (JmxTimerMBean) probe.getColumnFamilyMetric(
+            keyspace, null, metric);
+        Map<String, Object> timerMap = InsertionOrderUtil.newMap();
+        timerMap.put("count", value.getCount());
+        timerMap.put("min", value.getMin());
+        timerMap.put("mean", value.getMean());
+        timerMap.put("max", value.getMax());
+        timerMap.put("stddev", value.getStdDev());
+        timerMap.put("p50", value.get50thPercentile());
+        timerMap.put("p75", value.get75thPercentile());
+        timerMap.put("p95", value.get95thPercentile());
+        timerMap.put("p98", value.get98thPercentile());
+        timerMap.put("p99", value.get99thPercentile());
+        timerMap.put("p999", value.get999thPercentile());
+        timerMap.put("duration_unit", value.getDurationUnit());
+        timerMap.put("mean_rate", value.getMeanRate());
+        timerMap.put("m15_rate", value.getFifteenMinuteRate());
+        timerMap.put("m5_rate", value.getFiveMinuteRate());
+        timerMap.put("m1_rate", value.getOneMinuteRate());
+        timerMap.put("rate_unit", value.getRateUnit());
+
+        metrics.put(name, timerMap);
+    }
+
+    protected static void appendCompactionMetrics(Map<String, Object> metrics,
+                                                  NodeProbe probe,
+                                                  String metric) {
+        // "CompletedTasks" => "compaction_completed_tasks"
+        String name = humpToLine("compaction" + metric);
+        Object value = probe.getCompactionMetric(metric);
+        if (value instanceof JmxCounterMBean) {
+            value = ((JmxCounterMBean) value).getCount();
+        }
+        metrics.put(name, value);
+    }
+
+    protected static void appendCacheMetrics(Map<String, Object> metrics,
+                                             NodeProbe probe,
+                                             String cacheType,
+                                             String metric) {
+        // "RowCache" + "Size" => "row_cache_size"
+        String name = humpToLine(cacheType + metric);
+        metrics.put(name, probe.getCacheMetric(cacheType, metric));
+    }
+
+    private static String humpToLine(String name) {
+        name = name.replaceAll("[A-Z]", "_$0").toLowerCase();
+        if (!name.isEmpty() && name.charAt(0) == '_') {
+            name = name.substring(1);
+        }
+        return name;
+    }
+
     @Override
     public Map<String, Object> metrics() {
         return this.executeAllHosts(this::getMetricsByHost);
@@ -108,7 +192,7 @@ public class CassandraMetrics implements BackendMetrics {
             metrics.put(MEM_UNIT, "MB");
 
             long diskSize = UnitUtil.bytesFromReadableString(
-                            probe.getLoadString());
+                probe.getLoadString());
             metrics.put(DISK_USAGE, UnitUtil.bytesToGB(diskSize));
             metrics.put(DISK_USAGE + READABLE,
                         UnitUtil.bytesToReadableString(diskSize));
@@ -183,88 +267,6 @@ public class CassandraMetrics implements BackendMetrics {
         appendCompactionMetrics(metrics, probe, "BytesCompacted");
     }
 
-    protected static void appendCounterMetrics(Map<String, Object> metrics,
-                                               NodeProbe probe,
-                                               String keyspace,
-                                               List<String> tables,
-                                               String metric) {
-        // "EstimatedPartitionCount" => "estimated_partition_count"
-        String name = humpToLine(metric);
-
-        // Aggregation of metrics for the whole host tables
-        Number number = 0;
-        for (String table : tables) {
-            // like: "hugegraph", "g_v", "EstimatedPartitionCount"
-            Object value = probe.getColumnFamilyMetric(keyspace, table, metric);
-            if (!(value instanceof Number)) {
-                value = Double.parseDouble(value.toString());
-            }
-            number = NumberHelper.add(number, (Number) value);
-        }
-        metrics.put(name, number);
-    }
-
-    protected static void appendTimerMetrics(Map<String, Object> metrics,
-                                             NodeProbe probe,
-                                             String keyspace,
-                                             String metric) {
-        // "ReadLatency" => "read_latency_hugegraph"
-        String suffix = keyspace == null ? "*" : keyspace;
-        String name = humpToLine(metric + "_" + suffix);
-        // Aggregation of metrics for the whole host if keyspace=null
-        JmxTimerMBean value = (JmxTimerMBean) probe.getColumnFamilyMetric(
-                              keyspace, null, metric);
-        Map<String, Object> timerMap = InsertionOrderUtil.newMap();
-        timerMap.put("count", value.getCount());
-        timerMap.put("min", value.getMin());
-        timerMap.put("mean", value.getMean());
-        timerMap.put("max", value.getMax());
-        timerMap.put("stddev", value.getStdDev());
-        timerMap.put("p50", value.get50thPercentile());
-        timerMap.put("p75", value.get75thPercentile());
-        timerMap.put("p95", value.get95thPercentile());
-        timerMap.put("p98", value.get98thPercentile());
-        timerMap.put("p99", value.get99thPercentile());
-        timerMap.put("p999", value.get999thPercentile());
-        timerMap.put("duration_unit", value.getDurationUnit());
-        timerMap.put("mean_rate", value.getMeanRate());
-        timerMap.put("m15_rate", value.getFifteenMinuteRate());
-        timerMap.put("m5_rate", value.getFiveMinuteRate());
-        timerMap.put("m1_rate", value.getOneMinuteRate());
-        timerMap.put("rate_unit", value.getRateUnit());
-
-        metrics.put(name, timerMap);
-    }
-
-    protected static void appendCompactionMetrics(Map<String, Object> metrics,
-                                                  NodeProbe probe,
-                                                  String metric) {
-        // "CompletedTasks" => "compaction_completed_tasks"
-        String name = humpToLine("compaction" + metric);
-        Object value = probe.getCompactionMetric(metric);
-        if (value instanceof JmxCounterMBean) {
-            value = ((JmxCounterMBean) value).getCount();
-        }
-        metrics.put(name, value);
-    }
-
-    protected static void appendCacheMetrics(Map<String, Object> metrics,
-                                             NodeProbe probe,
-                                             String cacheType,
-                                             String metric) {
-        // "RowCache" + "Size" => "row_cache_size"
-        String name = humpToLine(cacheType + metric);
-        metrics.put(name, probe.getCacheMetric(cacheType, metric));
-    }
-
-    private static String humpToLine(String name) {
-        name = name.replaceAll("[A-Z]", "_$0").toLowerCase();
-        if (!name.isEmpty() && name.charAt(0) == '_') {
-            name = name.substring(1);
-        }
-        return name;
-    }
-
     public Map<String, Object> compact() {
         return this.executeAllHosts(this::compactHost);
     }
@@ -316,7 +318,7 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     private NodeProbe newNodeProbe(String host) throws IOException {
-        LOG.debug("Probe to cassandra node: '{}:{}'", host,  this.port);
+        LOG.debug("Probe to cassandra node: '{}:{}'", host, this.port);
         return this.username.isEmpty() ?
                new NodeProbe(host, this.port) :
                new NodeProbe(host, this.port, this.username, this.password);

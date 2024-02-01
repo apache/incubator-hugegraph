@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.cassandra;
@@ -25,8 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.BackendException;
@@ -45,6 +45,7 @@ import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.KeyspaceMetadata;
@@ -87,6 +88,59 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
 
         this.registerMetaHandlers();
         LOG.debug("Store loaded: {}", store);
+    }
+
+    private static Map<String, Object> parseReplica(HugeConfig conf) {
+        Map<String, Object> replication = new HashMap<>();
+        // Replication strategy: SimpleStrategy or NetworkTopologyStrategy
+        String strategy = conf.get(CassandraOptions.CASSANDRA_STRATEGY);
+        replication.put("class", strategy);
+
+        switch (strategy) {
+            case "SimpleStrategy":
+                List<String> replicas =
+                    conf.get(CassandraOptions.CASSANDRA_REPLICATION);
+                E.checkArgument(replicas.size() == 1,
+                                "Individual factor value should be provided " +
+                                "with SimpleStrategy for Cassandra");
+                int factor = convertFactor(replicas.get(0));
+                replication.put("replication_factor", factor);
+                break;
+            case "NetworkTopologyStrategy":
+                // The replicas format is like 'dc1:2,dc2:1'
+                Map<String, String> replicaMap =
+                    conf.getMap(CassandraOptions.CASSANDRA_REPLICATION);
+                for (Map.Entry<String, String> e : replicaMap.entrySet()) {
+                    E.checkArgument(!e.getKey().isEmpty(),
+                                    "The datacenter can't be empty");
+                    replication.put(e.getKey(), convertFactor(e.getValue()));
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                    "Illegal replication strategy '%s', valid strategy " +
+                    "is 'SimpleStrategy' or 'NetworkTopologyStrategy'",
+                    strategy));
+        }
+        return replication;
+    }
+
+    private static int convertFactor(String factor) {
+        try {
+            return Integer.valueOf(factor);
+        } catch (NumberFormatException e) {
+            throw new BackendException(
+                "Expect int factor value for SimpleStrategy, " +
+                "but got '%s'", factor);
+        }
+    }
+
+    protected static final CassandraBackendEntry castBackendEntry(BackendEntry entry) {
+        assert entry instanceof CassandraBackendEntry : entry.getClass();
+        if (!(entry instanceof CassandraBackendEntry)) {
+            throw new BackendException("Cassandra store only supports CassandraBackendEntry");
+        }
+        return (CassandraBackendEntry) entry;
     }
 
     private void registerMetaHandlers() {
@@ -211,7 +265,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
         this.checkOpened();
         CassandraSessionPool.Session session = this.sessions.session();
 
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
             this.mutate(session, it.next());
         }
     }
@@ -296,7 +350,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported mutate action: %s", item.action()));
+                    "Unsupported mutate action: %s", item.action()));
         }
     }
 
@@ -305,7 +359,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
         this.checkOpened();
         HugeType type = CassandraTable.tableType(query);
         String tableName = query.olap() ? this.olapTableName(type) :
-                                          type.string();
+                           type.string();
         CassandraTable table = this.table(tableName);
         Iterator<BackendEntry> entries = table.query(this.session(null), query);
         // Merge olap results as needed
@@ -445,9 +499,9 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
             LOG.error("Failed to commit statements due to:", e);
             assert session.statements().size() > 0;
             throw new BackendException(
-                      "Failed to commit %s statements: '%s'...", e,
-                      session.statements().size(),
-                      session.statements().iterator().next());
+                "Failed to commit %s statements: '%s'...", e,
+                session.statements().size(),
+                session.statements().iterator().next());
         }
     }
 
@@ -500,51 +554,6 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
             if (!session.isClosed()) {
                 session.close();
             }
-        }
-    }
-
-    private static Map<String, Object> parseReplica(HugeConfig conf) {
-        Map<String, Object> replication = new HashMap<>();
-        // Replication strategy: SimpleStrategy or NetworkTopologyStrategy
-        String strategy = conf.get(CassandraOptions.CASSANDRA_STRATEGY);
-        replication.put("class", strategy);
-
-        switch (strategy) {
-            case "SimpleStrategy":
-                List<String> replicas =
-                             conf.get(CassandraOptions.CASSANDRA_REPLICATION);
-                E.checkArgument(replicas.size() == 1,
-                                "Individual factor value should be provided " +
-                                "with SimpleStrategy for Cassandra");
-                int factor = convertFactor(replicas.get(0));
-                replication.put("replication_factor", factor);
-                break;
-            case "NetworkTopologyStrategy":
-                // The replicas format is like 'dc1:2,dc2:1'
-                Map<String, String> replicaMap =
-                            conf.getMap(CassandraOptions.CASSANDRA_REPLICATION);
-                for (Map.Entry<String, String> e : replicaMap.entrySet()) {
-                    E.checkArgument(!e.getKey().isEmpty(),
-                                    "The datacenter can't be empty");
-                    replication.put(e.getKey(), convertFactor(e.getValue()));
-                }
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Illegal replication strategy '%s', valid strategy " +
-                          "is 'SimpleStrategy' or 'NetworkTopologyStrategy'",
-                          strategy));
-        }
-        return replication;
-    }
-
-    private static int convertFactor(String factor) {
-        try {
-            return Integer.valueOf(factor);
-        } catch (NumberFormatException e) {
-            throw new BackendException(
-                      "Expect int factor value for SimpleStrategy, " +
-                      "but got '%s'", factor);
         }
     }
 
@@ -615,14 +624,6 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
     protected final void checkClusterConnected() {
         E.checkState(this.sessions != null && this.sessions.clusterConnected(),
                      "Cassandra cluster has not been connected");
-    }
-
-    protected static final CassandraBackendEntry castBackendEntry(BackendEntry entry) {
-        assert entry instanceof CassandraBackendEntry : entry.getClass();
-        if (!(entry instanceof CassandraBackendEntry)) {
-            throw new BackendException("Cassandra store only supports CassandraBackendEntry");
-        }
-        return (CassandraBackendEntry) entry;
     }
 
     /***************************** Store defines *****************************/
@@ -720,19 +721,19 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
         @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
-                      "CassandraGraphStore.nextId()");
+                "CassandraGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                      "CassandraGraphStore.increaseCounter()");
+                "CassandraGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "CassandraGraphStore.getCounter()");
+                "CassandraGraphStore.getCounter()");
         }
 
         @Override

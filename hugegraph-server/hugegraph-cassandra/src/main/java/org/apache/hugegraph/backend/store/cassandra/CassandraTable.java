@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.cassandra;
@@ -26,9 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
@@ -51,6 +50,9 @@ import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.CopyUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
+
 import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PagingState;
@@ -74,13 +76,48 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public abstract class CassandraTable
-                extends BackendTable<CassandraSessionPool.Session, CassandraBackendEntry.Row> {
+    extends BackendTable<CassandraSessionPool.Session, CassandraBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(CassandraTable.class);
     private static final int MAX_ELEMENTS_IN_CLAUSE = 65535;
 
     public CassandraTable(String table) {
         super(table);
+    }
+
+    protected static Select cloneSelect(Select select, String table) {
+        // NOTE: there is no Select.clone(), just use copy instead
+        return CopyUtil.copy(select, QueryBuilder.select().from(table));
+    }
+
+    protected static CassandraBackendEntry row2Entry(HugeType type, Row row) {
+        CassandraBackendEntry entry = new CassandraBackendEntry(type);
+
+        List<Definition> cols = row.getColumnDefinitions().asList();
+        for (Definition col : cols) {
+            String name = col.getName();
+            HugeKeys key = CassandraTable.parseKey(name);
+            Object value = row.getObject(name);
+            if (value == null) {
+                assert key == HugeKeys.EXPIRED_TIME;
+                continue;
+            }
+            entry.column(key, value);
+        }
+
+        return entry;
+    }
+
+    public static final String formatKey(HugeKeys key) {
+        return key.name();
+    }
+
+    public static final HugeKeys parseKey(String name) {
+        return HugeKeys.valueOf(name.toUpperCase());
+    }
+
+    public static final Clause formatEQ(HugeKeys key, Object value) {
+        return QueryBuilder.eq(formatKey(key), value);
     }
 
     @Override
@@ -90,8 +127,8 @@ public abstract class CassandraTable
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
             CassandraShard splitter = new CassandraShard(session,
-                                                        session.keyspace(),
-                                                        this.table());
+                                                         session.keyspace(),
+                                                         this.table());
             return splitter.getSplits(0, splitSize);
         });
     }
@@ -118,12 +155,12 @@ public abstract class CassandraTable
             statement.setReadTimeoutMillis(timeout * 1000);
             return session.query(statement);
         }, (q, rs) -> {
-                Row row = rs.one();
-                if (row == null) {
-                    return IteratorUtils.of(aggregate.defaultValue());
-                }
-                return IteratorUtils.of(row.getLong(0));
-            });
+            Row row = rs.one();
+            if (row == null) {
+                return IteratorUtils.of(aggregate.defaultValue());
+            }
+            return IteratorUtils.of(row.getLong(0));
+        });
         return aggregate.reduce(results);
     }
 
@@ -136,7 +173,7 @@ public abstract class CassandraTable
     protected <R> Iterator<R> query(Query query,
                                     Function<Statement, ResultSet> fetcher,
                                     BiFunction<Query, ResultSet, Iterator<R>>
-                                    parser) {
+                                        parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {
@@ -279,8 +316,8 @@ public abstract class CassandraTable
             List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new NotFoundException(
-                          "Unsupported ID format: '%s' (should contain %s)",
-                          id, nameParts);
+                    "Unsupported ID format: '%s' (should contain %s)",
+                    id, nameParts);
             }
             ids.add(idParts);
         }
@@ -379,8 +416,8 @@ public abstract class CassandraTable
                 Object start = QueryBuilder.raw(shard.start());
                 Object end = QueryBuilder.raw(shard.end());
                 return Clauses.and(
-                        QueryBuilder.gte(QueryBuilder.token(col), start),
-                        QueryBuilder.lt(QueryBuilder.token(col), end));
+                    QueryBuilder.gte(QueryBuilder.token(col), start),
+                    QueryBuilder.lt(QueryBuilder.token(col), end));
             /*
              * Currently we can't support LIKE due to error:
              * "cassandra no viable alternative at input 'like'..."
@@ -406,34 +443,11 @@ public abstract class CassandraTable
         return selects;
     }
 
-    protected static Select cloneSelect(Select select, String table) {
-        // NOTE: there is no Select.clone(), just use copy instead
-        return CopyUtil.copy(select, QueryBuilder.select().from(table));
-    }
-
     protected Iterator<BackendEntry> results2Entries(Query q, ResultSet r) {
         return new CassandraEntryIterator(r, q, (e1, row) -> {
             CassandraBackendEntry e2 = row2Entry(q.resultType(), row);
             return this.mergeEntries(e1, e2);
         });
-    }
-
-    protected static CassandraBackendEntry row2Entry(HugeType type, Row row) {
-        CassandraBackendEntry entry = new CassandraBackendEntry(type);
-
-        List<Definition> cols = row.getColumnDefinitions().asList();
-        for (Definition col : cols) {
-            String name = col.getName();
-            HugeKeys key = CassandraTable.parseKey(name);
-            Object value = row.getObject(name);
-            if (value == null) {
-                assert key == HugeKeys.EXPIRED_TIME;
-                continue;
-            }
-            entry.column(key, value);
-        }
-
-        return entry;
     }
 
     protected List<HugeKeys> pkColumnName() {
@@ -459,18 +473,6 @@ public abstract class CassandraTable
     protected BackendEntry mergeEntries(BackendEntry e1, BackendEntry e2) {
         // Return the next entry (not merged)
         return e2;
-    }
-
-    public static final String formatKey(HugeKeys key) {
-        return key.name();
-    }
-
-    public static final HugeKeys parseKey(String name) {
-        return HugeKeys.valueOf(name.toUpperCase());
-    }
-
-    public static final Clause formatEQ(HugeKeys key, Object value) {
-        return QueryBuilder.eq(formatKey(key), value);
     }
 
     /**
