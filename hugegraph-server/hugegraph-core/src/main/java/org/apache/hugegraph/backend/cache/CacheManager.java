@@ -56,7 +56,7 @@ public class CacheManager {
         return cache.enableMetrics(enabled);
     }
 
-    public CacheManager() {
+    private CacheManager() {
         this.caches = new ConcurrentHashMap<>();
         this.timer = new Timer("cache-expirer", true);
 
