@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.palo;
@@ -27,10 +29,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 
@@ -48,53 +50,6 @@ public class PaloFile extends File {
 
     public PaloFile(String path) {
         super(path);
-    }
-
-    public String table() {
-        return this.getParentFile().getName();
-    }
-
-    public int sessionId() {
-        String[] parts = this.getName().split("-");
-        E.checkState(parts.length == 2,
-                     "Invalid file name format '%s' for palo temp file, " +
-                     "the legal format is session{m}-part{n}", this.getName());
-        return Integer.parseInt(parts[0].substring("session".length()));
-    }
-
-    public int sessionPart() {
-        String[] parts = this.getName().split("-");
-        E.checkState(parts.length == 2,
-                     "Invalid file name format '%s' for palo temp file, " +
-                     "the legal format is session{m}-part{n}", this.getName());
-        return Integer.parseInt(parts[1].substring("part".length()));
-    }
-
-    public int writeLines(Collection<String> lines) {
-        try {
-            FileUtils.writeLines(this, Charsets.UTF_8.name(), lines, true);
-        } catch (IOException e) {
-            throw new BackendException(e);
-        }
-        return lines.size();
-    }
-
-    public String readAsString() {
-        try {
-            return FileUtils.readFileToString(this);
-        } catch (IOException e) {
-            throw new BackendException(e);
-        }
-    }
-
-    public void forceDelete() {
-        if (this.exists()) {
-            try {
-                FileUtils.forceDelete(this);
-            } catch (IOException e) {
-                throw new BackendException(e);
-            }
-        }
     }
 
     public static void clearDir(String tempDir) {
@@ -178,7 +133,7 @@ public class PaloFile extends File {
                 continue;
             }
             String[] fileNames = tableDir.list();
-            if (fileNames == null || fileNames.length == 0) {
+            if (fileNames == null) {
                 continue;
             }
             for (String fileName : fileNames) {
@@ -188,5 +143,52 @@ public class PaloFile extends File {
             }
         }
         return sessionIds;
+    }
+
+    public String table() {
+        return this.getParentFile().getName();
+    }
+
+    public int sessionId() {
+        String[] parts = this.getName().split("-");
+        E.checkState(parts.length == 2,
+                     "Invalid file name format '%s' for palo temp file, " +
+                     "the legal format is session{m}-part{n}", this.getName());
+        return Integer.parseInt(parts[0].substring("session".length()));
+    }
+
+    public int sessionPart() {
+        String[] parts = this.getName().split("-");
+        E.checkState(parts.length == 2,
+                     "Invalid file name format '%s' for palo temp file, " +
+                     "the legal format is session{m}-part{n}", this.getName());
+        return Integer.parseInt(parts[1].substring("part".length()));
+    }
+
+    public int writeLines(Collection<String> lines) {
+        try {
+            FileUtils.writeLines(this, Charsets.UTF_8.name(), lines, true);
+        } catch (IOException e) {
+            throw new BackendException(e);
+        }
+        return lines.size();
+    }
+
+    public String readAsString() {
+        try {
+            return FileUtils.readFileToString(this);
+        } catch (IOException e) {
+            throw new BackendException(e);
+        }
+    }
+
+    public void forceDelete() {
+        if (this.exists()) {
+            try {
+                FileUtils.forceDelete(this);
+            } catch (IOException e) {
+                throw new BackendException(e);
+            }
+        }
     }
 }
