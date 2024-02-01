@@ -28,12 +28,12 @@ graphs: {
 scriptEngines: {
   gremlin-groovy: {
     staticImports: [
-        org.opencypher.gremlin.process.traversal.CustomPredicates.*',
-        org.opencypher.gremlin.traversal.CustomFunctions.*
+      org.opencypher.gremlin.process.traversal.CustomPredicates.*',
+      org.opencypher.gremlin.traversal.CustomFunctions.*
     ],
     plugins: {
-      org.apache.hugegraph.plugin.HugeGraphGremlinPlugin: {},
-      org.apache.tinkerpop.gremlin.server.jsr223.GremlinServerGremlinPlugin: {},
+      org.apache.hugegraph.plugin.HugeGraphGremlinPlugin: { },
+      org.apache.tinkerpop.gremlin.server.jsr223.GremlinServerGremlinPlugin: { },
       org.apache.tinkerpop.gremlin.jsr223.ImportGremlinPlugin: {
         classImports: [
           java.lang.Math,
@@ -70,13 +70,13 @@ scriptEngines: {
           org.opencypher.gremlin.traversal.CustomPredicate
         ],
         methodImports: [
-            java.lang.Math#*,
-            org.opencypher.gremlin.traversal.CustomPredicate#*,
-            org.opencypher.gremlin.traversal.CustomFunctions#*
+          java.lang.Math#*,
+          org.opencypher.gremlin.traversal.CustomPredicate#*,
+          org.opencypher.gremlin.traversal.CustomFunctions#*
         ]
       },
       org.apache.tinkerpop.gremlin.jsr223.ScriptFileGremlinPlugin: {
-        files: [scripts/empty-sample.groovy]
+        files: [ scripts/empty-sample.groovy ]
       }
     }
   }
@@ -85,34 +85,34 @@ serializers:
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
       config: {
         serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+        ioRegistries: [ org.apache.hugegraph.io.HugeGraphIoRegistry ]
       }
   }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
       config: {
         serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+        ioRegistries: [ org.apache.hugegraph.io.HugeGraphIoRegistry ]
       }
   }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV2d0,
       config: {
         serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+        ioRegistries: [ org.apache.hugegraph.io.HugeGraphIoRegistry ]
       }
   }
   - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0,
       config: {
         serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+        ioRegistries: [ org.apache.hugegraph.io.HugeGraphIoRegistry ]
       }
   }
 metrics: {
-  consoleReporter: {enabled: false, interval: 180000},
-  csvReporter: {enabled: false, interval: 180000, fileName: ./metrics/gremlin-server-metrics.csv},
-  jmxReporter: {enabled: false},
-  slf4jReporter: {enabled: false, interval: 180000},
-  gangliaReporter: {enabled: false, interval: 180000, addressingMode: MULTICAST},
-  graphiteReporter: {enabled: false, interval: 180000}
+  consoleReporter: { enabled: false, interval: 180000 },
+  csvReporter: { enabled: false, interval: 180000, fileName: ./metrics/gremlin-server-metrics.csv },
+  jmxReporter: { enabled: false },
+  slf4jReporter: { enabled: false, interval: 180000 },
+  gangliaReporter: { enabled: false, interval: 180000, addressingMode: MULTICAST },
+  graphiteReporter: { enabled: false, interval: 180000 }
 }
 maxInitialLineLength: 4096
 maxHeaderSize: 8192

@@ -14,12 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-hosts: [localhost]
+hosts: [ localhost ]
 port: 8182
 serializer: {
   className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
   config: {
     serializeResultToString: false,
-    ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+    ioRegistries: [ org.apache.hugegraph.io.HugeGraphIoRegistry ]
   }
 }

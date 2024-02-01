@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-hosts: [localhost]
+hosts: [ localhost ]
 port: 8182
 serializer: {
   className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
@@ -23,8 +23,8 @@ serializer: {
     # The duplication of HugeGraphIoRegistry is meant to fix a bug in the
     # 'org.apache.tinkerpop.gremlin.driver.Settings:from(Configuration)' method.
     ioRegistries: [
-        org.apache.hugegraph.io.HugeGraphIoRegistry,
-        org.apache.hugegraph.io.HugeGraphIoRegistry
+      org.apache.hugegraph.io.HugeGraphIoRegistry,
+      org.apache.hugegraph.io.HugeGraphIoRegistry
     ]
   }
 }
