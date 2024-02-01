@@ -39,32 +39,24 @@ import org.slf4j.Logger;
 
 public final class TaskManager {
 
-    private static final Logger LOG = Log.logger(TaskManager.class);
-
     public static final String TASK_WORKER_PREFIX = "task-worker";
     public static final String TASK_WORKER = TASK_WORKER_PREFIX + "-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
     public static final String SERVER_INFO_DB_WORKER =
-                               "server-info-db-worker-%d";
+        "server-info-db-worker-%d";
     public static final String TASK_SCHEDULER = "task-scheduler-%d";
-
     protected static final long SCHEDULE_PERIOD = 1000L; // unit ms
+    private static final Logger LOG = Log.logger(TaskManager.class);
     private static final long TX_CLOSE_TIMEOUT = 30L; // unit s
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
-
+    private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
     private final Map<HugeGraphParams, TaskScheduler> schedulers;
-
     private final ExecutorService taskExecutor;
     private final ExecutorService taskDbExecutor;
     private final ExecutorService serverInfoDbExecutor;
     private final PausableScheduledThreadPool schedulerExecutor;
-
     private boolean enableRoleElected = false;
-
-    public static TaskManager instance() {
-        return MANAGER;
-    }
 
     private TaskManager(int pool) {
         this.schedulers = new ConcurrentHashMap<>();
@@ -73,12 +65,12 @@ public final class TaskManager {
         this.taskExecutor = ExecutorUtil.newFixedThreadPool(pool, TASK_WORKER);
         // For save/query task state, just one thread is ok
         this.taskDbExecutor = ExecutorUtil.newFixedThreadPool(
-                              1, TASK_DB_WORKER);
+            1, TASK_DB_WORKER);
         this.serverInfoDbExecutor = ExecutorUtil.newFixedThreadPool(
-                                    1, SERVER_INFO_DB_WORKER);
+            1, SERVER_INFO_DB_WORKER);
         // For schedule task to run, just one thread is ok
         this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
-                                 1, TASK_SCHEDULER);
+            1, TASK_SCHEDULER);
         // Start after 10x period time waiting for HugeGraphServer startup
         this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
                                                       10 * SCHEDULE_PERIOD,
@@ -86,12 +78,28 @@ public final class TaskManager {
                                                       TimeUnit.MILLISECONDS);
     }
 
+    public static TaskManager instance() {
+        return MANAGER;
+    }
+
+    protected static void resetContext() {
+        CONTEXTS.remove();
+    }
+
+    public static String getContext() {
+        return CONTEXTS.get();
+    }
+
+    protected static void setContext(String context) {
+        CONTEXTS.set(context);
+    }
+
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
 
         TaskScheduler scheduler = new StandardTaskScheduler(graph,
-                                  this.taskExecutor, this.taskDbExecutor,
-                                  this.serverInfoDbExecutor);
+                                                            this.taskExecutor, this.taskDbExecutor,
+                                                            this.serverInfoDbExecutor);
         this.schedulers.put(graph, scheduler);
     }
 
@@ -171,7 +179,7 @@ public final class TaskManager {
 
     public ServerInfoManager getServerInfoManager(HugeGraphParams graph) {
         StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                                          this.getScheduler(graph);
+            this.getScheduler(graph);
         if (scheduler == null) {
             return null;
         }
@@ -275,7 +283,7 @@ public final class TaskManager {
 
     protected void notifyNewTask(HugeTask<?> task) {
         Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
-                                                          .getQueue();
+            .getQueue();
         if (queue.size() <= 1) {
             /*
              * Notify to schedule tasks initiatively when have new task
@@ -354,20 +362,6 @@ public final class TaskManager {
         } finally {
             LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
         }
-    }
-
-    private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
-
-    protected static void setContext(String context) {
-        CONTEXTS.set(context);
-    }
-
-    protected static void resetContext() {
-        CONTEXTS.remove();
-    }
-
-    public static String getContext() {
-        return CONTEXTS.get();
     }
 
     public static class ContextCallable<V> implements Callable<V> {

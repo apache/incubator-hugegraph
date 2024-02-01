@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.structure;
@@ -46,7 +48,6 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.collection.CollectionFactory;
 import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.eclipse.collections.api.iterator.IntIterator;
@@ -55,7 +56,7 @@ import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 public abstract class HugeElement implements Element, GraphType, Idfiable, Comparable<HugeElement> {
 
     private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
-                         CollectionFactory.newIntObjectMap();
+        CollectionFactory.newIntObjectMap();
     private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;
@@ -77,6 +78,113 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
         this.fresh = false;
         this.propLoaded = true;
         this.defaultValueUpdated = false;
+    }
+
+    /**
+     * Classify parameter list(pairs) from call request
+     *
+     * @param keyValues The property key-value pair of the vertex or edge
+     * @return Key-value pairs that are classified and processed
+     */
+    @Watched(prefix = "element")
+    public static final ElementKeys classifyKeys(Object... keyValues) {
+        ElementKeys elemKeys = new ElementKeys();
+
+        if ((keyValues.length & 1) == 1) {
+            throw Element.Exceptions.providedKeyValuesMustBeAMultipleOfTwo();
+        }
+        for (int i = 0; i < keyValues.length; i = i + 2) {
+            Object key = keyValues[i];
+            Object val = keyValues[i + 1];
+
+            if (!(key instanceof String) && !(key instanceof T)) {
+                throw Element.Exceptions.providedKeyValuesMustHaveALegalKeyOnEvenIndices();
+            }
+            if (val == null) {
+                if (T.label.equals(key)) {
+                    throw Element.Exceptions.labelCanNotBeNull();
+                }
+                // Ignore null value for tinkerpop test compatibility
+                continue;
+            }
+
+            if (key.equals(T.id)) {
+                elemKeys.id = val;
+            } else if (key.equals(T.label)) {
+                elemKeys.label = val;
+            } else {
+                elemKeys.keys.add(key.toString());
+            }
+        }
+        return elemKeys;
+    }
+
+    public static final Id getIdValue(HugeType type, Object idValue) {
+        assert type.isGraph();
+        Id id = getIdValue(idValue);
+        if (type.isVertex()) {
+            return id;
+        } else {
+            if (id == null || id instanceof EdgeId) {
+                return id;
+            }
+            return EdgeId.parse(id.asString());
+        }
+    }
+
+    @Watched(prefix = "element")
+    protected static Id getIdValue(Object idValue) {
+        if (idValue == null) {
+            return null;
+        }
+
+        if (idValue instanceof String) {
+            // String id
+            return IdGenerator.of((String) idValue);
+        } else if (idValue instanceof Number) {
+            // Long id
+            return IdGenerator.of(((Number) idValue).longValue());
+        } else if (idValue instanceof UUID) {
+            // UUID id
+            return IdGenerator.of((UUID) idValue);
+        } else if (idValue instanceof Id) {
+            // Id itself
+            return (Id) idValue;
+        } else if (idValue instanceof Element) {
+            // Element
+            return (Id) ((Element) idValue).id();
+        }
+
+        // Throw if error type
+        throw new UnsupportedOperationException(String.format(
+            "Invalid element id: %s(%s)",
+            idValue, idValue.getClass().getSimpleName()));
+    }
+
+    @Watched(prefix = "element")
+    public static final Object getLabelValue(Object... keyValues) {
+        Object labelValue = null;
+        for (int i = 0; i < keyValues.length; i = i + 2) {
+            if (keyValues[i].equals(T.label)) {
+                labelValue = keyValues[i + 1];
+                E.checkArgument(labelValue instanceof String ||
+                                labelValue instanceof VertexLabel,
+                                "Expect a string or a VertexLabel object " +
+                                "as the vertex label argument, but got: '%s'",
+                                labelValue);
+                if (labelValue instanceof String) {
+                    ElementHelper.validateLabel((String) labelValue);
+                }
+                break;
+            }
+        }
+        return labelValue;
+    }
+
+    public static int intFromId(Id id) {
+        E.checkArgument(id instanceof IdGenerator.LongId,
+                        "Can't get number from %s(%s)", id, id.getClass());
+        return ((IdGenerator.LongId) id).intValue();
     }
 
     public abstract SchemaLabel schemaLabel();
@@ -329,7 +437,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
     }
 
     @Watched(prefix = "element")
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private <V> HugeProperty<V> addProperty(PropertyKey pkey, V value,
                                             Supplier<Collection<V>> supplier) {
         assert pkey.cardinality().multiple();
@@ -372,7 +480,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
             this.properties = EMPTY_MAP;
         } else {
             this.properties = CollectionFactory.newIntObjectMap(
-                              element.properties);
+                element.properties);
         }
         this.propLoaded = true;
     }
@@ -410,112 +518,6 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
     @Override
     public int compareTo(HugeElement o) {
         return this.id().compareTo(o.id());
-    }
-
-    /**
-     * Classify parameter list(pairs) from call request
-     * @param keyValues The property key-value pair of the vertex or edge
-     * @return          Key-value pairs that are classified and processed
-     */
-    @Watched(prefix = "element")
-    public static final ElementKeys classifyKeys(Object... keyValues) {
-        ElementKeys elemKeys = new ElementKeys();
-
-        if ((keyValues.length & 1) == 1) {
-            throw Element.Exceptions.providedKeyValuesMustBeAMultipleOfTwo();
-        }
-        for (int i = 0; i < keyValues.length; i = i + 2) {
-            Object key = keyValues[i];
-            Object val = keyValues[i + 1];
-
-            if (!(key instanceof String) && !(key instanceof T)) {
-                throw Element.Exceptions.providedKeyValuesMustHaveALegalKeyOnEvenIndices();
-            }
-            if (val == null) {
-                if (T.label.equals(key)) {
-                    throw Element.Exceptions.labelCanNotBeNull();
-                }
-                // Ignore null value for tinkerpop test compatibility
-                continue;
-            }
-
-            if (key.equals(T.id)) {
-                elemKeys.id = val;
-            } else if (key.equals(T.label)) {
-                elemKeys.label = val;
-            } else {
-                elemKeys.keys.add(key.toString());
-            }
-        }
-        return elemKeys;
-    }
-
-    public static final Id getIdValue(HugeType type, Object idValue) {
-        assert type.isGraph();
-        Id id = getIdValue(idValue);
-        if (type.isVertex()) {
-            return id;
-        } else {
-            if (id == null || id instanceof EdgeId) {
-                return id;
-            }
-            return EdgeId.parse(id.asString());
-        }
-    }
-
-    @Watched(prefix = "element")
-    protected static Id getIdValue(Object idValue) {
-        if (idValue == null) {
-            return null;
-        }
-
-        if (idValue instanceof String) {
-            // String id
-            return IdGenerator.of((String) idValue);
-        } else if (idValue instanceof Number) {
-            // Long id
-            return IdGenerator.of(((Number) idValue).longValue());
-        } else if (idValue instanceof UUID) {
-            // UUID id
-            return IdGenerator.of((UUID) idValue);
-        } else if (idValue instanceof Id) {
-            // Id itself
-            return (Id) idValue;
-        } else if (idValue instanceof Element) {
-            // Element
-            return (Id) ((Element) idValue).id();
-        }
-
-        // Throw if error type
-        throw new UnsupportedOperationException(String.format(
-                  "Invalid element id: %s(%s)",
-                  idValue, idValue.getClass().getSimpleName()));
-    }
-
-    @Watched(prefix = "element")
-    public static final Object getLabelValue(Object... keyValues) {
-        Object labelValue = null;
-        for (int i = 0; i < keyValues.length; i = i + 2) {
-            if (keyValues[i].equals(T.label)) {
-                labelValue = keyValues[i + 1];
-                E.checkArgument(labelValue instanceof String ||
-                                labelValue instanceof VertexLabel,
-                                "Expect a string or a VertexLabel object " +
-                                "as the vertex label argument, but got: '%s'",
-                                labelValue);
-                if (labelValue instanceof String) {
-                    ElementHelper.validateLabel((String) labelValue);
-                }
-                break;
-            }
-        }
-        return labelValue;
-    }
-
-    public static int intFromId(Id id) {
-        E.checkArgument(id instanceof IdGenerator.LongId,
-                        "Can't get number from %s(%s)", id, id.getClass());
-        return ((IdGenerator.LongId) id).intValue();
     }
 
     public static final class ElementKeys {

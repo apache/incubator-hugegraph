@@ -48,9 +48,8 @@ import com.google.protobuf.ByteString;
 
 public class StoreSnapshotFile {
 
-    private static final Logger LOG = Log.logger(StoreSnapshotFile.class);
-
     public static final String SNAPSHOT_DIR = "snapshot";
+    private static final Logger LOG = Log.logger(StoreSnapshotFile.class);
     private static final String TAR = ".zip";
 
     private final RaftBackendStore[] stores;

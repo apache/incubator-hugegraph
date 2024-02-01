@@ -22,10 +22,10 @@ import org.apache.hugegraph.config.HugeConfig;
 
 public class CompressStrategyManager {
 
-    private static byte DEFAULT_STRATEGY = 1;
     public static final byte SERIAL_STRATEGY = 1;
     public static final byte PARALLEL_STRATEGY = 2;
     public static final byte MAX_STRATEGY = 5;
+    private static byte DEFAULT_STRATEGY = 1;
     private static CompressStrategy[] compressStrategies = new CompressStrategy[MAX_STRATEGY];
 
     static {

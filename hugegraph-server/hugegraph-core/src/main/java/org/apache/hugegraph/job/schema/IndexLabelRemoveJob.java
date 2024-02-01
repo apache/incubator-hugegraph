@@ -17,26 +17,15 @@
 
 package org.apache.hugegraph.job.schema;
 
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.LockUtil;
-import org.apache.hugegraph.HugeGraphParams;
 
 public class IndexLabelRemoveJob extends SchemaJob {
-
-    @Override
-    public String type() {
-        return REMOVE_SCHEMA;
-    }
-
-    @Override
-    public Object execute() {
-        removeIndexLabel(this.params(), this.schemaId());
-        return null;
-    }
 
     protected static void removeIndexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
@@ -78,5 +67,16 @@ public class IndexLabelRemoveJob extends SchemaJob {
         } finally {
             locks.unlock();
         }
+    }
+
+    @Override
+    public String type() {
+        return REMOVE_SCHEMA;
+    }
+
+    @Override
+    public Object execute() {
+        removeIndexLabel(this.params(), this.schemaId());
+        return null;
     }
 }

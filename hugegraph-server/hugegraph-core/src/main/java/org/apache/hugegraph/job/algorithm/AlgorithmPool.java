@@ -20,9 +20,6 @@ package org.apache.hugegraph.job.algorithm;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
-import org.apache.hugegraph.job.algorithm.rank.PageRankAlgorithm;
-import org.apache.hugegraph.job.algorithm.similarity.FusiformSimilarityAlgorithm;
 import org.apache.hugegraph.job.algorithm.cent.BetweennessCentralityAlgorithm;
 import org.apache.hugegraph.job.algorithm.cent.BetweennessCentralityAlgorithmV2;
 import org.apache.hugegraph.job.algorithm.cent.ClosenessCentralityAlgorithm;
@@ -37,6 +34,9 @@ import org.apache.hugegraph.job.algorithm.comm.LouvainAlgorithm;
 import org.apache.hugegraph.job.algorithm.comm.LpaAlgorithm;
 import org.apache.hugegraph.job.algorithm.comm.TriangleCountAlgorithm;
 import org.apache.hugegraph.job.algorithm.comm.WeakConnectedComponent;
+import org.apache.hugegraph.job.algorithm.path.RingsDetectAlgorithm;
+import org.apache.hugegraph.job.algorithm.rank.PageRankAlgorithm;
+import org.apache.hugegraph.job.algorithm.similarity.FusiformSimilarityAlgorithm;
 import org.apache.hugegraph.util.E;
 
 public class AlgorithmPool {
@@ -78,6 +78,10 @@ public class AlgorithmPool {
         this.algorithms = new ConcurrentHashMap<>();
     }
 
+    public static AlgorithmPool instance() {
+        return INSTANCE;
+    }
+
     public Algorithm register(Algorithm algo) {
         assert !this.algorithms.containsKey(algo.name());
         return this.algorithms.put(algo.name(), algo);
@@ -92,9 +96,5 @@ public class AlgorithmPool {
         E.checkArgument(algorithm != null,
                         "Not found algorithm '%s'", name);
         return algorithm;
-    }
-
-    public static AlgorithmPool instance() {
-        return INSTANCE;
     }
 }

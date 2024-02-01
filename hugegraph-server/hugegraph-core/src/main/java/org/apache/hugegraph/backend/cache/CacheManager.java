@@ -24,12 +24,11 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class CacheManager {
 
@@ -45,6 +44,13 @@ public class CacheManager {
     private final Map<String, Cache<Id, ?>> caches;
     private final Timer timer;
 
+    public CacheManager() {
+        this.caches = new ConcurrentHashMap<>();
+        this.timer = new Timer("cache-expirer", true);
+
+        this.scheduleTimer(TIMER_TICK_PERIOD);
+    }
+
     public static CacheManager instance() {
         return INSTANCE;
     }
@@ -56,20 +62,13 @@ public class CacheManager {
         return cache.enableMetrics(enabled);
     }
 
-    public CacheManager() {
-        this.caches = new ConcurrentHashMap<>();
-        this.timer = new Timer("cache-expirer", true);
-
-        this.scheduleTimer(TIMER_TICK_PERIOD);
-    }
-
     private TimerTask scheduleTimer(float period) {
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
                 try {
                     for (Entry<String, Cache<Id, Object>> entry :
-                         caches().entrySet()) {
+                        caches().entrySet()) {
                         this.tick(entry.getKey(), entry.getValue());
                     }
                 } catch (Throwable e) {
@@ -97,7 +96,7 @@ public class CacheManager {
     }
 
     public <V> Map<String, Cache<Id, V>> caches() {
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Map<String, Cache<Id, V>> caches = (Map) this.caches;
         return Collections.unmodifiableMap(caches);
     }

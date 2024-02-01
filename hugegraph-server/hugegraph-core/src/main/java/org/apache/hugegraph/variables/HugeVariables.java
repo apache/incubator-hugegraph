@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.variables;
@@ -38,19 +40,18 @@ import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.util.Log;
 
 public class HugeVariables implements Graph.Variables {
 
@@ -76,33 +77,44 @@ public class HugeVariables implements Graph.Variables {
     private static final String SET = "S";
 
     private static final String[] TYPES = {
-            Hidden.hide(BYTE_VALUE),
-            Hidden.hide(BOOLEAN_VALUE),
-            Hidden.hide(INTEGER_VALUE),
-            Hidden.hide(LONG_VALUE),
-            Hidden.hide(FLOAT_VALUE),
-            Hidden.hide(DOUBLE_VALUE),
-            Hidden.hide(STRING_VALUE),
-            Hidden.hide(BYTE_VALUE + LIST),
-            Hidden.hide(BOOLEAN_VALUE + LIST),
-            Hidden.hide(INTEGER_VALUE + LIST),
-            Hidden.hide(LONG_VALUE + LIST),
-            Hidden.hide(FLOAT_VALUE + LIST),
-            Hidden.hide(DOUBLE_VALUE + LIST),
-            Hidden.hide(STRING_VALUE + LIST),
-            Hidden.hide(BYTE_VALUE + SET),
-            Hidden.hide(BOOLEAN_VALUE + SET),
-            Hidden.hide(INTEGER_VALUE + SET),
-            Hidden.hide(LONG_VALUE + SET),
-            Hidden.hide(FLOAT_VALUE + SET),
-            Hidden.hide(DOUBLE_VALUE + SET),
-            Hidden.hide(STRING_VALUE + SET)
+        Hidden.hide(BYTE_VALUE),
+        Hidden.hide(BOOLEAN_VALUE),
+        Hidden.hide(INTEGER_VALUE),
+        Hidden.hide(LONG_VALUE),
+        Hidden.hide(FLOAT_VALUE),
+        Hidden.hide(DOUBLE_VALUE),
+        Hidden.hide(STRING_VALUE),
+        Hidden.hide(BYTE_VALUE + LIST),
+        Hidden.hide(BOOLEAN_VALUE + LIST),
+        Hidden.hide(INTEGER_VALUE + LIST),
+        Hidden.hide(LONG_VALUE + LIST),
+        Hidden.hide(FLOAT_VALUE + LIST),
+        Hidden.hide(DOUBLE_VALUE + LIST),
+        Hidden.hide(STRING_VALUE + LIST),
+        Hidden.hide(BYTE_VALUE + SET),
+        Hidden.hide(BOOLEAN_VALUE + SET),
+        Hidden.hide(INTEGER_VALUE + SET),
+        Hidden.hide(LONG_VALUE + SET),
+        Hidden.hide(FLOAT_VALUE + SET),
+        Hidden.hide(DOUBLE_VALUE + SET),
+        Hidden.hide(STRING_VALUE + SET)
     };
 
     private final HugeGraphParams params;
 
     public HugeVariables(HugeGraphParams params) {
         this.params = params;
+    }
+
+    private static Object extractSingleObject(Object value) {
+        if (value instanceof List || value instanceof Set) {
+            Collection<?> collection = (Collection<?>) value;
+            if (collection.isEmpty()) {
+                return null;
+            }
+            value = collection.iterator().next();
+        }
+        return value;
     }
 
     public synchronized void initSchemaIfNeeded() {
@@ -216,7 +228,7 @@ public class HugeVariables implements Graph.Variables {
         String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
         if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(type);
+                .dataTypeOfVariableValueNotSupported(type);
         }
         // The value of key VARIABLE_TYPE is the name of variable value
         return Optional.of(vertex.value(Hidden.hide(type)));
@@ -262,7 +274,7 @@ public class HugeVariables implements Graph.Variables {
                 String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
                 if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
                     throw Graph.Variables.Exceptions
-                               .dataTypeOfVariableValueNotSupported(type);
+                        .dataTypeOfVariableValueNotSupported(type);
                 }
                 Object value = vertex.value(Hidden.hide(type));
                 variables.put(key, value);
@@ -322,7 +334,7 @@ public class HugeVariables implements Graph.Variables {
             vertex.property(Hidden.hide(VARIABLE_TYPE), STRING_VALUE + suffix);
         } else {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(value);
+                .dataTypeOfVariableValueNotSupported(value);
         }
     }
 
@@ -335,7 +347,7 @@ public class HugeVariables implements Graph.Variables {
             this.setProperty(vertex, key, value);
         } catch (IllegalArgumentException e) {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(value, e);
+                .dataTypeOfVariableValueNotSupported(value, e);
         }
         // PrimaryKey id
         vertex.assignId(null);
@@ -367,7 +379,7 @@ public class HugeVariables implements Graph.Variables {
         query.eq(HugeKeys.LABEL, vl.id());
         if (name != null) {
             PropertyKey pkey = this.params.graph().propertyKey(
-                               Hidden.hide(VARIABLE_KEY));
+                Hidden.hide(VARIABLE_KEY));
             query.query(Condition.eq(pkey.id(), name));
         }
         query.showHidden(true);
@@ -376,16 +388,5 @@ public class HugeVariables implements Graph.Variables {
 
     private VertexLabel variableVertexLabel() {
         return this.params.graph().vertexLabel(Hidden.hide(VARIABLES));
-    }
-
-    private static Object extractSingleObject(Object value) {
-        if (value instanceof List || value instanceof Set) {
-            Collection<?> collection = (Collection<?>) value;
-            if (collection.isEmpty()) {
-                return null;
-            }
-            value = collection.iterator().next();
-        }
-        return value;
     }
 }

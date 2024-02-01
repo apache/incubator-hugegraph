@@ -28,6 +28,16 @@ public class ClusterCoefficientAlgorithm extends AbstractCommAlgorithm {
 
     public static final String ALGO_NAME = "cluster_coefficient";
 
+    protected static int workersWhenBoth(Map<String, Object> parameters) {
+        Directions direction = direction(parameters);
+        int workers = workers(parameters);
+        E.checkArgument(direction == Directions.BOTH || workers <= 0,
+                        "The workers must be not set when direction!=BOTH, " +
+                        "but got workers=%s and direction=%s",
+                        workers, direction);
+        return workers;
+    }
+
     @Override
     public String name() {
         return ALGO_NAME;
@@ -48,16 +58,6 @@ public class ClusterCoefficientAlgorithm extends AbstractCommAlgorithm {
         }
     }
 
-    protected static int workersWhenBoth(Map<String, Object> parameters) {
-        Directions direction = direction(parameters);
-        int workers = workers(parameters);
-        E.checkArgument(direction == Directions.BOTH || workers <= 0,
-                        "The workers must be not set when direction!=BOTH, " +
-                        "but got workers=%s and direction=%s",
-                        workers, direction);
-        return workers;
-    }
-
     private static class Traverser extends TriangleCountAlgorithm.Traverser {
 
         public Traverser(UserJob<Object> job, int workers) {
@@ -73,7 +73,7 @@ public class ClusterCoefficientAlgorithm extends AbstractCommAlgorithm {
             assert triangles <= triads;
             double coefficient = triads == 0L ? 0d : 1d * triangles / triads;
 
-            @SuppressWarnings({ "unchecked", "rawtypes" })
+            @SuppressWarnings({"unchecked", "rawtypes"})
             Map<String, Double> converted = (Map) results;
             converted.put("cluster_coefficient", coefficient);
 

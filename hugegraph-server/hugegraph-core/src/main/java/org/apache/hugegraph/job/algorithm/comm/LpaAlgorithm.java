@@ -27,15 +27,15 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import org.apache.hugegraph.job.UserJob;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
 public class LpaAlgorithm extends AbstractCommAlgorithm {

@@ -23,13 +23,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
 

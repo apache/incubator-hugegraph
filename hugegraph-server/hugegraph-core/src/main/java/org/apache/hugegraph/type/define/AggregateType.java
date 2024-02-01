@@ -27,12 +27,12 @@ public enum AggregateType implements SerialEnum {
     SET(5, "set"),
     LIST(6, "list");
 
-    private final byte code;
-    private final String name;
-
     static {
         SerialEnum.register(AggregateType.class);
     }
+
+    private final byte code;
+    private final String name;
 
     AggregateType(int code, String name) {
         assert code < 256;

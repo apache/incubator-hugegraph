@@ -36,11 +36,10 @@ import org.apache.commons.configuration2.tree.NodeHandler;
 import org.apache.commons.configuration2.tree.NodeModel;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.config.HugeConfig;
+import org.slf4j.Logger;
 
 public final class ConfigUtil {
 
@@ -56,12 +55,12 @@ public final class ConfigUtil {
 
             FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
                 new FileBasedConfigurationBuilder(YAMLConfiguration.class)
-                .configure(params.fileBased().setFileName(conf));
+                    .configure(params.fileBased().setFileName(conf));
             YAMLConfiguration config = (YAMLConfiguration) builder.getConfiguration();
 
             List<HierarchicalConfiguration<ImmutableNode>> nodes =
-                                           config.childConfigurationsAt(
-                                           NODE_GRAPHS);
+                config.childConfigurationsAt(
+                    NODE_GRAPHS);
             if (nodes == null || nodes.isEmpty()) {
                 return;
             }
@@ -74,9 +73,9 @@ public final class ConfigUtil {
             for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
                 NodeModel<ImmutableNode> nodeModel = node.getNodeModel();
                 E.checkArgument(nodeModel != null &&
-                    (nodeHandler = nodeModel.getNodeHandler()) != null &&
-                    (root = nodeHandler.getRootNode()) != null,
-                    "Node '%s' must contain root", node);
+                                (nodeHandler = nodeModel.getNodeHandler()) != null &&
+                                (root = nodeHandler.getRootNode()) != null,
+                                "Node '%s' must contain root", node);
             }
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load yaml config file '%s'",

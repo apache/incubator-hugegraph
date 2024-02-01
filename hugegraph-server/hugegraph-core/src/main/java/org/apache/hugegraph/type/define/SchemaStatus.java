@@ -31,12 +31,12 @@ public enum SchemaStatus implements SerialEnum {
 
     INVALID(6, "invalid");
 
-    private byte code = 0;
-    private String name = null;
-
     static {
         SerialEnum.register(SchemaStatus.class);
     }
+
+    private byte code = 0;
+    private String name = null;
 
     SchemaStatus(int code, String name) {
         assert code < 256;

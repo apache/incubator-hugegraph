@@ -20,8 +20,6 @@ package org.apache.hugegraph.job.algorithm.similarity;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.job.algorithm.AbstractAlgorithm;
@@ -32,6 +30,7 @@ import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.ParameterUtil;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
@@ -47,52 +46,6 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
     public static final int DEFAULT_MIN_SIMILARS = 6;
     public static final int DEFAULT_TOP_SIMILARS = 0;
     public static final int DEFAULT_MIN_GROUPS = 0;
-
-    @Override
-    public String category() {
-        return CATEGORY_SIMI;
-    }
-
-    @Override
-    public String name() {
-        return ALGO_NAME;
-    }
-
-    @Override
-    public void checkParameters(Map<String, Object> parameters) {
-        minNeighbors(parameters);
-        alpha(parameters);
-        minSimilars(parameters);
-        topSimilars(parameters);
-        groupProperty(parameters);
-        minGroups(parameters);
-        degree(parameters);
-        limit(parameters);
-        sourceLabel(parameters);
-        sourceCLabel(parameters);
-        direction(parameters);
-        edgeLabel(parameters);
-        workers(parameters);
-    }
-
-    @Override
-    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
-        int workers = workers(parameters);
-        try (Traverser traverser = new Traverser(job, workers)) {
-            return traverser.fusiformSimilars(sourceLabel(parameters),
-                                              sourceCLabel(parameters),
-                                              direction(parameters),
-                                              edgeLabel(parameters),
-                                              minNeighbors(parameters),
-                                              alpha(parameters),
-                                              minSimilars(parameters),
-                                              topSimilars(parameters),
-                                              groupProperty(parameters),
-                                              minGroups(parameters),
-                                              degree(parameters),
-                                              limit(parameters));
-        }
-    }
 
     protected static int minNeighbors(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_MIN_NEIGHBORS)) {
@@ -149,6 +102,52 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
         return limit;
     }
 
+    @Override
+    public String category() {
+        return CATEGORY_SIMI;
+    }
+
+    @Override
+    public String name() {
+        return ALGO_NAME;
+    }
+
+    @Override
+    public void checkParameters(Map<String, Object> parameters) {
+        minNeighbors(parameters);
+        alpha(parameters);
+        minSimilars(parameters);
+        topSimilars(parameters);
+        groupProperty(parameters);
+        minGroups(parameters);
+        degree(parameters);
+        limit(parameters);
+        sourceLabel(parameters);
+        sourceCLabel(parameters);
+        direction(parameters);
+        edgeLabel(parameters);
+        workers(parameters);
+    }
+
+    @Override
+    public Object call(UserJob<Object> job, Map<String, Object> parameters) {
+        int workers = workers(parameters);
+        try (Traverser traverser = new Traverser(job, workers)) {
+            return traverser.fusiformSimilars(sourceLabel(parameters),
+                                              sourceCLabel(parameters),
+                                              direction(parameters),
+                                              edgeLabel(parameters),
+                                              minNeighbors(parameters),
+                                              alpha(parameters),
+                                              minSimilars(parameters),
+                                              topSimilars(parameters),
+                                              groupProperty(parameters),
+                                              minGroups(parameters),
+                                              degree(parameters),
+                                              limit(parameters));
+        }
+    }
+
     private static class Traverser extends AlgoTraverser {
 
         public Traverser(UserJob<Object> job, int workers) {
@@ -164,7 +163,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
             HugeGraph graph = this.graph();
 
             FusiformSimilarityTraverser traverser =
-                                        new FusiformSimilarityTraverser(graph);
+                new FusiformSimilarityTraverser(graph);
 
             AtomicLong count = new AtomicLong(0L);
             JsonMap similarsJson = new JsonMap();
@@ -172,11 +171,11 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
             this.traverse(sourceLabel, sourceCLabel, v -> {
                 SimilarsMap similars = traverser.fusiformSimilarity(
-                                       IteratorUtils.of(v), direction,
-                                       label, minNeighbors, alpha,
-                                       minSimilars, (int) topSimilars,
-                                       groupProperty, minGroups, degree,
-                                       MAX_CAPACITY, NO_LIMIT, true);
+                    IteratorUtils.of(v), direction,
+                    label, minNeighbors, alpha,
+                    minSimilars, (int) topSimilars,
+                    groupProperty, minGroups, degree,
+                    MAX_CAPACITY, NO_LIMIT, true);
                 if (similars.isEmpty()) {
                     return;
                 }

@@ -113,6 +113,13 @@ public class StandardAuthManager implements AuthManager {
         this.ipWhiteListEnabled = false;
     }
 
+    /**
+     * Maybe can define an proxy class to choose forward or call local
+     */
+    public static boolean isLocal(AuthManager authManager) {
+        return authManager instanceof StandardAuthManager;
+    }
+
     private <V> Cache<Id, V> cache(String prefix, long capacity,
                                    long expiredTime) {
         String name = prefix + "-" + this.graph.name();
@@ -411,13 +418,13 @@ public class StandardAuthManager implements AuthManager {
             Id adminGroupId = project.adminGroupId();
             Id opGroupId = project.opGroupId();
             HugeAccess adminGroupWriteAccess = new HugeAccess(
-                                                   adminGroupId, targetId,
-                                                   HugePermission.WRITE);
+                adminGroupId, targetId,
+                HugePermission.WRITE);
             // Ditto
             adminGroupWriteAccess.creator(project.creator());
             HugeAccess adminGroupReadAccess = new HugeAccess(
-                                                  adminGroupId, targetId,
-                                                  HugePermission.READ);
+                adminGroupId, targetId,
+                HugePermission.READ);
             // Ditto
             adminGroupReadAccess.creator(project.creator());
             HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
@@ -634,7 +641,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public String loginUser(String username, String password)
-                            throws AuthenticationException {
+        throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
             String msg = "Incorrect username or password";
@@ -672,10 +679,10 @@ public class StandardAuthManager implements AuthManager {
         Claims payload = null;
         boolean needBuildCache = false;
         if (username == null) {
-            try{
+            try {
                 payload = this.tokenGenerator.verify(token);
-            }catch (Throwable t){
-                LOG.error(String.format("Failed to verify token:[ %s ], cause:",token),t);
+            } catch (Throwable t) {
+                LOG.error(String.format("Failed to verify token:[ %s ], cause:", token), t);
                 return new UserWithRole("");
             }
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
@@ -714,13 +721,6 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public void enabledWhiteIpList(boolean status) {
         this.ipWhiteListEnabled = status;
-    }
-
-    /**
-     * Maybe can define an proxy class to choose forward or call local
-     */
-    public static boolean isLocal(AuthManager authManager) {
-        return authManager instanceof StandardAuthManager;
     }
 
     public <R> R commit(Callable<R> callable) {

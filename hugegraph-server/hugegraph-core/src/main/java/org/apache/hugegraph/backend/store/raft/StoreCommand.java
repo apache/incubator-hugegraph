@@ -49,22 +49,6 @@ public final class StoreCommand {
         this.forwarded = forwarded;
     }
 
-    public StoreType type() {
-        return this.type;
-    }
-
-    public StoreAction action() {
-        return this.action;
-    }
-
-    public byte[] data() {
-        return this.data;
-    }
-
-    public boolean forwarded() {
-        return this.forwarded;
-    }
-
     public static void writeHeader(BytesBuffer buffer) {
         buffer.write((byte) 0);
         buffer.write((byte) 0);
@@ -80,6 +64,22 @@ public final class StoreCommand {
         StoreType type = StoreType.valueOf(bytes[0]);
         StoreAction action = StoreAction.valueOf(bytes[1]);
         return new StoreCommand(type, action, bytes);
+    }
+
+    public StoreType type() {
+        return this.type;
+    }
+
+    public StoreAction action() {
+        return this.action;
+    }
+
+    public byte[] data() {
+        return this.data;
+    }
+
+    public boolean forwarded() {
+        return this.forwarded;
     }
 
     @Override

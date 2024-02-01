@@ -45,7 +45,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.NullOutputStream;
-
 import org.apache.hugegraph.backend.store.raft.RaftContext;
 
 import net.jpountz.lz4.LZ4BlockInputStream;
@@ -76,12 +75,12 @@ public final class CompressUtil {
     }
 
     private static void tarDir(Path source, TarArchiveOutputStream tos)
-                               throws IOException {
+        throws IOException {
         Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir,
                                                      BasicFileAttributes attrs)
-                                                     throws IOException {
+                throws IOException {
                 String entryName = buildTarEntryName(source, dir);
                 if (!entryName.isEmpty()) {
                     TarArchiveEntry entry = new TarArchiveEntry(dir.toFile(),
@@ -95,7 +94,7 @@ public final class CompressUtil {
             @Override
             public FileVisitResult visitFile(Path file,
                                              BasicFileAttributes attributes)
-                                             throws IOException {
+                throws IOException {
                 // Only copy files, no symbolic links
                 if (attributes.isSymbolicLink()) {
                     return FileVisitResult.CONTINUE;
@@ -127,7 +126,7 @@ public final class CompressUtil {
         Path target = Paths.get(outputDir);
         if (Files.notExists(source)) {
             throw new IOException(String.format(
-                                  "The source file %s doesn't exists", source));
+                "The source file %s doesn't exists", source));
         }
         LZ4Factory factory = LZ4Factory.fastestInstance();
         LZ4FastDecompressor decompressor = factory.fastDecompressor();
@@ -160,7 +159,7 @@ public final class CompressUtil {
     }
 
     private static Path zipSlipProtect(ArchiveEntry entry, Path targetDir)
-                                       throws IOException {
+        throws IOException {
         Path targetDirResolved = targetDir.resolve(entry.getName());
         /*
          * Make sure normalized file still has targetDir as its prefix,
@@ -183,7 +182,7 @@ public final class CompressUtil {
 
     public static void compressZip(String rootDir, String sourceDir,
                                    String outputFile, Checksum checksum)
-                                   throws IOException {
+        throws IOException {
         try (FileOutputStream fos = new FileOutputStream(outputFile);
              CheckedOutputStream cos = new CheckedOutputStream(fos, checksum);
              BufferedOutputStream bos = new BufferedOutputStream(cos);

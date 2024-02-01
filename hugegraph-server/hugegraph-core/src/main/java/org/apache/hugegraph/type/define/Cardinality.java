@@ -39,17 +39,31 @@ public enum Cardinality implements SerialEnum {
      */
     SET(3, "set");
 
-    private final byte code;
-    private final String name;
-
     static {
         SerialEnum.register(Cardinality.class);
     }
+
+    private final byte code;
+    private final String name;
 
     Cardinality(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
+    }
+
+    public static Cardinality convert(VertexProperty.Cardinality cardinality) {
+        switch (cardinality) {
+            case single:
+                return SINGLE;
+            case list:
+                return LIST;
+            case set:
+                return SET;
+            default:
+                throw new AssertionError(String.format("Unrecognized cardinality: '%s'",
+                                                       cardinality));
+        }
     }
 
     @Override
@@ -67,19 +81,5 @@ public enum Cardinality implements SerialEnum {
 
     public boolean multiple() {
         return this == LIST || this == SET;
-    }
-
-    public static Cardinality convert(VertexProperty.Cardinality cardinality) {
-        switch (cardinality) {
-            case single:
-                return SINGLE;
-            case list:
-                return LIST;
-            case set:
-                return SET;
-            default:
-                throw new AssertionError(String.format("Unrecognized cardinality: '%s'",
-                                                       cardinality));
-        }
     }
 }

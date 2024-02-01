@@ -25,18 +25,18 @@ import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import org.apache.hugegraph.util.Log;
 import com.google.protobuf.Message;
 
 public class StoreCommandProcessor
-       extends RpcRequestProcessor<StoreCommandRequest> {
+    extends RpcRequestProcessor<StoreCommandRequest> {
 
     private static final Logger LOG = Log.logger(
-                                      StoreCommandProcessor.class);
+        StoreCommandProcessor.class);
 
     private final RaftContext context;
 
@@ -60,8 +60,8 @@ public class StoreCommandProcessor
             LOG.warn("Failed to process StoreCommandRequest: {}",
                      request.getAction(), e);
             StoreCommandResponse.Builder builder = StoreCommandResponse
-                                                   .newBuilder()
-                                                   .setStatus(false);
+                .newBuilder()
+                .setStatus(false);
             if (e.getMessage() != null) {
                 builder.setMessage(e.getMessage());
             }

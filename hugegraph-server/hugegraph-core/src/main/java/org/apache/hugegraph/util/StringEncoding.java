@@ -14,7 +14,6 @@
 
 package org.apache.hugegraph.util;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -37,6 +36,8 @@ public final class StringEncoding {
     private static final byte[] BYTES_EMPTY = new byte[0];
     private static final String STRING_EMPTY = "";
     private static final int BLOCK_SIZE = 4096;
+    private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
+    private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
 
     static {
         final String ALG = "SHA-256";
@@ -47,10 +48,9 @@ public final class StringEncoding {
         }
     }
 
-    private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
-    private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
-
-    /** Similar to {@link StringSerializer} */
+    /**
+     * Similar to {@link StringSerializer}
+     */
     public static int writeAsciiString(byte[] array, int offset, String value) {
         E.checkArgument(CharMatcher.ascii().matchesAllOf(value),
                         "'%s' must be ASCII string", value);

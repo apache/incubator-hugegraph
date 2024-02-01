@@ -25,6 +25,10 @@ public enum NodeRole implements SerialEnum {
 
     COMPUTER(3, "computer");
 
+    static {
+        SerialEnum.register(NodeRole.class);
+    }
+
     private final byte code;
     private final String name;
 
@@ -32,10 +36,6 @@ public enum NodeRole implements SerialEnum {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
-    }
-
-    static {
-        SerialEnum.register(NodeRole.class);
     }
 
     @Override

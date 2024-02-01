@@ -20,21 +20,19 @@ package org.apache.hugegraph.backend.store.raft;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
+import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
+import org.apache.hugegraph.util.E;
+
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.PeerId;
-import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerResponse;
-
-import org.apache.hugegraph.util.E;
 import com.google.protobuf.Message;
 
 public class RaftGroupManagerImpl implements RaftGroupManager {
@@ -87,8 +85,8 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
         Status status = this.raftNode.node().transferLeadershipTo(peerId);
         if (!status.isOk()) {
             throw new BackendException(
-                      "Failed to transfer leader to '%s', raft error: %s",
-                      endpoint, status.getErrorMsg());
+                "Failed to transfer leader to '%s', raft error: %s",
+                endpoint, status.getErrorMsg());
         }
         return peerId.toString();
     }

@@ -27,6 +27,19 @@ public interface IntIterator {
     int[] EMPTY_INTS = new int[0];
     IntIterator EMPTY = new EmptyIntIterator();
 
+    static IntIterator wrap(
+        org.eclipse.collections.api.iterator.IntIterator iter) {
+        return new EcIntIterator(iter);
+    }
+
+    static IntIterator wrap(int[] values) {
+        return new ArrayIntIterator(values);
+    }
+
+    static IntIterator wrap(int value) {
+        return new ArrayIntIterator(new int[]{value});
+    }
+
     boolean hasNext();
 
     int next();
@@ -46,25 +59,12 @@ public interface IntIterator {
         };
     }
 
-    static IntIterator wrap(
-                  org.eclipse.collections.api.iterator.IntIterator iter) {
-        return new EcIntIterator(iter);
-    }
-
-    static IntIterator wrap(int[] values) {
-        return new ArrayIntIterator(values);
-    }
-
-    static IntIterator wrap(int value) {
-        return new ArrayIntIterator(new int[]{value});
-    }
-
     final class EcIntIterator implements IntIterator {
 
         private final org.eclipse.collections.api.iterator.IntIterator iterator;
 
         public EcIntIterator(org.eclipse.collections.api.iterator.IntIterator
-                             iterator) {
+                                 iterator) {
             this.iterator = iterator;
         }
 

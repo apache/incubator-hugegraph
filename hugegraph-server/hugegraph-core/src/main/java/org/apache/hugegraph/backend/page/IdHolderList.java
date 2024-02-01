@@ -31,14 +31,14 @@ public class IdHolderList extends ArrayList<IdHolder> {
 
     private final boolean paging;
 
+    public IdHolderList(boolean paging) {
+        this.paging = paging;
+    }
+
     public static IdHolderList empty(boolean paging) {
         IdHolderList empty = paging ? EMPTY_P : EMPTY_NP;
         empty.clear();
         return empty;
-    }
-
-    public IdHolderList(boolean paging) {
-        this.paging = paging;
     }
 
     public boolean paging() {

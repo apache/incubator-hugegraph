@@ -68,7 +68,7 @@ public final class StoreSerializer {
         // write mutation size
         buffer.writeVInt(mutation.size());
         for (Iterator<BackendAction> items = mutation.mutation();
-             items.hasNext();) {
+             items.hasNext(); ) {
             BackendAction item = items.next();
             // write Action
             buffer.write(item.action().code());

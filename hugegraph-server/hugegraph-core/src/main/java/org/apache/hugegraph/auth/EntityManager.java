@@ -22,36 +22,35 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.auth.SchemaDefine.Entity;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.auth.SchemaDefine.Entity;
-import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.iterator.MapperIterator;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
 public class EntityManager<T extends Entity> {
 
+    private static final long NO_LIMIT = -1L;
     private final HugeGraphParams graph;
     private final String label;
     private final Function<Vertex, T> deser;
     private final ThreadLocal<Boolean> autoCommit = new ThreadLocal<>();
-
-    private static final long NO_LIMIT = -1L;
 
     public EntityManager(HugeGraphParams graph, String label,
                          Function<Vertex, T> deser) {

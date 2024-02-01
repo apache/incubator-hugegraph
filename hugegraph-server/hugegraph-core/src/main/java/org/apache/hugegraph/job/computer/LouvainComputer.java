@@ -19,9 +19,10 @@ package org.apache.hugegraph.job.computer;
 
 import java.util.Map;
 
-import org.apache.hugegraph.util.ParameterUtil;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.ParameterUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class LouvainComputer extends AbstractComputer {
@@ -38,38 +39,6 @@ public class LouvainComputer extends AbstractComputer {
 
     public static final long DEFAULT_STABLE_TIMES = 3L;
     private static final int MAX_TIMES = 2048;
-
-    @Override
-    public String name() {
-        return LOUVAIN;
-    }
-
-    @Override
-    public String category() {
-        return CATEGORY_COMM;
-    }
-
-    @Override
-    public void checkParameters(Map<String, Object> parameters) {
-        times(parameters);
-        stableTimes(parameters);
-        precision(parameters);
-        degree(parameters);
-        showModularity(parameters);
-        showCommunity(parameters);
-        exportCommunity(parameters);
-        skipIsolated(parameters);
-        clearPass(parameters);
-    }
-
-    @Override
-    protected Map<String, Object> checkAndCollectParameters(
-                                  Map<String, Object> parameters) {
-        return ImmutableMap.of(TIMES, times(parameters),
-                               PRECISION, precision(parameters),
-                               DIRECTION, direction(parameters),
-                               DEGREE, degree(parameters));
-    }
 
     protected static int stableTimes(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_STABLE_TIMES)) {
@@ -122,5 +91,37 @@ public class LouvainComputer extends AbstractComputer {
         long pass = ParameterUtil.parameterLong(parameters, KEY_CLEAR);
         HugeTraverser.checkNonNegativeOrNoLimit(pass, KEY_CLEAR);
         return pass;
+    }
+
+    @Override
+    public String name() {
+        return LOUVAIN;
+    }
+
+    @Override
+    public String category() {
+        return CATEGORY_COMM;
+    }
+
+    @Override
+    public void checkParameters(Map<String, Object> parameters) {
+        times(parameters);
+        stableTimes(parameters);
+        precision(parameters);
+        degree(parameters);
+        showModularity(parameters);
+        showCommunity(parameters);
+        exportCommunity(parameters);
+        skipIsolated(parameters);
+        clearPass(parameters);
+    }
+
+    @Override
+    protected Map<String, Object> checkAndCollectParameters(
+        Map<String, Object> parameters) {
+        return ImmutableMap.of(TIMES, times(parameters),
+                               PRECISION, precision(parameters),
+                               DIRECTION, direction(parameters),
+                               DEGREE, degree(parameters));
     }
 }

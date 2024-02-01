@@ -22,14 +22,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.page.IdHolder.BatchIdHolder;
+import org.apache.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.ConditionQuery.OptimizedType;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.page.IdHolder.BatchIdHolder;
-import org.apache.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 
@@ -126,20 +126,66 @@ public final class QueryList<R> {
 
         /**
          * For non-paging situation
-         * @return          BackendEntry iterator
+         *
+         * @return BackendEntry iterator
          */
         QueryResults<R> iterator();
 
         /**
          * For paging situation
-         * @param index     position IdHolder(Query)
-         * @param page      set query page
-         * @param pageSize  set query page size
-         * @return          BackendEntry iterator with page
+         *
+         * @param index    position IdHolder(Query)
+         * @param page     set query page
+         * @param pageSize set query page size
+         * @return BackendEntry iterator with page
          */
         PageResults<R> iterator(int index, String page, long pageSize);
 
         int total();
+    }
+
+    public static class PageResults<R> {
+
+        public static final PageResults<?> EMPTY = new PageResults<>(
+            QueryResults.empty(),
+            PageState.EMPTY);
+
+        private final QueryResults<R> results;
+        private final PageState pageState;
+
+        public PageResults(QueryResults<R> results, PageState pageState) {
+            this.results = results;
+            this.pageState = pageState;
+        }
+
+        @SuppressWarnings("unchecked")
+        public static <R> PageResults<R> emptyIterator() {
+            return (PageResults<R>) EMPTY;
+        }
+
+        public Iterator<R> get() {
+            return this.results.iterator();
+        }
+
+        public boolean hasNextPage() {
+            return !Bytes.equals(this.pageState.position(),
+                                 PageState.EMPTY_BYTES);
+        }
+
+        public Query query() {
+            List<Query> queries = this.results.queries();
+            E.checkState(queries.size() == 1,
+                         "Expect query size 1, but got: %s", queries);
+            return queries.get(0);
+        }
+
+        public String page() {
+            return this.pageState.toString();
+        }
+
+        public long total() {
+            return this.pageState.total();
+        }
     }
 
     /**
@@ -317,50 +363,6 @@ public final class QueryList<R> {
             IdQuery query = new IdQuery(parent(), ids);
             query.mustSortByInput(inOrder);
             return fetcher().apply(query);
-        }
-    }
-
-    public static class PageResults<R> {
-
-        public static final PageResults<?> EMPTY = new PageResults<>(
-                                                   QueryResults.empty(),
-                                                   PageState.EMPTY);
-
-        private final QueryResults<R> results;
-        private final PageState pageState;
-
-        public PageResults(QueryResults<R> results, PageState pageState) {
-            this.results = results;
-            this.pageState = pageState;
-        }
-
-        public Iterator<R> get() {
-            return this.results.iterator();
-        }
-
-        public boolean hasNextPage() {
-            return !Bytes.equals(this.pageState.position(),
-                                 PageState.EMPTY_BYTES);
-        }
-
-        public Query query() {
-            List<Query> queries = this.results.queries();
-            E.checkState(queries.size() == 1,
-                         "Expect query size 1, but got: %s", queries);
-            return queries.get(0);
-        }
-
-        public String page() {
-            return this.pageState.toString();
-        }
-
-        public long total() {
-            return this.pageState.total();
-        }
-
-        @SuppressWarnings("unchecked")
-        public static <R> PageResults<R> emptyIterator() {
-            return (PageResults<R>) EMPTY;
         }
     }
 }

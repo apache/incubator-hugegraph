@@ -27,6 +27,40 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
 
     public static final String ALGO_NAME = "louvain";
 
+    protected static Long clearPass(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_CLEAR)) {
+            return null;
+        }
+        long pass = ParameterUtil.parameterLong(parameters, KEY_CLEAR);
+        HugeTraverser.checkNonNegativeOrNoLimit(pass, KEY_CLEAR);
+        return pass;
+    }
+
+    protected static Long showModularity(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_SHOW_MOD)) {
+            return null;
+        }
+        long pass = ParameterUtil.parameterLong(parameters, KEY_SHOW_MOD);
+        HugeTraverser.checkNonNegative(pass, KEY_SHOW_MOD);
+        return pass;
+    }
+
+    protected static Long exportCommunity(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_EXPORT_COMM)) {
+            return null;
+        }
+        long pass = ParameterUtil.parameterLong(parameters, KEY_EXPORT_COMM);
+        HugeTraverser.checkNonNegative(pass, KEY_EXPORT_COMM);
+        return pass;
+    }
+
+    protected static boolean skipIsolated(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_SKIP_ISOLATED)) {
+            return true;
+        }
+        return ParameterUtil.parameterBoolean(parameters, KEY_SKIP_ISOLATED);
+    }
+
     @Override
     public String name() {
         return ALGO_NAME;
@@ -62,8 +96,8 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         Long exportPass = exportCommunity(parameters);
 
         try (LouvainTraverser traverser = new LouvainTraverser(
-                                          job, workers, degree,
-                                          label, clabel, skipIsolated)) {
+            job, workers, degree,
+            label, clabel, skipIsolated)) {
             if (clearPass != null) {
                 return traverser.clearPass(clearPass.intValue());
             } else if (modPass != null) {
@@ -83,39 +117,5 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
             job.graph().tx().rollback();
             throw e;
         }
-    }
-
-    protected static Long clearPass(Map<String, Object> parameters) {
-        if (!parameters.containsKey(KEY_CLEAR)) {
-            return null;
-        }
-        long pass = ParameterUtil.parameterLong(parameters, KEY_CLEAR);
-        HugeTraverser.checkNonNegativeOrNoLimit(pass, KEY_CLEAR);
-        return pass;
-    }
-
-    protected static Long showModularity(Map<String, Object> parameters) {
-        if (!parameters.containsKey(KEY_SHOW_MOD)) {
-            return null;
-        }
-        long pass = ParameterUtil.parameterLong(parameters, KEY_SHOW_MOD);
-        HugeTraverser.checkNonNegative(pass, KEY_SHOW_MOD);
-        return pass;
-    }
-
-    protected static Long exportCommunity(Map<String, Object> parameters) {
-        if (!parameters.containsKey(KEY_EXPORT_COMM)) {
-            return null;
-        }
-        long pass = ParameterUtil.parameterLong(parameters, KEY_EXPORT_COMM);
-        HugeTraverser.checkNonNegative(pass, KEY_EXPORT_COMM);
-        return pass;
-    }
-
-    protected static boolean skipIsolated(Map<String, Object> parameters) {
-        if (!parameters.containsKey(KEY_SKIP_ISOLATED)) {
-            return true;
-        }
-        return ParameterUtil.parameterBoolean(parameters, KEY_SKIP_ISOLATED);
     }
 }

@@ -23,21 +23,21 @@ public interface RateLimiter {
     long RESET_PERIOD = 1000L;
 
     /**
-     * Acquires one permit from RateLimiter if it can be acquired immediately
-     * without delay.
-     */
-    boolean tryAcquire();
-
-    /**
      * Create a RateLimiter with specified rate, to keep compatible with
      * Guava's RateLimiter (use double now)
      *
      * @param ratePerSecond the rate of the returned RateLimiter, measured in
      *                      how many permits become available per second
-     *
-     * TODO: refactor it to make method unchangeable
+     *                      <p>
+     *                      TODO: refactor it to make method unchangeable
      */
     static RateLimiter create(double ratePerSecond) {
         return new FixedTimerWindowRateLimiter((int) ratePerSecond);
     }
+
+    /**
+     * Acquires one permit from RateLimiter if it can be acquired immediately
+     * without delay.
+     */
+    boolean tryAcquire();
 }

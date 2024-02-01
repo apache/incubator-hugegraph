@@ -24,14 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
-import org.caffinitas.ohc.CacheSerializer;
-import org.caffinitas.ohc.CloseableIterator;
-import org.caffinitas.ohc.Eviction;
-import org.caffinitas.ohc.OHCache;
-import org.caffinitas.ohc.OHCacheBuilder;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
@@ -39,6 +31,8 @@ import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BinarySerializer;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
@@ -46,6 +40,11 @@ import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.caffinitas.ohc.CacheSerializer;
+import org.caffinitas.ohc.CloseableIterator;
+import org.caffinitas.ohc.Eviction;
+import org.caffinitas.ohc.OHCache;
+import org.caffinitas.ohc.OHCacheBuilder;
 
 public class OffheapCache extends AbstractCache<Id, Object> {
 
@@ -119,7 +118,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
         if (serializedSize > VALUE_SIZE_TO_SKIP) {
             LOG.info("Skip to cache '{}' due to value size {} > limit {}",
-                      id, serializedSize, VALUE_SIZE_TO_SKIP);
+                     id, serializedSize, VALUE_SIZE_TO_SKIP);
             return false;
         }
 
@@ -157,6 +156,68 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                              .eviction(Eviction.LRU)
                              .throwOOME(true)
                              .timeouts(true);
+    }
+
+    private enum ValueType {
+
+        UNKNOWN,
+        LIST,
+        VERTEX,
+        EDGE,
+        BOOLEAN(DataType.BOOLEAN),
+        BYTE(DataType.BYTE),
+        BLOB(DataType.BLOB),
+        STRING(DataType.TEXT),
+        INT(DataType.INT),
+        LONG(DataType.LONG),
+        FLOAT(DataType.FLOAT),
+        DOUBLE(DataType.DOUBLE),
+        DATE(DataType.DATE),
+        UUID(DataType.UUID);
+
+        private final DataType dataType;
+
+        ValueType() {
+            this(DataType.UNKNOWN);
+        }
+
+        ValueType(DataType dataType) {
+            this.dataType = dataType;
+        }
+
+        public static ValueType valueOf(int index) {
+            ValueType[] values = values();
+            E.checkArgument(0 <= index && index < values.length,
+                            "Invalid ValueType index %s", index);
+            return values[index];
+        }
+
+        public static ValueType valueOf(Object object) {
+            E.checkNotNull(object, "object");
+            Class<?> clazz = object.getClass();
+            if (Collection.class.isAssignableFrom(clazz)) {
+                return ValueType.LIST;
+            } else if (HugeVertex.class.isAssignableFrom(clazz)) {
+                return ValueType.VERTEX;
+            } else if (HugeEdge.class.isAssignableFrom(clazz)) {
+                return ValueType.EDGE;
+            } else {
+                for (ValueType type : values()) {
+                    if (clazz == type.dataType().clazz()) {
+                        return type;
+                    }
+                }
+            }
+            return ValueType.UNKNOWN;
+        }
+
+        public int code() {
+            return this.ordinal();
+        }
+
+        public DataType dataType() {
+            return this.dataType;
+        }
     }
 
     private class IdSerializer implements CacheSerializer<Id> {
@@ -334,75 +395,13 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         private HugeException unsupported(ValueType type) {
             throw new HugeException(
-                      "Unsupported deserialize type: %s", type);
+                "Unsupported deserialize type: %s", type);
         }
 
         private HugeException unsupported(Object value) {
             throw new HugeException(
-                      "Unsupported type of serialize value: '%s'(%s)",
-                      value, value.getClass());
-        }
-    }
-
-    private enum ValueType {
-
-        UNKNOWN,
-        LIST,
-        VERTEX,
-        EDGE,
-        BOOLEAN(DataType.BOOLEAN),
-        BYTE(DataType.BYTE),
-        BLOB(DataType.BLOB),
-        STRING(DataType.TEXT),
-        INT(DataType.INT),
-        LONG(DataType.LONG),
-        FLOAT(DataType.FLOAT),
-        DOUBLE(DataType.DOUBLE),
-        DATE(DataType.DATE),
-        UUID(DataType.UUID);
-
-        private final DataType dataType;
-
-        ValueType() {
-            this(DataType.UNKNOWN);
-        }
-
-        ValueType(DataType dataType) {
-            this.dataType = dataType;
-        }
-
-        public int code() {
-            return this.ordinal();
-        }
-
-        public DataType dataType() {
-            return this.dataType;
-        }
-
-        public static ValueType valueOf(int index) {
-            ValueType[] values = values();
-            E.checkArgument(0 <= index && index < values.length,
-                            "Invalid ValueType index %s", index);
-            return values[index];
-        }
-
-        public static ValueType valueOf(Object object) {
-            E.checkNotNull(object, "object");
-            Class<?> clazz = object.getClass();
-            if (Collection.class.isAssignableFrom(clazz)) {
-                return ValueType.LIST;
-            } else if (HugeVertex.class.isAssignableFrom(clazz)) {
-                return ValueType.VERTEX;
-            } else if (HugeEdge.class.isAssignableFrom(clazz)) {
-                return ValueType.EDGE;
-            } else {
-                for (ValueType type : values()) {
-                    if (clazz == type.dataType().clazz()) {
-                        return type;
-                    }
-                }
-            }
-            return ValueType.UNKNOWN;
+                "Unsupported type of serialize value: '%s'(%s)",
+                value, value.getClass());
         }
     }
 }

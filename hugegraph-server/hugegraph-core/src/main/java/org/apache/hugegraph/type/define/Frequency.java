@@ -25,12 +25,12 @@ public enum Frequency implements SerialEnum {
 
     MULTIPLE(2, "multiple");
 
-    private byte code = 0;
-    private String name = null;
-
     static {
         SerialEnum.register(Frequency.class);
     }
+
+    private byte code = 0;
+    private String name = null;
 
     Frequency(int code, String name) {
         assert code < 256;

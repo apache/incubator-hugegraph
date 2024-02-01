@@ -30,17 +30,21 @@ public enum HugePermission implements SerialEnum {
 
     ANY(0x7f, "any");
 
-    private byte code;
-    private String name;
-
     static {
         SerialEnum.register(HugePermission.class);
     }
+
+    private byte code;
+    private String name;
 
     HugePermission(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
+    }
+
+    public static HugePermission fromCode(byte code) {
+        return SerialEnum.fromCode(HugePermission.class, code);
     }
 
     @Override
@@ -57,9 +61,5 @@ public enum HugePermission implements SerialEnum {
             return this == ANY;
         }
         return (this.code & other.code) != 0;
-    }
-
-    public static HugePermission fromCode(byte code) {
-        return SerialEnum.fromCode(HugePermission.class, code);
     }
 }

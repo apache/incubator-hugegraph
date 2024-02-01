@@ -22,17 +22,21 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hugegraph.backend.store.AbstractBackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStore.InMemoryGraphStore;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySystemStore;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.util.Events;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 
     public static final String TYPE = "memory";
 
     private static Map<String, InMemoryDBStoreProvider> providers = null;
+
+    private InMemoryDBStoreProvider(String graph) {
+        this.open(graph);
+    }
 
     public static boolean matchType(String type) {
         return TYPE.equalsIgnoreCase(type);
@@ -47,10 +51,6 @@ public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
             providers.putIfAbsent(graph, p);
         }
         return providers.get(graph);
-    }
-
-    private InMemoryDBStoreProvider(String graph) {
-        this.open(graph);
     }
 
     @Override

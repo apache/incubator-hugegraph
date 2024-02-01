@@ -32,9 +32,8 @@ import org.slf4j.Logger;
 
 public abstract class BackendEntryIterator implements CIter<BackendEntry> {
 
-    private static final Logger LOG = Log.logger(BackendEntryIterator.class);
     public static final long INLINE_BATCH_SIZE = Query.COMMIT_BATCH;
-
+    private static final Logger LOG = Log.logger(BackendEntryIterator.class);
     protected final Query query;
 
     protected BackendEntry current;
@@ -45,6 +44,13 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
         this.query = query;
         this.count = 0L;
         this.current = null;
+    }
+
+    public static final void checkInterrupted() {
+        if (Thread.interrupted()) {
+            throw new BackendException("Interrupted, maybe it is timed out",
+                                       new InterruptedException());
+        }
     }
 
     @Override
@@ -90,13 +96,6 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
             return this.pageState();
         }
         throw new NotSupportException("Invalid meta '%s'", meta);
-    }
-
-    public static final void checkInterrupted() {
-        if (Thread.interrupted()) {
-            throw new BackendException("Interrupted, maybe it is timed out",
-                                       new InterruptedException());
-        }
     }
 
     protected final void checkCapacity() throws LimitExceedException {

@@ -38,6 +38,10 @@ public class ComputerPool {
         this.computers = new ConcurrentHashMap<>();
     }
 
+    public static ComputerPool instance() {
+        return INSTANCE;
+    }
+
     public Computer register(Computer computer) {
         assert !this.computers.containsKey(computer.name());
         return this.computers.put(computer.name(), computer);
@@ -45,9 +49,5 @@ public class ComputerPool {
 
     public Computer find(String name) {
         return this.computers.get(name);
-    }
-
-    public static ComputerPool instance() {
-        return INSTANCE;
     }
 }

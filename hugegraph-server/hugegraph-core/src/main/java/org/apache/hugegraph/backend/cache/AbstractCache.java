@@ -22,10 +22,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
@@ -34,20 +33,16 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     public static final int MAX_INIT_CAP = 100 * MB;
 
     protected static final Logger LOG = Log.logger(AbstractCache.class);
-
-    // The unit of expired time is ms
-    private volatile long expire;
-
-    // Enabled cache metrics may cause performance penalty
-    private volatile boolean enabledMetrics;
     private final LongAdder hits;
     private final LongAdder miss;
-
     // NOTE: the count in number of items, not in bytes
     private final long capacity;
-
     // For user attachment
     private final AtomicReference<Object> attachment;
+    // The unit of expired time is ms
+    private volatile long expire;
+    // Enabled cache metrics may cause performance penalty
+    private volatile boolean enabledMetrics;
 
     public AbstractCache() {
         this(DEFAULT_SIZE);
@@ -65,6 +60,10 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
         this.enabledMetrics = false;
         this.hits = new LongAdder();
         this.miss = new LongAdder();
+    }
+
+    protected static final long now() {
+        return System.currentTimeMillis();
     }
 
     @Watched(prefix = "cache")
@@ -183,7 +182,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
         int expireItems = 0;
         long current = now();
-        for (Iterator<CacheNode<K, V>> it = this.nodes(); it.hasNext();) {
+        for (Iterator<CacheNode<K, V>> it = this.nodes(); it.hasNext(); ) {
             CacheNode<K, V> node = it.next();
             if (current - node.time() >= expireTime) {
                 // Remove item while iterating map (it must be ConcurrentMap)
@@ -245,10 +244,6 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
     protected abstract void remove(K id);
 
     protected abstract Iterator<CacheNode<K, V>> nodes();
-
-    protected static final long now() {
-        return System.currentTimeMillis();
-    }
 
     protected static class CacheNode<K, V> {
 

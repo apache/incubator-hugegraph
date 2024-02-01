@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
@@ -37,14 +38,12 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
-import org.apache.hugegraph.util.E;
-
 public class RolePermission {
 
     public static final RolePermission NONE = RolePermission.role(
-                                              "none", HugePermission.NONE);
+        "none", HugePermission.NONE);
     public static final RolePermission ADMIN = RolePermission.role(
-                                               "admin", HugePermission.ANY);
+        "admin", HugePermission.ANY);
 
     static {
         SimpleModule module = new SimpleModule();
@@ -64,8 +63,50 @@ public class RolePermission {
     }
 
     private RolePermission(Map<String, Map<HugePermission,
-                                       List<HugeResource>>> roles) {
+        List<HugeResource>>> roles) {
         this.roles = roles;
+    }
+
+    public static RolePermission fromJson(Object json) {
+        RolePermission role;
+        if (json instanceof String) {
+            role = JsonUtil.fromJson((String) json, RolePermission.class);
+        } else {
+            // Optimized json with RolePermission object
+            E.checkArgument(json instanceof RolePermission,
+                            "Invalid role value: %s", json);
+            role = (RolePermission) json;
+        }
+        return role;
+    }
+
+    public static RolePermission all(String graph) {
+        return role(graph, HugePermission.ANY);
+    }
+
+    public static RolePermission role(String graph, HugePermission perm) {
+        RolePermission role = new RolePermission();
+        role.add(graph, perm, HugeResource.ALL_RES);
+        return role;
+    }
+
+    public static RolePermission none() {
+        return NONE;
+    }
+
+    public static RolePermission admin() {
+        return ADMIN;
+    }
+
+    public static RolePermission builtin(RolePermission role) {
+        E.checkNotNull(role, "role");
+        if (role == ADMIN || role.equals(ADMIN)) {
+            return ADMIN;
+        }
+        if (role == NONE || role.equals(NONE)) {
+            return NONE;
+        }
+        return role;
     }
 
     protected void add(String graph, String action,
@@ -76,7 +117,7 @@ public class RolePermission {
     protected void add(String graph, HugePermission action,
                        List<HugeResource> resources) {
         Map<HugePermission, List<HugeResource>> permissions =
-                                                this.roles.get(graph);
+            this.roles.get(graph);
         if (permissions == null) {
             permissions = new TreeMap<>();
             this.roles.put(graph, permissions);
@@ -95,7 +136,7 @@ public class RolePermission {
 
     public boolean contains(RolePermission other) {
         for (Map.Entry<String, Map<HugePermission, List<HugeResource>>> e1 :
-             other.roles.entrySet()) {
+            other.roles.entrySet()) {
             String g = e1.getKey();
             Map<HugePermission, List<HugeResource>> perms = this.roles.get(g);
             if (perms == null) {
@@ -146,50 +187,8 @@ public class RolePermission {
         return JsonUtil.toJson(this);
     }
 
-    public static RolePermission fromJson(Object json) {
-        RolePermission role;
-        if (json instanceof String) {
-            role = JsonUtil.fromJson((String) json, RolePermission.class);
-        } else {
-            // Optimized json with RolePermission object
-            E.checkArgument(json instanceof RolePermission,
-                            "Invalid role value: %s", json);
-            role = (RolePermission) json;
-        }
-        return role;
-    }
-
-    public static RolePermission all(String graph) {
-        return role(graph, HugePermission.ANY);
-    }
-
-    public static RolePermission role(String graph, HugePermission perm) {
-        RolePermission role = new RolePermission();
-        role.add(graph, perm, HugeResource.ALL_RES);
-        return role;
-    }
-
-    public static RolePermission none() {
-        return NONE;
-    }
-
-    public static RolePermission admin() {
-        return ADMIN;
-    }
-
-    public static RolePermission builtin(RolePermission role) {
-        E.checkNotNull(role, "role");
-        if (role == ADMIN || role.equals(ADMIN)) {
-            return ADMIN;
-        }
-        if (role == NONE || role.equals(NONE)) {
-            return NONE;
-        }
-        return role;
-    }
-
     private static class RolePermissionSer
-                   extends StdSerializer<RolePermission> {
+        extends StdSerializer<RolePermission> {
 
         private static final long serialVersionUID = -2533310506459479383L;
 
@@ -200,7 +199,7 @@ public class RolePermission {
         @Override
         public void serialize(RolePermission role, JsonGenerator generator,
                               SerializerProvider provider)
-                              throws IOException {
+            throws IOException {
             generator.writeStartObject();
             generator.writeObjectField("roles", role.roles);
             generator.writeEndObject();
@@ -208,7 +207,7 @@ public class RolePermission {
     }
 
     private static class RolePermissionDeser
-                   extends StdDeserializer<RolePermission> {
+        extends StdDeserializer<RolePermission> {
 
         private static final long serialVersionUID = -2038234657843260957L;
 
@@ -219,9 +218,10 @@ public class RolePermission {
         @Override
         public RolePermission deserialize(JsonParser parser,
                                           DeserializationContext ctxt)
-                                          throws IOException {
+            throws IOException {
             TypeReference<?> type = new TypeReference<TreeMap<String,
-                             TreeMap<HugePermission, List<HugeResource>>>>() {};
+                TreeMap<HugePermission, List<HugeResource>>>>() {
+            };
             if ("roles".equals(parser.nextFieldName())) {
                 parser.nextValue();
                 return new RolePermission(parser.readValueAs(type));

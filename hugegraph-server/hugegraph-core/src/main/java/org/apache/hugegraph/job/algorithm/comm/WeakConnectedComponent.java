@@ -24,17 +24,17 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableMap;
 
 public class WeakConnectedComponent extends AbstractCommAlgorithm {
@@ -101,16 +101,16 @@ public class WeakConnectedComponent extends AbstractCommAlgorithm {
                         }
                     } else {
                         changeCount += this.findAndSetMinComponent(
-                                       currentSourceVertexId,
-                                       adjacentVertices);
+                            currentSourceVertexId,
+                            adjacentVertices);
                         adjacentVertices = new ArrayList<>();
                         currentSourceVertexId = sourceVertexId;
                         adjacentVertices.add(targetVertexId);
                     }
                 }
                 changeCount += this.findAndSetMinComponent(
-                               currentSourceVertexId,
-                               adjacentVertices);
+                    currentSourceVertexId,
+                    adjacentVertices);
                 LOG.debug("iterationTimes:{}, changeCount:{}",
                           times, changeCount);
 
@@ -145,7 +145,8 @@ public class WeakConnectedComponent extends AbstractCommAlgorithm {
 
         /**
          * process for a vertex and its adjacentVertices
-         * @param sourceVertexId the source vertex
+         *
+         * @param sourceVertexId   the source vertex
          * @param adjacentVertices the adjacent vertices attached to source
          *                         vertex
          * @return the count of vertex that changed Component

@@ -22,9 +22,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.JsonUtil;
@@ -45,19 +45,28 @@ public enum DataType implements SerialEnum {
     DATE(10, "date", Date.class),
     UUID(11, "uuid", UUID.class);
 
-    private final byte code;
-    private final String name;
-    private final Class<?> clazz;
-
     static {
         SerialEnum.register(DataType.class);
     }
+
+    private final byte code;
+    private final String name;
+    private final Class<?> clazz;
 
     DataType(int code, String name, Class<?> clazz) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
         this.clazz = clazz;
+    }
+
+    public static DataType fromClass(Class<?> clazz) {
+        for (DataType type : DataType.values()) {
+            if (type.clazz() == clazz) {
+                return type;
+            }
+        }
+        throw new HugeException("Unknown clazz '%s' for DataType", clazz);
     }
 
     @Override
@@ -132,13 +141,13 @@ public enum DataType implements SerialEnum {
                     break;
                 default:
                     throw new AssertionError(String.format(
-                              "Number type only contains Byte, Integer, " +
-                              "Long, Float, Double, but got %s", this.clazz()));
+                        "Number type only contains Byte, Integer, " +
+                        "Long, Float, Double, but got %s", this.clazz()));
             }
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(String.format(
-                      "Can't read '%s' as %s: %s",
-                      value, this.name, e.getMessage()));
+                "Can't read '%s' as %s: %s",
+                value, this.name, e.getMessage()));
         }
         return number;
     }
@@ -199,20 +208,11 @@ public enum DataType implements SerialEnum {
                     bytes[i] = ((Number) v).byteValue();
                 } else {
                     throw new IllegalArgumentException(String.format(
-                              "expect byte or int value, but got '%s'", v));
+                        "expect byte or int value, but got '%s'", v));
                 }
             }
             return Blob.wrap(bytes);
         }
         return null;
-    }
-
-    public static DataType fromClass(Class<?> clazz) {
-        for (DataType type : DataType.values()) {
-            if (type.clazz() == clazz) {
-                return type;
-            }
-        }
-        throw new HugeException("Unknown clazz '%s' for DataType", clazz);
     }
 }

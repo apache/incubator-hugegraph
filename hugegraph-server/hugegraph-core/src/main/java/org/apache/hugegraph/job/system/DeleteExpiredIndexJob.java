@@ -20,12 +20,12 @@ package org.apache.hugegraph.job.system;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeIndex;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 
 public class DeleteExpiredIndexJob<V> extends DeleteExpiredJob<V> {

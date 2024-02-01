@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.IndexLabel;
@@ -35,21 +37,18 @@ import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.type.define.SerialEnum;
+import org.apache.hugegraph.util.DateUtil;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.util.DateUtil;
-import org.apache.hugegraph.util.E;
-
 public class HugeServerInfo {
 
     // Unit millisecond
     private static final long EXPIRED_INTERVAL =
-                              TaskManager.SCHEDULE_PERIOD * 10;
+        TaskManager.SCHEDULE_PERIOD * 10;
 
     private Id id;
     private NodeRole role;
@@ -76,6 +75,20 @@ public class HugeServerInfo {
         this.load = 0;
         this.role = role;
         this.updateTime = DateUtil.now();
+    }
+
+    public static HugeServerInfo fromVertex(Vertex vertex) {
+        HugeServerInfo serverInfo = new HugeServerInfo((Id) vertex.id());
+        for (Iterator<VertexProperty<Object>> iter = vertex.properties();
+             iter.hasNext(); ) {
+            VertexProperty<Object> prop = iter.next();
+            serverInfo.property(prop.key(), prop.value());
+        }
+        return serverInfo;
+    }
+
+    public static Schema schema(HugeGraphParams graph) {
+        return new Schema(graph);
     }
 
     public Id id() {
@@ -199,16 +212,6 @@ public class HugeServerInfo {
         return map;
     }
 
-    public static HugeServerInfo fromVertex(Vertex vertex) {
-        HugeServerInfo serverInfo = new HugeServerInfo((Id) vertex.id());
-        for (Iterator<VertexProperty<Object>> iter = vertex.properties();
-             iter.hasNext();) {
-            VertexProperty<Object> prop = iter.next();
-            serverInfo.property(prop.key(), prop.value());
-        }
-        return serverInfo;
-    }
-
     public <V> boolean suitableFor(HugeTask<V> task, long now) {
         if (task.computer() != this.role.computer()) {
             return false;
@@ -218,10 +221,6 @@ public class HugeServerInfo {
             return false;
         }
         return true;
-    }
-
-    public static Schema schema(HugeGraphParams graph) {
-        return new Schema(graph);
     }
 
     public static final class P {
@@ -288,7 +287,7 @@ public class HugeServerInfo {
 
         public boolean existVertexLabel(String label) {
             return this.graph.schemaTransaction()
-                       .getVertexLabel(label) != null;
+                             .getVertexLabel(label) != null;
         }
 
         @SuppressWarnings("unused")

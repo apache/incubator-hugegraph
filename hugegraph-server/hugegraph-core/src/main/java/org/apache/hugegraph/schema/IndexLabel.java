@@ -23,17 +23,26 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public class IndexLabel extends SchemaElement {
 
+    // Label index
+    private static final IndexLabel VL_IL = new IndexLabel(VL_IL_ID, "~vli");
+    private static final IndexLabel EL_IL = new IndexLabel(EL_IL_ID, "~eli");
+    // Schema name index
+    private static final IndexLabel PKN_IL = new IndexLabel(PKN_IL_ID, "~pkni");
+    private static final IndexLabel VLN_IL = new IndexLabel(VLN_IL_ID, "~vlni");
+    private static final IndexLabel ELN_IL = new IndexLabel(ELN_IL_ID, "~elni");
+    private static final IndexLabel ILN_IL = new IndexLabel(ILN_IL_ID, "~ilni");
     private HugeType baseType;
     private Id baseValue;
     private IndexType indexType;
@@ -49,6 +58,91 @@ public class IndexLabel extends SchemaElement {
 
     protected IndexLabel(long id, String name) {
         this(null, IdGenerator.of(id), name);
+    }
+
+    public static IndexLabel label(HugeType type) {
+        switch (type) {
+            case VERTEX:
+                return VL_IL;
+            case EDGE:
+            case EDGE_OUT:
+            case EDGE_IN:
+                return EL_IL;
+            case PROPERTY_KEY:
+                return PKN_IL;
+            case VERTEX_LABEL:
+                return VLN_IL;
+            case EDGE_LABEL:
+                return ELN_IL;
+            case INDEX_LABEL:
+                return ILN_IL;
+            default:
+                throw new AssertionError(String.format(
+                    "No primitive index label for '%s'", type));
+        }
+    }
+
+    public static IndexLabel label(HugeGraph graph, Id id) {
+        // Primitive IndexLabel first
+        if (id.asLong() < 0 && id.asLong() > -NEXT_PRIMITIVE_SYS_ID) {
+            switch ((int) id.asLong()) {
+                case VL_IL_ID:
+                    return VL_IL;
+                case EL_IL_ID:
+                    return EL_IL;
+                case PKN_IL_ID:
+                    return PKN_IL;
+                case VLN_IL_ID:
+                    return VLN_IL;
+                case ELN_IL_ID:
+                    return ELN_IL;
+                case ILN_IL_ID:
+                    return ILN_IL;
+                default:
+                    throw new AssertionError(String.format(
+                        "No primitive index label for '%s'", id));
+            }
+        }
+        return graph.indexLabel(id);
+    }
+
+    public static SchemaLabel getBaseLabel(HugeGraph graph,
+                                           HugeType baseType,
+                                           Object baseValue) {
+        E.checkNotNull(baseType, "base type", "index label");
+        E.checkNotNull(baseValue, "base value", "index label");
+        E.checkArgument(baseValue instanceof String || baseValue instanceof Id,
+                        "The base value must be instance of String or Id, " +
+                        "but got %s(%s)", baseValue,
+                        baseValue.getClass().getSimpleName());
+
+        SchemaLabel label;
+        switch (baseType) {
+            case VERTEX_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.vertexLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.vertexLabel((Id) baseValue);
+                }
+                break;
+            case EDGE_LABEL:
+                if (baseValue instanceof String) {
+                    label = graph.edgeLabel((String) baseValue);
+                } else {
+                    assert baseValue instanceof Id;
+                    label = graph.edgeLabel((Id) baseValue);
+                }
+                break;
+            default:
+                throw new AssertionError(String.format(
+                    "Unsupported base type '%s' of index label",
+                    baseType));
+        }
+
+        E.checkArgumentNotNull(label, "Can't find the %s with name '%s'",
+                               baseType.readableName(), baseValue);
+        return label;
     }
 
     @Override
@@ -90,10 +184,10 @@ public class IndexLabel extends SchemaElement {
                 return HugeType.SYS_SCHEMA;
             default:
                 throw new AssertionError(String.format(
-                          "Query type of index label is either '%s' or '%s', " +
-                          "but '%s' is used",
-                          HugeType.VERTEX_LABEL, HugeType.EDGE_LABEL,
-                          this.baseType));
+                    "Query type of index label is either '%s' or '%s', " +
+                    "but '%s' is used",
+                    HugeType.VERTEX_LABEL, HugeType.EDGE_LABEL,
+                    this.baseType));
         }
     }
 
@@ -150,101 +244,6 @@ public class IndexLabel extends SchemaElement {
             default:
                 return value;
         }
-    }
-
-    // Label index
-    private static final IndexLabel VL_IL = new IndexLabel(VL_IL_ID, "~vli");
-    private static final IndexLabel EL_IL = new IndexLabel(EL_IL_ID, "~eli");
-
-    // Schema name index
-    private static final IndexLabel PKN_IL = new IndexLabel(PKN_IL_ID, "~pkni");
-    private static final IndexLabel VLN_IL = new IndexLabel(VLN_IL_ID, "~vlni");
-    private static final IndexLabel ELN_IL = new IndexLabel(ELN_IL_ID, "~elni");
-    private static final IndexLabel ILN_IL = new IndexLabel(ILN_IL_ID, "~ilni");
-
-    public static IndexLabel label(HugeType type) {
-        switch (type) {
-            case VERTEX:
-                return VL_IL;
-            case EDGE:
-            case EDGE_OUT:
-            case EDGE_IN:
-                return EL_IL;
-            case PROPERTY_KEY:
-                return PKN_IL;
-            case VERTEX_LABEL:
-                return VLN_IL;
-            case EDGE_LABEL:
-                return ELN_IL;
-            case INDEX_LABEL:
-                return ILN_IL;
-            default:
-                throw new AssertionError(String.format(
-                          "No primitive index label for '%s'", type));
-        }
-    }
-
-    public static IndexLabel label(HugeGraph graph, Id id) {
-        // Primitive IndexLabel first
-        if (id.asLong() < 0 && id.asLong() > -NEXT_PRIMITIVE_SYS_ID) {
-            switch ((int) id.asLong()) {
-                case VL_IL_ID:
-                    return VL_IL;
-                case EL_IL_ID:
-                    return EL_IL;
-                case PKN_IL_ID:
-                    return PKN_IL;
-                case VLN_IL_ID:
-                    return VLN_IL;
-                case ELN_IL_ID:
-                    return ELN_IL;
-                case ILN_IL_ID:
-                    return ILN_IL;
-                default:
-                    throw new AssertionError(String.format(
-                              "No primitive index label for '%s'", id));
-            }
-        }
-        return graph.indexLabel(id);
-    }
-
-    public static SchemaLabel getBaseLabel(HugeGraph graph,
-                                           HugeType baseType,
-                                           Object baseValue) {
-        E.checkNotNull(baseType, "base type", "index label");
-        E.checkNotNull(baseValue, "base value", "index label");
-        E.checkArgument(baseValue instanceof String || baseValue instanceof Id,
-                        "The base value must be instance of String or Id, " +
-                        "but got %s(%s)", baseValue,
-                        baseValue.getClass().getSimpleName());
-
-        SchemaLabel label;
-        switch (baseType) {
-            case VERTEX_LABEL:
-                if (baseValue instanceof String) {
-                    label = graph.vertexLabel((String) baseValue);
-                } else {
-                    assert baseValue instanceof Id;
-                    label = graph.vertexLabel((Id) baseValue);
-                }
-                break;
-            case EDGE_LABEL:
-                if (baseValue instanceof String) {
-                    label = graph.edgeLabel((String) baseValue);
-                } else {
-                    assert baseValue instanceof Id;
-                    label = graph.edgeLabel((Id) baseValue);
-                }
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unsupported base type '%s' of index label",
-                          baseType));
-        }
-
-        E.checkArgumentNotNull(label, "Can't find the %s with name '%s'",
-                               baseType.readableName(), baseValue);
-        return label;
     }
 
     public interface Builder extends SchemaBuilder<IndexLabel> {

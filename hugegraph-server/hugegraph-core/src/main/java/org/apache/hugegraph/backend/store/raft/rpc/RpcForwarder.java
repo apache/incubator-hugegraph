@@ -19,8 +19,16 @@ package org.apache.hugegraph.backend.store.raft.rpc;
 
 import java.util.concurrent.ExecutionException;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.backend.store.raft.RaftClosure;
+import org.apache.hugegraph.backend.store.raft.RaftContext;
 import org.apache.hugegraph.backend.store.raft.RaftStoreClosure;
 import org.apache.hugegraph.backend.store.raft.StoreCommand;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Node;
@@ -31,14 +39,6 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.rpc.RaftClientService;
 import com.alipay.sofa.jraft.rpc.RpcResponseClosure;
 import com.alipay.sofa.jraft.util.Endpoint;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.store.raft.RaftClosure;
-import org.apache.hugegraph.backend.store.raft.RaftContext;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreCommandResponse;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
 import com.google.protobuf.Descriptors.FieldDescriptor;
 import com.google.protobuf.Message;
 import com.google.protobuf.ZeroByteStringHelper;
@@ -77,10 +77,13 @@ public class RpcForwarder {
             public void setResponse(StoreCommandResponse response) {
                 if (response.getStatus()) {
                     LOG.debug("StoreCommandResponse status ok");
-                    // This code forwards the request to the Raft leader and considers the operation successful
+                    // This code forwards the request to the Raft leader and considers the
+                    // operation successful
                     // if it's forwarded successfully. It returns a RaftClosure because the calling
-                    // logic expects a RaftClosure result. Specifically, if the current instance is the Raft leader,
-                    // it executes the corresponding logic locally and notifies the calling logic asynchronously
+                    // logic expects a RaftClosure result. Specifically, if the current instance
+                    // is the Raft leader,
+                    // it executes the corresponding logic locally and notifies the calling logic
+                    // asynchronously
                     // via RaftClosure. Therefore, the result is returned as a RaftClosure here.
                     RaftClosure<Status> supplierFuture = new RaftClosure<>();
                     supplierFuture.complete(Status.OK());
@@ -90,10 +93,10 @@ public class RpcForwarder {
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
                     BackendException e = new BackendException(
-                                         "Current node isn't leader, leader " +
-                                         "is [%s], failed to forward request " +
-                                         "to leader: %s",
-                                         leaderId, response.getMessage());
+                        "Current node isn't leader, leader " +
+                        "is [%s], failed to forward request " +
+                        "to leader: %s",
+                        leaderId, response.getMessage());
                     future.failure(status, e);
                 }
             }
@@ -133,10 +136,10 @@ public class RpcForwarder {
                     Status status = new Status(RaftError.UNKNOWN,
                                                "fowared request failed");
                     BackendException e = new BackendException(
-                                         "Current node isn't leader, leader " +
-                                         "is [%s], failed to forward request " +
-                                         "to leader: %s",
-                                         leaderId, commonResponse.getMessage());
+                        "Current node isn't leader, leader " +
+                        "is [%s], failed to forward request " +
+                        "to leader: %s",
+                        leaderId, commonResponse.getMessage());
                     future.failure(status, e);
                 }
             }

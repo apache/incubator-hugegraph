@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class TableDefine {

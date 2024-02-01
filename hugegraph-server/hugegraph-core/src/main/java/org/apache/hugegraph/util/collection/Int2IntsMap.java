@@ -177,7 +177,7 @@ public class Int2IntsMap {
         int capacity = (this.size() + 1) * 64;
         StringBuilder sb = new StringBuilder(capacity);
         sb.append("{");
-        for (IntIterator iter = this.keys(); iter.hasNext();) {
+        for (IntIterator iter = this.keys(); iter.hasNext(); ) {
             if (sb.length() > 1) {
                 sb.append(", ");
             }

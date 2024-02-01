@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.LongAdder;
 /**
  * This class is used for fixed window to limit request per second
  * The different with stopwatch is to use timer for reducing count times
- *
+ * <p>
  * TODO: Move to common module
  */
 public class FixedTimerWindowRateLimiter implements RateLimiter {

@@ -26,8 +26,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.iterator.CIter;
@@ -38,13 +36,14 @@ import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.type.Idfiable;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 public class QueryResults<R> {
 
     private static final Iterator<?> EMPTY_ITERATOR = new EmptyIterator<>();
 
     private static final QueryResults<?> EMPTY = new QueryResults<>(
-                                                 emptyIterator(), Query.NONE);
+        emptyIterator(), Query.NONE);
 
     private final Iterator<R> results;
     private final List<Query> queries;
@@ -57,6 +56,94 @@ public class QueryResults<R> {
     private QueryResults(Iterator<R> results) {
         this.results = results;
         this.queries = InsertionOrderUtil.newList();
+    }
+
+    @Watched
+    public static <T> ListIterator<T> toList(Iterator<T> iterator) {
+        try {
+            return new ListIterator<>(Query.DEFAULT_CAPACITY, iterator);
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+    }
+
+    @Watched
+    public static <T> void fillList(Iterator<T> iterator, List<T> list) {
+        try {
+            while (iterator.hasNext()) {
+                T result = iterator.next();
+                list.add(result);
+                Query.checkForceCapacity(list.size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+    }
+
+    @Watched
+    public static <T extends Idfiable> void fillMap(Iterator<T> iterator,
+                                                    Map<Id, T> map) {
+        try {
+            while (iterator.hasNext()) {
+                T result = iterator.next();
+                assert result.id() != null;
+                map.put(result.id(), result);
+                Query.checkForceCapacity(map.size());
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+    }
+
+    public static <T, R> QueryResults<R> flatMap(
+        Iterator<T> iterator, Function<T, QueryResults<R>> func) {
+        @SuppressWarnings("unchecked")
+        QueryResults<R>[] qr = new QueryResults[1];
+        qr[0] = new QueryResults<>(new FlatMapperIterator<>(iterator, i -> {
+            QueryResults<R> results = func.apply(i);
+            if (results == null || !results.iterator().hasNext()) {
+                return null;
+            }
+            /*
+             * NOTE: should call results.iterator().hasNext() before
+             * results.queries() to collect sub-query with index query
+             */
+            qr[0].addQueries(results.queries());
+            return results.iterator();
+        }));
+        return qr[0];
+    }
+
+    @Watched
+    public static <T> T one(Iterator<T> iterator) {
+        try {
+            if (iterator.hasNext()) {
+                T result = iterator.next();
+                if (iterator.hasNext()) {
+                    throw new HugeException("Expect just one result, " +
+                                            "but got at least two: [%s, %s]",
+                                            result, iterator.next());
+                }
+                return result;
+            }
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
+        return null;
+    }
+
+    public static <T> Iterator<T> iterator(T elem) {
+        return new OneIterator<>(elem);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> QueryResults<T> empty() {
+        return (QueryResults<T>) EMPTY;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> Iterator<T> emptyIterator() {
+        return (Iterator<T>) EMPTY_ITERATOR;
     }
 
     public void setQuery(Query query) {
@@ -97,7 +184,7 @@ public class QueryResults<R> {
     }
 
     public <T extends Idfiable> Iterator<T> keepInputOrderIfNeeded(
-                                            Iterator<T> origin) {
+        Iterator<T> origin) {
         if (!origin.hasNext()) {
             // None result found
             return origin;
@@ -178,95 +265,9 @@ public class QueryResults<R> {
         return ids;
     }
 
-    @Watched
-    public static <T> ListIterator<T> toList(Iterator<T> iterator) {
-        try {
-            return new ListIterator<>(Query.DEFAULT_CAPACITY, iterator);
-        } finally {
-            CloseableIterator.closeIterator(iterator);
-        }
-    }
+    public interface Fetcher<R> extends Function<Query, QueryResults<R>> {
 
-    @Watched
-    public static <T> void fillList(Iterator<T> iterator, List<T> list) {
-        try {
-            while (iterator.hasNext()) {
-                T result = iterator.next();
-                list.add(result);
-                Query.checkForceCapacity(list.size());
-            }
-        } finally {
-            CloseableIterator.closeIterator(iterator);
-        }
     }
-
-    @Watched
-    public static <T extends Idfiable> void fillMap(Iterator<T> iterator,
-                                                    Map<Id, T> map) {
-        try {
-            while (iterator.hasNext()) {
-                T result = iterator.next();
-                assert result.id() != null;
-                map.put(result.id(), result);
-                Query.checkForceCapacity(map.size());
-            }
-        } finally {
-            CloseableIterator.closeIterator(iterator);
-        }
-    }
-
-    public static <T, R> QueryResults<R> flatMap(
-                  Iterator<T> iterator, Function<T, QueryResults<R>> func) {
-        @SuppressWarnings("unchecked")
-        QueryResults<R>[] qr = new QueryResults[1];
-        qr[0] = new QueryResults<>(new FlatMapperIterator<>(iterator, i -> {
-            QueryResults<R> results = func.apply(i);
-            if (results == null || !results.iterator().hasNext()) {
-                return null;
-            }
-            /*
-             * NOTE: should call results.iterator().hasNext() before
-             * results.queries() to collect sub-query with index query
-             */
-            qr[0].addQueries(results.queries());
-            return results.iterator();
-        }));
-        return qr[0];
-    }
-
-    @Watched
-    public static <T> T one(Iterator<T> iterator) {
-        try {
-            if (iterator.hasNext()) {
-                T result = iterator.next();
-                if (iterator.hasNext()) {
-                    throw new HugeException("Expect just one result, " +
-                                            "but got at least two: [%s, %s]",
-                                            result, iterator.next());
-                }
-                return result;
-            }
-        } finally {
-            CloseableIterator.closeIterator(iterator);
-        }
-        return null;
-    }
-
-    public static <T> Iterator<T> iterator(T elem) {
-        return new OneIterator<>(elem);
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> QueryResults<T> empty() {
-        return (QueryResults<T>) EMPTY;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> Iterator<T> emptyIterator() {
-        return (Iterator<T>) EMPTY_ITERATOR;
-    }
-
-    public interface Fetcher<R> extends Function<Query, QueryResults<R>> {}
 
     private static class EmptyIterator<T> implements CIter<T> {
 

@@ -65,6 +65,29 @@ public enum ResourceType {
 
     ROOT;
 
+    public static ResourceType from(HugeType type) {
+        switch (type) {
+            case VERTEX:
+                return VERTEX;
+            case EDGE:
+            case EDGE_OUT:
+            case EDGE_IN:
+                return EDGE;
+            case PROPERTY_KEY:
+                return PROPERTY_KEY;
+            case VERTEX_LABEL:
+                return VERTEX_LABEL;
+            case EDGE_LABEL:
+                return EDGE_LABEL;
+            case INDEX_LABEL:
+                return INDEX_LABEL;
+            default:
+                // pass
+                break;
+        }
+        return NONE;
+    }
+
     public boolean match(ResourceType required) {
         if (this == required) {
             return true;
@@ -111,28 +134,5 @@ public enum ResourceType {
 
     public boolean isRepresentative() {
         return this == ROOT || this == ALL || this == SCHEMA;
-    }
-
-    public static ResourceType from(HugeType type) {
-        switch (type) {
-            case VERTEX:
-                return VERTEX;
-            case EDGE:
-            case EDGE_OUT:
-            case EDGE_IN:
-                return EDGE;
-            case PROPERTY_KEY:
-                return PROPERTY_KEY;
-            case VERTEX_LABEL:
-                return VERTEX_LABEL;
-            case EDGE_LABEL:
-                return EDGE_LABEL;
-            case INDEX_LABEL:
-                return INDEX_LABEL;
-            default:
-                // pass
-                break;
-        }
-        return NONE;
     }
 }

@@ -20,16 +20,16 @@ package org.apache.hugegraph.schema;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.Typeable;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+
 import com.google.common.base.Objects;
 
 public abstract class SchemaElement implements Nameable, Typeable,
@@ -37,7 +37,8 @@ public abstract class SchemaElement implements Nameable, Typeable,
 
     public static final int MAX_PRIMITIVE_SYS_ID = 32;
     public static final int NEXT_PRIMITIVE_SYS_ID = 8;
-
+    public static final Id NONE_ID = IdGenerator.ZERO;
+    public static final String UNDEF = "~undefined";
     // ABS of system schema id must be below MAX_PRIMITIVE_SYS_ID
     protected static final int VL_IL_ID = -1;
     protected static final int EL_IL_ID = -2;
@@ -46,11 +47,6 @@ public abstract class SchemaElement implements Nameable, Typeable,
     protected static final int ELN_IL_ID = -5;
     protected static final int ILN_IL_ID = -6;
     protected static final int OLAP_VL_ID = -7;
-
-    public static final Id NONE_ID = IdGenerator.ZERO;
-
-    public static final String UNDEF = "~undefined";
-
     protected final HugeGraph graph;
 
     private final Id id;
@@ -66,6 +62,14 @@ public abstract class SchemaElement implements Nameable, Typeable,
         this.name = name;
         this.userdata = new Userdata();
         this.status = SchemaStatus.CREATED;
+    }
+
+    public static int schemaId(Id id) {
+        long l = id.asLong();
+        // Currently we limit the schema id to within 4 bytes
+        E.checkArgument(Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE,
+                        "Schema id is out of bound: %s", l);
+        return (int) l;
     }
 
     public HugeGraph graph() {
@@ -158,20 +162,12 @@ public abstract class SchemaElement implements Nameable, Typeable,
 
     @Override
     public int hashCode() {
-        return this.type().hashCode() ^  this.id.hashCode();
+        return this.type().hashCode() ^ this.id.hashCode();
     }
 
     @Override
     public String toString() {
         return String.format("%s(id=%s)", this.name, this.id);
-    }
-
-    public static int schemaId(Id id) {
-        long l = id.asLong();
-        // Currently we limit the schema id to within 4 bytes
-        E.checkArgument(Integer.MIN_VALUE <= l && l <= Integer.MAX_VALUE,
-                        "Schema id is out of bound: %s", l);
-        return (int) l;
     }
 
     public static class TaskWithSchema {

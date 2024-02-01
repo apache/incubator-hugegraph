@@ -19,15 +19,13 @@ package org.apache.hugegraph.backend.tx;
 
 import java.util.Iterator;
 
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-
-import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.SchemaElement;
@@ -35,6 +33,7 @@ import org.apache.hugegraph.structure.HugeIndex;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 public class SchemaIndexTransaction extends AbstractTransaction {
 
@@ -86,7 +85,7 @@ public class SchemaIndexTransaction extends AbstractTransaction {
         IndexLabel il = IndexLabel.label(query.resultType());
         String name = query.condition(HugeKeys.NAME);
         E.checkState(name != null, "The name in condition can't be null " +
-                     "when querying schema by name");
+                                   "when querying schema by name");
 
         ConditionQuery indexQuery;
         indexQuery = new ConditionQuery(HugeType.SECONDARY_INDEX, query);

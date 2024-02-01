@@ -49,6 +49,45 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         this.registerMetaHandlers();
     }
 
+    /**
+     * Mapping query-type to table-type
+     *
+     * @param query origin query
+     * @return corresponding table type
+     */
+    public static HugeType tableType(Query query) {
+        HugeType type = query.resultType();
+
+        // Mapping EDGE to EDGE_OUT/EDGE_IN
+        if (type == HugeType.EDGE) {
+            // We assume query OUT edges
+            type = HugeType.EDGE_OUT;
+
+            while (!(query instanceof ConditionQuery ||
+                     query.originQuery() == null)) {
+                /*
+                 * Some backends(like RocksDB) may trans ConditionQuery to
+                 * IdQuery or IdPrefixQuery, so we should get the origin query.
+                 */
+                query = query.originQuery();
+            }
+
+            if (query.conditionsSize() > 0 && query instanceof ConditionQuery) {
+                ConditionQuery cq = (ConditionQuery) query;
+                // Does query IN edges
+                if (cq.condition(HugeKeys.DIRECTION) == Directions.IN) {
+                    type = HugeType.EDGE_IN;
+                }
+            }
+        }
+
+        return type;
+    }
+
+    public static final String joinTableName(String prefix, String table) {
+        return prefix + "_" + table.toLowerCase();
+    }
+
     public String table() {
         return this.table;
     }
@@ -91,45 +130,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
         }
     }
 
-    /**
-     * Mapping query-type to table-type
-     *
-     * @param query origin query
-     * @return corresponding table type
-     */
-    public static HugeType tableType(Query query) {
-        HugeType type = query.resultType();
-
-        // Mapping EDGE to EDGE_OUT/EDGE_IN
-        if (type == HugeType.EDGE) {
-            // We assume query OUT edges
-            type = HugeType.EDGE_OUT;
-
-            while (!(query instanceof ConditionQuery ||
-                     query.originQuery() == null)) {
-                /*
-                 * Some backends(like RocksDB) may trans ConditionQuery to
-                 * IdQuery or IdPrefixQuery, so we should get the origin query.
-                 */
-                query = query.originQuery();
-            }
-
-            if (query.conditionsSize() > 0 && query instanceof ConditionQuery) {
-                ConditionQuery cq = (ConditionQuery) query;
-                // Does query IN edges
-                if (cq.condition(HugeKeys.DIRECTION) == Directions.IN) {
-                    type = HugeType.EDGE_IN;
-                }
-            }
-        }
-
-        return type;
-    }
-
-    public static final String joinTableName(String prefix, String table) {
-        return prefix + "_" + table.toLowerCase();
-    }
-
     public abstract void init(Session session);
 
     public abstract void clear(Session session);
@@ -152,22 +152,18 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     public abstract static class ShardSplitter<Session extends BackendSession> {
 
-        // The min shard size should >= 1M to prevent too many number of shards
-        protected static final int MIN_SHARD_SIZE = (int) Bytes.MB;
-
-        // We assume the size of each key-value is 100 bytes
-        protected static final int ESTIMATE_BYTES_PER_KV = 100;
-
         public static final String START = "";
         public static final String END = "";
-
-        private static final byte[] EMPTY = new byte[0];
         public static final byte[] START_BYTES = new byte[]{0x0};
         public static final byte[] END_BYTES = new byte[]{-1, -1, -1, -1,
                                                           -1, -1, -1, -1,
                                                           -1, -1, -1, -1,
                                                           -1, -1, -1, -1};
-
+        // The min shard size should >= 1M to prevent too many number of shards
+        protected static final int MIN_SHARD_SIZE = (int) Bytes.MB;
+        // We assume the size of each key-value is 100 bytes
+        protected static final int ESTIMATE_BYTES_PER_KV = 100;
+        private static final byte[] EMPTY = new byte[0];
         private final String table;
 
         public ShardSplitter(String table) {
@@ -239,67 +235,6 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
             public Range(byte[] startKey, byte[] endKey) {
                 this.startKey = Arrays.equals(EMPTY, startKey) ? START_BYTES : startKey;
                 this.endKey = Arrays.equals(EMPTY, endKey) ? END_BYTES : endKey;
-            }
-
-            public List<Shard> splitEven(int count) {
-                if (count <= 1) {
-                    return ImmutableList.of(new Shard(startKey(this.startKey),
-                                                      endKey(this.endKey), 0));
-                }
-
-                byte[] start;
-                byte[] end;
-                boolean startChanged = false;
-                boolean endChanged = false;
-                int length;
-                if (this.startKey.length < this.endKey.length) {
-                    length = this.endKey.length;
-                    start = new byte[length];
-                    System.arraycopy(this.startKey, 0, start, 0,
-                                     this.startKey.length);
-                    end = this.endKey;
-                    startChanged = true;
-                } else if (this.startKey.length > this.endKey.length) {
-                    length = this.startKey.length;
-                    end = new byte[length];
-                    System.arraycopy(this.endKey, 0, end, 0,
-                                     this.endKey.length);
-                    start = this.startKey;
-                    endChanged = true;
-                } else {
-                    assert this.startKey.length == this.endKey.length;
-                    length = this.startKey.length;
-                    start = this.startKey;
-                    end = this.endKey;
-                }
-
-                assert count > 1;
-                byte[] each = align(new BigInteger(1, subtract(end, start))
-                                        .divide(BigInteger.valueOf(count))
-                                        .toByteArray(),
-                                    length);
-                byte[] offset = start;
-                byte[] last = offset;
-                boolean finished = false;
-                List<Shard> shards = new ArrayList<>(count);
-                while (Bytes.compare(offset, end) < 0 && !finished) {
-                    offset = add(offset, each);
-                    if (offset.length > end.length ||
-                        Bytes.compare(offset, end) > 0) {
-                        offset = end;
-                    }
-                    if (startChanged) {
-                        last = this.startKey;
-                        startChanged = false;
-                    }
-                    if (endChanged && Arrays.equals(offset, end)) {
-                        offset = this.endKey;
-                        finished = true;
-                    }
-                    shards.add(new Shard(startKey(last), endKey(offset), 0));
-                    last = offset;
-                }
-                return shards;
             }
 
             private static String startKey(byte[] start) {
@@ -374,6 +309,67 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
             private static byte int2byte(int i) {
                 return (byte) (i & 0x000000ff);
+            }
+
+            public List<Shard> splitEven(int count) {
+                if (count <= 1) {
+                    return ImmutableList.of(new Shard(startKey(this.startKey),
+                                                      endKey(this.endKey), 0));
+                }
+
+                byte[] start;
+                byte[] end;
+                boolean startChanged = false;
+                boolean endChanged = false;
+                int length;
+                if (this.startKey.length < this.endKey.length) {
+                    length = this.endKey.length;
+                    start = new byte[length];
+                    System.arraycopy(this.startKey, 0, start, 0,
+                                     this.startKey.length);
+                    end = this.endKey;
+                    startChanged = true;
+                } else if (this.startKey.length > this.endKey.length) {
+                    length = this.startKey.length;
+                    end = new byte[length];
+                    System.arraycopy(this.endKey, 0, end, 0,
+                                     this.endKey.length);
+                    start = this.startKey;
+                    endChanged = true;
+                } else {
+                    assert this.startKey.length == this.endKey.length;
+                    length = this.startKey.length;
+                    start = this.startKey;
+                    end = this.endKey;
+                }
+
+                assert count > 1;
+                byte[] each = align(new BigInteger(1, subtract(end, start))
+                                        .divide(BigInteger.valueOf(count))
+                                        .toByteArray(),
+                                    length);
+                byte[] offset = start;
+                byte[] last = offset;
+                boolean finished = false;
+                List<Shard> shards = new ArrayList<>(count);
+                while (Bytes.compare(offset, end) < 0 && !finished) {
+                    offset = add(offset, each);
+                    if (offset.length > end.length ||
+                        Bytes.compare(offset, end) > 0) {
+                        offset = end;
+                    }
+                    if (startChanged) {
+                        last = this.startKey;
+                        startChanged = false;
+                    }
+                    if (endChanged && Arrays.equals(offset, end)) {
+                        offset = this.endKey;
+                        finished = true;
+                    }
+                    shards.add(new Shard(startKey(last), endKey(offset), 0));
+                    last = offset;
+                }
+                return shards;
             }
         }
     }

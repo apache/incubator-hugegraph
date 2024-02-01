@@ -96,6 +96,68 @@ public final class Consumers<V> {
         this.queue = new ArrayBlockingQueue<>(this.queueSize);
     }
 
+    public static void executeOncePerThread(ExecutorService executor,
+                                            int totalThreads,
+                                            Runnable callback,
+                                            long invokeTimeout)
+        throws InterruptedException {
+        // Ensure callback execute at least once for every thread
+        final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
+        final List<Callable<Void>> tasks = new ArrayList<>();
+        final Callable<Void> task = () -> {
+            Thread current = Thread.currentThread();
+            threadsTimes.putIfAbsent(current, 0);
+            int times = threadsTimes.get(current);
+            if (times == 0) {
+                callback.run();
+                // Let other threads run
+                Thread.yield();
+            } else {
+                assert times < totalThreads;
+                assert threadsTimes.size() < totalThreads;
+                E.checkState(tasks.size() == totalThreads,
+                             "Bad tasks size: %s", tasks.size());
+                // Let another thread run and wait for it
+                executor.submit(tasks.get(0)).get();
+            }
+            threadsTimes.put(current, ++times);
+            return null;
+        };
+
+        // NOTE: expect each task thread to perform a close operation
+        for (int i = 0; i < totalThreads; i++) {
+            tasks.add(task);
+        }
+        executor.invokeAll(tasks, invokeTimeout, TimeUnit.SECONDS);
+    }
+
+    public static ExecutorService newThreadPool(String prefix, int workers) {
+        if (workers == 0) {
+            return null;
+        } else {
+            if (workers < 0) {
+                assert workers == -1;
+                workers = Consumers.THREADS;
+            } else if (workers > CoreOptions.CPUS * 2) {
+                workers = CoreOptions.CPUS * 2;
+            }
+            String name = prefix + "-worker-%d";
+            return ExecutorUtil.newFixedThreadPool(workers, name);
+        }
+    }
+
+    public static ExecutorPool newExecutorPool(String prefix, int workers) {
+        return new ExecutorPool(prefix, workers);
+    }
+
+    public static RuntimeException wrapException(Throwable e) {
+        if (e instanceof RuntimeException) {
+            throw (RuntimeException) e;
+        }
+        throw new HugeException("Error when running task: %s",
+                                HugeException.rootCause(e).getMessage(), e);
+    }
+
     public void start(String name) {
         this.exception = null;
         if (this.executor == null) {
@@ -105,7 +167,7 @@ public final class Consumers<V> {
                  this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
             this.runningFutures.add(
-                    this.executor.submit(new ContextCallable<>(this::runAndDone)));
+                this.executor.submit(new ContextCallable<>(this::runAndDone)));
         }
     }
 
@@ -248,68 +310,6 @@ public final class Consumers<V> {
 
     public ExecutorService executor() {
         return this.executor;
-    }
-
-    public static void executeOncePerThread(ExecutorService executor,
-                                            int totalThreads,
-                                            Runnable callback,
-                                            long invokeTimeout)
-                                            throws InterruptedException {
-        // Ensure callback execute at least once for every thread
-        final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
-        final List<Callable<Void>> tasks = new ArrayList<>();
-        final Callable<Void> task = () -> {
-            Thread current = Thread.currentThread();
-            threadsTimes.putIfAbsent(current, 0);
-            int times = threadsTimes.get(current);
-            if (times == 0) {
-                callback.run();
-                // Let other threads run
-                Thread.yield();
-            } else {
-                assert times < totalThreads;
-                assert threadsTimes.size() < totalThreads;
-                E.checkState(tasks.size() == totalThreads,
-                             "Bad tasks size: %s", tasks.size());
-                // Let another thread run and wait for it
-                executor.submit(tasks.get(0)).get();
-            }
-            threadsTimes.put(current, ++times);
-            return null;
-        };
-
-        // NOTE: expect each task thread to perform a close operation
-        for (int i = 0; i < totalThreads; i++) {
-            tasks.add(task);
-        }
-        executor.invokeAll(tasks, invokeTimeout, TimeUnit.SECONDS);
-    }
-
-    public static ExecutorService newThreadPool(String prefix, int workers) {
-        if (workers == 0) {
-            return null;
-        } else {
-            if (workers < 0) {
-                assert workers == -1;
-                workers = Consumers.THREADS;
-            } else if (workers > CoreOptions.CPUS * 2) {
-                workers = CoreOptions.CPUS * 2;
-            }
-            String name = prefix + "-worker-%d";
-            return ExecutorUtil.newFixedThreadPool(workers, name);
-        }
-    }
-
-    public static ExecutorPool newExecutorPool(String prefix, int workers) {
-        return new ExecutorPool(prefix, workers);
-    }
-
-    public static RuntimeException wrapException(Throwable e) {
-        if (e instanceof RuntimeException) {
-            throw (RuntimeException) e;
-        }
-        throw new HugeException("Error when running task: %s",
-                                HugeException.rootCause(e).getMessage(), e);
     }
 
     public static class ExecutorPool {

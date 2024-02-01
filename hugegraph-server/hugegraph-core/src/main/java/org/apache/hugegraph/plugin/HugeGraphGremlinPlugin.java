@@ -22,13 +22,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeFactory;
+import org.apache.hugegraph.util.ReflectionUtil;
 import org.apache.tinkerpop.gremlin.jsr223.AbstractGremlinPlugin;
 import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
 import org.apache.tinkerpop.gremlin.jsr223.ImportCustomizer;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeFactory;
-import org.apache.hugegraph.util.ReflectionUtil;
 import com.google.common.reflect.ClassPath;
 
 public class HugeGraphGremlinPlugin extends AbstractGremlinPlugin {

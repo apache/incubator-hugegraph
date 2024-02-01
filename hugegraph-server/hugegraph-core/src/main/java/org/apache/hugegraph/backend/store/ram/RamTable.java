@@ -75,8 +75,8 @@ public final class RamTable {
     private static final int NULL = 0;
 
     private static final Condition BOTH_COND = Condition.or(
-                         Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
-                         Condition.eq(HugeKeys.DIRECTION, Directions.IN));
+        Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
+        Condition.eq(HugeKeys.DIRECTION, Directions.IN));
 
     private final HugeGraph graph;
     private final long verticesCapacity;
@@ -99,6 +99,25 @@ public final class RamTable {
         this.verticesCapacityHalf = (int) (this.verticesCapacity / 2L);
         this.edgesCapacity = maxEdges + 1;
         this.reset();
+    }
+
+    private static void ensureNumberId(Id id) {
+        if (!id.number()) {
+            throw new HugeException("Only number id is supported by " +
+                                    "ramtable, but got %s id '%s'",
+                                    id.type().name().toLowerCase(), id);
+        }
+    }
+
+    private static long encode(long target, Directions direction, int label) {
+        // TODO: support property
+        assert (label & 0x0fffffff) == label;
+        assert target < 2L * Integer.MAX_VALUE : target;
+        long value = target & 0xffffffff;
+        long dir = direction == Directions.OUT ?
+                   0x00000000L : 0x80000000L;
+        value = (value << 32) | (dir | label);
+        return value;
     }
 
     private void reset() {
@@ -145,7 +164,7 @@ public final class RamTable {
         File file = Paths.get(EXPORT_PATH, fileName).toFile();
         if (!file.exists() || !file.isFile() || !file.canRead()) {
             throw new IllegalArgumentException(String.format(
-                      "File '%s' does not existed or readable", fileName));
+                "File '%s' does not existed or readable", fileName));
         }
         try (FileInputStream fis = new FileInputStream(file);
              BufferedInputStream bis = new BufferedInputStream(fis);
@@ -301,7 +320,7 @@ public final class RamTable {
         assert this.edgesSize() > 0;
 
         List<ConditionQuery> cqs = ConditionQueryFlatten.flatten(
-                                   (ConditionQuery) query);
+            (ConditionQuery) query);
         if (cqs.size() == 1) {
             ConditionQuery cq = cqs.get(0);
             return this.query(cq);
@@ -369,25 +388,6 @@ public final class RamTable {
             throw new HugeException("Out of vertices capacity %s: %s",
                                     this.verticesCapacity, vertex);
         }
-    }
-
-    private static void ensureNumberId(Id id) {
-        if (!id.number()) {
-            throw new HugeException("Only number id is supported by " +
-                                    "ramtable, but got %s id '%s'",
-                                    id.type().name().toLowerCase(), id);
-        }
-    }
-
-    private static long encode(long target, Directions direction, int label) {
-        // TODO: support property
-        assert (label & 0x0fffffff) == label;
-        assert target < 2L * Integer.MAX_VALUE : target;
-        long value = target & 0xffffffff;
-        long dir = direction == Directions.OUT ?
-                   0x00000000L : 0x80000000L;
-        value = (value << 32) | (dir | label);
-        return value;
     }
 
     private class EdgeRangeIterator implements Iterator<HugeEdge> {
@@ -474,12 +474,11 @@ public final class RamTable {
 
     private class LoadTraverser implements AutoCloseable {
 
+        private static final int ADD_BATCH = Consumers.QUEUE_WORKER_SIZE;
         private final HugeGraph graph;
         private final ExecutorService executor;
         private final List<Id> vertices;
         private final Map<Id, List<Edge>> edges;
-
-        private static final int ADD_BATCH = Consumers.QUEUE_WORKER_SIZE;
 
         public LoadTraverser() {
             this.graph = RamTable.this.graph;

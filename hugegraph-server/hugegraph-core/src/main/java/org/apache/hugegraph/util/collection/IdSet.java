@@ -23,11 +23,10 @@ import java.util.Set;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.eclipse.collections.api.iterator.MutableLongIterator;
-import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
-
 import org.apache.hugegraph.iterator.ExtendableIterator;
 import org.apache.hugegraph.type.define.CollectionType;
+import org.eclipse.collections.api.iterator.MutableLongIterator;
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 
 public class IdSet extends AbstractSet<Id> {
 
@@ -65,8 +64,8 @@ public class IdSet extends AbstractSet<Id> {
     @Override
     public Iterator<Id> iterator() {
         return new ExtendableIterator<>(
-               this.nonNumberIds.iterator(),
-               new EcLongIdIterator(this.numberIds.longIterator()));
+            this.nonNumberIds.iterator(),
+            new EcLongIdIterator(this.numberIds.longIterator()));
     }
 
     @Override

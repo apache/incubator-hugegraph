@@ -29,42 +29,40 @@ import java.util.concurrent.FutureTask;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.type.define.SerialEnum;
-import org.apache.hugegraph.util.*;
-import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.apache.hugegraph.util.Blob;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.util.StringEncoding;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.LimitExceedException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.job.ComputerJob;
 import org.apache.hugegraph.job.EphemeralJob;
+import org.apache.hugegraph.type.define.SerialEnum;
+import org.apache.hugegraph.util.Blob;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.StringEncoding;
+import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.slf4j.Logger;
 
 public class HugeTask<V> extends FutureTask<V> {
 
     private static final Logger LOG = Log.logger(HugeTask.class);
 
     private static final float DECOMPRESS_RATIO = 10.0F;
-
-    private transient TaskScheduler scheduler = null;
-
     private final TaskCallable<V> callable;
-
-    private String type;
-    private String name;
     private final Id id;
     private final Id parent;
+    private transient TaskScheduler scheduler = null;
+    private String type;
+    private String name;
     private Set<Id> dependencies;
     private String description;
     private String context;
@@ -108,6 +106,28 @@ public class HugeTask<V> extends FutureTask<V> {
         this.result = null;
         this.server = null;
         this.load = 1;
+    }
+
+    public static <V> HugeTask<V> fromVertex(Vertex vertex) {
+        String callableName = vertex.value(P.CALLABLE);
+        TaskCallable<V> callable;
+        try {
+            callable = TaskCallable.fromClass(callableName);
+        } catch (Exception e) {
+            callable = TaskCallable.empty(e);
+        }
+
+        HugeTask<V> task = new HugeTask<>((Id) vertex.id(), null, callable);
+        for (Iterator<VertexProperty<Object>> iter = vertex.properties();
+             iter.hasNext(); ) {
+            VertexProperty<Object> prop = iter.next();
+            task.property(prop.key(), prop.value());
+        }
+        return task;
+    }
+
+    private static <V> Collector<V, ?, Set<V>> toOrderSet() {
+        return Collectors.toCollection(InsertionOrderUtil::newSet);
     }
 
     public Id id() {
@@ -347,7 +367,7 @@ public class HugeTask<V> extends FutureTask<V> {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
             StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                                              this.scheduler();
+                this.scheduler();
             scheduler.taskDone(this);
         }
     }
@@ -392,14 +412,14 @@ public class HugeTask<V> extends FutureTask<V> {
                 return false;
             } else if (task.status() == TaskStatus.CANCELLED) {
                 this.result(TaskStatus.CANCELLED, String.format(
-                            "Cancelled due to dependent task '%s' cancelled",
-                            dependency));
+                    "Cancelled due to dependent task '%s' cancelled",
+                    dependency));
                 this.done();
                 return false;
             } else if (task.status() == TaskStatus.FAILED) {
                 this.result(TaskStatus.FAILED, String.format(
-                            "Failed due to dependent task '%s' failed",
-                            dependency));
+                    "Failed due to dependent task '%s' failed",
+                    dependency));
                 this.done();
                 return false;
             }
@@ -421,7 +441,7 @@ public class HugeTask<V> extends FutureTask<V> {
         if (!this.completed()) {
             assert this.status.code() < status.code() ||
                    status == TaskStatus.RESTORING :
-                   this.status + " => " + status + " (task " + this.id + ")";
+                this.status + " => " + status + " (task " + this.id + ")";
             this.status = status;
             return true;
         }
@@ -466,7 +486,7 @@ public class HugeTask<V> extends FutureTask<V> {
                 @SuppressWarnings("unchecked")
                 Set<Long> values = (Set<Long>) value;
                 this.dependencies = values.stream().map(IdGenerator::of)
-                                                   .collect(toOrderSet());
+                                          .collect(toOrderSet());
                 break;
             case P.INPUT:
                 this.input = StringEncoding.decompress(((Blob) value).bytes(),
@@ -535,7 +555,7 @@ public class HugeTask<V> extends FutureTask<V> {
         if (this.dependencies != null) {
             list.add(P.DEPENDENCIES);
             list.add(this.dependencies.stream().map(Id::asLong)
-                                               .collect(toOrderSet()));
+                                      .collect(toOrderSet()));
         }
 
         if (this.input != null) {
@@ -587,7 +607,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
         if (this.dependencies != null) {
             Set<Long> value = this.dependencies.stream().map(Id::asLong)
-                                                        .collect(toOrderSet());
+                                               .collect(toOrderSet());
             map.put(Hidden.unHide(P.DEPENDENCIES), value);
         }
 
@@ -609,28 +629,6 @@ public class HugeTask<V> extends FutureTask<V> {
         return map;
     }
 
-    public static <V> HugeTask<V> fromVertex(Vertex vertex) {
-        String callableName = vertex.value(P.CALLABLE);
-        TaskCallable<V> callable;
-        try {
-            callable = TaskCallable.fromClass(callableName);
-        } catch (Exception e) {
-            callable = TaskCallable.empty(e);
-        }
-
-        HugeTask<V> task = new HugeTask<>((Id) vertex.id(), null, callable);
-        for (Iterator<VertexProperty<Object>> iter = vertex.properties();
-             iter.hasNext();) {
-            VertexProperty<Object> prop = iter.next();
-            task.property(prop.key(), prop.value());
-        }
-        return task;
-    }
-
-    private static <V> Collector<V, ?, Set<V>> toOrderSet() {
-        return Collectors.toCollection(InsertionOrderUtil::newSet);
-    }
-
     private void checkPropertySize(String property, String propertyName) {
         byte[] bytes = StringEncoding.compress(property);
         checkPropertySize(bytes.length, propertyName);
@@ -647,8 +645,8 @@ public class HugeTask<V> extends FutureTask<V> {
 
         if (propertyLength > propertyLimit) {
             throw new LimitExceedException(
-                      "Task %s size %s exceeded limit %s bytes",
-                      P.unhide(propertyName), propertyLength, propertyLimit);
+                "Task %s size %s exceeded limit %s bytes",
+                P.unhide(propertyName), propertyLength, propertyLimit);
         }
     }
 

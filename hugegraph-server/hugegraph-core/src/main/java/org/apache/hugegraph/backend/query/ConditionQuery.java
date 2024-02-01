@@ -44,6 +44,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.LongEncoding;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -61,6 +62,8 @@ public class ConditionQuery extends IdQuery {
     public static final String INDEX_VALUE_EMPTY = new String("<empty>");
 
     public static final Set<String> IGNORE_SYM_SET;
+    private static final List<Condition> EMPTY_CONDITIONS = ImmutableList.of();
+
     static {
         List<String> list = new ArrayList<>(INDEX_SYM_MAX - INDEX_SYM_MIN);
         for (char ch = INDEX_SYM_MIN; ch <= INDEX_SYM_MAX; ch++) {
@@ -68,8 +71,6 @@ public class ConditionQuery extends IdQuery {
         }
         IGNORE_SYM_SET = ImmutableSet.copyOf(list);
     }
-
-    private static final List<Condition> EMPTY_CONDITIONS = ImmutableList.of();
 
     // Conditions will be contacted with `and` by default
     private List<Condition> conditions = EMPTY_CONDITIONS;
@@ -84,6 +85,58 @@ public class ConditionQuery extends IdQuery {
 
     public ConditionQuery(HugeType resultType, Query originQuery) {
         super(resultType, originQuery);
+    }
+
+    public static String concatValues(List<?> values) {
+        assert !values.isEmpty();
+        List<Object> newValues = new ArrayList<>(values.size());
+        for (Object v : values) {
+            newValues.add(concatValues(v));
+        }
+        return SplicingIdGenerator.concatValues(newValues);
+    }
+
+    public static String concatValues(Object value) {
+        if (value instanceof String) {
+            return escapeSpecialValueIfNeeded((String) value);
+        }
+        if (value instanceof List) {
+            return concatValues((List<?>) value);
+        } else if (needConvertNumber(value)) {
+            return LongEncoding.encodeNumber(value);
+        } else {
+            return escapeSpecialValueIfNeeded(value.toString());
+        }
+    }
+
+    private static boolean needConvertNumber(Object value) {
+        // Numeric or date values should be converted to number from string
+        return NumericUtil.isNumber(value) || value instanceof Date;
+    }
+
+    private static String escapeSpecialValueIfNeeded(String value) {
+        if (value.isEmpty()) {
+            // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
+            value = INDEX_SYM_EMPTY;
+        } else if (value == INDEX_VALUE_EMPTY) {
+            value = "";
+        } else if (value == INDEX_VALUE_NULL) {
+            value = INDEX_SYM_NULL;
+        } else {
+            char ch = value.charAt(0);
+            if (ch <= INDEX_SYM_MAX) {
+                /*
+                 * Special symbols can't be used due to impossible to parse,
+                 * and treat it as illegal value for the origin text property.
+                 * TODO: escape special symbols
+                 */
+                E.checkArgument(false,
+                                "Illegal leading char '\\u%s' " +
+                                "in index property: '%s'",
+                                (int) ch, value);
+            }
+        }
+        return value;
     }
 
     public ConditionQuery query(Condition condition) {
@@ -422,6 +475,7 @@ public class ConditionQuery extends IdQuery {
     /**
      * This method is only used for secondary index scenario,
      * its relation must be EQ
+     *
      * @param fields the user property fields
      * @return the corresponding user property serial values of fields
      */
@@ -443,8 +497,8 @@ public class ConditionQuery extends IdQuery {
             }
             if (!got) {
                 throw new BackendException(
-                          "No such userprop named '%s' in the query '%s'",
-                          field, this);
+                    "No such userprop named '%s' in the query '%s'",
+                    field, this);
             }
         }
         return concatValues(values);
@@ -602,7 +656,7 @@ public class ConditionQuery extends IdQuery {
 
     public void optimized(OptimizedType optimizedType) {
         assert this.optimizedType.ordinal() <= optimizedType.ordinal() :
-               this.optimizedType + " !<= " + optimizedType;
+            this.optimizedType + " !<= " + optimizedType;
         this.optimizedType = optimizedType;
 
         Query originQuery = this.originQuery();
@@ -660,63 +714,17 @@ public class ConditionQuery extends IdQuery {
         return (ConditionQuery) originQuery;
     }
 
-    public static String concatValues(List<?> values) {
-        assert !values.isEmpty();
-        List<Object> newValues = new ArrayList<>(values.size());
-        for (Object v : values) {
-            newValues.add(concatValues(v));
-        }
-        return SplicingIdGenerator.concatValues(newValues);
-    }
-
-    public static String concatValues(Object value) {
-        if (value instanceof String) {
-            return escapeSpecialValueIfNeeded((String) value);
-        } if (value instanceof List) {
-            return concatValues((List<?>) value);
-        } else if (needConvertNumber(value)) {
-            return LongEncoding.encodeNumber(value);
-        } else {
-            return escapeSpecialValueIfNeeded(value.toString());
-        }
-    }
-
-    private static boolean needConvertNumber(Object value) {
-        // Numeric or date values should be converted to number from string
-        return NumericUtil.isNumber(value) || value instanceof Date;
-    }
-
-    private static String escapeSpecialValueIfNeeded(String value) {
-        if (value.isEmpty()) {
-            // Escape empty String to INDEX_SYM_EMPTY (char `\u0002`)
-            value = INDEX_SYM_EMPTY;
-        } else if (value == INDEX_VALUE_EMPTY) {
-            value = "";
-        } else if (value == INDEX_VALUE_NULL) {
-            value = INDEX_SYM_NULL;
-        } else {
-            char ch = value.charAt(0);
-            if (ch <= INDEX_SYM_MAX) {
-                /*
-                 * Special symbols can't be used due to impossible to parse,
-                 * and treat it as illegal value for the origin text property.
-                 * TODO: escape special symbols
-                 */
-                E.checkArgument(false,
-                                "Illegal leading char '\\u%s' " +
-                                "in index property: '%s'",
-                                (int) ch, value);
-            }
-        }
-        return value;
-    }
-
     public enum OptimizedType {
         NONE,
         PRIMARY_KEY,
         SORT_KEYS,
         INDEX,
         INDEX_FILTER
+    }
+
+    public interface ResultsFilter {
+
+        boolean test(HugeElement element);
     }
 
     public static final class Element2IndexValueMap {
@@ -730,13 +738,38 @@ public class ConditionQuery extends IdQuery {
             this.leftIndexMap = new HashMap<>();
         }
 
+        private static boolean removeFieldValue(Set<Object> values,
+                                                Object value) {
+            for (Object elem : values) {
+                if (numberEquals(elem, value)) {
+                    values.remove(elem);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static boolean numberEquals(Object number1, Object number2) {
+            // Same class compare directly
+            if (number1.getClass().equals(number2.getClass())) {
+                return number1.equals(number2);
+            }
+
+            // Otherwise convert to BigDecimal to make two numbers comparable
+            Number n1 = NumericUtil.convertToNumber(number1);
+            Number n2 = NumericUtil.convertToNumber(number2);
+            BigDecimal b1 = BigDecimal.valueOf(n1.doubleValue());
+            BigDecimal b2 = BigDecimal.valueOf(n2.doubleValue());
+            return b1.compareTo(b2) == 0;
+        }
+
         public void addIndexValue(Id indexField, Id elementId,
                                   Object indexValue) {
             if (!this.filed2IndexValues.containsKey(indexField)) {
                 this.filed2IndexValues.putIfAbsent(indexField, new HashMap<>());
             }
             Map<Id, Set<Object>> element2IndexValueMap =
-                                 this.filed2IndexValues.get(indexField);
+                this.filed2IndexValues.get(indexField);
             if (element2IndexValueMap.containsKey(elementId)) {
                 element2IndexValueMap.get(elementId).add(indexValue);
             } else {
@@ -781,7 +814,7 @@ public class ConditionQuery extends IdQuery {
             }
 
             Condition.UserpropRelation propRelation =
-                                       (Condition.UserpropRelation) cond;
+                (Condition.UserpropRelation) cond;
             Id propId = propRelation.key();
             Set<Object> fieldValues = this.toRemoveIndexValues(propId,
                                                                element.id());
@@ -820,31 +853,6 @@ public class ConditionQuery extends IdQuery {
 
             return hasRightValue;
         }
-
-        private static boolean removeFieldValue(Set<Object> values,
-                                                Object value) {
-            for (Object elem : values) {
-                if (numberEquals(elem, value)) {
-                    values.remove(elem);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static boolean numberEquals(Object number1, Object number2) {
-            // Same class compare directly
-            if (number1.getClass().equals(number2.getClass())) {
-                return number1.equals(number2);
-            }
-
-            // Otherwise convert to BigDecimal to make two numbers comparable
-            Number n1 = NumericUtil.convertToNumber(number1);
-            Number n2 = NumericUtil.convertToNumber(number2);
-            BigDecimal b1 = BigDecimal.valueOf(n1.doubleValue());
-            BigDecimal b2 = BigDecimal.valueOf(n2.doubleValue());
-            return b1.compareTo(b2) == 0;
-        }
     }
 
     public static final class LeftIndex {
@@ -864,10 +872,5 @@ public class ConditionQuery extends IdQuery {
         public Id indexField() {
             return this.indexField;
         }
-    }
-
-    public interface ResultsFilter {
-
-        boolean test(HugeElement element);
     }
 }

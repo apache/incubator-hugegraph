@@ -31,26 +31,17 @@ public enum Action implements SerialEnum {
 
     UPDATE_IF_ABSENT(6, "update_if_absent");
 
-    private final byte code;
-    private final String name;
-
     static {
         SerialEnum.register(Action.class);
     }
+
+    private final byte code;
+    private final String name;
 
     Action(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
-    }
-
-    @Override
-    public byte code() {
-        return this.code;
-    }
-
-    public String string() {
-        return this.name;
     }
 
     public static Action fromCode(byte code) {
@@ -70,5 +61,14 @@ public enum Action implements SerialEnum {
             default:
                 throw new AssertionError("Unsupported action code: " + code);
         }
+    }
+
+    @Override
+    public byte code() {
+        return this.code;
+    }
+
+    public String string() {
+        return this.name;
     }
 }

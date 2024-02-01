@@ -23,15 +23,15 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
     private static final HugeGraphIoRegistry INSTANCE =
-                         new HugeGraphIoRegistry();
-
-    public static HugeGraphIoRegistry instance() {
-        return INSTANCE;
-    }
+        new HugeGraphIoRegistry();
 
     private HugeGraphIoRegistry() {
         HugeGryoModule.register(this);
         HugeGraphSONModule.register(this);
+    }
+
+    public static HugeGraphIoRegistry instance() {
+        return INSTANCE;
     }
 
     @SuppressWarnings("rawtypes")

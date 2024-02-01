@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph;
@@ -41,7 +43,9 @@ import org.slf4j.Logger;
 public class HugeFactory {
 
     private static final Logger LOG = Log.logger(HugeFactory.class);
-
+    private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
+    private static final Map<String, HugeGraph> GRAPHS = new HashMap<>();
+    private static final AtomicBoolean SHUT_DOWN = new AtomicBoolean(false);
     private static final Thread SHUT_DOWN_HOOK = new Thread(() -> {
         LOG.info("HugeGraph is shutting down");
         HugeFactory.shutdown(30L, true);
@@ -53,12 +57,6 @@ public class HugeFactory {
 
         Runtime.getRuntime().addShutdownHook(SHUT_DOWN_HOOK);
     }
-
-    private static final String NAME_REGEX = "^[A-Za-z][A-Za-z0-9_]{0,47}$";
-
-    private static final Map<String, HugeGraph> GRAPHS = new HashMap<>();
-
-    private static final AtomicBoolean SHUT_DOWN = new AtomicBoolean(false);
 
     public static synchronized HugeGraph open(Configuration config) {
         HugeConfig conf = config instanceof HugeConfig ?
@@ -145,7 +143,8 @@ public class HugeFactory {
 
     /**
      * Stop all the daemon threads
-     * @param timeout wait in seconds
+     *
+     * @param timeout         wait in seconds
      * @param ignoreException don't throw exception if true
      */
     public static void shutdown(long timeout, boolean ignoreException) {

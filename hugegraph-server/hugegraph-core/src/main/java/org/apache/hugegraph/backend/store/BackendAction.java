@@ -24,13 +24,13 @@ public class BackendAction {
     private final Action action;
     private final BackendEntry entry;
 
-    public static BackendAction of(Action action, BackendEntry entry) {
-        return new BackendAction(entry, action);
-    }
-
     public BackendAction(BackendEntry entry, Action action) {
         this.action = action;
         this.entry = entry;
+    }
+
+    public static BackendAction of(Action action, BackendEntry entry) {
+        return new BackendAction(entry, action);
     }
 
     public Action action() {

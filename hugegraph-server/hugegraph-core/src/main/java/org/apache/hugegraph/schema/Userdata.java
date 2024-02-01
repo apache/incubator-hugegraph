@@ -25,10 +25,9 @@ import org.apache.hugegraph.type.define.Action;
 
 public class Userdata extends HashMap<String, Object> {
 
-    private static final long serialVersionUID = -1235451175617197049L;
-
     public static final String CREATE_TIME = "~create_time";
     public static final String DEFAULT_VALUE = "~default_value";
+    private static final long serialVersionUID = -1235451175617197049L;
 
     public Userdata() {
     }
@@ -47,8 +46,8 @@ public class Userdata extends HashMap<String, Object> {
                 for (Map.Entry<String, Object> e : userdata.entrySet()) {
                     if (e.getValue() == null) {
                         throw new NotAllowException(
-                                  "Not allowed to pass null userdata value " +
-                                  "when create or append schema");
+                            "Not allowed to pass null userdata value " +
+                            "when create or append schema");
                     }
                 }
                 break;
@@ -58,7 +57,7 @@ public class Userdata extends HashMap<String, Object> {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
+                    "Unknown schema action '%s'", action));
         }
     }
 }

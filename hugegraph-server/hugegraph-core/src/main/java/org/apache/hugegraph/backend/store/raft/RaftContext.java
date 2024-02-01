@@ -72,8 +72,6 @@ import com.alipay.sofa.jraft.util.ThreadPoolUtil;
 
 public final class RaftContext {
 
-    private static final Logger LOG = Log.logger(RaftContext.class);
-
     // unit is ms
     public static final int NO_TIMEOUT = -1;
     public static final int POLL_INTERVAL = 5000;
@@ -83,14 +81,12 @@ public final class RaftContext {
     public static final int BUSY_MAX_SLEEP_FACTOR = 5 * 1000;
     public static final int WAIT_RPC_TIMEOUT = 30 * 60 * 1000;
     public static final int LOG_WARN_INTERVAL = 60 * 1000;
-
     // compress block size
     public static final int BLOCK_SIZE = (int) (Bytes.KB * 8);
-
     // work queue size
     public static final int QUEUE_SIZE = CoreOptions.CPUS;
     public static final long KEEP_ALIVE_SECOND = 300L;
-
+    private static final Logger LOG = Log.logger(RaftContext.class);
     private final HugeGraphParams params;
 
     private final Configuration groupPeers;
@@ -149,6 +145,22 @@ public final class RaftContext {
         this.raftNode = null;
         this.raftGroupManager = null;
         this.rpcForwarder = null;
+    }
+
+    private static ExecutorService newPool(int coreThreads, int maxThreads,
+                                           String name,
+                                           RejectedExecutionHandler handler) {
+        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
+        return ThreadPoolUtil.newBuilder()
+                             .poolName(name)
+                             .enableMetric(false)
+                             .coreThreads(coreThreads)
+                             .maximumThreads(maxThreads)
+                             .keepAliveSeconds(KEEP_ALIVE_SECOND)
+                             .workQueue(queue)
+                             .threadFactory(new NamedThreadFactory(name, true))
+                             .rejectedHandler(handler)
+                             .build();
     }
 
     public void initRaftNode(com.alipay.remoting.rpc.RpcServer rpcServer) {
@@ -233,13 +245,13 @@ public final class RaftContext {
         NodeOptions nodeOptions = new NodeOptions();
         nodeOptions.setEnableMetrics(false);
         nodeOptions.setRpcProcessorThreadPoolSize(
-                    config.get(CoreOptions.RAFT_RPC_THREADS));
+            config.get(CoreOptions.RAFT_RPC_THREADS));
         nodeOptions.setRpcConnectTimeoutMs(
-                    config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
+            config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
         nodeOptions.setRpcDefaultTimeout(
-                    1000 * config.get(CoreOptions.RAFT_RPC_TIMEOUT));
+            1000 * config.get(CoreOptions.RAFT_RPC_TIMEOUT));
         nodeOptions.setRpcInstallSnapshotTimeout(
-                    1000 * config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
+            1000 * config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
 
         int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
@@ -269,15 +281,15 @@ public final class RaftContext {
          */
         raftOptions.setApplyBatch(config.get(CoreOptions.RAFT_APPLY_BATCH));
         raftOptions.setDisruptorBufferSize(
-                    config.get(CoreOptions.RAFT_QUEUE_SIZE));
+            config.get(CoreOptions.RAFT_QUEUE_SIZE));
         raftOptions.setDisruptorPublishEventWaitTimeoutSecs(
-                    config.get(CoreOptions.RAFT_QUEUE_PUBLISH_TIMEOUT));
+            config.get(CoreOptions.RAFT_QUEUE_PUBLISH_TIMEOUT));
         raftOptions.setReplicatorPipeline(
-                    config.get(CoreOptions.RAFT_REPLICATOR_PIPELINE));
+            config.get(CoreOptions.RAFT_REPLICATOR_PIPELINE));
         raftOptions.setOpenStatistics(false);
         raftOptions.setReadOnlyOptions(
-                    ReadOnlyOption.valueOf(
-                    config.get(CoreOptions.RAFT_READ_STRATEGY)));
+            ReadOnlyOption.valueOf(
+                config.get(CoreOptions.RAFT_READ_STRATEGY)));
 
         return nodeOptions;
     }
@@ -373,18 +385,18 @@ public final class RaftContext {
     @SuppressWarnings("unused")
     private RpcServer initAndStartRpcServer() {
         Integer lowWaterMark = this.config().get(
-                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+            CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_low_water_mark",
                            String.valueOf(lowWaterMark));
         Integer highWaterMark = this.config().get(
-                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+            CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
 
         PeerId endpoint = this.endpoint();
         NodeManager.getInstance().addAddress(endpoint.getEndpoint());
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
-                                                   endpoint.getEndpoint());
+            endpoint.getEndpoint());
         LOG.info("Raft-RPC server is started successfully");
         return rpcServer;
     }
@@ -392,11 +404,11 @@ public final class RaftContext {
     private RpcServer wrapRpcServer(com.alipay.remoting.rpc.RpcServer rpcServer) {
         // TODO: pass ServerOptions instead of CoreOptions, to share by graphs
         Integer lowWaterMark = this.config().get(
-                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+            CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_low_water_mark",
                            String.valueOf(lowWaterMark));
         Integer highWaterMark = this.config().get(
-                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+            CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
 
@@ -439,23 +451,7 @@ public final class RaftContext {
     private ExecutorService createBackendExecutor(int threads) {
         String name = "store-backend-executor";
         RejectedExecutionHandler handler =
-                                 new ThreadPoolExecutor.CallerRunsPolicy();
+            new ThreadPoolExecutor.CallerRunsPolicy();
         return newPool(threads, threads, name, handler);
-    }
-
-    private static ExecutorService newPool(int coreThreads, int maxThreads,
-                                           String name,
-                                           RejectedExecutionHandler handler) {
-        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
-        return ThreadPoolUtil.newBuilder()
-                             .poolName(name)
-                             .enableMetric(false)
-                             .coreThreads(coreThreads)
-                             .maximumThreads(maxThreads)
-                             .keepAliveSeconds(KEEP_ALIVE_SECOND)
-                             .workQueue(queue)
-                             .threadFactory(new NamedThreadFactory(name, true))
-                             .rejectedHandler(handler)
-                             .build();
     }
 }

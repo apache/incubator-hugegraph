@@ -54,11 +54,9 @@ import com.google.common.collect.ImmutableMap;
 
 public class ServerInfoManager {
 
-    private static final Logger LOG = Log.logger(ServerInfoManager.class);
-
     public static final long MAX_SERVERS = 100000L;
     public static final long PAGE_SIZE = 10L;
-
+    private static final Logger LOG = Log.logger(ServerInfoManager.class);
     private final HugeGraphParams graph;
     private final ExecutorService dbExecutor;
 
@@ -118,7 +116,7 @@ public class ServerInfoManager {
                 while (servers.hasNext()) {
                     existed = servers.next();
                     E.checkArgument(!existed.role().master() || !existed.alive(),
-                                    "Already existed master '%s' in current cluster", 
+                                    "Already existed master '%s' in current cluster",
                                     existed.id());
                 }
                 if (page != null) {
@@ -324,7 +322,7 @@ public class ServerInfoManager {
 
     private <V> V call(Callable<V> callable) {
         assert !Thread.currentThread().getName().startsWith(
-               "server-info-db-worker") : "can't call by itself";
+            "server-info-db-worker") : "can't call by itself";
         try {
             // Pass context for db thread
             callable = new TaskManager.ContextCallable<>(callable);
@@ -391,7 +389,7 @@ public class ServerInfoManager {
     protected Collection<HugeServerInfo> allServerInfos() {
         Iterator<HugeServerInfo> infos = this.serverInfos(NO_LIMIT, null);
         try (ListIterator<HugeServerInfo> iter = new ListIterator<>(
-                                                 MAX_SERVERS, infos)) {
+            MAX_SERVERS, infos)) {
             return iter.list();
         } catch (Exception e) {
             throw new HugeException("Failed to close server info iterator", e);
@@ -427,7 +425,7 @@ public class ServerInfoManager {
             }
             Iterator<Vertex> vertices = this.tx().queryVertices(query);
             Iterator<HugeServerInfo> servers =
-                    new MapperIterator<>(vertices, HugeServerInfo::fromVertex);
+                new MapperIterator<>(vertices, HugeServerInfo::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed
             return QueryResults.toList(servers);
         });

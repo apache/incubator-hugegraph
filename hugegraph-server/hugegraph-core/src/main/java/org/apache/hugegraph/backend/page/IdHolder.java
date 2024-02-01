@@ -23,15 +23,14 @@ import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.commons.lang.NotImplementedException;
+import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-
-import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.iterator.CIter;
 import org.apache.hugegraph.iterator.Metadatable;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 public abstract class IdHolder {
 
@@ -133,7 +132,7 @@ public abstract class IdHolder {
     }
 
     public static class BatchIdHolder extends IdHolder
-                                      implements CIter<IdHolder> {
+        implements CIter<IdHolder> {
 
         private final Iterator<BackendEntry> entries;
         private final Function<Long, Set<Id>> fetcher;

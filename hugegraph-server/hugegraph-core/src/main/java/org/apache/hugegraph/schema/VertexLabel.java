@@ -23,12 +23,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IdStrategy;
+
 import com.google.common.base.Objects;
 
 public class VertexLabel extends SchemaLabel {
@@ -50,6 +51,14 @@ public class VertexLabel extends SchemaLabel {
         super(graph, id, name);
         this.idStrategy = IdStrategy.DEFAULT;
         this.primaryKeys = new ArrayList<>();
+    }
+
+    public static VertexLabel undefined(HugeGraph graph) {
+        return new VertexLabel(graph, NONE_ID, UNDEF);
+    }
+
+    public static VertexLabel undefined(HugeGraph graph, Id id) {
+        return new VertexLabel(graph, id, UNDEF);
     }
 
     @Override
@@ -90,14 +99,6 @@ public class VertexLabel extends SchemaLabel {
                this.idStrategy == other.idStrategy &&
                Objects.equal(this.graph.mapPkId2Name(this.primaryKeys),
                              other.graph.mapPkId2Name(other.primaryKeys));
-    }
-
-    public static VertexLabel undefined(HugeGraph graph) {
-        return new VertexLabel(graph, NONE_ID, UNDEF);
-    }
-
-    public static VertexLabel undefined(HugeGraph graph, Id id) {
-        return new VertexLabel(graph, id, UNDEF);
     }
 
     public interface Builder extends SchemaBuilder<VertexLabel> {

@@ -51,29 +51,58 @@ public class IntMapByDynamicHash implements IntMap {
     private static final AtomicReferenceFieldUpdater<IntMapByDynamicHash, Entry[]>
         TABLE_UPDATER =
         AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash.class, Entry[].class, "table");
+    private static final Entry RESIZING = new Entry(NULL_VALUE, NULL_VALUE, (byte) 1);
+    private static final Entry RESIZED = new Entry(NULL_VALUE, NULL_VALUE, (byte) 2);
+    private static final Entry RESIZE_SENTINEL = new Entry(NULL_VALUE, NULL_VALUE, (byte) 3);
+    /**
+     * must be (2^n) - 1
+     */
+    private static final int SIZE_BUCKETS = 7;
+    /* ---------------- Unsafe mechanics -------------- */
+    private static final Unsafe UNSAFE = IntSet.UNSAFE;
+    private static final long ENTRY_ARRAY_BASE;
+    private static final int ENTRY_ARRAY_SHIFT;
+    private static final long INT_ARRAY_BASE;
+    private static final int INT_ARRAY_SHIFT;
+    private static final long SIZE_OFFSET;
+
+    static {
+        try {
+            Class<?> tableClass = Entry[].class;
+            ENTRY_ARRAY_BASE = UNSAFE.arrayBaseOffset(tableClass);
+            int objectArrayScale = UNSAFE.arrayIndexScale(tableClass);
+            if ((objectArrayScale & (objectArrayScale - 1)) != 0) {
+                throw new AssertionError("data type scale not a power of two");
+            }
+            ENTRY_ARRAY_SHIFT = 31 - Integer.numberOfLeadingZeros(objectArrayScale);
+
+            Class<?> intArrayClass = int[].class;
+            INT_ARRAY_BASE = UNSAFE.arrayBaseOffset(intArrayClass);
+            int intArrayScale = UNSAFE.arrayIndexScale(intArrayClass);
+            if ((intArrayScale & (intArrayScale - 1)) != 0) {
+                throw new AssertionError("data type scale not a power of two");
+            }
+            INT_ARRAY_SHIFT = 31 - Integer.numberOfLeadingZeros(intArrayScale);
+
+            Class<?> mapClass = IntMapByDynamicHash.class;
+            SIZE_OFFSET = UNSAFE.objectFieldOffset(mapClass.getDeclaredField("size"));
+        } catch (NoSuchFieldException | SecurityException e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    /* ---------------- Table element access -------------- */
 
     private volatile Entry[] table;
-
     /**
      * Partition counting to improve the concurrency performance of addToSize()
      */
     private int[] partitionedSize;
-
     /**
      * updated via atomic field updater
      */
     @SuppressWarnings("UnusedDeclaration")
     private volatile int size;
-
-    private static final Entry RESIZING = new Entry(NULL_VALUE, NULL_VALUE, (byte) 1);
-    private static final Entry RESIZED = new Entry(NULL_VALUE, NULL_VALUE, (byte) 2);
-
-    private static final Entry RESIZE_SENTINEL = new Entry(NULL_VALUE, NULL_VALUE, (byte) 3);
-
-    /**
-     * must be (2^n) - 1
-     */
-    private static final int SIZE_BUCKETS = 7;
 
     /**
      * Constructor for the IntMapByDynamicHash class.
@@ -122,8 +151,6 @@ public class IntMapByDynamicHash implements IntMap {
         n |= n >>> 16;
         return (n < 0) ? 1 : (n >= MAXIMUM_CAPACITY) ? MAXIMUM_CAPACITY : n + 1;
     }
-
-    /* ---------------- Table element access -------------- */
 
     private static long entryOffset(int index) {
         return ((long) index << ENTRY_ARRAY_SHIFT) + ENTRY_ARRAY_BASE;
@@ -534,6 +561,8 @@ public class IntMapByDynamicHash implements IntMap {
         this.resize(oldTable, (oldTable.length - 1 << 1) + 1);
     }
 
+    /* ---------------- Iterator -------------- */
+
     /**
      * Resizes the map to a new capacity. This method is called when the map's size exceeds its
      * threshold. It creates a new array with the new capacity and transfers all entries from the
@@ -815,9 +844,6 @@ public class IntMapByDynamicHash implements IntMap {
     private static class Entry {
 
         final int key;
-        volatile int value;
-        volatile Entry next;
-
         /**
          * 0 NORMAL
          * 1 RESIZING
@@ -826,6 +852,8 @@ public class IntMapByDynamicHash implements IntMap {
          * 4 RESIZE_CONTAINER
          */
         final byte state;
+        volatile int value;
+        volatile Entry next;
 
         public Entry(int key, int value, byte state) {
             this.key = key;
@@ -865,9 +893,8 @@ public class IntMapByDynamicHash implements IntMap {
         }
     }
 
-    /* ---------------- Iterator -------------- */
-
     private static final class IteratorState {
+
         private Entry[] currentTable;
         private int start;
         private int end;
@@ -974,6 +1001,7 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     private final class ValueIterator extends HashIterator {
+
         @Override
         public int next() {
             return this.nextEntry().getValue();
@@ -981,42 +1009,10 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     private final class KeyIterator extends HashIterator {
+
         @Override
         public int next() {
             return this.nextEntry().getKey();
-        }
-    }
-
-    /* ---------------- Unsafe mechanics -------------- */
-    private static final Unsafe UNSAFE = IntSet.UNSAFE;
-    private static final long ENTRY_ARRAY_BASE;
-    private static final int ENTRY_ARRAY_SHIFT;
-    private static final long INT_ARRAY_BASE;
-    private static final int INT_ARRAY_SHIFT;
-    private static final long SIZE_OFFSET;
-
-    static {
-        try {
-            Class<?> tableClass = Entry[].class;
-            ENTRY_ARRAY_BASE = UNSAFE.arrayBaseOffset(tableClass);
-            int objectArrayScale = UNSAFE.arrayIndexScale(tableClass);
-            if ((objectArrayScale & (objectArrayScale - 1)) != 0) {
-                throw new AssertionError("data type scale not a power of two");
-            }
-            ENTRY_ARRAY_SHIFT = 31 - Integer.numberOfLeadingZeros(objectArrayScale);
-
-            Class<?> intArrayClass = int[].class;
-            INT_ARRAY_BASE = UNSAFE.arrayBaseOffset(intArrayClass);
-            int intArrayScale = UNSAFE.arrayIndexScale(intArrayClass);
-            if ((intArrayScale & (intArrayScale - 1)) != 0) {
-                throw new AssertionError("data type scale not a power of two");
-            }
-            INT_ARRAY_SHIFT = 31 - Integer.numberOfLeadingZeros(intArrayScale);
-
-            Class<?> mapClass = IntMapByDynamicHash.class;
-            SIZE_OFFSET = UNSAFE.objectFieldOffset(mapClass.getDeclaredField("size"));
-        } catch (NoSuchFieldException | SecurityException e) {
-            throw new AssertionError(e);
         }
     }
 }

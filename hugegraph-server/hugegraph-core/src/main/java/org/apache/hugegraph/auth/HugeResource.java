@@ -23,6 +23,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.Typeable;
 import org.apache.hugegraph.util.JsonUtil;
@@ -39,10 +43,6 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -55,7 +55,7 @@ public class HugeResource {
     public static final List<HugeResource> ALL_RES = ImmutableList.of(ALL);
 
     private static final Set<ResourceType> CHECK_NAME_RESS = ImmutableSet.of(
-                                                             ResourceType.META);
+        ResourceType.META);
 
     static {
         SimpleModule module = new SimpleModule();
@@ -85,6 +85,26 @@ public class HugeResource {
         this.label = label;
         this.properties = properties;
         this.checkFormat();
+    }
+
+    public static boolean allowed(ResourceObject<?> resourceObject) {
+        // Allowed to access system(hidden) schema by anyone
+        if (resourceObject.type().isSchema()) {
+            Nameable schema = (Nameable) resourceObject.operated();
+            return Hidden.isHidden(schema.name());
+        }
+
+        return false;
+    }
+
+    public static HugeResource parseResource(String resource) {
+        return JsonUtil.fromJson(resource, HugeResource.class);
+    }
+
+    public static List<HugeResource> parseResources(String resources) {
+        TypeReference<?> type = new TypeReference<List<HugeResource>>() {
+        };
+        return JsonUtil.fromJson(resources, type);
     }
 
     public void checkFormat() {
@@ -143,7 +163,7 @@ public class HugeResource {
 
     private boolean filter(Nameable element) {
         assert !(element instanceof Typeable) || this.type.match(
-               ResourceType.from(((Typeable) element).type()));
+            ResourceType.from(((Typeable) element).type()));
 
         return this.matchLabel(element.name());
     }
@@ -243,37 +263,18 @@ public class HugeResource {
         return JsonUtil.toJson(this);
     }
 
-    public static boolean allowed(ResourceObject<?> resourceObject) {
-        // Allowed to access system(hidden) schema by anyone
-        if (resourceObject.type().isSchema()) {
-            Nameable schema = (Nameable) resourceObject.operated();
-            return Hidden.isHidden(schema.name());
-        }
-
-        return false;
-    }
-
-    public static HugeResource parseResource(String resource) {
-        return JsonUtil.fromJson(resource, HugeResource.class);
-    }
-
-    public static List<HugeResource> parseResources(String resources) {
-        TypeReference<?> type = new TypeReference<List<HugeResource>>() {};
-        return JsonUtil.fromJson(resources, type);
-    }
-
     public static class NameObject implements Nameable {
 
         public static final NameObject ANY = new NameObject("*");
 
         private final String name;
 
-        public static NameObject of(String name) {
-            return new NameObject(name);
-        }
-
         private NameObject(String name) {
             this.name = name;
+        }
+
+        public static NameObject of(String name) {
+            return new NameObject(name);
         }
 
         @Override
@@ -298,7 +299,7 @@ public class HugeResource {
         @Override
         public void serialize(HugeResource res, JsonGenerator generator,
                               SerializerProvider provider)
-                              throws IOException {
+            throws IOException {
             generator.writeStartObject();
 
             generator.writeObjectField("type", res.type);
@@ -320,7 +321,7 @@ public class HugeResource {
         @Override
         public HugeResource deserialize(JsonParser parser,
                                         DeserializationContext ctxt)
-                                        throws IOException {
+            throws IOException {
             HugeResource res = new HugeResource();
             while (parser.nextToken() != JsonToken.END_OBJECT) {
                 String key = parser.getCurrentName();

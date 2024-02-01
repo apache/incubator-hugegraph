@@ -19,18 +19,24 @@ package org.apache.hugegraph.job.algorithm.cent;
 
 import java.util.Map;
 
+import org.apache.hugegraph.job.UserJob;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.ParameterUtil;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import org.apache.hugegraph.job.UserJob;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.ParameterUtil;
-
 public class StressCentralityAlgorithm extends AbstractCentAlgorithm {
 
     public static final String KEY_WITH_BOUNDARY = "with_boundary";
+
+    protected static boolean withBoundary(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_WITH_BOUNDARY)) {
+            return false;
+        }
+        return ParameterUtil.parameterBoolean(parameters, KEY_WITH_BOUNDARY);
+    }
 
     @Override
     public String name() {
@@ -57,13 +63,6 @@ public class StressCentralityAlgorithm extends AbstractCentAlgorithm {
                                               sourceCLabel(parameters),
                                               top(parameters));
         }
-    }
-
-    protected static boolean withBoundary(Map<String, Object> parameters) {
-        if (!parameters.containsKey(KEY_WITH_BOUNDARY)) {
-            return false;
-        }
-        return ParameterUtil.parameterBoolean(parameters, KEY_WITH_BOUNDARY);
     }
 
     private static class Traverser extends AbstractCentAlgorithm.Traverser {

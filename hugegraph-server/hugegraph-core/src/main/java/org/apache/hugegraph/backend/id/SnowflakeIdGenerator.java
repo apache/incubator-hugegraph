@@ -16,8 +16,6 @@ package org.apache.hugegraph.backend.id;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -27,16 +25,27 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.TimeUtil;
+import org.slf4j.Logger;
 
 public class SnowflakeIdGenerator extends IdGenerator {
 
     private static final Logger LOG = Log.logger(SnowflakeIdGenerator.class);
 
     private static final Map<String, SnowflakeIdGenerator> INSTANCES =
-                         new ConcurrentHashMap<>();
+        new ConcurrentHashMap<>();
 
     private final boolean forceString;
     private final IdWorker idWorker;
+
+    private SnowflakeIdGenerator(HugeConfig config) {
+        long workerId = config.get(CoreOptions.SNOWFLAKE_WORKER_ID);
+        long datacenterId = config.get(CoreOptions.SNOWFLAKE_DATACENTER_ID);
+        this.forceString = config.get(CoreOptions.SNOWFLAKE_FORCE_STRING);
+        this.idWorker = new IdWorker(workerId, datacenterId);
+        LOG.debug("SnowflakeId Worker started: datacenter id {}, " +
+                  "worker id {}, forced string id {}",
+                  datacenterId, workerId, this.forceString);
+    }
 
     public static SnowflakeIdGenerator init(HugeGraphParams graph) {
         String graphName = graph.name();
@@ -63,16 +72,6 @@ public class SnowflakeIdGenerator extends IdGenerator {
         return generator;
     }
 
-    private SnowflakeIdGenerator(HugeConfig config) {
-        long workerId = config.get(CoreOptions.SNOWFLAKE_WORKER_ID);
-        long datacenterId = config.get(CoreOptions.SNOWFLAKE_DATACENTER_ID);
-        this.forceString = config.get(CoreOptions.SNOWFLAKE_FORCE_STRING);
-        this.idWorker = new IdWorker(workerId, datacenterId);
-        LOG.debug("SnowflakeId Worker started: datacenter id {}, " +
-                  "worker id {}, forced string id {}",
-                  datacenterId, workerId, this.forceString);
-    }
-
     public Id generate() {
         if (this.idWorker == null) {
             throw new HugeException("Please initialize before using");
@@ -92,35 +91,31 @@ public class SnowflakeIdGenerator extends IdGenerator {
 
     private static class IdWorker {
 
+        private static final long WORKER_BIT = 5L;
+        private static final long MAX_WORKER_ID = -1L ^ (-1L << WORKER_BIT);
+        private static final long DC_BIT = 5L;
+        private static final long MAX_DC_ID = -1L ^ (-1L << DC_BIT);
+        private static final long SEQUENCE_BIT = 12L;
+        private static final long SEQUENCE_MASK = -1L ^ (-1L << SEQUENCE_BIT);
+        private static final long WORKER_SHIFT = SEQUENCE_BIT;
+        private static final long DC_SHIFT = WORKER_SHIFT + WORKER_BIT;
+        private static final long TIMESTAMP_SHIFT = DC_SHIFT + DC_BIT;
         private final long workerId;
         private final long datacenterId;
         private long sequence = 0L; // AtomicLong
         private long lastTimestamp = -1L;
 
-        private static final long WORKER_BIT = 5L;
-        private static final long MAX_WORKER_ID = -1L ^ (-1L << WORKER_BIT);
-
-        private static final long DC_BIT = 5L;
-        private static final long MAX_DC_ID = -1L ^ (-1L << DC_BIT);
-
-        private static final long SEQUENCE_BIT = 12L;
-        private static final long SEQUENCE_MASK = -1L ^ (-1L << SEQUENCE_BIT);
-
-        private static final long WORKER_SHIFT = SEQUENCE_BIT;
-        private static final long DC_SHIFT = WORKER_SHIFT + WORKER_BIT;
-        private static final long TIMESTAMP_SHIFT = DC_SHIFT + DC_BIT;
-
         public IdWorker(long workerId, long datacenterId) {
             // Sanity check for workerId
             if (workerId > MAX_WORKER_ID || workerId < 0) {
                 throw new IllegalArgumentException(String.format(
-                          "Worker id can't > %d or < 0",
-                          MAX_WORKER_ID));
+                    "Worker id can't > %d or < 0",
+                    MAX_WORKER_ID));
             }
             if (datacenterId > MAX_DC_ID || datacenterId < 0) {
                 throw new IllegalArgumentException(String.format(
-                          "Datacenter id can't > %d or < 0",
-                          MAX_DC_ID));
+                    "Datacenter id can't > %d or < 0",
+                    MAX_DC_ID));
             }
             this.workerId = workerId;
             this.datacenterId = datacenterId;

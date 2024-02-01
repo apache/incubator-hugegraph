@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ParameterUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class LpaComputer extends AbstractComputer {
@@ -29,6 +30,16 @@ public class LpaComputer extends AbstractComputer {
 
     public static final String PROPERTY = "property";
     public static final String DEFAULT_PROPERTY = "id";
+
+    private static String property(Map<String, Object> parameters) {
+        if (!parameters.containsKey(PROPERTY)) {
+            return DEFAULT_PROPERTY;
+        }
+        String property = ParameterUtil.parameterString(parameters, PROPERTY);
+        E.checkArgument(property != null && !property.isEmpty(),
+                        "The value of %s can not be null or empty", PROPERTY);
+        return property;
+    }
 
     @Override
     public String name() {
@@ -51,21 +62,11 @@ public class LpaComputer extends AbstractComputer {
 
     @Override
     protected Map<String, Object> checkAndCollectParameters(
-                                  Map<String, Object> parameters) {
+        Map<String, Object> parameters) {
         return ImmutableMap.of(TIMES, times(parameters),
                                PROPERTY, property(parameters),
                                PRECISION, precision(parameters),
                                DIRECTION, direction(parameters),
                                DEGREE, degree(parameters));
-    }
-
-    private static String property(Map<String, Object> parameters) {
-        if (!parameters.containsKey(PROPERTY)) {
-            return DEFAULT_PROPERTY;
-        }
-        String property = ParameterUtil.parameterString(parameters, PROPERTY);
-        E.checkArgument(property != null && !property.isEmpty(),
-                        "The value of %s can not be null or empty", PROPERTY);
-        return property;
     }
 }

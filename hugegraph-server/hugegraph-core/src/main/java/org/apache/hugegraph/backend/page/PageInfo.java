@@ -41,37 +41,6 @@ public final class PageInfo {
         this.page = page;
     }
 
-    public void increase() {
-        this.offset++;
-        this.page = PAGE_NONE;
-    }
-
-    public int offset() {
-        return this.offset;
-    }
-
-    public void page(String page) {
-        this.page = page;
-    }
-
-    public String page() {
-        return this.page;
-    }
-
-    @Override
-    public String toString() {
-        return StringEncoding.encodeBase64(this.toBytes());
-    }
-
-    public byte[] toBytes() {
-        byte[] pageState = PageState.toBytes(this.page);
-        int length = 2 + BytesBuffer.INT_LEN + pageState.length;
-        BytesBuffer buffer = BytesBuffer.allocate(length);
-        buffer.writeInt(this.offset);
-        buffer.writeBytes(pageState);
-        return buffer.bytes();
-    }
-
     public static PageInfo fromString(String page) {
         byte[] bytes;
         try {
@@ -113,5 +82,36 @@ public final class PageInfo {
                      "Invalid paging iterator: %s", iterator.getClass());
         Object page = ((Metadatable) iterator).metadata(PAGE);
         return page == null ? null : page.toString();
+    }
+
+    public void increase() {
+        this.offset++;
+        this.page = PAGE_NONE;
+    }
+
+    public int offset() {
+        return this.offset;
+    }
+
+    public void page(String page) {
+        this.page = page;
+    }
+
+    public String page() {
+        return this.page;
+    }
+
+    @Override
+    public String toString() {
+        return StringEncoding.encodeBase64(this.toBytes());
+    }
+
+    public byte[] toBytes() {
+        byte[] pageState = PageState.toBytes(this.page);
+        int length = 2 + BytesBuffer.INT_LEN + pageState.length;
+        BytesBuffer buffer = BytesBuffer.allocate(length);
+        buffer.writeInt(this.offset);
+        buffer.writeBytes(pageState);
+        return buffer.bytes();
     }
 }

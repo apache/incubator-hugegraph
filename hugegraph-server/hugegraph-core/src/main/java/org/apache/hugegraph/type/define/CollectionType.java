@@ -28,26 +28,17 @@ public enum CollectionType implements SerialEnum {
     // FastUtil
     FU(3, "fu");
 
-    private final byte code;
-    private final String name;
-
     static {
         SerialEnum.register(CollectionType.class);
     }
+
+    private final byte code;
+    private final String name;
 
     CollectionType(int code, String name) {
         assert code < 256;
         this.code = (byte) code;
         this.name = name;
-    }
-
-    @Override
-    public byte code() {
-        return this.code;
-    }
-
-    public String string() {
-        return this.name;
     }
 
     public static CollectionType fromCode(byte code) {
@@ -60,7 +51,16 @@ public enum CollectionType implements SerialEnum {
                 return FU;
             default:
                 throw new AssertionError(
-                          "Unsupported collection code: " + code);
+                    "Unsupported collection code: " + code);
         }
+    }
+
+    @Override
+    public byte code() {
+        return this.code;
+    }
+
+    public String string() {
+        return this.name;
     }
 }

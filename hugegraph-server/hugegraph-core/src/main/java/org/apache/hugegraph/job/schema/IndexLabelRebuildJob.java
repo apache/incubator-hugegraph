@@ -25,18 +25,18 @@ import java.util.stream.Collectors;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.SchemaStatus;
-import org.apache.hugegraph.util.LockUtil;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.SchemaStatus;
+import org.apache.hugegraph.util.LockUtil;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.google.common.collect.ImmutableSet;
 
 public class IndexLabelRebuildJob extends SchemaJob {
@@ -78,7 +78,7 @@ public class IndexLabelRebuildJob extends SchemaJob {
             default:
                 assert schema.type() == HugeType.PROPERTY_KEY;
                 throw new AssertionError(String.format(
-                          "The %s can't rebuild index", schema.type()));
+                    "The %s can't rebuild index", schema.type()));
         }
     }
 
@@ -185,7 +185,7 @@ public class IndexLabelRebuildJob extends SchemaJob {
                 return this.graph().indexLabel(id);
             default:
                 throw new AssertionError(String.format(
-                          "Invalid HugeType '%s' for rebuild", type));
+                    "Invalid HugeType '%s' for rebuild", type));
         }
     }
 }

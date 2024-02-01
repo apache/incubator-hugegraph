@@ -27,10 +27,6 @@ import org.apache.hugegraph.backend.LocalCounter;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.TextBackendEntry;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.Action;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.store.AbstractBackendStore;
 import org.apache.hugegraph.backend.store.BackendAction;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -39,7 +35,9 @@ import org.apache.hugegraph.backend.store.BackendMutation;
 import org.apache.hugegraph.backend.store.BackendSession;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 /**
  * NOTE:
@@ -55,322 +53,9 @@ import org.apache.hugegraph.util.Log;
  * 2.append/subtract edge-property
  */
 public abstract class InMemoryDBStore
-                extends AbstractBackendStore<BackendSession> {
+    extends AbstractBackendStore<BackendSession> {
 
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
-
-    private final BackendStoreProvider provider;
-
-    private final String store;
-    private final String database;
-
-    private final Map<HugeType, InMemoryDBTable> tables;
-
-    public InMemoryDBStore(final BackendStoreProvider provider,
-                           final String database, final String store) {
-        this.provider = provider;
-        this.database = database;
-        this.store = store;
-        this.tables = new HashMap<>();
-
-        this.registerMetaHandlers();
-        LOG.debug("Store loaded: {}", store);
-    }
-
-    private void registerMetaHandlers() {
-        this.registerMetaHandler("metrics", (session, meta, args) -> {
-            InMemoryMetrics metrics = new InMemoryMetrics();
-            return metrics.metrics();
-        });
-    }
-
-    protected void registerTableManager(HugeType type, InMemoryDBTable table) {
-        this.tables.put(type, table);
-    }
-
-    protected Collection<InMemoryDBTable> tables() {
-        return this.tables.values();
-    }
-
-    @Override
-    protected final InMemoryDBTable table(HugeType type) {
-        assert type != null;
-        InMemoryDBTable table = this.tables.get(type);
-        if (table == null) {
-            throw new BackendException("Unsupported table type: %s", type);
-        }
-        return table;
-    }
-
-    @Override
-    protected BackendSession session(HugeType type) {
-        return null;
-    }
-
-    @Override
-    public Iterator<BackendEntry> query(Query query) {
-        InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
-        Iterator<BackendEntry> rs = table.query(null, query);
-        LOG.debug("[store {}] has result({}) for query: {}",
-                  this.store, rs.hasNext(), query);
-        return rs;
-    }
-
-    @Override
-    public Number queryNumber(Query query) {
-        InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
-        Number result = table.queryNumber(null, query);
-        LOG.debug("[store {}] get result({}) for number query: {}",
-                  this.store, result, query);
-        return result;
-    }
-
-    @Override
-    public void mutate(BackendMutation mutation) {
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
-            this.mutate(it.next());
-        }
-    }
-
-    protected void mutate(BackendAction item) {
-        BackendEntry e = item.entry();
-        assert e instanceof TextBackendEntry;
-        TextBackendEntry entry = (TextBackendEntry) e;
-        InMemoryDBTable table = this.table(entry.type());
-        switch (item.action()) {
-            case INSERT:
-                LOG.debug("[store {}] add entry: {}", this.store, entry);
-                table.insert(null, entry);
-                break;
-            case DELETE:
-                LOG.debug("[store {}] remove id: {}", this.store, entry.id());
-                table.delete(null, entry);
-                break;
-            case APPEND:
-                LOG.debug("[store {}] append entry: {}", this.store, entry);
-                table.append(null, entry);
-                break;
-            case ELIMINATE:
-                LOG.debug("[store {}] eliminate entry: {}", this.store, entry);
-                table.eliminate(null, entry);
-                break;
-            case UPDATE_IF_PRESENT:
-                table.updateIfPresent(null, entry);
-                break;
-            case UPDATE_IF_ABSENT:
-                table.updateIfAbsent(null, entry);
-                break;
-            default:
-                throw new BackendException("Unsupported mutate type: %s",
-                                           item.action());
-        }
-    }
-
-    @Override
-    public String store() {
-        return this.store;
-    }
-
-    @Override
-    public String database() {
-        return this.database;
-    }
-
-    @Override
-    public BackendStoreProvider provider() {
-        return this.provider;
-    }
-
-    @Override
-    public void open(HugeConfig config) {
-        LOG.debug("Store opened: {}", this.store);
-    }
-
-    @Override
-    public void close() throws BackendException {
-        LOG.debug("Store closed: {}", this.store);
-    }
-
-    @Override
-    public void init() {
-        for (InMemoryDBTable table : this.tables()) {
-            table.init(null);
-        }
-
-        LOG.debug("Store initialized: {}", this.store);
-    }
-
-    @Override
-    public void clear(boolean clearSpace) {
-        for (InMemoryDBTable table : this.tables()) {
-            table.clear(null);
-        }
-
-        LOG.debug("Store cleared: {}", this.store);
-    }
-
-    @Override
-    public void truncate() {
-        for (InMemoryDBTable table : this.tables()) {
-            table.clear(null);
-        }
-
-        LOG.debug("Store truncated: {}", this.store);
-    }
-
-    @Override
-    public void beginTx() {
-        // pass
-    }
-
-    @Override
-    public void commitTx() {
-        // pass
-    }
-
-    @Override
-    public void rollbackTx() {
-        throw new UnsupportedOperationException(
-                  "Unsupported rollback operation by InMemoryDBStore");
-    }
-
-    @Override
-    public BackendFeatures features() {
-        return FEATURES;
-    }
-
-    @Override
-    public boolean opened() {
-        return true;
-    }
-
-    @Override
-    public boolean initialized() {
-        return true;
-    }
-
-    /***************************** Store defines *****************************/
-
-    public static class InMemorySchemaStore extends InMemoryDBStore {
-
-        private final LocalCounter counter = new LocalCounter();
-
-        public InMemorySchemaStore(BackendStoreProvider provider,
-                                   String database, String store) {
-            super(provider, database, store);
-
-            registerTableManager(HugeType.VERTEX_LABEL,
-                                 new InMemoryDBTable(HugeType.VERTEX_LABEL));
-            registerTableManager(HugeType.EDGE_LABEL,
-                                 new InMemoryDBTable(HugeType.EDGE_LABEL));
-            registerTableManager(HugeType.PROPERTY_KEY,
-                                 new InMemoryDBTable(HugeType.PROPERTY_KEY));
-            registerTableManager(HugeType.INDEX_LABEL,
-                                 new InMemoryDBTable(HugeType.INDEX_LABEL));
-            registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new InMemoryDBTables.SecondaryIndex());
-        }
-
-        @Override
-        public Id nextId(HugeType type) {
-            return this.counter.nextId(type);
-        }
-
-        @Override
-        public void increaseCounter(HugeType type, long increment) {
-            this.counter.increaseCounter(type, increment);
-        }
-
-        @Override
-        public long getCounter(HugeType type) {
-            return this.counter.getCounter(type);
-        }
-
-        @Override
-        public void clear(boolean clearSpace) {
-            this.counter.reset();
-            super.clear(clearSpace);
-        }
-
-        @Override
-        public void truncate() {
-            this.counter.reset();
-            super.truncate();
-        }
-
-        @Override
-        public boolean isSchemaStore() {
-            return true;
-        }
-    }
-
-    public static class InMemoryGraphStore extends InMemoryDBStore {
-
-        public InMemoryGraphStore(BackendStoreProvider provider,
-                                  String database, String store) {
-            super(provider, database, store);
-
-            registerTableManager(HugeType.VERTEX,
-                                 new InMemoryDBTables.Vertex());
-            registerTableManager(HugeType.EDGE_OUT,
-                                 new InMemoryDBTables.Edge(HugeType.EDGE_OUT));
-            registerTableManager(HugeType.EDGE_IN,
-                                 new InMemoryDBTables.Edge(HugeType.EDGE_IN));
-            registerTableManager(HugeType.SECONDARY_INDEX,
-                                 new InMemoryDBTables.SecondaryIndex());
-            registerTableManager(HugeType.RANGE_INT_INDEX,
-                                 InMemoryDBTables.RangeIndex.rangeInt());
-            registerTableManager(HugeType.RANGE_FLOAT_INDEX,
-                                 InMemoryDBTables.RangeIndex.rangeFloat());
-            registerTableManager(HugeType.RANGE_LONG_INDEX,
-                                 InMemoryDBTables.RangeIndex.rangeLong());
-            registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
-                                 InMemoryDBTables.RangeIndex.rangeDouble());
-            registerTableManager(HugeType.SEARCH_INDEX,
-                                 new InMemoryDBTables.SearchIndex());
-            registerTableManager(HugeType.SHARD_INDEX,
-                                 new InMemoryDBTables.ShardIndex());
-            registerTableManager(HugeType.UNIQUE_INDEX,
-                                 new InMemoryDBTables.UniqueIndex());
-        }
-
-        @Override
-        public boolean isSchemaStore() {
-            return false;
-        }
-
-        @Override
-        public Id nextId(HugeType type) {
-            throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.nextId()");
-        }
-
-        @Override
-        public void increaseCounter(HugeType type, long num) {
-            throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.increaseCounter()");
-        }
-
-        @Override
-        public long getCounter(HugeType type) {
-            throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.getCounter()");
-        }
-    }
-
-    public static class InMemorySystemStore extends InMemoryGraphStore {
-
-        public InMemorySystemStore(BackendStoreProvider provider,
-                                   String database, String store) {
-            super(provider, database, store);
-        }
-
-        @Override
-        public String storedVersion() {
-            return this.provider().driverVersion();
-        }
-    }
-
     /**
      * InMemoryDBStore features
      */
@@ -495,4 +180,313 @@ public abstract class InMemoryDBStore
             return false;
         }
     };
+    private final BackendStoreProvider provider;
+    private final String store;
+    private final String database;
+    private final Map<HugeType, InMemoryDBTable> tables;
+
+    public InMemoryDBStore(final BackendStoreProvider provider,
+                           final String database, final String store) {
+        this.provider = provider;
+        this.database = database;
+        this.store = store;
+        this.tables = new HashMap<>();
+
+        this.registerMetaHandlers();
+        LOG.debug("Store loaded: {}", store);
+    }
+
+    private void registerMetaHandlers() {
+        this.registerMetaHandler("metrics", (session, meta, args) -> {
+            InMemoryMetrics metrics = new InMemoryMetrics();
+            return metrics.metrics();
+        });
+    }
+
+    protected void registerTableManager(HugeType type, InMemoryDBTable table) {
+        this.tables.put(type, table);
+    }
+
+    protected Collection<InMemoryDBTable> tables() {
+        return this.tables.values();
+    }
+
+    @Override
+    protected final InMemoryDBTable table(HugeType type) {
+        assert type != null;
+        InMemoryDBTable table = this.tables.get(type);
+        if (table == null) {
+            throw new BackendException("Unsupported table type: %s", type);
+        }
+        return table;
+    }
+
+    @Override
+    protected BackendSession session(HugeType type) {
+        return null;
+    }
+
+    @Override
+    public Iterator<BackendEntry> query(Query query) {
+        InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
+        Iterator<BackendEntry> rs = table.query(null, query);
+        LOG.debug("[store {}] has result({}) for query: {}",
+                  this.store, rs.hasNext(), query);
+        return rs;
+    }
+
+    @Override
+    public Number queryNumber(Query query) {
+        InMemoryDBTable table = this.table(InMemoryDBTable.tableType(query));
+        Number result = table.queryNumber(null, query);
+        LOG.debug("[store {}] get result({}) for number query: {}",
+                  this.store, result, query);
+        return result;
+    }
+
+    @Override
+    public void mutate(BackendMutation mutation) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
+            this.mutate(it.next());
+        }
+    }
+
+    protected void mutate(BackendAction item) {
+        BackendEntry e = item.entry();
+        assert e instanceof TextBackendEntry;
+        TextBackendEntry entry = (TextBackendEntry) e;
+        InMemoryDBTable table = this.table(entry.type());
+        switch (item.action()) {
+            case INSERT:
+                LOG.debug("[store {}] add entry: {}", this.store, entry);
+                table.insert(null, entry);
+                break;
+            case DELETE:
+                LOG.debug("[store {}] remove id: {}", this.store, entry.id());
+                table.delete(null, entry);
+                break;
+            case APPEND:
+                LOG.debug("[store {}] append entry: {}", this.store, entry);
+                table.append(null, entry);
+                break;
+            case ELIMINATE:
+                LOG.debug("[store {}] eliminate entry: {}", this.store, entry);
+                table.eliminate(null, entry);
+                break;
+            case UPDATE_IF_PRESENT:
+                table.updateIfPresent(null, entry);
+                break;
+            case UPDATE_IF_ABSENT:
+                table.updateIfAbsent(null, entry);
+                break;
+            default:
+                throw new BackendException("Unsupported mutate type: %s",
+                                           item.action());
+        }
+    }
+
+    @Override
+    public String store() {
+        return this.store;
+    }
+
+    @Override
+    public String database() {
+        return this.database;
+    }
+
+    @Override
+    public BackendStoreProvider provider() {
+        return this.provider;
+    }
+
+    @Override
+    public void open(HugeConfig config) {
+        LOG.debug("Store opened: {}", this.store);
+    }
+
+    @Override
+    public void close() throws BackendException {
+        LOG.debug("Store closed: {}", this.store);
+    }
+
+    @Override
+    public void init() {
+        for (InMemoryDBTable table : this.tables()) {
+            table.init(null);
+        }
+
+        LOG.debug("Store initialized: {}", this.store);
+    }
+
+    @Override
+    public void clear(boolean clearSpace) {
+        for (InMemoryDBTable table : this.tables()) {
+            table.clear(null);
+        }
+
+        LOG.debug("Store cleared: {}", this.store);
+    }
+
+    @Override
+    public void truncate() {
+        for (InMemoryDBTable table : this.tables()) {
+            table.clear(null);
+        }
+
+        LOG.debug("Store truncated: {}", this.store);
+    }
+
+    @Override
+    public void beginTx() {
+        // pass
+    }
+
+    @Override
+    public void commitTx() {
+        // pass
+    }
+
+    @Override
+    public void rollbackTx() {
+        throw new UnsupportedOperationException(
+            "Unsupported rollback operation by InMemoryDBStore");
+    }
+
+    @Override
+    public BackendFeatures features() {
+        return FEATURES;
+    }
+
+    @Override
+    public boolean opened() {
+        return true;
+    }
+
+    @Override
+    public boolean initialized() {
+        return true;
+    }
+
+    /***************************** Store defines *****************************/
+
+    public static class InMemorySchemaStore extends InMemoryDBStore {
+
+        private final LocalCounter counter = new LocalCounter();
+
+        public InMemorySchemaStore(BackendStoreProvider provider,
+                                   String database, String store) {
+            super(provider, database, store);
+
+            registerTableManager(HugeType.VERTEX_LABEL,
+                                 new InMemoryDBTable(HugeType.VERTEX_LABEL));
+            registerTableManager(HugeType.EDGE_LABEL,
+                                 new InMemoryDBTable(HugeType.EDGE_LABEL));
+            registerTableManager(HugeType.PROPERTY_KEY,
+                                 new InMemoryDBTable(HugeType.PROPERTY_KEY));
+            registerTableManager(HugeType.INDEX_LABEL,
+                                 new InMemoryDBTable(HugeType.INDEX_LABEL));
+            registerTableManager(HugeType.SECONDARY_INDEX,
+                                 new InMemoryDBTables.SecondaryIndex());
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            return this.counter.nextId(type);
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long increment) {
+            this.counter.increaseCounter(type, increment);
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            return this.counter.getCounter(type);
+        }
+
+        @Override
+        public void clear(boolean clearSpace) {
+            this.counter.reset();
+            super.clear(clearSpace);
+        }
+
+        @Override
+        public void truncate() {
+            this.counter.reset();
+            super.truncate();
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return true;
+        }
+    }
+
+    public static class InMemoryGraphStore extends InMemoryDBStore {
+
+        public InMemoryGraphStore(BackendStoreProvider provider,
+                                  String database, String store) {
+            super(provider, database, store);
+
+            registerTableManager(HugeType.VERTEX,
+                                 new InMemoryDBTables.Vertex());
+            registerTableManager(HugeType.EDGE_OUT,
+                                 new InMemoryDBTables.Edge(HugeType.EDGE_OUT));
+            registerTableManager(HugeType.EDGE_IN,
+                                 new InMemoryDBTables.Edge(HugeType.EDGE_IN));
+            registerTableManager(HugeType.SECONDARY_INDEX,
+                                 new InMemoryDBTables.SecondaryIndex());
+            registerTableManager(HugeType.RANGE_INT_INDEX,
+                                 InMemoryDBTables.RangeIndex.rangeInt());
+            registerTableManager(HugeType.RANGE_FLOAT_INDEX,
+                                 InMemoryDBTables.RangeIndex.rangeFloat());
+            registerTableManager(HugeType.RANGE_LONG_INDEX,
+                                 InMemoryDBTables.RangeIndex.rangeLong());
+            registerTableManager(HugeType.RANGE_DOUBLE_INDEX,
+                                 InMemoryDBTables.RangeIndex.rangeDouble());
+            registerTableManager(HugeType.SEARCH_INDEX,
+                                 new InMemoryDBTables.SearchIndex());
+            registerTableManager(HugeType.SHARD_INDEX,
+                                 new InMemoryDBTables.ShardIndex());
+            registerTableManager(HugeType.UNIQUE_INDEX,
+                                 new InMemoryDBTables.UniqueIndex());
+        }
+
+        @Override
+        public boolean isSchemaStore() {
+            return false;
+        }
+
+        @Override
+        public Id nextId(HugeType type) {
+            throw new UnsupportedOperationException(
+                "InMemoryGraphStore.nextId()");
+        }
+
+        @Override
+        public void increaseCounter(HugeType type, long num) {
+            throw new UnsupportedOperationException(
+                "InMemoryGraphStore.increaseCounter()");
+        }
+
+        @Override
+        public long getCounter(HugeType type) {
+            throw new UnsupportedOperationException(
+                "InMemoryGraphStore.getCounter()");
+        }
+    }
+
+    public static class InMemorySystemStore extends InMemoryGraphStore {
+
+        public InMemorySystemStore(BackendStoreProvider provider,
+                                   String database, String store) {
+            super(provider, database, store);
+        }
+
+        @Override
+        public String storedVersion() {
+            return this.provider().driverVersion();
+        }
+    }
 }

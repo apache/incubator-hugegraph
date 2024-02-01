@@ -17,20 +17,12 @@
 
 package org.apache.hugegraph.plugin;
 
-import org.apache.hugegraph.backend.store.BackendProviderFactory;
 import org.apache.hugegraph.analyzer.AnalyzerFactory;
 import org.apache.hugegraph.backend.serializer.SerializerFactory;
+import org.apache.hugegraph.backend.store.BackendProviderFactory;
 import org.apache.hugegraph.config.OptionSpace;
 
 public interface HugeGraphPlugin {
-
-    String name();
-
-    void register();
-
-    String supportsMinVersion();
-
-    String supportsMaxVersion();
 
     static void registerOptions(String name, String classPath) {
         OptionSpace.register(name, classPath);
@@ -47,4 +39,12 @@ public interface HugeGraphPlugin {
     static void registerAnalyzer(String name, String classPath) {
         AnalyzerFactory.register(name, classPath);
     }
+
+    String name();
+
+    void register();
+
+    String supportsMinVersion();
+
+    String supportsMaxVersion();
 }

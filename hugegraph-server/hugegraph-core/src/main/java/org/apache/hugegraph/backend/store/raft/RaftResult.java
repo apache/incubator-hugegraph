@@ -19,8 +19,9 @@ package org.apache.hugegraph.backend.store.raft;
 
 import java.util.function.Supplier;
 
-import com.alipay.sofa.jraft.Status;
 import org.apache.hugegraph.util.E;
+
+import com.alipay.sofa.jraft.Status;
 
 public final class RaftResult<T> {
 

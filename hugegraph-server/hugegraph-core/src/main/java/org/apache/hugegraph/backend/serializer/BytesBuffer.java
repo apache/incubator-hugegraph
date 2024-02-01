@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.serializer;
@@ -29,13 +31,14 @@ import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.Id.IdType;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
-import org.apache.hugegraph.util.*;
-import org.apache.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import org.apache.hugegraph.util.Blob;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.KryoUtil;
 import org.apache.hugegraph.util.StringEncoding;
 
@@ -65,7 +68,7 @@ public final class BytesBuffer extends OutputStream {
     public static final byte STRING_ENDING_BYTE = (byte) 0x00;
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
     public static final int STRING_LEN_MAX = UINT16_MAX;
-    public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
+    public static final long BLOB_LEN_MAX = Bytes.GB;
 
     // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
@@ -77,9 +80,8 @@ public final class BytesBuffer extends OutputStream {
     public static final int BUF_PROPERTY = 64;
 
     public static final byte[] BYTES_EMPTY = new byte[0];
-
-    private ByteBuffer buffer;
     private final boolean resize;
+    private ByteBuffer buffer;
 
     public BytesBuffer() {
         this(DEFAULT_CAPACITY);
@@ -344,7 +346,7 @@ public final class BytesBuffer extends OutputStream {
              *   0xFF is not a valid byte in UTF8 bytes
              */
             assert !Bytes.contains(bytes, STRING_ENDING_BYTE_FF) :
-                   "Invalid UTF8 bytes: " + value;
+                "Invalid UTF8 bytes: " + value;
             if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
                 E.checkArgument(false,
                                 "Can't contains byte '0x00' in string: '%s'",
@@ -421,7 +423,7 @@ public final class BytesBuffer extends OutputStream {
             this.write(0x80 | ((value >>> 14) & 0x7f));
         }
         if (value > 0x7f || value < 0) {
-            this.write(0x80 | ((value >>>  7) & 0x7f));
+            this.write(0x80 | ((value >>> 7) & 0x7f));
         }
         this.write(value & 0x7f);
 
@@ -485,7 +487,7 @@ public final class BytesBuffer extends OutputStream {
             this.write(0x80 | ((int) (value >>> 14) & 0x7f));
         }
         if (value > 0x7fL || value < 0L) {
-            this.write(0x80 | ((int) (value >>>  7) & 0x7f));
+            this.write(0x80 | ((int) (value >>> 7) & 0x7f));
         }
         this.write((int) value & 0x7f);
 
@@ -874,7 +876,7 @@ public final class BytesBuffer extends OutputStream {
                 value |= this.readUInt16();
                 break;
             case 2:
-                value |= this.readUInt8() << 16 | this.readUInt16();
+                value |= (long) this.readUInt8() << 16 | this.readUInt16();
                 break;
             case 3:
                 value |= this.readUInt32();

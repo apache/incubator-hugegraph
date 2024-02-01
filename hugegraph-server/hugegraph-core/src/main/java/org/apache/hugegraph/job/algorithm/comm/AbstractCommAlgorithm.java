@@ -28,11 +28,6 @@ public abstract class AbstractCommAlgorithm extends AbstractAlgorithm {
 
     private static final int MAX_TIMES = 2048;
 
-    @Override
-    public String category() {
-        return CATEGORY_COMM;
-    }
-
     protected static int times(Map<String, Object> parameters) {
         if (!parameters.containsKey(KEY_TIMES)) {
             return (int) DEFAULT_TIMES;
@@ -74,5 +69,10 @@ public abstract class AbstractCommAlgorithm extends AbstractAlgorithm {
             return null;
         }
         return ParameterUtil.parameterString(parameters, KEY_SHOW_COMM);
+    }
+
+    @Override
+    public String category() {
+        return CATEGORY_COMM;
     }
 }

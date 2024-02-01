@@ -32,8 +32,6 @@ public abstract class IdGenerator {
 
     public static final Id ZERO = IdGenerator.of(0L);
 
-    public abstract Id generate(HugeVertex vertex);
-
     public static Id of(String id) {
         return new StringId(id);
     }
@@ -122,6 +120,8 @@ public abstract class IdGenerator {
     private static int compareType(Id id1, Id id2) {
         return idType(id1).ordinal() - idType(id2).ordinal();
     }
+
+    public abstract Id generate(HugeVertex vertex);
 
     /****************************** id defines ******************************/
 
@@ -306,6 +306,14 @@ public abstract class IdGenerator {
             this.uuid = uuid;
         }
 
+        private static UUID fromBytes(byte[] bytes) {
+            E.checkArgument(bytes != null, "The UUID can't be null");
+            BytesBuffer buffer = BytesBuffer.wrap(bytes);
+            long high = buffer.readLong();
+            long low = buffer.readLong();
+            return new UUID(high, low);
+        }
+
         @Override
         public IdType type() {
             return IdType.UUID;
@@ -332,14 +340,6 @@ public abstract class IdGenerator {
             buffer.writeLong(this.uuid.getMostSignificantBits());
             buffer.writeLong(this.uuid.getLeastSignificantBits());
             return buffer.bytes();
-        }
-
-        private static UUID fromBytes(byte[] bytes) {
-            E.checkArgument(bytes != null, "The UUID can't be null");
-            BytesBuffer buffer = BytesBuffer.wrap(bytes);
-            long high = buffer.readLong();
-            long low = buffer.readLong();
-            return new UUID(high, low);
         }
 
         @Override

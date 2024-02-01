@@ -40,12 +40,12 @@ public enum IndexType implements SerialEnum {
     // For unique index
     UNIQUE(5, "unique");
 
-    private byte code = 0;
-    private String name = null;
-
     static {
         SerialEnum.register(IndexType.class);
     }
+
+    private byte code = 0;
+    private String name = null;
 
     IndexType(int code, String name) {
         assert code < 256;
@@ -82,7 +82,7 @@ public enum IndexType implements SerialEnum {
                 return HugeType.UNIQUE_INDEX;
             default:
                 throw new AssertionError(String.format(
-                          "Unknown index type '%s'", this));
+                    "Unknown index type '%s'", this));
         }
     }
 

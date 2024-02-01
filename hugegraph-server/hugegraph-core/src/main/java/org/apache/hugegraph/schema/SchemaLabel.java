@@ -22,18 +22,19 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.Indexable;
 import org.apache.hugegraph.type.Propertiable;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public abstract class SchemaLabel extends SchemaElement
-                                  implements Indexable, Propertiable {
+    implements Indexable, Propertiable {
 
     private final Set<Id> properties;
     private final Set<Id> nullableKeys;
@@ -50,6 +51,29 @@ public abstract class SchemaLabel extends SchemaElement
         this.enableLabelIndex = true;
         this.ttl = 0L;
         this.ttlStartTime = NONE_ID;
+    }
+
+    public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {
+        E.checkNotNull(graph, "graph");
+        E.checkNotNull(type, "type");
+        E.checkNotNull(label, "label");
+        if (label instanceof Number) {
+            return IdGenerator.of(((Number) label).longValue());
+        } else if (label instanceof String) {
+            if (type.isVertex()) {
+                return graph.vertexLabel((String) label).id();
+            } else if (type.isEdge()) {
+                return graph.edgeLabel((String) label).id();
+            } else {
+                throw new HugeException(
+                    "Not support query from '%s' with label '%s'",
+                    type, label);
+            }
+        } else {
+            throw new HugeException(
+                "The label type must be number or string, but got '%s'",
+                label.getClass());
+        }
     }
 
     @Override
@@ -152,28 +176,5 @@ public abstract class SchemaLabel extends SchemaElement
                Objects.equal(this.graph.mapIlId2Name(this.indexLabels),
                              other.graph.mapIlId2Name(other.indexLabels)) &&
                Objects.equal(this.ttlStartTimeName(), other.ttlStartTimeName());
-    }
-
-    public static Id getLabelId(HugeGraph graph, HugeType type, Object label) {
-        E.checkNotNull(graph, "graph");
-        E.checkNotNull(type, "type");
-        E.checkNotNull(label, "label");
-        if (label instanceof Number) {
-            return IdGenerator.of(((Number) label).longValue());
-        } else if (label instanceof String) {
-            if (type.isVertex()) {
-                return graph.vertexLabel((String) label).id();
-            } else if (type.isEdge()) {
-                return graph.edgeLabel((String) label).id();
-            } else {
-                throw new HugeException(
-                          "Not support query from '%s' with label '%s'",
-                          type, label);
-            }
-        } else {
-            throw new HugeException(
-                      "The label type must be number or string, but got '%s'",
-                      label.getClass());
-        }
     }
 }

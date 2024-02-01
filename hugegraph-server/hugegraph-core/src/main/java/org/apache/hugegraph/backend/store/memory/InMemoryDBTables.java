@@ -32,23 +32,24 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.serializer.TextBackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
-import org.apache.hugegraph.backend.store.BackendSession;
-import org.apache.hugegraph.structure.HugeIndex;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.Condition.RangeConditions;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.backend.serializer.TextBackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
+import org.apache.hugegraph.backend.store.BackendSession;
 import org.apache.hugegraph.iterator.ExtendableIterator;
+import org.apache.hugegraph.structure.HugeIndex;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 
 public class InMemoryDBTables {
@@ -64,6 +65,26 @@ public class InMemoryDBTables {
 
         public Edge(HugeType type) {
             super(type);
+        }
+
+        private static Id vertexIdOfEdge(TextBackendEntry entry) {
+            assert entry.type().isEdge();
+            // Assume the first part is owner vertex id
+            String vertexId = EdgeId.split(entry.id())[0];
+            return IdGenerator.of(vertexId);
+        }
+
+        private static String columnOfEdge(Id id) {
+            // TODO: improve id split
+            String[] parts = EdgeId.split(id);
+            if (parts.length > 1) {
+                parts = Arrays.copyOfRange(parts, 1, parts.length);
+                return EdgeId.concat(parts);
+            } else {
+                // All edges
+                assert parts.length == 1;
+            }
+            return null;
         }
 
         @Override
@@ -103,18 +124,18 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryById(
-                                        Collection<Id> ids,
-                                        Map<Id, BackendEntry> entries) {
+            Collection<Id> ids,
+            Map<Id, BackendEntry> entries) {
             // Query edge(in a vertex) by id
             return this.queryEdgeById(ids, false, entries);
         }
 
         @Override
         protected Map<Id, BackendEntry> queryByIdPrefix(
-                                        Id start,
-                                        boolean inclusiveStart,
-                                        Id prefix,
-                                        Map<Id, BackendEntry> entries) {
+            Id start,
+            boolean inclusiveStart,
+            Id prefix,
+            Map<Id, BackendEntry> entries) {
             // Query edge(in a vertex) by v-id + column-name-prefix
             BackendEntry value = this.getEntryById(start, entries);
             if (value == null) {
@@ -145,11 +166,11 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryByIdRange(
-                                        Id start,
-                                        boolean inclusiveStart,
-                                        Id end,
-                                        boolean inclusiveEnd,
-                                        Map<Id, BackendEntry> entries) {
+            Id start,
+            boolean inclusiveStart,
+            Id end,
+            boolean inclusiveEnd,
+            Map<Id, BackendEntry> entries) {
             BackendEntry value = this.getEntryById(start, entries);
             if (value == null) {
                 return Collections.emptyMap();
@@ -178,8 +199,8 @@ public class InMemoryDBTables {
         }
 
         private Map<Id, BackendEntry> queryEdgeById(
-                                      Collection<Id> ids, boolean prefix,
-                                      Map<Id, BackendEntry> entries) {
+            Collection<Id> ids, boolean prefix,
+            Map<Id, BackendEntry> entries) {
             assert ids.size() > 0;
             Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
 
@@ -195,7 +216,7 @@ public class InMemoryDBTables {
                     } else if ((!prefix && entry.contains(column)) ||
                                (prefix && entry.containsPrefix(column))) {
                         BackendEntry edges = new TextBackendEntry(
-                                                 HugeType.VERTEX, entry.id());
+                            HugeType.VERTEX, entry.id());
                         if (prefix) {
                             // Some edges with specified prefix in the vertex
                             edges.columns(entry.columnsWithPrefix(column));
@@ -229,8 +250,8 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryByFilter(
-                                        Collection<Condition> conditions,
-                                        Map<Id, BackendEntry> entries) {
+            Collection<Condition> conditions,
+            Map<Id, BackendEntry> entries) {
             if (conditions.isEmpty()) {
                 return entries;
             }
@@ -331,26 +352,6 @@ public class InMemoryDBTables {
         protected long sizeOfBackendEntry(BackendEntry entry) {
             return entry.columnsSize();
         }
-
-        private static Id vertexIdOfEdge(TextBackendEntry entry) {
-            assert entry.type().isEdge();
-            // Assume the first part is owner vertex id
-            String vertexId = EdgeId.split(entry.id())[0];
-            return IdGenerator.of(vertexId);
-        }
-
-        private static String columnOfEdge(Id id) {
-            // TODO: improve id split
-            String[] parts = EdgeId.split(id);
-            if (parts.length > 1) {
-                parts = Arrays.copyOfRange(parts, 1, parts.length);
-                return EdgeId.concat(parts);
-            } else {
-                // All edges
-                assert parts.length == 1;
-            }
-            return null;
-        }
     }
 
     public static class SecondaryIndex extends InMemoryDBTable {
@@ -405,7 +406,7 @@ public class InMemoryDBTables {
             E.checkState(indexLabel != null, "Expect index label");
 
             Iterator<Entry<Id, BackendEntry>> iter;
-            for (iter = this.store().entrySet().iterator(); iter.hasNext();) {
+            for (iter = this.store().entrySet().iterator(); iter.hasNext(); ) {
                 Entry<Id, BackendEntry> e = iter.next();
                 // Delete if prefix with index label
                 if (e.getKey().asString().startsWith(indexLabel)) {
@@ -433,6 +434,22 @@ public class InMemoryDBTables {
 
         protected RangeIndex(HugeType type) {
             super(type, new ConcurrentSkipListMap<>());
+        }
+
+        public static RangeIndex rangeInt() {
+            return new RangeIndex(HugeType.RANGE_INT_INDEX);
+        }
+
+        public static RangeIndex rangeFloat() {
+            return new RangeIndex(HugeType.RANGE_FLOAT_INDEX);
+        }
+
+        public static RangeIndex rangeLong() {
+            return new RangeIndex(HugeType.RANGE_LONG_INDEX);
+        }
+
+        public static RangeIndex rangeDouble() {
+            return new RangeIndex(HugeType.RANGE_DOUBLE_INDEX);
         }
 
         @Override
@@ -535,27 +552,11 @@ public class InMemoryDBTables {
             SortedMap<Id, BackendEntry> subStore;
             subStore = this.store().subMap(min, max);
             Iterator<Entry<Id, BackendEntry>> iter;
-            for (iter = subStore.entrySet().iterator(); iter.hasNext();) {
+            for (iter = subStore.entrySet().iterator(); iter.hasNext(); ) {
                 iter.next();
                 // Delete if prefix with index label
                 iter.remove();
             }
-        }
-
-        public static RangeIndex rangeInt() {
-            return new RangeIndex(HugeType.RANGE_INT_INDEX);
-        }
-
-        public static RangeIndex rangeFloat() {
-            return new RangeIndex(HugeType.RANGE_FLOAT_INDEX);
-        }
-
-        public static RangeIndex rangeLong() {
-            return new RangeIndex(HugeType.RANGE_LONG_INDEX);
-        }
-
-        public static RangeIndex rangeDouble() {
-            return new RangeIndex(HugeType.RANGE_DOUBLE_INDEX);
         }
     }
 

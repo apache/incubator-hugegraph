@@ -19,8 +19,8 @@ package org.apache.hugegraph.auth;
 
 import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
 import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.util.E;
 
 public class ResourceObject<V> {
@@ -36,6 +36,28 @@ public class ResourceObject<V> {
         this.graph = graph;
         this.type = type;
         this.operated = operated;
+    }
+
+    public static ResourceObject<SchemaElement> of(String graph,
+                                                   SchemaElement elem) {
+        ResourceType resType = ResourceType.from(elem.type());
+        return new ResourceObject<>(graph, resType, elem);
+    }
+
+    public static ResourceObject<HugeElement> of(String graph,
+                                                 HugeElement elem) {
+        ResourceType resType = ResourceType.from(elem.type());
+        return new ResourceObject<>(graph, resType, elem);
+    }
+
+    public static ResourceObject<AuthElement> of(String graph,
+                                                 AuthElement elem) {
+        return new ResourceObject<>(graph, elem.type(), elem);
+    }
+
+    public static ResourceObject<?> of(String graph, ResourceType type,
+                                       Nameable elem) {
+        return new ResourceObject<>(graph, type, elem);
     }
 
     public String graph() {
@@ -67,27 +89,5 @@ public class ResourceObject<V> {
                  .append(",type=").append(typeStr)
                  .append(",operated=").append(operatedStr)
                  .append("}").toString();
-    }
-
-    public static ResourceObject<SchemaElement> of(String graph,
-                                                   SchemaElement elem) {
-        ResourceType resType = ResourceType.from(elem.type());
-        return new ResourceObject<>(graph, resType, elem);
-    }
-
-    public static ResourceObject<HugeElement> of(String graph,
-                                                 HugeElement elem) {
-        ResourceType resType = ResourceType.from(elem.type());
-        return new ResourceObject<>(graph, resType, elem);
-    }
-
-    public static ResourceObject<AuthElement> of(String graph,
-                                                 AuthElement elem) {
-        return new ResourceObject<>(graph, elem.type(), elem);
-    }
-
-    public static ResourceObject<?> of(String graph, ResourceType type,
-                                       Nameable elem) {
-        return new ResourceObject<>(graph, type, elem);
     }
 }

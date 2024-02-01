@@ -17,30 +17,28 @@
 
 package org.apache.hugegraph.job;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.task.TaskScheduler;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.util.E;
 
 public class EphemeralJobBuilder<V> {
 
+    // Use negative task id for ephemeral task
+    private static int ephemeralTaskId = -1;
     private final HugeGraph graph;
-
     private String name;
     private String input;
     private EphemeralJob<V> job;
 
-    // Use negative task id for ephemeral task
-    private static int ephemeralTaskId = -1;
+    public EphemeralJobBuilder(final HugeGraph graph) {
+        this.graph = graph;
+    }
 
     public static <T> EphemeralJobBuilder<T> of(final HugeGraph graph) {
         return new EphemeralJobBuilder<>(graph);
-    }
-
-    public EphemeralJobBuilder(final HugeGraph graph) {
-        this.graph = graph;
     }
 
     public EphemeralJobBuilder<V> name(String name) {

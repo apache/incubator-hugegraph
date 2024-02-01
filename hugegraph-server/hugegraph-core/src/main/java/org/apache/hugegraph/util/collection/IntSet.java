@@ -21,14 +21,52 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import org.apache.hugegraph.util.E;
 import org.eclipse.collections.api.collection.primitive.MutableIntCollection;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
-
-import org.apache.hugegraph.util.E;
 
 import io.netty.util.internal.shaded.org.jctools.util.UnsafeAccess;
 
 public interface IntSet {
+
+    int CPUS = Runtime.getRuntime().availableProcessors();
+    sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
+    long MOD64 = 0x3fL;
+    int DIV64 = 6;
+
+    static int segmentSize(long capacity, int segments) {
+        long eachSize = capacity / segments;
+        eachSize = IntSet.sizeToPowerOf2Size((int) eachSize);
+        /*
+         * Supply total size
+         * like capacity=20 and segments=19, then eachSize=1
+         * should increase eachSize to eachSize * 2.
+         */
+        while (eachSize * segments < capacity) {
+            eachSize <<= 1;
+        }
+        return (int) eachSize;
+    }
+
+    static int sizeToPowerOf2Size(int size) {
+        if (size < 1) {
+            size = 1;
+        }
+
+        int n = size - 1;
+        n |= n >>> 1;
+        n |= n >>> 2;
+        n |= n >>> 4;
+        n |= n >>> 8;
+        n |= n >>> 16;
+        size = n + 1;
+
+        return size;
+    }
+
+    static int bits2words(long numBits) {
+        return (int) ((numBits - 1) >>> DIV64) + 1;
+    }
 
     boolean add(int key);
 
@@ -49,6 +87,14 @@ public interface IntSet {
      */
     final class IntSetBySegments implements IntSet {
 
+        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
+        private static final Function<Integer, IntSet> DEFAULT_CREATOR =
+            size -> new IntSetByFixedAddr4Unsigned(size);
+        @SuppressWarnings("static-access")
+        private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
+        @SuppressWarnings("static-access")
+        private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
+            UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
         private final IntSet[] sets;
         private final long capacity;
         private final long unsignedSize;
@@ -56,16 +102,6 @@ public interface IntSet {
         private final int segmentShift;
         private final int segmentMask;
         private final Function<Integer, IntSet> creator;
-
-        private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
-        private static final Function<Integer, IntSet> DEFAULT_CREATOR =
-                             size -> new IntSetByFixedAddr4Unsigned(size);
-
-        @SuppressWarnings("static-access")
-        private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
-        @SuppressWarnings("static-access")
-        private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
-                                              UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
 
         public IntSetBySegments(int capacity) {
             this(capacity, DEFAULT_SEGMENTS, DEFAULT_CREATOR);
@@ -195,7 +231,7 @@ public interface IntSet {
      * NOTE: IntSetByFixedAddr is:
      * - faster 3x than ec IntIntHashSet for single thread;
      * - faster 6x than ec IntIntHashSet for 4 threads, 4x operations
-     *   with 0.67x cost;
+     * with 0.67x cost;
      * - faster 20x than ec IntIntHashSet-segment-lock for 4 threads;
      * - faster 60x than ec IntIntHashSet-global-lock for 4 threads;
      */
@@ -294,20 +330,35 @@ public interface IntSet {
 
     final class IntSetByFixedAddr4Unsigned implements IntSet {
 
-        private final long[] bits;
-        private final int numBits;
-        private final AtomicInteger size;
-
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_LONG_BASE_OFFSET;
         @SuppressWarnings("static-access")
         private static final int MUL8 = 31 - Integer.numberOfLeadingZeros(
-                                             UNSAFE.ARRAY_LONG_INDEX_SCALE);
+            UNSAFE.ARRAY_LONG_INDEX_SCALE);
+        private final long[] bits;
+        private final int numBits;
+        private final AtomicInteger size;
 
         public IntSetByFixedAddr4Unsigned(int numBits) {
             this.numBits = numBits;
             this.bits = new long[IntSet.bits2words(numBits)];
             this.size = new AtomicInteger();
+        }
+
+        private static long bitOffsetToByteOffset(long key) {
+            // bits to long offset
+            long index = key >> DIV64;
+            // long offset to byte offset
+            long offset = index << MUL8;
+            // add the array base offset
+            offset += BASE_OFFSET;
+            return offset;
+        }
+
+        private static long bitmaskOfKey(long key) {
+            long bitIndex = key & MOD64;
+            long bitmask = 1L << bitIndex;
+            return bitmask;
         }
 
         @Override
@@ -427,22 +478,6 @@ public interface IntSet {
             }
             return bitOffsetToByteOffset(key);
         }
-
-        private static long bitOffsetToByteOffset(long key) {
-            // bits to long offset
-            long index = key >> DIV64;
-            // long offset to byte offset
-            long offset = index << MUL8;
-            // add the array base offset
-            offset += BASE_OFFSET;
-            return offset;
-        }
-
-        private static long bitmaskOfKey(long key) {
-            long bitIndex = key & MOD64;
-            long bitmask = 1L << bitIndex;
-            return bitmask;
-        }
     }
 
     final class IntSetByEcSegment implements IntSet {
@@ -547,45 +582,5 @@ public interface IntSet {
         public boolean concurrent() {
             return false;
         }
-    }
-
-    int CPUS = Runtime.getRuntime().availableProcessors();
-    sun.misc.Unsafe UNSAFE = UnsafeAccess.UNSAFE;
-
-    long MOD64 = 0x3fL;
-    int DIV64 = 6;
-
-    static int segmentSize(long capacity, int segments) {
-        long eachSize = capacity / segments;
-        eachSize = IntSet.sizeToPowerOf2Size((int) eachSize);
-        /*
-         * Supply total size
-         * like capacity=20 and segments=19, then eachSize=1
-         * should increase eachSize to eachSize * 2.
-         */
-        while (eachSize * segments < capacity) {
-            eachSize <<= 1;
-        }
-        return (int) eachSize;
-    }
-
-    static int sizeToPowerOf2Size(int size) {
-        if (size < 1) {
-            size = 1;
-        }
-
-        int n = size - 1;
-        n |= n >>> 1;
-        n |= n >>> 2;
-        n |= n >>> 4;
-        n |= n >>> 8;
-        n |= n >>> 16;
-        size = n + 1;
-
-        return size;
-    }
-
-    static int bits2words(long numBits) {
-        return (int) ((numBits - 1) >>> DIV64) + 1;
     }
 }

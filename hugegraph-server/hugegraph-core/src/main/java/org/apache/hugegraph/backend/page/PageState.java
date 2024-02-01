@@ -41,36 +41,6 @@ public class PageState {
         this.total = total;
     }
 
-    public byte[] position() {
-        return this.position;
-    }
-
-    public int offset() {
-        return this.offset;
-    }
-
-    public long total() {
-        return this.total;
-    }
-
-    @Override
-    public String toString() {
-        if (Bytes.equals(this.position(), EMPTY_BYTES)) {
-            return null;
-        }
-        return toString(this.toBytes());
-    }
-
-    private byte[] toBytes() {
-        assert this.position.length > 0;
-        int length = 2 + this.position.length + 2 * BytesBuffer.INT_LEN;
-        BytesBuffer buffer = BytesBuffer.allocate(length);
-        buffer.writeBytes(this.position);
-        buffer.writeInt(this.offset);
-        buffer.writeInt(this.total);
-        return buffer.bytes();
-    }
-
     public static PageState fromString(String page) {
         E.checkNotNull(page, "page");
         /*
@@ -107,5 +77,35 @@ public class PageState {
         } catch (Exception e) {
             throw new BackendException("Invalid page: '%s'", e, page);
         }
+    }
+
+    public byte[] position() {
+        return this.position;
+    }
+
+    public int offset() {
+        return this.offset;
+    }
+
+    public long total() {
+        return this.total;
+    }
+
+    @Override
+    public String toString() {
+        if (Bytes.equals(this.position(), EMPTY_BYTES)) {
+            return null;
+        }
+        return toString(this.toBytes());
+    }
+
+    private byte[] toBytes() {
+        assert this.position.length > 0;
+        int length = 2 + this.position.length + 2 * BytesBuffer.INT_LEN;
+        BytesBuffer buffer = BytesBuffer.allocate(length);
+        buffer.writeBytes(this.position);
+        buffer.writeInt(this.offset);
+        buffer.writeInt(this.total);
+        return buffer.bytes();
     }
 }

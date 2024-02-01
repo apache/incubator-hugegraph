@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.traversal.algorithm;
@@ -187,9 +189,9 @@ public class HugeTraverser {
     }
 
     public static <K, V extends Comparable<? super V>> Map<K, V> topN(
-            Map<K, V> map,
-            boolean sorted,
-            long limit) {
+        Map<K, V> map,
+        boolean sorted,
+        long limit) {
         if (sorted) {
             map = CollectionUtil.sortByValue(map, false);
         }
@@ -479,7 +481,7 @@ public class HugeTraverser {
     public Iterator<Edge> edgesOfVertex(Id source, Steps steps) {
         List<Id> edgeLabels = steps.edgeLabels();
         ConditionQuery cq = GraphTransaction.constructEdgesQuery(
-                source, steps.direction(), edgeLabels);
+            source, steps.direction(), edgeLabels);
         cq.capacity(Query.NO_CAPACITY);
         if (steps.limit() != NO_LIMIT) {
             cq.limit(steps.limit());
@@ -491,11 +493,11 @@ public class HugeTraverser {
         }
 
         Map<Id, ConditionQuery> edgeConditions =
-                getFilterQueryConditions(steps.edgeSteps(), HugeType.EDGE);
+            getFilterQueryConditions(steps.edgeSteps(), HugeType.EDGE);
 
         Iterator<Edge> filteredEdges =
-                new FilterIterator<>(this.graph().edges(cq),
-                                     edge -> validateEdge(edgeConditions, (HugeEdge) edge));
+            new FilterIterator<>(this.graph().edges(cq),
+                                 edge -> validateEdge(edgeConditions, (HugeEdge) edge));
 
         return edgesOfVertexStep(filteredEdges, steps);
     }
@@ -506,7 +508,7 @@ public class HugeTraverser {
         }
 
         Map<Id, ConditionQuery> vertexConditions =
-                getFilterQueryConditions(steps.vertexSteps(), HugeType.VERTEX);
+            getFilterQueryConditions(steps.vertexSteps(), HugeType.VERTEX);
 
         return new FilterIterator<>(edges,
                                     edge -> validateVertex(vertexConditions, (HugeEdge) edge));
@@ -551,7 +553,7 @@ public class HugeTraverser {
     }
 
     private Map<Id, ConditionQuery> getFilterQueryConditions(
-            Map<Id, Steps.StepEntity> idStepEntityMap, HugeType type) {
+        Map<Id, Steps.StepEntity> idStepEntityMap, HugeType type) {
         Map<Id, ConditionQuery> conditions = new HashMap<>();
 
         for (Map.Entry<Id, Steps.StepEntity> entry : idStepEntityMap.entrySet()) {
@@ -639,7 +641,7 @@ public class HugeTraverser {
             this.graph.vertex(vertexId);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException(String.format(
-                    "The %s with id '%s' does not exist", name, vertexId), e);
+                "The %s with id '%s' does not exist", name, vertexId), e);
         }
     }
 
@@ -947,6 +949,7 @@ public class HugeTraverser {
     }
 
     public static class EdgeRecord {
+
         private final Map<Long, Edge> edgeMap;
         private final ObjectIntMapping<Id> idMapping;
 

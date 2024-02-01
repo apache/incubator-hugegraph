@@ -62,11 +62,9 @@ import com.google.common.collect.Lists;
 
 public class ParallelCompressStrategy implements CompressStrategy {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ParallelCompressStrategy.class);
-
     public static final int QUEUE_SIZE = CoreOptions.CPUS;
     public static final long KEEP_ALIVE_SECOND = 300L;
-
+    private static final Logger LOG = LoggerFactory.getLogger(ParallelCompressStrategy.class);
     private final int compressThreads;
     private final int decompressThreads;
 
@@ -75,24 +73,19 @@ public class ParallelCompressStrategy implements CompressStrategy {
         this.decompressThreads = decompressThreads;
     }
 
-    /**
-     * Parallel output streams controller
-     */
-    private static class ZipArchiveScatterOutputStream {
-
-        private final ParallelScatterZipCreator creator;
-
-        public ZipArchiveScatterOutputStream(ExecutorService executorService) {
-            this.creator = new ParallelScatterZipCreator(executorService);
-        }
-
-        public void addEntry(ZipArchiveEntry entry, InputStreamSupplier supplier) {
-            creator.addArchiveEntry(entry, supplier);
-        }
-
-        public void writeTo(ZipArchiveOutputStream archiveOutput) throws Exception {
-            creator.writeTo(archiveOutput);
-        }
+    private static ExecutorService newFixedPool(int coreThreads, int maxThreads, String name,
+                                                RejectedExecutionHandler handler) {
+        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
+        return ThreadPoolUtil.newBuilder()
+                             .poolName(name)
+                             .enableMetric(false)
+                             .coreThreads(coreThreads)
+                             .maximumThreads(maxThreads)
+                             .keepAliveSeconds(KEEP_ALIVE_SECOND)
+                             .workQueue(queue)
+                             .threadFactory(new NamedThreadFactory(name, true))
+                             .rejectedHandler(handler)
+                             .build();
     }
 
     @Override
@@ -229,18 +222,23 @@ public class ParallelCompressStrategy implements CompressStrategy {
         }
     }
 
-    private static ExecutorService newFixedPool(int coreThreads, int maxThreads, String name,
-                                                RejectedExecutionHandler handler) {
-        BlockingQueue<Runnable> queue = new ArrayBlockingQueue<>(QUEUE_SIZE);
-        return ThreadPoolUtil.newBuilder()
-                             .poolName(name)
-                             .enableMetric(false)
-                             .coreThreads(coreThreads)
-                             .maximumThreads(maxThreads)
-                             .keepAliveSeconds(KEEP_ALIVE_SECOND)
-                             .workQueue(queue)
-                             .threadFactory(new NamedThreadFactory(name, true))
-                             .rejectedHandler(handler)
-                             .build();
+    /**
+     * Parallel output streams controller
+     */
+    private static class ZipArchiveScatterOutputStream {
+
+        private final ParallelScatterZipCreator creator;
+
+        public ZipArchiveScatterOutputStream(ExecutorService executorService) {
+            this.creator = new ParallelScatterZipCreator(executorService);
+        }
+
+        public void addEntry(ZipArchiveEntry entry, InputStreamSupplier supplier) {
+            creator.addArchiveEntry(entry, supplier);
+        }
+
+        public void writeTo(ZipArchiveOutputStream archiveOutput) throws Exception {
+            creator.writeTo(archiveOutput);
+        }
     }
 }

@@ -24,6 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.util.LZ4Util;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Node;
@@ -37,21 +40,18 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.util.LZ4Util;
-import org.apache.hugegraph.util.Log;
 
 public final class RaftNode {
 
     private static final Logger LOG = Log.logger(RaftNode.class);
 
     private final RaftContext context;
-    private RaftGroupService raftGroupService;
     private final Node node;
     private final StoreStateMachine stateMachine;
     private final AtomicReference<LeaderInfo> leaderInfo;
     private final AtomicBoolean started;
     private final AtomicInteger busyCounter;
+    private RaftGroupService raftGroupService;
 
     public RaftNode(RaftContext context) {
         this.context = context;
@@ -105,7 +105,7 @@ public final class RaftNode {
                 this.raftGroupService.join();
             } catch (final InterruptedException e) {
                 throw new RaftException(
-                          "Interrupted while shutdown raftGroupService");
+                    "Interrupted while shutdown raftGroupService");
             }
         }
     }
@@ -147,7 +147,7 @@ public final class RaftNode {
     private void submitCommand(StoreCommand command, RaftStoreClosure future) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
-                                RaftContext.WAIT_LEADER_TIMEOUT);
+            RaftContext.WAIT_LEADER_TIMEOUT);
         // If myself is not leader, forward to the leader
         if (!leaderInfo.selfIsLeader) {
             this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
@@ -189,8 +189,8 @@ public final class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '%s' election timeout(%sms)",
-                          group, consumedTime);
+                    "Waiting for raft group '%s' election timeout(%sms)",
+                    group, consumedTime);
             }
             leaderInfo = this.leaderInfo.get();
             assert leaderInfo != null;
@@ -219,8 +219,8 @@ public final class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '%s' log synced timeout(%sms)",
-                          group, consumedTime);
+                    "Waiting for raft group '%s' log synced timeout(%sms)",
+                    group, consumedTime);
             }
         }
         LOG.info("Waited for raft group '{}' log synced successfully", group);
@@ -284,6 +284,23 @@ public final class RaftNode {
         return String.format("[%s-%s]", this.context.group(), this.nodeId());
     }
 
+    /**
+     * Jraft Node.getLeaderId() and Node.isLeader() is not always consistent,
+     * We define this class to manage leader info by ourselves
+     */
+    private static class LeaderInfo {
+
+        private static final LeaderInfo NO_LEADER = new LeaderInfo(null, false);
+
+        private final PeerId leaderId;
+        private final boolean selfIsLeader;
+
+        public LeaderInfo(PeerId leaderId, boolean selfIsLeader) {
+            this.leaderId = leaderId;
+            this.selfIsLeader = selfIsLeader;
+        }
+    }
+
     protected final class RaftStateListener implements ReplicatorStateListener {
 
         private volatile long lastPrintTime;
@@ -343,23 +360,6 @@ public final class RaftNode {
             return RaftError.EINTERNAL == status.getRaftError() &&
                    status.getErrorMsg() != null &&
                    status.getErrorMsg().contains(expectMsg);
-        }
-    }
-
-    /**
-     * Jraft Node.getLeaderId() and Node.isLeader() is not always consistent,
-     * We define this class to manage leader info by ourselves
-     */
-    private static class LeaderInfo {
-
-        private static final LeaderInfo NO_LEADER = new LeaderInfo(null, false);
-
-        private final PeerId leaderId;
-        private final boolean selfIsLeader;
-
-        public LeaderInfo(PeerId leaderId, boolean selfIsLeader) {
-            this.leaderId = leaderId;
-            this.selfIsLeader = selfIsLeader;
         }
     }
 }

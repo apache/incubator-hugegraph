@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ParameterUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class PageRankComputer extends AbstractComputer {
@@ -29,6 +30,17 @@ public class PageRankComputer extends AbstractComputer {
 
     public static final String ALPHA = "alpha";
     public static final double DEFAULT_ALPHA = 0.15D;
+
+    private static double alpha(Map<String, Object> parameters) {
+        if (!parameters.containsKey(ALPHA)) {
+            return DEFAULT_ALPHA;
+        }
+        double alpha = ParameterUtil.parameterDouble(parameters, ALPHA);
+        E.checkArgument(alpha > 0 && alpha < 1,
+                        "The value of %s must be (0, 1), but got %s",
+                        ALPHA, alpha);
+        return alpha;
+    }
 
     @Override
     public String name() {
@@ -49,20 +61,9 @@ public class PageRankComputer extends AbstractComputer {
 
     @Override
     protected Map<String, Object> checkAndCollectParameters(
-                                  Map<String, Object> parameters) {
+        Map<String, Object> parameters) {
         return ImmutableMap.of(MAX_STEPS, maxSteps(parameters),
                                ALPHA, alpha(parameters),
                                PRECISION, precision(parameters));
-    }
-
-    private static double alpha(Map<String, Object> parameters) {
-        if (!parameters.containsKey(ALPHA)) {
-            return DEFAULT_ALPHA;
-        }
-        double alpha = ParameterUtil.parameterDouble(parameters, ALPHA);
-        E.checkArgument(alpha > 0 && alpha < 1,
-                        "The value of %s must be (0, 1), but got %s",
-                        ALPHA, alpha);
-        return alpha;
     }
 }

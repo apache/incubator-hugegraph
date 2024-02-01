@@ -20,6 +20,7 @@ package org.apache.hugegraph.backend.store.memory;
 import java.util.Map;
 
 import org.apache.hugegraph.backend.store.BackendMetrics;
+
 import com.google.common.collect.ImmutableMap;
 
 public class InMemoryMetrics implements BackendMetrics {

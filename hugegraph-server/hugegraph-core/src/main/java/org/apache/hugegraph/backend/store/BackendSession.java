@@ -58,10 +58,10 @@ public interface BackendSession {
 
     abstract class AbstractBackendSession implements BackendSession {
 
+        private final long created;
         protected boolean opened;
         private int refs;
         private TxState txState;
-        private final long created;
         private long updated;
 
         public AbstractBackendSession() {

@@ -18,9 +18,8 @@
 package org.apache.hugegraph.backend.store;
 
 import org.apache.hugegraph.config.HugeConfig;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class BackendStoreInfo {
 

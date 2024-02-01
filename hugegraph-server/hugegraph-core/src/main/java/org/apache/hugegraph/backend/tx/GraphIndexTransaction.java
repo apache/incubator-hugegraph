@@ -32,15 +32,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.backend.page.PageIds;
-import org.apache.hugegraph.backend.page.PageState;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.task.EphemeralJobQueue;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -51,7 +42,9 @@ import org.apache.hugegraph.backend.page.IdHolder.BatchIdHolder;
 import org.apache.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import org.apache.hugegraph.backend.page.IdHolder.PagingIdHolder;
 import org.apache.hugegraph.backend.page.IdHolderList;
+import org.apache.hugegraph.backend.page.PageIds;
 import org.apache.hugegraph.backend.page.PageInfo;
+import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.page.SortByCountIdHolderList;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.Condition.RangeConditions;
@@ -63,6 +56,8 @@ import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.exception.NoIndexException;
@@ -81,6 +76,7 @@ import org.apache.hugegraph.structure.HugeIndex;
 import org.apache.hugegraph.structure.HugeIndex.IdWithExpiredTime;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.type.define.HugeKeys;
@@ -91,6 +87,10 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.LockUtil;
 import org.apache.hugegraph.util.LongEncoding;
 import org.apache.hugegraph.util.NumericUtil;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -111,7 +111,641 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         final HugeConfig conf = graph.configuration();
         this.indexIntersectThresh =
-             conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHOLD);
+            conf.get(CoreOptions.QUERY_INDEX_INTERSECT_THRESHOLD);
+    }
+
+    private static Set<IndexLabel> matchSingleOrCompositeIndex(
+        ConditionQuery query,
+        Set<IndexLabel> indexLabels) {
+        if (query.hasNeqCondition()) {
+            return ImmutableSet.of();
+        }
+        boolean requireRange = query.hasRangeCondition();
+        boolean requireSearch = query.hasSearchCondition();
+        Set<Id> queryPropKeys = query.userpropKeys();
+        for (IndexLabel indexLabel : indexLabels) {
+            List<Id> indexFields = indexLabel.indexFields();
+            // Try to match fields
+            if (!matchIndexFields(queryPropKeys, indexFields)) {
+                continue;
+            }
+            /*
+             * Matched all fields, try to match index type.
+             * For range-index or search-index there must be only one condition.
+             * The following terms are legal:
+             *   1.hasSearchCondition and IndexType.SEARCH
+             *   2.hasRangeCondition and IndexType.RANGE
+             *   3.not hasRangeCondition but has range-index equal-condition
+             *   4.secondary (composite) index
+             */
+            IndexType indexType = indexLabel.indexType();
+            if ((requireSearch && !indexType.isSearch()) ||
+                (!requireSearch && indexType.isSearch())) {
+                continue;
+            }
+            if (requireRange && !indexType.isNumeric()) {
+                continue;
+            }
+            return ImmutableSet.of(indexLabel);
+        }
+        return ImmutableSet.of();
+    }
+
+    /**
+     * Collect index label(s) whose prefix index fields are contained in
+     * property-keys in query
+     */
+    private static Set<IndexLabel> matchJointIndexes(
+        ConditionQuery query,
+        Set<IndexLabel> indexLabels) {
+        if (query.hasNeqCondition()) {
+            return ImmutableSet.of();
+        }
+        Set<Id> queryPropKeys = query.userpropKeys();
+        assert !queryPropKeys.isEmpty();
+        Set<IndexLabel> allILs = InsertionOrderUtil.newSet(indexLabels);
+
+        // Handle range/search index first
+        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
+        if (query.hasRangeCondition() || query.hasSearchCondition()) {
+            matchedIndexLabels = matchRangeOrSearchIndexLabels(query, allILs);
+            if (matchedIndexLabels.isEmpty()) {
+                return ImmutableSet.of();
+            }
+            allILs.removeAll(matchedIndexLabels);
+
+            // Remove matched queryPropKeys
+            for (IndexLabel il : matchedIndexLabels) {
+                // Only one field each range/search index-label
+                queryPropKeys.remove(il.indexField());
+            }
+            // Return if all fields are matched
+            if (queryPropKeys.isEmpty()) {
+                return matchedIndexLabels;
+            }
+        }
+
+        // Handle secondary indexes
+        Set<Id> indexFields = InsertionOrderUtil.newSet();
+        for (IndexLabel indexLabel : allILs) {
+            // Range index equal-condition and secondary index can joint
+            if (indexLabel.indexType().isSearch()) {
+                // Search index must be handled at the previous step
+                continue;
+            }
+
+            List<Id> fields = indexLabel.indexFields();
+            // Collect all fields prefix
+            for (Id field : fields) {
+                if (!queryPropKeys.contains(field)) {
+                    break;
+                }
+                matchedIndexLabels.add(indexLabel);
+                indexFields.add(field);
+            }
+        }
+        // Must match all fields
+        if (indexFields.equals(queryPropKeys)) {
+            return matchedIndexLabels;
+        } else {
+            return ImmutableSet.of();
+        }
+    }
+
+    private static Set<IndexLabel> matchRangeOrSearchIndexLabels(
+        ConditionQuery query,
+        Set<IndexLabel> indexLabels) {
+        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
+        for (Relation relation : query.userpropRelations()) {
+            if (!relation.relation().isRangeType() &&
+                !relation.relation().isSearchType()) {
+                continue;
+            }
+            Id key = (Id) relation.key();
+            boolean matched = false;
+            for (IndexLabel indexLabel : indexLabels) {
+                if (indexLabel.indexType().isRange() ||
+                    indexLabel.indexType().isSearch()) {
+                    if (indexLabel.indexField().equals(key)) {
+                        matched = true;
+                        matchedIndexLabels.add(indexLabel);
+                        break;
+                    }
+                }
+            }
+            if (!matched) {
+                return ImmutableSet.of();
+            }
+        }
+        return matchedIndexLabels;
+    }
+
+    private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
+                                                         MatchedIndex index) {
+        IndexQueries queries = IndexQueries.of(query);
+        List<IndexLabel> allILs = new ArrayList<>(index.indexLabels());
+
+        // Handle range/search indexes
+        if (query.hasRangeCondition() || query.hasSearchCondition()) {
+            Set<IndexLabel> matchedILs =
+                matchRangeOrSearchIndexLabels(query, index.indexLabels());
+            assert !matchedILs.isEmpty();
+            allILs.removeAll(matchedILs);
+
+            Set<Id> queryPropKeys = InsertionOrderUtil.newSet();
+            for (IndexLabel il : matchedILs) {
+                // Only one field each range/search index-label
+                queryPropKeys.add(il.indexField());
+            }
+
+            // Construct queries by matched index-labels
+            queries.putAll(constructQueries(query, matchedILs, queryPropKeys));
+
+            // Remove matched queryPropKeys
+            query = query.copy();
+            for (Id field : queryPropKeys) {
+                query.unsetCondition(field);
+            }
+            // Return if matched indexes satisfies query-conditions already
+            if (query.userpropKeys().isEmpty()) {
+                return queries;
+            }
+        }
+
+        // Handle secondary joint indexes
+        final ConditionQuery finalQuery = query;
+        for (int i = 1, size = allILs.size(); i <= size; i++) {
+            boolean found = cmn(allILs, size, i, 0, null, r -> {
+                // All n indexLabels are selected, test current combination
+                IndexQueries qs = constructJointSecondaryQueries(finalQuery, r);
+                if (qs.isEmpty()) {
+                    return false;
+                }
+                queries.putAll(qs);
+                return true;
+            });
+
+            if (found) {
+                return queries;
+            }
+        }
+        return IndexQueries.EMPTY;
+    }
+
+    /**
+     * Traverse C(m, n) combinations of a list to find first matched
+     * result combination and call back with the result.
+     * TODO: move this method to common module.
+     *
+     * @param all     list to contain all items for combination
+     * @param m       m of C(m, n)
+     * @param n       n of C(m, n)
+     * @param current current position in list
+     * @param result  list to contains selected items
+     * @return true if matched items combination else false
+     */
+    private static <T> boolean cmn(List<T> all, int m, int n,
+                                   int current, List<T> result,
+                                   Function<List<T>, Boolean> callback) {
+        assert m <= all.size();
+        assert n <= m;
+        assert current <= all.size();
+        if (result == null) {
+            result = new ArrayList<>(n);
+        }
+
+        int index = result.size();
+        if (m == n) {
+            result.addAll(all.subList(current, all.size()));
+            n = 0;
+        }
+        if (n == 0) {
+            // All n items are selected
+            Boolean apply = callback.apply(result);
+            while (index < result.size()) {
+                result.remove(index);
+            }
+            return apply;
+        }
+        if (current >= all.size()) {
+            // Reach the end of items
+            return false;
+        }
+
+        // Select current item, continue to select C(m-1, n-1)
+        result.add(all.get(current));
+        if (cmn(all, m - 1, n - 1, ++current, result, callback)) {
+            return true;
+        }
+        // Not select current item, continue to select C(m-1, n)
+        result.remove(index);
+        if (cmn(all, m - 1, n, current, result, callback)) {
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean shouldRecordIndexValue(ConditionQuery query,
+                                                  HugeIndex index) {
+        // Currently, only range index has problems
+        return query.originQuery() instanceof ConditionQuery &&
+               index.indexLabel().indexType().isRange();
+    }
+
+    private static IndexQueries constructJointSecondaryQueries(
+        ConditionQuery query,
+        List<IndexLabel> ils) {
+        Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
+        indexLabels.addAll(ils);
+        indexLabels = matchJointIndexes(query, indexLabels);
+        if (indexLabels.isEmpty()) {
+            return IndexQueries.EMPTY;
+        }
+
+        return constructQueries(query, indexLabels, query.userpropKeys());
+    }
+
+    private static IndexQueries constructQueries(ConditionQuery query,
+                                                 Set<IndexLabel> ils,
+                                                 Set<Id> propKeys) {
+        IndexQueries queries = IndexQueries.of(query);
+
+        for (IndexLabel il : ils) {
+            List<Id> fields = il.indexFields();
+            ConditionQuery newQuery = query.copy();
+            newQuery.resetUserpropConditions();
+            for (Id field : fields) {
+                if (!propKeys.contains(field)) {
+                    break;
+                }
+                for (Condition c : query.userpropConditions(field)) {
+                    newQuery.query(c);
+                }
+            }
+            ConditionQuery q = constructQuery(newQuery, il);
+            assert q != null;
+            queries.put(il, q);
+        }
+        return queries;
+    }
+
+    private static ConditionQuery constructQuery(ConditionQuery query,
+                                                 IndexLabel indexLabel) {
+        IndexType indexType = indexLabel.indexType();
+        boolean requireRange = query.hasRangeCondition();
+        boolean supportRange = indexType.isNumeric();
+        if (requireRange && !supportRange) {
+            LOG.debug("There is range query condition in '{}', " +
+                      "but the index label '{}' is unable to match",
+                      query, indexLabel.name());
+            return null;
+        }
+
+        Set<Id> queryKeys = query.userpropKeys();
+        List<Id> indexFields = indexLabel.indexFields();
+        if (!matchIndexFields(queryKeys, indexFields)) {
+            return null;
+        }
+        LOG.debug("Matched index fields: {} of index '{}'",
+                  indexFields, indexLabel);
+
+        ConditionQuery indexQuery;
+
+        switch (indexType) {
+            case SEARCH:
+                E.checkState(indexFields.size() == 1,
+                             "Invalid index fields size for %s: %s",
+                             indexType, indexFields);
+                Object fieldValue = query.userpropValue(indexFields.get(0));
+                assert fieldValue instanceof String;
+                // Will escape special char inside concatValues()
+                fieldValue = ConditionQuery.concatValues(fieldValue);
+
+                indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                indexQuery.eq(HugeKeys.FIELD_VALUES, fieldValue);
+                break;
+            case SECONDARY:
+                List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
+                // Will escape special char inside userpropValuesString()
+                String joinedValues = query.userpropValuesString(joinedKeys);
+
+                indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
+                break;
+            case RANGE_INT:
+            case RANGE_FLOAT:
+            case RANGE_LONG:
+            case RANGE_DOUBLE:
+                if (query.userpropConditions().size() > 2) {
+                    throw new HugeException(
+                        "Range query has two conditions at most, " +
+                        "but got: %s", query.userpropConditions());
+                }
+                // Replace the query key with PROPERTY_VALUES, set number value
+                indexQuery = new ConditionQuery(indexType.type(), query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                for (Condition condition : query.userpropConditions()) {
+                    assert condition instanceof Relation;
+                    Relation r = (Relation) condition;
+                    Number value = NumericUtil.convertToNumber(r.value());
+                    Relation sys = new Condition.SyspropRelation(
+                        HugeKeys.FIELD_VALUES,
+                        r.relation(), value);
+                    condition = condition.replace(r, sys);
+                    indexQuery.query(condition);
+                }
+                break;
+            case SHARD:
+                HugeType type = indexLabel.indexType().type();
+                indexQuery = new ConditionQuery(type, query);
+                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
+                List<Condition> conditions = constructShardConditions(
+                    query, indexLabel.indexFields(),
+                    HugeKeys.FIELD_VALUES);
+                indexQuery.query(conditions);
+                break;
+            default:
+                throw new AssertionError(String.format(
+                    "Unknown index type '%s'", indexType));
+        }
+
+        /*
+         * Set limit for single index or composite index, also for joint index,
+         * to avoid redundant element ids and out of capacity.
+         * NOTE: not set offset because this query might be a sub-query,
+         * see queryByUserprop()
+         */
+        indexQuery.page(query.page());
+        indexQuery.limit(query.total());
+        indexQuery.capacity(query.capacity());
+        indexQuery.olap(indexLabel.olap());
+
+        return indexQuery;
+    }
+
+    protected static List<Condition> constructShardConditions(
+        ConditionQuery query,
+        List<Id> fields,
+        HugeKeys key) {
+        List<Condition> conditions = new ArrayList<>(2);
+        boolean hasRange = false;
+        int processedCondCount = 0;
+        List<Object> prefixes = new ArrayList<>();
+
+        for (Id field : fields) {
+            List<Condition> fieldConds = query.userpropConditions(field);
+            processedCondCount += fieldConds.size();
+            if (fieldConds.isEmpty()) {
+                break;
+            }
+
+            RangeConditions range = new RangeConditions(fieldConds);
+            if (!range.hasRange()) {
+                E.checkArgument(range.keyEq() != null,
+                                "Invalid query: %s", query);
+                prefixes.add(range.keyEq());
+                continue;
+            }
+
+            if (range.keyMin() != null) {
+                RelationType type = range.keyMinEq() ?
+                                    RelationType.GTE : RelationType.GT;
+                conditions.add(shardFieldValuesCondition(key, prefixes,
+                                                         range.keyMin(),
+                                                         type));
+            } else {
+                assert range.keyMax() != null;
+                Object num = range.keyMax();
+                num = NumericUtil.minValueOf(NumericUtil.isNumber(num) ?
+                                             num.getClass() : Long.class);
+                conditions.add(shardFieldValuesCondition(key, prefixes, num,
+                                                         RelationType.GTE));
+            }
+
+            if (range.keyMax() != null) {
+                RelationType type = range.keyMaxEq() ?
+                                    RelationType.LTE : RelationType.LT;
+                conditions.add(shardFieldValuesCondition(key, prefixes,
+                                                         range.keyMax(), type));
+            } else {
+                Object num = range.keyMin();
+                num = NumericUtil.maxValueOf(NumericUtil.isNumber(num) ?
+                                             num.getClass() : Long.class);
+                conditions.add(shardFieldValuesCondition(key, prefixes, num,
+                                                         RelationType.LTE));
+            }
+            hasRange = true;
+            break;
+        }
+
+        /*
+         * Can't have conditions after range condition for shard index,
+         * but SORT_KEYS can have redundant conditions because upper
+         * layer can do filter.
+         */
+        if (key == HugeKeys.FIELD_VALUES &&
+            processedCondCount < query.userpropKeys().size()) {
+            throw new HugeException("Invalid shard index query: %s", query);
+        }
+        // 1. First range condition processed, finish shard query conditions
+        if (hasRange) {
+            return conditions;
+        }
+        // 2. Shard query without range
+        String joinedValues;
+        // 2.1 All fields have equal-conditions
+        if (prefixes.size() == fields.size()) {
+            // Prefix numeric values should be converted to sortable string
+            joinedValues = ConditionQuery.concatValues(prefixes);
+            conditions.add(Condition.eq(key, joinedValues));
+            return conditions;
+        }
+        // 2.2 Prefix fields have equal-conditions
+        /*
+         * Append EMPTY to 'values' to ensure FIELD_VALUES suffix
+         * with IdGenerator.NAME_SPLITOR
+         */
+        prefixes.add(ConditionQuery.INDEX_VALUE_EMPTY);
+        joinedValues = ConditionQuery.concatValues(prefixes);
+        Condition min = Condition.gte(key, joinedValues);
+        conditions.add(min);
+
+        // Increase 1 on prefix to get the next prefix
+        Condition max = Condition.lt(key, increaseString(joinedValues));
+        conditions.add(max);
+        return conditions;
+    }
+
+    private static Relation shardFieldValuesCondition(HugeKeys key,
+                                                      List<Object> prefixes,
+                                                      Object number,
+                                                      RelationType type) {
+        List<Object> values = new ArrayList<>(prefixes);
+        String num = LongEncoding.encodeNumber(number);
+        if (type == RelationType.LTE) {
+            type = RelationType.LT;
+            num = increaseString(num);
+        } else if (type == RelationType.GT) {
+            type = RelationType.GTE;
+            num = increaseString(num);
+        }
+        values.add(num);
+        // Will escape special char inside concatValues()
+        String value = ConditionQuery.concatValues(values);
+        return new Condition.SyspropRelation(key, type, value);
+    }
+
+    private static String increaseString(String value) {
+        int length = value.length();
+        CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
+        int lastIndex = length - 1;
+        char last = cbuf.charAt(lastIndex);
+        E.checkArgument(last == '!' || LongEncoding.validB64Char(last),
+                        "Illegal ending char '\\u%s' for String Index",
+                        (int) last);
+        cbuf.put(lastIndex, (char) (last + 1));
+        return cbuf.toString();
+    }
+
+    private static boolean matchIndexFields(Set<Id> queryKeys,
+                                            List<Id> indexFields) {
+        if (queryKeys.size() > indexFields.size()) {
+            return false;
+        }
+
+        // Is queryKeys the prefix of indexFields?
+        List<Id> subFields = indexFields.subList(0, queryKeys.size());
+        return subFields.containsAll(queryKeys);
+    }
+
+    private static boolean validQueryConditionValues(HugeGraph graph,
+                                                     ConditionQuery query) {
+        Set<Id> keys = query.userpropKeys();
+        for (Id key : keys) {
+            PropertyKey pk = graph.propertyKey(key);
+            Set<Object> values = query.userpropValues(key);
+            E.checkState(!values.isEmpty(),
+                         "Expect user property values for key '%s', " +
+                         "but got none", pk);
+            boolean hasContains = query.containsContainsCondition(key);
+            if (pk.cardinality().multiple()) {
+                // If contains collection index, relation should be contains
+                E.checkState(hasContains,
+                             "The relation of property '%s' must be " +
+                             "CONTAINS or TEXT_CONTAINS, but got %s",
+                             pk.name(), query.relation(key).relation());
+            }
+
+            for (Object value : values) {
+                if (hasContains) {
+                    value = toCollectionIfNeeded(pk, value);
+                }
+
+                if (!pk.checkValueType(value)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static Object toCollectionIfNeeded(PropertyKey pk, Object value) {
+        switch (pk.cardinality()) {
+            case SET:
+                if (!(value instanceof Set)) {
+                    value = CollectionUtil.toSet(value);
+                }
+                break;
+            case LIST:
+                if (!(value instanceof List)) {
+                    value = CollectionUtil.toList(value);
+                }
+                break;
+            default:
+                break;
+        }
+        return value;
+    }
+
+    private static boolean isCollectionIndex(List<Object> propValues) {
+        return propValues.size() == 1 &&
+               propValues.get(0) instanceof Collection;
+    }
+
+    private static String propertyValueToString(Object value) {
+        /*
+         * Join collection items with white space if the value is Collection,
+         * or else keep the origin value.
+         */
+        return value instanceof Collection ?
+               StringUtils.join(((Iterable<?>) value), " ") : value.toString();
+    }
+
+    private static NoIndexException noIndexException(HugeGraph graph,
+                                                     ConditionQuery query,
+                                                     Id label) {
+        String name = label == null ? "any label" : String.format("label '%s'",
+                                                                  query.resultType().isVertex() ?
+                                                                  graph.vertexLabel(label).name() :
+                                                                  graph.edgeLabel(label).name());
+        List<String> mismatched = new ArrayList<>();
+        if (query.hasSecondaryCondition()) {
+            mismatched.add("secondary");
+        }
+        if (query.hasRangeCondition()) {
+            mismatched.add("range");
+        }
+        if (query.hasSearchCondition()) {
+            mismatched.add("search");
+        }
+        if (query.hasNeqCondition()) {
+            mismatched.add("not-equal");
+        }
+        if (mismatched.isEmpty()) {
+            mismatched.add(query.relations().toString());
+        }
+        return new NoIndexException("Don't accept query based on properties " +
+                                    "%s that are not indexed in %s, " +
+                                    "may not match %s condition",
+                                    graph.mapPkId2Name(query.userpropKeys()),
+                                    name, String.join("/", mismatched));
+    }
+
+    private static void validateIndexLabel(IndexLabel indexLabel) {
+        E.checkArgument(indexLabel.status().ok(),
+                        "Can't query by label index '%s' due to " +
+                        "it's in status %s(CREATED expected)",
+                        indexLabel, indexLabel.status());
+    }
+
+    private static boolean hasNullableProp(HugeElement element, Id key) {
+        return element.schemaLabel().nullableKeys().contains(key);
+    }
+
+    private static Set<IndexLabel> relatedIndexLabels(HugeElement element) {
+        Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
+        Set<Id> indexLabelIds = element.schemaLabel().indexLabels();
+
+        for (Id id : indexLabelIds) {
+            IndexLabel indexLabel = element.graph().indexLabel(id);
+            indexLabels.add(indexLabel);
+        }
+        return indexLabels;
+    }
+
+    private static void increaseLimit(Query query) {
+        assert !query.noLimit();
+        /*
+         * NOTE: in order to retain enough records after the intersection.
+         * The parameters don't make much sense and need to be improved
+         */
+        if (!query.paging()) {
+            long limit = Math.min(query.limit() * 10L + 8L,
+                                  Query.DEFAULT_CAPACITY);
+            query.limit(limit);
+        }
     }
 
     protected void asyncRemoveIndexLeft(ConditionQuery query,
@@ -186,9 +820,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     /**
      * Update index(user properties) of vertex or edge
-     * @param ilId      the id of index label
-     * @param element   the properties owner
-     * @param removed   remove or add index
+     *
+     * @param ilId    the id of index label
+     * @param element the properties owner
+     * @param removed remove or add index
      */
     protected void updateIndex(Id ilId, HugeElement element, boolean removed) {
         SchemaTransaction schema = this.params().schemaTransaction();
@@ -242,7 +877,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                              "Expect only one property in search index");
                 value = nnPropValues.get(0);
                 Set<String> words =
-                            this.segmentWords(propertyValueToString(value));
+                    this.segmentWords(propertyValueToString(value));
                 for (String word : words) {
                     this.updateIndex(indexLabel, word, element.id(),
                                      expiredTime, removed);
@@ -263,7 +898,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 } else {
                     for (int i = 0, n = nnPropValues.size(); i < n; i++) {
                         List<Object> prefixValues =
-                                     nnPropValues.subList(0, i + 1);
+                            nnPropValues.subList(0, i + 1);
                         value = ConditionQuery.concatValues(prefixValues);
                         this.updateIndex(indexLabel, value, element.id(),
                                          expiredTime, removed);
@@ -282,15 +917,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 // TODO: add lock for updating unique index
                 if (!removed && this.existUniqueValue(indexLabel, value, id)) {
                     throw new IllegalArgumentException(String.format(
-                              "Unique constraint %s conflict is found for %s",
-                              indexLabel, element));
+                        "Unique constraint %s conflict is found for %s",
+                        indexLabel, element));
                 }
                 this.updateIndex(indexLabel, value, element.id(),
                                  expiredTime, removed);
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unknown index type '%s'", indexLabel.indexType()));
+                    "Unknown index type '%s'", indexLabel.indexType()));
         }
     }
 
@@ -355,8 +990,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * Single index, an index involving only one column.
      * Joint indexes, join of single indexes, composite indexes or mixed
      * of single indexes and composite indexes.
+     *
      * @param query original condition query
-     * @return      converted id query
+     * @return converted id query
      */
     @Watched(prefix = "index")
     public IdHolderList queryIndex(ConditionQuery query) {
@@ -453,9 +1089,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 PropertyKey propertyKey = this.graph().propertyKey(pkId);
                 if (propertyKey.olap()) {
                     throw new NotAllowException(
-                              "Not allowed to query by olap property key '%s'" +
-                              " when graph-read-mode is '%s'",
-                              propertyKey, this.graph().readMode());
+                        "Not allowed to query by olap property key '%s'" +
+                        " when graph-read-mode is '%s'",
+                        propertyKey, this.graph().readMode());
                 }
             }
         }
@@ -581,7 +1217,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
             assert this.indexIntersectThresh > 0; // default value is 1000
             Set<Id> ids = ((BatchIdHolder) holder).peekNext(
-                          this.indexIntersectThresh).ids();
+                this.indexIntersectThresh).ids();
             if (ids.size() >= this.indexIntersectThresh) {
                 // Transform into filtering
                 filtering = true;
@@ -619,7 +1255,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         ConditionQuery originConditionQuery =
-                       query.originConditionQuery();
+            query.originConditionQuery();
         if (originConditionQuery != null) {
             originConditionQuery.selectedIndexField(indexLabel.indexField());
         }
@@ -743,8 +1379,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 schemaLabel = schema.getEdgeLabel(label);
             } else {
                 throw new AssertionError(String.format(
-                          "Unsupported index query type: %s",
-                          query.resultType()));
+                    "Unsupported index query type: %s",
+                    query.resultType()));
             }
             schemaLabels = ImmutableList.of(schemaLabel);
         } else {
@@ -755,8 +1391,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 schemaLabels = schema.getEdgeLabels();
             } else {
                 throw new AssertionError(String.format(
-                          "Unsupported index query type: %s",
-                          query.resultType()));
+                    "Unsupported index query type: %s",
+                    query.resultType()));
             }
         }
 
@@ -773,8 +1409,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     /**
      * Collect matched IndexLabel(s) in a SchemaLabel for a query
+     *
      * @param schemaLabel find indexLabels of this schemaLabel
-     * @param query conditions container
+     * @param query       conditions container
      * @return MatchedLabel object contains schemaLabel and matched indexLabels
      */
     @Watched(prefix = "index")
@@ -916,639 +1553,6 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
     }
 
-    private static Set<IndexLabel> matchSingleOrCompositeIndex(
-                                   ConditionQuery query,
-                                   Set<IndexLabel> indexLabels) {
-        if (query.hasNeqCondition()) {
-            return ImmutableSet.of();
-        }
-        boolean requireRange = query.hasRangeCondition();
-        boolean requireSearch = query.hasSearchCondition();
-        Set<Id> queryPropKeys = query.userpropKeys();
-        for (IndexLabel indexLabel : indexLabels) {
-            List<Id> indexFields = indexLabel.indexFields();
-            // Try to match fields
-            if (!matchIndexFields(queryPropKeys, indexFields)) {
-                continue;
-            }
-            /*
-             * Matched all fields, try to match index type.
-             * For range-index or search-index there must be only one condition.
-             * The following terms are legal:
-             *   1.hasSearchCondition and IndexType.SEARCH
-             *   2.hasRangeCondition and IndexType.RANGE
-             *   3.not hasRangeCondition but has range-index equal-condition
-             *   4.secondary (composite) index
-             */
-            IndexType indexType = indexLabel.indexType();
-            if ((requireSearch && !indexType.isSearch()) ||
-                (!requireSearch && indexType.isSearch())) {
-                continue;
-            }
-            if (requireRange && !indexType.isNumeric()) {
-                continue;
-            }
-            return ImmutableSet.of(indexLabel);
-        }
-        return ImmutableSet.of();
-    }
-
-    /**
-     * Collect index label(s) whose prefix index fields are contained in
-     * property-keys in query
-     */
-    private static Set<IndexLabel> matchJointIndexes(
-                                   ConditionQuery query,
-                                   Set<IndexLabel> indexLabels) {
-        if (query.hasNeqCondition()) {
-            return ImmutableSet.of();
-        }
-        Set<Id> queryPropKeys = query.userpropKeys();
-        assert !queryPropKeys.isEmpty();
-        Set<IndexLabel> allILs = InsertionOrderUtil.newSet(indexLabels);
-
-        // Handle range/search index first
-        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
-        if (query.hasRangeCondition() || query.hasSearchCondition()) {
-            matchedIndexLabels = matchRangeOrSearchIndexLabels(query, allILs);
-            if (matchedIndexLabels.isEmpty()) {
-                return ImmutableSet.of();
-            }
-            allILs.removeAll(matchedIndexLabels);
-
-            // Remove matched queryPropKeys
-            for (IndexLabel il : matchedIndexLabels) {
-                // Only one field each range/search index-label
-                queryPropKeys.remove(il.indexField());
-            }
-            // Return if all fields are matched
-            if (queryPropKeys.isEmpty()) {
-                return matchedIndexLabels;
-            }
-        }
-
-        // Handle secondary indexes
-        Set<Id> indexFields = InsertionOrderUtil.newSet();
-        for (IndexLabel indexLabel : allILs) {
-            // Range index equal-condition and secondary index can joint
-            if (indexLabel.indexType().isSearch()) {
-                // Search index must be handled at the previous step
-                continue;
-            }
-
-            List<Id> fields = indexLabel.indexFields();
-            // Collect all fields prefix
-            for (Id field : fields) {
-                if (!queryPropKeys.contains(field)) {
-                    break;
-                }
-                matchedIndexLabels.add(indexLabel);
-                indexFields.add(field);
-            }
-        }
-        // Must match all fields
-        if (indexFields.equals(queryPropKeys)) {
-            return matchedIndexLabels;
-        } else {
-            return ImmutableSet.of();
-        }
-    }
-
-    private static Set<IndexLabel> matchRangeOrSearchIndexLabels(
-                                   ConditionQuery query,
-                                   Set<IndexLabel> indexLabels) {
-        Set<IndexLabel> matchedIndexLabels = InsertionOrderUtil.newSet();
-        for (Relation relation : query.userpropRelations()) {
-            if (!relation.relation().isRangeType() &&
-                !relation.relation().isSearchType()) {
-                continue;
-            }
-            Id key = (Id) relation.key();
-            boolean matched = false;
-            for (IndexLabel indexLabel : indexLabels) {
-                if (indexLabel.indexType().isRange() ||
-                    indexLabel.indexType().isSearch()) {
-                    if (indexLabel.indexField().equals(key)) {
-                        matched = true;
-                        matchedIndexLabels.add(indexLabel);
-                        break;
-                    }
-                }
-            }
-            if (!matched) {
-                return ImmutableSet.of();
-            }
-        }
-        return matchedIndexLabels;
-    }
-
-    private static IndexQueries buildJointIndexesQueries(ConditionQuery query,
-                                                         MatchedIndex index) {
-        IndexQueries queries = IndexQueries.of(query);
-        List<IndexLabel> allILs = new ArrayList<>(index.indexLabels());
-
-        // Handle range/search indexes
-        if (query.hasRangeCondition() || query.hasSearchCondition()) {
-            Set<IndexLabel> matchedILs =
-                    matchRangeOrSearchIndexLabels(query, index.indexLabels());
-            assert !matchedILs.isEmpty();
-            allILs.removeAll(matchedILs);
-
-            Set<Id> queryPropKeys = InsertionOrderUtil.newSet();
-            for (IndexLabel il : matchedILs) {
-                // Only one field each range/search index-label
-                queryPropKeys.add(il.indexField());
-            }
-
-            // Construct queries by matched index-labels
-            queries.putAll(constructQueries(query, matchedILs, queryPropKeys));
-
-            // Remove matched queryPropKeys
-            query = query.copy();
-            for (Id field : queryPropKeys) {
-                query.unsetCondition(field);
-            }
-            // Return if matched indexes satisfies query-conditions already
-            if (query.userpropKeys().isEmpty()) {
-                return queries;
-            }
-        }
-
-        // Handle secondary joint indexes
-        final ConditionQuery finalQuery = query;
-        for (int i = 1, size = allILs.size(); i <= size; i++) {
-            boolean found = cmn(allILs, size, i, 0, null, r -> {
-                // All n indexLabels are selected, test current combination
-                IndexQueries qs = constructJointSecondaryQueries(finalQuery, r);
-                if (qs.isEmpty()) {
-                    return false;
-                }
-                queries.putAll(qs);
-                return true;
-            });
-
-            if (found) {
-                return queries;
-            }
-        }
-        return IndexQueries.EMPTY;
-    }
-
-    /**
-     * Traverse C(m, n) combinations of a list to find first matched
-     * result combination and call back with the result.
-     * TODO: move this method to common module.
-     * @param all list to contain all items for combination
-     * @param m m of C(m, n)
-     * @param n n of C(m, n)
-     * @param current current position in list
-     * @param result list to contains selected items
-     * @return true if matched items combination else false
-     */
-    private static <T> boolean cmn(List<T> all, int m, int n,
-                                   int current, List<T> result,
-                                   Function<List<T>, Boolean> callback) {
-        assert m <= all.size();
-        assert n <= m;
-        assert current <= all.size();
-        if (result == null) {
-            result = new ArrayList<>(n);
-        }
-
-        int index = result.size();
-        if (m == n) {
-            result.addAll(all.subList(current, all.size()));
-            n = 0;
-        }
-        if (n == 0) {
-            // All n items are selected
-            Boolean apply = callback.apply(result);
-            while (index < result.size()) {
-                result.remove(index);
-            }
-            return apply;
-        }
-        if (current >= all.size()) {
-            // Reach the end of items
-            return false;
-        }
-
-        // Select current item, continue to select C(m-1, n-1)
-        result.add(all.get(current));
-        if (cmn(all, m - 1, n - 1, ++current, result, callback)) {
-            return true;
-        }
-        // Not select current item, continue to select C(m-1, n)
-        result.remove(index);
-        if (cmn(all, m - 1, n, current, result, callback)) {
-            return true;
-        }
-        return false;
-    }
-
-    private static boolean shouldRecordIndexValue(ConditionQuery query,
-                                                  HugeIndex index) {
-        // Currently, only range index has problems
-        return query.originQuery() instanceof ConditionQuery &&
-               index.indexLabel().indexType().isRange();
-    }
-
-    private static IndexQueries constructJointSecondaryQueries(
-                                ConditionQuery query,
-                                List<IndexLabel> ils) {
-        Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
-        indexLabels.addAll(ils);
-        indexLabels = matchJointIndexes(query, indexLabels);
-        if (indexLabels.isEmpty()) {
-            return IndexQueries.EMPTY;
-        }
-
-        return constructQueries(query, indexLabels, query.userpropKeys());
-    }
-
-    private static IndexQueries constructQueries(ConditionQuery query,
-                                                 Set<IndexLabel> ils,
-                                                 Set<Id> propKeys) {
-        IndexQueries queries = IndexQueries.of(query);
-
-        for (IndexLabel il : ils) {
-            List<Id> fields = il.indexFields();
-            ConditionQuery newQuery = query.copy();
-            newQuery.resetUserpropConditions();
-            for (Id field : fields) {
-                if (!propKeys.contains(field)) {
-                    break;
-                }
-                for (Condition c : query.userpropConditions(field)) {
-                    newQuery.query(c);
-                }
-            }
-            ConditionQuery q = constructQuery(newQuery, il);
-            assert q != null;
-            queries.put(il, q);
-        }
-        return queries;
-    }
-
-    private static ConditionQuery constructQuery(ConditionQuery query,
-                                                 IndexLabel indexLabel) {
-        IndexType indexType = indexLabel.indexType();
-        boolean requireRange = query.hasRangeCondition();
-        boolean supportRange = indexType.isNumeric();
-        if (requireRange && !supportRange) {
-            LOG.debug("There is range query condition in '{}', " +
-                      "but the index label '{}' is unable to match",
-                      query, indexLabel.name());
-            return null;
-        }
-
-        Set<Id> queryKeys = query.userpropKeys();
-        List<Id> indexFields = indexLabel.indexFields();
-        if (!matchIndexFields(queryKeys, indexFields)) {
-            return null;
-        }
-        LOG.debug("Matched index fields: {} of index '{}'",
-                  indexFields, indexLabel);
-
-        ConditionQuery indexQuery;
-
-        switch (indexType) {
-            case SEARCH:
-                E.checkState(indexFields.size() == 1,
-                             "Invalid index fields size for %s: %s",
-                             indexType, indexFields);
-                Object fieldValue = query.userpropValue(indexFields.get(0));
-                assert fieldValue instanceof String;
-                // Will escape special char inside concatValues()
-                fieldValue = ConditionQuery.concatValues(fieldValue);
-
-                indexQuery = new ConditionQuery(indexType.type(), query);
-                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-                indexQuery.eq(HugeKeys.FIELD_VALUES, fieldValue);
-                break;
-            case SECONDARY:
-                List<Id> joinedKeys = indexFields.subList(0, queryKeys.size());
-                // Will escape special char inside userpropValuesString()
-                String joinedValues = query.userpropValuesString(joinedKeys);
-
-                indexQuery = new ConditionQuery(indexType.type(), query);
-                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-                indexQuery.eq(HugeKeys.FIELD_VALUES, joinedValues);
-                break;
-            case RANGE_INT:
-            case RANGE_FLOAT:
-            case RANGE_LONG:
-            case RANGE_DOUBLE:
-                if (query.userpropConditions().size() > 2) {
-                    throw new HugeException(
-                              "Range query has two conditions at most, " +
-                              "but got: %s", query.userpropConditions());
-                }
-                // Replace the query key with PROPERTY_VALUES, set number value
-                indexQuery = new ConditionQuery(indexType.type(), query);
-                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-                for (Condition condition : query.userpropConditions()) {
-                    assert condition instanceof Relation;
-                    Relation r = (Relation) condition;
-                    Number value = NumericUtil.convertToNumber(r.value());
-                    Relation sys = new Condition.SyspropRelation(
-                                                 HugeKeys.FIELD_VALUES,
-                                                 r.relation(), value);
-                    condition = condition.replace(r, sys);
-                    indexQuery.query(condition);
-                }
-                break;
-            case SHARD:
-                HugeType type = indexLabel.indexType().type();
-                indexQuery = new ConditionQuery(type, query);
-                indexQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabel.id());
-                List<Condition> conditions = constructShardConditions(
-                                             query, indexLabel.indexFields(),
-                                             HugeKeys.FIELD_VALUES);
-                indexQuery.query(conditions);
-                break;
-            default:
-                throw new AssertionError(String.format(
-                          "Unknown index type '%s'", indexType));
-        }
-
-        /*
-         * Set limit for single index or composite index, also for joint index,
-         * to avoid redundant element ids and out of capacity.
-         * NOTE: not set offset because this query might be a sub-query,
-         * see queryByUserprop()
-         */
-        indexQuery.page(query.page());
-        indexQuery.limit(query.total());
-        indexQuery.capacity(query.capacity());
-        indexQuery.olap(indexLabel.olap());
-
-        return indexQuery;
-    }
-
-    protected static List<Condition> constructShardConditions(
-                                     ConditionQuery query,
-                                     List<Id> fields,
-                                     HugeKeys key) {
-        List<Condition> conditions = new ArrayList<>(2);
-        boolean hasRange = false;
-        int processedCondCount = 0;
-        List<Object> prefixes = new ArrayList<>();
-
-        for (Id field : fields) {
-            List<Condition> fieldConds = query.userpropConditions(field);
-            processedCondCount += fieldConds.size();
-            if (fieldConds.isEmpty()) {
-                break;
-            }
-
-            RangeConditions range = new RangeConditions(fieldConds);
-            if (!range.hasRange()) {
-                E.checkArgument(range.keyEq() != null,
-                                "Invalid query: %s", query);
-                prefixes.add(range.keyEq());
-                continue;
-            }
-
-            if (range.keyMin() != null) {
-                RelationType type = range.keyMinEq() ?
-                                    RelationType.GTE : RelationType.GT;
-                conditions.add(shardFieldValuesCondition(key, prefixes,
-                                                         range.keyMin(),
-                                                         type));
-            } else {
-                assert range.keyMax() != null;
-                Object num = range.keyMax();
-                num = NumericUtil.minValueOf(NumericUtil.isNumber(num) ?
-                                             num.getClass() : Long.class);
-                conditions.add(shardFieldValuesCondition(key, prefixes, num,
-                                                         RelationType.GTE));
-            }
-
-            if (range.keyMax() != null) {
-                RelationType type = range.keyMaxEq() ?
-                                    RelationType.LTE : RelationType.LT;
-                conditions.add(shardFieldValuesCondition(key, prefixes,
-                                                         range.keyMax(), type));
-            } else {
-                Object num = range.keyMin();
-                num = NumericUtil.maxValueOf(NumericUtil.isNumber(num) ?
-                                             num.getClass() : Long.class);
-                conditions.add(shardFieldValuesCondition(key, prefixes, num,
-                                                         RelationType.LTE));
-            }
-            hasRange = true;
-            break;
-        }
-
-        /*
-         * Can't have conditions after range condition for shard index,
-         * but SORT_KEYS can have redundant conditions because upper
-         * layer can do filter.
-         */
-        if (key == HugeKeys.FIELD_VALUES &&
-            processedCondCount < query.userpropKeys().size()) {
-            throw new HugeException("Invalid shard index query: %s", query);
-        }
-        // 1. First range condition processed, finish shard query conditions
-        if (hasRange) {
-            return conditions;
-        }
-        // 2. Shard query without range
-        String joinedValues;
-        // 2.1 All fields have equal-conditions
-        if (prefixes.size() == fields.size()) {
-            // Prefix numeric values should be converted to sortable string
-            joinedValues = ConditionQuery.concatValues(prefixes);
-            conditions.add(Condition.eq(key, joinedValues));
-            return conditions;
-        }
-        // 2.2 Prefix fields have equal-conditions
-        /*
-         * Append EMPTY to 'values' to ensure FIELD_VALUES suffix
-         * with IdGenerator.NAME_SPLITOR
-         */
-        prefixes.add(ConditionQuery.INDEX_VALUE_EMPTY);
-        joinedValues = ConditionQuery.concatValues(prefixes);
-        Condition min = Condition.gte(key, joinedValues);
-        conditions.add(min);
-
-        // Increase 1 on prefix to get the next prefix
-        Condition max = Condition.lt(key, increaseString(joinedValues));
-        conditions.add(max);
-        return conditions;
-    }
-
-    private static Relation shardFieldValuesCondition(HugeKeys key,
-                                                                List<Object> prefixes,
-                                                                Object number,
-                                                                RelationType type) {
-        List<Object> values = new ArrayList<>(prefixes);
-        String num = LongEncoding.encodeNumber(number);
-        if (type == RelationType.LTE) {
-            type = RelationType.LT;
-            num = increaseString(num);
-        } else if (type == RelationType.GT) {
-            type = RelationType.GTE;
-            num = increaseString(num);
-        }
-        values.add(num);
-        // Will escape special char inside concatValues()
-        String value = ConditionQuery.concatValues(values);
-        return new Condition.SyspropRelation(key, type, value);
-    }
-
-    private static String increaseString(String value) {
-        int length = value.length();
-        CharBuffer cbuf = CharBuffer.wrap(value.toCharArray());
-        int lastIndex = length - 1;
-        char last = cbuf.charAt(lastIndex);
-        E.checkArgument(last == '!' || LongEncoding.validB64Char(last),
-                        "Illegal ending char '\\u%s' for String Index",
-                        (int) last);
-        cbuf.put(lastIndex, (char) (last + 1));
-        return cbuf.toString();
-    }
-
-    private static boolean matchIndexFields(Set<Id> queryKeys,
-                                            List<Id> indexFields) {
-        if (queryKeys.size() > indexFields.size()) {
-            return false;
-        }
-
-        // Is queryKeys the prefix of indexFields?
-        List<Id> subFields = indexFields.subList(0, queryKeys.size());
-        return subFields.containsAll(queryKeys);
-    }
-
-    private static boolean validQueryConditionValues(HugeGraph graph,
-                                                     ConditionQuery query) {
-        Set<Id> keys = query.userpropKeys();
-        for (Id key : keys) {
-            PropertyKey pk = graph.propertyKey(key);
-            Set<Object> values = query.userpropValues(key);
-            E.checkState(!values.isEmpty(),
-                         "Expect user property values for key '%s', " +
-                         "but got none", pk);
-            boolean hasContains = query.containsContainsCondition(key);
-            if (pk.cardinality().multiple()) {
-                // If contains collection index, relation should be contains
-                E.checkState(hasContains,
-                             "The relation of property '%s' must be " +
-                             "CONTAINS or TEXT_CONTAINS, but got %s",
-                             pk.name(), query.relation(key).relation());
-            }
-
-            for (Object value : values) {
-                if (hasContains) {
-                    value = toCollectionIfNeeded(pk, value);
-                }
-
-                if (!pk.checkValueType(value)) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    private static Object toCollectionIfNeeded(PropertyKey pk, Object value) {
-        switch (pk.cardinality()) {
-            case SET:
-                if (!(value instanceof Set)) {
-                    value = CollectionUtil.toSet(value);
-                }
-                break;
-            case LIST:
-                if (!(value instanceof List)) {
-                    value = CollectionUtil.toList(value);
-                }
-                break;
-            default:
-                break;
-        }
-        return value;
-    }
-
-    private static boolean isCollectionIndex(List<Object> propValues) {
-        return propValues.size() == 1 &&
-               propValues.get(0) instanceof Collection;
-    }
-
-    private static String propertyValueToString(Object value) {
-        /*
-         * Join collection items with white space if the value is Collection,
-         * or else keep the origin value.
-         */
-        return value instanceof Collection ?
-               StringUtils.join(((Iterable<?>) value), " ") : value.toString();
-    }
-
-    private static NoIndexException noIndexException(HugeGraph graph,
-                                                     ConditionQuery query,
-                                                     Id label) {
-        String name = label == null ? "any label" : String.format("label '%s'",
-                      query.resultType().isVertex() ?
-                      graph.vertexLabel(label).name() :
-                      graph.edgeLabel(label).name());
-        List<String> mismatched = new ArrayList<>();
-        if (query.hasSecondaryCondition()) {
-            mismatched.add("secondary");
-        }
-        if (query.hasRangeCondition()) {
-            mismatched.add("range");
-        }
-        if (query.hasSearchCondition()) {
-            mismatched.add("search");
-        }
-        if (query.hasNeqCondition()) {
-            mismatched.add("not-equal");
-        }
-        if (mismatched.isEmpty()) {
-            mismatched.add(query.relations().toString());
-        }
-        return new NoIndexException("Don't accept query based on properties " +
-                                    "%s that are not indexed in %s, " +
-                                    "may not match %s condition",
-                                    graph.mapPkId2Name(query.userpropKeys()),
-                                    name, String.join("/", mismatched));
-    }
-
-    private static void validateIndexLabel(IndexLabel indexLabel) {
-        E.checkArgument(indexLabel.status().ok(),
-                        "Can't query by label index '%s' due to " +
-                        "it's in status %s(CREATED expected)",
-                        indexLabel, indexLabel.status());
-    }
-
-    private static boolean hasNullableProp(HugeElement element, Id key) {
-        return element.schemaLabel().nullableKeys().contains(key);
-    }
-
-    private static Set<IndexLabel> relatedIndexLabels(HugeElement element) {
-        Set<IndexLabel> indexLabels = InsertionOrderUtil.newSet();
-        Set<Id> indexLabelIds = element.schemaLabel().indexLabels();
-
-        for (Id id : indexLabelIds) {
-            IndexLabel indexLabel = element.graph().indexLabel(id);
-            indexLabels.add(indexLabel);
-        }
-        return indexLabels;
-    }
-
-    private static void increaseLimit(Query query) {
-        assert !query.noLimit();
-        /*
-         * NOTE: in order to retain enough records after the intersection.
-         * The parameters don't make much sense and need to be improved
-         */
-        if (!query.paging()) {
-            long limit = Math.min(query.limit() * 10L + 8L,
-                                  Query.DEFAULT_CAPACITY);
-            query.limit(limit);
-        }
-    }
-
     protected void removeIndex(IndexLabel indexLabel) {
         HugeIndex index = new HugeIndex(this.graph(), indexLabel);
         this.doRemove(this.serializer.writeIndex(index));
@@ -1619,7 +1623,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     }
 
     private static class IndexQueries
-                   extends HashMap<IndexLabel, ConditionQuery> {
+        extends HashMap<IndexLabel, ConditionQuery> {
 
         private static final long serialVersionUID = 1400326138090922676L;
         private static final IndexQueries EMPTY = new IndexQueries(null);
@@ -1664,7 +1668,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         public Query asJointQuery() {
-            @SuppressWarnings({ "unchecked", "rawtypes" })
+            @SuppressWarnings({"unchecked", "rawtypes"})
             Collection<Query> queries = (Collection) this.values();
             return new JointQuery(this.rootQuery().resultType(),
                                   this.parentQuery, queries);
@@ -1680,6 +1684,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 super(type, parent(queries));
                 this.parentQuery = parentQuery;
                 this.queries = queries;
+            }
+
+            private static Query parent(Collection<Query> queries) {
+                if (queries.size() > 0) {
+                    // Chose the first one as origin query (any one is OK)
+                    return queries.iterator().next();
+                }
+                return null;
             }
 
             @Override
@@ -1701,19 +1713,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
             public String toString() {
                 return String.format("JointQuery %s", this.queries);
             }
-
-            private static Query parent(Collection<Query> queries) {
-                if (queries.size() > 0) {
-                    // Chose the first one as origin query (any one is OK)
-                    return queries.iterator().next();
-                }
-                return null;
-            }
         }
     }
 
     public static class RemoveLeftIndexJob extends EphemeralJob<Long>
-                                           implements EphemeralJobQueue.Reduce<Long> {
+        implements EphemeralJobQueue.Reduce<Long> {
 
         private static final String REMOVE_LEFT_INDEX = "remove_left_index";
 
@@ -1770,7 +1774,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
             long rCount = 0;
             long sCount = 0;
-            for (ConditionQuery cq: ConditionQueryFlatten.flatten(query)) {
+            for (ConditionQuery cq : ConditionQueryFlatten.flatten(query)) {
                 // Process range index
                 rCount += this.processRangeIndexLeft(cq, element);
                 // Process secondary index or search index
@@ -1808,7 +1812,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         private IndexLabel findMatchedIndexLabel(ConditionQuery query,
                                                  ConditionQuery.LeftIndex
-                                                 leftIndex) {
+                                                     leftIndex) {
             Set<MatchedIndex> matchedIndexes = this.tx.collectMatchedIndexes(query);
             for (MatchedIndex index : matchedIndexes) {
                 for (IndexLabel label : index.indexLabels()) {
@@ -1837,8 +1841,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                              .map(PropertyKey::id)
                                              .collect(Collectors.toSet());
                 Collection<Id> incorrectIndexFields = CollectionUtil.intersect(
-                                                      il.indexFields(),
-                                                      incorrectPkIds);
+                    il.indexFields(),
+                    incorrectPkIds);
                 if (incorrectIndexFields.isEmpty()) {
                     continue;
                 }
@@ -1878,8 +1882,8 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
 
         private HugeElement constructErrorElem(
-                            ConditionQuery query, HugeElement element,
-                            Map<PropertyKey, Object> incorrectPKs) {
+            ConditionQuery query, HugeElement element,
+            Map<PropertyKey, Object> incorrectPKs) {
             HugeElement errorElem = element.copyAsFresh();
             Set<Id> propKeys = query.userpropKeys();
             for (Id key : propKeys) {

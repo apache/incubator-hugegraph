@@ -17,25 +17,23 @@
 
 package org.apache.hugegraph.job.system;
 
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.task.HugeTask;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.job.system.JobCounters.JobCounter;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeIndex;
+import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
 
     protected static final Logger LOG = Log.logger(DeleteExpiredJob.class);
-
-    private static final int MAX_JOBS = 1000;
     protected static final JobCounters JOB_COUNTERS = new JobCounters();
+    private static final int MAX_JOBS = 1000;
 
     public static <V> void asyncDeleteExpiredObject(HugeGraph graph, V object) {
         E.checkArgumentNotNull(object, "The object can't be null");
@@ -77,7 +75,7 @@ public abstract class DeleteExpiredJob<T> extends EphemeralJob<T> {
     }
 
     public static <V> EphemeralJob<V> newDeleteExpiredElementJob(
-                                      JobCounter jobCounter, V object) {
+        JobCounter jobCounter, V object) {
         if (object instanceof HugeElement) {
             return new DeleteExpiredElementJob<>(jobCounter.elements());
         } else {

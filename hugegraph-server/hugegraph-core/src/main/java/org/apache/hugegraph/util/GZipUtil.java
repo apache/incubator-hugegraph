@@ -22,7 +22,6 @@ import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
 import org.apache.commons.codec.digest.DigestUtils;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 

@@ -30,12 +30,12 @@ public class Blob implements Comparable<Blob> {
         this.bytes = bytes;
     }
 
-    public byte[] bytes() {
-        return this.bytes;
-    }
-
     public static Blob wrap(byte[] bytes) {
         return new Blob(bytes);
+    }
+
+    public byte[] bytes() {
+        return this.bytes;
     }
 
     @Override

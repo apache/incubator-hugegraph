@@ -31,12 +31,12 @@ public enum IdStrategy implements SerialEnum {
 
     CUSTOMIZE_UUID(5, "customize_uuid");
 
-    private byte code = 0;
-    private String name = null;
-
     static {
         SerialEnum.register(IdStrategy.class);
     }
+
+    private byte code = 0;
+    private String name = null;
 
     IdStrategy(int code, String name) {
         assert code < 256;

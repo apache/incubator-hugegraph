@@ -26,15 +26,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.type.define.CollectionType;
+import org.apache.hugegraph.util.E;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.map.mutable.UnifiedMap;
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-
-import org.apache.hugegraph.type.define.CollectionType;
-import org.apache.hugegraph.util.E;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -52,18 +51,6 @@ public class CollectionFactory {
         this.type = type;
     }
 
-    public <V> List<V> newList() {
-        return newList(this.type);
-    }
-
-    public <V> List<V> newList(int initialCapacity) {
-        return newList(this.type, initialCapacity);
-    }
-
-    public <V> List<V> newList(Collection<V> collection) {
-        return newList(this.type, collection);
-    }
-
     public static <V> List<V> newList(CollectionType type) {
         switch (type) {
             case EC:
@@ -74,7 +61,7 @@ public class CollectionFactory {
                 return new ObjectArrayList<>();
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
     }
 
@@ -89,7 +76,7 @@ public class CollectionFactory {
                 return new ObjectArrayList<>(initialCapacity);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
     }
 
@@ -104,20 +91,8 @@ public class CollectionFactory {
                 return new ObjectArrayList<>(collection);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
-    }
-
-    public <V> Set<V> newSet() {
-        return newSet(this.type);
-    }
-
-    public <V> Set<V> newSet(int initialCapacity) {
-        return newSet(this.type, initialCapacity);
-    }
-
-    public <V> Set<V> newSet(Collection<V> collection) {
-        return newSet(this.type, collection);
     }
 
     public static <V> Set<V> newSet(CollectionType type) {
@@ -130,7 +105,7 @@ public class CollectionFactory {
                 return new ObjectOpenHashSet<>();
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
     }
 
@@ -145,7 +120,7 @@ public class CollectionFactory {
                 return new ObjectOpenHashSet<>(initialCapacity);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
     }
 
@@ -160,20 +135,8 @@ public class CollectionFactory {
                 return new ObjectOpenHashSet<>(collection);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
-    }
-
-    public <K, V> Map<K, V> newMap() {
-        return newMap(this.type);
-    }
-
-    public <K, V> Map<K, V> newMap(int initialCapacity) {
-        return newMap(this.type, initialCapacity);
-    }
-
-    public <K, V> Map<K, V> newMap(Map<? extends K, ? extends V> map) {
-        return newMap(this.type, map);
     }
 
     public static <K, V> Map<K, V> newMap(CollectionType type) {
@@ -190,7 +153,7 @@ public class CollectionFactory {
                 return new Object2ObjectOpenHashMap<>();
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
     }
 
@@ -205,7 +168,7 @@ public class CollectionFactory {
                 return new Object2ObjectOpenHashMap<>(initialCapacity);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
     }
 
@@ -220,7 +183,7 @@ public class CollectionFactory {
                 return new Object2ObjectOpenHashMap<>(map);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                    "Unsupported collection type: " + type);
         }
     }
 
@@ -229,18 +192,18 @@ public class CollectionFactory {
     }
 
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             int initialCapacity) {
+        int initialCapacity) {
         return new IntObjectHashMap<>(initialCapacity);
     }
 
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             IntObjectMap<? extends V> map) {
+        IntObjectMap<? extends V> map) {
         return new IntObjectHashMap<>(map);
     }
 
     @SuppressWarnings("unchecked")
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             Object... objects) {
+        Object... objects) {
         IntObjectHashMap<V> map = IntObjectHashMap.newMap();
         E.checkArgument(objects.length % 2 == 0,
                         "Must provide even arguments for " +
@@ -251,10 +214,6 @@ public class CollectionFactory {
             map.put(key, (V) objects[i + 1]);
         }
         return map;
-    }
-
-    public IdSet newIdSet() {
-        return newIdSet(this.type);
     }
 
     public static IdSet newIdSet(CollectionType type) {
@@ -277,5 +236,45 @@ public class CollectionFactory {
          *                     new IntIntHashMap();
          */
         return new IntMap.IntMapBySegments(Integer.MAX_VALUE);
+    }
+
+    public <V> List<V> newList() {
+        return newList(this.type);
+    }
+
+    public <V> List<V> newList(int initialCapacity) {
+        return newList(this.type, initialCapacity);
+    }
+
+    public <V> List<V> newList(Collection<V> collection) {
+        return newList(this.type, collection);
+    }
+
+    public <V> Set<V> newSet() {
+        return newSet(this.type);
+    }
+
+    public <V> Set<V> newSet(int initialCapacity) {
+        return newSet(this.type, initialCapacity);
+    }
+
+    public <V> Set<V> newSet(Collection<V> collection) {
+        return newSet(this.type, collection);
+    }
+
+    public <K, V> Map<K, V> newMap() {
+        return newMap(this.type);
+    }
+
+    public <K, V> Map<K, V> newMap(int initialCapacity) {
+        return newMap(this.type, initialCapacity);
+    }
+
+    public <K, V> Map<K, V> newMap(Map<? extends K, ? extends V> map) {
+        return newMap(this.type, map);
+    }
+
+    public IdSet newIdSet() {
+        return newIdSet(this.type);
     }
 }

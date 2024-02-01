@@ -59,13 +59,6 @@ public interface Id extends Comparable<Id> {
         STRING,
         EDGE;
 
-        public char prefix() {
-            if (this == UNKNOWN) {
-                return 'N';
-            }
-            return this.name().charAt(0);
-        }
-
         public static IdType valueOfPrefix(String id) {
             E.checkArgument(id != null && id.length() > 0,
                             "Invalid id '%s'", id);
@@ -81,6 +74,13 @@ public interface Id extends Comparable<Id> {
                 default:
                     return IdType.UNKNOWN;
             }
+        }
+
+        public char prefix() {
+            if (this == UNKNOWN) {
+                return 'N';
+            }
+            return this.name().charAt(0);
         }
     }
 }

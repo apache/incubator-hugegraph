@@ -21,14 +21,14 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableSet;
 
 public abstract class TaskCallable<V> implements Callable<V> {
@@ -37,20 +37,20 @@ public abstract class TaskCallable<V> implements Callable<V> {
 
     private static final String ERROR_COMMIT = "Failed to commit changes: ";
     private static final Set<String> ERROR_MESSAGES = ImmutableSet.of(
-            /*
-             * "The max length of bytes is" exception message occurs when
-             * task input size exceeds TASK_INPUT_SIZE_LIMIT or task result size
-             * exceeds TASK_RESULT_SIZE_LIMIT
-             */
-            "The max length of bytes is",
-            /*
-             * "Batch too large" exception message occurs when using
-             * cassandra store and task input size is in
-             * [batch_size_fail_threshold_in_kb, TASK_INPUT_SIZE_LIMIT) or
-             * task result size is in
-             * [batch_size_fail_threshold_in_kb, TASK_RESULT_SIZE_LIMIT)
-             */
-            "Batch too large"
+        /*
+         * "The max length of bytes is" exception message occurs when
+         * task input size exceeds TASK_INPUT_SIZE_LIMIT or task result size
+         * exceeds TASK_RESULT_SIZE_LIMIT
+         */
+        "The max length of bytes is",
+        /*
+         * "Batch too large" exception message occurs when using
+         * cassandra store and task input size is in
+         * [batch_size_fail_threshold_in_kb, TASK_INPUT_SIZE_LIMIT) or
+         * task result size is in
+         * [batch_size_fail_threshold_in_kb, TASK_RESULT_SIZE_LIMIT)
+         */
+        "Batch too large"
     );
 
     private HugeTask<V> task = null;
@@ -61,6 +61,34 @@ public abstract class TaskCallable<V> implements Callable<V> {
 
     public TaskCallable() {
         // pass
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <V> TaskCallable<V> fromClass(String className) {
+        try {
+            Class<?> clazz = Class.forName(className);
+            return (TaskCallable<V>) clazz.newInstance();
+        } catch (Exception e) {
+            throw new HugeException("Failed to load task: %s", e, className);
+        }
+    }
+
+    private static boolean needSaveWithEx(String message) {
+        for (String error : ERROR_MESSAGES) {
+            if (message.contains(error)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static <V> TaskCallable<V> empty(Exception e) {
+        return new TaskCallable<V>() {
+            @Override
+            public V call() throws Exception {
+                throw e;
+            }
+        };
     }
 
     protected void done() {
@@ -142,34 +170,6 @@ public abstract class TaskCallable<V> implements Callable<V> {
         E.checkState(this.task != null,
                      "Can't call task() before scheduling task");
         return this.task;
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <V> TaskCallable<V> fromClass(String className) {
-        try {
-            Class<?> clazz = Class.forName(className);
-            return (TaskCallable<V>) clazz.newInstance();
-        } catch (Exception e) {
-            throw new HugeException("Failed to load task: %s", e, className);
-        }
-    }
-
-    private static boolean needSaveWithEx(String message) {
-        for (String error : ERROR_MESSAGES) {
-            if (message.contains(error)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public static <V> TaskCallable<V> empty(Exception e) {
-        return new TaskCallable<V>() {
-            @Override
-            public V call() throws Exception {
-                throw e;
-            }
-        };
     }
 
     public abstract static class SysTaskCallable<V> extends TaskCallable<V> {

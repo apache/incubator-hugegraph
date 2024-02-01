@@ -44,11 +44,6 @@ public class EphemeralJobQueue {
 
     private final HugeGraphParams graph;
 
-    private enum State {
-        INIT,
-        EXECUTE,
-    }
-
     public EphemeralJobQueue(HugeGraphParams graph) {
         this.state = new AtomicReference<>(State.INIT);
         this.graph = graph;
@@ -106,6 +101,16 @@ public class EphemeralJobQueue {
 
     public boolean isEmpty() {
         return this.pendingQueue.isEmpty();
+    }
+
+    private enum State {
+        INIT,
+        EXECUTE,
+    }
+
+    public interface Reduce<T> {
+
+        T reduce(T t1, T t2);
     }
 
     public static class BatchEphemeralJob extends EphemeralJob<Object> {
@@ -185,7 +190,8 @@ public class EphemeralJobQueue {
             return result;
         }
 
-        private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prevResult) throws Exception {
+        private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prevResult) throws
+                                                                                      Exception {
             GraphTransaction graphTx = this.params().systemTransaction();
             GraphTransaction systemTx = this.params().graphTransaction();
             Object result = prevResult;
@@ -233,9 +239,5 @@ public class EphemeralJobQueue {
                 throw e;
             }
         }
-    }
-
-    public interface Reduce<T> {
-        T reduce(T t1,  T t2);
     }
 }

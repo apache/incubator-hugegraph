@@ -44,9 +44,17 @@ public class BackendMutation {
         this.updates = new MutationTable(initialCapacity);
     }
 
+    private static HugeException incompatibleActionException(
+        Action newAction,
+        Action originAction) {
+        return new HugeException("The action '%s' is incompatible with " +
+                                 "action '%s'", newAction, originAction);
+    }
+
     /**
      * Add data entry with an action to collection `updates`
-     * @param entry the backend entry
+     *
+     * @param entry  the backend entry
      * @param action operate action on the entry
      */
     @Watched(prefix = "mutation")
@@ -72,11 +80,11 @@ public class BackendMutation {
     /**
      * The optimized scenes include but are not limited to：
      * 1.If you want to delete an entry, the other mutations previously
-     *   can be ignored.
+     * can be ignored.
      * 2.As similar to the No.1 item, If you want to insert an entry,
-     *   the other mutations previously also can be ignored.
+     * the other mutations previously also can be ignored.
      * 3.If you append an entry and then eliminate it, the new action
-     *   can override the old one.
+     * can override the old one.
      */
     @Watched(prefix = "mutation")
     private void optimizeUpdates(BackendEntry entry, Action action) {
@@ -85,7 +93,7 @@ public class BackendMutation {
         final List<BackendAction> items = this.updates.get(entry.type(), id);
         assert items != null;
         boolean ignoreCurrent = false;
-        for (Iterator<BackendAction> iter = items.iterator(); iter.hasNext();) {
+        for (Iterator<BackendAction> iter = items.iterator(); iter.hasNext(); ) {
             BackendAction originItem = iter.next();
             Action originAction = originItem.action();
             switch (action) {
@@ -105,9 +113,9 @@ public class BackendMutation {
                     if (entry.type().isUniqueIndex() &&
                         originAction == Action.APPEND) {
                         throw new IllegalArgumentException(String.format(
-                                  "Unique constraint conflict is found in" +
-                                  " transaction between %s and %s",
-                                  entry, originItem.entry()));
+                            "Unique constraint conflict is found in" +
+                            " transaction between %s and %s",
+                            entry, originItem.entry()));
                     }
 
                     if (originAction == Action.INSERT ||
@@ -137,7 +145,7 @@ public class BackendMutation {
                     break;
                 default:
                     throw new AssertionError(String.format(
-                              "Unknown mutate action: %s", action));
+                        "Unknown mutate action: %s", action));
             }
         }
         if (!ignoreCurrent) {
@@ -145,22 +153,16 @@ public class BackendMutation {
         }
     }
 
-    private static HugeException incompatibleActionException(
-                                 Action newAction,
-                                 Action originAction) {
-        return new HugeException("The action '%s' is incompatible with " +
-                                 "action '%s'", newAction, originAction);
-    }
-
     /**
      * Merges another mutation into this mutation. Ensures that all additions
      * and deletions are added to this mutation. Does not remove duplicates
      * if such exist - this needs to be ensured by the caller.
+     *
      * @param mutation another mutation to be merged
      */
     public void merge(BackendMutation mutation) {
         E.checkNotNull(mutation, "mutation");
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
             BackendAction item = it.next();
             this.add(item.entry(), item.action());
         }
@@ -172,6 +174,7 @@ public class BackendMutation {
 
     /**
      * Get all mutations
+     *
      * @return mutations
      */
     public Iterator<BackendAction> mutation() {
@@ -180,6 +183,7 @@ public class BackendMutation {
 
     /**
      * Get mutations by type
+     *
      * @param type entry type
      * @return mutations
      */
@@ -189,8 +193,9 @@ public class BackendMutation {
 
     /**
      * Get mutations by type and id
+     *
      * @param type entry type
-     * @param id entry id
+     * @param id   entry id
      * @return mutations
      */
     public List<BackendAction> mutation(HugeType type, Id id) {
@@ -199,7 +204,8 @@ public class BackendMutation {
 
     /**
      * Whether mutation contains entry and action
-     * @param entry entry
+     *
+     * @param entry  entry
      * @param action action
      * @return true if exist, otherwise false
      */
@@ -218,12 +224,13 @@ public class BackendMutation {
 
     /**
      * Whether mutation contains type and action
-     * @param type type
+     *
+     * @param type   type
      * @param action action
      * @return true if exist, otherwise false
      */
     public boolean contains(HugeType type, Action action) {
-        for (Iterator<BackendAction> i = this.updates.get(type); i.hasNext();) {
+        for (Iterator<BackendAction> i = this.updates.get(type); i.hasNext(); ) {
             BackendAction entry = i.next();
             if (entry.action() == action) {
                 return true;
@@ -234,6 +241,7 @@ public class BackendMutation {
 
     /**
      * Whether this mutation is empty
+     *
      * @return true if empty, otherwise false
      */
     public boolean isEmpty() {
@@ -242,6 +250,7 @@ public class BackendMutation {
 
     /**
      * Get size of mutations
+     *
      * @return size
      */
     public int size() {

@@ -72,9 +72,6 @@ public enum HugeType implements SerialEnum {
 
     MAX_TYPE(255, "~");
 
-    private byte type = 0;
-    private String name;
-
     private static final Map<String, HugeType> ALL_NAME = new HashMap<>();
 
     static {
@@ -84,10 +81,21 @@ public enum HugeType implements SerialEnum {
         }
     }
 
+    private byte type = 0;
+    private String name;
+
     HugeType(int type, String name) {
         assert type < 256;
         this.type = (byte) type;
         this.name = name;
+    }
+
+    public static HugeType fromString(String type) {
+        return ALL_NAME.get(type);
+    }
+
+    public static HugeType fromCode(byte code) {
+        return SerialEnum.fromCode(HugeType.class, code);
     }
 
     @Override
@@ -183,13 +191,5 @@ public enum HugeType implements SerialEnum {
     public boolean isAggregateProperty() {
         return this.isVertexAggregateProperty() ||
                this.isEdgeAggregateProperty();
-    }
-
-    public static HugeType fromString(String type) {
-        return ALL_NAME.get(type);
-    }
-
-    public static HugeType fromCode(byte code) {
-        return SerialEnum.fromCode(HugeType.class, code);
     }
 }

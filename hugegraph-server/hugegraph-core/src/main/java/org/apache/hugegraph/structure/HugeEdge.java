@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.structure;
@@ -27,7 +29,9 @@ import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
@@ -35,24 +39,21 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.E;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
-
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
-import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
 
 import com.google.common.collect.ImmutableList;
 
 public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
-    private Id id;
     private final EdgeLabel label;
+    private Id id;
     private String name;
 
     private HugeVertex sourceVertex;
@@ -77,6 +78,54 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.sourceVertex = null;
         this.targetVertex = null;
         this.isOutEdge = true;
+    }
+
+    public static final EdgeId getIdValue(Object idValue,
+                                          boolean returnNullIfError) {
+        Id id = getIdValue(idValue);
+        if (id == null || id instanceof EdgeId) {
+            return (EdgeId) id;
+        }
+        return EdgeId.parse(id.asString(), returnNullIfError);
+    }
+
+    @Watched
+    public static HugeEdge constructEdge(HugeVertex ownerVertex,
+                                         boolean isOutEdge,
+                                         EdgeLabel edgeLabel,
+                                         String sortValues,
+                                         Id otherVertexId) {
+        HugeGraph graph = ownerVertex.graph();
+        VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
+        VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
+
+        VertexLabel otherVertexLabel;
+        if (isOutEdge) {
+            ownerVertex.correctVertexLabel(srcLabel);
+            otherVertexLabel = tgtLabel;
+        } else {
+            ownerVertex.correctVertexLabel(tgtLabel);
+            otherVertexLabel = srcLabel;
+        }
+        HugeVertex otherVertex = new HugeVertex(graph, otherVertexId, otherVertexLabel);
+
+        ownerVertex.propNotLoaded();
+        otherVertex.propNotLoaded();
+
+        HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
+        edge.name(sortValues);
+        edge.vertices(isOutEdge, ownerVertex, otherVertex);
+        edge.assignId();
+
+        if (isOutEdge) {
+            ownerVertex.addOutEdge(edge);
+            otherVertex.addInEdge(edge.switchOwner());
+        } else {
+            ownerVertex.addInEdge(edge);
+            otherVertex.addOutEdge(edge.switchOwner());
+        }
+
+        return edge;
     }
 
     @Override
@@ -463,6 +512,7 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     /**
      * Clear properties of the edge, and set `removed` true
+     *
      * @return a new edge
      */
     public HugeEdge prepareRemoved() {
@@ -491,53 +541,5 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Override
     public String toString() {
         return StringFactory.edgeString(this);
-    }
-
-    public static final EdgeId getIdValue(Object idValue,
-                                          boolean returnNullIfError) {
-        Id id = getIdValue(idValue);
-        if (id == null || id instanceof EdgeId) {
-            return (EdgeId) id;
-        }
-        return EdgeId.parse(id.asString(), returnNullIfError);
-    }
-
-    @Watched
-    public static HugeEdge constructEdge(HugeVertex ownerVertex,
-                                         boolean isOutEdge,
-                                         EdgeLabel edgeLabel,
-                                         String sortValues,
-                                         Id otherVertexId) {
-        HugeGraph graph = ownerVertex.graph();
-        VertexLabel srcLabel = graph.vertexLabelOrNone(edgeLabel.sourceLabel());
-        VertexLabel tgtLabel = graph.vertexLabelOrNone(edgeLabel.targetLabel());
-
-        VertexLabel otherVertexLabel;
-        if (isOutEdge) {
-            ownerVertex.correctVertexLabel(srcLabel);
-            otherVertexLabel = tgtLabel;
-        } else {
-            ownerVertex.correctVertexLabel(tgtLabel);
-            otherVertexLabel = srcLabel;
-        }
-        HugeVertex otherVertex = new HugeVertex(graph, otherVertexId, otherVertexLabel);
-
-        ownerVertex.propNotLoaded();
-        otherVertex.propNotLoaded();
-
-        HugeEdge edge = new HugeEdge(graph, null, edgeLabel);
-        edge.name(sortValues);
-        edge.vertices(isOutEdge, ownerVertex, otherVertex);
-        edge.assignId();
-
-        if (isOutEdge) {
-            ownerVertex.addOutEdge(edge);
-            otherVertex.addInEdge(edge.switchOwner());
-        } else {
-            ownerVertex.addInEdge(edge);
-            otherVertex.addOutEdge(edge.switchOwner());
-        }
-
-        return edge;
     }
 }

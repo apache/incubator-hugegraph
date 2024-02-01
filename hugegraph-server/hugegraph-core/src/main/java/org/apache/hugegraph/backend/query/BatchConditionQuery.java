@@ -29,8 +29,8 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 
 public class BatchConditionQuery extends ConditionQuery {
 
-    private Condition.Relation in;
     private final int batchSize;
+    private Condition.Relation in;
 
     public BatchConditionQuery(HugeType resultType, int batchSize) {
         super(resultType);
@@ -43,7 +43,7 @@ public class BatchConditionQuery extends ConditionQuery {
         if (this.in == null) {
             assert !this.containsRelation(RelationType.IN);
             this.resetConditions(InsertionOrderUtil.newList(
-                                 (List<Condition>) query.conditions()));
+                (List<Condition>) query.conditions()));
             this.unsetCondition(key);
 
             List<Object> list = new ArrayList<>(this.batchSize);

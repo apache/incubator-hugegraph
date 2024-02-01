@@ -23,12 +23,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public class EdgeLabel extends SchemaLabel {
@@ -44,6 +45,10 @@ public class EdgeLabel extends SchemaLabel {
         super(graph, id, name);
         this.frequency = Frequency.DEFAULT;
         this.sortKeys = new ArrayList<>();
+    }
+
+    public static EdgeLabel undefined(HugeGraph graph, Id id) {
+        return new EdgeLabel(graph, id, UNDEF);
     }
 
     @Override
@@ -126,10 +131,6 @@ public class EdgeLabel extends SchemaLabel {
                Objects.equal(this.targetLabelName(), other.targetLabelName()) &&
                Objects.equal(this.graph.mapPkId2Name(this.sortKeys),
                              other.graph.mapPkId2Name(other.sortKeys));
-    }
-
-    public static EdgeLabel undefined(HugeGraph graph, Id id) {
-        return new EdgeLabel(graph, id, UNDEF);
     }
 
     public interface Builder extends SchemaBuilder<EdgeLabel> {

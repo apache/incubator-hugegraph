@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.analyzer;
@@ -22,6 +24,7 @@ import java.util.Set;
 
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.hankcs.hanlp.seg.Dijkstra.DijkstraSegment;
 import com.hankcs.hanlp.seg.NShort.NShortSegment;
@@ -38,31 +41,31 @@ import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 public class HanLPAnalyzer implements Analyzer {
 
     public static final List<String> SUPPORT_MODES =
-           ImmutableList.<String>builder()
-                        .add("standard")
-                        .add("nlp")
-                        .add("index")
-                        .add("nShort")
-                        .add("shortest")
-                        .add("speed")
-                        .build();
+        ImmutableList.<String>builder()
+                     .add("standard")
+                     .add("nlp")
+                     .add("index")
+                     .add("nShort")
+                     .add("shortest")
+                     .add("speed")
+                     .build();
 
     private static final Segment N_SHORT_SEGMENT =
-            new NShortSegment().enableCustomDictionary(false)
-                               .enablePlaceRecognize(true)
-                               .enableOrganizationRecognize(true);
+        new NShortSegment().enableCustomDictionary(false)
+                           .enablePlaceRecognize(true)
+                           .enableOrganizationRecognize(true);
     private static final Segment DIJKSTRA_SEGMENT =
-            new DijkstraSegment().enableCustomDictionary(false)
-                                 .enablePlaceRecognize(true)
-                                 .enableOrganizationRecognize(true);
+        new DijkstraSegment().enableCustomDictionary(false)
+                             .enablePlaceRecognize(true)
+                             .enableOrganizationRecognize(true);
 
     private final String tokenizer;
 
     public HanLPAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
             throw new ConfigException(
-                      "Unsupported segment mode '%s' for hanlp analyzer, " +
-                      "the available values are %s", mode, SUPPORT_MODES);
+                "Unsupported segment mode '%s' for hanlp analyzer, " +
+                "the available values are %s", mode, SUPPORT_MODES);
         }
         this.tokenizer = mode;
     }
@@ -91,7 +94,7 @@ public class HanLPAnalyzer implements Analyzer {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported segment mode '%s'", this.tokenizer));
+                    "Unsupported segment mode '%s'", this.tokenizer));
         }
 
         assert terms != null;

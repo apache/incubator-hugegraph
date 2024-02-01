@@ -21,15 +21,10 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.util.ParameterUtil;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.task.HugeTask;
@@ -38,6 +33,11 @@ import org.apache.hugegraph.traversal.optimize.HugeScriptTraversal;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.ParameterUtil;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableMap;
 
 public class SubgraphStatAlgorithm extends AbstractAlgorithm {
@@ -46,6 +46,23 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
     public static final String KEY_COPY_SCHEMA = "copy_schema";
 
     private static final Logger LOG = Log.logger(SubgraphStatAlgorithm.class);
+
+    protected static String subgraph(Map<String, Object> parameters) {
+        Object subgraph = parameters.get(KEY_SUBGRAPH);
+        E.checkArgument(subgraph != null,
+                        "Must pass parameter '%s'", KEY_SUBGRAPH);
+        E.checkArgument(subgraph instanceof String,
+                        "Invalid parameter '%s', expect a String, but got %s",
+                        KEY_SUBGRAPH, subgraph.getClass().getSimpleName());
+        return (String) subgraph;
+    }
+
+    protected static boolean copySchema(Map<String, Object> parameters) {
+        if (!parameters.containsKey(KEY_COPY_SCHEMA)) {
+            return false;
+        }
+        return ParameterUtil.parameterBoolean(parameters, KEY_COPY_SCHEMA);
+    }
 
     @Override
     public String name() {
@@ -105,23 +122,6 @@ public class SubgraphStatAlgorithm extends AbstractAlgorithm {
                                   script, ImmutableMap.of(),
                                   ImmutableMap.of()).iterate();
         graph.tx().commit();
-    }
-
-    protected static String subgraph(Map<String, Object> parameters) {
-        Object subgraph = parameters.get(KEY_SUBGRAPH);
-        E.checkArgument(subgraph != null,
-                        "Must pass parameter '%s'", KEY_SUBGRAPH);
-        E.checkArgument(subgraph instanceof String,
-                        "Invalid parameter '%s', expect a String, but got %s",
-                        KEY_SUBGRAPH, subgraph.getClass().getSimpleName());
-        return (String) subgraph;
-    }
-
-    protected static boolean copySchema(Map<String, Object> parameters) {
-        if (!parameters.containsKey(KEY_COPY_SCHEMA)) {
-            return false;
-        }
-        return ParameterUtil.parameterBoolean(parameters, KEY_COPY_SCHEMA);
     }
 
     private static class Traverser extends AlgoTraverser {

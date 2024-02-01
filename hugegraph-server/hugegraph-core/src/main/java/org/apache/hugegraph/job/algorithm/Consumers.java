@@ -25,12 +25,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.task.TaskManager.ContextCallable;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class Consumers<V> {
 
@@ -70,6 +69,29 @@ public class Consumers<V> {
         this.queueSize = QUEUE_WORKER_SIZE * workers;
         this.latch = new CountDownLatch(workers);
         this.queue = new ArrayBlockingQueue<>(this.queueSize);
+    }
+
+    public static ExecutorService newThreadPool(String prefix, int workers) {
+        if (workers == 0) {
+            return null;
+        } else {
+            if (workers < 0) {
+                assert workers == -1;
+                workers = Consumers.THREADS;
+            } else if (workers > Consumers.CPUS * 2) {
+                workers = Consumers.CPUS * 2;
+            }
+            String name = prefix + "-worker-%d";
+            return ExecutorUtil.newFixedThreadPool(workers, name);
+        }
+    }
+
+    public static RuntimeException wrapException(Throwable e) {
+        if (e instanceof RuntimeException) {
+            throw (RuntimeException) e;
+        }
+        throw new HugeException("Error when running task: %s",
+                                HugeException.rootCause(e).getMessage(), e);
     }
 
     public void start(String name) {
@@ -147,7 +169,8 @@ public class Consumers<V> {
             try {
                 this.queue.put(v);
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted", e);;
+                LOG.warn("Interrupted", e);
+                ;
             }
         }
     }
@@ -164,29 +187,6 @@ public class Consumers<V> {
                 LOG.warn("Interrupted", e);
             }
         }
-    }
-
-    public static ExecutorService newThreadPool(String prefix, int workers) {
-        if (workers == 0) {
-            return null;
-        } else {
-            if (workers < 0) {
-                assert workers == -1;
-                workers = Consumers.THREADS;
-            } else if (workers > Consumers.CPUS * 2) {
-                workers = Consumers.CPUS * 2;
-            }
-            String name = prefix + "-worker-%d";
-            return ExecutorUtil.newFixedThreadPool(workers, name);
-        }
-    }
-
-    public static RuntimeException wrapException(Throwable e) {
-        if (e instanceof RuntimeException) {
-            throw (RuntimeException) e;
-        }
-        throw new HugeException("Error when running task: %s",
-                                HugeException.rootCause(e).getMessage(), e);
     }
 
     public static class StopExecution extends HugeException {

@@ -28,9 +28,8 @@ import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
 import org.apache.commons.lang.ArrayUtils;
-
-import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.type.define.HugeKeys;
@@ -38,274 +37,11 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public abstract class Condition {
-
-    public enum ConditionType {
-        NONE,
-        RELATION,
-        AND,
-        OR;
-    }
-
-    public enum RelationType implements BiPredicate<Object, Object> {
-
-        EQ("==", (v1, v2) -> {
-            return equals(v1, v2);
-        }),
-
-        GT(">", (v1, v2) -> {
-            return compare(v1, v2) > 0;
-        }),
-
-        GTE(">=", (v1, v2) -> {
-            return compare(v1, v2) >= 0;
-        }),
-
-        LT("<", (v1, v2) -> {
-            return compare(v1, v2) < 0;
-        }),
-
-        LTE("<=", (v1, v2) -> {
-            return compare(v1, v2) <= 0;
-        }),
-
-        NEQ("!=", (v1, v2) -> {
-            return compare(v1, v2) != 0;
-        }),
-
-        IN("in", null, Collection.class, (v1, v2) -> {
-            assert v2 != null;
-            return ((Collection<?>) v2).contains(v1);
-        }),
-
-        NOT_IN("notin", null, Collection.class, (v1, v2) -> {
-            assert v2 != null;
-            return !((Collection<?>) v2).contains(v1);
-        }),
-
-        PREFIX("prefix", Id.class, Id.class, (v1, v2) -> {
-            assert v2 != null;
-            return v1 != null && Bytes.prefixWith(((Id) v2).asBytes(),
-                                                  ((Id) v1).asBytes());
-        }),
-
-        TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
-            // TODO: support collection-property textcontains
-            return v1 != null && ((String) v1).contains((String) v2);
-        }),
-
-        TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class, (v1, v2) -> {
-            assert v2 != null;
-            if (v1 == null) {
-                return false;
-            }
-
-            @SuppressWarnings("unchecked")
-            Collection<String> words = (Collection<String>) v2;
-
-            for (String word : words) {
-                if (((String) v1).contains(word)) {
-                    return true;
-                }
-            }
-            return false;
-        }),
-
-        CONTAINS("contains", Collection.class, null, (v1, v2) -> {
-            assert v2 != null;
-            return v1 != null && ((Collection<?>) v1).contains(v2);
-        }),
-
-        CONTAINS_VALUE("containsv", Map.class, null, (v1, v2) -> {
-            assert v2 != null;
-            return v1 != null && ((Map<?, ?>) v1).containsValue(v2);
-        }),
-
-        CONTAINS_KEY("containsk", Map.class, null, (v1, v2) -> {
-            assert v2 != null;
-            return v1 != null && ((Map<?, ?>) v1).containsKey(v2);
-        }),
-
-        SCAN("scan", (v1, v2) -> {
-            assert v2 != null;
-            /*
-             * TODO: we still have no way to determine accurately, since
-             *       some backends may scan with token(column) like cassandra.
-             */
-            return true;
-        });
-
-        private final String operator;
-        private final BiFunction<Object, Object, Boolean> tester;
-        private final Class<?> v1Class;
-        private final Class<?> v2Class;
-
-        RelationType(String op,
-                             BiFunction<Object, Object, Boolean> tester) {
-            this(op, null, null, tester);
-        }
-
-        RelationType(String op, Class<?> v1Class, Class<?> v2Class,
-                             BiFunction<Object, Object, Boolean> tester) {
-            this.operator = op;
-            this.tester = tester;
-            this.v1Class = v1Class;
-            this.v2Class = v2Class;
-        }
-
-        public String string() {
-            return this.operator;
-        }
-
-        /**
-         * Determine two values of any type equal
-         * @param first is actual value
-         * @param second is value in query condition
-         * @return true if equal, otherwise false
-         */
-        private static boolean equals(final Object first,
-                                      final Object second) {
-            assert second != null;
-            if (first instanceof Id) {
-                if (second instanceof String) {
-                    return second.equals(((Id) first).asString());
-                } else if (second instanceof Long) {
-                    return second.equals(((Id) first).asLong());
-                }
-            } else if (second instanceof Number) {
-                return compare(first, second) == 0;
-            } else if (second.getClass().isArray()) {
-                return ArrayUtils.isEquals(first, second);
-            }
-
-            return Objects.equals(first, second);
-        }
-
-        /**
-         * Determine two numbers equal
-         * @param first is actual value, might be Number/Date or String, It is
-         *              probably that the `first` is serialized to String.
-         * @param second is value in query condition, must be Number/Date
-         * @return the value 0 if first is numerically equal to second;
-         *         a value less than 0 if first is numerically less than
-         *         second; and a value greater than 0 if first is
-         *         numerically greater than second.
-         */
-        private static int compare(final Object first, final Object second) {
-            assert second != null;
-            if (second instanceof Number) {
-                return NumericUtil.compareNumber(first == null ? 0 : first,
-                                                 (Number) second);
-            } else if (second instanceof Date) {
-                return compareDate(first, (Date) second);
-            }
-
-            throw new IllegalArgumentException(String.format(
-                      "Can't compare between %s(%s) and %s(%s)", first,
-                      first == null ? null : first.getClass().getSimpleName(),
-                      second, second.getClass().getSimpleName()));
-        }
-
-        private static int compareDate(Object first, Date second) {
-            if (first == null) {
-                first = DateUtil.DATE_ZERO;
-            }
-            if (first instanceof Date) {
-                return ((Date) first).compareTo(second);
-            }
-
-            throw new IllegalArgumentException(String.format(
-                      "Can't compare between %s(%s) and %s(%s)",
-                      first, first.getClass().getSimpleName(),
-                      second, second.getClass().getSimpleName()));
-        }
-
-        private void checkBaseType(Object value, Class<?> clazz) {
-            if (!clazz.isInstance(value)) {
-                String valueClass = value == null ? "null" :
-                                    value.getClass().getSimpleName();
-                E.checkArgument(false,
-                                "Can't execute `%s` on type %s, expect %s",
-                                this.operator, valueClass,
-                                clazz.getSimpleName());
-            }
-        }
-
-        private void checkValueType(Object value, Class<?> clazz) {
-            if (!clazz.isInstance(value)) {
-                String valueClass = value == null ? "null" :
-                                    value.getClass().getSimpleName();
-                E.checkArgument(false,
-                                "Can't test '%s'(%s) for `%s`, expect %s",
-                                value, valueClass, this.operator,
-                                clazz.getSimpleName());
-            }
-        }
-
-        @Override
-        public boolean test(Object first, Object second) {
-            E.checkState(this.tester != null, "Can't test %s", this.name());
-            E.checkArgument(second != null,
-                            "Can't test null value for `%s`", this.operator);
-            if (this.v1Class != null) {
-                this.checkBaseType(first, this.v1Class);
-            }
-            if (this.v2Class != null) {
-                this.checkValueType(second, this.v2Class);
-            }
-            return this.tester.apply(first, second);
-        }
-
-        public boolean isRangeType() {
-            return ImmutableSet.of(GT, GTE, LT, LTE).contains(this);
-        }
-
-        public boolean isSearchType() {
-            return this == TEXT_CONTAINS || this == TEXT_CONTAINS_ANY;
-        }
-
-        public boolean isSecondaryType() {
-            return this == EQ;
-        }
-    }
-
-    public abstract ConditionType type();
-
-    public abstract boolean isSysprop();
-
-    public abstract List<? extends Relation> relations();
-
-    public abstract boolean test(Object value);
-
-    public abstract boolean test(HugeElement element);
-
-    public abstract Condition copy();
-
-    public abstract Condition replace(Relation from, Relation to);
-
-    public Condition and(Condition other) {
-        return new And(this, other);
-    }
-
-    public Condition or(Condition other) {
-        return new Or(this, other);
-    }
-
-    public boolean isRelation() {
-        return this.type() == ConditionType.RELATION;
-    }
-
-    public boolean isLogic() {
-        return this.type() == ConditionType.AND ||
-               this.type() == ConditionType.OR;
-    }
-
-    public boolean isFlattened() {
-        return this.isRelation();
-    }
 
     public static Condition and(Condition left, Condition right) {
         return new And(left, right);
@@ -410,6 +146,272 @@ public abstract class Condition {
 
     public static Condition contains(Id key, Object value) {
         return new UserpropRelation(key, RelationType.CONTAINS, value);
+    }
+
+    public abstract ConditionType type();
+
+    public abstract boolean isSysprop();
+
+    public abstract List<? extends Relation> relations();
+
+    public abstract boolean test(Object value);
+
+    public abstract boolean test(HugeElement element);
+
+    public abstract Condition copy();
+
+    public abstract Condition replace(Relation from, Relation to);
+
+    public Condition and(Condition other) {
+        return new And(this, other);
+    }
+
+    public Condition or(Condition other) {
+        return new Or(this, other);
+    }
+
+    public boolean isRelation() {
+        return this.type() == ConditionType.RELATION;
+    }
+
+    public boolean isLogic() {
+        return this.type() == ConditionType.AND ||
+               this.type() == ConditionType.OR;
+    }
+
+    public boolean isFlattened() {
+        return this.isRelation();
+    }
+
+    public enum ConditionType {
+        NONE,
+        RELATION,
+        AND,
+        OR;
+    }
+
+    public enum RelationType implements BiPredicate<Object, Object> {
+
+        EQ("==", (v1, v2) -> {
+            return equals(v1, v2);
+        }),
+
+        GT(">", (v1, v2) -> {
+            return compare(v1, v2) > 0;
+        }),
+
+        GTE(">=", (v1, v2) -> {
+            return compare(v1, v2) >= 0;
+        }),
+
+        LT("<", (v1, v2) -> {
+            return compare(v1, v2) < 0;
+        }),
+
+        LTE("<=", (v1, v2) -> {
+            return compare(v1, v2) <= 0;
+        }),
+
+        NEQ("!=", (v1, v2) -> {
+            return compare(v1, v2) != 0;
+        }),
+
+        IN("in", null, Collection.class, (v1, v2) -> {
+            assert v2 != null;
+            return ((Collection<?>) v2).contains(v1);
+        }),
+
+        NOT_IN("notin", null, Collection.class, (v1, v2) -> {
+            assert v2 != null;
+            return !((Collection<?>) v2).contains(v1);
+        }),
+
+        PREFIX("prefix", Id.class, Id.class, (v1, v2) -> {
+            assert v2 != null;
+            return v1 != null && Bytes.prefixWith(((Id) v2).asBytes(),
+                                                  ((Id) v1).asBytes());
+        }),
+
+        TEXT_CONTAINS("textcontains", String.class, String.class, (v1, v2) -> {
+            // TODO: support collection-property textcontains
+            return v1 != null && ((String) v1).contains((String) v2);
+        }),
+
+        TEXT_CONTAINS_ANY("textcontainsany", String.class, Collection.class, (v1, v2) -> {
+            assert v2 != null;
+            if (v1 == null) {
+                return false;
+            }
+
+            @SuppressWarnings("unchecked")
+            Collection<String> words = (Collection<String>) v2;
+
+            for (String word : words) {
+                if (((String) v1).contains(word)) {
+                    return true;
+                }
+            }
+            return false;
+        }),
+
+        CONTAINS("contains", Collection.class, null, (v1, v2) -> {
+            assert v2 != null;
+            return v1 != null && ((Collection<?>) v1).contains(v2);
+        }),
+
+        CONTAINS_VALUE("containsv", Map.class, null, (v1, v2) -> {
+            assert v2 != null;
+            return v1 != null && ((Map<?, ?>) v1).containsValue(v2);
+        }),
+
+        CONTAINS_KEY("containsk", Map.class, null, (v1, v2) -> {
+            assert v2 != null;
+            return v1 != null && ((Map<?, ?>) v1).containsKey(v2);
+        }),
+
+        SCAN("scan", (v1, v2) -> {
+            assert v2 != null;
+            /*
+             * TODO: we still have no way to determine accurately, since
+             *       some backends may scan with token(column) like cassandra.
+             */
+            return true;
+        });
+
+        private final String operator;
+        private final BiFunction<Object, Object, Boolean> tester;
+        private final Class<?> v1Class;
+        private final Class<?> v2Class;
+
+        RelationType(String op,
+                     BiFunction<Object, Object, Boolean> tester) {
+            this(op, null, null, tester);
+        }
+
+        RelationType(String op, Class<?> v1Class, Class<?> v2Class,
+                     BiFunction<Object, Object, Boolean> tester) {
+            this.operator = op;
+            this.tester = tester;
+            this.v1Class = v1Class;
+            this.v2Class = v2Class;
+        }
+
+        /**
+         * Determine two values of any type equal
+         *
+         * @param first  is actual value
+         * @param second is value in query condition
+         * @return true if equal, otherwise false
+         */
+        private static boolean equals(final Object first,
+                                      final Object second) {
+            assert second != null;
+            if (first instanceof Id) {
+                if (second instanceof String) {
+                    return second.equals(((Id) first).asString());
+                } else if (second instanceof Long) {
+                    return second.equals(((Id) first).asLong());
+                }
+            } else if (second instanceof Number) {
+                return compare(first, second) == 0;
+            } else if (second.getClass().isArray()) {
+                return ArrayUtils.isEquals(first, second);
+            }
+
+            return Objects.equals(first, second);
+        }
+
+        /**
+         * Determine two numbers equal
+         *
+         * @param first  is actual value, might be Number/Date or String, It is
+         *               probably that the `first` is serialized to String.
+         * @param second is value in query condition, must be Number/Date
+         * @return the value 0 if first is numerically equal to second;
+         * a value less than 0 if first is numerically less than
+         * second; and a value greater than 0 if first is
+         * numerically greater than second.
+         */
+        private static int compare(final Object first, final Object second) {
+            assert second != null;
+            if (second instanceof Number) {
+                return NumericUtil.compareNumber(first == null ? 0 : first,
+                                                 (Number) second);
+            } else if (second instanceof Date) {
+                return compareDate(first, (Date) second);
+            }
+
+            throw new IllegalArgumentException(String.format(
+                "Can't compare between %s(%s) and %s(%s)", first,
+                first == null ? null : first.getClass().getSimpleName(),
+                second, second.getClass().getSimpleName()));
+        }
+
+        private static int compareDate(Object first, Date second) {
+            if (first == null) {
+                first = DateUtil.DATE_ZERO;
+            }
+            if (first instanceof Date) {
+                return ((Date) first).compareTo(second);
+            }
+
+            throw new IllegalArgumentException(String.format(
+                "Can't compare between %s(%s) and %s(%s)",
+                first, first.getClass().getSimpleName(),
+                second, second.getClass().getSimpleName()));
+        }
+
+        public String string() {
+            return this.operator;
+        }
+
+        private void checkBaseType(Object value, Class<?> clazz) {
+            if (!clazz.isInstance(value)) {
+                String valueClass = value == null ? "null" :
+                                    value.getClass().getSimpleName();
+                E.checkArgument(false,
+                                "Can't execute `%s` on type %s, expect %s",
+                                this.operator, valueClass,
+                                clazz.getSimpleName());
+            }
+        }
+
+        private void checkValueType(Object value, Class<?> clazz) {
+            if (!clazz.isInstance(value)) {
+                String valueClass = value == null ? "null" :
+                                    value.getClass().getSimpleName();
+                E.checkArgument(false,
+                                "Can't test '%s'(%s) for `%s`, expect %s",
+                                value, valueClass, this.operator,
+                                clazz.getSimpleName());
+            }
+        }
+
+        @Override
+        public boolean test(Object first, Object second) {
+            E.checkState(this.tester != null, "Can't test %s", this.name());
+            E.checkArgument(second != null,
+                            "Can't test null value for `%s`", this.operator);
+            if (this.v1Class != null) {
+                this.checkBaseType(first, this.v1Class);
+            }
+            if (this.v2Class != null) {
+                this.checkValueType(second, this.v2Class);
+            }
+            return this.tester.apply(first, second);
+        }
+
+        public boolean isRangeType() {
+            return ImmutableSet.of(GT, GTE, LT, LTE).contains(this);
+        }
+
+        public boolean isSearchType() {
+            return this == TEXT_CONTAINS || this == TEXT_CONTAINS_ANY;
+        }
+
+        public boolean isSecondaryType() {
+            return this == EQ;
+        }
     }
 
     /**
@@ -538,19 +540,17 @@ public abstract class Condition {
 
     public abstract static class Relation extends Condition {
 
+        protected static final Set<RelationType> UNFLATTEN_RELATION_TYPES =
+            ImmutableSet.of(RelationType.IN, RelationType.NOT_IN,
+                            RelationType.TEXT_CONTAINS_ANY);
         // Relational operator (like: =, >, <, in, ...)
         protected RelationType relation;
         // Single-type value or a list of single-type value
         protected Object value;
-
         // The key serialized(code/string) by backend store.
         protected Object serialKey;
         // The value serialized(code/string) by backend store.
         protected Object serialValue;
-
-        protected static final Set<RelationType> UNFLATTEN_RELATION_TYPES =
-                  ImmutableSet.of(RelationType.IN, RelationType.NOT_IN,
-                                  RelationType.TEXT_CONTAINS_ANY);
 
         @Override
         public ConditionType type() {

@@ -19,12 +19,12 @@ package org.apache.hugegraph.job;
 
 import java.util.Set;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.task.TaskCallable;
 import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.util.E;
 
 public class JobBuilder<V> {
@@ -36,12 +36,12 @@ public class JobBuilder<V> {
     private Job<V> job;
     private Set<Id> dependencies;
 
-    public static <T> JobBuilder<T> of(final HugeGraph graph) {
-        return new JobBuilder<>(graph);
-    }
-
     public JobBuilder(final HugeGraph graph) {
         this.graph = graph;
+    }
+
+    public static <T> JobBuilder<T> of(final HugeGraph graph) {
+        return new JobBuilder<>(graph);
     }
 
     public JobBuilder<V> name(String name) {

@@ -19,8 +19,8 @@ package org.apache.hugegraph.job.system;
 
 import java.util.Set;
 
-import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.util.E;
 
