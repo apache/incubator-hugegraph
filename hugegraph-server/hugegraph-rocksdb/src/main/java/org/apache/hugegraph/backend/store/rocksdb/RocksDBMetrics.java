@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.rocksdb;
@@ -41,33 +43,28 @@ public class RocksDBMetrics implements BackendMetrics {
     private static final String CUR_MEM_TABLE = PREFIX + "cur-size-all-mem-tables";
     // disk
     private static final String DISK_USAGE = PREFIX + "disk-usage";
+    public static final String KEY_DISK_USAGE = DISK_USAGE;
     private static final String LIVE_DATA_SIZE = PREFIX + "estimate-live-data-size";
     private static final String SST_FILE_SIZE = PREFIX + "total-sst-files-size";
     private static final String LIVE_SST_FILE_SIZE = PREFIX + "live-sst-files-size";
     private static final String PENDING_COMPACTION_BYTES = PREFIX +
                                                            "estimate-pending-compaction-bytes";
-
     // count/number
     private static final String NUM_KEYS = PREFIX + "estimate-num-keys";
+    public static final String KEY_NUM_KEYS = NUM_KEYS;
     private static final String NUM_KEYS_MEM_TABLE = PREFIX + "num-entries-active-mem-table";
     private static final String NUM_KEYS_IMM_MEM_TABLE = PREFIX + "num-entries-imm-mem-tables";
     private static final String NUM_DELETES_MEM_TABLE = PREFIX + "num-deletes-active-mem-table";
     private static final String NUM_DELETES_IMM_MEM_TABLE = PREFIX + "num-deletes-imm-mem-tables";
-
     private static final String RUNNING_FLUSHS = PREFIX + "num-running-flushes";
     private static final String MEM_TABLE_FLUSH_PENDINF = PREFIX + "mem-table-flush-pending";
     private static final String RUNNING_COMPACTIONS = PREFIX + "num-running-compactions";
     private static final String COMPACTION_PENDINF = PREFIX + "compaction-pending";
-
     private static final String NUM_IMM_MEM_TABLE = PREFIX + "num-immutable-mem-table";
     private static final String NUM_SNAPSHOTS = PREFIX + "num-snapshots";
     private static final String OLDEST_SNAPSHOT_TIME = PREFIX + "oldest-snapshot-time";
     private static final String NUM_LIVE_VERSIONS = PREFIX + "num-live-versions";
     private static final String SUPER_VERSION = PREFIX + "current-super-version-number";
-
-    public static final String KEY_DISK_USAGE = DISK_USAGE;
-    public static final String KEY_NUM_KEYS = NUM_KEYS;
-
     private final List<RocksDBSessions> dbs;
     private final RocksDBSessions.Session session;
 

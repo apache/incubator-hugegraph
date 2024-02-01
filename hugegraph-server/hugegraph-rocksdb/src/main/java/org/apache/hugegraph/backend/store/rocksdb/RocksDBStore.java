@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.rocksdb;
@@ -76,24 +78,8 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
     private static final Logger LOG = Log.logger(RocksDBStore.class);
 
     private static final BackendFeatures FEATURES = new RocksDBFeatures();
-
-    private final String store;
-    private final String database;
-
-    private final BackendStoreProvider provider;
-    private final Map<HugeType, RocksDBTable> tables;
-    private final Map<String, RocksDBTable> olapTables;
-
-    private String dataPath;
-    private RocksDBSessions sessions;
-    private final Map<HugeType, String> tableDiskMapping;
-    // DataPath:RocksDB mapping
-    private final ConcurrentMap<String, RocksDBSessions> dbs;
-    private final ReadWriteLock storeLock;
-
     private static final String TABLE_GENERAL_KEY = "general";
     private static final String DB_OPEN = "db-open-%s";
-
     private static final long DB_OPEN_TIMEOUT = 600L; // unit s
     private static final long DB_CLOSE_TIMEOUT = 30L; // unit s
     /**
@@ -102,6 +88,17 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
      * disk number of one machine
      */
     private static final int OPEN_POOL_THREADS = 8;
+    private final String store;
+    private final String database;
+    private final BackendStoreProvider provider;
+    private final Map<HugeType, RocksDBTable> tables;
+    private final Map<String, RocksDBTable> olapTables;
+    private final Map<HugeType, String> tableDiskMapping;
+    // DataPath:RocksDB mapping
+    private final ConcurrentMap<String, RocksDBSessions> dbs;
+    private final ReadWriteLock storeLock;
+    private String dataPath;
+    private RocksDBSessions sessions;
     private boolean isGraphStore;
 
     public RocksDBStore(final BackendStoreProvider provider,
@@ -117,6 +114,34 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         this.storeLock = new ReentrantReadWriteLock();
 
         this.registerMetaHandlers();
+    }
+
+    private static boolean existsOtherKeyspace(String dataPath) {
+        Set<String> cfs;
+        try {
+            cfs = RocksDBStdSessions.listCFs(dataPath);
+        } catch (RocksDBException e) {
+            return false;
+        }
+
+        int matched = 0;
+        for (String cf : cfs) {
+            if (cf.endsWith(RocksDBTables.PropertyKey.TABLE) ||
+                cf.endsWith(RocksDBTables.VertexLabel.TABLE) ||
+                cf.endsWith(RocksDBTables.EdgeLabel.TABLE) ||
+                cf.endsWith(RocksDBTables.IndexLabel.TABLE) ||
+                cf.endsWith(RocksDBTables.SecondaryIndex.TABLE) ||
+                cf.endsWith(RocksDBTables.SearchIndex.TABLE) ||
+                cf.endsWith(RocksDBTables.RangeIntIndex.TABLE) ||
+                cf.endsWith(RocksDBTables.RangeFloatIndex.TABLE) ||
+                cf.endsWith(RocksDBTables.RangeLongIndex.TABLE) ||
+                cf.endsWith(RocksDBTables.RangeDoubleIndex.TABLE)) {
+                if (++matched >= 3) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void registerMetaHandlers() {
@@ -182,7 +207,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
     protected List<String> tableNames(HugeType type) {
         return type != HugeType.OLAP ? Collections.singletonList(this.table(type).table()) :
-                                       this.olapTables();
+               this.olapTables();
     }
 
     @Override
@@ -885,34 +910,6 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
         E.checkState(db != null && !db.closed(),
                      "RocksDB store has not been opened: %s", disk);
         return db;
-    }
-
-    private static boolean existsOtherKeyspace(String dataPath) {
-        Set<String> cfs;
-        try {
-            cfs = RocksDBStdSessions.listCFs(dataPath);
-        } catch (RocksDBException e) {
-            return false;
-        }
-
-        int matched = 0;
-        for (String cf : cfs) {
-            if (cf.endsWith(RocksDBTables.PropertyKey.TABLE) ||
-                cf.endsWith(RocksDBTables.VertexLabel.TABLE) ||
-                cf.endsWith(RocksDBTables.EdgeLabel.TABLE) ||
-                cf.endsWith(RocksDBTables.IndexLabel.TABLE) ||
-                cf.endsWith(RocksDBTables.SecondaryIndex.TABLE) ||
-                cf.endsWith(RocksDBTables.SearchIndex.TABLE) ||
-                cf.endsWith(RocksDBTables.RangeIntIndex.TABLE) ||
-                cf.endsWith(RocksDBTables.RangeFloatIndex.TABLE) ||
-                cf.endsWith(RocksDBTables.RangeLongIndex.TABLE) ||
-                cf.endsWith(RocksDBTables.RangeDoubleIndex.TABLE)) {
-                if (++matched >= 3) {
-                    return true;
-                }
-            }
-        }
-        return false;
     }
 
     /***************************** Store defines *****************************/

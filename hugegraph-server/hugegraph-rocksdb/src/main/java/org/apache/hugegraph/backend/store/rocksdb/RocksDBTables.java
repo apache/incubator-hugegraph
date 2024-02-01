@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.rocksdb;
@@ -74,6 +76,19 @@ public class RocksDBTables {
             super(database, TABLE);
         }
 
+        private static byte[] toBytes(long value) {
+            return ByteBuffer.allocate(Long.BYTES)
+                             .order(ByteOrder.nativeOrder())
+                             .putLong(value).array();
+        }
+
+        private static long toLong(byte[] bytes) {
+            assert bytes.length == Long.BYTES;
+            return ByteBuffer.wrap(bytes)
+                             .order(ByteOrder.nativeOrder())
+                             .getLong();
+        }
+
         public long getCounter(RocksDBSessions.Session session, HugeType type) {
             byte[] key = new byte[]{type.code()};
             byte[] value = session.get(this.table(), key);
@@ -88,19 +103,6 @@ public class RocksDBTables {
                                     long increment) {
             byte[] key = new byte[]{type.code()};
             session.increase(this.table(), key, toBytes(increment));
-        }
-
-        private static byte[] toBytes(long value) {
-            return ByteBuffer.allocate(Long.BYTES)
-                             .order(ByteOrder.nativeOrder())
-                             .putLong(value).array();
-        }
-
-        private static long toLong(byte[] bytes) {
-            assert bytes.length == Long.BYTES;
-            return ByteBuffer.wrap(bytes)
-                             .order(ByteOrder.nativeOrder())
-                             .getLong();
         }
     }
 

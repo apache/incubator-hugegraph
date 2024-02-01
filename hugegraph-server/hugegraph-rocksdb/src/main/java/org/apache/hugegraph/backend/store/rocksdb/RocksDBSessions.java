@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.rocksdb;
@@ -62,6 +64,11 @@ public abstract class RocksDBSessions extends BackendSessionPool {
     @Override
     public abstract Session session();
 
+    public interface Countable {
+
+        long count();
+    }
+
     /**
      * Session for RocksDB
      */
@@ -74,6 +81,10 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public static final int SCAN_GTE_BEGIN = 0x0c;
         public static final int SCAN_LT_END = 0x10;
         public static final int SCAN_LTE_END = 0x30;
+
+        public static boolean matchScanType(int expected, int actual) {
+            return (expected & actual) == expected;
+        }
 
         public abstract String dataPath();
 
@@ -114,14 +125,5 @@ public abstract class RocksDBSessions extends BackendSessionPool {
         public BackendColumnIterator scan(String table, byte[] keyFrom, byte[] keyTo) {
             return this.scan(table, keyFrom, keyTo, SCAN_LT_END);
         }
-
-        public static boolean matchScanType(int expected, int actual) {
-            return (expected & actual) == expected;
-        }
-    }
-
-    public interface Countable {
-
-        long count();
     }
 }
