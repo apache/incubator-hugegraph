@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.hbase;
@@ -29,7 +31,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Future;
-import org.apache.hugegraph.util.Log;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -68,8 +69,6 @@ import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.util.VersionInfo;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendIterator;
@@ -79,8 +78,11 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
 import org.apache.hugegraph.util.VersionUtil;
+import org.slf4j.Logger;
+
 import com.google.common.util.concurrent.Futures;
 
 public class HbaseSessions extends BackendSessionPool {
@@ -88,7 +90,7 @@ public class HbaseSessions extends BackendSessionPool {
     private static final Logger LOG = Log.logger(HbaseSessions.class);
 
     private static final String COPROCESSOR_AGGR =
-            "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
+        "org.apache.hadoop.hbase.coprocessor.AggregateImplementation";
     private static final long SCANNER_CACHING = 1000L;
 
     private final String namespace;
@@ -218,7 +220,7 @@ public class HbaseSessions extends BackendSessionPool {
 
     public void createTable(String table, List<byte[]> cfs) throws IOException {
         TableDescriptorBuilder tdb = TableDescriptorBuilder.newBuilder(
-                                     TableName.valueOf(this.namespace, table));
+            TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
             tdb.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf)
                                                              .build());
@@ -232,12 +234,12 @@ public class HbaseSessions extends BackendSessionPool {
     public void createPreSplitTable(String table, List<byte[]> cfs,
                                     short numOfPartitions) throws IOException {
         TableDescriptorBuilder builder = TableDescriptorBuilder.newBuilder(
-                TableName.valueOf(this.namespace, table));
+            TableName.valueOf(this.namespace, table));
         for (byte[] cf : cfs) {
             builder.setColumnFamily(ColumnFamilyDescriptorBuilder.newBuilder(cf).build());
         }
         byte[][] splits = new byte[numOfPartitions - 1]
-                                  [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
+            [org.apache.hadoop.hbase.util.Bytes.SIZEOF_SHORT];
         for (short split = 1; split < numOfPartitions; split++) {
             splits[split - 1] = org.apache.hadoop.hbase.util.Bytes.toBytes(split);
         }
@@ -421,7 +423,7 @@ public class HbaseSessions extends BackendSessionPool {
         default R scan(String table, byte[] startRow, boolean inclusiveStart,
                        byte[] prefix) {
             final Scan scan = new Scan();
-            if(startRow == prefix) {
+            if (startRow == prefix) {
                 scan.setRowPrefixFilter(prefix);
             } else {
                 scan.withStartRow(startRow, inclusiveStart)
@@ -461,11 +463,71 @@ public class HbaseSessions extends BackendSessionPool {
                       byte[] qualifier, long value);
     }
 
+    protected static class RowIterator implements BackendIterator<Result> {
+
+        private final ResultScanner resultScanner;
+        private final Iterator<Result> results;
+
+        private byte[] position = null;
+
+        public RowIterator(ResultScanner resultScanner) {
+            this.resultScanner = resultScanner;
+            this.results = resultScanner.iterator();
+        }
+
+        public RowIterator(Result... results) {
+            this.resultScanner = null;
+            List<Result> rs = new ArrayList<>(results.length);
+            for (Result result : results) {
+                // Get by Ids may return empty result
+                if (!result.isEmpty()) {
+                    rs.add(result);
+                }
+            }
+            this.results = rs.iterator();
+        }
+
+        @Override
+        public boolean hasNext() {
+            boolean has = this.results.hasNext();
+            if (!has) {
+                this.position = null;
+                this.close();
+            }
+            return has;
+        }
+
+        @Override
+        public Result next() {
+            // Reset position due to results.next() may throw ex
+            this.position = null;
+
+            Result next = this.results.next();
+
+            // Update position for paging
+            this.position = next.getRow();
+
+            return next;
+        }
+
+        @Override
+        public void close() {
+            if (this.resultScanner != null) {
+                this.resultScanner.close();
+            }
+        }
+
+        @Override
+        public byte[] position() {
+            return this.position;
+        }
+    }
+
     /**
      * Session implement for HBase
      */
     public class Session extends AbstractBackendSession
-                         implements HbaseSession<RowIterator> {
+        implements HbaseSession<RowIterator> {
 
         private final Map<String, List<Row>> batch;
 
@@ -491,7 +553,7 @@ public class HbaseSessions extends BackendSessionPool {
         }
 
         private void checkBatchResults(Object[] results, List<Row> rows)
-                                       throws Throwable {
+            throws Throwable {
             assert rows.size() == results.length;
             for (int i = 0; i < results.length; i++) {
                 Object result = results[i];
@@ -560,7 +622,7 @@ public class HbaseSessions extends BackendSessionPool {
                 } catch (Throwable e) {
                     // TODO: Mark and delete committed records
                     throw new BackendException("Failed to commit, " +
-                              "there may be inconsistent states for HBase", e);
+                                               "there may be inconsistent states for HBase", e);
                 }
             }
 
@@ -904,66 +966,6 @@ public class HbaseSessions extends BackendSessionPool {
         @Override
         public void close() throws IOException {
             this.aggrClient.close();
-        }
-    }
-
-    protected static class RowIterator implements BackendIterator<Result> {
-
-        private final ResultScanner resultScanner;
-        private final Iterator<Result> results;
-
-        private byte[] position = null;
-
-        public RowIterator(ResultScanner resultScanner) {
-            this.resultScanner = resultScanner;
-            this.results = resultScanner.iterator();
-        }
-
-        public RowIterator(Result... results) {
-            this.resultScanner = null;
-            List<Result> rs = new ArrayList<>(results.length);
-            for (Result result : results) {
-                // Get by Ids may return empty result
-                if (!result.isEmpty()) {
-                    rs.add(result);
-                }
-            }
-            this.results = rs.iterator();
-        }
-
-        @Override
-        public boolean hasNext() {
-            boolean has = this.results.hasNext();
-            if (!has) {
-                this.position = null;
-                this.close();
-            }
-            return has;
-        }
-
-        @Override
-        public Result next() {
-            // Reset position due to results.next() may throw ex
-            this.position = null;
-
-            Result next = this.results.next();
-
-            // Update position for paging
-            this.position = next.getRow();
-
-            return next;
-        }
-
-        @Override
-        public void close() {
-            if (this.resultScanner != null) {
-                this.resultScanner.close();
-            }
-        }
-
-        @Override
-        public byte[] position() {
-            return this.position;
         }
     }
 }

@@ -1,18 +1,20 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
  */
 
 package org.apache.hugegraph.backend.store.hbase;
@@ -37,8 +39,6 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Result;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
@@ -63,14 +63,14 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
 
 public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry> {
 
-    private static final Logger LOG = Log.logger(HbaseStore.class);
-
     protected static final byte[] CF = "f".getBytes();
-
+    private static final Logger LOG = Log.logger(HbaseStore.class);
     private final HbaseShardSplitter shardSplitter;
 
     private final boolean enablePartition;
@@ -287,7 +287,7 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
 
     protected void parseRowColumns(Result row, BackendEntry entry, Query query,
                                    boolean enablePartition)
-                                   throws IOException {
+        throws IOException {
         CellScanner cellScanner = row.cellScanner();
         while (cellScanner.advance()) {
             Cell cell = cellScanner.current();
@@ -300,6 +300,54 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
 
         public HbaseShardSplitter(String table) {
             super(table);
+        }
+
+        private static Map<String, Double> regionSizes(HbaseSessions.Session session,
+                                                       String namespace,
+                                                       String table) {
+            Map<String, Double> regionSizes = new HashMap<>();
+            try (Admin admin = session.hbase().getAdmin()) {
+                TableName tableName = TableName.valueOf(namespace, table);
+                for (ServerName serverName : admin.getRegionServers()) {
+                    List<RegionMetrics> metrics = admin.getRegionMetrics(
+                        serverName, tableName);
+                    for (RegionMetrics metric : metrics) {
+                        double size = metric.getStoreFileSize()
+                                            .get(Size.Unit.BYTE);
+                        size += metric.getMemStoreSize().get(Size.Unit.BYTE);
+                        regionSizes.put(metric.getNameAsString(), size);
+                    }
+                }
+            } catch (Throwable e) {
+                throw new BackendException(String.format(
+                    "Failed to get region sizes of %s(%s)",
+                    table, namespace), e);
+            }
+            return regionSizes;
+        }
+
+        private static Map<String, Range> regionRanges(HbaseSessions.Session session,
+                                                       String namespace,
+                                                       String table) {
+            Map<String, Range> regionRanges = InsertionOrderUtil.newMap();
+            TableName tableName = TableName.valueOf(namespace, table);
+            try (Admin admin = session.hbase().getAdmin()) {
+                for (RegionInfo regionInfo : admin.getRegions(tableName)) {
+                    byte[] start = regionInfo.getStartKey();
+                    byte[] end = regionInfo.getEndKey();
+                    regionRanges.put(regionInfo.getRegionNameAsString(),
+                                     new Range(start, end));
+                }
+            } catch (Throwable e) {
+                throw new BackendException(String.format(
+                    "Failed to get region ranges of %s(%s)",
+                    table, namespace), e);
+            }
+            return regionRanges;
+        }
+
+        private static int calcSplitCount(double totalSize, long splitSize) {
+            return (int) Math.ceil(totalSize / splitSize);
         }
 
         @Override
@@ -326,54 +374,6 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
                 shards.addAll(range.splitEven(count));
             }
             return shards;
-        }
-
-        private static Map<String, Double> regionSizes(HbaseSessions.Session session,
-                                                       String namespace,
-                                                       String table) {
-            Map<String, Double> regionSizes = new HashMap<>();
-            try (Admin admin = session.hbase().getAdmin()) {
-                TableName tableName = TableName.valueOf(namespace, table);
-                for (ServerName serverName : admin.getRegionServers()) {
-                    List<RegionMetrics> metrics = admin.getRegionMetrics(
-                                                  serverName, tableName);
-                    for (RegionMetrics metric : metrics) {
-                        double size = metric.getStoreFileSize()
-                                            .get(Size.Unit.BYTE);
-                        size += metric.getMemStoreSize().get(Size.Unit.BYTE);
-                        regionSizes.put(metric.getNameAsString(), size);
-                    }
-                }
-            } catch (Throwable e) {
-                throw new BackendException(String.format(
-                          "Failed to get region sizes of %s(%s)",
-                          table, namespace), e);
-            }
-            return regionSizes;
-        }
-
-        private static Map<String, Range> regionRanges(HbaseSessions.Session session,
-                                                       String namespace,
-                                                       String table) {
-            Map<String, Range> regionRanges = InsertionOrderUtil.newMap();
-            TableName tableName = TableName.valueOf(namespace, table);
-            try (Admin admin = session.hbase().getAdmin()) {
-                for (RegionInfo regionInfo : admin.getRegions(tableName)) {
-                    byte[] start = regionInfo.getStartKey();
-                    byte[] end = regionInfo.getEndKey();
-                    regionRanges.put(regionInfo.getRegionNameAsString(),
-                                     new Range(start, end));
-                }
-            } catch (Throwable e) {
-                throw new BackendException(String.format(
-                          "Failed to get region ranges of %s(%s)",
-                          table, namespace), e);
-            }
-            return regionRanges;
-        }
-
-        private static int calcSplitCount(double totalSize, long splitSize) {
-            return (int) Math.ceil(totalSize / splitSize);
         }
 
         @Override
