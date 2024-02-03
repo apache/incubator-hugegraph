@@ -44,7 +44,7 @@ public class PdDistributedLock {
     public LockResult lock(String key, long second) {
         long ttl = second * 1000L;
         try {
-            LockResponse response = this.client.lock(key, ttl);
+            LockResponse response = this.client.lockWithoutReentrant(key, ttl);
             boolean succeed = response.getSucceed();
             LockResult result = new LockResult();
             if (succeed) {
@@ -56,7 +56,7 @@ public class PdDistributedLock {
                     synchronized (result) {
                         keepAlive(key);
                     }
-                }, 10, period, TimeUnit.MILLISECONDS);
+                }, period, period, TimeUnit.MILLISECONDS);
                 result.setFuture(future);
             }
             return result;

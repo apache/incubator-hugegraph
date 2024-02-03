@@ -297,6 +297,14 @@ public class CoreOptions extends OptionHolder {
                     0
             );
 
+    public static final ConfigOption<Long> TASK_SCHEDULE_PERIOD =
+        new ConfigOption<>(
+            "task.schedule_period",
+            "Period time when scheduler to schedule task",
+            rangeInt(0L, Long.MAX_VALUE),
+            10L
+        );
+
     public static final ConfigOption<Long> TASK_WAIT_TIMEOUT =
             new ConfigOption<>(
                     "task.wait_timeout",
