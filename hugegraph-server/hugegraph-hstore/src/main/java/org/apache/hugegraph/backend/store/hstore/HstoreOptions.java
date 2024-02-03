@@ -24,24 +24,6 @@ import org.apache.hugegraph.config.OptionHolder;
 
 public class HstoreOptions extends OptionHolder {
 
-    public static final ConfigOption<String> PD_PEERS = new ConfigOption<>(
-            "pd.peers",
-            "The addresses of pd nodes, separated with commas.",
-            disallowEmpty(),
-            "localhost:8686"
-    );
-    public static final ConfigOption<Boolean> PD_FAKE = new ConfigOption<>(
-            "pd.fake",
-            "Enable the fake PD service.",
-            disallowEmpty(),
-            false
-    );
-    public static final ConfigOption<String> HSTORE_PEERS = new ConfigOption<>(
-            "hstore.peers",
-            "The addresses of store nodes, separated with commas.",
-            disallowEmpty(),
-            "localhost:9080"
-    );
     public static final ConfigOption<Integer> PARTITION_COUNT = new ConfigOption<>(
             "hstore.partition_count",
             "Number of partitions, which PD controls partitions based on.",
