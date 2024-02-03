@@ -318,6 +318,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
             if (gotNext) {
                 this.position = this.iter.position();
             } else {
+                // QUESTION: Resetting the position may result in the caller being unable to
+                //           retrieve the corresponding position.
                 // this.position = null;
             }
             return gotNext;
