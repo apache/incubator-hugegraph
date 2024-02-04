@@ -129,8 +129,9 @@
             <appender-ref ref="file"/>
         </logger>
         <!-- Use mixed async way to output logs -->
-        <AsyncLogger name="org.apache.hugegraph" level="INFO" additivity="false">
+        <logger name="org.apache.hugegraph" level="INFO" additivity="false">
             <appender-ref ref="file"/>
-        </AsyncLogger>
+            <appender-ref ref="console"/>
+        </logger>
     </loggers>
 </configuration>
