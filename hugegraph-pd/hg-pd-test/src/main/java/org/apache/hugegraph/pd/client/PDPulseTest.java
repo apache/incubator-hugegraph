@@ -24,6 +24,7 @@ import org.apache.hugegraph.pd.client.test.HgPDTestUtil;
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class PDPulseTest {
     private static PDClient pdClient;
@@ -40,7 +41,7 @@ public class PDPulseTest {
         pdClient.getLeader();
     }
 
-    // @Test
+    @Test
     public void listen() {
 
         PDPulse pulse = new PDPulseImpl(pdClient.getLeaderIp());

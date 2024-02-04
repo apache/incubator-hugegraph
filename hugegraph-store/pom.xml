@@ -153,7 +153,7 @@
                                 <include>*.tar.gz</include>
                                 <include>.flattened-pom.xml</include>
                                 <!-- WARN: delete dist dir may influence dev? -->
-                                <!-- <include>dist/**</include>-->
+                                <include>dist/**</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>

@@ -674,4 +674,11 @@ public class CoreOptions extends OptionHolder {
                     CollectionType::valueOf,
                     "EC"
             );
+
+    public static final ConfigOption<String> PD_PEERS = new ConfigOption<>(
+        "pd.peers",
+        "The addresses of pd nodes, separated with commas.",
+        disallowEmpty(),
+        "127.0.0.1:8686"
+    );
 }
