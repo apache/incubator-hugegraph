@@ -15,6 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+# Returns the absolute path of this script regardless of symlinks
 abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [ -h "$SOURCE" ]; do
@@ -25,7 +27,7 @@ abs_path() {
     echo "$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 }
 
-cd "`abs_path`"/..
+cd "$(abs_path)"/.. || exit
 
 if [ -n "$JAVA_HOME" ]; then
     JAVA="$JAVA_HOME"/bin/java

@@ -16,6 +16,8 @@
 # limitations under the License.
 #
 
+# This script is used to install hugegraph as a system service
+# Usage: install.sh port
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [ -h "$SOURCE" ]; do
@@ -27,7 +29,7 @@ function abs_path() {
 }
 
 # Variables
-BIN=`abs_path`
+BIN=$(abs_path)
 TOP="$(cd $BIN/../ && pwd)"
 
 # Command "service" related
