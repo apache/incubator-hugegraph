@@ -24,7 +24,7 @@ jobs:
           token: ${{ github.token }}
           config: .licenserc.yaml
 
-      - name: License check(RAT)
+      - name: License check (RAT)
         run: |
           mvn apache-rat:check -ntp
           find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt
