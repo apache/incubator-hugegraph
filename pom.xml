@@ -179,6 +179,7 @@
                             <exclude>**/rocksdb-*/**</exclude>
                             <exclude>**/hbase-*/**</exclude>
                             <exclude>**/apache-cassandra-*/**</exclude>
+                            <exclude>**/pid</exclude>
                         </excludes>
                         <consoleOutput>true</consoleOutput>
                     </configuration>
