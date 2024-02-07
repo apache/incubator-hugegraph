@@ -21,6 +21,7 @@ import java.util.Random;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
@@ -90,6 +91,7 @@ public class BaseCoreTest {
     public void setup() {
         this.clearData();
         this.clearSchema();
+        this.clearCache();
     }
 
     @After
@@ -144,6 +146,11 @@ public class BaseCoreTest {
         schema.getPropertyKeys().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();
         });
+    }
+
+    private void clearCache() {
+        CacheManager cacheManager = CacheManager.instance();
+        cacheManager.clearCache();
     }
 
     protected void mayCommitTx() {

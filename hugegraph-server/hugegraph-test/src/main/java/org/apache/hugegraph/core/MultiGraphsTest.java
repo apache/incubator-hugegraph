@@ -92,11 +92,11 @@ public class MultiGraphsTest extends BaseCoreTest {
 
         SchemaManager schema = g1.schema();
 
-        schema.propertyKey("id").asInt().create();
-        schema.propertyKey("name").asText().create();
-        schema.propertyKey("age").asInt().valueSingle().create();
-        schema.propertyKey("city").asText().create();
-        schema.propertyKey("weight").asDouble().valueList().create();
+        schema.propertyKey("id").asInt().checkExist(false).create();
+        schema.propertyKey("name").asText().checkExist(false).create();
+        schema.propertyKey("age").asInt().valueSingle().checkExist(false).create();
+        schema.propertyKey("city").asText().checkExist(false).create();
+        schema.propertyKey("weight").asDouble().valueList().checkExist(false).create();
         schema.propertyKey("born").asDate().ifNotExist().create();
         schema.propertyKey("time").asDate().ifNotExist().create();
 

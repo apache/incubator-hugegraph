@@ -151,4 +151,8 @@ public class CacheManager {
                         "Invalid cache implement: %s", cache.getClass());
         return cache;
     }
+
+    public void clearCache() {
+        this.caches.clear();
+    }
 }

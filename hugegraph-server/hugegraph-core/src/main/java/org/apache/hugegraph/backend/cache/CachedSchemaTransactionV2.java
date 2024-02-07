@@ -85,8 +85,6 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     }
 
     private Cache<Id, Object> cache(String prefix, long capacity) {
-        // TODO: uncomment later - graph space
-        //final String name = prefix + "-" + this.graph().spaceGraphName();
         final String name = prefix + "-" + this.graphName();
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
