@@ -163,6 +163,7 @@
                             <exclude>CONFIG.ini</exclude>
                             <exclude>GROUPS</exclude>
                             <exclude>OWNERS</exclude>
+                            <exclude>**/hugegraph-test/rocksdb-*</exclude>
                             <!-- Git & GitHub  -->
                             <exclude>.github/**/*</exclude>
                             <exclude>.gitignore</exclude>
