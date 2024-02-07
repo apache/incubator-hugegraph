@@ -19,12 +19,17 @@ package org.apache.hugegraph.backend.store.rocksdb;
 
 import java.io.File;
 
+import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.AbstractBackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.ConfigUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
+
+    private static final Logger LOG = Log.logger(RocksDBStoreProvider.class);
 
     protected String database() {
         return this.graph().toLowerCase();
@@ -66,6 +71,29 @@ public class RocksDBStoreProvider extends AbstractBackendStoreProvider {
     @Override
     protected BackendStore newSystemStore(HugeConfig config, String store) {
         return new RocksDBStore.RocksDBSystemStore(this, this.database(), store);
+    }
+
+    @Override
+    public void close() throws BackendException {
+        super.close();
+        if (this.stores == null) {
+            return;
+        }
+        this.stores.values().forEach(store -> {
+            try {
+                if (!store.opened()) {
+                    return;
+                }
+            } catch (Throwable ignore) {
+                return;
+            }
+            try {
+                ((RocksDBStore) store).forceClose();
+            } catch (Exception e) {
+                LOG.error("Failed to close store '%s'", store.store(), e);
+                throw new BackendException("Failed to close store '%s'", store.store(), e);
+            }
+        });
     }
 
     @Override

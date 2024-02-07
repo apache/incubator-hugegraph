@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph;
 
+import com.google.common.base.Strings;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -1329,6 +1330,11 @@ public class StandardHugeGraph implements HugeGraph {
             this.refs = new AtomicInteger();
             this.opened = ThreadLocal.withInitial(() -> false);
             this.transactions = ThreadLocal.withInitial(() -> null);
+        }
+
+        public String txThreadKey() {
+            Thread thread = Thread.currentThread();
+            return Strings.isNullOrEmpty(thread.getName()) ? thread.getName() : thread.getId() + "";
         }
 
         public boolean closed() {

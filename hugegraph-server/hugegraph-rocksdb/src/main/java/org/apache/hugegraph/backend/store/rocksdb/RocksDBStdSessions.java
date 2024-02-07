@@ -330,6 +330,13 @@ public class RocksDBStdSessions extends RocksDBSessions {
         this.rocksdb.close();
     }
 
+    public synchronized void forceClose() {
+        if (!this.rocksdb.isOwningHandle()) {
+            return;
+        }
+        this.rocksdb.close();
+    }
+
     private void checkValid() {
         E.checkState(this.rocksdb.isOwningHandle(), "It seems RocksDB has been closed");
     }

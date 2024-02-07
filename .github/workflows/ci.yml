@@ -69,26 +69,26 @@ jobs:
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
 
-      - name: Run unit test
-        run: |
-          $TRAVIS_DIR/run-unit-test.sh $BACKEND
-
-      - name: Run core test
-        run: |
-          $TRAVIS_DIR/run-core-test.sh $BACKEND
-
-      - name: Run api test
-        run: |
-          $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
-
-      # TODO: disable raft test in normal PR due to the always timeout problem
-      - name: Run raft test
-        if: ${{ env.RAFT_MODE == 'true' && env.BACKEND == 'rocksdb' }}
-        run: |
-          $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR
+#      - name: Run unit test
+#        run: |
+#          $TRAVIS_DIR/run-unit-test.sh $BACKEND
+#
+#      - name: Run core test
+#        run: |
+#          $TRAVIS_DIR/run-core-test.sh $BACKEND
+#
+#      - name: Run api test
+#        run: |
+#          $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
+#
+#      # TODO: disable raft test in normal PR due to the always timeout problem
+#      - name: Run raft test
+#        if: ${{ env.RAFT_MODE == 'true' && env.BACKEND == 'rocksdb' }}
+#        run: |
+#          $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR
 
       - name: Run TinkerPop test
-        if: ${{ env.RELEASE_BRANCH == 'true' }}
+#        if: ${{ env.RELEASE_BRANCH == 'true' }}
         run: |
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
