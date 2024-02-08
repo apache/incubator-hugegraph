@@ -33,7 +33,7 @@ public class StandardRoleListener implements RoleListener {
 
     private volatile boolean selfIsMaster;
 
-    public StandardRoleListener(TaskManager taskManager, 
+    public StandardRoleListener(TaskManager taskManager,
                                 GlobalMasterInfo roleInfo) {
         this.taskManager = taskManager;
         this.taskManager.enableRoleElection();

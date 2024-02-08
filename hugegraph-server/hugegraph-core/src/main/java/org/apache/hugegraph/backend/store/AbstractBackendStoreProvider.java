@@ -21,11 +21,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import org.apache.hugegraph.backend.store.raft.StoreSnapshotFile;
-import org.slf4j.Logger;
-
-import com.alipay.remoting.rpc.RpcServer;
 import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.backend.store.raft.StoreSnapshotFile;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
@@ -33,9 +30,12 @@ import org.apache.hugegraph.event.EventListener;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.alipay.remoting.rpc.RpcServer;
 
 public abstract class AbstractBackendStoreProvider
-                implements BackendStoreProvider {
+        implements BackendStoreProvider {
 
     private static final Logger LOG = Log.logger(AbstractBackendStoreProvider.class);
 

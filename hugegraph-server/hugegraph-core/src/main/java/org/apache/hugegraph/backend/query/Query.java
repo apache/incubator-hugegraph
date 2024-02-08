@@ -402,8 +402,8 @@ public class Query implements Cloneable {
                 query = query.substring(0, MAX_CHARS) + "...";
             }
             throw new LimitExceedException(
-                      "Too many records(must <= %s) for the query: %s",
-                      this.capacity, query);
+                    "Too many records(must <= %s) for the query: %s",
+                    this.capacity, query);
         }
     }
 
@@ -575,8 +575,8 @@ public class Query implements Cloneable {
     public static void checkForceCapacity(long count) throws LimitExceedException {
         if (count > Query.DEFAULT_CAPACITY) {
             throw new LimitExceedException(
-                      "Too many records(must <= %s) for one query",
-                      Query.DEFAULT_CAPACITY);
+                    "Too many records(must <= %s) for one query",
+                    Query.DEFAULT_CAPACITY);
         }
     }
 

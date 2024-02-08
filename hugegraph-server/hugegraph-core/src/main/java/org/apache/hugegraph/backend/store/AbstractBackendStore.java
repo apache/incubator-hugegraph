@@ -21,7 +21,7 @@ import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.type.HugeType;
 
 public abstract class AbstractBackendStore<Session extends BackendSession>
-                implements BackendStore {
+        implements BackendStore {
 
     // TODO: move SystemSchemaStore into backend like MetaStore
     private final SystemSchemaStore systemSchemaStore;
@@ -43,7 +43,7 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
     @Override
     public String storedVersion() {
         throw new UnsupportedOperationException(
-                  "AbstractBackendStore.storedVersion()");
+                "AbstractBackendStore.storedVersion()");
     }
 
     @Override
@@ -68,8 +68,8 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
     protected void checkOpened() throws ConnectionException {
         if (!this.opened()) {
             throw new ConnectionException(
-                      "The '%s' store of %s has not been opened",
-                      this.database(), this.provider().type());
+                    "The '%s' store of %s has not been opened",
+                    this.database(), this.provider().type());
         }
     }
 

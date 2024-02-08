@@ -24,6 +24,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.util.LZ4Util;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Node;
@@ -37,9 +40,6 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.BytesUtil;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.util.LZ4Util;
-import org.apache.hugegraph.util.Log;
 
 public final class RaftNode {
 
@@ -69,11 +69,11 @@ public final class RaftNode {
         this.busyCounter = new AtomicInteger();
     }
 
-    protected RaftContext context() {
+    private RaftContext context() {
         return this.context;
     }
 
-    protected Node node() {
+    Node node() {
         assert this.node != null;
         return this.node;
     }
@@ -105,7 +105,7 @@ public final class RaftNode {
                 this.raftGroupService.join();
             } catch (final InterruptedException e) {
                 throw new RaftException(
-                          "Interrupted while shutdown raftGroupService");
+                        "Interrupted while shutdown raftGroupService");
             }
         }
     }
@@ -147,7 +147,7 @@ public final class RaftNode {
     private void submitCommand(StoreCommand command, RaftStoreClosure future) {
         // Wait leader elected
         LeaderInfo leaderInfo = this.waitLeaderElected(
-                                RaftContext.WAIT_LEADER_TIMEOUT);
+                RaftContext.WAIT_LEADER_TIMEOUT);
         // If myself is not leader, forward to the leader
         if (!leaderInfo.selfIsLeader) {
             this.context.rpcForwarder().forwardToLeader(leaderInfo.leaderId,
@@ -171,7 +171,7 @@ public final class RaftNode {
         this.node.apply(task);
     }
 
-    protected LeaderInfo waitLeaderElected(int timeout) {
+    LeaderInfo waitLeaderElected(int timeout) {
         String group = this.context.group();
         LeaderInfo leaderInfo = this.leaderInfo.get();
         if (leaderInfo.leaderId != null) {
@@ -189,8 +189,8 @@ public final class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '%s' election timeout(%sms)",
-                          group, consumedTime);
+                        "Waiting for raft group '%s' election timeout(%sms)",
+                        group, consumedTime);
             }
             leaderInfo = this.leaderInfo.get();
             assert leaderInfo != null;
@@ -199,7 +199,7 @@ public final class RaftNode {
         return leaderInfo;
     }
 
-    protected void waitRaftLogSynced(int timeout) {
+    void waitRaftLogSynced(int timeout) {
         String group = this.context.group();
         LOG.info("Waiting for raft group '{}' log synced", group);
         long beginTime = System.currentTimeMillis();
@@ -219,8 +219,8 @@ public final class RaftNode {
             long consumedTime = System.currentTimeMillis() - beginTime;
             if (timeout > 0 && consumedTime >= timeout) {
                 throw new BackendException(
-                          "Waiting for raft group '%s' log synced timeout(%sms)",
-                          group, consumedTime);
+                        "Waiting for raft group '%s' log synced timeout(%sms)",
+                        group, consumedTime);
             }
         }
         LOG.info("Waited for raft group '{}' log synced successfully", group);

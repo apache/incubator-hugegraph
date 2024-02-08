@@ -22,12 +22,12 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeEdgeProperty;
 import org.apache.hugegraph.structure.HugeIndex;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.type.HugeType;
 
 public interface GraphSerializer {
 

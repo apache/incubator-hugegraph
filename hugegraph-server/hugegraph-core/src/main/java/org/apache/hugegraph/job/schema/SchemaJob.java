@@ -26,10 +26,9 @@ import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.job.SysJob;
 import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.type.HugeType;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class SchemaJob extends SysJob<Object> {
 
@@ -82,21 +81,22 @@ public abstract class SchemaJob extends SysJob<Object> {
     /**
      * Use reflection to call SchemaTransaction.removeSchema(),
      * which is protected
-     * @param tx        The remove operation actual executer
-     * @param schema    the schema to be removed
+     *
+     * @param tx     The remove operation actual executer
+     * @param schema the schema to be removed
      */
     protected static void removeSchema(SchemaTransaction tx,
                                        SchemaElement schema) {
         try {
             Method method = SchemaTransaction.class
-                            .getDeclaredMethod("removeSchema",
-                                               SchemaElement.class);
+                    .getDeclaredMethod("removeSchema",
+                                       SchemaElement.class);
             method.setAccessible(true);
             method.invoke(tx, schema);
         } catch (NoSuchMethodException | IllegalAccessException |
                  InvocationTargetException e) {
             throw new AssertionError(
-                      "Can't call SchemaTransaction.removeSchema()", e);
+                    "Can't call SchemaTransaction.removeSchema()", e);
         }
 
     }
@@ -104,21 +104,22 @@ public abstract class SchemaJob extends SysJob<Object> {
     /**
      * Use reflection to call SchemaTransaction.updateSchema(),
      * which is protected
-     * @param tx        The update operation actual execute
-     * @param schema    the schema to be updated
+     *
+     * @param tx     The update operation actual execute
+     * @param schema the schema to be updated
      */
     protected static void updateSchema(SchemaTransaction tx,
                                        SchemaElement schema) {
         try {
             Method method = SchemaTransaction.class
-                            .getDeclaredMethod("updateSchema",
-                                               SchemaElement.class);
+                    .getDeclaredMethod("updateSchema",
+                                       SchemaElement.class);
             method.setAccessible(true);
             method.invoke(tx, schema);
         } catch (NoSuchMethodException | IllegalAccessException |
                  InvocationTargetException e) {
             throw new AssertionError(
-                      "Can't call SchemaTransaction.updateSchema()", e);
+                    "Can't call SchemaTransaction.updateSchema()", e);
         }
     }
 }

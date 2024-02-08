@@ -22,8 +22,8 @@ import java.util.Map;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.job.computer.Computer;
 import org.apache.hugegraph.job.computer.ComputerPool;
-import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.JsonUtil;
 
 public class ComputerJob extends SysJob<Object> {
 

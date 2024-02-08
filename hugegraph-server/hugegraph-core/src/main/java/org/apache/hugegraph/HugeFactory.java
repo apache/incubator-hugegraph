@@ -145,7 +145,8 @@ public class HugeFactory {
 
     /**
      * Stop all the daemon threads
-     * @param timeout wait in seconds
+     *
+     * @param timeout         wait in seconds
      * @param ignoreException don't throw exception if true
      */
     public static void shutdown(long timeout, boolean ignoreException) {

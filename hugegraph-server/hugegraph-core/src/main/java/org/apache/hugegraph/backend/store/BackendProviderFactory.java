@@ -20,8 +20,6 @@ package org.apache.hugegraph.backend.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
@@ -29,6 +27,7 @@ import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class BackendProviderFactory {
 
@@ -83,7 +82,7 @@ public class BackendProviderFactory {
         return instance;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static void register(String name, String classPath) {
         ClassLoader classLoader = BackendProviderFactory.class.getClassLoader();
         Class<?> clazz = null;
@@ -96,7 +95,7 @@ public class BackendProviderFactory {
         // Check subclass
         boolean subclass = BackendStoreProvider.class.isAssignableFrom(clazz);
         BackendException.check(subclass, "Class '%s' is not a subclass of " +
-                               "class BackendStoreProvider", classPath);
+                                         "class BackendStoreProvider", classPath);
 
         // Check exists
         BackendException.check(!providers.containsKey(name),

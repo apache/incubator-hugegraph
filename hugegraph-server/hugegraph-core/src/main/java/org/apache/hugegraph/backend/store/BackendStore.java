@@ -106,7 +106,7 @@ public interface BackendStore {
         }
 
         E.checkState(counter != 0L, "Please check whether '%s' is OK",
-                      this.provider().type());
+                     this.provider().type());
 
         E.checkState(counter == expect, "'%s' is busy please try again",
                      this.provider().type());
@@ -175,6 +175,11 @@ public interface BackendStore {
     }
 
     enum TxState {
-        BEGIN, COMMITTING, COMMITT_FAIL, ROLLBACKING, ROLLBACK_FAIL, CLEAN
+        BEGIN,
+        COMMITTING,
+        COMMITT_FAIL,
+        ROLLBACKING,
+        ROLLBACK_FAIL,
+        CLEAN
     }
 }

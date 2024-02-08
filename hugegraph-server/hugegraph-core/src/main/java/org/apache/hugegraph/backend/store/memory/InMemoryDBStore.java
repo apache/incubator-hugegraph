@@ -27,10 +27,6 @@ import org.apache.hugegraph.backend.LocalCounter;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.TextBackendEntry;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.Action;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.store.AbstractBackendStore;
 import org.apache.hugegraph.backend.store.BackendAction;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -39,7 +35,9 @@ import org.apache.hugegraph.backend.store.BackendMutation;
 import org.apache.hugegraph.backend.store.BackendSession;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 /**
  * NOTE:
@@ -55,7 +53,7 @@ import org.apache.hugegraph.util.Log;
  * 2.append/subtract edge-property
  */
 public abstract class InMemoryDBStore
-                extends AbstractBackendStore<BackendSession> {
+        extends AbstractBackendStore<BackendSession> {
 
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
@@ -127,7 +125,7 @@ public abstract class InMemoryDBStore
 
     @Override
     public void mutate(BackendMutation mutation) {
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
             this.mutate(it.next());
         }
     }
@@ -231,7 +229,7 @@ public abstract class InMemoryDBStore
     @Override
     public void rollbackTx() {
         throw new UnsupportedOperationException(
-                  "Unsupported rollback operation by InMemoryDBStore");
+                "Unsupported rollback operation by InMemoryDBStore");
     }
 
     @Override
@@ -342,19 +340,19 @@ public abstract class InMemoryDBStore
         @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.nextId()");
+                    "InMemoryGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.increaseCounter()");
+                    "InMemoryGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.getCounter()");
+                    "InMemoryGraphStore.getCounter()");
         }
     }
 

@@ -104,10 +104,10 @@ public class ParallelCompressStrategy implements CompressStrategy {
         FileUtils.forceMkdir(zipFile.getParentFile());
 
         ExecutorService compressExecutor =
-            newFixedPool(compressThreads, compressThreads, "raft-snapshot-compress-executor",
-                         new ThreadPoolExecutor.CallerRunsPolicy());
+                newFixedPool(compressThreads, compressThreads, "raft-snapshot-compress-executor",
+                             new ThreadPoolExecutor.CallerRunsPolicy());
         ZipArchiveScatterOutputStream scatterOutput =
-            new ZipArchiveScatterOutputStream(compressExecutor);
+                new ZipArchiveScatterOutputStream(compressExecutor);
         compressDirectoryToZipFile(rootFile, scatterOutput, sourceDir, ZipEntry.DEFLATED);
 
         try (FileOutputStream fos = new FileOutputStream(zipFile);
@@ -127,9 +127,9 @@ public class ParallelCompressStrategy implements CompressStrategy {
                               Checksum checksum) throws Throwable {
         LOG.info("Start to decompress snapshot in parallel mode");
         ExecutorService decompressExecutor =
-            newFixedPool(decompressThreads, decompressThreads,
-                         "raft-snapshot-decompress-executor",
-                         new ThreadPoolExecutor.CallerRunsPolicy());
+                newFixedPool(decompressThreads, decompressThreads,
+                             "raft-snapshot-decompress-executor",
+                             new ThreadPoolExecutor.CallerRunsPolicy());
         // compute the checksum in a single thread
         Future<Boolean> checksumFuture = decompressExecutor.submit(() -> {
             computeZipFileChecksumValue(sourceZipFile, checksum);
@@ -209,7 +209,7 @@ public class ParallelCompressStrategy implements CompressStrategy {
         try (InputStream is = zipFile.getInputStream(entry);
              BufferedInputStream fis = new BufferedInputStream(is);
              BufferedOutputStream bos =
-                 new BufferedOutputStream(Files.newOutputStream(targetFile.toPath()))) {
+                     new BufferedOutputStream(Files.newOutputStream(targetFile.toPath()))) {
             IOUtils.copy(fis, bos);
         }
     }
@@ -219,7 +219,7 @@ public class ParallelCompressStrategy implements CompressStrategy {
      */
     private void computeZipFileChecksumValue(String zipPath, Checksum checksum) throws Exception {
         try (BufferedInputStream bis =
-                 new BufferedInputStream(Files.newInputStream(Paths.get(zipPath)));
+                     new BufferedInputStream(Files.newInputStream(Paths.get(zipPath)));
              CheckedInputStream cis = new CheckedInputStream(bis, checksum);
              ZipArchiveInputStream zis = new ZipArchiveInputStream(cis)) {
             // checksum is calculated in the process

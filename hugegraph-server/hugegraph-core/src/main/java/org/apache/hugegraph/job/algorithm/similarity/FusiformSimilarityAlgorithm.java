@@ -20,8 +20,6 @@ package org.apache.hugegraph.job.algorithm.similarity;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.job.algorithm.AbstractAlgorithm;
@@ -32,6 +30,7 @@ import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.ParameterUtil;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
@@ -164,7 +163,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
             HugeGraph graph = this.graph();
 
             FusiformSimilarityTraverser traverser =
-                                        new FusiformSimilarityTraverser(graph);
+                    new FusiformSimilarityTraverser(graph);
 
             AtomicLong count = new AtomicLong(0L);
             JsonMap similarsJson = new JsonMap();
@@ -172,11 +171,11 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
             this.traverse(sourceLabel, sourceCLabel, v -> {
                 SimilarsMap similars = traverser.fusiformSimilarity(
-                                       IteratorUtils.of(v), direction,
-                                       label, minNeighbors, alpha,
-                                       minSimilars, (int) topSimilars,
-                                       groupProperty, minGroups, degree,
-                                       MAX_CAPACITY, NO_LIMIT, true);
+                        IteratorUtils.of(v), direction,
+                        label, minNeighbors, alpha,
+                        minSimilars, (int) topSimilars,
+                        groupProperty, minGroups, degree,
+                        MAX_CAPACITY, NO_LIMIT, true);
                 if (similars.isEmpty()) {
                     return;
                 }

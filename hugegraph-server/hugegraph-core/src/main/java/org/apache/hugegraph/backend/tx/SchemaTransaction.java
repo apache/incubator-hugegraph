@@ -23,21 +23,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.store.SystemSchemaStore;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.LocalCounter;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.backend.store.SystemSchemaStore;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.job.JobBuilder;
@@ -66,6 +63,9 @@ import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.LockUtil;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+
 import com.google.common.collect.ImmutableSet;
 
 public class SchemaTransaction extends IndexableTransaction {
@@ -160,9 +160,9 @@ public class SchemaTransaction extends IndexableTransaction {
         for (VertexLabel vertexLabel : vertexLabels) {
             if (vertexLabel.properties().contains(id)) {
                 throw new NotAllowException(
-                          "Not allowed to remove property key: '%s' " +
-                          "because the vertex label '%s' is still using it.",
-                          propertyKey, vertexLabel.name());
+                        "Not allowed to remove property key: '%s' " +
+                        "because the vertex label '%s' is still using it.",
+                        propertyKey, vertexLabel.name());
             }
         }
 
@@ -170,9 +170,9 @@ public class SchemaTransaction extends IndexableTransaction {
         for (EdgeLabel edgeLabel : edgeLabels) {
             if (edgeLabel.properties().contains(id)) {
                 throw new NotAllowException(
-                          "Not allowed to remove property key: '%s' " +
-                          "because the edge label '%s' is still using it.",
-                          propertyKey, edgeLabel.name());
+                        "Not allowed to remove property key: '%s' " +
+                        "because the edge label '%s' is still using it.",
+                        propertyKey, edgeLabel.name());
             }
         }
 
@@ -469,10 +469,11 @@ public class SchemaTransaction extends IndexableTransaction {
 
     /**
      * Currently doesn't allow to exist schema with the same name
+     *
      * @param type the query schema type
      * @param name the query schema name
      * @param <T>  SubClass of SchemaElement
-     * @return     the queried schema object
+     * @return the queried schema object
      */
     protected <T extends SchemaElement> T getSchema(HugeType type,
                                                     String name) {
@@ -558,7 +559,7 @@ public class SchemaTransaction extends IndexableTransaction {
                 return this.serializer.writeIndexLabel((IndexLabel) schema);
             default:
                 throw new AssertionError(String.format(
-                          "Unknown schema type '%s'", schema.type()));
+                        "Unknown schema type '%s'", schema.type()));
         }
     }
 
@@ -575,7 +576,7 @@ public class SchemaTransaction extends IndexableTransaction {
                 return (T) this.serializer.readIndexLabel(this.graph(), entry);
             default:
                 throw new AssertionError(String.format(
-                          "Unknown schema type '%s'", type));
+                        "Unknown schema type '%s'", type));
         }
     }
 
@@ -619,7 +620,7 @@ public class SchemaTransaction extends IndexableTransaction {
                 return;
             }
             throw new IllegalStateException(String.format(
-                      "Invalid system id '%s'", id));
+                    "Invalid system id '%s'", id));
         }
         E.checkState(id.number() && id.asLong() > 0L,
                      "Schema id must be number and >0, but got '%s'", id);

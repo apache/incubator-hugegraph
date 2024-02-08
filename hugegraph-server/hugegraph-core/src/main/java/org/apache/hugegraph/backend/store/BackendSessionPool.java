@@ -23,11 +23,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class BackendSessionPool {
 
@@ -47,7 +46,7 @@ public abstract class BackendSessionPool {
         this.sessionCount = new AtomicInteger(0);
         this.sessions = new ConcurrentHashMap<>();
         this.reconnectDetectInterval = this.config.get(
-                                       CoreOptions.STORE_CONN_DETECT_INTERVAL);
+                CoreOptions.STORE_CONN_DETECT_INTERVAL);
     }
 
     public HugeConfig config() {

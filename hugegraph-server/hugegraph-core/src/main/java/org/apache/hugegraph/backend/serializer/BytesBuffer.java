@@ -18,7 +18,6 @@
 package org.apache.hugegraph.backend.serializer;
 
 import java.io.OutputStream;
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,13 +28,14 @@ import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.Id.IdType;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
-import org.apache.hugegraph.util.*;
-import org.apache.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import org.apache.hugegraph.util.Blob;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.KryoUtil;
 import org.apache.hugegraph.util.StringEncoding;
 
@@ -170,7 +170,7 @@ public final class BytesBuffer extends OutputStream {
                         "Capacity exceeds max buffer capacity: %s",
                         MAX_BUFFER_CAPACITY);
         ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
-        ((Buffer) this.buffer).flip();
+        this.buffer.flip();
         newBuffer.put(this.buffer);
         this.buffer = newBuffer;
     }
@@ -344,7 +344,7 @@ public final class BytesBuffer extends OutputStream {
              *   0xFF is not a valid byte in UTF8 bytes
              */
             assert !Bytes.contains(bytes, STRING_ENDING_BYTE_FF) :
-                   "Invalid UTF8 bytes: " + value;
+                    "Invalid UTF8 bytes: " + value;
             if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
                 E.checkArgument(false,
                                 "Can't contains byte '0x00' in string: '%s'",
@@ -421,7 +421,7 @@ public final class BytesBuffer extends OutputStream {
             this.write(0x80 | ((value >>> 14) & 0x7f));
         }
         if (value > 0x7f || value < 0) {
-            this.write(0x80 | ((value >>>  7) & 0x7f));
+            this.write(0x80 | ((value >>> 7) & 0x7f));
         }
         this.write(value & 0x7f);
 
@@ -485,7 +485,7 @@ public final class BytesBuffer extends OutputStream {
             this.write(0x80 | ((int) (value >>> 14) & 0x7f));
         }
         if (value > 0x7fL || value < 0L) {
-            this.write(0x80 | ((int) (value >>>  7) & 0x7f));
+            this.write(0x80 | ((int) (value >>> 7) & 0x7f));
         }
         this.write((int) value & 0x7f);
 
@@ -874,7 +874,7 @@ public final class BytesBuffer extends OutputStream {
                 value |= this.readUInt16();
                 break;
             case 2:
-                value |= this.readUInt8() << 16 | this.readUInt16();
+                value |= (long) this.readUInt8() << 16 | this.readUInt16();
                 break;
             case 3:
                 value |= this.readUInt32();

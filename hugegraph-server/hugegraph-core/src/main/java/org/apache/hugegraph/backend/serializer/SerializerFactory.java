@@ -56,7 +56,7 @@ public class SerializerFactory {
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static void register(String name, String classPath) {
         ClassLoader classLoader = SerializerFactory.class.getClassLoader();
         Class<?> clazz;
