@@ -108,9 +108,9 @@ public class MysqlOptions extends OptionHolder {
 
     public static final ConfigOption<String> JDBC_STORAGE_ENGINE =
             new ConfigOption<>(
-                   "jdbc.storage_engine",
-                   "The storage engine of backend store database, " +
-                   "like InnoDB/MyISAM/RocksDB for MySQL.",
+                    "jdbc.storage_engine",
+                    "The storage engine of backend store database, " +
+                    "like InnoDB/MyISAM/RocksDB for MySQL.",
                     disallowEmpty(),
                     "InnoDB"
             );

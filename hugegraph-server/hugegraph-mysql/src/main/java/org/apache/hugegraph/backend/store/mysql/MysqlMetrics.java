@@ -20,6 +20,7 @@ package org.apache.hugegraph.backend.store.mysql;
 import java.util.Map;
 
 import org.apache.hugegraph.backend.store.BackendMetrics;
+
 import com.google.common.collect.ImmutableMap;
 
 public class MysqlMetrics implements BackendMetrics {
