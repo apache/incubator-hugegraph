@@ -96,7 +96,7 @@ public abstract class PerfExampleBase {
      * @throws Exception execute may throw Exception
      */
     public void testInsertPerf(GraphManager graph, int threadCount, int times, int multiple)
-        throws Exception {
+            throws Exception {
         // Total vertices/edges
         long n = (long) threadCount * times * multiple;
         long vertices = (PERSON_NUM + SOFTWARE_NUM) * n;
@@ -113,7 +113,7 @@ public abstract class PerfExampleBase {
     }
 
     public void testQueryVertexPerf(GraphManager graph, int threadCount, int times, int multiple)
-        throws Exception {
+            throws Exception {
         long cost = this.execute(graph, i -> {
             this.testQueryVertex(graph, threadCount, i, multiple);
         }, threadCount);
@@ -125,7 +125,7 @@ public abstract class PerfExampleBase {
     }
 
     public void testQueryEdgePerf(GraphManager graph, int threadCount, int times, int multiple)
-        throws Exception {
+            throws Exception {
         long cost = this.execute(graph, i -> {
             this.testQueryEdge(graph, threadCount, i, multiple);
         }, threadCount);
@@ -236,6 +236,7 @@ public abstract class PerfExampleBase {
     }
 
     protected static class GraphManager {
+
         private final HugeGraph hugegraph;
         private final Cache<Id, Object> cache = CacheManager.instance().cache("perf-test");
 
