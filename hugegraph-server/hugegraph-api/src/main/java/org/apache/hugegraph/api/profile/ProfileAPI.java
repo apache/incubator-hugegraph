@@ -24,6 +24,21 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.version.CoreVersion;
+import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
+import org.glassfish.jersey.model.Parameter.Source;
+import org.glassfish.jersey.server.model.Parameter;
+import org.glassfish.jersey.server.model.Resource;
+import org.glassfish.jersey.server.model.ResourceMethod;
+
+import com.codahale.metrics.annotation.Timed;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -32,22 +47,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Application;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
-import org.glassfish.jersey.model.Parameter.Source;
-import org.glassfish.jersey.server.model.Parameter;
-import org.glassfish.jersey.server.model.Resource;
-import org.glassfish.jersey.server.model.ResourceMethod;
-
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.InsertionOrderUtil;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.version.CoreVersion;
-
-import com.codahale.metrics.annotation.Timed;
 
 @Path("/")
 @Singleton
@@ -154,8 +153,8 @@ public class ProfileAPI {
             categories = this.apis.computeIfAbsent(category.dir,
                                                    k -> new TreeMap<>());
             List<APIProfile> profiles = categories.computeIfAbsent(
-                                                   category.category,
-                                                   k -> new ArrayList<>());
+                    category.category,
+                    k -> new ArrayList<>());
             profiles.add(profile);
         }
     }

@@ -24,6 +24,39 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
+import org.apache.hugegraph.api.filter.DecompressInterceptor.Decompress;
+import org.apache.hugegraph.api.filter.StatusFilter.Status;
+import org.apache.hugegraph.backend.id.EdgeId;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.UpdateStrategy;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.traversal.optimize.QueryHolder;
+import org.apache.hugegraph.traversal.optimize.TraversalUtil;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.function.TriFunction;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
@@ -38,39 +71,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.function.TriFunction;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.UpdateStrategy;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
-import org.apache.hugegraph.api.filter.DecompressInterceptor.Decompress;
-import org.apache.hugegraph.api.filter.StatusFilter.Status;
-import org.apache.hugegraph.backend.id.EdgeId;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.traversal.optimize.QueryHolder;
-import org.apache.hugegraph.traversal.optimize.TraversalUtil;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/graph/edges")
 @Singleton
@@ -136,7 +136,7 @@ public class EdgeAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
 
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
-                    checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
+                checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, jsonEdges.size(), () -> {
             List<Id> ids = new ArrayList<>(jsonEdges.size());
@@ -180,7 +180,7 @@ public class EdgeAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
         Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
         TriFunction<HugeGraph, Object, String, Vertex> getVertex =
-                    req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
+                req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
 
         return this.commit(config, g, map.size(), () -> {
             // 1.Put all newEdges' properties into map (combine first)
@@ -372,10 +372,10 @@ public class EdgeAPI extends BatchAPI {
                 g.removeEdge(label, id);
             } catch (NotFoundException e) {
                 throw new IllegalArgumentException(String.format(
-                          "No such edge with id: '%s', %s", id, e));
+                        "No such edge with id: '%s', %s", id, e));
             } catch (NoSuchElementException e) {
                 throw new IllegalArgumentException(String.format(
-                          "No such edge with id: '%s'", id));
+                        "No such edge with id: '%s'", id));
             }
         });
     }
@@ -385,12 +385,12 @@ public class EdgeAPI extends BatchAPI {
         int max = config.get(ServerOptions.MAX_EDGES_PER_BATCH);
         if (edges.size() > max) {
             throw new IllegalArgumentException(String.format(
-                      "Too many edges for one time post, " +
-                      "the maximum number is '%s'", max));
+                    "Too many edges for one time post, " +
+                    "the maximum number is '%s'", max));
         }
         if (edges.size() == 0) {
             throw new IllegalArgumentException(
-                      "The number of edges can't be 0");
+                    "The number of edges can't be 0");
         }
     }
 
@@ -401,13 +401,13 @@ public class EdgeAPI extends BatchAPI {
             vertex = (HugeVertex) graph.vertices(id).next();
         } catch (NoSuchElementException e) {
             throw new IllegalArgumentException(String.format(
-                      "Invalid vertex id '%s'", id));
+                    "Invalid vertex id '%s'", id));
         }
         if (label != null && !vertex.label().equals(label)) {
             throw new IllegalArgumentException(String.format(
-                      "The label of vertex '%s' is unmatched, users expect " +
-                      "label '%s', actual label stored is '%s'",
-                      id, label, vertex.label()));
+                    "The label of vertex '%s' is unmatched, users expect " +
+                    "label '%s', actual label stored is '%s'",
+                    id, label, vertex.label()));
         }
         // Clone a new vertex to support multi-thread access
         return vertex.copy();
@@ -437,8 +437,8 @@ public class EdgeAPI extends BatchAPI {
             return Direction.valueOf(direction);
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
-                      "Direction value must be in [OUT, IN, BOTH], " +
-                      "but got '%s'", direction));
+                    "Direction value must be in [OUT, IN, BOTH], " +
+                    "but got '%s'", direction));
         }
     }
 
@@ -492,7 +492,7 @@ public class EdgeAPI extends BatchAPI {
             E.checkArgument(req.updateStrategies != null &&
                             !req.updateStrategies.isEmpty(),
                             "Parameter 'update_strategies' can't be empty");
-            E.checkArgument(req.createIfNotExist == true,
+            E.checkArgument(req.createIfNotExist,
                             "Parameter 'create_if_not_exist' " +
                             "dose not support false now");
         }
@@ -548,7 +548,7 @@ public class EdgeAPI extends BatchAPI {
                 String key = entry.getKey();
                 Object value = entry.getValue();
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
-                                       "property '%s' to null for edge '%s'",
+                                              "property '%s' to null for edge '%s'",
                                        key, this.id);
             }
         }

@@ -19,18 +19,19 @@ package org.apache.hugegraph.api.profile;
 
 import java.util.Map;
 
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.version.ApiVersion;
+import org.apache.hugegraph.version.CoreVersion;
+
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
-
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.version.ApiVersion;
-import org.apache.hugegraph.version.CoreVersion;
-import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
 
 @Path("versions")
 @Singleton
@@ -43,9 +44,9 @@ public class VersionAPI extends API {
     @PermitAll
     public Object list() {
         Map<String, String> versions = ImmutableMap.of("version", "v1",
-                                       "core", CoreVersion.VERSION.toString(),
-                                       "gremlin", CoreVersion.GREMLIN_VERSION,
-                                       "api", ApiVersion.VERSION.toString());
+                                                       "core", CoreVersion.VERSION.toString(),
+                                                       "gremlin", CoreVersion.GREMLIN_VERSION,
+                                                       "api", ApiVersion.VERSION.toString());
         return ImmutableMap.of("versions", versions);
     }
 }

@@ -20,6 +20,16 @@ package org.apache.hugegraph.api.variables;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -31,16 +41,6 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
 
 @Path("graphs/{graph}/variables")
 @Singleton
@@ -91,7 +91,7 @@ public class VariablesAPI extends API {
         Optional<?> object = g.variables().get(key);
         if (!object.isPresent()) {
             throw new NotFoundException(String.format(
-                      "Variable '%s' does not exist", key));
+                    "Variable '%s' does not exist", key));
         }
         return ImmutableMap.of(key, object.get());
     }

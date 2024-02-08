@@ -22,6 +22,23 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.auth.HugeAuthenticator.RequiredPerm;
+import org.apache.hugegraph.auth.HugePermission;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.type.define.GraphMode;
+import org.apache.hugegraph.type.define.GraphReadMode;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
@@ -30,31 +47,14 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotSupportedException;
-import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.SecurityContext;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.core.GraphManager;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.auth.HugeAuthenticator.RequiredPerm;
-import org.apache.hugegraph.auth.HugePermission;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.type.define.GraphMode;
-import org.apache.hugegraph.type.define.GraphReadMode;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.JsonUtil;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
 
 @Path("graphs")
 @Singleton
@@ -154,7 +154,7 @@ public class GraphsAPI extends API {
         File file = config.file();
         if (file == null) {
             throw new NotSupportedException("Can't access the api in " +
-                      "a node which started with non local file config.");
+                                            "a node which started with non local file config.");
         }
         return file;
     }
@@ -255,9 +255,9 @@ public class GraphsAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
     public Map<String, GraphReadMode> graphReadMode(
-                                      @Context GraphManager manager,
-                                      @PathParam("name") String name,
-                                      GraphReadMode readMode) {
+            @Context GraphManager manager,
+            @PathParam("name") String name,
+            GraphReadMode readMode) {
         LOG.debug("Set graph-read-mode to: '{}' of graph '{}'",
                   readMode, name);
 
@@ -275,8 +275,8 @@ public class GraphsAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$name"})
     public Map<String, GraphReadMode> graphReadMode(
-                                      @Context GraphManager manager,
-                                      @PathParam("name") String name) {
+            @Context GraphManager manager,
+            @PathParam("name") String name) {
         LOG.debug("Get graph-read-mode of graph '{}'", name);
 
         HugeGraph g = graph(manager, name);

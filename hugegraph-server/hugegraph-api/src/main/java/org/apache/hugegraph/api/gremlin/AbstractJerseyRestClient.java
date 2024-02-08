@@ -83,7 +83,7 @@ public abstract class AbstractJerseyRestClient {
          * repository seems to have a bug: https://github.com/jersey/jersey/pull/3752
          */
         PoolingHttpClientConnectionManager pool =
-            new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
+                new PoolingHttpClientConnectionManager(TTL, TimeUnit.HOURS);
         Integer maxTotal = (Integer) conf.getProperty(PROPERTY_MAX_TOTAL);
         Integer maxPerRoute = (Integer) conf.getProperty(PROPERTY_MAX_PER_ROUTE);
 

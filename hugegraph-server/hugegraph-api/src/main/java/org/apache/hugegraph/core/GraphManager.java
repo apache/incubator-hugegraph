@@ -158,7 +158,7 @@ public final class GraphManager {
         HugeConfig cloneConfig = cloneGraph.cloneConfig(newName);
         if (StringUtils.isNotEmpty(configText)) {
             PropertiesConfiguration propConfig = ConfigUtil.buildConfig(
-                                                 configText);
+                    configText);
             // Use the passed config to overwrite the old one
             propConfig.getKeys().forEachRemaining(key -> {
                 cloneConfig.setProperty(key, propConfig.getProperty(key));
@@ -259,7 +259,7 @@ public final class GraphManager {
     }
 
     public HugeAuthenticator.User authenticate(Map<String, String> credentials)
-                                               throws AuthenticationException {
+            throws AuthenticationException {
         return this.authenticator().authenticate(credentials);
     }
 
@@ -436,20 +436,20 @@ public final class GraphManager {
                         this.authenticator().initAdminUser(token);
                     } catch (Exception e) {
                         throw new BackendException(
-                                  "The backend store of '%s' can't " +
-                                  "initialize admin user", hugegraph.name());
+                                "The backend store of '%s' can't " +
+                                "initialize admin user", hugegraph.name());
                     }
                 }
             }
             BackendStoreInfo info = hugegraph.backendStoreInfo();
             if (!info.exists()) {
                 throw new BackendException(
-                          "The backend store of '%s' has not been initialized",
-                          hugegraph.name());
+                        "The backend store of '%s' has not been initialized",
+                        hugegraph.name());
             }
             if (!info.checkVersion()) {
                 throw new BackendException(
-                          "The backend store version is inconsistent");
+                        "The backend store version is inconsistent");
             }
         }
     }
@@ -521,7 +521,7 @@ public final class GraphManager {
         });
 
         // Add metrics for caches
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Map<String, Cache<?, ?>> caches = (Map) CacheManager.instance()
                                                             .caches();
         registerCacheMetrics(caches);

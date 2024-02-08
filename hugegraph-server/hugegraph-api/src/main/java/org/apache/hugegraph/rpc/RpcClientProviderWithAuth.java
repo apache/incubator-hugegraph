@@ -17,11 +17,12 @@
 
 package org.apache.hugegraph.rpc;
 
-import com.alipay.sofa.rpc.common.utils.StringUtils;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.util.E;
+
+import com.alipay.sofa.rpc.common.utils.StringUtils;
 
 public class RpcClientProviderWithAuth extends RpcClientProvider {
 

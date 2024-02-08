@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
@@ -33,6 +31,8 @@ import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Vertices {
@@ -47,8 +47,8 @@ public class Vertices {
     public Iterator<Vertex> vertices(HugeGraph g) {
         Map<String, Object> props = this.properties;
         E.checkArgument(!((this.ids == null || this.ids.isEmpty()) &&
-                        (props == null || props.isEmpty()) &&
-                        this.label == null), "No source vertices provided");
+                          (props == null || props.isEmpty()) &&
+                          this.label == null), "No source vertices provided");
         Iterator<Vertex> iterator;
         if (this.ids != null && !this.ids.isEmpty()) {
             List<Id> sourceIds = new ArrayList<>(this.ids.size());
@@ -72,7 +72,7 @@ public class Vertices {
             assert !query.empty();
             iterator = g.vertices(query);
             E.checkArgument(iterator.hasNext(), "Not exist source vertex " +
-                            "with label '%s' and properties '%s'",
+                                                "with label '%s' and properties '%s'",
                             this.label, props);
         }
         return iterator;

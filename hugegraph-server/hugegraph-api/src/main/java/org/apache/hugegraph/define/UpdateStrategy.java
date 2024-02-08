@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.Sets;
 
 public enum UpdateStrategy {
@@ -113,7 +114,7 @@ public enum UpdateStrategy {
     // Batch update Set should use union because of higher efficiency
     APPEND {
         @Override
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
             ((Collection) oldProperty).addAll((Collection) newProperty);
             return oldProperty;
@@ -127,7 +128,7 @@ public enum UpdateStrategy {
 
     ELIMINATE {
         @Override
-        @SuppressWarnings({ "rawtypes", "unchecked" })
+        @SuppressWarnings({"rawtypes", "unchecked"})
         Object updatePropertyValue(Object oldProperty, Object newProperty) {
             ((Collection) oldProperty).removeAll((Collection) newProperty);
             return oldProperty;
@@ -186,7 +187,7 @@ public enum UpdateStrategy {
         Number newNum = NumericUtil.convertToNumber(newProperty);
         int result = NumericUtil.compareNumber(oldNum, newNum);
         return strategy == BIGGER ? (result > 0 ? oldProperty : newProperty) :
-                                    (result < 0 ? oldProperty : newProperty);
+               (result < 0 ? oldProperty : newProperty);
     }
 
     protected static Set<?> combineSet(Object oldProperty, Object newProperty,
@@ -198,6 +199,6 @@ public enum UpdateStrategy {
                         (Set<?>) newProperty :
                         new HashSet<>((List<?>) newProperty);
         return strategy == UNION ? Sets.union(oldSet, newSet) :
-                                   Sets.intersection(oldSet, newSet);
+               Sets.intersection(oldSet, newSet);
     }
 }

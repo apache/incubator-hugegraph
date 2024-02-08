@@ -151,5 +151,6 @@ public class RedirectFilter implements ContainerRequestFilter {
     @NameBinding
     @Retention(RetentionPolicy.RUNTIME)
     public @interface RedirectMasterRole {
+
     }
 }
