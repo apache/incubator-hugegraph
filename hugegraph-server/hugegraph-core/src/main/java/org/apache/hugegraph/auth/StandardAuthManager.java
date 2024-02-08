@@ -411,13 +411,13 @@ public class StandardAuthManager implements AuthManager {
             Id adminGroupId = project.adminGroupId();
             Id opGroupId = project.opGroupId();
             HugeAccess adminGroupWriteAccess = new HugeAccess(
-                                                   adminGroupId, targetId,
-                                                   HugePermission.WRITE);
+                    adminGroupId, targetId,
+                    HugePermission.WRITE);
             // Ditto
             adminGroupWriteAccess.creator(project.creator());
             HugeAccess adminGroupReadAccess = new HugeAccess(
-                                                  adminGroupId, targetId,
-                                                  HugePermission.READ);
+                    adminGroupId, targetId,
+                    HugePermission.READ);
             // Ditto
             adminGroupReadAccess.creator(project.creator());
             HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
@@ -634,7 +634,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public String loginUser(String username, String password)
-                            throws AuthenticationException {
+            throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
             String msg = "Incorrect username or password";
@@ -672,10 +672,10 @@ public class StandardAuthManager implements AuthManager {
         Claims payload = null;
         boolean needBuildCache = false;
         if (username == null) {
-            try{
+            try {
                 payload = this.tokenGenerator.verify(token);
-            }catch (Throwable t){
-                LOG.error(String.format("Failed to verify token:[ %s ], cause:",token),t);
+            } catch (Throwable t) {
+                LOG.error(String.format("Failed to verify token:[ %s ], cause:", token), t);
                 return new UserWithRole("");
             }
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);

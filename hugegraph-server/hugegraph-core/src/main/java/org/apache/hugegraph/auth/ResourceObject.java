@@ -19,8 +19,8 @@ package org.apache.hugegraph.auth;
 
 import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
 import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.util.E;
 
 public class ResourceObject<V> {

@@ -43,7 +43,7 @@ public class BatchConditionQuery extends ConditionQuery {
         if (this.in == null) {
             assert !this.containsRelation(RelationType.IN);
             this.resetConditions(InsertionOrderUtil.newList(
-                                 (List<Condition>) query.conditions()));
+                    (List<Condition>) query.conditions()));
             this.unsetCondition(key);
 
             List<Object> list = new ArrayList<>(this.batchSize);

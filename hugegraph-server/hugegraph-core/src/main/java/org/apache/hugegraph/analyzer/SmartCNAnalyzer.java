@@ -22,11 +22,10 @@ import java.io.StringReader;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.cn.smart.SmartChineseAnalyzer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-
-import org.apache.hugegraph.util.InsertionOrderUtil;
 
 /**
  * Reference from https://lucene.apache.org/core/8_11_2/analyzers-smartcn/index.html
@@ -34,7 +33,7 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 public class SmartCNAnalyzer implements Analyzer {
 
     private static final SmartChineseAnalyzer ANALYZER =
-                                              new SmartChineseAnalyzer();
+            new SmartChineseAnalyzer();
 
     public SmartCNAnalyzer(String mode) {
         // pass
