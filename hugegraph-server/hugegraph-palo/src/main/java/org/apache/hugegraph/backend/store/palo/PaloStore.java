@@ -20,13 +20,12 @@ package org.apache.hugegraph.backend.store.palo;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendTable;
 import org.apache.hugegraph.backend.store.mysql.MysqlStore;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class PaloStore extends MysqlStore {
 
