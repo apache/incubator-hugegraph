@@ -1812,17 +1812,17 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private static final ThreadLocal<Context> CONTEXTS = new InheritableThreadLocal<>();
 
-    static Context setContext(Context context) {
+    protected static Context setContext(Context context) {
         Context old = CONTEXTS.get();
         CONTEXTS.set(context);
         return old;
     }
 
-    static void resetContext() {
+    protected static void resetContext() {
         CONTEXTS.remove();
     }
 
-    private static Context getContext() {
+    protected static Context getContext() {
         // Return task context first
         String taskContext = TaskManager.getContext();
         User user = User.fromJson(taskContext);
@@ -1833,7 +1833,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return CONTEXTS.get();
     }
 
-    private static String getContextString() {
+    protected static String getContextString() {
         Context context = getContext();
         if (context == null) {
             return null;
@@ -1841,7 +1841,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return context.user().toJson();
     }
 
-    static void logUser(User user, String path) {
+    protected static void logUser(User user, String path) {
         LOG.info("User '{}' login from client [{}] with path '{}'",
                  user.username(), user.client(), path);
     }
