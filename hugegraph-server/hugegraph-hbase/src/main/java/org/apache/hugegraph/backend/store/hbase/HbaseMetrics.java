@@ -29,11 +29,11 @@ import org.apache.hadoop.hbase.ServerMetrics;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.Size;
 import org.apache.hadoop.hbase.client.Admin;
-
 import org.apache.hugegraph.backend.store.BackendMetrics;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.UnitUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class HbaseMetrics implements BackendMetrics {
@@ -55,7 +55,7 @@ public class HbaseMetrics implements BackendMetrics {
         try (Admin admin = this.hbase.hbase().getAdmin()) {
             ClusterMetrics clusterMetrics = admin.getClusterMetrics();
             Map<ServerName, ServerMetrics> metrics =
-                            clusterMetrics.getLiveServerMetrics();
+                    clusterMetrics.getLiveServerMetrics();
             Map<String, Object> regionServers = InsertionOrderUtil.newMap();
             for (Map.Entry<ServerName, ServerMetrics> e : metrics.entrySet()) {
                 ServerName server = e.getKey();
@@ -109,7 +109,7 @@ public class HbaseMetrics implements BackendMetrics {
     }
 
     private static Map<String, Object> formatMetrics(
-                                       ServerMetrics serverMetrics) {
+            ServerMetrics serverMetrics) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
 
         Size memMax = serverMetrics.getMaxHeapSize();
@@ -144,7 +144,7 @@ public class HbaseMetrics implements BackendMetrics {
     }
 
     private static Map<String, Object> formatRegions(
-                                       Collection<RegionMetrics> regions) {
+            Collection<RegionMetrics> regions) {
         Map<String, Object> metrics = InsertionOrderUtil.newMap();
         for (RegionMetrics region : regions) {
             metrics.put(region.getNameAsString(), formatRegion(region));
@@ -193,7 +193,7 @@ public class HbaseMetrics implements BackendMetrics {
     }
 
     private static List<String> serversAddress(
-                                Collection<ServerName> servers) {
+            Collection<ServerName> servers) {
         return servers.stream().map(server -> {
             return server.getAddress().toString();
         }).collect(Collectors.toList());
