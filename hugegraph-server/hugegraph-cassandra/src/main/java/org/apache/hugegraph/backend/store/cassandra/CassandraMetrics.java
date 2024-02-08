@@ -108,7 +108,7 @@ public class CassandraMetrics implements BackendMetrics {
             metrics.put(MEM_UNIT, "MB");
 
             long diskSize = UnitUtil.bytesFromReadableString(
-                            probe.getLoadString());
+                    probe.getLoadString());
             metrics.put(DISK_USAGE, UnitUtil.bytesToGB(diskSize));
             metrics.put(DISK_USAGE + READABLE,
                         UnitUtil.bytesToReadableString(diskSize));
@@ -213,7 +213,7 @@ public class CassandraMetrics implements BackendMetrics {
         String name = humpToLine(metric + "_" + suffix);
         // Aggregation of metrics for the whole host if keyspace=null
         JmxTimerMBean value = (JmxTimerMBean) probe.getColumnFamilyMetric(
-                              keyspace, null, metric);
+                keyspace, null, metric);
         Map<String, Object> timerMap = InsertionOrderUtil.newMap();
         timerMap.put("count", value.getCount());
         timerMap.put("min", value.getMin());
@@ -316,7 +316,7 @@ public class CassandraMetrics implements BackendMetrics {
     }
 
     private NodeProbe newNodeProbe(String host) throws IOException {
-        LOG.debug("Probe to cassandra node: '{}:{}'", host,  this.port);
+        LOG.debug("Probe to cassandra node: '{}:{}'", host, this.port);
         return this.username.isEmpty() ?
                new NodeProbe(host, this.port) :
                new NodeProbe(host, this.port, this.username, this.password);

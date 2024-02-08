@@ -27,9 +27,6 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
@@ -51,6 +48,9 @@ import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.CopyUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
+
 import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PagingState;
@@ -74,7 +74,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public abstract class CassandraTable
-                extends BackendTable<CassandraSessionPool.Session, CassandraBackendEntry.Row> {
+        extends BackendTable<CassandraSessionPool.Session, CassandraBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(CassandraTable.class);
     private static final int MAX_ELEMENTS_IN_CLAUSE = 65535;
@@ -90,8 +90,8 @@ public abstract class CassandraTable
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
             CassandraShard splitter = new CassandraShard(session,
-                                                        session.keyspace(),
-                                                        this.table());
+                                                         session.keyspace(),
+                                                         this.table());
             return splitter.getSplits(0, splitSize);
         });
     }
@@ -118,12 +118,12 @@ public abstract class CassandraTable
             statement.setReadTimeoutMillis(timeout * 1000);
             return session.query(statement);
         }, (q, rs) -> {
-                Row row = rs.one();
-                if (row == null) {
-                    return IteratorUtils.of(aggregate.defaultValue());
-                }
-                return IteratorUtils.of(row.getLong(0));
-            });
+            Row row = rs.one();
+            if (row == null) {
+                return IteratorUtils.of(aggregate.defaultValue());
+            }
+            return IteratorUtils.of(row.getLong(0));
+        });
         return aggregate.reduce(results);
     }
 
@@ -136,7 +136,7 @@ public abstract class CassandraTable
     protected <R> Iterator<R> query(Query query,
                                     Function<Statement, ResultSet> fetcher,
                                     BiFunction<Query, ResultSet, Iterator<R>>
-                                    parser) {
+                                            parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {
@@ -279,8 +279,8 @@ public abstract class CassandraTable
             List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new NotFoundException(
-                          "Unsupported ID format: '%s' (should contain %s)",
-                          id, nameParts);
+                        "Unsupported ID format: '%s' (should contain %s)",
+                        id, nameParts);
             }
             ids.add(idParts);
         }

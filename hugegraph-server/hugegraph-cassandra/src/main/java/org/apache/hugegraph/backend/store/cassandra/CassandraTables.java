@@ -476,7 +476,7 @@ public class CassandraTables {
                 rs = session.execute(select);
             } catch (DriverException e) {
                 throw new BackendException("Failed to query edges " +
-                          "with label '%s' for deleting", e, label);
+                                           "with label '%s' for deleting", e, label);
             }
 
             // Delete edges
@@ -548,7 +548,7 @@ public class CassandraTables {
             E.checkState(ownerVertex != null, "Invalid backend entry");
             Id vertexId = IdGenerator.of(ownerVertex);
             CassandraBackendEntry vertex = new CassandraBackendEntry(
-                                               HugeType.VERTEX, vertexId);
+                    HugeType.VERTEX, vertexId);
 
             vertex.column(HugeKeys.ID, ownerVertex);
             vertex.column(HugeKeys.PROPERTIES, ImmutableMap.of());
@@ -635,8 +635,8 @@ public class CassandraTables {
                 rs = session.execute(select);
             } catch (DriverException e) {
                 throw new BackendException("Failed to query secondary " +
-                          "indexes with index label id '%s' for deleting",
-                          indexLabel, e);
+                                           "indexes with index label id '%s' for deleting",
+                                           indexLabel, e);
             }
 
             final String FIELD_VALUES = formatKey(HugeKeys.FIELD_VALUES);
