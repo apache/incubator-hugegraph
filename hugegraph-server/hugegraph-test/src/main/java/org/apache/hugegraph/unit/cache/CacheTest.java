@@ -24,12 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.collect.ImmutableList;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.LevelCache;
@@ -42,6 +36,12 @@ import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.Bytes;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
+import com.google.common.collect.ImmutableList;
 
 public abstract class CacheTest extends BaseUnitTest {
 
@@ -343,12 +343,12 @@ public abstract class CacheTest extends BaseUnitTest {
         Id id = IdGenerator.of("1");
         Assert.assertNull(cache.get(id));
 
-        Assert.assertEquals("value-1",  cache.getOrFetch(id, key -> {
+        Assert.assertEquals("value-1", cache.getOrFetch(id, key -> {
             return "value-1";
         }));
 
         cache.update(id, "value-2");
-        Assert.assertEquals("value-2",  cache.getOrFetch(id, key -> {
+        Assert.assertEquals("value-2", cache.getOrFetch(id, key -> {
             return "value-1";
         }));
     }

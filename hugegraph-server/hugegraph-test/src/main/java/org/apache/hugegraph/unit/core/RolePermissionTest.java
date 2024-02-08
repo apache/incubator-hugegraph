@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.unit.core;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.auth.HugePermission;
 import org.apache.hugegraph.auth.HugeProject;
@@ -36,6 +34,8 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.unit.FakeObjects;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableMap;
 
 public class RolePermissionTest {
@@ -95,22 +95,24 @@ public class RolePermissionTest {
     @Test
     public void testContains() {
         String json = "{\"roles\":" +
-                "{\"hugegraph\":{\"READ\":[" +
-                "{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"WRITE\":[" +
-                "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"EXECUTE\":[" +
-                "{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}," +
-                "\"hugegraph1\":{\"READ\":[]}}}";
+                      "{\"hugegraph\":{\"READ\":[" +
+                      "{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null}," +
+                      "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}," +
+                      "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                      "{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                      "{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                      "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                      "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                      "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                      "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]," +
+                      "\"WRITE\":[" +
+                      "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                      "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                      "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                      "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]," +
+                      "\"EXECUTE\":[" +
+                      "{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}," +
+                      "\"hugegraph1\":{\"READ\":[]}}}";
 
         RolePermission role = RolePermission.fromJson(json);
 
@@ -327,7 +329,7 @@ public class RolePermissionTest {
         HugeResource r = new HugeResource(ResourceType.VERTEX, "person",
                                           ImmutableMap.of("city", "Beijing"));
         String json = "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\"}}";
+                      "{\"city\":\"Beijing\"}}";
         Assert.assertEquals(json, r.toString());
         Assert.assertEquals(r, HugeResource.parseResource(json));
 
@@ -350,7 +352,7 @@ public class RolePermissionTest {
 
         Assert.assertThrows(HugeException.class, () -> {
             String resource = "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                    "{\"city\":\"P.(1)\"}}";
+                              "{\"city\":\"P.(1)\"}}";
             HugeResource.parseResource(resource);
         }, e -> {
             Assert.assertContains("Invalid predicate: P.(1)",
@@ -359,7 +361,7 @@ public class RolePermissionTest {
 
         Assert.assertThrows(HugeException.class, () -> {
             String resources = "[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                    "{\"city\":\"P.(1)\"}}]";
+                               "{\"city\":\"P.(1)\"}}]";
             HugeResource.parseResources(resources);
         }, e -> {
             Assert.assertContains("Invalid predicate: P.(1)",
@@ -471,7 +473,7 @@ public class RolePermissionTest {
         Assert.assertFalse(vr.filter(r3));
 
         vr = new HugeResource(ResourceType.VERTEX, "person", ImmutableMap.of(
-                              "city", "P.within(\"Beijing\", \"Shanghai\")"));
+                "city", "P.within(\"Beijing\", \"Shanghai\")"));
         Assert.assertTrue(vr.filter(r1));
         Assert.assertTrue(vr.filter(r2));
         Assert.assertFalse(vr.filter(r3));

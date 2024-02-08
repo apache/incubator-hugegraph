@@ -17,11 +17,10 @@
 
 package org.apache.hugegraph.unit.core;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.SerialEnum;
+import org.junit.Test;
 
 public class SerialEnumTest {
 

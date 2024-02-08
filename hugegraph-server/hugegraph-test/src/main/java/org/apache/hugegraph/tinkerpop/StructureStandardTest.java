@@ -24,4 +24,5 @@ import org.junit.runner.RunWith;
 @GraphProviderClass(provider = StructureTestGraphProvider.class,
                     graph = TestGraph.class)
 public class StructureStandardTest {
+
 }

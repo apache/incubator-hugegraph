@@ -19,11 +19,10 @@ package org.apache.hugegraph.unit.util;
 
 import java.util.UUID;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.StringEncoding;
+import org.junit.Test;
 
 public class StringEncodingTest {
 
@@ -96,9 +95,9 @@ public class StringEncodingTest {
     public void testUuid() {
         UUID uuid = UUID.fromString("835e1153-9281-4957-8691-cf79258e90eb");
         Assert.assertEquals(uuid, StringEncoding.uuid(
-                                  "835e1153-9281-4957-8691-cf79258e90eb"));
+                "835e1153-9281-4957-8691-cf79258e90eb"));
         Assert.assertEquals(uuid, StringEncoding.uuid(
-                                  "835e1153928149578691cf79258e90eb"));
+                "835e1153928149578691cf79258e90eb"));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             StringEncoding.uuid("");
@@ -148,10 +147,10 @@ public class StringEncodingTest {
     @Test
     public void testDecompress() {
         Assert.assertEquals("", StringEncoding.decompress(Bytes.fromHex(
-                            "4c5a34426c6f636b12000000000000000000000000")));
+                "4c5a34426c6f636b12000000000000000000000000")));
         Assert.assertEquals("abc", StringEncoding.decompress(Bytes.fromHex(
-                            "4c5a34426c6f636b12030000000300000022b24c0d616" +
-                            "2634c5a34426c6f636b12000000000000000000000000")));
+                "4c5a34426c6f636b12030000000300000022b24c0d616" +
+                "2634c5a34426c6f636b12000000000000000000000000")));
     }
 
     @Test

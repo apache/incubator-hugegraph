@@ -20,11 +20,10 @@ package org.apache.hugegraph.unit.core;
 import java.util.Date;
 import java.util.UUID;
 
-import org.apache.hugegraph.testutil.Utils;
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.type.define.DataType;
+import org.junit.Test;
 
 public class DataTypeTest {
 

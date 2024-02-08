@@ -132,11 +132,11 @@ public class SecurityManagerTest {
             // ignored exception
         }
         result = runGremlinJob(String.format(
-                 "new FileInputStream(new File(\"%s\"))", pom));
+                "new FileInputStream(new File(\"%s\"))", pom));
         assertError(result, "(No such file or directory)");
 
         // read file fd
-        @SuppressWarnings({ "unused", "resource" })
+        @SuppressWarnings({"unused", "resource"})
         FileInputStream fis = new FileInputStream(FileDescriptor.in);
         result = runGremlinJob("new FileInputStream(FileDescriptor.in)");
         assertError(result, "Not allowed to read fd via Gremlin");
@@ -156,7 +156,7 @@ public class SecurityManagerTest {
         assertError(result, "Not allowed to write file via Gremlin");
 
         // write file fd
-        @SuppressWarnings({ "unused", "resource" })
+        @SuppressWarnings({"unused", "resource"})
         FileOutputStream fos = new FileOutputStream(FileDescriptor.out);
         result = runGremlinJob("new FileOutputStream(FileDescriptor.out)");
         assertError(result, "Not allowed to write fd via Gremlin");
@@ -170,7 +170,7 @@ public class SecurityManagerTest {
         new File("").getAbsolutePath();
         result = runGremlinJob("new File(\"\").getAbsolutePath()");
         assertError(result, "Not allowed to access " +
-                    "system property(user.dir) via Gremlin");
+                            "system property(user.dir) via Gremlin");
     }
 
     @Test
@@ -209,7 +209,7 @@ public class SecurityManagerTest {
         sm.checkConnect("localhost", 8200, new Object());
         result = runGremlinJob("System.getSecurityManager()" +
                                ".checkConnect(\"localhost\", 8200, " +
-                                              "new Object())");
+                               "new Object())");
         assertError(result, "Not allowed to connect socket via Gremlin");
 
         sm.checkMulticast(InetAddress.getByAddress(new byte[]{0, 0, 0, 0}));
@@ -219,11 +219,11 @@ public class SecurityManagerTest {
         assertError(result, "Not allowed to multicast via Gremlin");
 
         sm.checkMulticast(InetAddress.getByAddress(new byte[]{0, 0, 0, 0}),
-                                                   (byte) 1);
+                          (byte) 1);
         result = runGremlinJob("bs = [0, 0, 0, 0] as byte[]; ttl = (byte) 1;" +
                                "System.getSecurityManager()" +
                                ".checkMulticast(InetAddress.getByAddress(" +
-                                                "bs), ttl)");
+                               "bs), ttl)");
         assertError(result, "Not allowed to multicast via Gremlin");
 
         sm.checkSetFactory();

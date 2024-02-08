@@ -20,12 +20,6 @@ package org.apache.hugegraph.core;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.Assume;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
@@ -43,6 +37,12 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.Events;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableSet;
 
 public class VertexLabelCoreTest extends SchemaCoreTest {
@@ -440,10 +440,10 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         SchemaManager schema = graph().schema();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .properties("name", "age", "city")
-                             .primaryKeys("name")
-                             .nullableKeys("city")
-                             .create();
+                                   .properties("name", "age", "city")
+                                   .primaryKeys("name")
+                                   .nullableKeys("city")
+                                   .create();
 
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
@@ -538,7 +538,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     @Test
     public void testAddVertexLabelWithDisableLabelIndex() {
         super.initPropertyKeys();
-        HugeGraph graph =  graph();
+        HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
         VertexLabel person = schema.vertexLabel("person")
@@ -664,8 +664,8 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
               .create();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .nullableKeys("city")
-                             .append();
+                                   .nullableKeys("city")
+                                   .append();
 
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
@@ -688,9 +688,9 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
               .create();
 
         VertexLabel person = schema.vertexLabel("person")
-                             .properties("city")
-                             .nullableKeys("city")
-                             .append();
+                                   .properties("city")
+                                   .nullableKeys("city")
+                                   .append();
 
         Assert.assertNotNull(person);
         Assert.assertEquals("person", person.name());
@@ -948,8 +948,8 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                    e.getMessage().startsWith("Don't accept query by label") &&
+                    e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -976,8 +976,8 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
             graph().traversal().V().hasLabel("reader").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                    e.getMessage().startsWith("Don't accept query by label") &&
+                    e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
