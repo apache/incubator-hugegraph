@@ -133,7 +133,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
     @Override
     public synchronized void createTable(String... tables)
-                                         throws RocksDBException {
+            throws RocksDBException {
         this.checkValid();
 
         List<ColumnFamilyDescriptor> cfds = new ArrayList<>();
@@ -142,7 +142,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 continue;
             }
             ColumnFamilyDescriptor cfd = new ColumnFamilyDescriptor(
-                                         encode(table));
+                    encode(table));
             ColumnFamilyOptions options = cfd.getOptions();
             initOptions(this.config(), null, null, options, options);
             cfds.add(cfd);
@@ -468,7 +468,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                 db.setEnableWriteThreadAdaptiveYield(true);
             }
             db.setInfoLogLevel(InfoLogLevel.valueOf(
-                conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
+                    conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
 
             db.setMaxSubcompactions(conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
 
@@ -477,7 +477,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             db.setUseDirectReads(conf.get(RocksDBOptions.USE_DIRECT_READS));
             db.setUseDirectIoForFlushAndCompaction(
-                conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
+                    conf.get(RocksDBOptions.USE_DIRECT_READS_WRITES_FC));
 
             db.setUseFsync(conf.get(RocksDBOptions.USE_FSYNC));
 
@@ -487,7 +487,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             db.setSkipStatsUpdateOnDbOpen(conf.get(RocksDBOptions.SKIP_STATS_UPDATE_ON_DB_OPEN));
             db.setSkipCheckingSstFileSizesOnDbOpen(
-                conf.get(RocksDBOptions.SKIP_CHECK_SIZE_ON_DB_OPEN));
+                    conf.get(RocksDBOptions.SKIP_CHECK_SIZE_ON_DB_OPEN));
 
             db.setMaxFileOpeningThreads(conf.get(RocksDBOptions.MAX_FILE_OPENING_THREADS));
 
@@ -523,7 +523,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
             mdb.setCompactionReadaheadSize(conf.get(RocksDBOptions.COMPACTION_READAHEAD_SIZE));
 
             mdb.setDeleteObsoleteFilesPeriodMicros(
-                1000000 * conf.get(RocksDBOptions.DELETE_OBSOLETE_FILE_PERIOD));
+                    1000000 * conf.get(RocksDBOptions.DELETE_OBSOLETE_FILE_PERIOD));
         }
 
         if (cf != null) {
@@ -551,7 +551,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
 
             cf.setMinWriteBufferNumberToMerge(conf.get(RocksDBOptions.MIN_MEMTABLES_TO_MERGE));
             cf.setMaxWriteBufferNumberToMaintain(
-                conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
+                    conf.get(RocksDBOptions.MAX_MEMTABLES_TO_MAINTAIN));
 
             cf.setInplaceUpdateSupport(conf.get(RocksDBOptions.MEMTABLE_INPLACE_UPDATE_SUPPORT));
 
@@ -584,15 +584,15 @@ public class RocksDBStdSessions extends RocksDBSessions {
             mcf.setTargetFileSizeMultiplier(conf.get(RocksDBOptions.TARGET_FILE_SIZE_MULTIPLIER));
 
             mcf.setLevel0FileNumCompactionTrigger(
-                conf.get(RocksDBOptions.LEVEL0_COMPACTION_TRIGGER));
+                    conf.get(RocksDBOptions.LEVEL0_COMPACTION_TRIGGER));
             mcf.setLevel0SlowdownWritesTrigger(
-                conf.get(RocksDBOptions.LEVEL0_SLOWDOWN_WRITES_TRIGGER));
+                    conf.get(RocksDBOptions.LEVEL0_SLOWDOWN_WRITES_TRIGGER));
             mcf.setLevel0StopWritesTrigger(conf.get(RocksDBOptions.LEVEL0_STOP_WRITES_TRIGGER));
 
             mcf.setSoftPendingCompactionBytesLimit(
-                conf.get(RocksDBOptions.SOFT_PENDING_COMPACTION_LIMIT));
+                    conf.get(RocksDBOptions.SOFT_PENDING_COMPACTION_LIMIT));
             mcf.setHardPendingCompactionBytesLimit(
-                conf.get(RocksDBOptions.HARD_PENDING_COMPACTION_LIMIT));
+                    conf.get(RocksDBOptions.HARD_PENDING_COMPACTION_LIMIT));
 
             /*
              * TODO: also set memtable options:
@@ -602,9 +602,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
              * #diff-cde52d1fcbcce2bc6aae27838f1d3e7e9e469ccad8aaf8f2695f939e279d7501R369
              */
             mcf.setMemtablePrefixBloomSizeRatio(
-                conf.get(RocksDBOptions.MEMTABLE_BLOOM_SIZE_RATIO));
+                    conf.get(RocksDBOptions.MEMTABLE_BLOOM_SIZE_RATIO));
             mcf.setMemtableWholeKeyFiltering(
-                conf.get(RocksDBOptions.MEMTABLE_BLOOM_WHOLE_KEY_FILTERING));
+                    conf.get(RocksDBOptions.MEMTABLE_BLOOM_WHOLE_KEY_FILTERING));
             mcf.setMemtableHugePageSize(conf.get(RocksDBOptions.MEMTABL_BLOOM_HUGE_PAGE_SIZE));
 
             boolean bulkload = conf.get(RocksDBOptions.BULKLOAD_MODE);
@@ -648,7 +648,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
          */
         tableConfig.setDataBlockIndexType(conf.get(RocksDBOptions.DATA_BLOCK_SEARCH_TYPE));
         tableConfig.setDataBlockHashTableUtilRatio(
-            conf.get(RocksDBOptions.DATA_BLOCK_HASH_TABLE_RATIO));
+                conf.get(RocksDBOptions.DATA_BLOCK_HASH_TABLE_RATIO));
 
         long blockSize = conf.get(RocksDBOptions.BLOCK_SIZE);
         tableConfig.setBlockSize(blockSize);
@@ -674,9 +674,9 @@ public class RocksDBStdSessions extends RocksDBSessions {
             tableConfig.setWholeKeyFiltering(conf.get(RocksDBOptions.BLOOM_FILTER_WHOLE_KEY));
 
             tableConfig.setCacheIndexAndFilterBlocks(
-                conf.get(RocksDBOptions.CACHE_FILTER_AND_INDEX));
+                    conf.get(RocksDBOptions.CACHE_FILTER_AND_INDEX));
             tableConfig.setPinL0FilterAndIndexBlocksInCache(
-                conf.get(RocksDBOptions.PIN_L0_INDEX_AND_FILTER));
+                    conf.get(RocksDBOptions.PIN_L0_INDEX_AND_FILTER));
 
             // https://github.com/facebook/rocksdb/wiki/Partitioned-Index-Filters
             if (conf.get(RocksDBOptions.PARTITION_FILTERS_INDEXES)) {
@@ -686,7 +686,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
                            .setMetadataBlockSize(blockSize)
                            .setCacheIndexAndFilterBlocksWithHighPriority(true);
                 tableConfig.setPinTopLevelIndexAndFilter(
-                    conf.get(RocksDBOptions.PIN_TOP_INDEX_AND_FILTER));
+                        conf.get(RocksDBOptions.PIN_TOP_INDEX_AND_FILTER));
             }
         }
 
@@ -850,7 +850,7 @@ public class RocksDBStdSessions extends RocksDBSessions {
         /**
          * Merge a record to an existing key to a table
          * For more details about merge-operator:
-         *  <a href="https://github.com/facebook/rocksdb/wiki/merge-operator">...</a>
+         * <a href="https://github.com/facebook/rocksdb/wiki/merge-operator">...</a>
          */
         @Override
         public void merge(String table, byte[] key, byte[] value) {
