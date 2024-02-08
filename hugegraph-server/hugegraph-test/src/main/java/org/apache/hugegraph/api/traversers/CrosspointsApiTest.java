@@ -20,13 +20,14 @@ package org.apache.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
-import org.apache.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class CrosspointsApiTest extends BaseApiTest {
 
@@ -54,7 +55,7 @@ public class CrosspointsApiTest extends BaseApiTest {
         Response r = client().get(path, params);
         String content = assertResponseStatus(200, r);
         List<Map<String, Object>> crosspoints = assertJsonContains(
-                                                content, "crosspoints");
+                content, "crosspoints");
         Assert.assertEquals(2, crosspoints.size());
     }
 }

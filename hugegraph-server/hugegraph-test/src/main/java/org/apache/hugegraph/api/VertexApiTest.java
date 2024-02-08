@@ -37,12 +37,12 @@ public class VertexApiTest extends BaseApiTest {
     @Test
     public void testCreate() {
         String vertex = "{" +
-                "\"label\":\"person\"," +
-                "\"properties\":{" +
-                "\"name\":\"James\"," +
-                "\"city\":\"Beijing\"," +
-                "\"age\":19}" +
-                "}";
+                        "\"label\":\"person\"," +
+                        "\"properties\":{" +
+                        "\"name\":\"James\"," +
+                        "\"city\":\"Beijing\"," +
+                        "\"age\":19}" +
+                        "}";
         Response r = client().post(PATH, vertex);
         assertResponseStatus(201, r);
     }
@@ -50,12 +50,12 @@ public class VertexApiTest extends BaseApiTest {
     @Test
     public void testGet() throws IOException {
         String vertex = "{" +
-                "\"label\":\"person\"," +
-                "\"properties\":{" +
-                "\"name\":\"James\"," +
-                "\"city\":\"Beijing\"," +
-                "\"age\":19}" +
-                "}";
+                        "\"label\":\"person\"," +
+                        "\"properties\":{" +
+                        "\"name\":\"James\"," +
+                        "\"city\":\"Beijing\"," +
+                        "\"age\":19}" +
+                        "}";
         Response r = client().post(PATH, vertex);
         String content = assertResponseStatus(201, r);
 
@@ -68,12 +68,12 @@ public class VertexApiTest extends BaseApiTest {
     @Test
     public void testList() {
         String vertex = "{" +
-                "\"label\":\"person\"," +
-                "\"properties\":{" +
-                "\"name\":\"James\"," +
-                "\"city\":\"Beijing\"," +
-                "\"age\":19}" +
-                "}";
+                        "\"label\":\"person\"," +
+                        "\"properties\":{" +
+                        "\"name\":\"James\"," +
+                        "\"city\":\"Beijing\"," +
+                        "\"age\":19}" +
+                        "}";
         Response r = client().post(PATH, vertex);
         assertResponseStatus(201, r);
 
@@ -84,12 +84,12 @@ public class VertexApiTest extends BaseApiTest {
     @Test
     public void testDelete() throws IOException {
         String vertex = "{" +
-                "\"label\":\"person\"," +
-                "\"properties\":{" +
-                "\"name\":\"James\"," +
-                "\"city\":\"Beijing\"," +
-                "\"age\":19}" +
-                "}";
+                        "\"label\":\"person\"," +
+                        "\"properties\":{" +
+                        "\"name\":\"James\"," +
+                        "\"city\":\"Beijing\"," +
+                        "\"age\":19}" +
+                        "}";
         Response r = client().post(PATH, vertex);
         String content = assertResponseStatus(201, r);
 

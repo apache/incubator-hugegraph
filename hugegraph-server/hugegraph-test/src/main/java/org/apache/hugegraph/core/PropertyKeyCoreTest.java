@@ -19,9 +19,6 @@ package org.apache.hugegraph.core;
 
 import java.util.Date;
 
-import org.junit.Assume;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
@@ -35,6 +32,9 @@ import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.DateUtil;
+import org.junit.Assume;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 
 public class PropertyKeyCoreTest extends SchemaCoreTest {
@@ -43,9 +43,9 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     public void testAddPropertyKey() {
         SchemaManager schema = graph().schema();
         PropertyKey id = schema.propertyKey("id")
-                         .asText()
-                         .valueSingle()
-                         .create();
+                               .asText()
+                               .valueSingle()
+                               .create();
 
         Assert.assertEquals("id", id.name());
         Assert.assertEquals(DataType.TEXT, id.dataType());
