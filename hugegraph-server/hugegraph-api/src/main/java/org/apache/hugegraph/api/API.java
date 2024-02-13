@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.api;
 
-importjava.util.Collection;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Callable;
