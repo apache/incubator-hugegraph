@@ -91,7 +91,7 @@ public class BaseCoreTest {
     public void setup() {
         this.clearData();
         this.clearSchema();
-        this.clearCache();
+//        this.clearCache();
     }
 
     @After
