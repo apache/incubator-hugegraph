@@ -17,10 +17,9 @@
 
 package org.apache.hugegraph.example;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class ThreadRangePerfTest {
 
