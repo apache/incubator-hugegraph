@@ -313,7 +313,7 @@ public class VertexAPI extends BatchAPI {
                 g.removeVertex(label, id);
             } catch (NotFoundException e) {
                 throw new IllegalArgumentException(String.format(
-                         "No such vertex with id: '%s', %s", id, e));
+                        "No such vertex with id: '%s', %s", id, e));
             } catch (NoSuchElementException e) {
                 throw new IllegalArgumentException(String.format(
                         "No such vertex with id: '%s'", id));
@@ -343,7 +343,7 @@ public class VertexAPI extends BatchAPI {
         int max = config.get(ServerOptions.MAX_VERTICES_PER_BATCH);
         if (vertices.size() > max) {
             throw new IllegalArgumentException(String.format(
-                "Too many vertices for one time post, the maximum number is '%s'", max));
+                    "Too many vertices for one time post, the maximum number is '%s'", max));
         }
         if (vertices.isEmpty()) {
             throw new IllegalArgumentException("The number of vertices can't be 0");

@@ -168,13 +168,13 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
                 this.sessions.session().open();
             } catch (InvalidQueryException e) {
                 // TODO: the error message may be changed in different versions
-                if (!e.getMessage().contains(String.format(
-                    "Keyspace '%s' does not exist", this.keyspace))) {
+                if (!e.getMessage().contains(String.format("Keyspace '%s' does not exist",
+                                                           this.keyspace))) {
                     throw e;
                 }
                 if (this.isSchemaStore()) {
-                    LOG.info("Failed to connect keyspace: {}, " +
-                             "try to init keyspace later", this.keyspace);
+                    LOG.info("Failed to connect keyspace: {}, try to init keyspace later",
+                             this.keyspace);
                 }
             }
         } catch (Throwable e) {
