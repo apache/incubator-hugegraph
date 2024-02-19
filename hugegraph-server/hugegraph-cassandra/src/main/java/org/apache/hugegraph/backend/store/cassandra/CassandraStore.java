@@ -169,7 +169,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
             } catch (InvalidQueryException e) {
                 // TODO: the error message may be changed in different versions
                 if (!e.getMessage().contains(String.format(
-                        "Keyspace '%s' does not exist", this.keyspace))) {
+                    "Keyspace '%s' does not exist", this.keyspace))) {
                     throw e;
                 }
                 if (this.isSchemaStore()) {
@@ -215,8 +215,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
         }
     }
 
-    private void mutate(CassandraSessionPool.Session session,
-                        BackendAction item) {
+    private void mutate(CassandraSessionPool.Session session, BackendAction item) {
         CassandraBackendEntry entry = castBackendEntry(item.entry());
 
         // Check if the entry has no change
@@ -442,7 +441,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
         } catch (DriverException e) {
             session.txState(TxState.COMMITT_FAIL);
             LOG.error("Failed to commit statements due to:", e);
-            assert session.statements().size() > 0;
+            assert !session.statements().isEmpty();
             throw new BackendException(
                     "Failed to commit %s statements: '%s'...", e,
                     session.statements().size(),

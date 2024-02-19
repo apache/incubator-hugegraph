@@ -148,7 +148,7 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
         Map<Id, JsonVertex> map = new HashMap<>(req.jsonVertices.size());
 
-        return this.commit(config, g, map.size(), () -> {
+        return this.commit(config, g, 0, () -> {
             /*
              * 1.Put all newVertices' properties into map (combine first)
              * - Consider primary-key & user-define ID mode first
@@ -156,8 +156,7 @@ public class VertexAPI extends BatchAPI {
             req.jsonVertices.forEach(newVertex -> {
                 Id newVertexId = getVertexId(g, newVertex);
                 JsonVertex oldVertex = map.get(newVertexId);
-                this.updateExistElement(oldVertex, newVertex,
-                                        req.updateStrategies);
+                this.updateExistElement(oldVertex, newVertex, req.updateStrategies);
                 map.put(newVertexId, newVertex);
             });
 
@@ -166,8 +165,7 @@ public class VertexAPI extends BatchAPI {
             Iterator<Vertex> oldVertices = g.vertices(ids);
             oldVertices.forEachRemaining(oldVertex -> {
                 JsonVertex newVertex = map.get(oldVertex.id());
-                this.updateExistElement(g, oldVertex, newVertex,
-                                        req.updateStrategies);
+                this.updateExistElement(g, oldVertex, newVertex, req.updateStrategies);
             });
 
             // 3.Add finalVertices and return them
@@ -177,8 +175,7 @@ public class VertexAPI extends BatchAPI {
             });
 
             // If return ids, the ids.size() maybe different with the origins'
-            return manager.serializer(g)
-                          .writeVertices(vertices.iterator(), false);
+            return manager.serializer(g).writeVertices(vertices.iterator(), false);
         });
     }
 
@@ -238,8 +235,7 @@ public class VertexAPI extends BatchAPI {
         Map<String, Object> props = parseProperties(properties);
         if (page != null) {
             E.checkArgument(offset == 0,
-                            "Not support querying vertices based on paging " +
-                            "and offset together");
+                            "Not support querying vertices based on paging and offset together");
         }
 
         HugeGraph g = graph(manager, graph);
@@ -265,13 +261,11 @@ public class VertexAPI extends BatchAPI {
         if (page == null) {
             traversal = traversal.range(offset, offset + limit);
         } else {
-            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page)
-                                 .limit(limit);
+            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page).limit(limit);
         }
 
         try {
-            return manager.serializer(g).writeVertices(traversal,
-                                                       page != null);
+            return manager.serializer(g).writeVertices(traversal, page != null);
         } finally {
             if (g.tx().isOpen()) {
                 g.tx().close();
@@ -319,7 +313,7 @@ public class VertexAPI extends BatchAPI {
                 g.removeVertex(label, id);
             } catch (NotFoundException e) {
                 throw new IllegalArgumentException(String.format(
-                        "No such vertex with id: '%s', %s", id, e));
+                         "No such vertex with id: '%s', %s", id, e));
             } catch (NoSuchElementException e) {
                 throw new IllegalArgumentException(String.format(
                         "No such vertex with id: '%s'", id));
@@ -345,17 +339,14 @@ public class VertexAPI extends BatchAPI {
         }
     }
 
-    private static void checkBatchSize(HugeConfig config,
-                                       List<JsonVertex> vertices) {
+    private static void checkBatchSize(HugeConfig config, List<JsonVertex> vertices) {
         int max = config.get(ServerOptions.MAX_VERTICES_PER_BATCH);
         if (vertices.size() > max) {
             throw new IllegalArgumentException(String.format(
-                    "Too many vertices for one time post, " +
-                    "the maximum number is '%s'", max));
+                "Too many vertices for one time post, the maximum number is '%s'", max));
         }
-        if (vertices.size() == 0) {
-            throw new IllegalArgumentException(
-                    "The number of vertices can't be 0");
+        if (vertices.isEmpty()) {
+            throw new IllegalArgumentException("The number of vertices can't be 0");
         }
     }
 
@@ -373,8 +364,7 @@ public class VertexAPI extends BatchAPI {
                 String propertyKey = g.propertyKey(pkId).name();
                 Object propertyValue = vertex.properties.get(propertyKey);
                 E.checkArgument(propertyValue != null,
-                                "The value of primary key '%s' can't be null",
-                                propertyKey);
+                                "The value of primary key '%s' can't be null", propertyKey);
                 pkValues.add(propertyValue);
             }
 
@@ -402,8 +392,7 @@ public class VertexAPI extends BatchAPI {
             E.checkArgumentNotNull(req, "BatchVertexRequest can't be null");
             E.checkArgumentNotNull(req.jsonVertices,
                                    "Parameter 'vertices' can't be null");
-            E.checkArgument(req.updateStrategies != null &&
-                            !req.updateStrategies.isEmpty(),
+            E.checkArgument(req.updateStrategies != null && !req.updateStrategies.isEmpty(),
                             "Parameter 'update_strategies' can't be empty");
             E.checkArgument(req.createIfNotExist,
                             "Parameter 'create_if_not_exist' " +
@@ -428,8 +417,7 @@ public class VertexAPI extends BatchAPI {
 
         @Override
         public void checkUpdate() {
-            E.checkArgumentNotNull(this.properties,
-                                   "The properties of vertex can't be null");
+            E.checkArgumentNotNull(this.properties, "The properties of vertex can't be null");
 
             for (Map.Entry<String, Object> e : this.properties.entrySet()) {
                 String key = e.getKey();
@@ -462,7 +450,7 @@ public class VertexAPI extends BatchAPI {
             }
             if (this.id != null) {
                 newProps[appendIndex++] = T.id;
-                // Keep value++ to avoid code trap
+                // Note: Here we keep value++ to avoid code trap
                 newProps[appendIndex++] = this.id;
             }
             return newProps;

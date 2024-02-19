@@ -49,14 +49,13 @@ public class BatchAPI extends API {
 
     static {
         MetricsUtil.registerGauge(RestServer.class, "batch-write-threads",
-                                  () -> BATCH_WRITE_THREADS.intValue());
+                                  BATCH_WRITE_THREADS::intValue);
     }
 
     private final Meter batchMeter;
 
     public BatchAPI() {
-        this.batchMeter = MetricsUtil.registerMeter(this.getClass(),
-                                                    "batch-commit");
+        this.batchMeter = MetricsUtil.registerMeter(this.getClass(), "batch-commit");
     }
 
     public <R> R commit(HugeConfig config, HugeGraph g, int size,
@@ -99,8 +98,7 @@ public class BatchAPI extends API {
         protected abstract Object[] properties();
     }
 
-    protected void updateExistElement(JsonElement oldElement,
-                                      JsonElement newElement,
+    protected void updateExistElement(JsonElement oldElement, JsonElement newElement,
                                       Map<String, UpdateStrategy> strategies) {
         if (oldElement == null) {
             return;
@@ -124,9 +122,7 @@ public class BatchAPI extends API {
         }
     }
 
-    protected void updateExistElement(HugeGraph g,
-                                      Element oldElement,
-                                      JsonElement newElement,
+    protected void updateExistElement(HugeGraph g, Element oldElement, JsonElement newElement,
                                       Map<String, UpdateStrategy> strategies) {
         if (oldElement == null) {
             return;
@@ -151,8 +147,7 @@ public class BatchAPI extends API {
         }
     }
 
-    protected static void updateProperties(HugeElement element,
-                                           JsonElement jsonElement,
+    protected static void updateProperties(HugeElement element, JsonElement jsonElement,
                                            boolean append) {
         for (Map.Entry<String, Object> e : jsonElement.properties.entrySet()) {
             String key = e.getKey();

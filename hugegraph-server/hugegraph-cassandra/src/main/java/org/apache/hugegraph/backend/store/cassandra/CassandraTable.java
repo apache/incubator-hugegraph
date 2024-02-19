@@ -135,8 +135,7 @@ public abstract class CassandraTable
 
     protected <R> Iterator<R> query(Query query,
                                     Function<Statement, ResultSet> fetcher,
-                                    BiFunction<Query, ResultSet, Iterator<R>>
-                                            parser) {
+                                    BiFunction<Query, ResultSet, Iterator<R>> parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {
@@ -373,7 +372,7 @@ public abstract class CassandraTable
                 return QueryBuilder.containsKey(key, value);
             case SCAN:
                 String[] col = pkColumnName().stream()
-                                             .map(pk -> formatKey(pk))
+                                             .map(CassandraTable::formatKey)
                                              .toArray(String[]::new);
                 Shard shard = (Shard) value;
                 Object start = QueryBuilder.raw(shard.start());
@@ -510,7 +509,7 @@ public abstract class CassandraTable
     }
 
     protected Insert buildInsert(CassandraBackendEntry.Row entry) {
-        assert entry.columns().size() > 0;
+        assert !entry.columns().isEmpty();
         Insert insert = QueryBuilder.insertInto(this.table());
 
         for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {

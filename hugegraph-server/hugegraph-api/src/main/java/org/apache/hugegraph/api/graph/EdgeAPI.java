@@ -98,18 +98,15 @@ public class EdgeAPI extends BatchAPI {
              * NOTE: If the vertex id is correct but label not match with id,
              * we allow to create it here
              */
-            vertexLabel(g, jsonEdge.sourceLabel,
-                        "Invalid source vertex label '%s'");
-            vertexLabel(g, jsonEdge.targetLabel,
-                        "Invalid target vertex label '%s'");
+            vertexLabel(g, jsonEdge.sourceLabel, "Invalid source vertex label '%s'");
+            vertexLabel(g, jsonEdge.targetLabel, "Invalid target vertex label '%s'");
         }
 
         Vertex srcVertex = getVertex(g, jsonEdge.source, jsonEdge.sourceLabel);
         Vertex tgtVertex = getVertex(g, jsonEdge.target, jsonEdge.targetLabel);
 
         Edge edge = commit(g, () -> {
-            return srcVertex.addEdge(jsonEdge.label, tgtVertex,
-                                     jsonEdge.properties());
+            return srcVertex.addEdge(jsonEdge.label, tgtVertex, jsonEdge.properties());
         });
 
         return manager.serializer(g).writeEdge(edge);
@@ -146,12 +143,9 @@ public class EdgeAPI extends BatchAPI {
                  * then the label is correct and not matched id,
                  * it will be allowed currently
                  */
-                Vertex srcVertex = getVertex.apply(g, jsonEdge.source,
-                                                   jsonEdge.sourceLabel);
-                Vertex tgtVertex = getVertex.apply(g, jsonEdge.target,
-                                                   jsonEdge.targetLabel);
-                Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex,
-                                              jsonEdge.properties());
+                Vertex srcVertex = getVertex.apply(g, jsonEdge.source, jsonEdge.sourceLabel);
+                Vertex tgtVertex = getVertex.apply(g, jsonEdge.target, jsonEdge.targetLabel);
+                Edge edge = srcVertex.addEdge(jsonEdge.label, tgtVertex, jsonEdge.properties());
                 ids.add((Id) edge.id());
             }
             return manager.serializer(g).writeIds(ids);
@@ -179,16 +173,16 @@ public class EdgeAPI extends BatchAPI {
 
         HugeGraph g = graph(manager, graph);
         Map<Id, JsonEdge> map = new HashMap<>(req.jsonEdges.size());
-        TriFunction<HugeGraph, Object, String, Vertex> getVertex =
-                req.checkVertex ? EdgeAPI::getVertex : EdgeAPI::newVertex;
+        TriFunction<HugeGraph, Object, String, Vertex> getVertex = req.checkVertex ?
+                                                                   EdgeAPI::getVertex :
+                                                                   EdgeAPI::newVertex;
 
-        return this.commit(config, g, map.size(), () -> {
+        return this.commit(config, g, 0, () -> {
             // 1.Put all newEdges' properties into map (combine first)
             req.jsonEdges.forEach(newEdge -> {
                 Id newEdgeId = getEdgeId(graph(manager, graph), newEdge);
                 JsonEdge oldEdge = map.get(newEdgeId);
-                this.updateExistElement(oldEdge, newEdge,
-                                        req.updateStrategies);
+                this.updateExistElement(oldEdge, newEdge, req.updateStrategies);
                 map.put(newEdgeId, newEdge);
             });
 
@@ -197,19 +191,15 @@ public class EdgeAPI extends BatchAPI {
             Iterator<Edge> oldEdges = g.edges(ids);
             oldEdges.forEachRemaining(oldEdge -> {
                 JsonEdge newEdge = map.get(oldEdge.id());
-                this.updateExistElement(g, oldEdge, newEdge,
-                                        req.updateStrategies);
+                this.updateExistElement(g, oldEdge, newEdge, req.updateStrategies);
             });
 
             // 3.Add all finalEdges
             List<Edge> edges = new ArrayList<>(map.size());
             map.values().forEach(finalEdge -> {
-                Vertex srcVertex = getVertex.apply(g, finalEdge.source,
-                                                   finalEdge.sourceLabel);
-                Vertex tgtVertex = getVertex.apply(g, finalEdge.target,
-                                                   finalEdge.targetLabel);
-                edges.add(srcVertex.addEdge(finalEdge.label, tgtVertex,
-                                            finalEdge.properties()));
+                Vertex srcVertex = getVertex.apply(g, finalEdge.source, finalEdge.sourceLabel);
+                Vertex tgtVertex = getVertex.apply(g, finalEdge.target, finalEdge.targetLabel);
+                edges.add(srcVertex.addEdge(finalEdge.label, tgtVertex, finalEdge.properties()));
             });
 
             // If return ids, the ids.size() maybe different with the origins'
@@ -253,7 +243,6 @@ public class EdgeAPI extends BatchAPI {
         }
 
         commit(g, () -> updateProperties(edge, jsonEdge, append));
-
         return manager.serializer(g).writeEdge(edge);
     }
 
@@ -281,8 +270,7 @@ public class EdgeAPI extends BatchAPI {
         Map<String, Object> props = parseProperties(properties);
         if (page != null) {
             E.checkArgument(offset == 0,
-                            "Not support querying edges based on paging " +
-                            "and offset together");
+                            "Not support querying edges based on paging and offset together");
         }
 
         Id vertex = VertexAPI.checkAndParseVertexId(vertexId);
@@ -321,8 +309,7 @@ public class EdgeAPI extends BatchAPI {
         if (page == null) {
             traversal = traversal.range(offset, offset + limit);
         } else {
-            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page)
-                                 .limit(limit);
+            traversal = traversal.has(QueryHolder.SYSPROP_PAGE, page).limit(limit);
         }
 
         try {
@@ -380,28 +367,24 @@ public class EdgeAPI extends BatchAPI {
         });
     }
 
-    private static void checkBatchSize(HugeConfig config,
-                                       List<JsonEdge> edges) {
+    private static void checkBatchSize(HugeConfig config, List<JsonEdge> edges) {
         int max = config.get(ServerOptions.MAX_EDGES_PER_BATCH);
         if (edges.size() > max) {
             throw new IllegalArgumentException(String.format(
                     "Too many edges for one time post, " +
                     "the maximum number is '%s'", max));
         }
-        if (edges.size() == 0) {
-            throw new IllegalArgumentException(
-                    "The number of edges can't be 0");
+        if (edges.isEmpty()) {
+            throw new IllegalArgumentException("The number of edges can't be 0");
         }
     }
 
-    private static Vertex getVertex(HugeGraph graph,
-                                    Object id, String label) {
+    private static Vertex getVertex(HugeGraph graph, Object id, String label) {
         HugeVertex vertex;
         try {
             vertex = (HugeVertex) graph.vertices(id).next();
         } catch (NoSuchElementException e) {
-            throw new IllegalArgumentException(String.format(
-                    "Invalid vertex id '%s'", id));
+            throw new IllegalArgumentException(String.format("Invalid vertex id '%s'", id));
         }
         if (label != null && !vertex.label().equals(label)) {
             throw new IllegalArgumentException(String.format(
@@ -419,8 +402,7 @@ public class EdgeAPI extends BatchAPI {
         return new HugeVertex(g, idValue, vl);
     }
 
-    private static VertexLabel vertexLabel(HugeGraph graph, String label,
-                                           String message) {
+    private static VertexLabel vertexLabel(HugeGraph graph, String label, String message) {
         try {
             // NOTE: don't use SchemaManager because it will throw 404
             return graph.vertexLabel(label);
@@ -453,8 +435,7 @@ public class EdgeAPI extends BatchAPI {
                 String sortKey = pk.name();
                 Object sortKeyValue = newEdge.properties.get(sortKey);
                 E.checkArgument(sortKeyValue != null,
-                                "The value of sort key '%s' can't be null",
-                                sortKey);
+                                "The value of sort key '%s' can't be null", sortKey);
                 sortKeyValue = pk.validValueOrThrow(sortKeyValue);
                 sortKeyValues.add(sortKeyValue);
             });
@@ -487,14 +468,11 @@ public class EdgeAPI extends BatchAPI {
 
         private static void checkUpdate(BatchEdgeRequest req) {
             E.checkArgumentNotNull(req, "BatchEdgeRequest can't be null");
-            E.checkArgumentNotNull(req.jsonEdges,
-                                   "Parameter 'edges' can't be null");
-            E.checkArgument(req.updateStrategies != null &&
-                            !req.updateStrategies.isEmpty(),
+            E.checkArgumentNotNull(req.jsonEdges, "Parameter 'edges' can't be null");
+            E.checkArgument(req.updateStrategies != null && !req.updateStrategies.isEmpty(),
                             "Parameter 'update_strategies' can't be empty");
             E.checkArgument(req.createIfNotExist,
-                            "Parameter 'create_if_not_exist' " +
-                            "dose not support false now");
+                            "Parameter 'create_if_not_exist' dose not support false now");
         }
 
         @Override
@@ -524,15 +502,11 @@ public class EdgeAPI extends BatchAPI {
             E.checkArgumentNotNull(this.source, "Expect source vertex id");
             E.checkArgumentNotNull(this.target, "Expect target vertex id");
             if (isBatch) {
-                E.checkArgumentNotNull(this.sourceLabel,
-                                       "Expect source vertex label");
-                E.checkArgumentNotNull(this.targetLabel,
-                                       "Expect target vertex label");
+                E.checkArgumentNotNull(this.sourceLabel, "Expect source vertex label");
+                E.checkArgumentNotNull(this.targetLabel, "Expect target vertex label");
             } else {
-                E.checkArgument(this.sourceLabel == null &&
-                                this.targetLabel == null ||
-                                this.sourceLabel != null &&
-                                this.targetLabel != null,
+                E.checkArgument(this.sourceLabel == null && this.targetLabel == null ||
+                                this.sourceLabel != null && this.targetLabel != null,
                                 "The both source and target vertex label " +
                                 "are either passed in, or not passed in");
             }
@@ -541,15 +515,13 @@ public class EdgeAPI extends BatchAPI {
 
         @Override
         public void checkUpdate() {
-            E.checkArgumentNotNull(this.properties,
-                                   "The properties of edge can't be null");
+            E.checkArgumentNotNull(this.properties, "The properties of edge can't be null");
 
             for (Map.Entry<String, Object> entry : this.properties.entrySet()) {
                 String key = entry.getKey();
                 Object value = entry.getValue();
                 E.checkArgumentNotNull(value, "Not allowed to set value of " +
-                                              "property '%s' to null for edge '%s'",
-                                       key, this.id);
+                                              "property '%s' to null for edge '%s'", key, this.id);
             }
         }
 
