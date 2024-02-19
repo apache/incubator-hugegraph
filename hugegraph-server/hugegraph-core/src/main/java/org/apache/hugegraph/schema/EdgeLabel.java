@@ -23,12 +23,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public class EdgeLabel extends SchemaLabel {
