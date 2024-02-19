@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.api.profile;
@@ -34,6 +34,8 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 import org.glassfish.jersey.model.Parameter.Source;
 import org.glassfish.jersey.server.model.Parameter;
@@ -55,6 +57,7 @@ public class ProfileAPI {
     private static final String SERVICE = "hugegraph";
     private static final String DOC = "https://hugegraph.apache.org/docs/";
     private static final String API_DOC = DOC + "clients/";
+    private static final String SWAGGER_UI = "/swagger-ui/index.html";
 
     private static String SERVER_PROFILES = null;
     private static String API_PROFILES = null;
@@ -62,7 +65,7 @@ public class ProfileAPI {
     @GET
     @Timed
     @Produces(MediaType.APPLICATION_JSON)
-    public String getProfile(@Context Application application) {
+    public String getProfile(@Context HugeConfig conf, @Context Application application) {
         // May init multi times by multi threads, but no effect on the results
         if (SERVER_PROFILES != null) {
             return SERVER_PROFILES;
@@ -73,6 +76,7 @@ public class ProfileAPI {
         profiles.put("version", CoreVersion.VERSION.toString());
         profiles.put("doc", DOC);
         profiles.put("api_doc", API_DOC);
+        profiles.put("swagger_ui", conf.get(ServerOptions.REST_SERVER_URL) + SWAGGER_UI);
         Set<String> apis = new TreeSet<>();
         for (Class<?> clazz : application.getClasses()) {
             if (!isAnnotatedPathClass(clazz)) {

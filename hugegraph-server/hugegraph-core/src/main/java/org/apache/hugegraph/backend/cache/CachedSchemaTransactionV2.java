@@ -291,13 +291,9 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
         if (value == null) {
             value = super.getSchema(type, name);
             if (value != null) {
-                this.resetCachedAllIfReachedCapacity();
-
-                this.nameCache.update(prefixedName, value);
-
-                SchemaElement schema = (SchemaElement) value;
-                Id prefixedId = generateId(schema.type(), schema.id());
-                this.idCache.update(prefixedId, schema);
+                // Note: reload all schema if the cache is inconsistent with storage layer
+                this.clearCache(false);
+                this.loadAllSchema();
             }
         }
         return (T) value;
@@ -334,6 +330,13 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             }
             return results;
         }
+    }
+
+    private void loadAllSchema() {
+        getAllSchema(HugeType.PROPERTY_KEY);
+        getAllSchema(HugeType.VERTEX_LABEL);
+        getAllSchema(HugeType.EDGE_LABEL);
+        getAllSchema(HugeType.INDEX_LABEL);
     }
 
     @Override

@@ -164,8 +164,9 @@ public class MetaManager {
                     break;
                 case PD:
                     assert args.length > 0;
-                    String pdPeer = String.join(",", (List<String>) args[0]);
-                    this.metaDriver = new PdMetaDriver(pdPeer);
+                    // FIXME: assume pd.peers is urls separated by commas in a string
+                    //        like `127.0.0.1:8686,127.0.0.1:8687,127.0.0.1:8688`
+                    this.metaDriver = new PdMetaDriver((String) args[0]);
                     break;
                 default:
                     throw new AssertionError(String.format(

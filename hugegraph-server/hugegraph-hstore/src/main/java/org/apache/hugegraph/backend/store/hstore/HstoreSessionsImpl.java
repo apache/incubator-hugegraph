@@ -37,6 +37,7 @@ import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
@@ -103,7 +104,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
             synchronized (this) {
                 if (!initializedNode) {
                     PDConfig pdConfig =
-                        PDConfig.of(config.get(HstoreOptions.PD_PEERS))
+                        PDConfig.of(config.get(CoreOptions.PD_PEERS))
                                 .setEnableCache(true);
                     defaultPdClient = PDClient.create(pdConfig);
                     hgStoreClient =
@@ -244,7 +245,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
                 this.position = iter.position();
             } else {
                 this.gotNext = false;
-                this.position = null;
+                // QUESTION: Resetting the position may result in the caller being unable to
+                //           retrieve the corresponding position.
+                // this.position = null;
             }
             if (!ArrayUtils.isEmpty(this.keyBegin) ||
                 !ArrayUtils.isEmpty(this.keyEnd)) {
@@ -315,7 +318,9 @@ public class HstoreSessionsImpl extends HstoreSessions {
             if (gotNext) {
                 this.position = this.iter.position();
             } else {
-                this.position = null;
+                // QUESTION: Resetting the position may result in the caller being unable to
+                //           retrieve the corresponding position.
+                // this.position = null;
             }
             return gotNext;
         }
