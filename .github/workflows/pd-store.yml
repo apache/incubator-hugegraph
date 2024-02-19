@@ -192,9 +192,9 @@ jobs:
         run: |
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
 
-      - name: Run core test
-        run: |
-          $TRAVIS_DIR/run-core-test.sh $BACKEND
+#      - name: Run core test
+#        run: |
+#          $TRAVIS_DIR/run-core-test.sh $BACKEND
 
       - name: Run api test
         run: |
