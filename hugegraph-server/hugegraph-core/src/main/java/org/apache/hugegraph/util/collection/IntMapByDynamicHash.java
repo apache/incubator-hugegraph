@@ -49,8 +49,9 @@ public class IntMapByDynamicHash implements IntMap {
     private static final int NULL_VALUE = Integer.MIN_VALUE;
 
     private static final AtomicReferenceFieldUpdater<IntMapByDynamicHash, Entry[]>
-        TABLE_UPDATER =
-        AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash.class, Entry[].class, "table");
+            TABLE_UPDATER =
+            AtomicReferenceFieldUpdater.newUpdater(IntMapByDynamicHash.class, Entry[].class,
+                                                   "table");
 
     private volatile Entry[] table;
 
@@ -94,7 +95,7 @@ public class IntMapByDynamicHash implements IntMap {
             // we want 7 extra slots, and 64 bytes for each slot int are 4 bytes,
             // so 64 bytes are 16 ints.
             this.partitionedSize =
-                new int[SIZE_BUCKETS * 16];
+                    new int[SIZE_BUCKETS * 16];
         }
         // The end index is for resizeContainer
         this.table = new Entry[cap + 1];
@@ -203,7 +204,7 @@ public class IntMapByDynamicHash implements IntMap {
                     int oldVal = e.getValue();
                     // Key found, replace the entry
                     Entry newEntry =
-                        new Entry(key, value, this.createReplacementChainForRemoval(o, e));
+                            new Entry(key, value, this.createReplacementChainForRemoval(o, e));
                     if (IntMapByDynamicHash.casTableAt(currentTable, index, o, newEntry)) {
                         return oldVal;
                     }
@@ -385,8 +386,8 @@ public class IntMapByDynamicHash implements IntMap {
                 Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, i);
                 if (o == RESIZED || o == RESIZING) {
                     resizeContainer =
-                        (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                                      currentArray.length - 1);
+                            (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
+                                                                          currentArray.length - 1);
                 } else if (o != null) {
                     Entry e = o;
                     if (IntMapByDynamicHash.casTableAt(currentArray, i, o, null)) {
@@ -645,7 +646,8 @@ public class IntMapByDynamicHash implements IntMap {
      */
     private Entry[] helpWithResize(Entry[] currentArray) {
         ResizeContainer resizeContainer =
-            (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray, currentArray.length - 1);
+                (ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
+                                                              currentArray.length - 1);
         Entry[] newTable = resizeContainer.nextArray;
         if (resizeContainer.getQueuePosition() > ResizeContainer.QUEUE_INCREMENT) {
             resizeContainer.incrementResizer();
@@ -714,8 +716,8 @@ public class IntMapByDynamicHash implements IntMap {
             Entry o = (Entry) IntMapByDynamicHash.tableAt(currentArray, index);
             if (o == RESIZED || o == RESIZING) {
                 currentArray =
-                    ((ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
-                                                                   length - 1)).nextArray;
+                        ((ResizeContainer) IntMapByDynamicHash.tableAt(currentArray,
+                                                                       length - 1)).nextArray;
             } else {
                 Entry newEntry;
                 if (o == null) {
@@ -743,8 +745,8 @@ public class IntMapByDynamicHash implements IntMap {
     private static final class ResizeContainer extends Entry {
 
         private static final int QUEUE_INCREMENT =
-            Math.min(1 << 10,
-                     Integer.highestOneBit(IntSet.CPUS) << 4);
+                Math.min(1 << 10,
+                         Integer.highestOneBit(IntSet.CPUS) << 4);
         private final AtomicInteger resizers = new AtomicInteger(1);
         private final Entry[] nextArray;
         private final AtomicInteger queuePosition;
@@ -868,6 +870,7 @@ public class IntMapByDynamicHash implements IntMap {
     /* ---------------- Iterator -------------- */
 
     private static final class IteratorState {
+
         private Entry[] currentTable;
         private int start;
         private int end;
@@ -913,11 +916,12 @@ public class IntMapByDynamicHash implements IntMap {
         private void findNext() {
             while (this.index < this.currentState.end) {
                 Entry o =
-                    (Entry) IntMapByDynamicHash.tableAt(this.currentState.currentTable, this.index);
+                        (Entry) IntMapByDynamicHash.tableAt(this.currentState.currentTable,
+                                                            this.index);
                 if (o == RESIZED || o == RESIZING) {
                     Entry[] nextArray =
-                        IntMapByDynamicHash.this.helpWithResizeWhileCurrentIndex(
-                            this.currentState.currentTable, this.index);
+                            IntMapByDynamicHash.this.helpWithResizeWhileCurrentIndex(
+                                    this.currentState.currentTable, this.index);
                     int endResized = this.index + 1;
                     while (endResized < this.currentState.end) {
                         if (IntMapByDynamicHash.tableAt(this.currentState.currentTable,
@@ -931,7 +935,7 @@ public class IntMapByDynamicHash implements IntMap {
                     }
                     if (endResized < this.currentState.end) {
                         this.todo.add(new IteratorState(
-                            this.currentState.currentTable, endResized, this.currentState.end));
+                                this.currentState.currentTable, endResized, this.currentState.end));
                     }
                     int powerTwoLength = this.currentState.currentTable.length - 1;
                     this.todo.add(new IteratorState(nextArray, this.index + powerTwoLength,
@@ -974,6 +978,7 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     private final class ValueIterator extends HashIterator {
+
         @Override
         public int next() {
             return this.nextEntry().getValue();
@@ -981,6 +986,7 @@ public class IntMapByDynamicHash implements IntMap {
     }
 
     private final class KeyIterator extends HashIterator {
+
         @Override
         public int next() {
             return this.nextEntry().getKey();

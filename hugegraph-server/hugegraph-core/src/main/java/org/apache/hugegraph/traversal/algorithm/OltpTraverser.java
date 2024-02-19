@@ -49,7 +49,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import com.google.common.base.Objects;
 
 public abstract class OltpTraverser extends HugeTraverser
-                                    implements AutoCloseable {
+        implements AutoCloseable {
 
     private static final String EXECUTOR_NAME = "oltp";
     private static Consumers.ExecutorPool executors;
@@ -149,7 +149,7 @@ public abstract class OltpTraverser extends HugeTraverser
                                     long capacity,
                                     Consumer<EdgeId> consumer) {
         List<Id> labels = label == null ? Collections.emptyList() :
-                                          Collections.singletonList(label);
+                          Collections.singletonList(label);
         OneStepEdgeIterConsumer edgeIterConsumer = new OneStepEdgeIterConsumer(consumer, capacity);
 
         EdgesIterator edgeIter = edgesOfVertices(vertices, dir, labels, degree);
@@ -248,7 +248,7 @@ public abstract class OltpTraverser extends HugeTraverser
     }
 
     public static class ConcurrentMultiValuedMap<K, V>
-                  extends ConcurrentHashMap<K, List<V>> {
+            extends ConcurrentHashMap<K, List<V>> {
 
         private static final long serialVersionUID = -7249946839643493614L;
 

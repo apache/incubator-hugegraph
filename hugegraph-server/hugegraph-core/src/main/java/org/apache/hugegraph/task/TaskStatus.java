@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.type.define.SerialEnum;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -41,10 +42,10 @@ public enum TaskStatus implements SerialEnum {
 
     // NOTE: order is important(RESTORING > RUNNING > QUEUED) when restoring
     public static final List<TaskStatus> PENDING_STATUSES = ImmutableList.of(
-           TaskStatus.RESTORING, TaskStatus.RUNNING, TaskStatus.QUEUED);
+            TaskStatus.RESTORING, TaskStatus.RUNNING, TaskStatus.QUEUED);
 
     public static final Set<TaskStatus> COMPLETED_STATUSES = ImmutableSet.of(
-           TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
+            TaskStatus.SUCCESS, TaskStatus.CANCELLED, TaskStatus.FAILED);
 
     private byte status;
     private String name;

@@ -17,10 +17,9 @@
 
 package org.apache.hugegraph.util.collection;
 
-import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 
 public class ObjectIntMappingFactory {
 
@@ -29,13 +28,13 @@ public class ObjectIntMappingFactory {
     }
 
     public static <V> ObjectIntMapping<V> newObjectIntMapping(
-                                          boolean concurrent) {
+            boolean concurrent) {
         return concurrent ? new ConcurrentObjectIntMapping<>() :
-                            new SingleThreadObjectIntMapping<>();
+               new SingleThreadObjectIntMapping<>();
     }
 
     public static final class SingleThreadObjectIntMapping<V>
-                        implements ObjectIntMapping<V> {
+            implements ObjectIntMapping<V> {
 
         private static final int MAGIC = 1 << 16;
         private static final int MAX_OFFSET = 10;
@@ -103,7 +102,7 @@ public class ObjectIntMappingFactory {
     }
 
     public static final class ConcurrentObjectIntMapping<V>
-                        implements ObjectIntMapping<V> {
+            implements ObjectIntMapping<V> {
 
         private final SingleThreadObjectIntMapping<V> objectIntMapping;
 

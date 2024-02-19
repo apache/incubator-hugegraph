@@ -30,6 +30,7 @@ import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.VertexStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
@@ -39,10 +40,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.util.Log;
-
 public class HugeVertexStep<E extends Element>
-       extends VertexStep<E> implements QueryHolder {
+        extends VertexStep<E> implements QueryHolder {
 
     private static final long serialVersionUID = -7850636388424382454L;
 
@@ -124,7 +123,7 @@ public class HugeVertexStep<E extends Element>
     }
 
     protected ConditionQuery constructEdgesQuery(
-                             Traverser.Admin<Vertex> traverser) {
+            Traverser.Admin<Vertex> traverser) {
         HugeGraph graph = TraversalUtil.getGraph(this);
 
         // Query for edge with conditions(else conditions for vertex)
@@ -140,7 +139,7 @@ public class HugeVertexStep<E extends Element>
                   vertex, direction, edgeLabels, this.hasContainers);
 
         ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                               vertex, direction, edgeLabels);
+                vertex, direction, edgeLabels);
         // Query by sort-keys
         if (withEdgeCond && edgeLabels.length == 1) {
             TraversalUtil.fillConditionQuery(query, this.hasContainers, graph);
@@ -173,8 +172,8 @@ public class HugeVertexStep<E extends Element>
          */
         if (withEdgeCond || withVertexCond) {
             org.apache.hugegraph.util.E.checkArgument(!this.queryInfo().paging(),
-                                                     "Can't query by paging " +
-                                                     "and filtering");
+                                                      "Can't query by paging " +
+                                                      "and filtering");
             this.queryInfo().limit(Query.NO_LIMIT);
         }
 
@@ -198,11 +197,11 @@ public class HugeVertexStep<E extends Element>
         }
 
         return StringFactory.stepString(
-               this,
-               getDirection(),
-               Arrays.asList(getEdgeLabels()),
-               getReturnClass().getSimpleName(),
-               this.hasContainers);
+                this,
+                getDirection(),
+                Arrays.asList(getEdgeLabels()),
+                getReturnClass().getSimpleName(),
+                this.hasContainers);
     }
 
     @Override
@@ -229,6 +228,7 @@ public class HugeVertexStep<E extends Element>
         return this.iterator;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof HugeVertexStep)) {
             return false;

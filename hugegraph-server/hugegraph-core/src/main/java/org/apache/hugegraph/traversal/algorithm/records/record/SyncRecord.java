@@ -31,7 +31,7 @@ public class SyncRecord implements Record {
     public SyncRecord(Record record, Object newLock) {
         if (record == null) {
             throw new IllegalArgumentException(
-                      "Cannot create a SyncRecord on a null record");
+                    "Cannot create a SyncRecord on a null record");
         } else {
             this.record = record;
             this.lock = newLock == null ? this : newLock;

@@ -33,8 +33,8 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty.Cardinality;
 
 public class HugePrimaryKeyStrategy
-    extends AbstractTraversalStrategy<TraversalStrategy.ProviderOptimizationStrategy>
-    implements ProviderOptimizationStrategy {
+        extends AbstractTraversalStrategy<TraversalStrategy.ProviderOptimizationStrategy>
+        implements ProviderOptimizationStrategy {
 
     private static final long serialVersionUID = 6307847098226016416L;
     private static final HugePrimaryKeyStrategy INSTANCE = new HugePrimaryKeyStrategy();

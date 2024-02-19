@@ -24,6 +24,7 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.collect.ImmutableList;
 
 public class PredictionTraverser extends OltpTraverser {

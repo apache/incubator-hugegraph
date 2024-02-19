@@ -38,19 +38,18 @@ import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.util.Log;
 
 public class HugeVariables implements Graph.Variables {
 
@@ -216,7 +215,7 @@ public class HugeVariables implements Graph.Variables {
         String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
         if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(type);
+                    .dataTypeOfVariableValueNotSupported(type);
         }
         // The value of key VARIABLE_TYPE is the name of variable value
         return Optional.of(vertex.value(Hidden.hide(type)));
@@ -262,7 +261,7 @@ public class HugeVariables implements Graph.Variables {
                 String type = vertex.value(Hidden.hide(VARIABLE_TYPE));
                 if (!Arrays.asList(TYPES).contains(Hidden.hide(type))) {
                     throw Graph.Variables.Exceptions
-                               .dataTypeOfVariableValueNotSupported(type);
+                            .dataTypeOfVariableValueNotSupported(type);
                 }
                 Object value = vertex.value(Hidden.hide(type));
                 variables.put(key, value);
@@ -322,7 +321,7 @@ public class HugeVariables implements Graph.Variables {
             vertex.property(Hidden.hide(VARIABLE_TYPE), STRING_VALUE + suffix);
         } else {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(value);
+                    .dataTypeOfVariableValueNotSupported(value);
         }
     }
 
@@ -335,7 +334,7 @@ public class HugeVariables implements Graph.Variables {
             this.setProperty(vertex, key, value);
         } catch (IllegalArgumentException e) {
             throw Graph.Variables.Exceptions
-                       .dataTypeOfVariableValueNotSupported(value, e);
+                    .dataTypeOfVariableValueNotSupported(value, e);
         }
         // PrimaryKey id
         vertex.assignId(null);
@@ -367,7 +366,7 @@ public class HugeVariables implements Graph.Variables {
         query.eq(HugeKeys.LABEL, vl.id());
         if (name != null) {
             PropertyKey pkey = this.params.graph().propertyKey(
-                               Hidden.hide(VARIABLE_KEY));
+                    Hidden.hide(VARIABLE_KEY));
             query.query(Condition.eq(pkey.id(), name));
         }
         query.showHidden(true);

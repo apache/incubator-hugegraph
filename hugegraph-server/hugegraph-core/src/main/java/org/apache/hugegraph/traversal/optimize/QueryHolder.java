@@ -21,10 +21,9 @@ import java.util.Iterator;
 
 import org.apache.hugegraph.backend.query.Aggregate;
 import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.iterator.Metadatable;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.step.HasContainerHolder;
-
-import org.apache.hugegraph.iterator.Metadatable;
 
 public interface QueryHolder extends HasContainerHolder, Metadatable {
 

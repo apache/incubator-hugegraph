@@ -22,12 +22,11 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
-import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
-
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.collection.IntIterator.IntIterators;
 import org.apache.hugegraph.util.collection.IntIterator.MapperInt2IntIterator;
+import org.eclipse.collections.api.map.primitive.MutableIntIntMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
 
 import sun.misc.Unsafe;
 
@@ -70,13 +69,13 @@ public interface IntMap {
 
         private static final int DEFAULT_SEGMENTS = (IntSet.CPUS + 8) * 32;
         private static final Function<Integer, IntMap> DEFAULT_CREATOR =
-                             size -> new IntMapByFixedAddr(size);
+                size -> new IntMapByFixedAddr(size);
 
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
         @SuppressWarnings("static-access")
         private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
-                                              UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
+                UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
 
         public IntMapBySegments(int capacity) {
             this(capacity, DEFAULT_SEGMENTS, DEFAULT_CREATOR);
@@ -243,7 +242,7 @@ public interface IntMap {
      * NOTE: IntMapByFixedAddr is:
      * - faster 3x than ec IntIntHashMap for single thread;
      * - faster 8x than ec IntIntHashMap for 4 threads, 4x operations
-     *   with 0.5x cost;
+     * with 0.5x cost;
      */
     final class IntMapByFixedAddr implements IntMap {
 
@@ -260,7 +259,7 @@ public interface IntMap {
         private static final int BASE_OFFSET = UNSAFE.ARRAY_INT_BASE_OFFSET;
         @SuppressWarnings("static-access")
         private static final int MUL4 = 31 - Integer.numberOfLeadingZeros(
-                                             UNSAFE.ARRAY_INT_INDEX_SCALE);
+                UNSAFE.ARRAY_INT_INDEX_SCALE);
 
         public IntMapByFixedAddr(int capacity) {
             this.capacity = capacity;
@@ -280,9 +279,9 @@ public interface IntMap {
             this.indexBlockSize = IntSet.segmentSize(capacity,
                                                      this.indexBlocksNum);
             this.indexBlockSizeShift = Integer.numberOfTrailingZeros(
-                                       this.indexBlockSize);
+                    this.indexBlockSize);
             this.indexBlocksSet = new IntSet.IntSetByFixedAddr4Unsigned(
-                                  this.indexBlocksNum);
+                    this.indexBlocksNum);
 
             this.clear();
         }
@@ -441,7 +440,7 @@ public interface IntMap {
                         }
                     }
                     this.indexOfBlock = indexBlocksSet.nextKey(
-                                        this.indexOfBlock + 1);
+                            this.indexOfBlock + 1);
                     this.indexInBlock = 0;
                 }
                 assert !this.fetched;
@@ -487,7 +486,7 @@ public interface IntMap {
                         }
                     }
                     this.indexOfBlock = indexBlocksSet.nextKey(
-                                        this.indexOfBlock + 1);
+                            this.indexOfBlock + 1);
                     this.indexInBlock = 0;
                 }
                 return false;
