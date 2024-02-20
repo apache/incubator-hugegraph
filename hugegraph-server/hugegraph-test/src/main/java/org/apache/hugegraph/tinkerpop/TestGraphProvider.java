@@ -30,6 +30,18 @@ import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.HugeProperty;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.testutil.Utils;
+import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.AbstractGraphProvider;
 import org.apache.tinkerpop.gremlin.FeatureRequirement;
 import org.apache.tinkerpop.gremlin.FeatureRequirements;
@@ -44,18 +56,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.config.CoreOptions;
-import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.structure.HugeProperty;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.structure.HugeVertexProperty;
-import org.apache.hugegraph.testutil.Utils;
-import org.apache.hugegraph.type.define.IdStrategy;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.RateLimiter;
 
@@ -105,7 +105,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
             VertexPropertyFeatures.FEATURE_STRING_IDS);
 
     private static final RateLimiter LOG_RATE_LIMITER =
-                         RateLimiter.create(1.0 / 300);
+            RateLimiter.create(1.0 / 300);
 
     private Map<String, String> blackMethods = new HashMap<>();
     private Map<String, TestGraph> graphs = new HashMap<>();
@@ -158,9 +158,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
     @Override
     public Map<String, Object> getBaseConfiguration(
-                               String graphName,
-                               Class<?> testClass, String testMethod,
-                               LoadGraphWith.GraphData graphData) {
+            String graphName,
+            Class<?> testClass, String testMethod,
+            LoadGraphWith.GraphData graphData) {
         // Check if test in blackList
         String testFullName = testClass.getCanonicalName() + "." + testMethod;
         int index = testFullName.indexOf('@') == -1 ?
@@ -168,9 +168,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
 
         testFullName = testFullName.substring(0, index);
         Assume.assumeFalse(
-               String.format("Test %s will be ignored with reason: %s",
-                             testFullName, this.blackMethods.get(testFullName)),
-               this.blackMethods.containsKey(testFullName));
+                String.format("Test %s will be ignored with reason: %s",
+                              testFullName, this.blackMethods.get(testFullName)),
+                this.blackMethods.containsKey(testFullName));
 
         LOG.debug("Full name of test is: {}", testFullName);
         LOG.debug("Prefix of test is: {}", testFullName.substring(0, index));
@@ -201,7 +201,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
             return false;
         }
         FeatureRequirements features =
-                            method.getAnnotation(FeatureRequirements.class);
+                method.getAnnotation(FeatureRequirements.class);
         if (features == null) {
             return false;
         }
@@ -286,7 +286,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         }
 
         if (testMethod.equals(
-            "shouldHaveTruncatedStringRepresentationForEdgeProperty")) {
+                "shouldHaveTruncatedStringRepresentationForEdgeProperty")) {
             testGraph.initPropertyKey("long", "String");
         } else {
             testGraph.initPropertyKey("long", "Long");
@@ -295,7 +295,7 @@ public class TestGraphProvider extends AbstractGraphProvider {
         // Basic schema is initiated by default once a graph is open
         testGraph.initBasicSchema(idStrategy(config), TestGraph.DEFAULT_VL);
         if (testClass.getName().equals(
-            "org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest$Traversals")) {
+                "org.apache.tinkerpop.gremlin.process.traversal.step.map.ReadTest$Traversals")) {
             testGraph.initEdgeLabelPersonKnowsPerson();
             testGraph.initEdgeLabelPersonCreatedSoftware();
         } else {
@@ -417,9 +417,9 @@ public class TestGraphProvider extends AbstractGraphProvider {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Only support GRATEFUL, MODERN and CLASSIC " +
-                          "for @LoadGraphWith(), but '%s' is used ",
-                          loadGraphWith));
+                        "Only support GRATEFUL, MODERN and CLASSIC " +
+                        "for @LoadGraphWith(), but '%s' is used ",
+                        loadGraphWith));
         }
         LOG.debug("Load graph with {} schema", loadGraphWith);
         testGraph.tx().commit();

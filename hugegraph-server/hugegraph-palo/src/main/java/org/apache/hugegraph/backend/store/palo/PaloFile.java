@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 

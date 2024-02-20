@@ -17,13 +17,14 @@
 
 package org.apache.hugegraph.backend.store.hbase;
 
+import java.util.Arrays;
+
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.serializer.BinarySerializer;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
-import java.util.Arrays;
 
 public class HbaseSerializer extends BinarySerializer {
 

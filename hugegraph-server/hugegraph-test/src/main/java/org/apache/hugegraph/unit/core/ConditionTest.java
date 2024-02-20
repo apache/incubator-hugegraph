@@ -19,8 +19,6 @@ package org.apache.hugegraph.unit.core;
 
 import java.util.Date;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.Condition.Relation;
@@ -29,6 +27,8 @@ import org.apache.hugegraph.backend.query.Condition.SyspropRelation;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;

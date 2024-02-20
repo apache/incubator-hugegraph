@@ -39,7 +39,7 @@ public abstract class RocksDBSstStore extends RocksDBStore {
     protected RocksDBSessions openSessionPool(HugeConfig config,
                                               String dataPath, String walPath,
                                               List<String> tableNames)
-                                              throws RocksDBException {
+            throws RocksDBException {
         if (tableNames == null) {
             return new RocksDBSstSessions(config, this.database(), this.store(), dataPath);
         } else {

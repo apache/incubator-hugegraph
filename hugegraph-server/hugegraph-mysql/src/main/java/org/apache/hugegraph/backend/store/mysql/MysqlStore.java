@@ -25,8 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
@@ -42,6 +40,7 @@ import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
@@ -236,7 +235,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.checkOpened();
         Session session = this.sessions.session();
 
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
             this.mutate(session, it.next());
         }
     }
@@ -266,7 +265,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported mutate action: %s", item.action()));
+                        "Unsupported mutate action: %s", item.action()));
         }
     }
 
@@ -370,7 +369,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     protected static MysqlBackendEntry castBackendEntry(BackendEntry entry) {
         if (!(entry instanceof MysqlBackendEntry)) {
             throw new BackendException(
-                      "MySQL store only supports MysqlBackendEntry");
+                    "MySQL store only supports MysqlBackendEntry");
         }
         return (MysqlBackendEntry) entry;
     }
@@ -467,13 +466,13 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                      "MysqlGraphStore.increaseCounter()");
+                    "MysqlGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "MysqlGraphStore.getCounter()");
+                    "MysqlGraphStore.getCounter()");
         }
     }
 

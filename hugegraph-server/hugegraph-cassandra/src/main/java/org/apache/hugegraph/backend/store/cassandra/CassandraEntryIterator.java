@@ -43,7 +43,7 @@ public class CassandraEntryIterator extends BackendEntryIterator {
     private BackendEntry next;
 
     public CassandraEntryIterator(ResultSet results, Query query,
-           BiFunction<BackendEntry, Row, BackendEntry> merger) {
+                                  BiFunction<BackendEntry, Row, BackendEntry> merger) {
         super(query);
         this.results = results;
         this.rows = results.iterator();

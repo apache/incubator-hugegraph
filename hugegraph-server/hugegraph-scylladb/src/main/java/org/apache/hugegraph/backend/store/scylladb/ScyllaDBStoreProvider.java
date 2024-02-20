@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.backend.store.scylladb;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
@@ -30,6 +28,7 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class ScyllaDBStoreProvider extends CassandraStoreProvider {
 
@@ -94,7 +93,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
     }
 
     public static class ScyllaDBSchemaStore
-                  extends CassandraStore.CassandraSchemaStore {
+            extends CassandraStore.CassandraSchemaStore {
 
         public ScyllaDBSchemaStore(BackendStoreProvider provider,
                                    String keyspace, String store) {
@@ -124,7 +123,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
     }
 
     public static class ScyllaDBGraphStore
-                  extends CassandraStore.CassandraGraphStore {
+            extends CassandraStore.CassandraGraphStore {
 
         public ScyllaDBGraphStore(BackendStoreProvider provider,
                                   String keyspace, String store) {
@@ -152,7 +151,7 @@ public class ScyllaDBStoreProvider extends CassandraStoreProvider {
     }
 
     public static class ScyllaDBSystemStore
-                  extends CassandraStore.CassandraSystemStore {
+            extends CassandraStore.CassandraSystemStore {
 
         public ScyllaDBSystemStore(BackendStoreProvider provider,
                                    String keyspace, String store) {

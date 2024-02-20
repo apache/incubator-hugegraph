@@ -92,7 +92,7 @@ public class TaskAPI extends API {
             // Set limit to NO_LIMIT to ignore limit when query task by ids
             limit = NO_LIMIT;
             List<Id> idList = ids.stream().map(IdGenerator::of)
-                                          .collect(Collectors.toList());
+                                 .collect(Collectors.toList());
             iter = scheduler.tasks(idList);
         } else {
             if (status == null) {
@@ -158,7 +158,7 @@ public class TaskAPI extends API {
 
         if (!ACTION_CANCEL.equals(action)) {
             throw new NotSupportedException(String.format(
-                      "Not support action '%s'", action));
+                    "Not support action '%s'", action));
         }
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
@@ -172,8 +172,8 @@ public class TaskAPI extends API {
 
         assert task.completed() || task.cancelling();
         throw new BadRequestException(String.format(
-                  "Can't cancel task '%s' which is completed or cancelling",
-                  id));
+                "Can't cancel task '%s' which is completed or cancelling",
+                id));
     }
 
     private static TaskStatus parseStatus(String status) {
@@ -181,8 +181,8 @@ public class TaskAPI extends API {
             return TaskStatus.valueOf(status.toUpperCase());
         } catch (Exception e) {
             throw new IllegalArgumentException(String.format(
-                      "Status value must be in %s, but got '%s'",
-                      Arrays.asList(TaskStatus.values()), status));
+                    "Status value must be in %s, but got '%s'",
+                    Arrays.asList(TaskStatus.values()), status));
         }
     }
 }

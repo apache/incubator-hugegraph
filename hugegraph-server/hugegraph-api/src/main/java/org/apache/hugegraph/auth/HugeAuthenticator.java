@@ -81,7 +81,7 @@ public interface HugeAuthenticator extends Authenticator {
 
     @Override
     default User authenticate(final Map<String, String> credentials)
-                              throws AuthenticationException {
+            throws AuthenticationException {
 
         HugeGraphAuthProxy.resetContext();
 
@@ -118,11 +118,7 @@ public interface HugeAuthenticator extends Authenticator {
     }
 
     default boolean verifyRole(RolePermission role) {
-        if (role == ROLE_NONE || role == null) {
-            return false;
-        } else {
-            return true;
-        }
+        return role != ROLE_NONE && role != null;
     }
 
     void initAdminUser(String password) throws Exception;
@@ -334,7 +330,7 @@ public interface HugeAuthenticator extends Authenticator {
             return null;
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings({"unchecked", "rawtypes"})
         public static RolePerm fromJson(Object role) {
             RolePermission table = RolePermission.fromJson(role);
             return new RolePerm((Map) table.map());

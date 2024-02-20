@@ -20,7 +20,6 @@ package org.apache.hugegraph.backend.store.scylladb;
 import java.util.Map;
 
 import org.apache.cassandra.tools.NodeProbe;
-
 import org.apache.hugegraph.backend.store.cassandra.CassandraMetrics;
 import org.apache.hugegraph.backend.store.cassandra.CassandraSessionPool;
 import org.apache.hugegraph.config.HugeConfig;

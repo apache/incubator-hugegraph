@@ -18,9 +18,9 @@
 package org.apache.hugegraph.backend.store.hbase;
 
 import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
+import static org.apache.hugegraph.config.OptionChecker.nonNegativeInt;
 import static org.apache.hugegraph.config.OptionChecker.positiveInt;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
-import static org.apache.hugegraph.config.OptionChecker.nonNegativeInt;
 
 import org.apache.hugegraph.config.ConfigOption;
 import org.apache.hugegraph.config.OptionHolder;

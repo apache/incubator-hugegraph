@@ -143,8 +143,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         String auth = context.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (auth == null) {
             throw new NotAuthorizedException(
-                      "Authentication credentials are required",
-                      "Missing authentication credentials");
+                    "Authentication credentials are required",
+                    "Missing authentication credentials");
         }
 
         if (auth.startsWith(BASIC_AUTH_PREFIX)) {
@@ -154,7 +154,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             String[] values = auth.split(":");
             if (values.length != 2) {
                 throw new BadRequestException(
-                          "Invalid syntax for username and password");
+                        "Invalid syntax for username and password");
             }
 
             final String username = values[0];
@@ -163,7 +163,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             if (StringUtils.isEmpty(username) ||
                 StringUtils.isEmpty(password)) {
                 throw new BadRequestException(
-                          "Invalid syntax for username and password");
+                        "Invalid syntax for username and password");
             }
 
             credentials.put(HugeAuthenticator.KEY_USERNAME, username);
@@ -173,7 +173,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             credentials.put(HugeAuthenticator.KEY_TOKEN, token);
         } else {
             throw new BadRequestException(
-                      "Only HTTP Basic or Bearer authentication is supported");
+                    "Only HTTP Basic or Bearer authentication is supported");
         }
 
         credentials.put(HugeAuthenticator.KEY_ADDRESS, peer);

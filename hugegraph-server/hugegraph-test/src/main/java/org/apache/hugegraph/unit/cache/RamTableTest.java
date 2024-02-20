@@ -19,10 +19,6 @@ package org.apache.hugegraph.unit.cache;
 
 import java.util.Iterator;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
@@ -36,6 +32,9 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.unit.FakeObjects;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class RamTableTest {
 
@@ -250,7 +249,7 @@ public class RamTableTest {
 
         HugeVertex ownerVertex = new HugeVertex(graph, IdGenerator.of(1), vl3);
         HugeEdge edge1 = HugeEdge.constructEdge(ownerVertex, true, el3, "marko",
-                                               IdGenerator.of(2));
+                                                IdGenerator.of(2));
         Assert.assertThrows(HugeException.class, () -> {
             table.addEdge(true, edge1);
         }, e -> {

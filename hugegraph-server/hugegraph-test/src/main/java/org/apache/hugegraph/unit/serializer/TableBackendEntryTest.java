@@ -18,8 +18,6 @@
 package org.apache.hugegraph.unit.serializer;
 
 import org.apache.commons.lang3.NotImplementedException;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.serializer.TableBackendEntry;
@@ -29,6 +27,8 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;

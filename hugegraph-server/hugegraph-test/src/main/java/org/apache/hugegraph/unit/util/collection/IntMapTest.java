@@ -447,16 +447,16 @@ public class IntMapTest extends BaseUnitTest {
         //int cpus = IntSet.CPUS;
         int cpus = 16;
         ThreadPoolExecutor executor =
-            new ThreadPoolExecutor(cpus, cpus, 1, TimeUnit.MINUTES,
-                                   new LinkedBlockingDeque<>()) {
-                @Override
-                protected void afterExecute(Runnable r, Throwable t) {
-                    super.afterExecute(r, t);
-                    if (t != null) {
-                        Assert.fail(t.getMessage());
+                new ThreadPoolExecutor(cpus, cpus, 1, TimeUnit.MINUTES,
+                                       new LinkedBlockingDeque<>()) {
+                    @Override
+                    protected void afterExecute(Runnable r, Throwable t) {
+                        super.afterExecute(r, t);
+                        if (t != null) {
+                            Assert.fail(t.getMessage());
+                        }
                     }
-                }
-            };
+                };
         ;
 
         AtomicInteger size = new AtomicInteger();

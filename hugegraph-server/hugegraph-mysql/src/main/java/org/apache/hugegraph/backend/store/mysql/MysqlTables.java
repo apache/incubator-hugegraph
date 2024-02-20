@@ -38,6 +38,7 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.collect.ImmutableMap;
 
 public class MysqlTables {
@@ -124,7 +125,7 @@ public class MysqlTables {
                 return rs.getString(formatKey(HugeKeys.VALUE));
             } catch (SQLException e) {
                 throw new BackendException(
-                          "Failed to get stored version with '%s'", e, select);
+                        "Failed to get stored version with '%s'", e, select);
             }
         }
     }
@@ -161,17 +162,17 @@ public class MysqlTables {
                 }
             } catch (SQLException e) {
                 throw new BackendException(
-                          "Failed to get id from counters with type '%s'",
-                          e, type);
+                        "Failed to get id from counters with type '%s'",
+                        e, type);
             }
         }
 
         public void increaseCounter(MysqlSessions.Session session,
                                     HugeType type, long increment) {
             String update = String.format(
-                            "INSERT INTO %s VALUES ('%s', %s) " +
-                            "ON DUPLICATE KEY UPDATE ID = ID + %s;",
-                            this.table(), type.name(), increment, increment);
+                    "INSERT INTO %s VALUES ('%s', %s) " +
+                    "ON DUPLICATE KEY UPDATE ID = ID + %s;",
+                    this.table(), type.name(), increment, increment);
             try {
                 session.execute(update);
             } catch (SQLException e) {
@@ -325,8 +326,8 @@ public class MysqlTables {
 
             this.direction = direction;
             this.delByLabelTemplate = String.format(
-                                      "DELETE FROM %s WHERE %s = ?;",
-                                      this.table(), formatKey(HugeKeys.LABEL));
+                    "DELETE FROM %s WHERE %s = ?;",
+                    this.table(), formatKey(HugeKeys.LABEL));
 
             this.define = new TableDefine(typesMapping);
             this.define.column(HugeKeys.OWNER_VERTEX, SMALL_TEXT);
@@ -350,7 +351,7 @@ public class MysqlTables {
                 String[] idParts = EdgeId.split(id);
                 if (idParts.length == 1) {
                     // Delete edge by label
-                    return Arrays.asList((Object[]) idParts);
+                    return Arrays.asList(idParts);
                 }
                 id = IdUtil.readString(id.asString());
                 edgeId = EdgeId.parse(id.asString());
@@ -412,7 +413,7 @@ public class MysqlTables {
             long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
             if (current != null && current.subRows().size() < maxSize) {
                 Id nextVertexId = IdGenerator.of(
-                                  next.<String>column(HugeKeys.OWNER_VERTEX));
+                        next.<String>column(HugeKeys.OWNER_VERTEX));
                 if (current.id().equals(nextVertexId)) {
                     current.subRow(next.row());
                     return current;

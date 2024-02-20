@@ -23,20 +23,19 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.junit.After;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.testutil.Assert;
-import org.apache.hugegraph.util.collection.ObjectIntMappingFactory;
 import org.apache.hugegraph.util.collection.ObjectIntMapping;
+import org.apache.hugegraph.util.collection.ObjectIntMappingFactory;
+import org.junit.After;
+import org.junit.Test;
 
 public class ObjectIntMappingTest {
 
     private static final int OBJECT_NUMBER = 1000000;
     private static ObjectIntMapping<Id> mapping =
-                                        ObjectIntMappingFactory.newObjectIntMapping();
+            ObjectIntMappingFactory.newObjectIntMapping();
 
     @After
     public void clear() {

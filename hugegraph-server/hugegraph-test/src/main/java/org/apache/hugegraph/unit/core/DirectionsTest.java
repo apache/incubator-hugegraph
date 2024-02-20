@@ -17,12 +17,11 @@
 
 package org.apache.hugegraph.unit.core;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.junit.Test;
 
 public class DirectionsTest {
 

@@ -32,7 +32,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.dht.ByteOrderedPartitioner;
 import org.apache.cassandra.dht.IPartitioner;
@@ -41,10 +40,11 @@ import org.apache.cassandra.dht.OrderPreservingPartitioner;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.dht.Token.TokenFactory;
-
+import org.apache.cassandra.schema.SchemaConstants;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.util.Bytes;
+
 import com.datastax.driver.core.Host;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
@@ -82,9 +82,10 @@ public class CassandraShard {
 
     /**
      * Get splits of a table
+     *
      * @param splitPartitions: expected partitions count per split
-     * @param splitSize: expected size(bytes) per split,
-     *        splitPartitions will be ignored if splitSize is passed
+     * @param splitSize:       expected size(bytes) per split,
+     *                         splitPartitions will be ignored if splitSize is passed
      * @return a list of Shard
      */
     public List<Shard> getSplits(long splitPartitions, long splitSize) {
@@ -105,7 +106,7 @@ public class CassandraShard {
                  * compute bite-sized splits.
                  */
                 futures.add(executor.submit(new SplitCallable(
-                            range, splitPartitions, splitSize)));
+                        range, splitPartitions, splitSize)));
             }
 
             // Wait until we have all the results back
@@ -128,11 +129,12 @@ public class CassandraShard {
     /**
      * Get splits of a table in specified range
      * NOTE: maybe we don't need this method
-     * @param start: the start of range
-     * @param end: the end of range
+     *
+     * @param start:           the start of range
+     * @param end:             the end of range
      * @param splitPartitions: expected partitions count per split
-     * @param splitSize: expected size(bytes) per split,
-     *        splitPartitions will be ignored if splitSize is passed
+     * @param splitSize:       expected size(bytes) per split,
+     *                         splitPartitions will be ignored if splitSize is passed
      * @return a list of Shard
      */
     public List<Shard> getSplits(String start, String end,
@@ -146,8 +148,8 @@ public class CassandraShard {
             List<Future<List<Shard>>> futures = new ArrayList<>();
             TokenFactory tokenFactory = this.partitioner.getTokenFactory();
             TokenRange tokenRange = rangeToTokenRange(new Range<>(
-                                    tokenFactory.fromString(start),
-                                    tokenFactory.fromString(end)));
+                    tokenFactory.fromString(start),
+                    tokenFactory.fromString(end)));
 
             // Canonical ranges and nodes holding replicas
             Map<TokenRange, Set<Host>> masterRangeNodes = getRangeMap();
@@ -157,7 +159,7 @@ public class CassandraShard {
                     // For each tokenRange, pick a live owner and ask it
                     // to compute bite-sized splits
                     futures.add(executor.submit(new SplitCallable(
-                                r, splitPartitions, splitSize)));
+                            r, splitPartitions, splitSize)));
                 }
             }
 
@@ -187,8 +189,8 @@ public class CassandraShard {
         TokenFactory tokenFactory = this.partitioner.getTokenFactory();
         Metadata metadata = this.session.metadata();
         return metadata.newTokenRange(
-                        metadata.newToken(tokenFactory.toString(range.left)),
-                        metadata.newToken(tokenFactory.toString(range.right)));
+                metadata.newToken(tokenFactory.toString(range.left)),
+                metadata.newToken(tokenFactory.toString(range.right)));
     }
 
     private Map<TokenRange, Long> getSubSplits(TokenRange tokenRange,
@@ -205,8 +207,8 @@ public class CassandraShard {
     private Map<TokenRange, Set<Host>> getRangeMap() {
         Metadata metadata = this.session.metadata();
         return metadata.getTokenRanges().stream().collect(Collectors.toMap(
-            p -> p,
-            p -> metadata.getReplicas('"' + this.keyspace + '"', p)));
+                p -> p,
+                p -> metadata.getReplicas('"' + this.keyspace + '"', p)));
     }
 
     private static Map<TokenRange, Long> describeSplits(
@@ -274,15 +276,15 @@ public class CassandraShard {
                              long splitPartitions, long splitSize) {
             if (splitSize <= 0 && splitPartitions <= 0) {
                 throw new IllegalArgumentException(String.format(
-                          "The split-partitions must be > 0, but got %s",
-                          splitPartitions));
+                        "The split-partitions must be > 0, but got %s",
+                        splitPartitions));
             }
 
             if (splitSize > 0 && splitSize < MIN_SHARD_SIZE) {
                 // splitSize should be at least 1M if passed
                 throw new IllegalArgumentException(String.format(
-                          "The split-size must be >= %s bytes, but got %s",
-                          MIN_SHARD_SIZE, splitSize));
+                        "The split-size must be >= %s bytes, but got %s",
+                        MIN_SHARD_SIZE, splitSize));
             }
 
             this.tokenRange = tokenRange;

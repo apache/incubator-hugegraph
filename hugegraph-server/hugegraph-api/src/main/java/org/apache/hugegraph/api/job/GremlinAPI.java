@@ -190,11 +190,11 @@ public class GremlinAPI extends API {
             String gremlin = (String) map.get("gremlin");
             @SuppressWarnings("unchecked")
             Map<String, Object> bindings = (Map<String, Object>)
-                                           map.get("bindings");
+                    map.get("bindings");
             String language = (String) map.get("language");
             @SuppressWarnings("unchecked")
             Map<String, String> aliases = (Map<String, String>)
-                                          map.get("aliases");
+                    map.get("aliases");
 
             GremlinRequest request = new GremlinRequest();
             request.gremlin(gremlin);
