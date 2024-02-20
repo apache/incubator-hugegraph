@@ -17,11 +17,10 @@
 
 package org.apache.hugegraph.dist;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.server.RestServer;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class HugeRestServer {
 

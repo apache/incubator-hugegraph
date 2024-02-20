@@ -117,9 +117,10 @@ public class InitStore {
     }
 
     private static void initBackend(final HugeGraph graph)
-                                    throws InterruptedException {
+            throws InterruptedException {
         int retries = RETRIES;
-        retry: do {
+        retry:
+        do {
             try {
                 graph.initBackend();
             } catch (Exception e) {

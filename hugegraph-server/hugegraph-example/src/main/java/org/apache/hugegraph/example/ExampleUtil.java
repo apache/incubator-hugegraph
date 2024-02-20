@@ -33,6 +33,7 @@ import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 public class ExampleUtil {
+
     private static final Logger LOG = Log.logger(ExampleUtil.class);
 
     private static boolean registered = false;
@@ -65,13 +66,13 @@ public class ExampleUtil {
         String conf = "hugegraph.properties";
         try {
             String path = ExampleUtil.class.getClassLoader()
-                                     .getResource(conf).getPath();
+                                           .getResource(conf).getPath();
             File file = new File(path);
             if (file.exists() && file.isFile()) {
                 conf = path;
             }
         } catch (Exception ignored) {
-            LOG.warn("loadGraph warn {} ",ignored);
+            LOG.warn("loadGraph warn {} ", ignored);
         }
 
         HugeGraph graph = HugeFactory.open(conf);
