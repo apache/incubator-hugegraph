@@ -21,12 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
 /**

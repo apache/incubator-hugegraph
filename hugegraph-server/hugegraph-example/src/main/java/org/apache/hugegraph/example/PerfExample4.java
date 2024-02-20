@@ -19,11 +19,10 @@ package org.apache.hugegraph.example;
 
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 /**
  * Perf test for: query vertices with indexes and limit
@@ -34,6 +33,7 @@ public class PerfExample4 extends PerfExample3 {
 
     /**
      * Main method
+     *
      * @param args 3 arguments, 1st should be 1, meaning single thread,
      *             product of 2nd and 3rd is total number of "person" vertices
      * @throws InterruptedException

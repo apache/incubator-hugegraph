@@ -102,10 +102,12 @@ public class RegisterUtil {
                              "org.apache.hugegraph.backend.store.cassandra.CassandraOptions");
         // Register serializer
         SerializerFactory.register("cassandra",
-                "org.apache.hugegraph.backend.store.cassandra.CassandraSerializer");
+                                   "org.apache.hugegraph.backend.store.cassandra" +
+                                   ".CassandraSerializer");
         // Register backend
         BackendProviderFactory.register("cassandra",
-                "org.apache.hugegraph.backend.store.cassandra.CassandraStoreProvider");
+                                        "org.apache.hugegraph.backend.store.cassandra" +
+                                        ".CassandraStoreProvider");
     }
 
     public static void registerScyllaDB() {
@@ -114,10 +116,12 @@ public class RegisterUtil {
                              "org.apache.hugegraph.backend.store.cassandra.CassandraOptions");
         // Register serializer
         SerializerFactory.register("scylladb",
-                "org.apache.hugegraph.backend.store.cassandra.CassandraSerializer");
+                                   "org.apache.hugegraph.backend.store.cassandra" +
+                                   ".CassandraSerializer");
         // Register backend
         BackendProviderFactory.register("scylladb",
-                "org.apache.hugegraph.backend.store.scylladb.ScyllaDBStoreProvider");
+                                        "org.apache.hugegraph.backend.store.scylladb" +
+                                        ".ScyllaDBStoreProvider");
     }
 
     public static void registerHBase() {
@@ -129,7 +133,8 @@ public class RegisterUtil {
                                    "org.apache.hugegraph.backend.store.hbase.HbaseSerializer");
         // Register backend
         BackendProviderFactory.register("hbase",
-                "org.apache.hugegraph.backend.store.hbase.HbaseStoreProvider");
+                                        "org.apache.hugegraph.backend.store.hbase" +
+                                        ".HbaseStoreProvider");
     }
 
     public static void registerRocksDB() {
@@ -138,9 +143,11 @@ public class RegisterUtil {
                              "org.apache.hugegraph.backend.store.rocksdb.RocksDBOptions");
         // Register backend
         BackendProviderFactory.register("rocksdb",
-                "org.apache.hugegraph.backend.store.rocksdb.RocksDBStoreProvider");
+                                        "org.apache.hugegraph.backend.store.rocksdb" +
+                                        ".RocksDBStoreProvider");
         BackendProviderFactory.register("rocksdbsst",
-                "org.apache.hugegraph.backend.store.rocksdbsst.RocksDBSstStoreProvider");
+                                        "org.apache.hugegraph.backend.store.rocksdbsst" +
+                                        ".RocksDBSstStoreProvider");
     }
 
     public static void registerMysql() {
@@ -152,7 +159,8 @@ public class RegisterUtil {
                                    "org.apache.hugegraph.backend.store.mysql.MysqlSerializer");
         // Register backend
         BackendProviderFactory.register("mysql",
-                "org.apache.hugegraph.backend.store.mysql.MysqlStoreProvider");
+                                        "org.apache.hugegraph.backend.store.mysql" +
+                                        ".MysqlStoreProvider");
     }
 
     public static void registerPalo() {
@@ -161,22 +169,25 @@ public class RegisterUtil {
                              "org.apache.hugegraph.backend.store.palo.PaloOptions");
         // Register serializer
         SerializerFactory.register("palo",
-                "org.apache.hugegraph.backend.store.palo.PaloSerializer");
+                                   "org.apache.hugegraph.backend.store.palo.PaloSerializer");
         // Register backend
         BackendProviderFactory.register("palo",
-                "org.apache.hugegraph.backend.store.palo.PaloStoreProvider");
+                                        "org.apache.hugegraph.backend.store.palo" +
+                                        ".PaloStoreProvider");
     }
 
     public static void registerPostgresql() {
         // Register config
         OptionSpace.register("postgresql",
-                "org.apache.hugegraph.backend.store.postgresql.PostgresqlOptions");
+                             "org.apache.hugegraph.backend.store.postgresql.PostgresqlOptions");
         // Register serializer
         SerializerFactory.register("postgresql",
-                "org.apache.hugegraph.backend.store.postgresql.PostgresqlSerializer");
+                                   "org.apache.hugegraph.backend.store.postgresql" +
+                                   ".PostgresqlSerializer");
         // Register backend
         BackendProviderFactory.register("postgresql",
-                "org.apache.hugegraph.backend.store.postgresql.PostgresqlStoreProvider");
+                                        "org.apache.hugegraph.backend.store.postgresql" +
+                                        ".PostgresqlStoreProvider");
     }
 
     public static void registerServer() {

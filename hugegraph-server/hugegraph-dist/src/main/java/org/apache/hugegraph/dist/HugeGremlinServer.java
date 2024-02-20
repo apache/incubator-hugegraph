@@ -17,16 +17,15 @@
 
 package org.apache.hugegraph.dist;
 
-import org.apache.tinkerpop.gremlin.server.GremlinServer;
-import org.apache.tinkerpop.gremlin.server.Settings;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.auth.ContextGremlinServer;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.server.GremlinServer;
+import org.apache.tinkerpop.gremlin.server.Settings;
+import org.slf4j.Logger;
 
 public class HugeGremlinServer {
 

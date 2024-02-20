@@ -19,6 +19,10 @@ package org.apache.hugegraph.example;
 
 import java.util.List;
 
+import org.apache.hugegraph.HugeFactory;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
@@ -28,11 +32,6 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeFactory;
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.util.Log;
 
 public class Example2 {
 
@@ -93,7 +92,7 @@ public class Example2 {
 
         String person = graph.schema().getVertexLabel("person").id().asString();
         String software = graph.schema().getVertexLabel("software").id()
-                          .asString();
+                               .asString();
         String markoId = String.format("%s:%s", person, "marko");
         String joshId = String.format("%s:%s", person, "josh");
         String lopId = String.format("%s:%s", software, "lop");
@@ -122,30 +121,30 @@ public class Example2 {
         assert paths.get(0).get(1).equals("lop");
 
         LOG.info(">>>> query with out() optimize: {}",
-                graph.traversal().V(markoId)
-                .out()
-                .out()
-                .values("name").toList());
+                 graph.traversal().V(markoId)
+                      .out()
+                      .out()
+                      .values("name").toList());
 
         LOG.info(">>>> query with out() optimize and path(): {}",
-                graph.traversal().V()
-                .out("knows")
-                .out("created")
-                .values("name")
-                .path()
-                .toList());
+                 graph.traversal().V()
+                      .out("knows")
+                      .out("created")
+                      .values("name")
+                      .path()
+                      .toList());
     }
 
     public static List<Path> shortestPath(final HugeGraph graph,
                                           Object from, Object to,
                                           int maxDepth) {
         GraphTraversal<Vertex, Path> t = graph.traversal()
-                .V(from)
-                .repeat(__.out().simplePath())
-                .until(__.hasId(to).or().loops().is(P.gt(maxDepth)))
-                .hasId(to)
-                .path().by("name")
-                .limit(1);
+                                              .V(from)
+                                              .repeat(__.out().simplePath())
+                                              .until(__.hasId(to).or().loops().is(P.gt(maxDepth)))
+                                              .hasId(to)
+                                              .path().by("name")
+                                              .limit(1);
         return t.toList();
     }
 
