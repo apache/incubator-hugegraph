@@ -47,7 +47,7 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
         assert this.owner instanceof HugeEdge;
         EdgeLabel edgeLabel = ((HugeEdge) this.owner).schemaLabel();
         E.checkArgument(edgeLabel.nullableKeys().contains(
-                        this.propertyKey().id()),
+                                this.propertyKey().id()),
                         "Can't remove non-null edge property '%s'", this);
         this.owner.graph().removeEdgeProperty(this);
     }
@@ -60,6 +60,7 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
         return ElementHelper.areEqual(this, obj);
     }
 
+    @Override
     public int hashCode() {
         return ElementHelper.hashCode(this);
     }

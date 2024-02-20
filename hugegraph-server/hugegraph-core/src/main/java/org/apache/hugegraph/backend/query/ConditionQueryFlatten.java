@@ -40,7 +40,7 @@ import com.google.common.collect.ImmutableSet;
 public final class ConditionQueryFlatten {
 
     private static final Set<HugeKeys> SPECIAL_KEYS = ImmutableSet.of(
-        HugeKeys.LABEL
+            HugeKeys.LABEL
     );
 
     public static List<ConditionQuery> flatten(ConditionQuery query) {

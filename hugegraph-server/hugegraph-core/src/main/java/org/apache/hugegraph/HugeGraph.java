@@ -249,7 +249,7 @@ public interface HugeGraph extends Graph {
     <K, V> V option(TypedOption<K, V> option);
 
     void registerRpcServices(RpcServiceConfig4Server serverConfig,
-                                    RpcServiceConfig4Client clientConfig);
+                             RpcServiceConfig4Client clientConfig);
 
     default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());
@@ -316,8 +316,8 @@ public interface HugeGraph extends Graph {
 
     static void registerTraversalStrategies(Class<?> clazz) {
         TraversalStrategies strategies = TraversalStrategies.GlobalCache
-                                                            .getStrategies(Graph.class)
-                                                            .clone();
+                .getStrategies(Graph.class)
+                .clone();
         strategies.addStrategies(HugeVertexStepStrategy.instance(),
                                  HugeGraphStepStrategy.instance(),
                                  HugeCountStepStrategy.instance(),

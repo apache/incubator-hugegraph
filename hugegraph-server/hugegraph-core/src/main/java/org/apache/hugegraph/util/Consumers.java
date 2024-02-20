@@ -254,7 +254,7 @@ public final class Consumers<V> {
                                             int totalThreads,
                                             Runnable callback,
                                             long invokeTimeout)
-                                            throws InterruptedException {
+            throws InterruptedException {
         // Ensure callback execute at least once for every thread
         final Map<Thread, Integer> threadsTimes = new ConcurrentHashMap<>();
         final List<Callable<Void>> tasks = new ArrayList<>();

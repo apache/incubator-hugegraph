@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.auth.HugeTarget.P;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.IndexLabel;
@@ -30,17 +31,14 @@ import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.util.E;
 
 public abstract class SchemaDefine {
 
@@ -241,7 +239,7 @@ public abstract class SchemaDefine {
 
     // NOTE: travis-ci fails if class Entity implements Nameable
     public abstract static class Entity extends AuthElement
-                           implements org.apache.hugegraph.type.Nameable {
+            implements org.apache.hugegraph.type.Nameable {
 
         private static final long serialVersionUID = 4113319546914811762L;
 
@@ -251,7 +249,7 @@ public abstract class SchemaDefine {
                             vertex.label(), entity.label());
             entity.id((Id) vertex.id());
             for (Iterator<VertexProperty<Object>> iter = vertex.properties();
-                 iter.hasNext();) {
+                 iter.hasNext(); ) {
                 VertexProperty<Object> prop = iter.next();
                 entity.property(prop.key(), prop.value());
             }
@@ -288,7 +286,7 @@ public abstract class SchemaDefine {
                             edge.label(), relationship.label());
             relationship.id((Id) edge.id());
             for (Iterator<Property<Object>> iter = edge.properties();
-                 iter.hasNext();) {
+                 iter.hasNext(); ) {
                 Property<Object> prop = iter.next();
                 relationship.property(prop.key(), prop.value());
             }

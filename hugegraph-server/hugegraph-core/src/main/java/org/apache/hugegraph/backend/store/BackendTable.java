@@ -275,8 +275,8 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
                 assert count > 1;
                 byte[] each = align(new BigInteger(1, subtract(end, start))
-                                        .divide(BigInteger.valueOf(count))
-                                        .toByteArray(),
+                                            .divide(BigInteger.valueOf(count))
+                                            .toByteArray(),
                                     length);
                 byte[] offset = start;
                 byte[] last = offset;

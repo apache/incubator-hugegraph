@@ -22,10 +22,9 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import org.apache.hugegraph.job.UserJob;
 
 public class CountVertexAlgorithm extends AbstractAlgorithm {
 

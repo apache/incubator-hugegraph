@@ -36,12 +36,12 @@ public class MergeIterator<T, R> extends WrappedIterator<T> {
                          List<Iterator<R>> iterators,
                          BiFunction<T, R, Boolean> merger) {
         E.checkArgumentNotNull(originIterator, "The origin iterator of " +
-                               "MergeIterator can't be null");
+                                               "MergeIterator can't be null");
         E.checkArgument(iterators != null && !iterators.isEmpty(),
                         "The iterators of MergeIterator can't be " +
                         "null or empty");
         E.checkArgumentNotNull(merger, "The merger function of " +
-                               "MergeIterator can't be null");
+                                       "MergeIterator can't be null");
         this.originIterator = originIterator;
         this.headElements = new ArrayList<>();
 

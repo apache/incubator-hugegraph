@@ -87,9 +87,9 @@ public class ClusterRole {
     @Override
     public String toString() {
         return "RoleStateData{" +
-                "node='" + node + '\'' +
-                ", clock=" + clock +
-                ", epoch=" + epoch +
-                '}';
+               "node='" + node + '\'' +
+               ", clock=" + clock +
+               ", epoch=" + epoch +
+               '}';
     }
 }

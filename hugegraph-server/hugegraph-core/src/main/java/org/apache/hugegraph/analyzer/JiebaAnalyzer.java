@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.huaban.analysis.jieba.JiebaSegmenter;
 import com.huaban.analysis.jieba.SegToken;
@@ -43,8 +44,8 @@ public class JiebaAnalyzer implements Analyzer {
     public JiebaAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
             throw new ConfigException(
-                      "Unsupported segment mode '%s' for jieba analyzer, " +
-                      "the available values are %s", mode, SUPPORT_MODES);
+                    "Unsupported segment mode '%s' for jieba analyzer, " +
+                    "the available values are %s", mode, SUPPORT_MODES);
         }
         this.segMode = JiebaSegmenter.SegMode.valueOf(mode);
     }

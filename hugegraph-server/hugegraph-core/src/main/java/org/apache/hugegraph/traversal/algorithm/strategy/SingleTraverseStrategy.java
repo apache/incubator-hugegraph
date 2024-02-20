@@ -22,16 +22,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
-import jakarta.ws.rs.core.MultivaluedMap;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.OltpTraverser;
+import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
+
+import jakarta.ws.rs.core.MultivaluedMap;
 
 public class SingleTraverseStrategy extends OltpTraverser
-                                    implements TraverseStrategy {
+        implements TraverseStrategy {
 
     public SingleTraverseStrategy(HugeGraph graph) {
         super(graph);
@@ -65,7 +65,7 @@ public class SingleTraverseStrategy extends OltpTraverser
     public void addNewVerticesToAll(Map<Id, List<Node>> newVertices,
                                     Map<Id, List<Node>> targets) {
         MultivaluedMap<Id, Node> vertices =
-                                 (MultivaluedMap<Id, Node>) targets;
+                (MultivaluedMap<Id, Node>) targets;
         for (Map.Entry<Id, List<Node>> entry : newVertices.entrySet()) {
             vertices.addAll(entry.getKey(), entry.getValue());
         }

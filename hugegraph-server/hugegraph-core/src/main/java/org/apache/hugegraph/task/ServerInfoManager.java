@@ -118,7 +118,7 @@ public class ServerInfoManager {
                 while (servers.hasNext()) {
                     existed = servers.next();
                     E.checkArgument(!existed.role().master() || !existed.alive(),
-                                    "Already existed master '%s' in current cluster", 
+                                    "Already existed master '%s' in current cluster",
                                     existed.id());
                 }
                 if (page != null) {
@@ -324,7 +324,7 @@ public class ServerInfoManager {
 
     private <V> V call(Callable<V> callable) {
         assert !Thread.currentThread().getName().startsWith(
-               "server-info-db-worker") : "can't call by itself";
+                "server-info-db-worker") : "can't call by itself";
         try {
             // Pass context for db thread
             callable = new TaskManager.ContextCallable<>(callable);
@@ -391,7 +391,7 @@ public class ServerInfoManager {
     protected Collection<HugeServerInfo> allServerInfos() {
         Iterator<HugeServerInfo> infos = this.serverInfos(NO_LIMIT, null);
         try (ListIterator<HugeServerInfo> iter = new ListIterator<>(
-                                                 MAX_SERVERS, infos)) {
+                MAX_SERVERS, infos)) {
             return iter.list();
         } catch (Exception e) {
             throw new HugeException("Failed to close server info iterator", e);

@@ -26,15 +26,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.type.define.CollectionType;
+import org.apache.hugegraph.util.E;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.map.mutable.UnifiedMap;
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import org.eclipse.collections.impl.set.mutable.UnifiedSet;
-
-import org.apache.hugegraph.type.define.CollectionType;
-import org.apache.hugegraph.util.E;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -74,7 +73,7 @@ public class CollectionFactory {
                 return new ObjectArrayList<>();
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -89,7 +88,7 @@ public class CollectionFactory {
                 return new ObjectArrayList<>(initialCapacity);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -104,7 +103,7 @@ public class CollectionFactory {
                 return new ObjectArrayList<>(collection);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -130,7 +129,7 @@ public class CollectionFactory {
                 return new ObjectOpenHashSet<>();
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -145,7 +144,7 @@ public class CollectionFactory {
                 return new ObjectOpenHashSet<>(initialCapacity);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -160,7 +159,7 @@ public class CollectionFactory {
                 return new ObjectOpenHashSet<>(collection);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -190,7 +189,7 @@ public class CollectionFactory {
                 return new Object2ObjectOpenHashMap<>();
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -205,7 +204,7 @@ public class CollectionFactory {
                 return new Object2ObjectOpenHashMap<>(initialCapacity);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -220,7 +219,7 @@ public class CollectionFactory {
                 return new Object2ObjectOpenHashMap<>(map);
             default:
                 throw new AssertionError(
-                          "Unsupported collection type: " + type);
+                        "Unsupported collection type: " + type);
         }
     }
 
@@ -229,18 +228,18 @@ public class CollectionFactory {
     }
 
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             int initialCapacity) {
+            int initialCapacity) {
         return new IntObjectHashMap<>(initialCapacity);
     }
 
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             IntObjectMap<? extends V> map) {
+            IntObjectMap<? extends V> map) {
         return new IntObjectHashMap<>(map);
     }
 
     @SuppressWarnings("unchecked")
     public static <V> MutableIntObjectMap<V> newIntObjectMap(
-                                             Object... objects) {
+            Object... objects) {
         IntObjectHashMap<V> map = IntObjectHashMap.newMap();
         E.checkArgument(objects.length % 2 == 0,
                         "Must provide even arguments for " +

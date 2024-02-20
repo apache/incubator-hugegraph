@@ -90,7 +90,7 @@ public abstract class AbstractComputer implements Computer {
             this.initializeConfig((ComputerJob) job);
         } catch (Exception e) {
             throw new HugeException(
-                      "Failed to initialize computer config file", e);
+                    "Failed to initialize computer config file", e);
         }
 
         // Set current computer job's specified parameters
@@ -112,8 +112,8 @@ public abstract class AbstractComputer implements Computer {
 
             StringBuilder output = new StringBuilder();
             try (LineNumberReader reader = new LineNumberReader(
-                                           new InputStreamReader(
-                                           process.getInputStream()))) {
+                    new InputStreamReader(
+                            process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     output.append(line).append("\n");
@@ -165,7 +165,7 @@ public abstract class AbstractComputer implements Computer {
 
     private Map<String, Object> readSubConfig(String sub) {
         List<HierarchicalConfiguration<ImmutableNode>> nodes =
-                                       this.config.childConfigurationsAt(sub);
+                this.config.childConfigurationsAt(sub);
 
         E.checkArgument(nodes.size() >= 1,
                         "'%s' must be contained in config '%s'", sub);
@@ -176,9 +176,9 @@ public abstract class AbstractComputer implements Computer {
         for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
             NodeModel<ImmutableNode> nodeModel = node.getNodeModel();
             E.checkArgument(nodeModel != null &&
-                           (nodeHandler = nodeModel.getNodeHandler()) != null &&
-                           (root = nodeHandler.getRootNode()) != null,
-                           "Node '%s' must contain root", node);
+                            (nodeHandler = nodeModel.getNodeHandler()) != null &&
+                            (root = nodeHandler.getRootNode()) != null,
+                            "Node '%s' must contain root", node);
             results.put(root.getNodeName(), root.getValue());
         }
 
@@ -198,7 +198,7 @@ public abstract class AbstractComputer implements Computer {
     }
 
     protected abstract Map<String, Object> checkAndCollectParameters(
-                                           Map<String, Object> parameters);
+            Map<String, Object> parameters);
 
     protected static int maxSteps(Map<String, Object> parameters) {
         if (!parameters.containsKey(MAX_STEPS)) {
@@ -259,8 +259,8 @@ public abstract class AbstractComputer implements Computer {
             return Directions.IN;
         } else {
             throw new IllegalArgumentException(String.format(
-                      "The value of direction must be in [OUT, IN, BOTH], " +
-                      "but got '%s'", direction));
+                    "The value of direction must be in [OUT, IN, BOTH], " +
+                    "but got '%s'", direction));
         }
     }
 }

@@ -21,8 +21,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeIndex;
 
@@ -90,6 +90,7 @@ public class JobCounters {
 
         /**
          * Try to add element in collection waiting to be deleted
+         *
          * @param element
          * @return true if we should create a new delete job, false otherwise
          */
@@ -103,6 +104,7 @@ public class JobCounters {
 
         /**
          * Try to add edge in collection waiting to be deleted
+         *
          * @param index
          * @return true if we should create a new delete job, false otherwise
          */

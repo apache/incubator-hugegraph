@@ -36,7 +36,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.util.DefaultTraversal;
 /**
  * ScriptTraversal encapsulates a {@link ScriptEngine} and a script which is
  * compiled into a {@link Traversal} at {@link Admin#applyStrategies()}.
- *
+ * <p>
  * This is useful for serializing traversals as the compilation can happen on
  * the remote end where the traversal will ultimately be processed.
  *
@@ -101,7 +101,7 @@ public final class HugeScriptTraversal<S, E> extends DefaultTraversal<S, E> {
             Object result = engine.eval(this.script, bindings);
 
             if (result instanceof Admin) {
-                @SuppressWarnings({ "unchecked"})
+                @SuppressWarnings({"unchecked"})
                 Admin<S, E> traversal = (Admin<S, E>) result;
                 traversal.getSideEffects().mergeInto(this.sideEffects);
                 traversal.getSteps().forEach(this::addStep);

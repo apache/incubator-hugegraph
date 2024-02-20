@@ -20,16 +20,16 @@ package org.apache.hugegraph.schema;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.Typeable;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+
 import com.google.common.base.Objects;
 
 public abstract class SchemaElement implements Nameable, Typeable,
@@ -158,7 +158,7 @@ public abstract class SchemaElement implements Nameable, Typeable,
 
     @Override
     public int hashCode() {
-        return this.type().hashCode() ^  this.id.hashCode();
+        return this.type().hashCode() ^ this.id.hashCode();
     }
 
     @Override

@@ -22,18 +22,19 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.Indexable;
 import org.apache.hugegraph.type.Propertiable;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public abstract class SchemaLabel extends SchemaElement
-                                  implements Indexable, Propertiable {
+        implements Indexable, Propertiable {
 
     private final Set<Id> properties;
     private final Set<Id> nullableKeys;
@@ -167,13 +168,13 @@ public abstract class SchemaLabel extends SchemaElement
                 return graph.edgeLabel((String) label).id();
             } else {
                 throw new HugeException(
-                          "Not support query from '%s' with label '%s'",
-                          type, label);
+                        "Not support query from '%s' with label '%s'",
+                        type, label);
             }
         } else {
             throw new HugeException(
-                      "The label type must be number or string, but got '%s'",
-                      label.getClass());
+                    "The label type must be number or string, but got '%s'",
+                    label.getClass());
         }
     }
 }

@@ -19,19 +19,18 @@ package org.apache.hugegraph.structure;
 
 import java.util.Iterator;
 
+import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-import org.apache.hugegraph.exception.NotSupportException;
-import org.apache.hugegraph.util.E;
-
 public class HugeVertexProperty<V> extends HugeProperty<V>
-                                   implements VertexProperty<V> {
+        implements VertexProperty<V> {
 
     public HugeVertexProperty(HugeElement owner, PropertyKey key, V value) {
         super(owner, key, value);
@@ -59,7 +58,7 @@ public class HugeVertexProperty<V> extends HugeProperty<V>
         assert this.owner instanceof HugeVertex;
         VertexLabel vertexLabel = ((HugeVertex) this.owner).schemaLabel();
         E.checkArgument(vertexLabel.nullableKeys().contains(
-                        this.propertyKey().id()),
+                                this.propertyKey().id()),
                         "Can't remove non-null vertex property '%s'", this);
         this.owner.graph().removeVertexProperty(this);
     }

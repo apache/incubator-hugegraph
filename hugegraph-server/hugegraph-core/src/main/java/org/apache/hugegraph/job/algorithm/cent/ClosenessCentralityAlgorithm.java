@@ -19,6 +19,8 @@ package org.apache.hugegraph.job.algorithm.cent;
 
 import java.util.Map;
 
+import org.apache.hugegraph.job.UserJob;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.tinkerpop.gremlin.process.traversal.Operator;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Pop;
@@ -26,9 +28,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.Scope;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import org.apache.hugegraph.job.UserJob;
-import org.apache.hugegraph.type.define.Directions;
 
 public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
 
@@ -96,8 +95,8 @@ public class ClosenessCentralityAlgorithm extends AbstractCentAlgorithm {
              */
             GraphTraversal<Vertex, ?> tg;
             tg = t.group().by(__.select(Pop.first, "v").id())
-                          .by(__.select(Pop.all, "v").count(Scope.local)
-                                .math("_-1").sack(Operator.div).sack().sum());
+                  .by(__.select(Pop.all, "v").count(Scope.local)
+                        .math("_-1").sack(Operator.div).sack().sum());
             GraphTraversal<Vertex, ?> tLimit = topN(tg, topN);
 
             return this.execute(tLimit, tLimit::next);

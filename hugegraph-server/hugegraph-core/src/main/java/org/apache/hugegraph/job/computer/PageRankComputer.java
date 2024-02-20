@@ -21,6 +21,7 @@ import java.util.Map;
 
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ParameterUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class PageRankComputer extends AbstractComputer {
@@ -49,7 +50,7 @@ public class PageRankComputer extends AbstractComputer {
 
     @Override
     protected Map<String, Object> checkAndCollectParameters(
-                                  Map<String, Object> parameters) {
+            Map<String, Object> parameters) {
         return ImmutableMap.of(MAX_STEPS, maxSteps(parameters),
                                ALPHA, alpha(parameters),
                                PRECISION, precision(parameters));

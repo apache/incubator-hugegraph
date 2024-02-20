@@ -19,8 +19,8 @@ package org.apache.hugegraph.backend.cache;
 
 import java.util.Iterator;
 
-import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendMutation;

@@ -24,8 +24,8 @@ import java.util.function.BiConsumer;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
+import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 
 public interface TraverseStrategy {
 
@@ -44,6 +44,6 @@ public interface TraverseStrategy {
 
     static TraverseStrategy create(boolean concurrent, HugeGraph graph) {
         return concurrent ? new ConcurrentTraverseStrategy(graph) :
-                            new SingleTraverseStrategy(graph);
+               new SingleTraverseStrategy(graph);
     }
 }

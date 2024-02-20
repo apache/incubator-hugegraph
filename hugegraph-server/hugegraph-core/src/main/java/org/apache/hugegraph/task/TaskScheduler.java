@@ -22,8 +22,8 @@ import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
 
 public interface TaskScheduler {
 
@@ -53,13 +53,13 @@ public interface TaskScheduler {
     boolean close();
 
     <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
-                                           throws TimeoutException;
+            throws TimeoutException;
 
     <V> HugeTask<V> waitUntilTaskCompleted(Id id)
-                                           throws TimeoutException;
+            throws TimeoutException;
 
     void waitUntilAllTasksCompleted(long seconds)
-                                    throws TimeoutException;
+            throws TimeoutException;
 
     void checkRequirement(String op);
 }

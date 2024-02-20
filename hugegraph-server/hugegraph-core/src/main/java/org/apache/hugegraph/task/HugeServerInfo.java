@@ -24,6 +24,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.IndexLabel;
@@ -35,21 +37,18 @@ import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.type.define.SerialEnum;
+import org.apache.hugegraph.util.DateUtil;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.util.DateUtil;
-import org.apache.hugegraph.util.E;
-
 public class HugeServerInfo {
 
     // Unit millisecond
     private static final long EXPIRED_INTERVAL =
-                              TaskManager.SCHEDULE_PERIOD * 10;
+            TaskManager.SCHEDULE_PERIOD * 10;
 
     private Id id;
     private NodeRole role;
@@ -202,7 +201,7 @@ public class HugeServerInfo {
     public static HugeServerInfo fromVertex(Vertex vertex) {
         HugeServerInfo serverInfo = new HugeServerInfo((Id) vertex.id());
         for (Iterator<VertexProperty<Object>> iter = vertex.properties();
-             iter.hasNext();) {
+             iter.hasNext(); ) {
             VertexProperty<Object> prop = iter.next();
             serverInfo.property(prop.key(), prop.value());
         }
@@ -213,11 +212,8 @@ public class HugeServerInfo {
         if (task.computer() != this.role.computer()) {
             return false;
         }
-        if (this.updateTime.getTime() + EXPIRED_INTERVAL < now ||
-            this.load() + task.load() > this.maxLoad) {
-            return false;
-        }
-        return true;
+        return this.updateTime.getTime() + EXPIRED_INTERVAL >= now &&
+               this.load() + task.load() <= this.maxLoad;
     }
 
     public static Schema schema(HugeGraphParams graph) {
@@ -288,7 +284,7 @@ public class HugeServerInfo {
 
         public boolean existVertexLabel(String label) {
             return this.graph.schemaTransaction()
-                       .getVertexLabel(label) != null;
+                             .getVertexLabel(label) != null;
         }
 
         @SuppressWarnings("unused")

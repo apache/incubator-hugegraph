@@ -22,11 +22,10 @@ import java.util.NoSuchElementException;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
-
-import org.apache.hugegraph.util.E;
 
 public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
