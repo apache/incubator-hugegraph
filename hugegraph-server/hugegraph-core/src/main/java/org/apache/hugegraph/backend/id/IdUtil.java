@@ -20,7 +20,6 @@ package org.apache.hugegraph.backend.id;
 import java.nio.ByteBuffer;
 
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.hugegraph.backend.id.Id.IdType;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 

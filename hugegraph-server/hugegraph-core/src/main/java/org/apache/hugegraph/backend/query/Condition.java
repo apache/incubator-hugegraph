@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.backend.query;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -29,9 +28,8 @@ import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 
 import org.apache.commons.lang.ArrayUtils;
-
-import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.type.define.HugeKeys;
@@ -39,6 +37,7 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -49,7 +48,7 @@ public abstract class Condition {
         RELATION,
         AND,
         OR,
-        NOT;
+        NOT
     }
 
     public enum RelationType implements BiPredicate<Object, Object> {
@@ -146,12 +145,12 @@ public abstract class Condition {
         private final Class<?> v2Class;
 
         RelationType(String op,
-                             BiFunction<Object, Object, Boolean> tester) {
+                     BiFunction<Object, Object, Boolean> tester) {
             this(op, null, null, tester);
         }
 
         RelationType(String op, Class<?> v1Class, Class<?> v2Class,
-                             BiFunction<Object, Object, Boolean> tester) {
+                     BiFunction<Object, Object, Boolean> tester) {
             this.operator = op;
             this.tester = tester;
             this.v1Class = v1Class;
@@ -164,7 +163,8 @@ public abstract class Condition {
 
         /**
          * Determine two values of any type equal
-         * @param first is actual value
+         *
+         * @param first  is actual value
          * @param second is value in query condition
          * @return true if equal, otherwise false
          */
@@ -188,13 +188,14 @@ public abstract class Condition {
 
         /**
          * Determine two numbers equal
-         * @param first is actual value, might be Number/Date or String, It is
-         *              probably that the `first` is serialized to String.
+         *
+         * @param first  is actual value, might be Number/Date or String, It is
+         *               probably that the `first` is serialized to String.
          * @param second is value in query condition, must be Number/Date
          * @return the value 0 if first is numerically equal to second;
-         *         a value less than 0 if first is numerically less than
-         *         second; and a value greater than 0 if first is
-         *         numerically greater than second.
+         * a value less than 0 if first is numerically less than
+         * second; and a value greater than 0 if first is
+         * numerically greater than second.
          */
         private static int compare(final Object first, final Object second) {
             assert second != null;
@@ -206,9 +207,9 @@ public abstract class Condition {
             }
 
             throw new IllegalArgumentException(String.format(
-                      "Can't compare between %s(%s) and %s(%s)", first,
-                      first == null ? null : first.getClass().getSimpleName(),
-                      second, second.getClass().getSimpleName()));
+                    "Can't compare between %s(%s) and %s(%s)", first,
+                    first == null ? null : first.getClass().getSimpleName(),
+                    second, second.getClass().getSimpleName()));
         }
 
         private static int compareDate(Object first, Date second) {
@@ -220,9 +221,9 @@ public abstract class Condition {
             }
 
             throw new IllegalArgumentException(String.format(
-                      "Can't compare between %s(%s) and %s(%s)",
-                      first, first.getClass().getSimpleName(),
-                      second, second.getClass().getSimpleName()));
+                    "Can't compare between %s(%s) and %s(%s)",
+                    first, first.getClass().getSimpleName(),
+                    second, second.getClass().getSimpleName()));
         }
 
         private void checkBaseType(Object value, Class<?> clazz) {
@@ -543,7 +544,8 @@ public abstract class Condition {
         }
     }
 
-    public static class Not extends Condition implements Serializable {
+    public static class Not extends Condition {
+
         Condition condition;
 
         public Not(Condition condition) {
@@ -629,8 +631,8 @@ public abstract class Condition {
         protected Object serialValue;
 
         protected static final Set<RelationType> UNFLATTEN_RELATION_TYPES =
-                  ImmutableSet.of(RelationType.IN, RelationType.NOT_IN,
-                                  RelationType.TEXT_CONTAINS_ANY);
+                ImmutableSet.of(RelationType.IN, RelationType.NOT_IN,
+                                RelationType.TEXT_CONTAINS_ANY);
 
         @Override
         public ConditionType type() {

@@ -22,9 +22,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.JsonUtil;
@@ -132,13 +132,13 @@ public enum DataType implements SerialEnum {
                     break;
                 default:
                     throw new AssertionError(String.format(
-                              "Number type only contains Byte, Integer, " +
-                              "Long, Float, Double, but got %s", this.clazz()));
+                            "Number type only contains Byte, Integer, " +
+                            "Long, Float, Double, but got %s", this.clazz()));
             }
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(String.format(
-                      "Can't read '%s' as %s: %s",
-                      value, this.name, e.getMessage()));
+                    "Can't read '%s' as %s: %s",
+                    value, this.name, e.getMessage()));
         }
         return number;
     }
@@ -199,7 +199,7 @@ public enum DataType implements SerialEnum {
                     bytes[i] = ((Number) v).byteValue();
                 } else {
                     throw new IllegalArgumentException(String.format(
-                              "expect byte or int value, but got '%s'", v));
+                            "expect byte or int value, but got '%s'", v));
                 }
             }
             return Blob.wrap(bytes);

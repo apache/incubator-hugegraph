@@ -23,7 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.io.Io;
 public class HugeGraphIoRegistry extends AbstractIoRegistry {
 
     private static final HugeGraphIoRegistry INSTANCE =
-                         new HugeGraphIoRegistry();
+            new HugeGraphIoRegistry();
 
     public static HugeGraphIoRegistry instance() {
         return INSTANCE;

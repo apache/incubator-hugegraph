@@ -218,7 +218,7 @@ public class StoreSnapshotFile {
                      archiveFile, parentPath, (end - begin) / 1000.0F);
         } catch (Throwable e) {
             throw new RaftException(
-                "Failed to decompress snapshot, zip=%s", e, archiveFile);
+                    "Failed to decompress snapshot, zip=%s", e, archiveFile);
         }
 
         if (meta.hasChecksum()) {

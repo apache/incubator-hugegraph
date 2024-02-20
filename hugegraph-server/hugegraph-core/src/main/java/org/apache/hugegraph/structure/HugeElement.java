@@ -46,7 +46,6 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.collection.CollectionFactory;
 import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.eclipse.collections.api.iterator.IntIterator;
@@ -55,7 +54,7 @@ import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 public abstract class HugeElement implements Element, GraphType, Idfiable, Comparable<HugeElement> {
 
     private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
-                         CollectionFactory.newIntObjectMap();
+            CollectionFactory.newIntObjectMap();
     private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;
@@ -329,7 +328,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
     }
 
     @Watched(prefix = "element")
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     private <V> HugeProperty<V> addProperty(PropertyKey pkey, V value,
                                             Supplier<Collection<V>> supplier) {
         assert pkey.cardinality().multiple();
@@ -372,7 +371,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
             this.properties = EMPTY_MAP;
         } else {
             this.properties = CollectionFactory.newIntObjectMap(
-                              element.properties);
+                    element.properties);
         }
         this.propLoaded = true;
     }
@@ -414,8 +413,9 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
 
     /**
      * Classify parameter list(pairs) from call request
+     *
      * @param keyValues The property key-value pair of the vertex or edge
-     * @return          Key-value pairs that are classified and processed
+     * @return Key-value pairs that are classified and processed
      */
     @Watched(prefix = "element")
     public static final ElementKeys classifyKeys(Object... keyValues) {
@@ -488,8 +488,8 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
 
         // Throw if error type
         throw new UnsupportedOperationException(String.format(
-                  "Invalid element id: %s(%s)",
-                  idValue, idValue.getClass().getSimpleName()));
+                "Invalid element id: %s(%s)",
+                idValue, idValue.getClass().getSimpleName()));
     }
 
     @Watched(prefix = "element")

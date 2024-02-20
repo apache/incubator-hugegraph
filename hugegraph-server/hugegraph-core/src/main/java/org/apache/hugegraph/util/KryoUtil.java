@@ -74,7 +74,7 @@ public final class KryoUtil {
 
     @SuppressWarnings("unchecked")
     public static <T> T fromKryoWithType(byte[] value) {
-        E.checkState(value != null,  "Kryo value can't be null for object");
+        E.checkState(value != null, "Kryo value can't be null for object");
         return (T) kryo().readClassAndObject(new Input(value));
     }
 

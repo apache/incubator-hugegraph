@@ -24,14 +24,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
-import org.caffinitas.ohc.CacheSerializer;
-import org.caffinitas.ohc.CloseableIterator;
-import org.caffinitas.ohc.Eviction;
-import org.caffinitas.ohc.OHCache;
-import org.caffinitas.ohc.OHCacheBuilder;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
@@ -39,6 +31,8 @@ import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BinarySerializer;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
@@ -46,6 +40,11 @@ import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.caffinitas.ohc.CacheSerializer;
+import org.caffinitas.ohc.CloseableIterator;
+import org.caffinitas.ohc.Eviction;
+import org.caffinitas.ohc.OHCache;
+import org.caffinitas.ohc.OHCacheBuilder;
 
 public class OffheapCache extends AbstractCache<Id, Object> {
 
@@ -119,7 +118,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
         if (serializedSize > VALUE_SIZE_TO_SKIP) {
             LOG.info("Skip to cache '{}' due to value size {} > limit {}",
-                      id, serializedSize, VALUE_SIZE_TO_SKIP);
+                     id, serializedSize, VALUE_SIZE_TO_SKIP);
             return false;
         }
 
@@ -334,13 +333,13 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         private HugeException unsupported(ValueType type) {
             throw new HugeException(
-                      "Unsupported deserialize type: %s", type);
+                    "Unsupported deserialize type: %s", type);
         }
 
         private HugeException unsupported(Object value) {
             throw new HugeException(
-                      "Unsupported type of serialize value: '%s'(%s)",
-                      value, value.getClass());
+                    "Unsupported type of serialize value: '%s'(%s)",
+                    value, value.getClass());
         }
     }
 

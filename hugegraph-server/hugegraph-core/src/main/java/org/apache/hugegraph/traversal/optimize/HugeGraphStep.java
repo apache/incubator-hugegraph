@@ -28,6 +28,7 @@ import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
 import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -35,10 +36,8 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.util.Log;
-
 public final class HugeGraphStep<S, E extends Element>
-             extends GraphStep<S, E> implements QueryHolder {
+        extends GraphStep<S, E> implements QueryHolder {
 
     private static final long serialVersionUID = -679873894532085972L;
 

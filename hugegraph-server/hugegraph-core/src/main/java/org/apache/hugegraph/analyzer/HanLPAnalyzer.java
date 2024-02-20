@@ -22,6 +22,7 @@ import java.util.Set;
 
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.hankcs.hanlp.seg.Dijkstra.DijkstraSegment;
 import com.hankcs.hanlp.seg.NShort.NShortSegment;
@@ -38,14 +39,14 @@ import com.hankcs.hanlp.tokenizer.StandardTokenizer;
 public class HanLPAnalyzer implements Analyzer {
 
     public static final List<String> SUPPORT_MODES =
-           ImmutableList.<String>builder()
-                        .add("standard")
-                        .add("nlp")
-                        .add("index")
-                        .add("nShort")
-                        .add("shortest")
-                        .add("speed")
-                        .build();
+            ImmutableList.<String>builder()
+                         .add("standard")
+                         .add("nlp")
+                         .add("index")
+                         .add("nShort")
+                         .add("shortest")
+                         .add("speed")
+                         .build();
 
     private static final Segment N_SHORT_SEGMENT =
             new NShortSegment().enableCustomDictionary(false)
@@ -61,8 +62,8 @@ public class HanLPAnalyzer implements Analyzer {
     public HanLPAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
             throw new ConfigException(
-                      "Unsupported segment mode '%s' for hanlp analyzer, " +
-                      "the available values are %s", mode, SUPPORT_MODES);
+                    "Unsupported segment mode '%s' for hanlp analyzer, " +
+                    "the available values are %s", mode, SUPPORT_MODES);
         }
         this.tokenizer = mode;
     }
@@ -91,7 +92,7 @@ public class HanLPAnalyzer implements Analyzer {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported segment mode '%s'", this.tokenizer));
+                        "Unsupported segment mode '%s'", this.tokenizer));
         }
 
         assert terms != null;

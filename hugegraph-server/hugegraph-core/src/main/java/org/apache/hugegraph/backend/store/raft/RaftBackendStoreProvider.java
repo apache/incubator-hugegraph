@@ -20,9 +20,6 @@ package org.apache.hugegraph.backend.store.raft;
 import java.util.Set;
 import java.util.concurrent.Future;
 
-import org.slf4j.Logger;
-
-import com.alipay.remoting.rpc.RpcServer;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.BackendStore;
@@ -35,6 +32,9 @@ import org.apache.hugegraph.event.EventListener;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.alipay.remoting.rpc.RpcServer;
 import com.google.common.collect.ImmutableSet;
 
 public class RaftBackendStoreProvider implements BackendStoreProvider {
@@ -47,6 +47,7 @@ public class RaftBackendStoreProvider implements BackendStoreProvider {
     private RaftBackendStore schemaStore;
     private RaftBackendStore graphStore;
     private RaftBackendStore systemStore;
+
     public RaftBackendStoreProvider(HugeGraphParams params,
                                     BackendStoreProvider provider) {
         this.provider = provider;

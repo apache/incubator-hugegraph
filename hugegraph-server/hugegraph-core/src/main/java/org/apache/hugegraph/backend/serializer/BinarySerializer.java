@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.backend.serializer;
 
-import static org.apache.hugegraph.schema.SchemaElement.UNDEF;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -26,20 +24,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.NotImplementedException;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.page.PageState;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
-import org.apache.hugegraph.iterator.CIter;
-import org.apache.hugegraph.iterator.MapperIterator;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.EdgeLabelType;
-import org.apache.hugegraph.util.*;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.Condition.RangeConditions;
 import org.apache.hugegraph.backend.query.ConditionQuery;
@@ -47,7 +37,11 @@ import org.apache.hugegraph.backend.query.IdPrefixQuery;
 import org.apache.hugegraph.backend.query.IdRangeQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.iterator.CIter;
+import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -60,6 +54,7 @@ import org.apache.hugegraph.structure.HugeIndex;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.AggregateType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
@@ -71,7 +66,10 @@ import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.type.define.SerialEnum;
 import org.apache.hugegraph.type.define.WriteType;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
@@ -214,7 +212,7 @@ public class BinarySerializer extends AbstractSerializer {
         } else {
             if (!(value instanceof Collection)) {
                 throw new BackendException(
-                          "Invalid value of non-single property: %s", value);
+                        "Invalid value of non-single property: %s", value);
             }
             owner.addProperty(pkey, value);
         }
@@ -532,7 +530,6 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
-
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
 
         // Parse id
@@ -914,7 +911,9 @@ public class BinarySerializer extends AbstractSerializer {
         buffer.write(parsedEntry.id().asBytes());
         buffer.write(bytes);
         parsedEntry = new BinaryBackendEntry(originEntry.type(), new BinaryId(buffer.bytes(),
-                                             BytesBuffer.wrap(buffer.bytes()).readEdgeId()));
+                                                                              BytesBuffer.wrap(
+                                                                                                 buffer.bytes())
+                                                                                         .readEdgeId()));
 
         for (BackendColumn col : originEntry.columns()) {
             parsedEntry.column(buffer.bytes(), col.value);
@@ -962,9 +961,7 @@ public class BinarySerializer extends AbstractSerializer {
     protected static boolean indexFieldValuesUnmatched(byte[] value,
                                                        Object fieldValues) {
         if (value != null && value.length > 0 && fieldValues != null) {
-            if (!StringEncoding.decode(value).equals(fieldValues)) {
-                return true;
-            }
+            return !StringEncoding.decode(value).equals(fieldValues);
         }
         return false;
     }

@@ -60,7 +60,7 @@ public enum CollectionType implements SerialEnum {
                 return FU;
             default:
                 throw new AssertionError(
-                          "Unsupported collection code: " + code);
+                        "Unsupported collection code: " + code);
         }
     }
 }

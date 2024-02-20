@@ -23,6 +23,16 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.backend.store.BackendMutation;
+import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.LZ4Util;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.Closure;
@@ -35,16 +45,6 @@ import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.error.RaftException;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
-import org.apache.hugegraph.backend.store.BackendMutation;
-import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.store.raft.RaftBackendStore.IncrCounter;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.LZ4Util;
-import org.apache.hugegraph.util.Log;
 
 public final class StoreStateMachine extends StateMachineAdapter {
 
@@ -165,7 +165,7 @@ public final class StoreStateMachine extends StateMachineAdapter {
                 break;
             case COMMIT_TX:
                 List<BackendMutation> mutations = StoreSerializer.readMutations(
-                                                  buffer);
+                        buffer);
                 // RaftBackendStore doesn't write raft log for beginTx
                 store.beginTx();
                 for (BackendMutation mutation : mutations) {

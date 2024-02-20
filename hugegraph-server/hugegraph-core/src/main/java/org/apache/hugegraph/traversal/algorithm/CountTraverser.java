@@ -25,13 +25,12 @@ import org.apache.commons.lang.mutable.MutableLong;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
 import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.FlatMapperIterator;
 import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 public class CountTraverser extends HugeTraverser {

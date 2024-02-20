@@ -47,8 +47,8 @@ public class Userdata extends HashMap<String, Object> {
                 for (Map.Entry<String, Object> e : userdata.entrySet()) {
                     if (e.getValue() == null) {
                         throw new NotAllowException(
-                                  "Not allowed to pass null userdata value " +
-                                  "when create or append schema");
+                                "Not allowed to pass null userdata value " +
+                                "when create or append schema");
                     }
                 }
                 break;
@@ -58,7 +58,7 @@ public class Userdata extends HashMap<String, Object> {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
+                        "Unknown schema action '%s'", action));
         }
     }
 }

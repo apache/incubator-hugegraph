@@ -17,11 +17,11 @@
 
 package org.apache.hugegraph.job;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.task.TaskScheduler;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.util.E;
 
 public class EphemeralJobBuilder<V> {

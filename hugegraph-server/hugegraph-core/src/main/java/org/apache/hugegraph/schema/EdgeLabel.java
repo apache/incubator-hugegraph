@@ -26,16 +26,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public class EdgeLabel extends SchemaLabel {
@@ -179,7 +179,7 @@ public class EdgeLabel extends SchemaLabel {
 
     @Override
     public Map<String, Object> asMap() {
-       Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
 
         if (this.sourceLabel() != null && this.sourceLabel() != NONE_ID) {
             map.put(P.SOURCE_LABEL, this.sourceLabel().asString());

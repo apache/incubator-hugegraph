@@ -24,15 +24,14 @@ import java.util.Map;
 import java.util.Stack;
 
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 public abstract class BfsTraverser<T extends BfsTraverser.Node>
-                extends AbstractAlgorithm.AlgoTraverser
-                implements AutoCloseable {
+        extends AbstractAlgorithm.AlgoTraverser
+        implements AutoCloseable {
 
     private final Stack<Id> traversedVertices = new Stack<>();
 

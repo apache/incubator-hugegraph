@@ -947,6 +947,7 @@ public class HugeTraverser {
     }
 
     public static class EdgeRecord {
+
         private final Map<Long, Edge> edgeMap;
         private final ObjectIntMapping<Id> idMapping;
 

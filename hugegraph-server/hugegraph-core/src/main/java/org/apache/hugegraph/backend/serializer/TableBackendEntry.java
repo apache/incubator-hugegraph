@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang3.NotImplementedException;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.type.HugeType;

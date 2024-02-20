@@ -17,19 +17,20 @@
 
 package org.apache.hugegraph.backend.store.raft.rpc;
 
-import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
-import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import com.google.protobuf.Message;
 import org.apache.hugegraph.backend.store.raft.RaftContext;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerRequest;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
+import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
+import com.google.protobuf.Message;
+
 public class RemovePeerProcessor
-       extends RpcRequestProcessor<RemovePeerRequest> {
+        extends RpcRequestProcessor<RemovePeerRequest> {
 
     private static final Logger LOG = Log.logger(RemovePeerProcessor.class);
 

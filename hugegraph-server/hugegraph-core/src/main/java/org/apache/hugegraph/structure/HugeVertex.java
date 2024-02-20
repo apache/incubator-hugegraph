@@ -305,7 +305,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         EdgeLabel edgeLabel = this.graph().edgeLabel(label);
         // Check link
         E.checkArgument(edgeLabel.checkLinkEqual(this.schemaLabel().id(),
-                        vertex.schemaLabel().id()),
+                                                 vertex.schemaLabel().id()),
                         "Undefined link of edge label '%s': '%s' -> '%s'",
                         label, this.label(), vertex.label());
         // Check sortKeys
@@ -317,14 +317,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         // Check whether passed all non-null props
         @SuppressWarnings("unchecked")
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
-                                     edgeLabel.properties(),
-                                     edgeLabel.nullableKeys());
+                edgeLabel.properties(),
+                edgeLabel.nullableKeys());
         if (!new HashSet<>(keys).containsAll(nonNullKeys)) {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             E.checkArgument(false, "All non-null property keys: %s " +
-                            "of edge label '%s' must be set, " +
-                            "but missed keys: %s",
+                                   "of edge label '%s' must be set, " +
+                                   "but missed keys: %s",
                             this.graph().mapPkId2Name(nonNullKeys),
                             edgeLabel.name(),
                             this.graph().mapPkId2Name(missed));
@@ -341,6 +341,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Add edge with direction OUT
+     *
      * @param edge the out edge
      */
     @Watched
@@ -356,6 +357,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Add edge with direction IN
+     *
      * @param edge the in edge
      */
     @Watched
@@ -613,6 +615,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Clear edges/properties of the cloned vertex, and set `removed` true
+     *
      * @return a new vertex
      */
     public HugeVertex prepareRemoved() {

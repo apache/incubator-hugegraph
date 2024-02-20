@@ -25,12 +25,12 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiPredicate;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
@@ -53,7 +53,7 @@ import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.collection.IdSet;
 
 public class IndexLabelBuilder extends AbstractBuilder
-                               implements IndexLabel.Builder {
+        implements IndexLabel.Builder {
 
     private Id id;
     private String name;
@@ -125,6 +125,7 @@ public class IndexLabelBuilder extends AbstractBuilder
      * Check whether this has same properties with existedIndexLabel.
      * Only baseType, baseValue, indexType, indexFields are checked.
      * The id, checkExist, userdata are not checked.
+     *
      * @param existedIndexLabel to be compared with
      * @return true if this has same properties with existedIndexLabel
      */
@@ -269,7 +270,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
         } catch (TimeoutException e) {
             throw new HugeException(
-                      "Failed to wait index-creating task completed", e);
+                    "Failed to wait index-creating task completed", e);
         }
 
         // Return index label without task-info
@@ -588,7 +589,7 @@ public class IndexLabelBuilder extends AbstractBuilder
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported index type: %s", this.indexType));
+                        "Unsupported index type: %s", this.indexType));
         }
     }
 

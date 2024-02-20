@@ -53,7 +53,7 @@ import org.slf4j.Logger;
  * 2.append/subtract edge-property
  */
 public abstract class InMemoryDBStore
-                extends AbstractBackendStore<BackendSession> {
+        extends AbstractBackendStore<BackendSession> {
 
     private static final Logger LOG = Log.logger(InMemoryDBStore.class);
 
@@ -125,7 +125,7 @@ public abstract class InMemoryDBStore
 
     @Override
     public void mutate(BackendMutation mutation) {
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
             this.mutate(it.next());
         }
     }
@@ -229,7 +229,7 @@ public abstract class InMemoryDBStore
     @Override
     public void rollbackTx() {
         throw new UnsupportedOperationException(
-                  "Unsupported rollback operation by InMemoryDBStore");
+                "Unsupported rollback operation by InMemoryDBStore");
     }
 
     @Override
@@ -340,19 +340,19 @@ public abstract class InMemoryDBStore
         @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.nextId()");
+                    "InMemoryGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.increaseCounter()");
+                    "InMemoryGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "InMemoryGraphStore.getCounter()");
+                    "InMemoryGraphStore.getCounter()");
         }
     }
 

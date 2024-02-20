@@ -22,15 +22,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.auth.SchemaDefine.Entity;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.auth.SchemaDefine.Entity;
-import org.apache.hugegraph.util.E;
 
 public class HugeUser extends Entity {
 

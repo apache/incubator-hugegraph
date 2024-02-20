@@ -165,7 +165,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
     }
 
     public boolean containsValue(String value) {
-        return this.columns.values().contains(value);
+        return this.columns.containsValue(value);
     }
 
     public void append(TextBackendEntry entry) {
@@ -371,6 +371,7 @@ public class TextBackendEntry implements BackendEntry, Cloneable {
         return true;
     }
 
+    @Override
     public int hashCode() {
         return this.id().hashCode() ^ this.columns().hashCode();
     }

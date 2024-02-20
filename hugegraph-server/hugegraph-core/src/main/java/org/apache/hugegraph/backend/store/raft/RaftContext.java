@@ -184,11 +184,11 @@ public final class RaftContext {
         return this.raftNode;
     }
 
-    protected RpcServer rpcServer() {
+    RpcServer rpcServer() {
         return this.raftRpcServer;
     }
 
-    protected RpcForwarder rpcForwarder() {
+    RpcForwarder rpcForwarder() {
         return this.rpcForwarder;
     }
 
@@ -216,7 +216,7 @@ public final class RaftContext {
         }
     }
 
-    protected RaftBackendStore[] stores() {
+    RaftBackendStore[] stores() {
         return this.stores;
     }
 
@@ -233,13 +233,13 @@ public final class RaftContext {
         NodeOptions nodeOptions = new NodeOptions();
         nodeOptions.setEnableMetrics(false);
         nodeOptions.setRpcProcessorThreadPoolSize(
-                    config.get(CoreOptions.RAFT_RPC_THREADS));
+                config.get(CoreOptions.RAFT_RPC_THREADS));
         nodeOptions.setRpcConnectTimeoutMs(
-                    config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
+                config.get(CoreOptions.RAFT_RPC_CONNECT_TIMEOUT));
         nodeOptions.setRpcDefaultTimeout(
-                    1000 * config.get(CoreOptions.RAFT_RPC_TIMEOUT));
+                1000 * config.get(CoreOptions.RAFT_RPC_TIMEOUT));
         nodeOptions.setRpcInstallSnapshotTimeout(
-                    1000 * config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
+                1000 * config.get(CoreOptions.RAFT_INSTALL_SNAPSHOT_TIMEOUT));
 
         int electionTimeout = config.get(CoreOptions.RAFT_ELECTION_TIMEOUT);
         nodeOptions.setElectionTimeoutMs(electionTimeout);
@@ -269,27 +269,27 @@ public final class RaftContext {
          */
         raftOptions.setApplyBatch(config.get(CoreOptions.RAFT_APPLY_BATCH));
         raftOptions.setDisruptorBufferSize(
-                    config.get(CoreOptions.RAFT_QUEUE_SIZE));
+                config.get(CoreOptions.RAFT_QUEUE_SIZE));
         raftOptions.setDisruptorPublishEventWaitTimeoutSecs(
-                    config.get(CoreOptions.RAFT_QUEUE_PUBLISH_TIMEOUT));
+                config.get(CoreOptions.RAFT_QUEUE_PUBLISH_TIMEOUT));
         raftOptions.setReplicatorPipeline(
-                    config.get(CoreOptions.RAFT_REPLICATOR_PIPELINE));
+                config.get(CoreOptions.RAFT_REPLICATOR_PIPELINE));
         raftOptions.setOpenStatistics(false);
         raftOptions.setReadOnlyOptions(
-                    ReadOnlyOption.valueOf(
-                    config.get(CoreOptions.RAFT_READ_STRATEGY)));
+                ReadOnlyOption.valueOf(
+                        config.get(CoreOptions.RAFT_READ_STRATEGY)));
 
         return nodeOptions;
     }
 
-    protected void clearCache() {
+    void clearCache() {
         // Just choose two representatives used to represent schema and graph
         this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX_LABEL, null);
         this.notifyCache(Cache.ACTION_CLEAR, HugeType.VERTEX, null);
     }
 
-    protected void updateCacheIfNeeded(BackendMutation mutation,
-                                       boolean forwarded) {
+    void updateCacheIfNeeded(BackendMutation mutation,
+                             boolean forwarded) {
         // Update cache only when graph run in general mode
         if (this.graphMode() != GraphMode.NONE) {
             return;
@@ -317,7 +317,7 @@ public final class RaftContext {
         }
     }
 
-    protected void notifyCache(String action, HugeType type, List<Id> ids) {
+    private void notifyCache(String action, HugeType type, List<Id> ids) {
         EventHub eventHub;
         if (type.isGraph()) {
             eventHub = this.params.graphEventHub();
@@ -373,18 +373,18 @@ public final class RaftContext {
     @SuppressWarnings("unused")
     private RpcServer initAndStartRpcServer() {
         Integer lowWaterMark = this.config().get(
-                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+                CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_low_water_mark",
                            String.valueOf(lowWaterMark));
         Integer highWaterMark = this.config().get(
-                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
 
         PeerId endpoint = this.endpoint();
         NodeManager.getInstance().addAddress(endpoint.getEndpoint());
         RpcServer rpcServer = RaftRpcServerFactory.createAndStartRaftRpcServer(
-                                                   endpoint.getEndpoint());
+                endpoint.getEndpoint());
         LOG.info("Raft-RPC server is started successfully");
         return rpcServer;
     }
@@ -392,11 +392,11 @@ public final class RaftContext {
     private RpcServer wrapRpcServer(com.alipay.remoting.rpc.RpcServer rpcServer) {
         // TODO: pass ServerOptions instead of CoreOptions, to share by graphs
         Integer lowWaterMark = this.config().get(
-                               CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
+                CoreOptions.RAFT_RPC_BUF_LOW_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_low_water_mark",
                            String.valueOf(lowWaterMark));
         Integer highWaterMark = this.config().get(
-                                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
+                CoreOptions.RAFT_RPC_BUF_HIGH_WATER_MARK);
         System.setProperty("bolt.channel_write_buf_high_water_mark",
                            String.valueOf(highWaterMark));
 
@@ -439,7 +439,7 @@ public final class RaftContext {
     private ExecutorService createBackendExecutor(int threads) {
         String name = "store-backend-executor";
         RejectedExecutionHandler handler =
-                                 new ThreadPoolExecutor.CallerRunsPolicy();
+                new ThreadPoolExecutor.CallerRunsPolicy();
         return newPool(threads, threads, name, handler);
     }
 

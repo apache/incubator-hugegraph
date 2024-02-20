@@ -20,6 +20,8 @@ package org.apache.hugegraph.util;
 import java.io.IOException;
 import java.util.Date;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.io.HugeGraphSONModule;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
 import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
@@ -30,8 +32,6 @@ import org.apache.tinkerpop.shaded.jackson.databind.SerializerProvider;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.io.HugeGraphSONModule;
 import com.google.common.collect.ImmutableSet;
 
 public final class JsonUtil {
@@ -91,9 +91,10 @@ public final class JsonUtil {
     /**
      * Number collection will be parsed to Double Collection via fromJson,
      * this method used to cast element in collection to original number type
-     * @param object    original number
-     * @param clazz     target type
-     * @return          target number
+     *
+     * @param object original number
+     * @param clazz  target type
+     * @return target number
      */
     public static Object castNumber(Object object, Class<?> clazz) {
         if (object instanceof Number) {

@@ -29,14 +29,14 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.concurrent.KeyLock;
 import org.apache.hugegraph.concurrent.LockManager;
 import org.apache.hugegraph.concurrent.RowLock;
 import org.apache.hugegraph.type.HugeType;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -109,8 +109,8 @@ public final class LockUtil {
                   lock, group);
         if (!readLock.tryLock()) {
             throw new HugeException(
-                      "Lock [%s:%s] is locked by other operation",
-                      group, lock);
+                    "Lock [%s:%s] is locked by other operation",
+                    group, lock);
         }
         LOG.debug("Got the read lock '{}' of LockGroup '{}'", lock, group);
         return readLock;
@@ -125,8 +125,8 @@ public final class LockUtil {
             try {
                 if (!writeLock.tryLock(time, TimeUnit.SECONDS)) {
                     throw new HugeException(
-                              "Lock [%s:%s] is locked by other operation",
-                              group, lock);
+                            "Lock [%s:%s] is locked by other operation",
+                            group, lock);
                 }
                 break;
             } catch (InterruptedException ignore) {
@@ -197,8 +197,8 @@ public final class LockUtil {
                     break;
                 default:
                     throw new IllegalArgumentException(String.format(
-                              "Invalid args '%s' at position '%s', " +
-                              "expect 'write' or 'read'", locks[i], i));
+                            "Invalid args '%s' at position '%s', " +
+                            "expect 'write' or 'read'", locks[i], i));
             }
         }
         return lockList;
@@ -216,7 +216,7 @@ public final class LockUtil {
                 return INDEX_LABEL_ADD_UPDATE;
             default:
                 throw new AssertionError(String.format(
-                          "Invalid HugeType '%s'", type));
+                        "Invalid HugeType '%s'", type));
         }
     }
 

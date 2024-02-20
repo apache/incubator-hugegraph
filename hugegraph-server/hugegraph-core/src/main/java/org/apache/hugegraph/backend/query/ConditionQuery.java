@@ -63,10 +63,11 @@ public class ConditionQuery extends IdQuery {
     public static final char INDEX_SYM_MAX = '\u0003';
 
     // Note: here we use "new String" to distinguish normal string code
-    public static final String INDEX_VALUE_NULL = new String("<null>");
-    public static final String INDEX_VALUE_EMPTY = new String("<empty>");
+    public static final String INDEX_VALUE_NULL = "<null>";
+    public static final String INDEX_VALUE_EMPTY = "<empty>";
 
     public static final Set<String> IGNORE_SYM_SET;
+
     static {
         List<String> list = new ArrayList<>(INDEX_SYM_MAX - INDEX_SYM_MIN);
         for (char ch = INDEX_SYM_MIN; ch <= INDEX_SYM_MAX; ch++) {
@@ -472,6 +473,7 @@ public class ConditionQuery extends IdQuery {
     /**
      * This method is only used for secondary index scenario,
      * its relation must be EQ
+     *
      * @param fields the user property fields
      * @return the corresponding user property serial values of fields
      */
@@ -493,8 +495,8 @@ public class ConditionQuery extends IdQuery {
             }
             if (!got) {
                 throw new BackendException(
-                          "No such userprop named '%s' in the query '%s'",
-                          field, this);
+                        "No such userprop named '%s' in the query '%s'",
+                        field, this);
             }
         }
         return concatValues(values);
@@ -652,7 +654,7 @@ public class ConditionQuery extends IdQuery {
 
     public void optimized(OptimizedType optimizedType) {
         assert this.optimizedType.ordinal() <= optimizedType.ordinal() :
-               this.optimizedType + " !<= " + optimizedType;
+                this.optimizedType + " !<= " + optimizedType;
         this.optimizedType = optimizedType;
 
         Query originQuery = this.originQuery();
@@ -722,7 +724,8 @@ public class ConditionQuery extends IdQuery {
     public static String concatValues(Object value) {
         if (value instanceof String) {
             return escapeSpecialValueIfNeeded((String) value);
-        } if (value instanceof List) {
+        }
+        if (value instanceof List) {
             return concatValues((List<?>) value);
         } else if (needConvertNumber(value)) {
             return LongEncoding.encodeNumber(value);
@@ -798,7 +801,7 @@ public class ConditionQuery extends IdQuery {
                 this.filed2IndexValues.putIfAbsent(indexField, new HashMap<>());
             }
             Map<Id, Set<Object>> element2IndexValueMap =
-                                 this.filed2IndexValues.get(indexField);
+                    this.filed2IndexValues.get(indexField);
             if (element2IndexValueMap.containsKey(elementId)) {
                 element2IndexValueMap.get(elementId).add(indexValue);
             } else {
@@ -843,7 +846,7 @@ public class ConditionQuery extends IdQuery {
             }
 
             Condition.UserpropRelation propRelation =
-                                       (Condition.UserpropRelation) cond;
+                    (Condition.UserpropRelation) cond;
             Id propId = propRelation.key();
             Set<Object> fieldValues = this.toRemoveIndexValues(propId,
                                                                element.id());

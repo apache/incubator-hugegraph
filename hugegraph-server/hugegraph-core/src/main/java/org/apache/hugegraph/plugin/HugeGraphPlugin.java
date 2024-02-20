@@ -17,9 +17,9 @@
 
 package org.apache.hugegraph.plugin;
 
-import org.apache.hugegraph.backend.store.BackendProviderFactory;
 import org.apache.hugegraph.analyzer.AnalyzerFactory;
 import org.apache.hugegraph.backend.serializer.SerializerFactory;
+import org.apache.hugegraph.backend.store.BackendProviderFactory;
 import org.apache.hugegraph.config.OptionSpace;
 
 public interface HugeGraphPlugin {

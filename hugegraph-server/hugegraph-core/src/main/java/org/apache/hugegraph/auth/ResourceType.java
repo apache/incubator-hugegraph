@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.auth;
 
+import java.util.Objects;
+
 import org.apache.hugegraph.type.HugeType;
 
 public enum ResourceType {
@@ -70,11 +72,8 @@ public enum ResourceType {
             return true;
         }
 
-        switch (required) {
-            case NONE:
-                return this != NONE;
-            default:
-                break;
+        if (Objects.requireNonNull(required) == ResourceType.NONE) {
+            return this != NONE;
         }
 
         switch (this) {
