@@ -25,19 +25,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.hugegraph.testutil.Utils;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.util.Blob;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -171,9 +171,9 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
 
             vertex = graph.vertices(vertex.id()).next();
             Assert.assertTrue(TraversalUtil.testProperty(vertex.property(key),
-                                            ImmutableSet.copyOf(values)));
+                                                         ImmutableSet.copyOf(values)));
             Assert.assertFalse(TraversalUtil.testProperty(vertex.property(key),
-                                             ImmutableList.copyOf(values)));
+                                                          ImmutableList.copyOf(values)));
             return vertex.value(key);
         }
     }
@@ -223,9 +223,9 @@ public abstract class PropertyCoreTest extends BaseCoreTest {
 
             edge = graph.edges(edge.id()).next();
             Assert.assertTrue(TraversalUtil.testProperty(edge.property(key),
-                                            ImmutableSet.copyOf(values)));
+                                                         ImmutableSet.copyOf(values)));
             Assert.assertFalse(TraversalUtil.testProperty(edge.property(key),
-                                             ImmutableList.copyOf(values)));
+                                                          ImmutableList.copyOf(values)));
             return edge.value(key);
         }
     }

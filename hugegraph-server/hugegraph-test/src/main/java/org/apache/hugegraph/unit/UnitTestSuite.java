@@ -76,84 +76,85 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    /* cache */
-    CacheTest.RamCacheTest.class,
-    CacheTest.OffheapCacheTest.class,
-    CacheTest.LevelCacheTest.class,
-    CachedSchemaTransactionTest.class,
-    CachedGraphTransactionTest.class,
-    CacheManagerTest.class,
-    RamTableTest.class,
+        /* cache */
+        CacheTest.RamCacheTest.class,
+        CacheTest.OffheapCacheTest.class,
+        CacheTest.LevelCacheTest.class,
+        CachedSchemaTransactionTest.class,
+        CachedGraphTransactionTest.class,
+        CacheManagerTest.class,
+        RamTableTest.class,
 
-    /* types */
-    DataTypeTest.class,
-    DirectionsTest.class,
-    SerialEnumTest.class,
+        /* types */
+        DataTypeTest.class,
+        DirectionsTest.class,
+        SerialEnumTest.class,
 
-    /* id */
-    IdTest.class,
-    EdgeIdTest.class,
-    IdUtilTest.class,
-    SplicingIdGeneratorTest.class,
+        /* id */
+        IdTest.class,
+        EdgeIdTest.class,
+        IdUtilTest.class,
+        SplicingIdGeneratorTest.class,
 
-    /* core */
-    LocksTableTest.class,
-    RowLockTest.class,
-    AnalyzerTest.class,
-    BackendMutationTest.class,
-    ConditionTest.class,
-    ConditionQueryFlattenTest.class,
-    QueryTest.class,
-    RangeTest.class,
-    SecurityManagerTest.class,
-    RolePermissionTest.class,
-    ExceptionTest.class,
-    BackendStoreInfoTest.class,
-    TraversalUtilTest.class,
-    PageStateTest.class,
-    SystemSchemaStoreTest.class,
-    RoleElectionStateMachineTest.class,
+        /* core */
+        LocksTableTest.class,
+        RowLockTest.class,
+        AnalyzerTest.class,
+        BackendMutationTest.class,
+        ConditionTest.class,
+        ConditionQueryFlattenTest.class,
+        QueryTest.class,
+        RangeTest.class,
+        SecurityManagerTest.class,
+        RolePermissionTest.class,
+        ExceptionTest.class,
+        BackendStoreInfoTest.class,
+        TraversalUtilTest.class,
+        PageStateTest.class,
+        SystemSchemaStoreTest.class,
+        RoleElectionStateMachineTest.class,
 
-    /* serializer */
-    BytesBufferTest.class,
-    SerializerFactoryTest.class,
-    TextBackendEntryTest.class,
-    TableBackendEntryTest.class,
-    BinaryBackendEntryTest.class,
-    BinarySerializerTest.class,
-    BinaryScatterSerializerTest.class,
-    StoreSerializerTest.class,
+        /* serializer */
+        BytesBufferTest.class,
+        SerializerFactoryTest.class,
+        TextBackendEntryTest.class,
+        TableBackendEntryTest.class,
+        BinaryBackendEntryTest.class,
+        BinarySerializerTest.class,
+        BinaryScatterSerializerTest.class,
+        StoreSerializerTest.class,
 
-    /* cassandra */
-    CassandraTest.class,
+        /* cassandra */
+        CassandraTest.class,
 
-    /* mysql */
-    MysqlUtilTest.class,
-    WhereBuilderTest.class,
+        /* mysql */
+        MysqlUtilTest.class,
+        WhereBuilderTest.class,
 
-    /* rocksdb */
-    RocksDBSessionsTest.class,
-    RocksDBSessionTest.class,
-    RocksDBCountersTest.class,
+        /* rocksdb */
+        RocksDBSessionsTest.class,
+        RocksDBSessionTest.class,
+        RocksDBCountersTest.class,
 
-    /* utils */
-    VersionTest.class,
-    JsonUtilTest.class,
-    StringEncodingTest.class,
-    CompressUtilTest.class,
-    RateLimiterTest.FixedTimerWindowRateLimiterTest.class,
-    RateLimiterTest.FixedWatchWindowRateLimiterTest.class,
+        /* utils */
+        VersionTest.class,
+        JsonUtilTest.class,
+        StringEncodingTest.class,
+        CompressUtilTest.class,
+        RateLimiterTest.FixedTimerWindowRateLimiterTest.class,
+        RateLimiterTest.FixedWatchWindowRateLimiterTest.class,
 
-    /* utils.collection */
-    CollectionFactoryTest.class,
-    ObjectIntMappingTest.class,
-    Int2IntsMapTest.class,
-    IdSetTest.class,
-    IntMapTest.class,
-    IntSetTest.class,
+        /* utils.collection */
+        CollectionFactoryTest.class,
+        ObjectIntMappingTest.class,
+        Int2IntsMapTest.class,
+        IdSetTest.class,
+        IntMapTest.class,
+        IntSetTest.class,
 
-    /* store */
-    RamIntObjectMapTest.class
+        /* store */
+        RamIntObjectMapTest.class
 })
 public class UnitTestSuite {
+
 }

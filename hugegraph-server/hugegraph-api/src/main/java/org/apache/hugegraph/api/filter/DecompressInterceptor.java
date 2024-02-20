@@ -37,7 +37,7 @@ public class DecompressInterceptor implements ReaderInterceptor {
 
     @Override
     public Object aroundReadFrom(ReaderInterceptorContext context)
-                                 throws IOException {
+            throws IOException {
         // NOTE: Currently we just support GZIP
         String encoding = context.getHeaders().getFirst("Content-Encoding");
         if (!GZIP.equalsIgnoreCase(encoding)) {
@@ -51,6 +51,7 @@ public class DecompressInterceptor implements ReaderInterceptor {
     @NameBinding
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Decompress {
+
         String value() default GZIP;
     }
 }

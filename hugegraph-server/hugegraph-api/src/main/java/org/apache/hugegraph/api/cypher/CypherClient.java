@@ -17,16 +17,6 @@
 
 package org.apache.hugegraph.api.cypher;
 
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import org.apache.commons.configuration2.Configuration;
-import org.apache.tinkerpop.gremlin.driver.*;
-import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
-import org.slf4j.Logger;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.ThreadSafe;
-
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,6 +24,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
+
+import org.apache.commons.configuration2.Configuration;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.driver.Client;
+import org.apache.tinkerpop.gremlin.driver.Cluster;
+import org.apache.tinkerpop.gremlin.driver.Result;
+import org.apache.tinkerpop.gremlin.driver.ResultSet;
+import org.apache.tinkerpop.gremlin.driver.Tokens;
+import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
+import org.slf4j.Logger;
 
 @ThreadSafe
 public final class CypherClient {
@@ -93,7 +97,7 @@ public final class CypherClient {
     }
 
     private List<Object> doQueryList(Client client, RequestMessage request)
-        throws ExecutionException, InterruptedException {
+            throws ExecutionException, InterruptedException {
         ResultSet results = client.submitAsync(request).get();
 
         Iterator<Result> iter = results.iterator();

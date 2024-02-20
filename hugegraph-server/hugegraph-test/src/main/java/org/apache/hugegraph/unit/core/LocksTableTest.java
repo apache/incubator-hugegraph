@@ -22,11 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.Lock;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.concurrent.LockManager;
@@ -34,6 +29,11 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.LockUtil;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableSet;
 
 public class LocksTableTest extends BaseUnitTest {

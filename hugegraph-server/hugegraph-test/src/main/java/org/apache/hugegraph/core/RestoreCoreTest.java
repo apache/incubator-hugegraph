@@ -17,16 +17,15 @@
 
 package org.apache.hugegraph.core;
 
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.After;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.After;
+import org.junit.Test;
 
 public class RestoreCoreTest extends BaseCoreTest {
 
@@ -42,7 +41,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().vertexLabel("person").id(0L).create()
+                graph.schema().vertexLabel("person").id(0L).create()
         );
     }
 
@@ -51,7 +50,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().vertexLabel("person").id(0L).create()
+                graph.schema().vertexLabel("person").id(0L).create()
         );
     }
 
@@ -60,7 +59,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().vertexLabel("person").id(0L).create()
+                graph.schema().vertexLabel("person").id(0L).create()
         );
     }
 
@@ -69,7 +68,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().vertexLabel("person").id(-100L).create()
+                graph.schema().vertexLabel("person").id(-100L).create()
         );
     }
 
@@ -78,7 +77,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().vertexLabel("person").id(-100L).create()
+                graph.schema().vertexLabel("person").id(-100L).create()
         );
     }
 
@@ -87,7 +86,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().vertexLabel("person").id(-100L).create()
+                graph.schema().vertexLabel("person").id(-100L).create()
         );
     }
 
@@ -96,7 +95,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().vertexLabel("person").id(100L).create()
+                graph.schema().vertexLabel("person").id(100L).create()
         );
     }
 
@@ -105,7 +104,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().vertexLabel("person").id(100L).create()
+                graph.schema().vertexLabel("person").id(100L).create()
         );
     }
 
@@ -129,7 +128,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.mode(GraphMode.RESTORING);
         graph.schema().vertexLabel("person").id(100L).create();
         Assert.assertThrows(ExistedException.class, () ->
-            graph.schema().vertexLabel("person").id(100L).create()
+                graph.schema().vertexLabel("person").id(100L).create()
         );
     }
 
@@ -139,7 +138,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.mode(GraphMode.RESTORING);
         graph.schema().vertexLabel("person").id(100L).create();
         Assert.assertThrows(ExistedException.class, () ->
-            graph.schema().vertexLabel("person1").id(100L).create()
+                graph.schema().vertexLabel("person1").id(100L).create()
         );
     }
 
@@ -148,7 +147,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().vertexLabel("~person").id(0L).create()
+                graph.schema().vertexLabel("~person").id(0L).create()
         );
     }
 
@@ -157,7 +156,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().vertexLabel("~person").id(100L).build()
+                graph.schema().vertexLabel("~person").id(100L).build()
         );
     }
 
@@ -175,7 +174,7 @@ public class RestoreCoreTest extends BaseCoreTest {
              .idStrategy(IdStrategy.AUTOMATIC).create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.addVertex(T.label, "person", T.id, 100L)
+                graph.addVertex(T.label, "person", T.id, 100L)
         );
     }
 
@@ -205,7 +204,7 @@ public class RestoreCoreTest extends BaseCoreTest {
              .idStrategy(IdStrategy.PRIMARY_KEY).primaryKeys("name").create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.addVertex(T.label, "person", T.id, 100L, "name", "Tom")
+                graph.addVertex(T.label, "person", T.id, 100L, "name", "Tom")
         );
     }
 
@@ -217,7 +216,7 @@ public class RestoreCoreTest extends BaseCoreTest {
              .idStrategy(IdStrategy.PRIMARY_KEY).primaryKeys("name").create();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.addVertex(T.label, "person", T.id, 100L, "name", "Tom")
+                graph.addVertex(T.label, "person", T.id, 100L, "name", "Tom")
         );
     }
 
@@ -229,7 +228,7 @@ public class RestoreCoreTest extends BaseCoreTest {
              .idStrategy(IdStrategy.PRIMARY_KEY).primaryKeys("name").create();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.addVertex(T.label, "person", T.id, 100L, "name", "Tom")
+                graph.addVertex(T.label, "person", T.id, 100L, "name", "Tom")
         );
     }
 
@@ -419,17 +418,17 @@ public class RestoreCoreTest extends BaseCoreTest {
 
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(UnsupportedOperationException.class, () ->
-            v1.addEdge("knows", v2, T.id, "id")
+                v1.addEdge("knows", v2, T.id, "id")
         );
 
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(UnsupportedOperationException.class, () ->
-            v1.addEdge("knows", v2, T.id, "id")
+                v1.addEdge("knows", v2, T.id, "id")
         );
 
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(UnsupportedOperationException.class, () ->
-            v1.addEdge("knows", v2, T.id, "id")
+                v1.addEdge("knows", v2, T.id, "id")
         );
     }
 
@@ -438,7 +437,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().propertyKey("name").id(0L).create()
+                graph.schema().propertyKey("name").id(0L).create()
         );
     }
 
@@ -447,7 +446,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().propertyKey("name").id(0L).create()
+                graph.schema().propertyKey("name").id(0L).create()
         );
     }
 
@@ -456,7 +455,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().propertyKey("name").id(0L).create()
+                graph.schema().propertyKey("name").id(0L).create()
         );
     }
 
@@ -465,7 +464,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().propertyKey("name").id(-100L).create()
+                graph.schema().propertyKey("name").id(-100L).create()
         );
     }
 
@@ -474,7 +473,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().propertyKey("name").id(-100L).create()
+                graph.schema().propertyKey("name").id(-100L).create()
         );
     }
 
@@ -483,7 +482,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().propertyKey("name").id(-100L).create()
+                graph.schema().propertyKey("name").id(-100L).create()
         );
     }
 
@@ -492,7 +491,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().propertyKey("name").id(100L).create()
+                graph.schema().propertyKey("name").id(100L).create()
         );
     }
 
@@ -501,7 +500,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().propertyKey("name").id(100L).create()
+                graph.schema().propertyKey("name").id(100L).create()
 
         );
     }
@@ -527,7 +526,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.mode(GraphMode.RESTORING);
         graph.schema().propertyKey("name").id(100L).create();
         Assert.assertThrows(ExistedException.class, () ->
-            graph.schema().propertyKey("name").id(1000L).create()
+                graph.schema().propertyKey("name").id(1000L).create()
         );
     }
 
@@ -537,7 +536,7 @@ public class RestoreCoreTest extends BaseCoreTest {
         graph.mode(GraphMode.RESTORING);
         graph.schema().propertyKey("name").id(100L).create();
         Assert.assertThrows(ExistedException.class, () ->
-            graph.schema().propertyKey("name1").id(100L).create()
+                graph.schema().propertyKey("name1").id(100L).create()
         );
     }
 
@@ -550,9 +549,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(0L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(0L)
+                     .create()
         );
     }
 
@@ -565,9 +564,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(0L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(0L)
+                     .create()
         );
     }
 
@@ -580,9 +579,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalArgumentException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(0L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(0L)
+                     .create()
         );
     }
 
@@ -595,9 +594,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(-100L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(-100L)
+                     .create()
         );
     }
 
@@ -610,9 +609,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(-100L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(-100L)
+                     .create()
         );
     }
 
@@ -625,9 +624,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.RESTORING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(-100L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(-100L)
+                     .create()
         );
     }
 
@@ -640,9 +639,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.NONE);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(100L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(100L)
+                     .create()
         );
     }
 
@@ -655,9 +654,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .primaryKeys("name").create();
         graph.mode(GraphMode.MERGING);
         Assert.assertThrows(IllegalStateException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(100L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(100L)
+                     .create()
         );
     }
 
@@ -699,9 +698,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .onV("person").by("city").secondary().id(100L)
              .create();
         Assert.assertThrows(ExistedException.class, () ->
-            graph.schema().indexLabel("personByCity")
-                 .onV("person").by("city").secondary().id(100L)
-                 .create()
+                graph.schema().indexLabel("personByCity")
+                     .onV("person").by("city").secondary().id(100L)
+                     .create()
         );
     }
 
@@ -717,9 +716,9 @@ public class RestoreCoreTest extends BaseCoreTest {
              .onV("person").by("city").secondary().id(100L)
              .create();
         Assert.assertThrows(ExistedException.class, () ->
-            graph.schema().indexLabel("personByCity1")
-                 .onV("person").by("city").secondary().id(100L)
-                 .create()
+                graph.schema().indexLabel("personByCity1")
+                     .onV("person").by("city").secondary().id(100L)
+                     .create()
         );
     }
 

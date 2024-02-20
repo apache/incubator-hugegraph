@@ -24,17 +24,16 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.util.collection.IdSet;
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IdSetTest {
 

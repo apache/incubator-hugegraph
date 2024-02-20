@@ -17,15 +17,14 @@
 
 package org.apache.hugegraph.backend.store.postgresql;
 
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.logging.log4j.util.Strings;
-
 import org.apache.hugegraph.backend.id.IdUtil;
 import org.apache.hugegraph.backend.serializer.TableBackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.mysql.MysqlSerializer;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.structure.HugeIndex;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.logging.log4j.util.Strings;
 
 public class PostgresqlSerializer extends MysqlSerializer {
 

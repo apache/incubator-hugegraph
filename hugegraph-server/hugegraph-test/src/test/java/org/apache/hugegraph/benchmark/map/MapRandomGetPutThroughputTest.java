@@ -142,10 +142,10 @@ public class MapRandomGetPutThroughputTest {
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
-            .include(MapRandomGetPutThroughputTest.class.getSimpleName())
-            .result(BenchmarkConstants.OUTPUT_PATH + OUTPUT_FILE_NAME)
-            .resultFormat(ResultFormatType.JSON)
-            .build();
+                .include(MapRandomGetPutThroughputTest.class.getSimpleName())
+                .result(BenchmarkConstants.OUTPUT_PATH + OUTPUT_FILE_NAME)
+                .resultFormat(ResultFormatType.JSON)
+                .build();
         new Runner(opt).run();
     }
 }

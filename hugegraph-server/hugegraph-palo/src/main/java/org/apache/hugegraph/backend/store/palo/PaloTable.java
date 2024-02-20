@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.TableDefine;
 import org.apache.hugegraph.backend.store.mysql.MysqlBackendEntry;
@@ -33,6 +31,7 @@ import org.apache.hugegraph.backend.store.mysql.MysqlSessions;
 import org.apache.hugegraph.backend.store.mysql.MysqlTable;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class PaloTable extends MysqlTable {
 
@@ -51,7 +50,7 @@ public abstract class PaloTable extends MysqlTable {
         // Add columns
         int i = 0;
         for (Map.Entry<HugeKeys, String> entry :
-             tableDefine.columns().entrySet()) {
+                tableDefine.columns().entrySet()) {
             sql.append(formatKey(entry.getKey()));
             sql.append(" ");
             sql.append(entry.getValue());

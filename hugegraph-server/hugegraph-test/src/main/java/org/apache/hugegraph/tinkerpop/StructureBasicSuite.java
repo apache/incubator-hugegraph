@@ -60,45 +60,46 @@ import org.junit.runners.model.Statement;
  * @author Stephen Mallette (http://stephen.genoprime.com)
  */
 public class StructureBasicSuite extends AbstractGremlinSuite {
+
     /**
      * This list of tests in the suite that will be executed.
      * Gremlin developers should add to this list
      * as needed to enforce tests upon implementations.
      */
-    private static final Class<?>[] ALL_TESTS = new Class<?>[] {
-        CommunityGeneratorTest.class,
-        DetachedGraphTest.class,
-        DetachedEdgeTest.class,
-        DetachedVertexPropertyTest.class,
-        DetachedPropertyTest.class,
-        DetachedVertexTest.class,
-        DistributionGeneratorTest.class,
-        EdgeTest.class,
-        FeatureSupportTest.class,
-        IoCustomTest.class,
-        IoEdgeTest.class,
-        IoGraphTest.class,
-        IoVertexTest.class,
-        IoPropertyTest.class,
-        GraphTest.class,
-        GraphConstructionTest.class,
-        IoTest.class,
-        VertexPropertyTest.class,
-        VariablesTest.class,
-        PropertyTest.class,
-        ReferenceGraphTest.class,
-        ReferenceEdgeTest.class,
-        ReferenceVertexPropertyTest.class,
-        ReferenceVertexTest.class,
-        SerializationTest.class,
-        StarGraphTest.class,
-        TransactionTest.class,
-        VertexTest.class
+    private static final Class<?>[] ALL_TESTS = new Class<?>[]{
+            CommunityGeneratorTest.class,
+            DetachedGraphTest.class,
+            DetachedEdgeTest.class,
+            DetachedVertexPropertyTest.class,
+            DetachedPropertyTest.class,
+            DetachedVertexTest.class,
+            DistributionGeneratorTest.class,
+            EdgeTest.class,
+            FeatureSupportTest.class,
+            IoCustomTest.class,
+            IoEdgeTest.class,
+            IoGraphTest.class,
+            IoVertexTest.class,
+            IoPropertyTest.class,
+            GraphTest.class,
+            GraphConstructionTest.class,
+            IoTest.class,
+            VertexPropertyTest.class,
+            VariablesTest.class,
+            PropertyTest.class,
+            ReferenceGraphTest.class,
+            ReferenceEdgeTest.class,
+            ReferenceVertexPropertyTest.class,
+            ReferenceVertexTest.class,
+            SerializationTest.class,
+            StarGraphTest.class,
+            TransactionTest.class,
+            VertexTest.class
     };
 
     public StructureBasicSuite(final Class<?> klass,
                                final RunnerBuilder builder)
-                               throws InitializationError {
+            throws InitializationError {
         super(klass, builder, ALL_TESTS, null, true,
               TraversalEngine.Type.STANDARD);
 

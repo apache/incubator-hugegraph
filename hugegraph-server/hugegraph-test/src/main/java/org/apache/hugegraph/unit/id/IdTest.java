@@ -20,15 +20,15 @@ package org.apache.hugegraph.unit.id;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import org.apache.hugegraph.unit.BaseUnitTest;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.Id.IdType;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
+import org.junit.Test;
+
 import com.google.common.primitives.Bytes;
 
 public class IdTest extends BaseUnitTest {
@@ -110,9 +110,9 @@ public class IdTest extends BaseUnitTest {
                             id.toString());
 
         byte[] h = NumericUtil.longToBytes(
-                   Long.parseUnsignedLong("835e115392814957", 16));
+                Long.parseUnsignedLong("835e115392814957", 16));
         byte[] l = NumericUtil.longToBytes(
-                   Long.parseUnsignedLong("8691cf79258e90eb", 16));
+                Long.parseUnsignedLong("8691cf79258e90eb", 16));
         Assert.assertArrayEquals(Bytes.concat(h, l), id.asBytes());
 
         Id id2 = IdGenerator.of("835e1153928149578691cf79258e90eb", true);
@@ -130,7 +130,7 @@ public class IdTest extends BaseUnitTest {
         Assert.assertEquals("g14RU5KBSVeGkc95JY6Q6w==",
                             IdGenerator.asStoredString(id));
         Assert.assertEquals(id, IdGenerator.ofStoredString(
-                                "g14RU5KBSVeGkc95JY6Q6w==", IdType.UUID));
+                "g14RU5KBSVeGkc95JY6Q6w==", IdType.UUID));
     }
 
     @Test

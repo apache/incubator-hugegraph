@@ -17,11 +17,10 @@
 
 package org.apache.hugegraph.unit.mysql;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.store.mysql.MysqlUtil;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.Test;
 
 public class MysqlUtilTest extends BaseUnitTest {
 

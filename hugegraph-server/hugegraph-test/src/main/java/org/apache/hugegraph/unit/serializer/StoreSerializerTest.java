@@ -19,20 +19,19 @@ package org.apache.hugegraph.unit.serializer;
 
 import java.util.Iterator;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.store.BackendAction;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendMutation;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import org.apache.hugegraph.backend.store.raft.StoreCommand;
 import org.apache.hugegraph.backend.store.raft.StoreSerializer;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreAction;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.StoreType;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
+import org.junit.Test;
 
 public class StoreSerializerTest {
 

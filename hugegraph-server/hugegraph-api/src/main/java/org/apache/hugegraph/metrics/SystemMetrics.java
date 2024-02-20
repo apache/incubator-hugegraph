@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.hugegraph.util.Bytes;
 
 public class SystemMetrics {
@@ -112,7 +111,7 @@ public class SystemMetrics {
     private Map<String, Object> getClassLoadingMetrics() {
         Map<String, Object> metrics = new LinkedHashMap<>();
         ClassLoadingMXBean classLoadingMxBean = ManagementFactory
-                                                .getClassLoadingMXBean();
+                .getClassLoadingMXBean();
         metrics.put("count", classLoadingMxBean.getLoadedClassCount());
         metrics.put("loaded", classLoadingMxBean.getTotalLoadedClassCount());
         metrics.put("unloaded", classLoadingMxBean.getUnloadedClassCount());
@@ -122,7 +121,7 @@ public class SystemMetrics {
     private Map<String, Object> getGarbageCollectionMetrics() {
         Map<String, Object> metrics = new LinkedHashMap<>();
         List<GarbageCollectorMXBean> gcMxBeans = ManagementFactory
-                                                 .getGarbageCollectorMXBeans();
+                .getGarbageCollectorMXBeans();
         for (GarbageCollectorMXBean gcMxBean : gcMxBeans) {
             String name = formatName(gcMxBean.getName());
             metrics.put(name + "_count", gcMxBean.getCollectionCount());

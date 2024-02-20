@@ -19,10 +19,10 @@ package org.apache.hugegraph.unit.core;
 
 import java.util.Map;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.exception.HugeGremlinException;
 import org.apache.hugegraph.testutil.Assert;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 

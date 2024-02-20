@@ -25,6 +25,18 @@ import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.exception.HugeGremlinException;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.glassfish.hk2.api.MultiException;
+
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
@@ -40,18 +52,6 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.config.ServerOptions;
-import org.glassfish.hk2.api.MultiException;
-
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.exception.HugeGremlinException;
-import org.apache.hugegraph.exception.NotFoundException;
-import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
 
 public class ExceptionFilter {
 
@@ -107,8 +107,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class HugeExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<HugeException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<HugeException> {
 
         @Override
         public Response toResponse(HugeException exception) {
@@ -121,8 +121,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class IllegalArgumentExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<IllegalArgumentException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<IllegalArgumentException> {
 
         @Override
         public Response toResponse(IllegalArgumentException exception) {
@@ -135,8 +135,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class NotFoundExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<NotFoundException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<NotFoundException> {
 
         @Override
         public Response toResponse(NotFoundException exception) {
@@ -149,8 +149,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class NoSuchElementExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<NoSuchElementException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<NoSuchElementException> {
 
         @Override
         public Response toResponse(NoSuchElementException exception) {
@@ -163,8 +163,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class WebApplicationExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<WebApplicationException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<WebApplicationException> {
 
         @Override
         public Response toResponse(WebApplicationException exception) {
@@ -189,8 +189,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class HugeGremlinExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<HugeGremlinException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<HugeGremlinException> {
 
         @Override
         public Response toResponse(HugeGremlinException exception) {
@@ -204,7 +204,7 @@ public class ExceptionFilter {
 
     @Provider
     public static class AssertionErrorMapper extends TracedExceptionMapper
-                  implements ExceptionMapper<AssertionError> {
+            implements ExceptionMapper<AssertionError> {
 
         @Override
         public Response toResponse(AssertionError exception) {
@@ -217,7 +217,7 @@ public class ExceptionFilter {
 
     @Provider
     public static class UnknownExceptionMapper extends TracedExceptionMapper
-                  implements ExceptionMapper<Throwable> {
+            implements ExceptionMapper<Throwable> {
 
         @Override
         public Response toResponse(Throwable exception) {

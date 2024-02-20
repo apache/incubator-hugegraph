@@ -34,7 +34,7 @@ public class StatusFilter implements ContainerResponseFilter {
     @Override
     public void filter(ContainerRequestContext requestContext,
                        ContainerResponseContext responseContext)
-                       throws IOException {
+            throws IOException {
         if (responseContext.getStatus() == 200) {
             for (Annotation i : responseContext.getEntityAnnotations()) {
                 if (i instanceof Status) {
@@ -48,6 +48,7 @@ public class StatusFilter implements ContainerResponseFilter {
     @NameBinding
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Status {
+
         int OK = 200;
         int CREATED = 201;
         int ACCEPTED = 202;
