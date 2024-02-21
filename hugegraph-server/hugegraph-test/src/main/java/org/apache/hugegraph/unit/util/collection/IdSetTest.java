@@ -18,7 +18,6 @@
 package org.apache.hugegraph.unit.util.collection;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
@@ -247,9 +246,7 @@ public class IdSetTest {
             Assert.assertEquals(uuids.size() + strings.size(),
                                 nonNumberIds.size());
 
-            Iterator<Id> iterator = idSet.iterator();
-            while (iterator.hasNext()) {
-                Id id = iterator.next();
+            for (Id id : idSet) {
                 if (id instanceof IdGenerator.LongId) {
                     Assert.assertTrue(numbers.contains(id.asLong()));
                 } else if (id instanceof IdGenerator.UuidId) {
