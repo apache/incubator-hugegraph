@@ -94,7 +94,7 @@ public class MetricsUtil {
     }
 
     public static String replaceDotDashInKey(String orgKey) {
-        return orgKey.replace(".", "_").replace("-", "_");
+        return orgKey.replace(".", "_").replace("-", "_").replace("/", "_").replace("$", "_");
     }
 
     public static String replaceSlashInKey(String orgKey) {
