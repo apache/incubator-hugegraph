@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.tx;
@@ -144,19 +144,19 @@ public class GraphTransaction extends IndexableTransaction {
 
         final HugeConfig conf = graph.configuration();
         this.checkCustomVertexExist =
-             conf.get(CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
+                conf.get(CoreOptions.VERTEX_CHECK_CUSTOMIZED_ID_EXIST);
         this.checkAdjacentVertexExist =
-             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
+                conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_EXIST);
         this.lazyLoadAdjacentVertex =
-             conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
+                conf.get(CoreOptions.VERTEX_ADJACENT_VERTEX_LAZY);
         this.removeLeftIndexOnOverwrite =
-             conf.get(CoreOptions.VERTEX_REMOVE_LEFT_INDEX);
+                conf.get(CoreOptions.VERTEX_REMOVE_LEFT_INDEX);
         this.commitPartOfAdjacentEdges =
-             conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
+                conf.get(CoreOptions.VERTEX_PART_EDGE_COMMIT_SIZE);
         this.ignoreInvalidEntry =
-             conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
+                conf.get(CoreOptions.QUERY_IGNORE_INVALID_DATA);
         this.optimizeAggrByIndex =
-             conf.get(CoreOptions.QUERY_OPTIMIZE_AGGR_BY_INDEX);
+                conf.get(CoreOptions.QUERY_OPTIMIZE_AGGR_BY_INDEX);
         this.batchSize = conf.get(CoreOptions.QUERY_BATCH_SIZE);
         this.pageSize = conf.get(CoreOptions.QUERY_PAGE_SIZE);
 
@@ -444,7 +444,7 @@ public class GraphTransaction extends IndexableTransaction {
                     // Eliminate the property(OUT and IN owner edge)
                     this.doEliminate(this.serializer.writeEdgeProperty(prop));
                     this.doEliminate(this.serializer.writeEdgeProperty(
-                                     prop.switchEdgeOwner()));
+                            prop.switchEdgeOwner()));
                 } else {
                     // Override edge(it will be in addedEdges & updatedEdges)
                     this.addEdge(prop.element());
@@ -473,7 +473,7 @@ public class GraphTransaction extends IndexableTransaction {
                     // Append new property(OUT and IN owner edge)
                     this.doAppend(this.serializer.writeEdgeProperty(prop));
                     this.doAppend(this.serializer.writeEdgeProperty(
-                                  prop.switchEdgeOwner()));
+                            prop.switchEdgeOwner()));
                 } else {
                     // Override edge (it will be in addedEdges & updatedEdges)
                     this.addEdge(prop.element());
@@ -535,7 +535,7 @@ public class GraphTransaction extends IndexableTransaction {
         QueryList<BackendEntry> queries = this.optimizeQueries(query, super::query);
         LOG.debug("{}", queries);
         return queries.empty() ? QueryResults.empty() :
-                                 queries.fetch(this.pageSize);
+               queries.fetch(this.pageSize);
     }
 
     @Override
@@ -776,7 +776,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (vertex == null) {
                 if (checkMustExist) {
                     throw new NotFoundException(
-                              "Vertex '%s' does not exist", id);
+                            "Vertex '%s' does not exist", id);
                 } else if (adjacentVertex) {
                     assert !checkMustExist;
                     // Return undefined if adjacentVertex but !checkMustExist
@@ -1018,9 +1018,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (vertex == null) {
                 return null;
             }
-            if (query.idsSize() == 1) {
-                assert vertex.getEdges().size() == 1;
-            }
+            assert query.idsSize() != 1 || vertex.getEdges().size() == 1;
             /*
              * Copy to avoid ConcurrentModificationException when removing edge
              * because HugeEdge.remove() will update edges in owner vertex
@@ -1218,8 +1216,8 @@ public class GraphTransaction extends IndexableTransaction {
         // Edge direction
         if (direction == Directions.BOTH) {
             query.query(Condition.or(
-                        Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
-                        Condition.eq(HugeKeys.DIRECTION, Directions.IN)));
+                    Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
+                    Condition.eq(HugeKeys.DIRECTION, Directions.IN)));
         } else {
             assert direction == Directions.OUT || direction == Directions.IN;
             query.eq(HugeKeys.DIRECTION, direction);
@@ -1380,8 +1378,8 @@ public class GraphTransaction extends IndexableTransaction {
 
         if (matched != total) {
             throw new HugeException(
-                      "Not supported querying edges by %s, expect %s",
-                      query.conditions(), EdgeId.KEYS[count]);
+                    "Not supported querying edges by %s, expect %s",
+                    query.conditions(), EdgeId.KEYS[count]);
         }
     }
 
@@ -1396,7 +1394,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
         for (ConditionQuery cq : ConditionQueryFlatten.flatten(
-                                 (ConditionQuery) query, supportIn)) {
+                (ConditionQuery) query, supportIn)) {
             // Optimize by sysprop
             Query q = this.optimizeQuery(cq);
             /*
@@ -1416,7 +1414,7 @@ public class GraphTransaction extends IndexableTransaction {
     private Query optimizeQuery(ConditionQuery query) {
         if (query.idsSize() > 0) {
             throw new HugeException(
-                      "Not supported querying by id and conditions: %s", query);
+                    "Not supported querying by id and conditions: %s", query);
         }
 
         Id label = query.condition(HugeKeys.LABEL);
@@ -1458,7 +1456,7 @@ public class GraphTransaction extends IndexableTransaction {
             // Serialize sort-values
             List<Id> keys = this.graph().edgeLabel(label).sortKeys();
             List<Condition> conditions =
-                            GraphIndexTransaction.constructShardConditions(
+                    GraphIndexTransaction.constructShardConditions(
                             query, keys, HugeKeys.SORT_VALUES);
             query.query(conditions);
             /*
@@ -1606,15 +1604,15 @@ public class GraphTransaction extends IndexableTransaction {
         // Check whether passed all non-null property
         @SuppressWarnings("unchecked")
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
-                                     vertexLabel.properties(),
-                                     vertexLabel.nullableKeys());
+                vertexLabel.properties(),
+                vertexLabel.nullableKeys());
         if (!keys.containsAll(nonNullKeys)) {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             HugeGraph graph = this.graph();
 
             E.checkArgument(false, "All non-null property keys %s of " +
-                            "vertex label '%s' must be set, missed keys %s",
+                                   "vertex label '%s' must be set, missed keys %s",
                             graph.mapPkId2Name(nonNullKeys), vertexLabel.name(),
                             graph.mapPkId2Name(missed));
         }
@@ -1641,11 +1639,11 @@ public class GraphTransaction extends IndexableTransaction {
             HugeVertex newVertex = vertices.get(existedVertex.id());
             if (!existedVertex.label().equals(newVertex.label())) {
                 throw new HugeException(
-                          "The newly added vertex with id:'%s' label:'%s' " +
-                          "is not allowed to insert, because already exist " +
-                          "a vertex with same id and different label:'%s'",
-                          newVertex.id(), newVertex.label(),
-                          existedVertex.label());
+                        "The newly added vertex with id:'%s' label:'%s' " +
+                        "is not allowed to insert, because already exist " +
+                        "a vertex with same id and different label:'%s'",
+                        newVertex.id(), newVertex.label(),
+                        existedVertex.label());
             }
         } finally {
             CloseableIterator.closeIterator(results);
@@ -1709,8 +1707,8 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private <T extends HugeElement> Iterator<T> filterUnmatchedRecords(
-                                                Iterator<T> results,
-                                                Query query) {
+            Iterator<T> results,
+            Query query) {
         // Filter unused or incorrect records
         return new FilterIterator<>(results, elem -> {
             // TODO: Left vertex/edge should to be auto removed via async task
@@ -1729,12 +1727,9 @@ public class GraphTransaction extends IndexableTransaction {
                 return false;
             }
             // Process results that query from left index or primary-key
-            if (query.resultType().isVertex() == elem.type().isVertex() &&
-                !rightResultFromIndexQuery(query, elem)) {
-                // Only index query will come here
-                return false;
-            }
-            return true;
+            // Only index query will come here
+            return query.resultType().isVertex() != elem.type().isVertex() ||
+                   rightResultFromIndexQuery(query, elem);
         });
     }
 
@@ -1786,7 +1781,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private <T extends HugeElement> Iterator<T> filterExpiredResultFromBackend(
-                                    Query query, Iterator<T> results) {
+            Query query, Iterator<T> results) {
         if (this.store().features().supportsTtl() || query.showExpired()) {
             return results;
         }
@@ -1872,12 +1867,12 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private <V extends HugeElement> Iterator<V> joinTxRecords(
-                                    Query query,
-                                    Iterator<V> records,
-                                    BiFunction<Query, V, V> matchFunc,
-                                    Map<Id, V> addedTxRecords,
-                                    Map<Id, V> removedTxRecords,
-                                    Map<Id, V> updatedTxRecords) {
+            Query query,
+            Iterator<V> records,
+            BiFunction<Query, V, V> matchFunc,
+            Map<Id, V> addedTxRecords,
+            Map<Id, V> removedTxRecords,
+            Map<Id, V> updatedTxRecords) {
         this.checkOwnerThread();
         // Return the origin results if there is no change in tx
         if (addedTxRecords.isEmpty() &&
@@ -1923,16 +1918,16 @@ public class GraphTransaction extends IndexableTransaction {
     private void checkTxVerticesCapacity() throws LimitExceedException {
         if (this.verticesInTxSize() >= this.verticesCapacity) {
             throw new LimitExceedException(
-                      "Vertices size has reached tx capacity %d",
-                      this.verticesCapacity);
+                    "Vertices size has reached tx capacity %d",
+                    this.verticesCapacity);
         }
     }
 
     private void checkTxEdgesCapacity() throws LimitExceedException {
         if (this.edgesInTxSize() >= this.edgesCapacity) {
             throw new LimitExceedException(
-                      "Edges size has reached tx capacity %d",
-                      this.edgesCapacity);
+                    "Edges size has reached tx capacity %d",
+                    this.edgesCapacity);
         }
     }
 
@@ -2075,7 +2070,7 @@ public class GraphTransaction extends IndexableTransaction {
         HugeType type = label.type() == HugeType.VERTEX_LABEL ?
                         HugeType.VERTEX : HugeType.EDGE;
         Query query = label.enableLabelIndex() ? new ConditionQuery(type) :
-                                                 new Query(type);
+                      new Query(type);
         query.capacity(Query.NO_CAPACITY);
         query.limit(Query.NO_LIMIT);
         if (this.store().features().supportsQueryByPage()) {

@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.palo;
@@ -188,9 +188,9 @@ public class PaloTables {
 
             this.direction = direction;
             this.delByLabelTemplate = String.format(
-                                      "DELETE FROM %s PARTITION %s WHERE %s = ?;",
-                                      this.table(), this.table(),
-                                      formatKey(HugeKeys.LABEL));
+                    "DELETE FROM %s PARTITION %s WHERE %s = ?;",
+                    this.table(), this.table(),
+                    formatKey(HugeKeys.LABEL));
 
             this.define = new TableDefine();
             this.define.column(HugeKeys.OWNER_VERTEX, VARCHAR, NOT_NULL);
@@ -214,7 +214,7 @@ public class PaloTables {
                 String[] idParts = EdgeId.split(id);
                 if (idParts.length == 1) {
                     // Delete edge by label
-                    return Arrays.asList((Object[]) idParts);
+                    return Arrays.asList(idParts);
                 }
                 id = IdUtil.readString(id.asString());
                 edgeId = EdgeId.parse(id.asString());
@@ -280,7 +280,7 @@ public class PaloTables {
             long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
             if (current != null && current.subRows().size() < maxSize) {
                 Id nextVertexId = IdGenerator.of(
-                                  next.<String>column(HugeKeys.OWNER_VERTEX));
+                        next.<String>column(HugeKeys.OWNER_VERTEX));
                 if (current.id().equals(nextVertexId)) {
                     current.subRow(next.row());
                     return current;

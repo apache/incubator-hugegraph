@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.api.filter;
@@ -143,8 +143,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         String auth = context.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (auth == null) {
             throw new NotAuthorizedException(
-                      "Authentication credentials are required",
-                      "Missing authentication credentials");
+                    "Authentication credentials are required",
+                    "Missing authentication credentials");
         }
 
         if (auth.startsWith(BASIC_AUTH_PREFIX)) {
@@ -154,7 +154,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             String[] values = auth.split(":");
             if (values.length != 2) {
                 throw new BadRequestException(
-                          "Invalid syntax for username and password");
+                        "Invalid syntax for username and password");
             }
 
             final String username = values[0];
@@ -163,7 +163,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             if (StringUtils.isEmpty(username) ||
                 StringUtils.isEmpty(password)) {
                 throw new BadRequestException(
-                          "Invalid syntax for username and password");
+                        "Invalid syntax for username and password");
             }
 
             credentials.put(HugeAuthenticator.KEY_USERNAME, username);
@@ -173,7 +173,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             credentials.put(HugeAuthenticator.KEY_TOKEN, token);
         } else {
             throw new BadRequestException(
-                      "Only HTTP Basic or Bearer authentication is supported");
+                    "Only HTTP Basic or Bearer authentication is supported");
         }
 
         credentials.put(HugeAuthenticator.KEY_ADDRESS, peer);

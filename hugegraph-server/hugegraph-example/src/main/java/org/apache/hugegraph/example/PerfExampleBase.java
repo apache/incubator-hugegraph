@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.example;
@@ -96,7 +96,7 @@ public abstract class PerfExampleBase {
      * @throws Exception execute may throw Exception
      */
     public void testInsertPerf(GraphManager graph, int threadCount, int times, int multiple)
-        throws Exception {
+            throws Exception {
         // Total vertices/edges
         long n = (long) threadCount * times * multiple;
         long vertices = (PERSON_NUM + SOFTWARE_NUM) * n;
@@ -113,7 +113,7 @@ public abstract class PerfExampleBase {
     }
 
     public void testQueryVertexPerf(GraphManager graph, int threadCount, int times, int multiple)
-        throws Exception {
+            throws Exception {
         long cost = this.execute(graph, i -> {
             this.testQueryVertex(graph, threadCount, i, multiple);
         }, threadCount);
@@ -125,7 +125,7 @@ public abstract class PerfExampleBase {
     }
 
     public void testQueryEdgePerf(GraphManager graph, int threadCount, int times, int multiple)
-        throws Exception {
+            throws Exception {
         long cost = this.execute(graph, i -> {
             this.testQueryEdge(graph, threadCount, i, multiple);
         }, threadCount);
@@ -236,6 +236,7 @@ public abstract class PerfExampleBase {
     }
 
     protected static class GraphManager {
+
         private final HugeGraph hugegraph;
         private final Cache<Id, Object> cache = CacheManager.instance().cache("perf-test");
 

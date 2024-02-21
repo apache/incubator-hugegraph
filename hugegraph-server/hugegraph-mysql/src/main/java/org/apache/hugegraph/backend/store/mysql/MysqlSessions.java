@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.mysql;
@@ -30,15 +30,14 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.logging.log4j.util.Strings;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.BackendSession.AbstractBackendSession;
 import org.apache.hugegraph.backend.store.BackendSessionPool;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.logging.log4j.util.Strings;
+import org.slf4j.Logger;
 
 public class MysqlSessions extends BackendSessionPool {
 
@@ -74,6 +73,7 @@ public class MysqlSessions extends BackendSessionPool {
 
     /**
      * Try connect with specified database, will not reconnect if failed
+     *
      * @throws SQLException if a database access error occurs
      */
     @Override
@@ -220,7 +220,7 @@ public class MysqlSessions extends BackendSessionPool {
         String url = this.buildUrlPrefix(withDB);
 
         boolean forcedAutoReconnect = this.config.get(
-                                      MysqlOptions.JDBC_FORCED_AUTO_RECONNECT);
+                MysqlOptions.JDBC_FORCED_AUTO_RECONNECT);
         int maxTimes = this.config.get(MysqlOptions.JDBC_RECONNECT_MAX_TIMES);
         int interval = this.config.get(MysqlOptions.JDBC_RECONNECT_INTERVAL);
         String sslMode = this.config.get(MysqlOptions.JDBC_SSL_MODE);
@@ -253,7 +253,7 @@ public class MysqlSessions extends BackendSessionPool {
 
         builder.setParameter("useSSL", sslMode);
 
-        return JDBC_PREFIX + builder.toString();
+        return JDBC_PREFIX + builder;
     }
 
     protected String buildUrlPrefix(boolean withDB) {
@@ -270,7 +270,7 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     protected URIBuilder newConnectionURIBuilder(String url)
-                                                 throws URISyntaxException {
+            throws URISyntaxException {
         return new URIBuilder(url);
     }
 
@@ -283,8 +283,10 @@ public class MysqlSessions extends BackendSessionPool {
             // Register JDBC driver
             Class.forName(driverName);
         } catch (ClassNotFoundException e) {
-            throw new BackendException("Failed to register JDBC driver. Class '%s' not found. Please check if the MySQL driver package is available.",
-                                       driverName);
+            throw new BackendException(
+                    "Failed to register JDBC driver. Class '%s' not found. Please check if the " +
+                    "MySQL driver package is available.",
+                    driverName);
         }
         return DriverManager.getConnection(url, username, password);
     }
@@ -532,7 +534,7 @@ public class MysqlSessions extends BackendSessionPool {
         }
 
         public PreparedStatement prepareStatement(String sqlTemplate)
-                                                  throws SQLException {
+                throws SQLException {
             PreparedStatement statement = this.statements.get(sqlTemplate);
             if (statement == null) {
                 statement = this.conn.prepareStatement(sqlTemplate);

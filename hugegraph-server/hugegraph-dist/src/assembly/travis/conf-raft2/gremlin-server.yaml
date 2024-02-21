@@ -74,29 +74,29 @@ scriptEngines: {
   }
 }
 serializers:
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV2d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV2d0,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
 metrics: {
   consoleReporter: {enabled: false, interval: 180000},

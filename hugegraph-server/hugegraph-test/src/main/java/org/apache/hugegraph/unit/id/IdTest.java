@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit.id;
@@ -20,15 +20,15 @@ package org.apache.hugegraph.unit.id;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import org.apache.hugegraph.unit.BaseUnitTest;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.Id.IdType;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
+import org.junit.Test;
+
 import com.google.common.primitives.Bytes;
 
 public class IdTest extends BaseUnitTest {
@@ -110,9 +110,9 @@ public class IdTest extends BaseUnitTest {
                             id.toString());
 
         byte[] h = NumericUtil.longToBytes(
-                   Long.parseUnsignedLong("835e115392814957", 16));
+                Long.parseUnsignedLong("835e115392814957", 16));
         byte[] l = NumericUtil.longToBytes(
-                   Long.parseUnsignedLong("8691cf79258e90eb", 16));
+                Long.parseUnsignedLong("8691cf79258e90eb", 16));
         Assert.assertArrayEquals(Bytes.concat(h, l), id.asBytes());
 
         Id id2 = IdGenerator.of("835e1153928149578691cf79258e90eb", true);
@@ -130,7 +130,7 @@ public class IdTest extends BaseUnitTest {
         Assert.assertEquals("g14RU5KBSVeGkc95JY6Q6w==",
                             IdGenerator.asStoredString(id));
         Assert.assertEquals(id, IdGenerator.ofStoredString(
-                                "g14RU5KBSVeGkc95JY6Q6w==", IdType.UUID));
+                "g14RU5KBSVeGkc95JY6Q6w==", IdType.UUID));
     }
 
     @Test

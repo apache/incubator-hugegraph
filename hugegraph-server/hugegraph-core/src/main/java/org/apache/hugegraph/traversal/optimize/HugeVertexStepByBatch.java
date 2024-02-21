@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.traversal.optimize;
@@ -23,6 +23,7 @@ import java.util.List;
 import org.apache.hugegraph.backend.query.BatchConditionQuery;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.iterator.BatchMapperIterator;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
@@ -33,10 +34,8 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
-import org.apache.hugegraph.iterator.BatchMapperIterator;
-
 public class HugeVertexStepByBatch<E extends Element>
-       extends HugeVertexStep<E> {
+        extends HugeVertexStep<E> {
 
     private static final long serialVersionUID = -3609787815053052222L;
 
@@ -57,7 +56,7 @@ public class HugeVertexStepByBatch<E extends Element>
         if (this.batchIterator == null) {
             int batchSize = (int) Query.QUERY_BATCH;
             this.batchIterator = new BatchMapperIterator<>(
-                                 batchSize, this.starts, this::flatMap);
+                    batchSize, this.starts, this::flatMap);
         }
 
         if (this.batchIterator.hasNext()) {
@@ -110,7 +109,7 @@ public class HugeVertexStepByBatch<E extends Element>
     }
 
     private Iterator<Vertex> vertices(
-                             List<Traverser.Admin<Vertex>> traversers) {
+            List<Traverser.Admin<Vertex>> traversers) {
         assert traversers.size() > 0;
 
         Iterator<Edge> edges = this.edges(traversers);
@@ -121,7 +120,7 @@ public class HugeVertexStepByBatch<E extends Element>
         assert traversers.size() > 0;
 
         BatchConditionQuery batchQuery = new BatchConditionQuery(
-                                         HugeType.EDGE, traversers.size());
+                HugeType.EDGE, traversers.size());
 
         for (Traverser.Admin<Vertex> traverser : traversers) {
             ConditionQuery query = this.constructEdgesQuery(traverser);

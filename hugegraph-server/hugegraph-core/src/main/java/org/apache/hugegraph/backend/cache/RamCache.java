@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.cache;
@@ -156,7 +156,7 @@ public class RamCache extends AbstractCache<Id, Object> {
     @Override
     protected Iterator<CacheNode<Id, Object>> nodes() {
         Iterator<LinkNode<Id, Object>> iter = this.map.values().iterator();
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings({"unchecked", "rawtypes"})
         Iterator<CacheNode<Id, Object>> iterSuper = (Iterator) iter;
         return iterSuper;
     }
@@ -280,8 +280,8 @@ public class RamCache extends AbstractCache<Id, Object> {
         /**
          * Reset the head node and rear node
          * NOTE:
-         *  only called by LinkedQueueNonBigLock() without lock
-         *  or called by clear() with lock(head, rear)
+         * only called by LinkedQueueNonBigLock() without lock
+         * or called by clear() with lock(head, rear)
          */
         private void reset() {
             this.head.prev = this.empty;
@@ -316,7 +316,7 @@ public class RamCache extends AbstractCache<Id, Object> {
             List<K> keys = this.dumpKeys();
             if (keys.contains(key)) {
                 throw new RuntimeException(String.format(
-                          "Expect %s should be not in %s", key, keys));
+                        "Expect %s should be not in %s", key, keys));
             }
             return true;
         }
@@ -338,8 +338,8 @@ public class RamCache extends AbstractCache<Id, Object> {
             int selfPos = keys.indexOf(self.key());
             if (prevPos > selfPos && selfPos != -1) {
                 throw new RuntimeException(String.format(
-                          "Expect %s should be before %s, actual %s",
-                          prev.key(), self.key(), keys));
+                        "Expect %s should be before %s, actual %s",
+                        prev.key(), self.key(), keys));
             }
             return true;
         }
