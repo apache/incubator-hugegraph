@@ -374,7 +374,7 @@ public class MysqlTables {
         public void delete(MysqlSessions.Session session, MysqlBackendEntry.Row entry) {
             // Let super class do delete if not deleting edge by label
             List<Object> idParts = this.idColumnValue(entry.id());
-            if (idParts.size() > 1 || entry.columns().size() > 0) {
+            if (idParts.size() > 1 || !entry.columns().isEmpty()) {
                 super.delete(session, entry);
                 return;
             }

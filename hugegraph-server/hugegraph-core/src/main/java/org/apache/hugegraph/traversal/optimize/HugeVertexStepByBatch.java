@@ -93,7 +93,7 @@ public class HugeVertexStepByBatch<E extends Element>
 
     @SuppressWarnings("unchecked")
     private Iterator<E> flatMap(List<Traverser.Admin<Vertex>> traversers) {
-        if (this.head == null && traversers.size() > 0) {
+        if (this.head == null && !traversers.isEmpty()) {
             this.head = traversers.get(0);
         }
         boolean queryVertex = this.returnsVertex();
@@ -110,14 +110,14 @@ public class HugeVertexStepByBatch<E extends Element>
 
     private Iterator<Vertex> vertices(
             List<Traverser.Admin<Vertex>> traversers) {
-        assert traversers.size() > 0;
+        assert !traversers.isEmpty();
 
         Iterator<Edge> edges = this.edges(traversers);
         return this.queryAdjacentVertices(edges);
     }
 
     private Iterator<Edge> edges(List<Traverser.Admin<Vertex>> traversers) {
-        assert traversers.size() > 0;
+        assert !traversers.isEmpty();
 
         BatchConditionQuery batchQuery = new BatchConditionQuery(
                 HugeType.EDGE, traversers.size());

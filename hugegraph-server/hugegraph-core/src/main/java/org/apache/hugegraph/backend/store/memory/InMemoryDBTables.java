@@ -181,7 +181,7 @@ public class InMemoryDBTables {
         private Map<Id, BackendEntry> queryEdgeById(
                 Collection<Id> ids, boolean prefix,
                 Map<Id, BackendEntry> entries) {
-            assert ids.size() > 0;
+            assert !ids.isEmpty();
             Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
 
             for (Id id : ids) {

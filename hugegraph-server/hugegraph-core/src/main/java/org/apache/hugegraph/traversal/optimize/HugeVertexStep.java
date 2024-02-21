@@ -151,7 +151,7 @@ public class HugeVertexStep<E extends Element>
                 withEdgeCond = false;
             } else {
                 // Partial sysprop conditions are in sort-keys
-                assert query.userpropKeys().size() > 0;
+                assert !query.userpropKeys().isEmpty();
             }
         }
 

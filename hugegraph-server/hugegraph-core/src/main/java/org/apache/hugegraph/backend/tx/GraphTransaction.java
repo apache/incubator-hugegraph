@@ -180,23 +180,23 @@ public class GraphTransaction extends IndexableTransaction {
     public boolean hasUpdate(HugeType type, Action action) {
         if (type.isVertex()) {
             if (action == Action.DELETE) {
-                if (this.removedVertices.size() > 0) {
+                if (!this.removedVertices.isEmpty()) {
                     return true;
                 }
             } else {
-                if (this.addedVertices.size() > 0 ||
-                    this.updatedVertices.size() > 0) {
+                if (!this.addedVertices.isEmpty() ||
+                    !this.updatedVertices.isEmpty()) {
                     return true;
                 }
             }
         } else if (type.isEdge()) {
             if (action == Action.DELETE) {
-                if (this.removedEdges.size() > 0) {
+                if (!this.removedEdges.isEmpty()) {
                     return true;
                 }
             } else {
-                if (this.addedEdges.size() > 0 ||
-                    this.updatedEdges.size() > 0) {
+                if (!this.addedEdges.isEmpty() ||
+                    !this.updatedEdges.isEmpty()) {
                     return true;
                 }
             }
@@ -300,16 +300,16 @@ public class GraphTransaction extends IndexableTransaction {
     @Override
     protected BackendMutation prepareCommit() {
         // Serialize and add updates into super.deletions
-        if (this.removedVertices.size() > 0 || this.removedEdges.size() > 0) {
+        if (!this.removedVertices.isEmpty() || !this.removedEdges.isEmpty()) {
             this.prepareDeletions(this.removedVertices, this.removedEdges);
         }
 
-        if (this.addedProps.size() > 0 || this.removedProps.size() > 0) {
+        if (!this.addedProps.isEmpty() || !this.removedProps.isEmpty()) {
             this.prepareUpdates(this.addedProps, this.removedProps);
         }
 
         // Serialize and add updates into super.additions
-        if (this.addedVertices.size() > 0 || this.addedEdges.size() > 0) {
+        if (!this.addedVertices.isEmpty() || !this.addedEdges.isEmpty()) {
             this.prepareAdditions(this.addedVertices, this.addedEdges);
         }
 
@@ -690,7 +690,7 @@ public class GraphTransaction extends IndexableTransaction {
         // Override vertices in local `addedVertices`
         this.addedVertices.remove(vertex.id());
         // Force load vertex to ensure all properties are loaded (refer to #2181)
-        if (vertex.schemaLabel().indexLabels().size() > 0) {
+        if (!vertex.schemaLabel().indexLabels().isEmpty()) {
             vertex.forceLoad();
         }
         // Collect the removed vertex
@@ -710,7 +710,7 @@ public class GraphTransaction extends IndexableTransaction {
             for (Edge edge : batchEdges) {
                 vertexIds.add(((HugeEdge) edge).otherVertex().id());
             }
-            assert vertexIds.size() > 0;
+            assert !vertexIds.isEmpty();
             return this.queryAdjacentVertices(vertexIds.toArray());
         });
     }

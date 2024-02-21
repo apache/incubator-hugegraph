@@ -39,11 +39,11 @@ public class PostgresqlSerializer extends MysqlSerializer {
          * When field-values is null and elementIds size is 0, it is
          * meaningful for deletion of index data in secondary/range index.
          */
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+        if (index.fieldValues() == null && index.elementIds().isEmpty()) {
             entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
         } else {
             Object value = index.fieldValues();
-            if (value != null && "\u0000".equals(value)) {
+            if ("\u0000".equals(value)) {
                 value = Strings.EMPTY;
             }
             entry.column(HugeKeys.FIELD_VALUES, value);
