@@ -306,9 +306,7 @@ public final class RamTable {
             ConditionQuery cq = cqs.get(0);
             return this.query(cq);
         }
-        return new FlatMapperIterator<>(cqs.iterator(), cq -> {
-            return this.query(cq);
-        });
+        return new FlatMapperIterator<>(cqs.iterator(), this::query);
     }
 
     private Iterator<HugeEdge> query(ConditionQuery query) {

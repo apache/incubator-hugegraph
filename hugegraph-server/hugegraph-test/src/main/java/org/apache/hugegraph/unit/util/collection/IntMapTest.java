@@ -200,14 +200,14 @@ public class IntMapTest extends BaseUnitTest {
             for (int i = 0; i < capacity; i++) {
                 Assert.assertTrue(map.put(i, i * i));
                 Assert.assertEquals(i * i, map.get(i));
-                Assert.assertEquals(true, map.containsKey(i));
-                Assert.assertEquals(false, map.containsKey(i + 1));
+                Assert.assertTrue(map.containsKey(i));
+                Assert.assertFalse(map.containsKey(i + 1));
 
                 int u = -i - 1;
                 Assert.assertTrue(map.put(u, u));
                 Assert.assertEquals(u, map.get(u));
-                Assert.assertEquals(true, map.containsKey(u));
-                Assert.assertEquals(false, map.containsKey(u - 1));
+                Assert.assertTrue(map.containsKey(u));
+                Assert.assertFalse(map.containsKey(u - 1));
             }
 
             IntIterator values = map.values();
@@ -297,17 +297,17 @@ public class IntMapTest extends BaseUnitTest {
 
                 Assert.assertTrue(map.put(k, k * k));
                 Assert.assertEquals(k * k, map.get(k));
-                Assert.assertEquals(true, map.containsKey(k));
+                Assert.assertTrue(map.containsKey(k));
 
                 int u = -k - 1;
                 Assert.assertTrue(map.put(u, u));
                 Assert.assertEquals(u, map.get(u));
-                Assert.assertEquals(true, map.containsKey(u));
+                Assert.assertTrue(map.containsKey(u));
 
                 int r = i % 2 == 0 ? k : u;
-                Assert.assertEquals(true, map.containsKey(r));
+                Assert.assertTrue(map.containsKey(r));
                 Assert.assertTrue(map.remove(r));
-                Assert.assertEquals(false, map.containsKey(r));
+                Assert.assertFalse(map.containsKey(r));
             }
 
             return map.size();
@@ -330,9 +330,7 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertEquals(Integer.MAX_VALUE - 1, iter.next());
             Assert.assertFalse(iter.hasNext());
 
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -359,9 +357,7 @@ public class IntMapTest extends BaseUnitTest {
             }
 
             Assert.assertFalse(iter.hasNext());
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -380,9 +376,7 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertEquals(1, iter.next());
             Assert.assertFalse(iter.hasNext());
 
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -409,9 +403,7 @@ public class IntMapTest extends BaseUnitTest {
             }
 
             Assert.assertFalse(iter.hasNext());
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -457,7 +449,6 @@ public class IntMapTest extends BaseUnitTest {
                         }
                     }
                 };
-        ;
 
         AtomicInteger size = new AtomicInteger();
         int mapSize = 100;

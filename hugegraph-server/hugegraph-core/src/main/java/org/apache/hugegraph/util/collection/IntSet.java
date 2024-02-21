@@ -58,7 +58,7 @@ public interface IntSet {
 
         private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
         private static final Function<Integer, IntSet> DEFAULT_CREATOR =
-                size -> new IntSetByFixedAddr4Unsigned(size);
+                IntSetByFixedAddr4Unsigned::new;
 
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
@@ -184,7 +184,7 @@ public interface IntSet {
 
         private IntSet segmentAt(int index) {
             // volatile get this.sets[index]
-            long offset = (index << SHIFT) + BASE_OFFSET;
+            long offset = ((long) index << SHIFT) + BASE_OFFSET;
             IntSet set = (IntSet) UNSAFE.getObjectVolatile(this.sets, offset);
             return set;
         }
