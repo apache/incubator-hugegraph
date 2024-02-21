@@ -450,7 +450,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         public HbaseSchemaStore(HugeConfig config, BackendStoreProvider provider,
                                 String namespace, String store) {
             super(provider, namespace, store,
-                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
+                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION));
 
             this.counters = new HbaseTables.Counters();
 
@@ -500,8 +500,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         public HbaseGraphStore(HugeConfig config, BackendStoreProvider provider,
                                String namespace, String store) {
             super(provider, namespace, store,
-                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
-            this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue();
+                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION));
+            this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION);
             registerTableManager(HugeType.VERTEX,
                                  new HbaseTables.Vertex(store, enablePartition));
 
