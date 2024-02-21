@@ -33,7 +33,7 @@ public class HbaseSerializer extends BinarySerializer {
     private final short edgeLogicPartitions;
 
     public HbaseSerializer(HugeConfig config) {
-        super(false, true, config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
+        super(false, true, config.get(HbaseOptions.HBASE_ENABLE_PARTITION));
         this.vertexLogicPartitions = config.get(HbaseOptions.HBASE_VERTEX_PARTITION).shortValue();
         this.edgeLogicPartitions = config.get(HbaseOptions.HBASE_EDGE_PARTITION).shortValue();
         LOG.debug("vertexLogicPartitions: " + vertexLogicPartitions);
