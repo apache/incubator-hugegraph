@@ -224,7 +224,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public boolean existsEdges() {
-        return this.edges.size() > 0;
+        return !this.edges.isEmpty();
     }
 
     public Collection<HugeEdge> getEdges() {

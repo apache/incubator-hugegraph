@@ -97,7 +97,7 @@ public class RestServer {
         }
 
         Collection<NetworkListener> listeners = server.getListeners();
-        E.checkState(listeners.size() > 0,
+        E.checkState(!listeners.isEmpty(),
                      "Http Server should have some listeners, but now is none");
         NetworkListener listener = listeners.iterator().next();
 

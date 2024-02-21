@@ -95,7 +95,7 @@ public class LoadDetectFilter implements ContainerRequestFilter {
 
     public static boolean isWhiteAPI(ContainerRequestContext context) {
         List<PathSegment> segments = context.getUriInfo().getPathSegments();
-        E.checkArgument(segments.size() > 0, "Invalid request uri '%s'",
+        E.checkArgument(!segments.isEmpty(), "Invalid request uri '%s'",
                         context.getUriInfo().getPath());
         String rootPath = segments.get(0).getPath();
         return WHITE_API_LIST.contains(rootPath);

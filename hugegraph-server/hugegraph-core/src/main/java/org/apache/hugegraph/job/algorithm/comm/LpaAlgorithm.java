@@ -203,7 +203,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
             }
 
             // isolated vertex
-            if (labels.size() == 0) {
+            if (labels.isEmpty()) {
                 return this.labelOfVertex(vertex);
             }
 

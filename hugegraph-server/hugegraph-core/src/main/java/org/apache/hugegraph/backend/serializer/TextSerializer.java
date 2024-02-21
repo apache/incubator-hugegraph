@@ -355,7 +355,7 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
         TextBackendEntry entry = newBackendEntry(index.type(), index.id());
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+        if (index.fieldValues() == null && index.elementIds().isEmpty()) {
             /*
              * When field-values is null and elementIds size is 0, it is
              * meaningful for deletion of index data in secondary/range index.
@@ -497,7 +497,7 @@ public class TextSerializer extends AbstractSerializer {
             }
         }
 
-        if (condParts.size() > 0) {
+        if (!condParts.isEmpty()) {
             // Conditions to id
             String id = EdgeId.concat(condParts.toArray(new String[0]));
             return new IdPrefixQuery(cq, IdGenerator.of(id));
