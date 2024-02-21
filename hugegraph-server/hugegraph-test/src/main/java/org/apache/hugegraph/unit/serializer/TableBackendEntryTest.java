@@ -170,9 +170,7 @@ public class TableBackendEntryTest extends BaseUnitTest {
         TableBackendEntry entry = new TableBackendEntry(HugeType.VERTEX);
         BackendColumn col = BackendColumn.of(new byte[]{1}, new byte[]{12});
 
-        Assert.assertThrows(NotImplementedException.class, () -> {
-            entry.columnsSize();
-        });
+        Assert.assertThrows(NotImplementedException.class, entry::columnsSize);
         Assert.assertThrows(NotImplementedException.class, () -> {
             entry.columns();
         });
@@ -185,8 +183,6 @@ public class TableBackendEntryTest extends BaseUnitTest {
         Assert.assertThrows(NotImplementedException.class, () -> {
             entry.merge(entry);
         });
-        Assert.assertThrows(NotImplementedException.class, () -> {
-            entry.clear();
-        });
+        Assert.assertThrows(NotImplementedException.class, entry::clear);
     }
 }

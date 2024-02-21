@@ -4409,8 +4409,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
         vertices = g.V()
                     .hasLabel("person")
-                    .union(__.<Vertex>has("birth", P.lt(dates[1])),
-                           __.<Vertex>has("birth", P.gt(dates[3])))
+                    .union(__.has("birth", P.lt(dates[1])),
+                           __.has("birth", P.gt(dates[3])))
                     .toList();
         Assert.assertEquals(2, vertices.size());
     }
@@ -8742,9 +8742,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         graph.addVertex(T.label, "designer", T.id, "123456", "name", "marko",
                         "age", 18, "city", "Beijing");
-        Assert.assertThrows(HugeException.class, () -> {
-            this.commitTx();
-        });
+        Assert.assertThrows(HugeException.class, this::commitTx);
     }
 
     @Test

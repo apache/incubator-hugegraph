@@ -54,9 +54,7 @@ public class IdTest extends BaseUnitTest {
         Assert.assertEquals(IdGenerator.of("test-id"), id);
         Assert.assertNotEquals(IdGenerator.of("test-id2"), id);
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            id.asLong();
-        });
+        Assert.assertThrows(IllegalArgumentException.class, id::asLong);
 
         Assert.assertEquals("test-id", IdGenerator.asStoredString(id));
         Assert.assertEquals(id, IdGenerator.ofStoredString("test-id",
@@ -123,9 +121,7 @@ public class IdTest extends BaseUnitTest {
         Assert.assertNotEquals(id3, id);
         Assert.assertNotEquals(id4, id);
 
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            id.asLong();
-        });
+        Assert.assertThrows(UnsupportedOperationException.class, id::asLong);
 
         Assert.assertEquals("g14RU5KBSVeGkc95JY6Q6w==",
                             IdGenerator.asStoredString(id));
@@ -142,25 +138,17 @@ public class IdTest extends BaseUnitTest {
         Assert.assertEquals(object, id.asObject());
         Assert.assertEquals(object.hashCode(), id.hashCode());
         Assert.assertEquals(object.toString(), id.toString());
-        Assert.assertTrue(id.equals(IdGenerator.of(object)));
-        Assert.assertFalse(id.equals(IdGenerator.of(object2)));
-        Assert.assertFalse(id.equals(object));
+        Assert.assertEquals(id, IdGenerator.of(object));
+        Assert.assertNotEquals(id, IdGenerator.of(object2));
+        Assert.assertNotEquals(id, object);
 
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            id.asString();
-        });
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            id.asLong();
-        });
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            id.asBytes();
-        });
+        Assert.assertThrows(UnsupportedOperationException.class, id::asString);
+        Assert.assertThrows(UnsupportedOperationException.class, id::asLong);
+        Assert.assertThrows(UnsupportedOperationException.class, id::asBytes);
         Assert.assertThrows(UnsupportedOperationException.class, () -> {
             id.compareTo(id);
         });
-        Assert.assertThrows(UnsupportedOperationException.class, () -> {
-            id.length();
-        });
+        Assert.assertThrows(UnsupportedOperationException.class, id::length);
     }
 
     @Test

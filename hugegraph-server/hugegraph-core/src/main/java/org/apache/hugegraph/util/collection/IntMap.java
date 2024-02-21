@@ -69,7 +69,7 @@ public interface IntMap {
 
         private static final int DEFAULT_SEGMENTS = (IntSet.CPUS + 8) * 32;
         private static final Function<Integer, IntMap> DEFAULT_CREATOR =
-                size -> new IntMapByFixedAddr(size);
+                IntMapByFixedAddr::new;
 
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
@@ -232,7 +232,7 @@ public interface IntMap {
 
         private IntMap segmentAt(int index) {
             // volatile get this.maps[index]
-            long offset = (index << SHIFT) + BASE_OFFSET;
+            long offset = ((long) index << SHIFT) + BASE_OFFSET;
             IntMap map = (IntMap) UNSAFE.getObjectVolatile(this.maps, offset);
             return map;
         }
