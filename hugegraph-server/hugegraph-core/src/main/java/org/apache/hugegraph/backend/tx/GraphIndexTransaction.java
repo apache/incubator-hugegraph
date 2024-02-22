@@ -1704,7 +1704,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
 
             private static Query parent(Collection<Query> queries) {
-                if (queries.size() > 0) {
+                if (!queries.isEmpty()) {
                     // Chose the first one as origin query (any one is OK)
                     return queries.iterator().next();
                 }

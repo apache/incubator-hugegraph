@@ -350,7 +350,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             edges.add(rs.next());
         }
 
-        if (edges.size() == 0) {
+        if (edges.isEmpty()) {
             this.edgesCache.update(cacheKey, Collections.emptyList());
         } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
             this.edgesCache.update(cacheKey, edges);

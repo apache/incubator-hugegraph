@@ -52,9 +52,7 @@ public abstract class Condition {
 
     public enum RelationType implements BiPredicate<Object, Object> {
 
-        EQ("==", (v1, v2) -> {
-            return equals(v1, v2);
-        }),
+        EQ("==", RelationType::equals),
 
         GT(">", (v1, v2) -> {
             return compare(v1, v2) > 0;

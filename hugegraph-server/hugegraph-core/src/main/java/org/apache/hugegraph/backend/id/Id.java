@@ -67,7 +67,7 @@ public interface Id extends Comparable<Id> {
         }
 
         public static IdType valueOfPrefix(String id) {
-            E.checkArgument(id != null && id.length() > 0,
+            E.checkArgument(id != null && !id.isEmpty(),
                             "Invalid id '%s'", id);
             switch (id.charAt(0)) {
                 case 'L':

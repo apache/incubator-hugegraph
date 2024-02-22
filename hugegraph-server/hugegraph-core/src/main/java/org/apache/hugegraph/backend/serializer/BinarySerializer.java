@@ -527,7 +527,7 @@ public class BinarySerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
         BinaryBackendEntry entry;
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+        if (index.fieldValues() == null && index.elementIds().isEmpty()) {
             /*
              * When field-values is null and elementIds size is 0, it is
              * meaningful for deletion of index data by index label.

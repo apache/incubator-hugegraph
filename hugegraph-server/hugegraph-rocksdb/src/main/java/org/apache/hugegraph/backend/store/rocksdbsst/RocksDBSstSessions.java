@@ -247,7 +247,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
          */
         @Override
         public boolean hasChanges() {
-            return this.batch.size() > 0;
+            return !this.batch.isEmpty();
         }
 
         /**

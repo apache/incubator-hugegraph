@@ -214,7 +214,7 @@ public class NeighborRankTraverser extends HugeTraverser {
 
     private List<Map<Id, Double>> topRanks(List<Ranks> ranks,
                                            List<Step> steps) {
-        assert ranks.size() > 0;
+        assert !ranks.isEmpty();
         List<Map<Id, Double>> results = newList(ranks.size());
         // The first layer is root node so skip i=0
         results.add(ranks.get(0));
