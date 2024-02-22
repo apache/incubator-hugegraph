@@ -59,7 +59,7 @@ public class QueryResults<R> {
     }
 
     public void setQuery(Query query) {
-        if (this.queries.size() > 0) {
+        if (!this.queries.isEmpty()) {
             this.queries.clear();
         }
         this.addQuery(query);

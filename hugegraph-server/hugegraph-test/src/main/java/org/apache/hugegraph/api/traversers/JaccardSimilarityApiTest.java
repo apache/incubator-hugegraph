@@ -53,7 +53,7 @@ public class JaccardSimilarityApiTest extends BaseApiTest {
         String content = assertResponseStatus(200, r);
         Double jaccardSimilarity = assertJsonContains(content,
                                                       "jaccard_similarity");
-        Assert.assertEquals(0.25, jaccardSimilarity.doubleValue(), 0.0001);
+        Assert.assertEquals(0.25, jaccardSimilarity, 0.0001);
     }
 
     @Test
@@ -77,10 +77,10 @@ public class JaccardSimilarityApiTest extends BaseApiTest {
         Double rippleJaccardSimilarity = assertMapContains(jaccardSimilarity, rippleId);
         Double peterJaccardSimilarity = assertMapContains(jaccardSimilarity, peterId);
         Double jsonJaccardSimilarity = assertMapContains(jaccardSimilarity, jsonId);
-        Assert.assertEquals(0.3333, rippleJaccardSimilarity.doubleValue(),
+        Assert.assertEquals(0.3333, rippleJaccardSimilarity,
                             0.0001);
-        Assert.assertEquals(0.25, peterJaccardSimilarity.doubleValue(), 0.0001);
-        Assert.assertEquals(0.3333, jsonJaccardSimilarity.doubleValue(),
+        Assert.assertEquals(0.25, peterJaccardSimilarity, 0.0001);
+        Assert.assertEquals(0.3333, jsonJaccardSimilarity,
                             0.0001);
     }
 }

@@ -180,7 +180,7 @@ public class StandardAuthManager implements AuthManager {
         }
 
         List<HugeUser> users = this.users.query(P.NAME, name, 2L);
-        if (users.size() > 0) {
+        if (!users.isEmpty()) {
             assert users.size() == 1;
             user = users.get(0);
             this.usersCache.update(username, user);

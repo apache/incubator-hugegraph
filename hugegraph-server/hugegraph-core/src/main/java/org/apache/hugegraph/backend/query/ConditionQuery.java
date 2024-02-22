@@ -277,12 +277,12 @@ public class ConditionQuery extends IdQuery {
         if (valuesEQ.isEmpty() && valuesIN.isEmpty()) {
             return null;
         }
-        if (valuesEQ.size() == 1 && valuesIN.size() == 0) {
+        if (valuesEQ.size() == 1 && valuesIN.isEmpty()) {
             @SuppressWarnings("unchecked")
             T value = (T) valuesEQ.get(0);
             return value;
         }
-        if (valuesEQ.size() == 0 && valuesIN.size() == 1) {
+        if (valuesEQ.isEmpty() && valuesIN.size() == 1) {
             @SuppressWarnings("unchecked")
             T value = (T) valuesIN.get(0);
             return value;
@@ -309,7 +309,7 @@ public class ConditionQuery extends IdQuery {
             }
         }
 
-        if (intersectValues.size() == 0) {
+        if (intersectValues.isEmpty()) {
             return null;
         }
         E.checkState(intersectValues.size() == 1,
@@ -565,7 +565,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean matchUserpropKeys(List<Id> keys) {
         Set<Id> conditionKeys = this.userpropKeys();
-        return keys.size() > 0 && conditionKeys.containsAll(keys);
+        return !keys.isEmpty() && conditionKeys.containsAll(keys);
     }
 
     @Override
@@ -869,7 +869,7 @@ public class ConditionQuery extends IdQuery {
              */
             boolean hasRightValue = removeFieldValue(fieldValues,
                                                      property.value());
-            if (fieldValues.size() > 0) {
+            if (!fieldValues.isEmpty()) {
                 this.addLeftIndex(element.id(), propId, fieldValues);
             }
 

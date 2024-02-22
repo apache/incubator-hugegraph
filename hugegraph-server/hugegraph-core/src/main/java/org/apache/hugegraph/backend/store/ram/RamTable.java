@@ -306,9 +306,7 @@ public final class RamTable {
             ConditionQuery cq = cqs.get(0);
             return this.query(cq);
         }
-        return new FlatMapperIterator<>(cqs.iterator(), cq -> {
-            return this.query(cq);
-        });
+        return new FlatMapperIterator<>(cqs.iterator(), this::query);
     }
 
     private Iterator<HugeEdge> query(ConditionQuery query) {
@@ -540,7 +538,7 @@ public final class RamTable {
 
         private void addVertex(Id vertex) {
             Id lastId = IdGenerator.ZERO;
-            if (this.vertices.size() > 0) {
+            if (!this.vertices.isEmpty()) {
                 lastId = this.vertices.get(this.vertices.size() - 1);
             }
             LOG.info("scan from hbase source {} lastId value: {} compare {} size {}",

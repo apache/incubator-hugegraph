@@ -534,7 +534,7 @@ public class HbaseSessions extends BackendSessionPool {
          */
         @Override
         public boolean hasChanges() {
-            return this.batch.size() > 0;
+            return !this.batch.isEmpty();
         }
 
         /**

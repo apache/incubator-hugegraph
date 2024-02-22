@@ -538,7 +538,7 @@ public abstract class CassandraStore extends AbstractBackendStore<CassandraSessi
 
     private static int convertFactor(String factor) {
         try {
-            return Integer.valueOf(factor);
+            return Integer.parseInt(factor);
         } catch (NumberFormatException e) {
             throw new BackendException(
                     "Expect int factor value for SimpleStrategy, " +

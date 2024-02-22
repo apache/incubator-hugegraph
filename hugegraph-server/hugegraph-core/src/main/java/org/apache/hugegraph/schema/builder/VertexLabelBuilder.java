@@ -477,7 +477,7 @@ public class VertexLabelBuilder extends AbstractBuilder
 
     private void checkIdStrategy() {
         IdStrategy strategy = this.idStrategy;
-        boolean hasPrimaryKey = this.primaryKeys.size() > 0;
+        boolean hasPrimaryKey = !this.primaryKeys.isEmpty();
         switch (strategy) {
             case DEFAULT:
                 if (hasPrimaryKey) {

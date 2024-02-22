@@ -116,7 +116,7 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public boolean existSortKeys() {
-        return this.sortKeys.size() > 0;
+        return !this.sortKeys.isEmpty();
     }
 
     public List<Id> sortKeys() {

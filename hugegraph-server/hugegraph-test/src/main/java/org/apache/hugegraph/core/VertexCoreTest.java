@@ -4113,7 +4113,7 @@ public class VertexCoreTest extends BaseCoreTest {
         schema.indexLabel("numberByDouble").range()
               .onV("number").by("double").create();
 
-        final double max7 = Double.valueOf(String.valueOf(Float.MAX_VALUE));
+        final double max7 = Double.parseDouble(String.valueOf(Float.MAX_VALUE));
 
         /*
          * The double precision type typically has a range of around 1E-307 to
