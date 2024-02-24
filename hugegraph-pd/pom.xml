@@ -33,14 +33,14 @@
 
     <modules>
         <module>hg-pd-grpc</module>
-        <module>hg-pd-client</module>
-        <module>hg-pd-core</module>
-        <module>hg-pd-service</module>
         <module>hg-pd-common</module>
-        <module>hg-pd-dist</module>
-        <module>hg-pd-clitools</module>
-        <module>hg-pd-test</module>
-
+        <module>hg-pd-client</module>
+        <!-- TODO: uncomment later -->
+        <!-- <module>hg-pd-core</module> -->
+        <!-- <module>hg-pd-service</module> -->
+        <!-- <module>hg-pd-dist</module> -->
+        <!-- <module>hg-pd-clitools</module> -->
+        <!-- <module>hg-pd-test</module> -->
     </modules>
 
     <properties>
