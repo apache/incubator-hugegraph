@@ -114,7 +114,6 @@ public class CustomizedCrosspointsAPI extends API {
         measure.addIterCount(traverser.vertexIterCounter.get(),
                              traverser.edgeIterCounter.get());
 
-
         Iterator<?> iterVertex;
         Set<Id> vertexIds = new HashSet<>();
         if (request.withPath) {
