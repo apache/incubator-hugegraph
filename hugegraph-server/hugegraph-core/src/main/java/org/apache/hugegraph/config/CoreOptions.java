@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.config;
@@ -146,28 +146,28 @@ public class CoreOptions extends OptionHolder {
             );
 
     public static final ConfigOption<Boolean> RAFT_SNAPSHOT_PARALLEL_COMPRESS =
-        new ConfigOption<>(
-            "raft.snapshot_parallel_compress",
-            "Whether to enable parallel compress.",
-            disallowEmpty(),
-            false
-        );
+            new ConfigOption<>(
+                    "raft.snapshot_parallel_compress",
+                    "Whether to enable parallel compress.",
+                    disallowEmpty(),
+                    false
+            );
 
     public static final ConfigOption<Integer> RAFT_SNAPSHOT_COMPRESS_THREADS =
-        new ConfigOption<>(
-            "raft.snapshot_compress_threads",
-            "The thread number used to do snapshot compress.",
-            rangeInt(0, Integer.MAX_VALUE),
-            4
-        );
+            new ConfigOption<>(
+                    "raft.snapshot_compress_threads",
+                    "The thread number used to do snapshot compress.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    4
+            );
 
     public static final ConfigOption<Integer> RAFT_SNAPSHOT_DECOMPRESS_THREADS =
-        new ConfigOption<>(
-            "raft.snapshot_decompress_threads",
-            "The thread number used to do snapshot decompress.",
-            rangeInt(0, Integer.MAX_VALUE),
-            4
-        );
+            new ConfigOption<>(
+                    "raft.snapshot_decompress_threads",
+                    "The thread number used to do snapshot decompress.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    4
+            );
 
     public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
             new ConfigOption<>(
@@ -422,7 +422,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "edge.tx_capacity",
                     "The max size(items) of edges(uncommitted) in " +
-                     "transaction.",
+                    "transaction.",
                     rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
@@ -605,7 +605,7 @@ public class CoreOptions extends OptionHolder {
                     "Specify the mode for the text analyzer, " +
                     "the available mode of analyzer are " +
                     "ansj: [BaseAnalysis, IndexAnalysis, ToAnalysis, " +
-                           "NlpAnalysis], " +
+                    "NlpAnalysis], " +
                     "hanlp: [standard, nlp, index, nShort, shortest, speed], " +
                     "smartcn: [], " +
                     "jieba: [SEARCH, INDEX], " +

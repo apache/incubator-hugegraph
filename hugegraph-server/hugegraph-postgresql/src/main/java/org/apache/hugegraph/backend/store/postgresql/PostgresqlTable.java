@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.postgresql;
@@ -20,14 +20,13 @@ package org.apache.hugegraph.backend.store.postgresql;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.logging.log4j.util.Strings;
-
 import org.apache.hugegraph.backend.serializer.TableBackendEntry.Row;
 import org.apache.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import org.apache.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import org.apache.hugegraph.backend.store.mysql.MysqlTable;
 import org.apache.hugegraph.backend.store.mysql.WhereBuilder;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.logging.log4j.util.Strings;
 
 public abstract class PostgresqlTable extends MysqlTable {
 
@@ -162,7 +161,8 @@ public abstract class PostgresqlTable extends MysqlTable {
         @Override
         protected String escapeAndWrapString(String value) {
             if (value.equals("\u0000")) {
-                return "\'\'";
+                /* PR-2439 return string of '' */
+                return "''";
             }
             return PostgresqlSessions.escapeAndWrapString(value);
         }

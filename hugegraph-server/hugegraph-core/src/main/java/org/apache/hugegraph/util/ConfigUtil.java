@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.util;
@@ -36,11 +36,10 @@ import org.apache.commons.configuration2.tree.NodeHandler;
 import org.apache.commons.configuration2.tree.NodeModel;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.config.HugeConfig;
+import org.slf4j.Logger;
 
 public final class ConfigUtil {
 
@@ -55,13 +54,13 @@ public final class ConfigUtil {
         try {
 
             FileBasedConfigurationBuilder<FileBasedConfiguration> builder =
-                new FileBasedConfigurationBuilder(YAMLConfiguration.class)
-                .configure(params.fileBased().setFileName(conf));
+                    new FileBasedConfigurationBuilder(YAMLConfiguration.class)
+                            .configure(params.fileBased().setFileName(conf));
             YAMLConfiguration config = (YAMLConfiguration) builder.getConfiguration();
 
             List<HierarchicalConfiguration<ImmutableNode>> nodes =
-                                           config.childConfigurationsAt(
-                                           NODE_GRAPHS);
+                    config.childConfigurationsAt(
+                            NODE_GRAPHS);
             if (nodes == null || nodes.isEmpty()) {
                 return;
             }
@@ -74,9 +73,9 @@ public final class ConfigUtil {
             for (HierarchicalConfiguration<ImmutableNode> node : nodes) {
                 NodeModel<ImmutableNode> nodeModel = node.getNodeModel();
                 E.checkArgument(nodeModel != null &&
-                    (nodeHandler = nodeModel.getNodeHandler()) != null &&
-                    (root = nodeHandler.getRootNode()) != null,
-                    "Node '%s' must contain root", node);
+                                (nodeHandler = nodeModel.getNodeHandler()) != null &&
+                                (root = nodeHandler.getRootNode()) != null,
+                                "Node '%s' must contain root", node);
             }
         } catch (ConfigurationException e) {
             throw new HugeException("Failed to load yaml config file '%s'",

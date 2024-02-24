@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.postgresql;
@@ -48,15 +48,15 @@ public class PostgresqlTables {
 
     private static final Map<String, String> TYPES_MAPPING =
             ImmutableMap.<String, String>builder()
-                    .put(BOOLEAN, "BOOL")
-                    .put(TINYINT, "INT")
-                    .put(INT, "INT")
-                    .put(NUMERIC, "DECIMAL")
-                    .put(SMALL_TEXT, "VARCHAR(255)")
-                    .put(MID_TEXT, "VARCHAR(1024)")
-                    .put(LARGE_TEXT, "VARCHAR(65533)")
-                    .put(HUGE_TEXT, "TEXT")
-                    .build();
+                        .put(BOOLEAN, "BOOL")
+                        .put(TINYINT, "INT")
+                        .put(INT, "INT")
+                        .put(NUMERIC, "DECIMAL")
+                        .put(SMALL_TEXT, "VARCHAR(255)")
+                        .put(MID_TEXT, "VARCHAR(1024)")
+                        .put(LARGE_TEXT, "VARCHAR(65533)")
+                        .put(HUGE_TEXT, "TEXT")
+                        .build();
 
     public static class PostgresqlTableTemplate extends PostgresqlTable {
 
@@ -112,17 +112,17 @@ public class PostgresqlTables {
         public void increaseCounter(Session session, HugeType type,
                                     long increment) {
             String update = String.format(
-                            "INSERT INTO %s (%s, %s) VALUES ('%s', %s) " +
-                            "ON CONFLICT (%s) DO UPDATE SET ID = %s.ID + %s;",
-                            this.table(), formatKey(HugeKeys.SCHEMA_TYPE),
-                            formatKey(HugeKeys.ID), type.name(), increment,
-                            formatKey(HugeKeys.SCHEMA_TYPE),
-                            this.table(), increment);
+                    "INSERT INTO %s (%s, %s) VALUES ('%s', %s) " +
+                    "ON CONFLICT (%s) DO UPDATE SET ID = %s.ID + %s;",
+                    this.table(), formatKey(HugeKeys.SCHEMA_TYPE),
+                    formatKey(HugeKeys.ID), type.name(), increment,
+                    formatKey(HugeKeys.SCHEMA_TYPE),
+                    this.table(), increment);
             try {
                 session.execute(update);
             } catch (SQLException e) {
                 throw new BackendException(
-                          "Failed to update counters with type '%s'", e, type);
+                        "Failed to update counters with type '%s'", e, type);
             }
         }
     }
@@ -274,7 +274,7 @@ public class PostgresqlTables {
 
         protected final String entryId(MysqlBackendEntry entry) {
             return ((MysqlTables.RangeDoubleIndex) this.template)
-                   .entryId(entry);
+                    .entryId(entry);
         }
     }
 

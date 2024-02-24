@@ -1,31 +1,24 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.core;
 
 import java.util.Date;
 import java.util.List;
-
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.junit.Assume;
-import org.junit.Test;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
@@ -40,6 +33,13 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.Events;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableSet;
 
 public class EdgeLabelCoreTest extends SchemaCoreTest {
@@ -164,9 +164,9 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.edgeLabel("look").multiTimes()
-                    .properties("time")
-                    .sortKeys("time")
-                    .create();
+                  .properties("time")
+                  .sortKeys("time")
+                  .create();
         });
     }
 
@@ -296,10 +296,10 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         schema.vertexLabel("book").properties("id", "name")
               .primaryKeys("id").create();
         EdgeLabel look = schema.edgeLabel("look")
-                         .properties("time", "weight")
-                         .nullableKeys("weight")
-                         .link("person", "book")
-                         .create();
+                               .properties("time", "weight")
+                               .nullableKeys("weight")
+                               .link("person", "book")
+                               .create();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
@@ -437,7 +437,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     @Test
     public void testAddEdgeLabelWithDisableLabelIndex() {
         super.initPropertyKeys();
-        HugeGraph graph =  graph();
+        HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
         schema.vertexLabel("person")
@@ -602,8 +602,8 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .create();
 
         EdgeLabel look = schema.edgeLabel("look")
-                         .nullableKeys("weight")
-                         .append();
+                               .nullableKeys("weight")
+                               .append();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
@@ -633,9 +633,9 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .create();
 
         EdgeLabel look = schema.edgeLabel("look")
-                         .properties("weight")
-                         .nullableKeys("weight")
-                         .append();
+                               .properties("weight")
+                               .nullableKeys("weight")
+                               .append();
 
         Assert.assertNotNull(look);
         Assert.assertEquals("look", look.name());
@@ -993,8 +993,8 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                    e.getMessage().startsWith("Don't accept query by label") &&
+                    e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok
@@ -1022,8 +1022,8 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
             graph().traversal().E().hasLabel("read").toList();
         }, e -> {
             Assert.assertTrue(
-                   e.getMessage().startsWith("Don't accept query by label") &&
-                   e.getMessage().endsWith("label index is disabled"));
+                    e.getMessage().startsWith("Don't accept query by label") &&
+                    e.getMessage().endsWith("label index is disabled"));
         });
 
         // Query by property index is ok

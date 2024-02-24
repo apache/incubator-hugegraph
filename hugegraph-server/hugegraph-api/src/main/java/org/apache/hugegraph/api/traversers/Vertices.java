@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.api.traversers;
@@ -23,8 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
@@ -33,6 +31,8 @@ import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Vertices {
@@ -47,8 +47,8 @@ public class Vertices {
     public Iterator<Vertex> vertices(HugeGraph g) {
         Map<String, Object> props = this.properties;
         E.checkArgument(!((this.ids == null || this.ids.isEmpty()) &&
-                        (props == null || props.isEmpty()) &&
-                        this.label == null), "No source vertices provided");
+                          (props == null || props.isEmpty()) &&
+                          this.label == null), "No source vertices provided");
         Iterator<Vertex> iterator;
         if (this.ids != null && !this.ids.isEmpty()) {
             List<Id> sourceIds = new ArrayList<>(this.ids.size());
@@ -72,7 +72,7 @@ public class Vertices {
             assert !query.empty();
             iterator = g.vertices(query);
             E.checkArgument(iterator.hasNext(), "Not exist source vertex " +
-                            "with label '%s' and properties '%s'",
+                                                "with label '%s' and properties '%s'",
                             this.label, props);
         }
         return iterator;

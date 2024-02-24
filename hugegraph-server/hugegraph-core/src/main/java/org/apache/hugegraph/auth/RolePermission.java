@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.auth;
@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 import org.apache.tinkerpop.shaded.jackson.core.JsonGenerator;
@@ -37,14 +38,12 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
-import org.apache.hugegraph.util.E;
-
 public class RolePermission {
 
     public static final RolePermission NONE = RolePermission.role(
-                                              "none", HugePermission.NONE);
+            "none", HugePermission.NONE);
     public static final RolePermission ADMIN = RolePermission.role(
-                                               "admin", HugePermission.ANY);
+            "admin", HugePermission.ANY);
 
     static {
         SimpleModule module = new SimpleModule();
@@ -64,7 +63,7 @@ public class RolePermission {
     }
 
     private RolePermission(Map<String, Map<HugePermission,
-                                       List<HugeResource>>> roles) {
+            List<HugeResource>>> roles) {
         this.roles = roles;
     }
 
@@ -76,7 +75,7 @@ public class RolePermission {
     protected void add(String graph, HugePermission action,
                        List<HugeResource> resources) {
         Map<HugePermission, List<HugeResource>> permissions =
-                                                this.roles.get(graph);
+                this.roles.get(graph);
         if (permissions == null) {
             permissions = new TreeMap<>();
             this.roles.put(graph, permissions);
@@ -95,14 +94,14 @@ public class RolePermission {
 
     public boolean contains(RolePermission other) {
         for (Map.Entry<String, Map<HugePermission, List<HugeResource>>> e1 :
-             other.roles.entrySet()) {
+                other.roles.entrySet()) {
             String g = e1.getKey();
             Map<HugePermission, List<HugeResource>> perms = this.roles.get(g);
             if (perms == null) {
                 return false;
             }
             for (Map.Entry<HugePermission, List<HugeResource>> e2 :
-                e1.getValue().entrySet()) {
+                    e1.getValue().entrySet()) {
                 List<HugeResource> ress = perms.get(e2.getKey());
                 if (ress == null) {
                     return false;
@@ -189,7 +188,7 @@ public class RolePermission {
     }
 
     private static class RolePermissionSer
-                   extends StdSerializer<RolePermission> {
+            extends StdSerializer<RolePermission> {
 
         private static final long serialVersionUID = -2533310506459479383L;
 
@@ -200,7 +199,7 @@ public class RolePermission {
         @Override
         public void serialize(RolePermission role, JsonGenerator generator,
                               SerializerProvider provider)
-                              throws IOException {
+                throws IOException {
             generator.writeStartObject();
             generator.writeObjectField("roles", role.roles);
             generator.writeEndObject();
@@ -208,7 +207,7 @@ public class RolePermission {
     }
 
     private static class RolePermissionDeser
-                   extends StdDeserializer<RolePermission> {
+            extends StdDeserializer<RolePermission> {
 
         private static final long serialVersionUID = -2038234657843260957L;
 
@@ -219,9 +218,10 @@ public class RolePermission {
         @Override
         public RolePermission deserialize(JsonParser parser,
                                           DeserializationContext ctxt)
-                                          throws IOException {
+                throws IOException {
             TypeReference<?> type = new TypeReference<TreeMap<String,
-                             TreeMap<HugePermission, List<HugeResource>>>>() {};
+                    TreeMap<HugePermission, List<HugeResource>>>>() {
+            };
             if ("roles".equals(parser.nextFieldName())) {
                 parser.nextValue();
                 return new RolePermission(parser.readValueAs(type));

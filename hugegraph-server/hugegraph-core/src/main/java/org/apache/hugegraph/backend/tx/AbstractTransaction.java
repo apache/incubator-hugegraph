@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.tx;
@@ -20,17 +20,15 @@ package org.apache.hugegraph.backend.tx;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.backend.query.IdQuery;
-import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.query.QueryResults;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.Transaction;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.IdQuery;
+import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
@@ -47,6 +45,8 @@ import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.collection.IdSet;
+import org.slf4j.Logger;
+
 import com.google.common.util.concurrent.RateLimiter;
 
 public abstract class AbstractTransaction implements Transaction {
@@ -192,8 +192,8 @@ public abstract class AbstractTransaction implements Transaction {
         BackendEntry entry = this.query(type, id);
         if (entry == null) {
             throw new NotFoundException(
-                      "Not found the %s entry with id '%s'",
-                      type.readableName(), id);
+                    "Not found the %s entry with id '%s'",
+                    type.readableName(), id);
         }
         return entry;
     }
@@ -387,7 +387,7 @@ public abstract class AbstractTransaction implements Transaction {
              */
             throw new BackendException("Failed to commit changes: %s(%s)",
                                        StringUtils.abbreviateMiddle(
-                                       e1.getMessage(), ".", 256),
+                                               e1.getMessage(), ".", 256),
                                        HugeException.rootCause(e1));
         }
     }

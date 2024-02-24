@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit.util;
@@ -21,12 +21,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-
-import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
-import org.apache.hugegraph.testutil.Utils;
-import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
-import org.junit.Test;
-import org.mockito.Mockito;
 
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
@@ -41,6 +35,7 @@ import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
@@ -53,6 +48,11 @@ import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.collection.CollectionFactory;
+import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.google.common.collect.ImmutableList;
 
 public class JsonUtilTest extends BaseUnitTest {
@@ -118,8 +118,8 @@ public class JsonUtilTest extends BaseUnitTest {
         FakeObjects fakeObject = new FakeObjects();
         PropertyKey name = fakeObject.newPropertyKey(IdGenerator.of(1), "name");
         PropertyKey age = fakeObject.newPropertyKey(IdGenerator.of(2), "age",
-                                                     DataType.INT,
-                                                     Cardinality.SINGLE);
+                                                    DataType.INT,
+                                                    Cardinality.SINGLE);
         PropertyKey city = fakeObject.newPropertyKey(IdGenerator.of(3), "city");
 
         VertexLabel vl = fakeObject.newVertexLabel(IdGenerator.of(1), "person",
@@ -235,10 +235,10 @@ public class JsonUtilTest extends BaseUnitTest {
 
         MutableIntObjectMap<HugeProperty<?>> properties =
                 CollectionFactory.newIntObjectMap(
-                name.id(), new HugeVertexProperty<>(vertex, name, "marko"),
-                age.id(), new HugeVertexProperty<>(vertex, age, 29),
-                city.id(), new HugeVertexProperty<>(vertex, city, "Beijing")
-        );
+                        name.id(), new HugeVertexProperty<>(vertex, name, "marko"),
+                        age.id(), new HugeVertexProperty<>(vertex, age, 29),
+                        city.id(), new HugeVertexProperty<>(vertex, city, "Beijing")
+                );
         Whitebox.setInternalState(vertex, "properties", properties);
 
         String json = JsonUtil.toJson(vertex);
@@ -285,9 +285,9 @@ public class JsonUtilTest extends BaseUnitTest {
         Date dateValue = Utils.date("2019-03-12");
         MutableIntObjectMap<HugeProperty<?>> properties =
                 CollectionFactory.newIntObjectMap(
-                date.id(), new HugeEdgeProperty<>(edge, date, dateValue),
-                weight.id(), new HugeEdgeProperty<>(edge, weight, 0.8)
-        );
+                        date.id(), new HugeEdgeProperty<>(edge, date, dateValue),
+                        weight.id(), new HugeEdgeProperty<>(edge, weight, 0.8)
+                );
         Whitebox.setInternalState(edge, "properties", properties);
 
         String json = JsonUtil.toJson(edge);
@@ -303,7 +303,8 @@ public class JsonUtilTest extends BaseUnitTest {
     @Test
     public void testDeserializeList() {
         String json = "[\"1\", \"2\", \"3\"]";
-        TypeReference<?> typeRef = new TypeReference<List<Integer>>() {};
+        TypeReference<?> typeRef = new TypeReference<List<Integer>>() {
+        };
         Assert.assertEquals(ImmutableList.of(1, 2, 3),
                             JsonUtil.fromJson(json, typeRef));
     }

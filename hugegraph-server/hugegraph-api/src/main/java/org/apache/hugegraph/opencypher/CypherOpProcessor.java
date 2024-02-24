@@ -16,7 +16,22 @@
 
 package org.apache.hugegraph.opencypher;
 
-import io.netty.channel.ChannelHandlerContext;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.singletonList;
+import static java.util.Optional.empty;
+import static org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode.SERVER_ERROR;
+import static org.opencypher.gremlin.translation.StatementOption.EXPLAIN;
+import static org.slf4j.LoggerFactory.getLogger;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.tinkerpop.gremlin.driver.Tokens;
 import org.apache.tinkerpop.gremlin.driver.message.RequestMessage;
@@ -45,19 +60,8 @@ import org.opencypher.gremlin.traversal.ProcedureContext;
 import org.opencypher.gremlin.traversal.ReturnNormalizer;
 import org.slf4j.Logger;
 
+import io.netty.channel.ChannelHandlerContext;
 import scala.collection.Seq;
-
-import java.util.*;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.singletonList;
-import static java.util.Optional.empty;
-import static org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode.SERVER_ERROR;
-import static org.opencypher.gremlin.translation.StatementOption.EXPLAIN;
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Description of the modifications:
@@ -80,7 +84,7 @@ import static org.slf4j.LoggerFactory.getLogger;
  * <p>
  * 3) Set the logger level from info to trace
  * </p>
- *
+ * <p>
  * {@link OpProcessor} implementation for processing Cypher {@link RequestMessage}s:
  * <pre>
  * {
@@ -94,7 +98,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class CypherOpProcessor extends AbstractEvalOpProcessor {
 
     private static final String DEFAULT_TRANSLATOR_DEFINITION =
-        "gremlin+cfog_server_extensions+inline_parameters";
+            "gremlin+cfog_server_extensions+inline_parameters";
 
     private static final Logger logger = getLogger(CypherOpProcessor.class);
 
@@ -242,8 +246,8 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
                                                  .getExecutorService().submit(evalFuture);
         if (timeout > 0) {
             context.getScheduledExecutorService().schedule(
-                () -> executionFuture.cancel(true)
-                , timeout, TimeUnit.MILLISECONDS);
+                    () -> executionFuture.cancel(true)
+                    , timeout, TimeUnit.MILLISECONDS);
         }
 
     }

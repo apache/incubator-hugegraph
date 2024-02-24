@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.job.algorithm.cent;
@@ -25,6 +25,13 @@ import java.util.Map;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.iterator.MapperIterator;
+import org.apache.hugegraph.job.UserJob;
+import org.apache.hugegraph.job.algorithm.AbstractAlgorithm;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.process.traversal.Order;
 import org.apache.tinkerpop.gremlin.process.traversal.Pop;
 import org.apache.tinkerpop.gremlin.process.traversal.Scope;
@@ -34,14 +41,6 @@ import org.apache.tinkerpop.gremlin.structure.Column;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
-
-import org.apache.hugegraph.iterator.MapperIterator;
-import org.apache.hugegraph.job.UserJob;
-import org.apache.hugegraph.job.algorithm.AbstractAlgorithm;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.Log;
 
 public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
 
@@ -72,11 +71,11 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         }
 
         protected GraphTraversal<Vertex, Vertex> constructSource(
-                                                 String sourceLabel,
-                                                 long sourceSample,
-                                                 String sourceCLabel) {
+                String sourceLabel,
+                long sourceSample,
+                String sourceCLabel) {
             GraphTraversal<Vertex, Vertex> t = this.graph().traversal()
-                                                           .withSack(1f).V();
+                                                   .withSack(1f).V();
 
             if (sourceLabel != null) {
                 t = t.hasLabel(sourceLabel);
@@ -95,9 +94,9 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         }
 
         protected GraphTraversal<Vertex, Vertex> constructPath(
-                  GraphTraversal<Vertex, Vertex> t, Directions dir,
-                  String label, long degree, long sample,
-                  String sourceLabel, String sourceCLabel) {
+                GraphTraversal<Vertex, Vertex> t, Directions dir,
+                String label, long degree, long sample,
+                String sourceLabel, String sourceCLabel) {
             GraphTraversal<?, Vertex> unit = constructPathUnit(dir, label,
                                                                degree, sample,
                                                                sourceLabel,
@@ -108,10 +107,10 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         }
 
         protected GraphTraversal<Vertex, Vertex> constructPathUnit(
-                                                 Directions dir, String label,
-                                                 long degree, long sample,
-                                                 String sourceLabel,
-                                                 String sourceCLabel) {
+                Directions dir, String label,
+                long degree, long sample,
+                String sourceLabel,
+                String sourceCLabel) {
             if (dir == null) {
                 dir = Directions.BOTH;
             }
@@ -139,10 +138,10 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         }
 
         protected <V> GraphTraversal<V, V> filterNonShortestPath(
-                                           GraphTraversal<V, V> t,
-                                           boolean keepOneShortestPath) {
+                GraphTraversal<V, V> t,
+                boolean keepOneShortestPath) {
             long size = this.graph().traversal().V().limit(100000L)
-                                                    .count().next();
+                            .count().next();
             Map<Pair<Id, Id>, Integer> triples = new HashMap<>((int) size);
             return t.filter(it -> {
                 Id start = it.<HugeElement>path(Pop.first, "v").id();
@@ -168,15 +167,15 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
         }
 
         protected GraphTraversal<Vertex, Id> substractPath(
-                                             GraphTraversal<Vertex, Vertex> t,
-                                             boolean withBoundary) {
+                GraphTraversal<Vertex, Vertex> t,
+                boolean withBoundary) {
             // t.select(Pop.all, "v").unfold().id()
             return t.select(Pop.all, "v").flatMap(it -> {
                 List<?> path = (List<?>) it.get();
                 if (withBoundary) {
                     @SuppressWarnings("unchecked")
                     Iterator<HugeVertex> items = (Iterator<HugeVertex>)
-                                                 path.iterator();
+                            path.iterator();
                     return new MapperIterator<>(items, HugeVertex::id);
                 }
                 int len = path.size();
@@ -185,11 +184,11 @@ public abstract class AbstractCentAlgorithm extends AbstractAlgorithm {
                 }
 
                 LOG.debug("CentAlgorithm substract path: {}", path);
-                path.remove(path.size() -1);
+                path.remove(path.size() - 1);
                 path.remove(0);
                 @SuppressWarnings("unchecked")
                 Iterator<HugeVertex> items = (Iterator<HugeVertex>)
-                                             path.iterator();
+                        path.iterator();
                 return new MapperIterator<>(items, HugeVertex::id);
             });
         }

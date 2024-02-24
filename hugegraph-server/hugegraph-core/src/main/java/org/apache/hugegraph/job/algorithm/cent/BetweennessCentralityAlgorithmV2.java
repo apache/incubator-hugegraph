@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.job.algorithm.cent;
@@ -24,13 +24,12 @@ import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableFloat;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.job.algorithm.BfsTraverser;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
 
@@ -129,7 +128,7 @@ public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
                 return;
             }
             MutableFloat betweenness = this.globalBetweennesses.get(
-                                       currentVertex);
+                    currentVertex);
             if (betweenness == null) {
                 betweenness = new MutableFloat(0.0F);
                 this.globalBetweennesses.put(currentVertex, betweenness);
