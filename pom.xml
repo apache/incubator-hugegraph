@@ -89,14 +89,15 @@
     </prerequisites>
 
     <properties>
-        <revision>1.2.0</revision>
+<!--        NOTE: Mac with M-series chip users can add this line below to avoid dependencies-resolving problems -->
+<!--        <os.detected.classifier>osx-x86_64</os.detected.classifier>-->
+        <revision>1.5.0.1</revision>
     </properties>
 
     <modules>
         <module>hugegraph-server</module>
-        <!-- TODO: uncomment when merge into pd and store -->
-        <!-- <module>hugegraph-pd</module> -->
-        <!-- <module>hugegraph-store</module> -->
+        <module>hugegraph-pd</module>
+        <module>hugegraph-store</module>
     </modules>
 
     <build>
