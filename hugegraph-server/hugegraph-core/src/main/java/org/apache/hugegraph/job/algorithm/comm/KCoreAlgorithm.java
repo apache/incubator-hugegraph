@@ -190,7 +190,6 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
             return extractKcore(map, k);
         }
 
-
         @SuppressWarnings("unchecked")
         private static Set<Id> extractKcore(SimilarsMap similarsMap, int k) {
             assert similarsMap.size() == 1;
