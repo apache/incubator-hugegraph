@@ -46,7 +46,7 @@ public class KneighborTraverser extends OltpTraverser {
         checkDegree(degree);
         checkLimit(limit);
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
 
         KneighborRecords records = new KneighborRecords(true, sourceV, true);
 

@@ -59,7 +59,7 @@ public class PathsTraverser extends HugeTraverser {
             return PathSet.EMPTY;
         }
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
         Traverser traverser = new Traverser(sourceV, targetV, labelId,
                                             degree, capacity, limit);
         // We should stop early if walk backtrace or reach limit

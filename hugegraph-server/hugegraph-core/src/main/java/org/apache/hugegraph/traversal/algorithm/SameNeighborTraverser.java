@@ -45,7 +45,7 @@ public class SameNeighborTraverser extends HugeTraverser {
         checkDegree(degree);
         checkLimit(limit);
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
 
         Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
                 vertex, direction, labelId, degree));
@@ -80,7 +80,7 @@ public class SameNeighborTraverser extends HugeTraverser {
         List<Id> labelsId = new ArrayList<>();
         if (labels != null) {
             for (String label : labels) {
-                labelsId.add(this.getEdgeLabelId(label));
+                labelsId.add(this.getEdgeLabelIdOrNull(label));
             }
         }
 
