@@ -112,7 +112,7 @@ public class FusiformSimilarityTraverser extends HugeTraverser {
             // Ignore current vertex if its neighbors number is not enough
             return ImmutableSet.of();
         }
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
         // Get similar nodes and counts
         Iterator<Edge> edges = this.edgesOfVertex(vertex.id(), direction,
                                                   labelId, degree);

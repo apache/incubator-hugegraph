@@ -60,7 +60,7 @@ public class StressCentralityAlgorithmV2 extends AbstractCentAlgorithm {
 
     private static class Traverser extends BfsTraverser<StressNode> {
 
-        private Map<Id, MutableLong> globalStresses;
+        private final Map<Id, MutableLong> globalStresses;
 
         private Traverser(UserJob<Object> job) {
             super(job);
@@ -80,10 +80,7 @@ public class StressCentralityAlgorithmV2 extends AbstractCentAlgorithm {
             assert degree > 0L || degree == NO_LIMIT;
             assert topN >= 0L || topN == NO_LIMIT;
 
-            Id edgeLabelId = null;
-            if (label != null) {
-                edgeLabelId = this.graph().edgeLabel(label).id();
-            }
+            Id edgeLabelId = this.getEdgeLabelIdOrNull(label);
 
             // TODO: sample the startVertices
             Iterator<Vertex> startVertices = this.vertices(sourceLabel,

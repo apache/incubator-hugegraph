@@ -177,4 +177,12 @@ public abstract class SchemaLabel extends SchemaElement
                     label.getClass());
         }
     }
+
+    public static Id getVertexLabelId(HugeGraph graph, Object label) {
+        return SchemaLabel.getLabelId(graph, HugeType.VERTEX, label);
+    }
+
+    public static Id getEdgeLabelId(HugeGraph graph, Object label) {
+        return SchemaLabel.getLabelId(graph, HugeType.EDGE, label);
+    }
 }

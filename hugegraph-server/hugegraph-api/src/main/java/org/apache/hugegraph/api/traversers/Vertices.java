@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.type.HugeType;
@@ -51,6 +52,10 @@ public class Vertices {
                           this.label == null), "No source vertices provided");
         Iterator<Vertex> iterator;
         if (this.ids != null && !this.ids.isEmpty()) {
+            E.checkArgument(this.label == null,
+                            "Just provide one of ids or label of source vertices");
+            E.checkArgument(props == null || props.isEmpty(),
+                            "Just provide one of ids or properties of source vertices");
             List<Id> sourceIds = new ArrayList<>(this.ids.size());
             for (Object id : this.ids) {
                 sourceIds.add(HugeVertex.getIdValue(id));
@@ -62,7 +67,7 @@ public class Vertices {
         } else {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             if (this.label != null) {
-                Id label = g.vertexLabel(this.label).id();
+                Id label = SchemaLabel.getVertexLabelId(g, this.label);
                 query.eq(HugeKeys.LABEL, label);
             }
             if (props != null && !props.isEmpty()) {
