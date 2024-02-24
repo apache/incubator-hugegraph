@@ -178,7 +178,7 @@ public class LpaAlgorithm extends AbstractCommAlgorithm {
                                              Directions dir, long degree) {
             // neighbors of source vertex v
             Id source = (Id) vertex.id();
-            Id labelId = this.getEdgeLabelId(edgeLabel);
+            Id labelId = this.getEdgeLabelIdOrNull(edgeLabel);
             Iterator<Id> neighbors = this.adjacentVertices(source, dir,
                                                            labelId, degree);
 

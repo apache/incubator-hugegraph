@@ -55,7 +55,7 @@ public class PersonalRankTraverser extends HugeTraverser {
         Map<Id, Double> ranks = newMap();
         ranks.put(source, 1.0);
 
-        Id labelId = this.graph().edgeLabel(label).id();
+        Id labelId = this.getEdgeLabelIdOrNull(label);
         Directions dir = this.getStartDirection(source, label);
 
         Set<Id> outSeeds = newIdSet();

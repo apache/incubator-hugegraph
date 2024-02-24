@@ -73,7 +73,7 @@ public class DegreeCentralityAlgorithm extends AbstractCentAlgorithm {
             JsonMap degrees = new JsonMap();
             TopMap<Id> tops = new TopMap<>(topN);
             Id vertex = null;
-            Id labelId = this.getEdgeLabelId(label);
+            Id labelId = this.getEdgeLabelIdOrNull(label);
             long degree = 0L;
             long totalEdges = 0L;
 

@@ -61,7 +61,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
         Map<Id, String> labelMap = newMap(labels.size());
         for (String label : labels) {
-            labelMap.put(this.getEdgeLabelId(label), label);
+            labelMap.put(this.getEdgeLabelIdOrNull(label), label);
         }
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
@@ -122,7 +122,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
         Map<Id, String> labelMap = newMap(labels.size());
         for (String label : labels) {
-            labelMap.put(this.getEdgeLabelId(label), label);
+            labelMap.put(this.getEdgeLabelIdOrNull(label), label);
         }
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
