@@ -565,7 +565,7 @@ public abstract class Condition {
             return this.value;
         }
 
-        public void setValue(Object value) {
+        public void value(Object value) {
             this.value = value;
         }
 

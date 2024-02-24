@@ -1469,8 +1469,8 @@ public class GraphTransaction extends IndexableTransaction {
                     return new Query(query.resultType());
                 } else if (vertexIdList.size() != filterVertexList.size()) {
                     // Modify on the copied relation to avoid affecting other query
-                    Condition.Relation relation = query.copyRelation(HugeKeys.OWNER_VERTEX);
-                    relation.setValue(filterVertexList);
+                    Condition.Relation relation = query.copyRelationAndUpdateQuery(HugeKeys.OWNER_VERTEX);
+                    relation.value(filterVertexList);
                 }
             } else if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.EQ)) {
                 // For EQ query, just skip query if adjacent schema is unavailable.

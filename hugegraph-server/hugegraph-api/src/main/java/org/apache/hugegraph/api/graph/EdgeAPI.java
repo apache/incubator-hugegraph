@@ -24,6 +24,39 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
+import org.apache.hugegraph.api.filter.DecompressInterceptor.Decompress;
+import org.apache.hugegraph.api.filter.StatusFilter.Status;
+import org.apache.hugegraph.backend.id.EdgeId;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.UpdateStrategy;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.traversal.optimize.QueryHolder;
+import org.apache.hugegraph.traversal.optimize.TraversalUtil;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.function.TriFunction;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
@@ -38,39 +71,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.function.TriFunction;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.UpdateStrategy;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
-import org.apache.hugegraph.api.filter.DecompressInterceptor.Decompress;
-import org.apache.hugegraph.api.filter.StatusFilter.Status;
-import org.apache.hugegraph.backend.id.EdgeId;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.traversal.optimize.QueryHolder;
-import org.apache.hugegraph.traversal.optimize.TraversalUtil;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/graph/edges")
 @Singleton
@@ -291,19 +291,6 @@ public class EdgeAPI extends BatchAPI {
         HugeGraph g = graph(manager, graph);
 
         GraphTraversal<?, Edge> traversal;
-
-        // Optimize edge query. Return early when the EdgeLabel does not exist.
-        if (label != null && !g.existsEdgeLabel(label)) {
-            try {
-                traversal = g.traversal().E().limit(0);
-                return manager.serializer(g).writeEdges(traversal, page != null);
-            } finally {
-                if (g.tx().isOpen()) {
-                    g.tx().close();
-                }
-            }
-        }
-
         if (vertex != null) {
             if (label != null) {
                 traversal = g.traversal().V(vertex).toE(dir, label);

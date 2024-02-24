@@ -537,7 +537,7 @@ public class ConditionQuery extends IdQuery {
         return query;
     }
 
-    public Condition.Relation copyRelation(Object key) {
+    public Condition.Relation copyRelationAndUpdateQuery(Object key) {
         Condition.Relation copyRes = null;
         for (int i = 0; i < this.conditions.size(); i++) {
             Condition c = this.conditions.get(i);
