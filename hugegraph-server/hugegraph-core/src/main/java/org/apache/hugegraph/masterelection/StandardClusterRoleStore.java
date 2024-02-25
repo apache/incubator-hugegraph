@@ -181,7 +181,6 @@ public class StandardClusterRoleStore implements ClusterRoleStore {
         public static final String TYPE = Graph.Hidden.hide("role_type");
     }
 
-
     public static final class Schema extends SchemaDefine {
 
         public Schema(HugeGraphParams graph) {
