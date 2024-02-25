@@ -64,12 +64,12 @@ public class AnalyzerFactory {
             return clazz.getConstructor(String.class).newInstance(mode);
         } catch (Exception e) {
             throw new HugeException(
-                      "Failed to construct analyzer '%s' with mode '%s'",
-                      e, name, mode);
+                    "Failed to construct analyzer '%s' with mode '%s'",
+                    e, name, mode);
         }
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static void register(String name, String classPath) {
         ClassLoader classLoader = SerializerFactory.class.getClassLoader();
         Class<?> clazz;

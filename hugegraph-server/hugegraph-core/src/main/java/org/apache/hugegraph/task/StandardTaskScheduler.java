@@ -38,28 +38,22 @@ import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.iterator.ExtendableIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.job.EphemeralJob;
-import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.task.HugeTask.P;
 import org.apache.hugegraph.task.TaskCallable.SysTaskCallable;
 import org.apache.hugegraph.task.TaskManager.ContextCallable;
 import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.Cardinality;
-import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
-import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
@@ -145,7 +139,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             do {
                 Iterator<HugeTask<V>> iter;
                 for (iter = this.findTask(status, PAGE_SIZE, page);
-                     iter.hasNext();) {
+                     iter.hasNext(); ) {
                     HugeTask<V> task = iter.next();
                     if (selfServer.equals(task.server())) {
                         taskList.add(task);
@@ -156,7 +150,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
             } while (page != null);
         }
-        for (HugeTask<V> task : taskList){
+        for (HugeTask<V> task : taskList) {
             LOG.info("restore task {}", task);
             this.restore(task);
         }
@@ -325,7 +319,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
 
                 HugeServerInfo server = this.serverManager().pickWorkerNode(
-                                        serverInfos, task);
+                        serverInfos, task);
                 if (server == null) {
                     LOG.info("The master can't find suitable servers to " +
                              "execute task '{}', wait for next schedule",
@@ -445,7 +439,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         HugeTask<?> delTask = this.tasks.remove(task.id());
         if (delTask != null && delTask != task) {
             LOG.warn("Task '{}' may be inconsistent status {}(expect {})",
-                      task.id(), task.status(), delTask.status());
+                     task.id(), task.status(), delTask.status());
         }
         assert force || delTask == null || delTask.completed() ||
                delTask.cancelling() || delTask.isCancelled() : delTask;
@@ -597,13 +591,13 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
-                                                  throws TimeoutException {
+            throws TimeoutException {
         return this.waitUntilTaskCompleted(id, seconds, QUERY_INTERVAL);
     }
 
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
-                                                  throws TimeoutException {
+            throws TimeoutException {
         // This method is just used by tests
         long timeout = this.graph.configuration()
                                  .get(CoreOptions.TASK_WAIT_TIMEOUT);
@@ -612,10 +606,10 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     private <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
                                                    long intervalMs)
-                                                   throws TimeoutException {
+            throws TimeoutException {
         long passes = seconds * 1000 / intervalMs;
         HugeTask<V> task = null;
-        for (long pass = 0;; pass++) {
+        for (long pass = 0; ; pass++) {
             try {
                 task = this.task(id);
             } catch (NotFoundException e) {
@@ -637,15 +631,15 @@ public class StandardTaskScheduler implements TaskScheduler {
             sleep(intervalMs);
         }
         throw new TimeoutException(String.format(
-                  "Task '%s' was not completed in %s seconds", id, seconds));
+                "Task '%s' was not completed in %s seconds", id, seconds));
     }
 
     @Override
     public void waitUntilAllTasksCompleted(long seconds)
-                                           throws TimeoutException {
+            throws TimeoutException {
         long passes = seconds * 1000 / QUERY_INTERVAL;
         int taskSize;
-        for (long pass = 0;; pass++) {
+        for (long pass = 0; ; pass++) {
             taskSize = this.pendingTasks();
             if (taskSize == 0) {
                 sleep(QUERY_INTERVAL);
@@ -657,8 +651,8 @@ public class StandardTaskScheduler implements TaskScheduler {
             sleep(QUERY_INTERVAL);
         }
         throw new TimeoutException(String.format(
-                  "There are still %s incomplete tasks after %s seconds",
-                  taskSize, seconds));
+                "There are still %s incomplete tasks after %s seconds",
+                taskSize, seconds));
     }
 
     @Override
@@ -718,9 +712,9 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public  <V> V call(Callable<V> callable) {
+    public <V> V call(Callable<V> callable) {
         assert !Thread.currentThread().getName().startsWith(
-               "task-db-worker") : "can't call by itself";
+                "task-db-worker") : "can't call by itself";
         try {
             // Pass task context for db thread
             callable = new ContextCallable<>(callable);

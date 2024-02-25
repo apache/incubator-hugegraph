@@ -16,8 +16,6 @@ package org.apache.hugegraph.backend.id;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -27,13 +25,14 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.TimeUtil;
+import org.slf4j.Logger;
 
 public class SnowflakeIdGenerator extends IdGenerator {
 
     private static final Logger LOG = Log.logger(SnowflakeIdGenerator.class);
 
     private static final Map<String, SnowflakeIdGenerator> INSTANCES =
-                         new ConcurrentHashMap<>();
+            new ConcurrentHashMap<>();
 
     private final boolean forceString;
     private final IdWorker idWorker;
@@ -114,13 +113,13 @@ public class SnowflakeIdGenerator extends IdGenerator {
             // Sanity check for workerId
             if (workerId > MAX_WORKER_ID || workerId < 0) {
                 throw new IllegalArgumentException(String.format(
-                          "Worker id can't > %d or < 0",
-                          MAX_WORKER_ID));
+                        "Worker id can't > %d or < 0",
+                        MAX_WORKER_ID));
             }
             if (datacenterId > MAX_DC_ID || datacenterId < 0) {
                 throw new IllegalArgumentException(String.format(
-                          "Datacenter id can't > %d or < 0",
-                          MAX_DC_ID));
+                        "Datacenter id can't > %d or < 0",
+                        MAX_DC_ID));
             }
             this.workerId = workerId;
             this.datacenterId = datacenterId;

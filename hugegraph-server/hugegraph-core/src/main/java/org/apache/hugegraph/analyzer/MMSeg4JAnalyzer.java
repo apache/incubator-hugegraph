@@ -24,6 +24,7 @@ import java.util.Set;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.chenlb.mmseg4j.ComplexSeg;
 import com.chenlb.mmseg4j.Dictionary;
 import com.chenlb.mmseg4j.MMSeg;
@@ -51,8 +52,8 @@ public class MMSeg4JAnalyzer implements Analyzer {
     public MMSeg4JAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
             throw new ConfigException(
-                      "Unsupported segment mode '%s' for mmseg4j analyzer, " +
-                      "the available values are %s", mode, SUPPORT_MODES);
+                    "Unsupported segment mode '%s' for mmseg4j analyzer, " +
+                    "the available values are %s", mode, SUPPORT_MODES);
         }
         int index = SUPPORT_MODES.indexOf(mode);
         switch (index) {
@@ -67,7 +68,7 @@ public class MMSeg4JAnalyzer implements Analyzer {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported segment mode '%s'", mode));
+                        "Unsupported segment mode '%s'", mode));
         }
     }
 

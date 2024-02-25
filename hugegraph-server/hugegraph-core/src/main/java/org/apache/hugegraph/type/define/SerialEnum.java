@@ -21,6 +21,7 @@ import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
 

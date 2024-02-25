@@ -82,7 +82,7 @@ public enum IndexType implements SerialEnum {
                 return HugeType.UNIQUE_INDEX;
             default:
                 throw new AssertionError(String.format(
-                          "Unknown index type '%s'", this));
+                        "Unknown index type '%s'", this));
         }
     }
 

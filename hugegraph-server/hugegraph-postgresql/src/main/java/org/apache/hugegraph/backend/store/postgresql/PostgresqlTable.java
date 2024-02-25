@@ -20,14 +20,13 @@ package org.apache.hugegraph.backend.store.postgresql;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.logging.log4j.util.Strings;
-
 import org.apache.hugegraph.backend.serializer.TableBackendEntry.Row;
 import org.apache.hugegraph.backend.store.mysql.MysqlBackendEntry;
 import org.apache.hugegraph.backend.store.mysql.MysqlSessions.Session;
 import org.apache.hugegraph.backend.store.mysql.MysqlTable;
 import org.apache.hugegraph.backend.store.mysql.WhereBuilder;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.logging.log4j.util.Strings;
 
 public abstract class PostgresqlTable extends MysqlTable {
 
@@ -162,7 +161,8 @@ public abstract class PostgresqlTable extends MysqlTable {
         @Override
         protected String escapeAndWrapString(String value) {
             if (value.equals("\u0000")) {
-                return "\'\'";
+                /* PR-2439 return string of '' */
+                return "''";
             }
             return PostgresqlSessions.escapeAndWrapString(value);
         }

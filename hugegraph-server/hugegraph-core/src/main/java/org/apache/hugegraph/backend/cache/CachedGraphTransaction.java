@@ -25,15 +25,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.cache.CachedBackendStore.QueryId;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.store.BackendMutation;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.ram.RamTable;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.IdQuery;
-import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
@@ -49,6 +49,7 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
+
 import com.google.common.collect.ImmutableSet;
 
 public final class CachedGraphTransaction extends GraphTransaction {
@@ -349,7 +350,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             edges.add(rs.next());
         }
 
-        if (edges.size() == 0) {
+        if (edges.isEmpty()) {
             this.edgesCache.update(cacheKey, Collections.emptyList());
         } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
             this.edgesCache.update(cacheKey, edges);

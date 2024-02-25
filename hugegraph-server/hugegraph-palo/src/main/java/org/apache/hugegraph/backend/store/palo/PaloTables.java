@@ -188,9 +188,9 @@ public class PaloTables {
 
             this.direction = direction;
             this.delByLabelTemplate = String.format(
-                                      "DELETE FROM %s PARTITION %s WHERE %s = ?;",
-                                      this.table(), this.table(),
-                                      formatKey(HugeKeys.LABEL));
+                    "DELETE FROM %s PARTITION %s WHERE %s = ?;",
+                    this.table(), this.table(),
+                    formatKey(HugeKeys.LABEL));
 
             this.define = new TableDefine();
             this.define.column(HugeKeys.OWNER_VERTEX, VARCHAR, NOT_NULL);
@@ -214,7 +214,7 @@ public class PaloTables {
                 String[] idParts = EdgeId.split(id);
                 if (idParts.length == 1) {
                     // Delete edge by label
-                    return Arrays.asList((Object[]) idParts);
+                    return Arrays.asList(idParts);
                 }
                 id = IdUtil.readString(id.asString());
                 edgeId = EdgeId.parse(id.asString());
@@ -240,7 +240,7 @@ public class PaloTables {
                            MysqlBackendEntry.Row entry) {
             // Let super class do delete if not deleting edge by label
             List<Object> idParts = this.idColumnValue(entry.id());
-            if (idParts.size() > 1 || entry.columns().size() > 0) {
+            if (idParts.size() > 1 || !entry.columns().isEmpty()) {
                 super.delete(session, entry);
                 return;
             }
@@ -280,7 +280,7 @@ public class PaloTables {
             long maxSize = BackendEntryIterator.INLINE_BATCH_SIZE;
             if (current != null && current.subRows().size() < maxSize) {
                 Id nextVertexId = IdGenerator.of(
-                                  next.<String>column(HugeKeys.OWNER_VERTEX));
+                        next.<String>column(HugeKeys.OWNER_VERTEX));
                 if (current.id().equals(nextVertexId)) {
                     current.subRow(next.row());
                     return current;

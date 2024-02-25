@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.util;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.exception.NotSupportException;
-import org.slf4j.Logger;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.NotSupportException;
+import org.slf4j.Logger;
 
 public class Reflection {
 
@@ -34,9 +34,9 @@ public class Reflection {
     private static final Method REGISTER_METHODS_TO_FILTER_MOTHOD;
 
     public static final String JDK_INTERNAL_REFLECT_REFLECTION =
-                               "jdk.internal.reflect.Reflection";
+            "jdk.internal.reflect.Reflection";
     public static final String SUN_REFLECT_REFLECTION =
-                               "sun.reflect.Reflection";
+            "sun.reflect.Reflection";
 
     static {
         Method registerFieldsToFilterMethodTemp = null;
@@ -44,7 +44,7 @@ public class Reflection {
         Class<?> reflectionClazzTemp = null;
         try {
             reflectionClazzTemp = Class.forName(
-                                  JDK_INTERNAL_REFLECT_REFLECTION);
+                    JDK_INTERNAL_REFLECT_REFLECTION);
         } catch (ClassNotFoundException e) {
             try {
                 reflectionClazzTemp = Class.forName(SUN_REFLECT_REFLECTION);
@@ -80,7 +80,7 @@ public class Reflection {
                                               String... fieldNames) {
         if (REGISTER_FILEDS_TO_FILTER_METHOD == null) {
             throw new NotSupportException(
-                      "Reflection.registerFieldsToFilter()");
+                    "Reflection.registerFieldsToFilter()");
         }
 
         try {
@@ -89,8 +89,8 @@ public class Reflection {
                                                     containingClass, fieldNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
-                      "Failed to register class '%s' fields to filter: %s",
-                       containingClass, Arrays.toString(fieldNames));
+                    "Failed to register class '%s' fields to filter: %s",
+                    containingClass, Arrays.toString(fieldNames));
         }
     }
 
@@ -98,7 +98,7 @@ public class Reflection {
                                                String... methodNames) {
         if (REGISTER_METHODS_TO_FILTER_MOTHOD == null) {
             throw new NotSupportException(
-                      "Reflection.registerMethodsToFilterMethod()");
+                    "Reflection.registerMethodsToFilterMethod()");
         }
 
         try {
@@ -107,8 +107,8 @@ public class Reflection {
                                                      containingClass, methodNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
-                      "Failed to register class '%s' methods to filter: %s",
-                      containingClass, Arrays.toString(methodNames));
+                    "Failed to register class '%s' methods to filter: %s",
+                    containingClass, Arrays.toString(methodNames));
         }
     }
 }

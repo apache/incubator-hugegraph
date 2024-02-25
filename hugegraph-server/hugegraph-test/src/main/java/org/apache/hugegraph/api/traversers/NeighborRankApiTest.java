@@ -20,12 +20,12 @@ package org.apache.hugegraph.api.traversers;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
+import jakarta.ws.rs.core.Response;
 
 public class NeighborRankApiTest extends BaseApiTest {
 

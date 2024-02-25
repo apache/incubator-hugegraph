@@ -21,11 +21,6 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.cache.OffheapCache;
@@ -35,6 +30,11 @@ import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.google.common.collect.ImmutableMap;
 
 public class CacheManagerTest extends BaseUnitTest {
@@ -42,7 +42,7 @@ public class CacheManagerTest extends BaseUnitTest {
     private Map<String, Cache<Id, Object>> originCaches;
     private Map<String, Cache<Id, Object>> mockCaches;
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Before
     public void setup() {
         CacheManager manager = CacheManager.instance();
@@ -183,8 +183,7 @@ public class CacheManagerTest extends BaseUnitTest {
         CacheManager manager = CacheManager.instance();
 
         Mockito.when(this.mockCaches.containsKey(name)).thenReturn(false);
-        @SuppressWarnings("rawtypes")
-        final Cache[] cache = new Cache[1];
+        @SuppressWarnings("rawtypes") final Cache[] cache = new Cache[1];
         Mockito.when(this.mockCaches.putIfAbsent(Mockito.anyString(),
                                                  Mockito.any()))
                .thenAnswer(i -> cache[0] = (Cache<?, ?>) i.getArguments()[1]);
@@ -212,8 +211,7 @@ public class CacheManagerTest extends BaseUnitTest {
         CacheManager manager = CacheManager.instance();
 
         Mockito.when(this.mockCaches.containsKey(name)).thenReturn(false);
-        @SuppressWarnings("rawtypes")
-        final Cache[] cache = new Cache[1];
+        @SuppressWarnings("rawtypes") final Cache[] cache = new Cache[1];
         Mockito.when(this.mockCaches.putIfAbsent(Mockito.anyString(),
                                                  Mockito.any()))
                .thenAnswer(i -> cache[0] = (Cache<?, ?>) i.getArguments()[1]);
@@ -300,7 +298,7 @@ public class CacheManagerTest extends BaseUnitTest {
         Assert.assertEquals(1, cache2.size());
     }
 
-    @SuppressWarnings({ "unused", "unchecked" })
+    @SuppressWarnings({"unused", "unchecked"})
     private static Cache<Id, Object> newCacheProxy(Cache<Id, Object> cache) {
         Object p = Proxy.newProxyInstance(Cache.class.getClassLoader(),
                                           new Class[]{Cache.class},

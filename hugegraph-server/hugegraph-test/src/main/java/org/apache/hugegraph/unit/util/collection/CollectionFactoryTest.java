@@ -25,6 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.type.define.CollectionType;
+import org.apache.hugegraph.util.collection.CollectionFactory;
+import org.apache.hugegraph.util.collection.IdSet;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.eclipse.collections.impl.map.mutable.UnifiedMap;
@@ -33,12 +39,6 @@ import org.eclipse.collections.impl.set.mutable.UnifiedSet;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.junit.Test;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.testutil.Assert;
-import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.type.define.CollectionType;
-import org.apache.hugegraph.util.collection.CollectionFactory;
-import org.apache.hugegraph.util.collection.IdSet;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 

@@ -108,11 +108,11 @@ public class BaseApiTest {
             this(url, true);
         }
 
-        public RestClient(String url,Boolean enableAuth) {
+        public RestClient(String url, Boolean enableAuth) {
             this.client = ClientBuilder.newClient();
             this.client.register(EncodingFilter.class);
             this.client.register(GZipEncoder.class);
-            if(enableAuth) {
+            if (enableAuth) {
                 this.client.register(HttpAuthenticationFeature.basic(USERNAME,
                                                                      PASSWORD));
             }
@@ -202,117 +202,117 @@ public class BaseApiTest {
         String path = URL_PREFIX + SCHEMA_PKS;
 
         createAndAssert(path, "{\n" +
-                "\"name\": \"name\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"name\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"age\",\n" +
-                "\"data_type\": \"INT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"age\",\n" +
+                              "\"data_type\": \"INT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"city\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"city\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"lang\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"lang\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"date\",\n" +
-                "\"data_type\": \"TEXT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"date\",\n" +
+                              "\"data_type\": \"TEXT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"price\",\n" +
-                "\"data_type\": \"INT\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"price\",\n" +
+                              "\"data_type\": \"INT\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
         createAndAssert(path, "{\n" +
-                "\"name\": \"weight\",\n" +
-                "\"data_type\": \"DOUBLE\",\n" +
-                "\"cardinality\": \"SINGLE\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"properties\":[]\n" +
-                "}", 202);
+                              "\"name\": \"weight\",\n" +
+                              "\"data_type\": \"DOUBLE\",\n" +
+                              "\"cardinality\": \"SINGLE\",\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"properties\":[]\n" +
+                              "}", 202);
     }
 
     protected static void initVertexLabel() {
         String path = URL_PREFIX + SCHEMA_VLS;
 
         createAndAssert(path, "{\n" +
-                "\"primary_keys\":[\"name\"],\n" +
-                "\"id_strategy\": \"PRIMARY_KEY\",\n" +
-                "\"name\": \"person\",\n" +
-                "\"properties\":[\"city\", \"name\", \"age\"],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"primary_keys\":[\"name\"],\n" +
+                              "\"id_strategy\": \"PRIMARY_KEY\",\n" +
+                              "\"name\": \"person\",\n" +
+                              "\"properties\":[\"city\", \"name\", \"age\"],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
 
         createAndAssert(path, "{\n" +
-                "\"primary_keys\":[\"name\"],\n" +
-                "\"id_strategy\": \"PRIMARY_KEY\",\n" +
-                "\"name\": \"software\",\n" +
-                "\"properties\":[\"price\", \"name\", \"lang\"],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"primary_keys\":[\"name\"],\n" +
+                              "\"id_strategy\": \"PRIMARY_KEY\",\n" +
+                              "\"name\": \"software\",\n" +
+                              "\"properties\":[\"price\", \"name\", \"lang\"],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
     }
 
     protected static void initEdgeLabel() {
         String path = URL_PREFIX + SCHEMA_ELS;
 
         createAndAssert(path, "{\n" +
-                "\"name\": \"created\",\n" +
-                "\"source_label\": \"person\",\n" +
-                "\"target_label\": \"software\",\n" +
-                "\"frequency\": \"SINGLE\",\n" +
-                "\"properties\":[\"date\", \"weight\"],\n" +
-                "\"sort_keys\":[],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"name\": \"created\",\n" +
+                              "\"source_label\": \"person\",\n" +
+                              "\"target_label\": \"software\",\n" +
+                              "\"frequency\": \"SINGLE\",\n" +
+                              "\"properties\":[\"date\", \"weight\"],\n" +
+                              "\"sort_keys\":[],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"name\": \"knows\",\n" +
-                "\"source_label\": \"person\",\n" +
-                "\"target_label\": \"person\",\n" +
-                "\"frequency\": \"MULTIPLE\",\n" +
-                "\"properties\":[\"date\", \"weight\"],\n" +
-                "\"sort_keys\":[\"date\"],\n" +
-                "\"check_exist\": false,\n" +
-                "\"nullable_keys\":[]\n" +
-                "}");
+                              "\"name\": \"knows\",\n" +
+                              "\"source_label\": \"person\",\n" +
+                              "\"target_label\": \"person\",\n" +
+                              "\"frequency\": \"MULTIPLE\",\n" +
+                              "\"properties\":[\"date\", \"weight\"],\n" +
+                              "\"sort_keys\":[\"date\"],\n" +
+                              "\"check_exist\": false,\n" +
+                              "\"nullable_keys\":[]\n" +
+                              "}");
     }
 
     protected static int initIndexLabel() {
         String path = URL_PREFIX + SCHEMA_ILS;
 
         Response r = client.post(path, "{\n" +
-                "\"name\": \"personByCity\",\n" +
-                "\"base_type\": \"VERTEX_LABEL\",\n" +
-                "\"base_value\": \"person\",\n" +
-                "\"index_type\": \"SECONDARY\",\n" +
-                "\"check_exist\": false,\n" +
-                "\"rebuild\": false,\n" +
-                "\"fields\": [\n" +
-                "\"city\"\n" +
-                "]\n" +
-                "}");
+                                       "\"name\": \"personByCity\",\n" +
+                                       "\"base_type\": \"VERTEX_LABEL\",\n" +
+                                       "\"base_value\": \"person\",\n" +
+                                       "\"index_type\": \"SECONDARY\",\n" +
+                                       "\"check_exist\": false,\n" +
+                                       "\"rebuild\": false,\n" +
+                                       "\"fields\": [\n" +
+                                       "\"city\"\n" +
+                                       "]\n" +
+                                       "}");
         String content = assertResponseStatus(202, r);
         return assertJsonContains(content, "task_id");
     }
@@ -378,59 +378,59 @@ public class BaseApiTest {
         String path = URL_PREFIX + GRAPH_VERTEX;
 
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"marko\"," +
-                "\"age\": 29," +
-                "\"city\": \"Beijing\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"marko\"," +
+                              "\"age\": 29," +
+                              "\"city\": \"Beijing\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"vadas\"," +
-                "\"age\": 27," +
-                "\"city\": \"HongKong\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"vadas\"," +
+                              "\"age\": 27," +
+                              "\"city\": \"HongKong\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"josh\"," +
-                "\"age\": 32," +
-                "\"city\": \"Beijing\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"josh\"," +
+                              "\"age\": 32," +
+                              "\"city\": \"Beijing\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"person\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"peter\"," +
-                "\"age\": 35," +
-                "\"city\": \"Shanghai\"" +
-                "}\n" +
-                "}");
+                              "\"label\": \"person\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"peter\"," +
+                              "\"age\": 35," +
+                              "\"city\": \"Shanghai\"" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"software\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"ripple\"," +
-                "\"lang\": \"java\"," +
-                "\"price\": 199" +
-                "}\n" +
-                "}");
+                              "\"label\": \"software\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"ripple\"," +
+                              "\"lang\": \"java\"," +
+                              "\"price\": 199" +
+                              "}\n" +
+                              "}");
         createAndAssert(path, "{\n" +
-                "\"label\": \"software\",\n" +
-                "\"type\": \"vertex\",\n" +
-                "\"properties\":{" +
-                "\"name\": \"lop\"," +
-                "\"lang\": \"java\"," +
-                "\"price\": 328" +
-                "}\n" +
-                "}");
+                              "\"label\": \"software\",\n" +
+                              "\"type\": \"vertex\",\n" +
+                              "\"properties\":{" +
+                              "\"name\": \"lop\"," +
+                              "\"lang\": \"java\"," +
+                              "\"price\": 328" +
+                              "}\n" +
+                              "}");
     }
 
     protected static Response createAndAssert(String path, String body) {
@@ -480,7 +480,7 @@ public class BaseApiTest {
     }
 
     protected static String getVertexId(String label, String key, String value)
-                                        throws IOException {
+            throws IOException {
         String props = MAPPER.writeValueAsString(ImmutableMap.of(key, value));
         Map<String, Object> params = ImmutableMap.of(
                 "label", label,
@@ -588,14 +588,14 @@ public class BaseApiTest {
             JsonNode element = root.get(key);
             if (element == null) {
                 throw new HugeException(String.format(
-                          "Can't find value of the key: %s in json.", key));
+                        "Can't find value of the key: %s in json.", key));
             }
             JavaType type = MAPPER.getTypeFactory()
                                   .constructParametricType(List.class, clazz);
             return MAPPER.readValue(element.toString(), type);
         } catch (IOException e) {
             throw new HugeException(String.format(
-                      "Failed to deserialize %s", content), e);
+                    "Failed to deserialize %s", content), e);
         }
     }
 

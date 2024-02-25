@@ -32,8 +32,6 @@ import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
@@ -48,6 +46,7 @@ import org.apache.hugegraph.structure.HugeIndex;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.AggregateType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
@@ -60,6 +59,7 @@ import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.type.define.SerialEnum;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.JsonUtil;
 
 public abstract class TableSerializer extends AbstractSerializer {
 
@@ -108,7 +108,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         } else {
             if (!(value instanceof Collection)) {
                 throw new BackendException(
-                          "Invalid value of non-single property: %s", value);
+                        "Invalid value of non-single property: %s", value);
             }
             owner.addProperty(pkey, value);
         }
@@ -157,9 +157,10 @@ public abstract class TableSerializer extends AbstractSerializer {
 
     /**
      * Parse an edge from a entry row
-     * @param row edge entry
+     *
+     * @param row    edge entry
      * @param vertex null or the source vertex
-     * @param graph the HugeGraph context object
+     * @param graph  the HugeGraph context object
      * @return the source vertex
      */
     protected HugeEdge parseEdge(TableBackendEntry.Row row,
@@ -307,7 +308,7 @@ public abstract class TableSerializer extends AbstractSerializer {
          * When field-values is null and elementIds size is 0, it is
          * meaningful for deletion of index data in secondary/range index.
          */
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+        if (index.fieldValues() == null && index.elementIds().isEmpty()) {
             entry.column(HugeKeys.INDEX_LABEL_ID, index.indexLabel().longId());
         } else {
             entry.column(HugeKeys.FIELD_VALUES, index.fieldValues());
@@ -560,8 +561,8 @@ public abstract class TableSerializer extends AbstractSerializer {
         AggregateType aggregateType = schemaEnum(entry, HugeKeys.AGGREGATE_TYPE,
                                                  AggregateType.class);
         WriteType writeType = schemaEnumOrDefault(
-                              entry, HugeKeys.WRITE_TYPE,
-                              WriteType.class, WriteType.OLTP);
+                entry, HugeKeys.WRITE_TYPE,
+                WriteType.class, WriteType.OLTP);
         Object properties = schemaColumn(entry, HugeKeys.PROPERTIES);
         SchemaStatus status = schemaEnum(entry, HugeKeys.STATUS,
                                          SchemaStatus.class);
@@ -697,9 +698,9 @@ public abstract class TableSerializer extends AbstractSerializer {
     }
 
     private static <T extends SerialEnum> T schemaEnumOrDefault(
-                                            TableBackendEntry entry,
-                                            HugeKeys key, Class<T> clazz,
-                                            T defaultValue) {
+            TableBackendEntry entry,
+            HugeKeys key, Class<T> clazz,
+            T defaultValue) {
         assert entry.type().isSchema();
 
         Number value = entry.column(key);

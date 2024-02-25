@@ -22,11 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-
-import com.alipay.sofa.jraft.Status;
-import com.alipay.sofa.jraft.closure.ReadIndexClosure;
-import com.alipay.sofa.jraft.util.BytesUtil;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -41,6 +36,11 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.closure.ReadIndexClosure;
+import com.alipay.sofa.jraft.util.BytesUtil;
 
 public class RaftBackendStore implements BackendStore {
 
@@ -149,13 +149,13 @@ public class RaftBackendStore implements BackendStore {
     @SuppressWarnings("unchecked")
     public Iterator<BackendEntry> query(Query query) {
         return (Iterator<BackendEntry>)
-               this.queryByRaft(query, o -> this.store.query(query));
+                this.queryByRaft(query, o -> this.store.query(query));
     }
 
     @Override
     public Number queryNumber(Query query) {
         return (Number)
-               this.queryByRaft(query, o -> this.store.queryNumber(query));
+                this.queryByRaft(query, o -> this.store.queryNumber(query));
     }
 
     @Override
@@ -231,8 +231,8 @@ public class RaftBackendStore implements BackendStore {
                     future.complete(status, () -> func.apply(query));
                 } else {
                     future.failure(status, new BackendException(
-                                           "Failed to do raft read-index: %s",
-                                           status));
+                            "Failed to do raft read-index: %s",
+                            status));
                 }
             }
         };

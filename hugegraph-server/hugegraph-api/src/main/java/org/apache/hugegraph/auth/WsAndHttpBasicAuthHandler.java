@@ -24,7 +24,7 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_PASSWORD;
 import static org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens.PROPERTY_USERNAME;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +61,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object obj)
-                            throws Exception {
+            throws Exception {
         if (obj instanceof HttpMessage && !isWebSocket((HttpMessage) obj)) {
             ChannelPipeline pipeline = ctx.pipeline();
             ChannelHandler authHandler = pipeline.get(HTTP_AUTH);
@@ -86,7 +86,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
 
     @ChannelHandler.Sharable
     private static class HttpBasicAuthHandler
-                   extends AbstractAuthenticationHandler {
+            extends AbstractAuthenticationHandler {
 
         private final Base64.Decoder decoder = Base64.getUrlDecoder();
 
@@ -122,7 +122,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
                     return;
                 }
                 String authorization = new String(userPass,
-                                                  Charset.forName("UTF-8"));
+                                                  StandardCharsets.UTF_8);
                 String[] split = authorization.split(":");
                 if (split.length != 2) {
                     sendError(ctx, msg);
@@ -134,7 +134,7 @@ public class WsAndHttpBasicAuthHandler extends SaslAuthenticationHandler {
                     address = address.substring(1);
                 }
 
-                final Map<String,String> credentials = new HashMap<>();
+                final Map<String, String> credentials = new HashMap<>();
                 credentials.put(PROPERTY_USERNAME, split[0]);
                 credentials.put(PROPERTY_PASSWORD, split[1]);
                 credentials.put(HugeAuthenticator.KEY_ADDRESS, address);

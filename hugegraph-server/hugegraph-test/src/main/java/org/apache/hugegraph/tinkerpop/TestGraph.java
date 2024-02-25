@@ -243,12 +243,13 @@ public class TestGraph implements Graph {
         return this.graph.compute();
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         Whitebox.setInternalState(HugeGraphSONModule.class, "OPTIMIZE_SERIALIZE", false);
         return (I) builder.graph(this).onMapper(mapper ->
-            mapper.addRegistry(HugeGraphIoRegistry.instance())
+                                                        mapper.addRegistry(
+                                                                HugeGraphIoRegistry.instance())
         ).create();
     }
 

@@ -22,11 +22,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.config.ConfigException;
+import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.wltea.analyzer.core.IKSegmenter;
 import org.wltea.analyzer.core.Lexeme;
 
-import org.apache.hugegraph.config.ConfigException;
-import org.apache.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -44,8 +44,8 @@ public class IKAnalyzer implements Analyzer {
     public IKAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
             throw new ConfigException(
-                      "Unsupported segment mode '%s' for ikanalyzer, " +
-                      "the available values are %s", mode, SUPPORT_MODES);
+                    "Unsupported segment mode '%s' for ikanalyzer, " +
+                    "the available values are %s", mode, SUPPORT_MODES);
         }
         this.smartSegMode = SUPPORT_MODES.get(0).equals(mode);
     }

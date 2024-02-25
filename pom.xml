@@ -150,7 +150,7 @@
                             <exclude>**/*.map</exclude>
                             <exclude>**/*.properties</exclude>
                             <exclude>dist/**/*</exclude>
-                            <exclude>**/assembly/static/bin/hugegraph.service</exclude>
+                            <exclude>**/bin/hugegraph.service</exclude>
                             <exclude>**/swagger-ui/**/*</exclude>
                             <exclude>scripts/dev/reviewers</exclude>
                             <exclude>scripts/dev/reviewers</exclude>
@@ -176,6 +176,11 @@
                             <!-- Maven -->
                             <exclude>.repository/**</exclude>
                             <exclude>**/.flattened-pom.xml</exclude>
+                            <!-- Test generated data -->
+                            <exclude>**/rocksdb-*/**</exclude>
+                            <exclude>**/hbase-*/**</exclude>
+                            <exclude>**/apache-cassandra-*/**</exclude>
+                            <exclude>**/pid</exclude>
                         </excludes>
                         <consoleOutput>true</consoleOutput>
                     </configuration>
@@ -208,6 +213,21 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>license-check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 
     <profiles>

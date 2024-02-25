@@ -163,13 +163,13 @@ public class PaloStoreProvider extends MysqlStoreProvider {
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                      "PaloGraphStore.increaseCounter()");
+                    "PaloGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "PaloGraphStore.getCounter()");
+                    "PaloGraphStore.getCounter()");
         }
     }
 }

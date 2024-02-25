@@ -35,12 +35,12 @@ import org.apache.hugegraph.util.StringEncoding;
  */
 public class EdgeId implements Id {
 
-    public static final HugeKeys[] KEYS = new HugeKeys[] {
-        HugeKeys.OWNER_VERTEX,
-        HugeKeys.DIRECTION,
-        HugeKeys.LABEL,
-        HugeKeys.SORT_VALUES,
-        HugeKeys.OTHER_VERTEX
+    public static final HugeKeys[] KEYS = new HugeKeys[]{
+            HugeKeys.OWNER_VERTEX,
+            HugeKeys.DIRECTION,
+            HugeKeys.LABEL,
+            HugeKeys.SORT_VALUES,
+            HugeKeys.OTHER_VERTEX
     };
 
     private final Id ownerVertexId;
@@ -135,17 +135,17 @@ public class EdgeId implements Id {
         }
         if (this.directed) {
             this.cache = SplicingIdGenerator.concat(
-                         IdUtil.writeString(this.ownerVertexId),
-                         this.direction.type().string(),
-                         IdUtil.writeLong(this.edgeLabelId),
-                         this.sortValues,
-                         IdUtil.writeString(this.otherVertexId));
+                    IdUtil.writeString(this.ownerVertexId),
+                    this.direction.type().string(),
+                    IdUtil.writeLong(this.edgeLabelId),
+                    this.sortValues,
+                    IdUtil.writeString(this.otherVertexId));
         } else {
             this.cache = SplicingIdGenerator.concat(
-                         IdUtil.writeString(this.sourceVertexId()),
-                         IdUtil.writeLong(this.edgeLabelId),
-                         this.sortValues,
-                         IdUtil.writeString(this.targetVertexId()));
+                    IdUtil.writeString(this.sourceVertexId()),
+                    IdUtil.writeLong(this.edgeLabelId),
+                    this.sortValues,
+                    IdUtil.writeString(this.targetVertexId()));
         }
         return this.cache;
     }
@@ -233,7 +233,7 @@ public class EdgeId implements Id {
     }
 
     public static EdgeId parse(String id, boolean returnNullIfError)
-                               throws NotFoundException {
+            throws NotFoundException {
         String[] idParts = SplicingIdGenerator.split(id);
         if (!(idParts.length == 4 || idParts.length == 5)) {
             if (returnNullIfError) {
@@ -284,10 +284,10 @@ public class EdgeId implements Id {
     public static String asStoredString(Id id) {
         EdgeId eid = (EdgeId) id;
         return SplicingIdGenerator.concat(
-               IdUtil.writeStoredString(eid.sourceVertexId()),
-               IdGenerator.asStoredString(eid.edgeLabelId()),
-               eid.sortValues(),
-               IdUtil.writeStoredString(eid.targetVertexId()));
+                IdUtil.writeStoredString(eid.sourceVertexId()),
+                IdGenerator.asStoredString(eid.edgeLabelId()),
+                eid.sortValues(),
+                IdUtil.writeStoredString(eid.targetVertexId()));
     }
 
     public static String concat(String... ids) {

@@ -7,7 +7,5 @@
 **/tmp/
 *.log
 *.iml
-/hg-pd-common/target_B000000405016P_Oct-28-114458-2021_conflict_parent/
-
 dist/
 .flattened-pom.xml

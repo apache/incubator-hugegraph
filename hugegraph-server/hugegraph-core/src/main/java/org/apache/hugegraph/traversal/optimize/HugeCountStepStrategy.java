@@ -40,8 +40,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 import org.apache.tinkerpop.gremlin.structure.Element;
 
 public final class HugeCountStepStrategy
-             extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
-             implements ProviderOptimizationStrategy {
+        extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
+        implements ProviderOptimizationStrategy {
 
     private static final long serialVersionUID = -3910433925919057771L;
 
@@ -56,13 +56,13 @@ public final class HugeCountStepStrategy
     }
 
     @Override
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void apply(Traversal.Admin<?, ?> traversal) {
         TraversalUtil.convAllHasSteps(traversal);
 
         // Extract CountGlobalStep
         List<CountGlobalStep> steps = TraversalHelper.getStepsOfClass(
-                                      CountGlobalStep.class, traversal);
+                CountGlobalStep.class, traversal);
         if (steps.isEmpty()) {
             return;
         }
@@ -78,12 +78,12 @@ public final class HugeCountStepStrategy
                   step instanceof IdentityStep ||
                   step instanceof NoOpBarrierStep ||
                   step instanceof CollectingBarrierStep) ||
-                 (step instanceof TraversalParent &&
-                  TraversalHelper.anyStepRecursively(s -> {
-                      return s instanceof SideEffectStep ||
-                             s instanceof AggregateGlobalStep ||
-                             s instanceof AggregateLocalStep;
-                  }, (TraversalParent) step))) {
+                (step instanceof TraversalParent &&
+                 TraversalHelper.anyStepRecursively(s -> {
+                     return s instanceof SideEffectStep ||
+                            s instanceof AggregateGlobalStep ||
+                            s instanceof AggregateLocalStep;
+                 }, (TraversalParent) step))) {
                 return;
             }
             originSteps.add(step);

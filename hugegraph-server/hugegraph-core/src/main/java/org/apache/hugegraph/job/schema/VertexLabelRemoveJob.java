@@ -20,6 +20,8 @@ package org.apache.hugegraph.job.schema;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
@@ -28,8 +30,7 @@ import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.LockUtil;
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraphParams;
+
 import com.google.common.collect.ImmutableSet;
 
 public class VertexLabelRemoveJob extends SchemaJob {
@@ -64,9 +65,9 @@ public class VertexLabelRemoveJob extends SchemaJob {
         for (EdgeLabel edgeLabel : edgeLabels) {
             if (edgeLabel.linkWithLabel(id)) {
                 throw new HugeException(
-                          "Not allowed to remove vertex label '%s' " +
-                          "because the edge label '%s' still link with it",
-                          vertexLabel.name(), edgeLabel.name());
+                        "Not allowed to remove vertex label '%s' " +
+                        "because the edge label '%s' still link with it",
+                        vertexLabel.name(), edgeLabel.name());
             }
         }
 

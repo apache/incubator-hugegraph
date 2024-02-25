@@ -146,28 +146,28 @@ public class CoreOptions extends OptionHolder {
             );
 
     public static final ConfigOption<Boolean> RAFT_SNAPSHOT_PARALLEL_COMPRESS =
-        new ConfigOption<>(
-            "raft.snapshot_parallel_compress",
-            "Whether to enable parallel compress.",
-            disallowEmpty(),
-            false
-        );
+            new ConfigOption<>(
+                    "raft.snapshot_parallel_compress",
+                    "Whether to enable parallel compress.",
+                    disallowEmpty(),
+                    false
+            );
 
     public static final ConfigOption<Integer> RAFT_SNAPSHOT_COMPRESS_THREADS =
-        new ConfigOption<>(
-            "raft.snapshot_compress_threads",
-            "The thread number used to do snapshot compress.",
-            rangeInt(0, Integer.MAX_VALUE),
-            4
-        );
+            new ConfigOption<>(
+                    "raft.snapshot_compress_threads",
+                    "The thread number used to do snapshot compress.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    4
+            );
 
     public static final ConfigOption<Integer> RAFT_SNAPSHOT_DECOMPRESS_THREADS =
-        new ConfigOption<>(
-            "raft.snapshot_decompress_threads",
-            "The thread number used to do snapshot decompress.",
-            rangeInt(0, Integer.MAX_VALUE),
-            4
-        );
+            new ConfigOption<>(
+                    "raft.snapshot_decompress_threads",
+                    "The thread number used to do snapshot decompress.",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    4
+            );
 
     public static final ConfigOption<Integer> RAFT_BACKEND_THREADS =
             new ConfigOption<>(
@@ -446,7 +446,7 @@ public class CoreOptions extends OptionHolder {
             new ConfigOption<>(
                     "edge.tx_capacity",
                     "The max size(items) of edges(uncommitted) in " +
-                     "transaction.",
+                    "transaction.",
                     rangeInt(COMMIT_BATCH, 1000000),
                     10000
             );
@@ -629,7 +629,7 @@ public class CoreOptions extends OptionHolder {
                     "Specify the mode for the text analyzer, " +
                     "the available mode of analyzer are " +
                     "ansj: [BaseAnalysis, IndexAnalysis, ToAnalysis, " +
-                           "NlpAnalysis], " +
+                    "NlpAnalysis], " +
                     "hanlp: [standard, nlp, index, nShort, shortest, speed], " +
                     "smartcn: [], " +
                     "jieba: [SEARCH, INDEX], " +

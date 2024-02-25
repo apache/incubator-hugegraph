@@ -26,9 +26,9 @@ import org.ansj.splitWord.analysis.BaseAnalysis;
 import org.ansj.splitWord.analysis.IndexAnalysis;
 import org.ansj.splitWord.analysis.NlpAnalysis;
 import org.ansj.splitWord.analysis.ToAnalysis;
-
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -48,8 +48,8 @@ public class AnsjAnalyzer implements Analyzer {
     public AnsjAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
             throw new ConfigException(
-                      "Unsupported segment mode '%s' for ansj analyzer, " +
-                      "the available values are %s", mode, SUPPORT_MODES);
+                    "Unsupported segment mode '%s' for ansj analyzer, " +
+                    "the available values are %s", mode, SUPPORT_MODES);
         }
         this.analysis = mode;
     }
@@ -72,7 +72,7 @@ public class AnsjAnalyzer implements Analyzer {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported segment mode '%s'", this.analysis));
+                        "Unsupported segment mode '%s'", this.analysis));
         }
 
         assert terms != null;

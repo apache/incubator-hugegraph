@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.Map;
 
 import javax.crypto.SecretKey;
-import jakarta.ws.rs.NotAuthorizedException;
 
 import org.apache.hugegraph.config.AuthOptions;
 import org.apache.hugegraph.config.HugeConfig;
@@ -34,6 +33,7 @@ import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.ws.rs.NotAuthorizedException;
 
 public class TokenGenerator {
 

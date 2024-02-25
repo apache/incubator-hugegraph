@@ -22,14 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.auth.SchemaDefine.Relationship;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
-
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.auth.SchemaDefine.Relationship;
 
 public class HugeBelong extends Relationship {
 
@@ -103,12 +102,10 @@ public class HugeBelong extends Relationship {
         if (super.property(key, value)) {
             return true;
         }
-        switch (key) {
-            case P.DESCRIPTION:
-                this.description = (String) value;
-                break;
-            default:
-                throw new AssertionError("Unsupported key: " + key);
+        if (key.equals(P.DESCRIPTION)) {
+            this.description = (String) value;
+        } else {
+            throw new AssertionError("Unsupported key: " + key);
         }
         return true;
     }

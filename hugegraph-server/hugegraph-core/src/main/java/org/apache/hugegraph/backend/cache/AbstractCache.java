@@ -22,10 +22,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
@@ -183,7 +182,7 @@ public abstract class AbstractCache<K, V> implements Cache<K, V> {
 
         int expireItems = 0;
         long current = now();
-        for (Iterator<CacheNode<K, V>> it = this.nodes(); it.hasNext();) {
+        for (Iterator<CacheNode<K, V>> it = this.nodes(); it.hasNext(); ) {
             CacheNode<K, V> node = it.next();
             if (current - node.time() >= expireTime) {
                 // Remove item while iterating map (it must be ConcurrentMap)

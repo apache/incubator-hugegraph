@@ -29,10 +29,10 @@ import java.util.Arrays;
 import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.util.CompressUtil;
 import org.junit.Test;
 
 import com.alipay.sofa.jraft.util.CRC64;
-import org.apache.hugegraph.util.CompressUtil;
 import com.google.common.collect.ImmutableList;
 
 import junit.framework.AssertionFailedError;
@@ -107,14 +107,14 @@ public class CompressUtilTest {
     }
 
     private static void assertDirEquals(String expect, String actual)
-                                        throws IOException {
+            throws IOException {
         Path expectDir = Paths.get(expect);
         Path actualDir = Paths.get(actual);
         Files.walkFileTree(expectDir, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file,
                                              BasicFileAttributes attrs)
-                                             throws IOException {
+                    throws IOException {
                 FileVisitResult result = super.visitFile(file, attrs);
 
                 // Get the relative file name from path "one"

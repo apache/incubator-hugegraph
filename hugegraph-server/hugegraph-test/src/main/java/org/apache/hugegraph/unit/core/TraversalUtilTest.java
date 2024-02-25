@@ -17,13 +17,12 @@
 
 package org.apache.hugegraph.unit.core;
 
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.util.DateUtil;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.junit.Test;
 
 public class TraversalUtilTest {
 
@@ -86,7 +85,7 @@ public class TraversalUtilTest {
                             TraversalUtil.parsePredicate("P.within(1, 3, 5)"));
         Assert.assertEquals(P.within("abc", "hello", (Object) 123, 3.14),
                             TraversalUtil.parsePredicate(
-                            "P.within(\"abc\", \"hello\", 123, 3.14)"));
+                                    "P.within(\"abc\", \"hello\", 123, 3.14)"));
     }
 
     @Test
@@ -96,7 +95,7 @@ public class TraversalUtilTest {
 
         Assert.assertEquals(P.eq(DateUtil.parse("2018-8-8 23:08:59").getTime()),
                             TraversalUtil.parsePredicate(
-                            "P.eq(\"2018-8-8 23:08:59\")"));
+                                    "P.eq(\"2018-8-8 23:08:59\")"));
 
         Assert.assertEquals(P.gt(DateUtil.parse("2018-8-8").getTime()),
                             TraversalUtil.parsePredicate("P.gt(\"2018-8-8\")"));
@@ -113,21 +112,21 @@ public class TraversalUtilTest {
         Assert.assertEquals(P.between(DateUtil.parse("2018-8-8").getTime(),
                                       DateUtil.parse("2019-12-8").getTime()),
                             TraversalUtil.parsePredicate(
-                            "P.between(\"2018-8-8\", \"2019-12-8\")"));
+                                    "P.between(\"2018-8-8\", \"2019-12-8\")"));
 
         Assert.assertEquals(P.inside(DateUtil.parse("2018-8-8").getTime(),
                                      DateUtil.parse("2019-12-8").getTime()),
                             TraversalUtil.parsePredicate(
-                            "P.inside(\"2018-8-8\", \"2019-12-8\")"));
+                                    "P.inside(\"2018-8-8\", \"2019-12-8\")"));
 
         Assert.assertEquals(P.outside(DateUtil.parse("2018-8-8").getTime(),
                                       DateUtil.parse("2019-12-8").getTime()),
                             TraversalUtil.parsePredicate(
-                            "P.outside(\"2018-8-8\", \"2019-12-8\")"));
+                                    "P.outside(\"2018-8-8\", \"2019-12-8\")"));
 
         Assert.assertEquals(P.within("2018-8-8", "2019-12-8"),
                             TraversalUtil.parsePredicate(
-                            "P.within(\"2018-8-8\", \"2019-12-8\")"));
+                                    "P.within(\"2018-8-8\", \"2019-12-8\")"));
 
         // special time
         Assert.assertEquals(P.eq(DateUtil.parse("2018-8-8").getTime()),
@@ -221,7 +220,7 @@ public class TraversalUtilTest {
             TraversalUtil.parsePredicate("P.neq(18m)");
         }, e -> {
             Assert.assertEquals("Invalid value '18m', expect a number",
-                               e.getMessage());
+                                e.getMessage());
         });
 
         Assert.assertThrows(HugeException.class, () -> {

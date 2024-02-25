@@ -75,8 +75,8 @@ public final class RamTable {
     private static final int NULL = 0;
 
     private static final Condition BOTH_COND = Condition.or(
-                         Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
-                         Condition.eq(HugeKeys.DIRECTION, Directions.IN));
+            Condition.eq(HugeKeys.DIRECTION, Directions.OUT),
+            Condition.eq(HugeKeys.DIRECTION, Directions.IN));
 
     private final HugeGraph graph;
     private final long verticesCapacity;
@@ -145,7 +145,7 @@ public final class RamTable {
         File file = Paths.get(EXPORT_PATH, fileName).toFile();
         if (!file.exists() || !file.isFile() || !file.canRead()) {
             throw new IllegalArgumentException(String.format(
-                      "File '%s' does not existed or readable", fileName));
+                    "File '%s' does not existed or readable", fileName));
         }
         try (FileInputStream fis = new FileInputStream(file);
              BufferedInputStream bis = new BufferedInputStream(fis);
@@ -301,14 +301,12 @@ public final class RamTable {
         assert this.edgesSize() > 0;
 
         List<ConditionQuery> cqs = ConditionQueryFlatten.flatten(
-                                   (ConditionQuery) query);
+                (ConditionQuery) query);
         if (cqs.size() == 1) {
             ConditionQuery cq = cqs.get(0);
             return this.query(cq);
         }
-        return new FlatMapperIterator<>(cqs.iterator(), cq -> {
-            return this.query(cq);
-        });
+        return new FlatMapperIterator<>(cqs.iterator(), this::query);
     }
 
     private Iterator<HugeEdge> query(ConditionQuery query) {
@@ -540,7 +538,7 @@ public final class RamTable {
 
         private void addVertex(Id vertex) {
             Id lastId = IdGenerator.ZERO;
-            if (this.vertices.size() > 0) {
+            if (!this.vertices.isEmpty()) {
                 lastId = this.vertices.get(this.vertices.size() - 1);
             }
             LOG.info("scan from hbase source {} lastId value: {} compare {} size {}",

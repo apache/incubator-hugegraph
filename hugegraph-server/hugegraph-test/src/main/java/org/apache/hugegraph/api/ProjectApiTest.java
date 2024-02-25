@@ -206,11 +206,11 @@ public class ProjectApiTest extends BaseApiTest {
             Assert.assertEquals(desc, description);
         }
         Assert.assertFalse(StringUtils.isEmpty(
-            assertJsonContains(respBody, "project_target")));
+                assertJsonContains(respBody, "project_target")));
         Assert.assertFalse(StringUtils.isEmpty(
-            assertJsonContains(respBody, "project_admin_group")));
+                assertJsonContains(respBody, "project_admin_group")));
         Assert.assertFalse(StringUtils.isEmpty(
-            assertJsonContains(respBody, "project_op_group")));
+                assertJsonContains(respBody, "project_op_group")));
         return respBody;
     }
 

@@ -23,7 +23,7 @@ import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 import org.apache.hugegraph.config.ConfigOption;
 import org.apache.hugegraph.config.OptionHolder;
 
-public class RoleElectionOptions  extends OptionHolder {
+public class RoleElectionOptions extends OptionHolder {
 
     private RoleElectionOptions() {
         super();

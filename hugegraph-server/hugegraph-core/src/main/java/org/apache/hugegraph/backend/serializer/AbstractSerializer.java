@@ -19,20 +19,18 @@ package org.apache.hugegraph.backend.serializer;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.iterator.CIter;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.iterator.CIter;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 public abstract class AbstractSerializer
-                implements GraphSerializer, SchemaSerializer {
+        implements GraphSerializer, SchemaSerializer {
 
     protected HugeConfig config;
 
@@ -41,7 +39,7 @@ public abstract class AbstractSerializer
     }
 
     public AbstractSerializer(HugeConfig config) {
-       this.config = config;
+        this.config = config;
     }
 
     protected BackendEntry convertEntry(BackendEntry entry) {

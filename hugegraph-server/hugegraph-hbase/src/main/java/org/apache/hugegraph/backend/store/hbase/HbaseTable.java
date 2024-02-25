@@ -37,8 +37,6 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Result;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
@@ -63,6 +61,8 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
 
 public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry> {
@@ -287,7 +287,7 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
 
     protected void parseRowColumns(Result row, BackendEntry entry, Query query,
                                    boolean enablePartition)
-                                   throws IOException {
+            throws IOException {
         CellScanner cellScanner = row.cellScanner();
         while (cellScanner.advance()) {
             Cell cell = cellScanner.current();
@@ -336,7 +336,7 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
                 TableName tableName = TableName.valueOf(namespace, table);
                 for (ServerName serverName : admin.getRegionServers()) {
                     List<RegionMetrics> metrics = admin.getRegionMetrics(
-                                                  serverName, tableName);
+                            serverName, tableName);
                     for (RegionMetrics metric : metrics) {
                         double size = metric.getStoreFileSize()
                                             .get(Size.Unit.BYTE);
@@ -346,8 +346,8 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
                 }
             } catch (Throwable e) {
                 throw new BackendException(String.format(
-                          "Failed to get region sizes of %s(%s)",
-                          table, namespace), e);
+                        "Failed to get region sizes of %s(%s)",
+                        table, namespace), e);
             }
             return regionSizes;
         }
@@ -366,8 +366,8 @@ public class HbaseTable extends BackendTable<HbaseSessions.Session, BackendEntry
                 }
             } catch (Throwable e) {
                 throw new BackendException(String.format(
-                          "Failed to get region ranges of %s(%s)",
-                          table, namespace), e);
+                        "Failed to get region ranges of %s(%s)",
+                        table, namespace), e);
             }
             return regionRanges;
         }

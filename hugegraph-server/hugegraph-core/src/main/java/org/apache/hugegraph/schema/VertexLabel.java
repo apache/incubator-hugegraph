@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IdStrategy;

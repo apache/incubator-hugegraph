@@ -19,10 +19,6 @@ package org.apache.hugegraph.unit.core;
 
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
@@ -34,6 +30,9 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class BackendMutationTest extends BaseUnitTest {
 

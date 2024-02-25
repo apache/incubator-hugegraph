@@ -19,18 +19,18 @@ package org.apache.hugegraph.unit.cassandra;
 
 import java.util.Map;
 
-import org.apache.hugegraph.config.OptionSpace;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.hugegraph.backend.store.cassandra.CassandraOptions;
+import org.apache.hugegraph.backend.store.cassandra.CassandraStore;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.OptionSpace;
+import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Whitebox;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.backend.store.cassandra.CassandraOptions;
-import org.apache.hugegraph.backend.store.cassandra.CassandraStore;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.testutil.Assert;
-import org.apache.hugegraph.testutil.Whitebox;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -62,8 +62,8 @@ public class CassandraTest {
                                                            config);
 
         Map<String, Object> expected = ImmutableMap.of(
-                                       "class", "SimpleStrategy",
-                                       "replication_factor", 5);
+                "class", "SimpleStrategy",
+                "replication_factor", 5);
         Assert.assertEquals(expected, result);
     }
 
@@ -82,9 +82,9 @@ public class CassandraTest {
                                                            config);
 
         Map<String, Object> expected = ImmutableMap.of(
-                                       "class", "NetworkTopologyStrategy",
-                                       "dc1", 2,
-                                       "dc2", 1);
+                "class", "NetworkTopologyStrategy",
+                "dc1", 2,
+                "dc2", 1);
         Assert.assertEquals(expected, result);
     }
 

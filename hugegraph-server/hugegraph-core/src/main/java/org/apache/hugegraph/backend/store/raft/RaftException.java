@@ -45,7 +45,7 @@ public class RaftException extends HugeException {
 
     public static final void check(boolean expression,
                                    String message, Object... args)
-                                   throws RaftException {
+            throws RaftException {
         if (!expression) {
             throw new RaftException(message, args);
         }

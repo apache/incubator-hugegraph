@@ -27,11 +27,10 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public class PersonalRankTraverser extends HugeTraverser {
 

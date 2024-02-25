@@ -34,6 +34,9 @@ public interface RateLimiter {
      *
      * @param ratePerSecond the rate of the returned RateLimiter, measured in
      *                      how many permits become available per second
+     *                      <p>
+     *                      <p>
+     *                      <p>
      *
      * TODO: refactor it to make method unchangeable
      */

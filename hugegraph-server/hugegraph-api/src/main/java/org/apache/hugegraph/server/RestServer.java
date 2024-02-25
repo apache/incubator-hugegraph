@@ -23,8 +23,12 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
-import jakarta.ws.rs.core.UriBuilder;
-
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.version.ApiVersion;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.GrizzlyFuture;
 import org.glassfish.grizzly.http.server.HttpServer;
@@ -36,12 +40,7 @@ import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.config.ServerOptions;
-import org.apache.hugegraph.event.EventHub;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import org.apache.hugegraph.version.ApiVersion;
+import jakarta.ws.rs.core.UriBuilder;
 
 public class RestServer {
 
@@ -82,13 +81,13 @@ public class RestServer {
         if (protocol != null && protocol.equals("https")) {
             SSLContextConfigurator sslContext = new SSLContextConfigurator();
             String keystoreFile = this.conf.get(
-                                  ServerOptions.SSL_KEYSTORE_FILE);
+                    ServerOptions.SSL_KEYSTORE_FILE);
             String keystorePass = this.conf.get(
-                                  ServerOptions.SSL_KEYSTORE_PASSWORD);
+                    ServerOptions.SSL_KEYSTORE_PASSWORD);
             sslContext.setKeyStoreFile(keystoreFile);
             sslContext.setKeyStorePass(keystorePass);
             SSLEngineConfigurator sslConfig = new SSLEngineConfigurator(
-                                              sslContext);
+                    sslContext);
             sslConfig.setClientMode(false);
             sslConfig.setWantClientAuth(true);
             server = GrizzlyHttpServerFactory.createHttpServer(uri, rc, true,
@@ -98,7 +97,7 @@ public class RestServer {
         }
 
         Collection<NetworkListener> listeners = server.getListeners();
-        E.checkState(listeners.size() > 0,
+        E.checkState(!listeners.isEmpty(),
                      "Http Server should have some listeners, but now is none");
         NetworkListener listener = listeners.iterator().next();
 

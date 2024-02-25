@@ -26,9 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
@@ -145,7 +145,7 @@ public class PropertyKey extends SchemaElement implements Propertiable {
                 return String.format("List<%s>", dataType);
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported cardinality: '%s'", this.cardinality));
+                        "Unsupported cardinality: '%s'", this.cardinality));
         }
     }
 
@@ -165,7 +165,7 @@ public class PropertyKey extends SchemaElement implements Propertiable {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported cardinality: '%s'", this.cardinality));
+                        "Unsupported cardinality: '%s'", this.cardinality));
         }
         return cls;
     }
@@ -192,10 +192,11 @@ public class PropertyKey extends SchemaElement implements Propertiable {
 
     /**
      * Check property value valid
+     *
      * @param value the property value to be checked data type and cardinality
-     * @param <V> the property value class
+     * @param <V>   the property value class
      * @return true if data type and cardinality satisfy requirements,
-     *         otherwise false
+     * otherwise false
      */
     public <V> boolean checkValueType(V value) {
         boolean valid;
@@ -214,17 +215,18 @@ public class PropertyKey extends SchemaElement implements Propertiable {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported cardinality: '%s'", this.cardinality));
+                        "Unsupported cardinality: '%s'", this.cardinality));
         }
         return valid;
     }
 
     /**
      * Check type of the value valid
+     *
      * @param value the property value to be checked data type
      * @param <V>   the property value original data type
      * @return true if the value is or can convert to the data type,
-     *         otherwise false
+     * otherwise false
      */
     private <V> boolean checkDataType(V value) {
         return this.dataType().clazz().isInstance(value);
@@ -232,10 +234,11 @@ public class PropertyKey extends SchemaElement implements Propertiable {
 
     /**
      * Check type of all the values(maybe some list properties) valid
+     *
      * @param values the property values to be checked data type
-     * @param <V> the property value class
+     * @param <V>    the property value class
      * @return true if all the values are or can convert to the data type,
-     *         otherwise false
+     * otherwise false
      */
     private <V> boolean checkDataType(Collection<V> values) {
         boolean valid = true;
@@ -283,8 +286,8 @@ public class PropertyKey extends SchemaElement implements Propertiable {
             return this.convValue(value);
         } catch (RuntimeException e) {
             throw new IllegalArgumentException(String.format(
-                      "Invalid property value '%s' for key '%s': %s",
-                      value, this.name(), e.getMessage()));
+                    "Invalid property value '%s' for key '%s': %s",
+                    value, this.name(), e.getMessage()));
         }
     }
 
@@ -415,7 +418,7 @@ public class PropertyKey extends SchemaElement implements Propertiable {
 
     @Override
     public Map<String, Object> asMap() {
-      Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
 
         if (this.dataType != null) {
             map.put(P.DATA_TYPE, this.dataType.string());

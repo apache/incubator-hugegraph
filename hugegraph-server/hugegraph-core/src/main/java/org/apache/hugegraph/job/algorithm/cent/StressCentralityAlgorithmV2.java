@@ -24,13 +24,12 @@ import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.job.algorithm.BfsTraverser;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class StressCentralityAlgorithmV2 extends AbstractCentAlgorithm {
 

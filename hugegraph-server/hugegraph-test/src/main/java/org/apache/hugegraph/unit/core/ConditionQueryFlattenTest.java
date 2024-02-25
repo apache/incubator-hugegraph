@@ -21,9 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.query.Condition;
@@ -32,6 +29,9 @@ import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.junit.After;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 
 public class ConditionQueryFlattenTest extends BaseUnitTest {
@@ -74,7 +74,7 @@ public class ConditionQueryFlattenTest extends BaseUnitTest {
         query.query(c4);
         Assert.assertEquals(4, query.conditions().size());
         List<ConditionQuery> queries =
-                             ConditionQueryFlatten.flatten(query);
+                ConditionQueryFlatten.flatten(query);
         Assert.assertEquals(1, queries.size());
         List<Collection<Condition>> expect;
         expect = ImmutableList.of(ImmutableList.of(c1, c2, c3, c4));

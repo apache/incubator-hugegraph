@@ -182,7 +182,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
 
     protected List<String> tableNames(HugeType type) {
         return type != HugeType.OLAP ? Collections.singletonList(this.table(type).table()) :
-                                       this.olapTables();
+               this.olapTables();
     }
 
     @Override
@@ -758,7 +758,7 @@ public abstract class RocksDBStore extends AbstractBackendStore<RocksDBSessions.
             }
 
             for (Map.Entry<String, RocksDBSessions> entry :
-                snapshotPaths.entrySet()) {
+                    snapshotPaths.entrySet()) {
                 String snapshotPath = entry.getKey();
                 RocksDBSessions sessions = entry.getValue();
                 sessions.resumeSnapshot(snapshotPath);

@@ -76,7 +76,8 @@ public class WhiteIpListAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
     @Operation(summary = "update white ip list")
-    public Map<String, Object> updateWhiteIPs(@Context GraphManager manager, Map<String, Object> actionMap) {
+    public Map<String, Object> updateWhiteIPs(@Context GraphManager manager,
+                                              Map<String, Object> actionMap) {
         E.checkArgument(actionMap != null,
                         "Missing argument: actionMap");
         Set<String> whiteIpList = manager.authManager().listWhiteIPs();
@@ -137,7 +138,8 @@ public class WhiteIpListAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed("admin")
     @Operation(summary = "enable/disable the white ip list")
-    public Map<String, Object> updateStatus(@Context GraphManager manager, @QueryParam("status") String status) {
+    public Map<String, Object> updateStatus(@Context GraphManager manager,
+                                            @QueryParam("status") String status) {
         LOG.debug("Enable or disable white ip list");
         E.checkArgument("true".equals(status) ||
                         "false".equals(status),

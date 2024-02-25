@@ -27,8 +27,6 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.IdGenerator.UuidId;
@@ -40,6 +38,8 @@ import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.Blob;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -558,7 +558,7 @@ public class BytesBufferTest extends BaseUnitTest {
         }
 
         Random random = new Random();
-        for (int i = Integer.MIN_VALUE; i < Integer.MAX_VALUE;) {
+        for (int i = Integer.MIN_VALUE; i < Integer.MAX_VALUE; ) {
             BytesBuffer buf = BytesBuffer.allocate(5).writeVInt(i);
             Assert.assertEquals(i, buf.forReadWritten().readVInt());
 
@@ -627,7 +627,7 @@ public class BytesBufferTest extends BaseUnitTest {
         }
 
         Random random = new Random();
-        for (long i = Long.MIN_VALUE; i < Long.MAX_VALUE;) {
+        for (long i = Long.MIN_VALUE; i < Long.MAX_VALUE; ) {
             BytesBuffer buf = BytesBuffer.allocate(10).writeVLong(i);
             Assert.assertEquals(i, buf.forReadWritten().readVLong());
 
@@ -770,7 +770,7 @@ public class BytesBufferTest extends BaseUnitTest {
         buf.forReadWritten();
         Assert.assertArrayEquals(bytes, buf.writeProperty(pkey, value).bytes());
         Assert.assertArrayEquals((int[]) value, (int[])
-                                 BytesBuffer.wrap(bytes).readProperty(pkey));
+                BytesBuffer.wrap(bytes).readProperty(pkey));
     }
 
     @Test

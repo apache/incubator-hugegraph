@@ -23,15 +23,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import org.apache.http.client.utils.URIBuilder;
-import org.postgresql.core.Utils;
-import org.postgresql.util.PSQLException;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.mysql.MysqlSessions;
 import org.apache.hugegraph.backend.store.mysql.MysqlUtil;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.util.Log;
+import org.postgresql.core.Utils;
+import org.postgresql.util.PSQLException;
+import org.slf4j.Logger;
 
 public class PostgresqlSessions extends MysqlSessions {
 
@@ -40,7 +39,8 @@ public class PostgresqlSessions extends MysqlSessions {
     private static final String COCKROACH_DB_CREATE =
             "CREATE DATABASE %s ENCODING='UTF-8'";
     private static final String POSTGRESQL_DB_CREATE = COCKROACH_DB_CREATE +
-            " TEMPLATE=template0 LC_COLLATE='C' LC_CTYPE='C';";
+                                                       " TEMPLATE=template0 LC_COLLATE='C' " +
+                                                       "LC_CTYPE='C';";
 
     public PostgresqlSessions(HugeConfig config, String database, String store) {
         super(config, database, store);
@@ -49,8 +49,8 @@ public class PostgresqlSessions extends MysqlSessions {
     @Override
     public boolean existsDatabase() {
         String statement = String.format(
-                           "SELECT datname FROM pg_catalog.pg_database " +
-                           "WHERE datname = '%s';", this.escapedDatabase());
+                "SELECT datname FROM pg_catalog.pg_database " +
+                "WHERE datname = '%s';", this.escapedDatabase());
         try (Connection conn = this.openWithoutDB(0)) {
             ResultSet result = conn.createStatement().executeQuery(statement);
             return result.next();
@@ -93,25 +93,25 @@ public class PostgresqlSessions extends MysqlSessions {
     @Override
     protected String buildDropDatabase(String database) {
         return String.format(
-               "REVOKE CONNECT ON DATABASE %s FROM public;" +
-               "SELECT pg_terminate_backend(pg_stat_activity.pid) " +
-               "  FROM pg_stat_activity " +
-               "  WHERE pg_stat_activity.datname = %s;" +
-               "DROP DATABASE IF EXISTS %s;",
-               database, escapeAndWrapString(database), database);
+                "REVOKE CONNECT ON DATABASE %s FROM public;" +
+                "SELECT pg_terminate_backend(pg_stat_activity.pid) " +
+                "  FROM pg_stat_activity " +
+                "  WHERE pg_stat_activity.datname = %s;" +
+                "DROP DATABASE IF EXISTS %s;",
+                database, escapeAndWrapString(database), database);
     }
 
     @Override
     protected String buildExistsTable(String table) {
         return String.format(
-               "SELECT * FROM information_schema.tables " +
-               "WHERE table_schema = 'public' AND table_name = '%s' LIMIT 1;",
-               MysqlUtil.escapeString(table));
+                "SELECT * FROM information_schema.tables " +
+                "WHERE table_schema = 'public' AND table_name = '%s' LIMIT 1;",
+                MysqlUtil.escapeString(table));
     }
 
     @Override
     protected URIBuilder newConnectionURIBuilder(String url)
-                                                 throws URISyntaxException {
+            throws URISyntaxException {
         // Suppress error log when database does not exist
         return new URIBuilder(url).addParameter("loggerLevel", "OFF");
     }

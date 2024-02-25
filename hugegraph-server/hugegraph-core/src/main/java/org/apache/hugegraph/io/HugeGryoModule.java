@@ -40,7 +40,7 @@ import org.apache.tinkerpop.shaded.kryo.io.Output;
 public class HugeGryoModule {
 
     private static GraphSONSchemaSerializer schemaSerializer =
-                   new GraphSONSchemaSerializer();
+            new GraphSONSchemaSerializer();
 
     public static void register(HugeGraphIoRegistry io) {
         io.register(GryoIo.class, Optional.class, new OptionalSerializer());
