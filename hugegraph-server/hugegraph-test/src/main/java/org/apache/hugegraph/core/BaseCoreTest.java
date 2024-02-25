@@ -91,6 +91,8 @@ public class BaseCoreTest {
     public void setup() {
         this.clearData();
         this.clearSchema();
+        // QUESTION: here we should consider to clear cache
+        // but with this line of code, many ci will fail
 //        this.clearCache();
     }
 
