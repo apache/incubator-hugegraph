@@ -1460,7 +1460,7 @@ public class GraphTransaction extends IndexableTransaction {
                 List<Id> filterVertexList = vertexIdList.stream().filter(vertexId -> {
                     Vertex vertex = this.graph().vertex(vertexId);
                     VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
-                    return edgeLabel.linkWithLabel(vertexLabel.id(), dir.type());
+                    return edgeLabel.linkWithVertexLabel(vertexLabel.id(), dir);
                 }).collect(Collectors.toList());
                 if (CollectionUtils.isEmpty(filterVertexList)) {
                     // Return empty query to skip storage query
@@ -1477,7 +1477,7 @@ public class GraphTransaction extends IndexableTransaction {
                 Vertex vertex = QueryResults.one(iter);
                 if (vertex != null) {
                     VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
-                    if (!edgeLabel.linkWithLabel(vertexLabel.id(), dir.type())) {
+                    if (!edgeLabel.linkWithVertexLabel(vertexLabel.id(), dir)) {
                         // Return empty query to skip storage query
                         return new Query(query.resultType());
                     }

@@ -553,7 +553,7 @@ public class ConditionQuery extends IdQuery {
                 }
             }
         }
-        E.checkArgument(copyRes != null, "Copying Condition.Relation failed. key:%s", key);
+        E.checkArgument(copyRes != null, "Failed to copy Condition.Relation: %s", key);
         return copyRes;
     }
 
