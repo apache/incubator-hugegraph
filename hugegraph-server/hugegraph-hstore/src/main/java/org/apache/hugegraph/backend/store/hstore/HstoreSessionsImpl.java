@@ -247,7 +247,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                 this.gotNext = false;
                 // QUESTION: Resetting the position may result in the caller being unable to
                 //           retrieve the corresponding position.
-                 this.position = null;
+                // this.position = null;
             }
             if (!ArrayUtils.isEmpty(this.keyBegin) ||
                 !ArrayUtils.isEmpty(this.keyEnd)) {
@@ -320,7 +320,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
             } else {
                 // QUESTION: Resetting the position may result in the caller being unable to
                 //           retrieve the corresponding position.
-//                 this.position = null;
+                // this.position = null;
             }
             return gotNext;
         }
@@ -741,7 +741,6 @@ public class HstoreSessionsImpl extends HstoreSessions {
         public BackendColumnIterator scan(String table, int codeFrom,
                                           int codeTo, int scanType,
                                           byte[] query) {
-            // 可以把 table 过滤掉
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> iterator =
                 this.graph.scanIterator(table, codeFrom, codeTo, 256,
