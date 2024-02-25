@@ -48,7 +48,6 @@ public class HugeSecurityManager extends SecurityManager {
     // TODO: add "suppressAccessChecks"
     private static final Set<String> DENIED_PERMISSIONS = ImmutableSet.of("setSecurityManager");
 
-
     private static final Set<String> ACCEPT_CLASS_LOADERS = ImmutableSet.of(
             "groovy.lang.GroovyClassLoader",
             "sun.reflect.DelegatingClassLoader",

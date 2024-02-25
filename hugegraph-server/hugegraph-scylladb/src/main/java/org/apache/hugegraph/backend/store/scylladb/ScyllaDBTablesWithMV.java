@@ -221,7 +221,6 @@ public class ScyllaDBTablesWithMV {
             super.dropTable(session);
         }
 
-
         /**
          * Query data from label index table if just want to query by label
          */

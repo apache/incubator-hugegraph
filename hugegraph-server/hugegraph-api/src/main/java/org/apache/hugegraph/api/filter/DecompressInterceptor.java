@@ -47,7 +47,6 @@ public class DecompressInterceptor implements ReaderInterceptor {
         return context.proceed();
     }
 
-
     @NameBinding
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Decompress {

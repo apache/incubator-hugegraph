@@ -347,7 +347,6 @@ public final class GraphManager {
         return this.authenticator;
     }
 
-
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
                          final Transaction.Status tx) {
         final Set<Graph> graphsToCloseTxOn = new HashSet<>();
