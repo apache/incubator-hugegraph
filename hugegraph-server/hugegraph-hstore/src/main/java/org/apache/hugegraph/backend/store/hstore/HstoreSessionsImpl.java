@@ -247,7 +247,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                 this.gotNext = false;
                 // QUESTION: Resetting the position may result in the caller being unable to
                 //           retrieve the corresponding position.
-                // this.position = null;
+                this.position = null;
             }
             if (!ArrayUtils.isEmpty(this.keyBegin) ||
                 !ArrayUtils.isEmpty(this.keyEnd)) {
@@ -320,7 +320,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
             } else {
                 // QUESTION: Resetting the position may result in the caller being unable to
                 //           retrieve the corresponding position.
-                // this.position = null;
+                this.position = null;
             }
             return gotNext;
         }

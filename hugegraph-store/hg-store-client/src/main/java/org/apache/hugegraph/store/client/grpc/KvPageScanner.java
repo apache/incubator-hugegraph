@@ -195,9 +195,9 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
             return false;
         }
         // QUESTION: After `this.iterator.hasNext()` evaluates to false,
-        //           no further attempts are made to reconstruct the iterator.
-        if (this.iterator != null) {
-            return this.iterator.hasNext();
+        //           no further attempts should make to reconstruct the iterator.
+        if (this.iterator != null && this.iterator.hasNext()) {
+            return true;
         }
         long start = 0;
         boolean debugEnabled = log.isDebugEnabled();
