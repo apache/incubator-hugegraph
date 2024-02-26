@@ -1414,8 +1414,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     private Query optimizeQuery(ConditionQuery query) {
         if (query.idsSize() > 0) {
-            throw new HugeException(
-                    "Not supported querying by id and conditions: %s", query);
+            throw new HugeException("Not supported querying by id and conditions: %s", query);
         }
 
         Id label = query.condition(HugeKeys.LABEL);
@@ -1435,11 +1434,10 @@ public class GraphTransaction extends IndexableTransaction {
                     String primaryValues = query.userpropValuesString(keys);
                     LOG.debug("Query vertices by primaryKeys: {}", query);
                     // Convert {vertex-label + primary-key} to vertex-id
-                    Id id = SplicingIdGenerator.splicing(label.asString(),
-                                                         primaryValues);
+                    Id id = SplicingIdGenerator.splicing(label.asString(), primaryValues);
                     /*
-                     * Just query by primary-key(id), ignore other userprop(if
-                     * exists) that it will be filtered by queryVertices(Query)
+                     * Just query by primary-key(id), ignore other user-props(if exists)
+                     * that it will be filtered by queryVertices(Query)
                      */
                     return new IdQuery(query, id);
                 }
@@ -1462,23 +1460,24 @@ public class GraphTransaction extends IndexableTransaction {
                     VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
                     return edgeLabel.linkWithVertexLabel(vertexLabel.id(), dir);
                 }).collect(Collectors.toList());
+
                 if (CollectionUtils.isEmpty(filterVertexList)) {
-                    // Return empty query to skip storage query
                     return new Query(query.resultType());
-                } else if (vertexIdList.size() != filterVertexList.size()) {
+                }
+
+                if (vertexIdList.size() != filterVertexList.size()) {
                     // Modify on the copied relation to avoid affecting other query
-                    Condition.Relation relation = query.copyRelationAndUpdateQuery(HugeKeys.OWNER_VERTEX);
+                    Condition.Relation relation = 
+                            query.copyRelationAndUpdateQuery(HugeKeys.OWNER_VERTEX);
                     relation.value(filterVertexList);
                 }
             } else if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.EQ)) {
-                // For EQ query, just skip query if adjacent schema is unavailable.
                 Id vertexId = query.condition(HugeKeys.OWNER_VERTEX);
-                Iterator<Vertex> iter = this.queryVertices(vertexId);
-                Vertex vertex = QueryResults.one(iter);
+                Vertex vertex = QueryResults.one(this.queryVertices(vertexId));
                 if (vertex != null) {
                     VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
+                    // For EQ query, just skip query storage if adjacent schema doesn't exist
                     if (!edgeLabel.linkWithVertexLabel(vertexLabel.id(), dir)) {
-                        // Return empty query to skip storage query
                         return new Query(query.resultType());
                     }
                 }
@@ -1490,8 +1489,8 @@ public class GraphTransaction extends IndexableTransaction {
                 query = query.copy();
                 // Serialize sort-values
                 List<Id> keys = this.graph().edgeLabel(label).sortKeys();
-                List<Condition> conditions = GraphIndexTransaction.constructShardConditions(
-                    query, keys, HugeKeys.SORT_VALUES);
+                List<Condition> conditions = GraphIndexTransaction
+                        .constructShardConditions(query, keys, HugeKeys.SORT_VALUES);
                 query.query(conditions);
                 /*
                  * Reset all userprop since transferred to sort-keys, ignore other
