@@ -98,14 +98,14 @@ public class InitStore {
         try {
             BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
             if (backendStoreInfo.exists()) {
-                LOG.info("Skip init-store due to the backend store of '{}' " +
-                         "had been initialized", graph.name());
                 backendStoreInfo.checkVersion();
                 /*
                  * Init the required information for creating the admin account
                  * (when switch from non-auth mode to auth mode)
                  */
                 graph.initSystemInfo();
+                LOG.info("Skip init-store due to the backend store of '{}' " +
+                         "had been initialized", graph.name());
             } else {
                 initBackend(graph);
             }
