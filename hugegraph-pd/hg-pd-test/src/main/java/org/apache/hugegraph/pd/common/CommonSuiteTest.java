@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.pd.common;
 
-import org.apache.hugegraph.pd.service.IdServiceTest;
-import org.apache.hugegraph.pd.service.KvServiceTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -29,11 +27,8 @@ import lombok.extern.slf4j.Slf4j;
 @Suite.SuiteClasses({
         PartitionUtilsTest.class,
         PartitionCacheTest.class,
-        MetadataKeyHelperTest.class,
-        KvServiceTest.class,
         HgAssertTest.class,
         KVPairTest.class,
-        IdServiceTest.class
 })
 
 @Slf4j

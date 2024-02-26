@@ -157,7 +157,7 @@ public class PartitionCacheTest {
         this.cache.updateShardGroup(creteShardGroup(1));
         this.cache.updatePartition(partition2);
         assertEquals(this.cache.getPartitions("graph0").size(), 2);
-        System.out.print(this.cache.debugCacheByGraphName("graph0"));
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
@@ -168,14 +168,14 @@ public class PartitionCacheTest {
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition);
         assertNotNull(this.cache.getPartitionByCode("graph0", 2000));
-        System.out.print(this.cache.debugCacheByGraphName("graph0"));
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
         var partition2 = createPartition(0, "graph0", 0, 1024);
         this.cache.addPartition("graph0", 0, partition2);
         ret = this.cache.getPartitionById("graph0", 0);
         assertNotNull(ret);
         assertEquals(ret.getKey(), partition2);
         assertNull(this.cache.getPartitionByCode("graph0", 2000));
-        System.out.print(this.cache.debugCacheByGraphName("graph0"));
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
@@ -211,7 +211,7 @@ public class PartitionCacheTest {
         assertNotNull(this.cache.getPartitionById("graph0", 0));
         this.cache.removePartition("graph0", 0);
         assertNull(this.cache.getPartitionById("graph0", 0));
-        System.out.print(this.cache.debugCacheByGraphName("graph0"));
+        System.out.println(this.cache.debugCacheByGraphName("graph0"));
     }
 
     @Test
@@ -223,14 +223,12 @@ public class PartitionCacheTest {
 
         var partition3 = createPartition(3, "graph0", 1, 2);
         var partition4 = createPartition(4, "graph0", 2, 3);
-
         this.cache.updatePartition(partition3);
         this.cache.updatePartition(partition4);
         System.out.println(this.cache.debugCacheByGraphName("graph0"));
+
         var partition6 = createPartition(1, "graph0", 0, 1);
         this.cache.updatePartition(partition6);
-
-
         System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
         var partition5 = createPartition(1, "graph0", 0, 3);
@@ -244,13 +242,11 @@ public class PartitionCacheTest {
         var partition2 = createPartition(2, "graph0", 3, 6);
         this.cache.updatePartition(partition1);
         this.cache.updatePartition(partition2);
-
         System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
         // 中间有缺失
         var partition3 = createPartition(1, "graph0", 2, 3);
         this.cache.updatePartition(partition3);
-
         System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
         var partition5 = createPartition(1, "graph0", 0, 3);
