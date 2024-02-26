@@ -31,6 +31,7 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -108,6 +109,17 @@ public class EdgeLabel extends SchemaLabel {
 
     public boolean linkWithLabel(Id id) {
         return this.sourceLabel.equals(id) || this.targetLabel.equals(id);
+    }
+
+    public boolean linkWithVertexLabel(Id label, Directions dir) {
+        if (dir.equals(Directions.IN)) {
+            return this.targetLabel.equals(label);
+        } else if (dir.equals(Directions.OUT)) {
+            return this.sourceLabel.equals(label);
+        } else if (dir.equals(Directions.BOTH)) {
+            return this.targetLabel.equals(label) || this.sourceLabel.equals(label);
+        }
+        return false;
     }
 
     public boolean checkLinkEqual(Id sourceLabel, Id targetLabel) {

@@ -589,6 +589,23 @@ public class ConditionQuery extends IdQuery {
         return query;
     }
 
+    public Condition.Relation copyRelationAndUpdateQuery(Object key) {
+        Condition.Relation copyRes = null;
+        for (int i = 0; i < this.conditions.size(); i++) {
+            Condition c = this.conditions.get(i);
+            if (c.isRelation()) {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(key)) {
+                    copyRes = r.copy();
+                    this.conditions.set(i, copyRes);
+                    break;
+                }
+            }
+        }
+        E.checkArgument(copyRes != null, "Failed to copy Condition.Relation: %s", key);
+        return copyRes;
+    }
+
     @Override
     public boolean test(HugeElement element) {
         if (!this.ids().isEmpty() && !super.test(element)) {
