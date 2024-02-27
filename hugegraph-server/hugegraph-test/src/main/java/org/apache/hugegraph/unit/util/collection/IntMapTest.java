@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit.util.collection;
@@ -200,14 +200,14 @@ public class IntMapTest extends BaseUnitTest {
             for (int i = 0; i < capacity; i++) {
                 Assert.assertTrue(map.put(i, i * i));
                 Assert.assertEquals(i * i, map.get(i));
-                Assert.assertEquals(true, map.containsKey(i));
-                Assert.assertEquals(false, map.containsKey(i + 1));
+                Assert.assertTrue(map.containsKey(i));
+                Assert.assertFalse(map.containsKey(i + 1));
 
                 int u = -i - 1;
                 Assert.assertTrue(map.put(u, u));
                 Assert.assertEquals(u, map.get(u));
-                Assert.assertEquals(true, map.containsKey(u));
-                Assert.assertEquals(false, map.containsKey(u - 1));
+                Assert.assertTrue(map.containsKey(u));
+                Assert.assertFalse(map.containsKey(u - 1));
             }
 
             IntIterator values = map.values();
@@ -297,17 +297,17 @@ public class IntMapTest extends BaseUnitTest {
 
                 Assert.assertTrue(map.put(k, k * k));
                 Assert.assertEquals(k * k, map.get(k));
-                Assert.assertEquals(true, map.containsKey(k));
+                Assert.assertTrue(map.containsKey(k));
 
                 int u = -k - 1;
                 Assert.assertTrue(map.put(u, u));
                 Assert.assertEquals(u, map.get(u));
-                Assert.assertEquals(true, map.containsKey(u));
+                Assert.assertTrue(map.containsKey(u));
 
                 int r = i % 2 == 0 ? k : u;
-                Assert.assertEquals(true, map.containsKey(r));
+                Assert.assertTrue(map.containsKey(r));
                 Assert.assertTrue(map.remove(r));
-                Assert.assertEquals(false, map.containsKey(r));
+                Assert.assertFalse(map.containsKey(r));
             }
 
             return map.size();
@@ -330,9 +330,7 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertEquals(Integer.MAX_VALUE - 1, iter.next());
             Assert.assertFalse(iter.hasNext());
 
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -359,9 +357,7 @@ public class IntMapTest extends BaseUnitTest {
             }
 
             Assert.assertFalse(iter.hasNext());
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -380,9 +376,7 @@ public class IntMapTest extends BaseUnitTest {
             Assert.assertEquals(1, iter.next());
             Assert.assertFalse(iter.hasNext());
 
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -409,9 +403,7 @@ public class IntMapTest extends BaseUnitTest {
             }
 
             Assert.assertFalse(iter.hasNext());
-            Assert.assertThrows(NoSuchElementException.class, () -> {
-                iter.next();
-            }, e -> {
+            Assert.assertThrows(NoSuchElementException.class, iter::next, e -> {
                 Assert.assertNull(e.getMessage());
             });
         }
@@ -447,17 +439,16 @@ public class IntMapTest extends BaseUnitTest {
         //int cpus = IntSet.CPUS;
         int cpus = 16;
         ThreadPoolExecutor executor =
-            new ThreadPoolExecutor(cpus, cpus, 1, TimeUnit.MINUTES,
-                                   new LinkedBlockingDeque<>()) {
-                @Override
-                protected void afterExecute(Runnable r, Throwable t) {
-                    super.afterExecute(r, t);
-                    if (t != null) {
-                        Assert.fail(t.getMessage());
+                new ThreadPoolExecutor(cpus, cpus, 1, TimeUnit.MINUTES,
+                                       new LinkedBlockingDeque<>()) {
+                    @Override
+                    protected void afterExecute(Runnable r, Throwable t) {
+                        super.afterExecute(r, t);
+                        if (t != null) {
+                            Assert.fail(t.getMessage());
+                        }
                     }
-                }
-            };
-        ;
+                };
 
         AtomicInteger size = new AtomicInteger();
         int mapSize = 100;

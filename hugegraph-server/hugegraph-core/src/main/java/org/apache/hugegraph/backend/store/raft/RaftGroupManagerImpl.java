@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.raft;
@@ -20,21 +20,19 @@ package org.apache.hugegraph.backend.store.raft;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
+import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
+import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
+import org.apache.hugegraph.util.E;
+
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.PeerId;
-import org.apache.hugegraph.backend.store.raft.rpc.RpcForwarder;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.AddPeerResponse;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerRequest;
-import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.RemovePeerResponse;
-
-import org.apache.hugegraph.util.E;
 import com.google.protobuf.Message;
 
 public class RaftGroupManagerImpl implements RaftGroupManager {
@@ -87,8 +85,8 @@ public class RaftGroupManagerImpl implements RaftGroupManager {
         Status status = this.raftNode.node().transferLeadershipTo(peerId);
         if (!status.isOk()) {
             throw new BackendException(
-                      "Failed to transfer leader to '%s', raft error: %s",
-                      endpoint, status.getErrorMsg());
+                    "Failed to transfer leader to '%s', raft error: %s",
+                    endpoint, status.getErrorMsg());
         }
         return peerId.toString();
     }

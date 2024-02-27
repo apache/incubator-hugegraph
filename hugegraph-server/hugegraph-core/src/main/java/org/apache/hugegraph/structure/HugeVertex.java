@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.structure;
@@ -224,7 +224,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     }
 
     public boolean existsEdges() {
-        return this.edges.size() > 0;
+        return !this.edges.isEmpty();
     }
 
     public Collection<HugeEdge> getEdges() {
@@ -291,7 +291,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         EdgeLabel edgeLabel = this.graph().edgeLabel(label);
         // Check link
         E.checkArgument(edgeLabel.checkLinkEqual(this.schemaLabel().id(),
-                        vertex.schemaLabel().id()),
+                                                 vertex.schemaLabel().id()),
                         "Undefined link of edge label '%s': '%s' -> '%s'",
                         label, this.label(), vertex.label());
         // Check sortKeys
@@ -303,14 +303,14 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         // Check whether passed all non-null props
         @SuppressWarnings("unchecked")
         Collection<Id> nonNullKeys = CollectionUtils.subtract(
-                                     edgeLabel.properties(),
-                                     edgeLabel.nullableKeys());
+                edgeLabel.properties(),
+                edgeLabel.nullableKeys());
         if (!new HashSet<>(keys).containsAll(nonNullKeys)) {
             @SuppressWarnings("unchecked")
             Collection<Id> missed = CollectionUtils.subtract(nonNullKeys, keys);
             E.checkArgument(false, "All non-null property keys: %s " +
-                            "of edge label '%s' must be set, " +
-                            "but missed keys: %s",
+                                   "of edge label '%s' must be set, " +
+                                   "but missed keys: %s",
                             this.graph().mapPkId2Name(nonNullKeys),
                             edgeLabel.name(),
                             this.graph().mapPkId2Name(missed));
@@ -327,6 +327,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Add edge with direction OUT
+     *
      * @param edge the out edge
      */
     @Watched
@@ -342,6 +343,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Add edge with direction IN
+     *
      * @param edge the in edge
      */
     @Watched
@@ -599,6 +601,7 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     /**
      * Clear edges/properties of the cloned vertex, and set `removed` true
+     *
      * @return a new vertex
      */
     public HugeVertex prepareRemoved() {

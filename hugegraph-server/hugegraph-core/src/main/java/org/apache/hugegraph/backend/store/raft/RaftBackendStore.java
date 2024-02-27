@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.raft;
@@ -22,11 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-
-import com.alipay.sofa.jraft.Status;
-import com.alipay.sofa.jraft.closure.ReadIndexClosure;
-import com.alipay.sofa.jraft.util.BytesUtil;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -41,6 +36,11 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.closure.ReadIndexClosure;
+import com.alipay.sofa.jraft.util.BytesUtil;
 
 public class RaftBackendStore implements BackendStore {
 
@@ -149,13 +149,13 @@ public class RaftBackendStore implements BackendStore {
     @SuppressWarnings("unchecked")
     public Iterator<BackendEntry> query(Query query) {
         return (Iterator<BackendEntry>)
-               this.queryByRaft(query, o -> this.store.query(query));
+                this.queryByRaft(query, o -> this.store.query(query));
     }
 
     @Override
     public Number queryNumber(Query query) {
         return (Number)
-               this.queryByRaft(query, o -> this.store.queryNumber(query));
+                this.queryByRaft(query, o -> this.store.queryNumber(query));
     }
 
     @Override
@@ -231,8 +231,8 @@ public class RaftBackendStore implements BackendStore {
                     future.complete(status, () -> func.apply(query));
                 } else {
                     future.failure(status, new BackendException(
-                                           "Failed to do raft read-index: %s",
-                                           status));
+                            "Failed to do raft read-index: %s",
+                            status));
                 }
             }
         };

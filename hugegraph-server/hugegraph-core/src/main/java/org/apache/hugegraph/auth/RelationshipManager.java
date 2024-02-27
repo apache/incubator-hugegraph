@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.auth;
@@ -22,29 +22,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.auth.SchemaDefine.Relationship;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.auth.SchemaDefine.Relationship;
-import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.iterator.MapperIterator;
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.util.E;
 import com.google.common.collect.ImmutableMap;
 
 public class RelationshipManager<T extends Relationship> {

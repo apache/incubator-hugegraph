@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.server;
@@ -42,32 +42,32 @@ import com.codahale.metrics.jersey3.InstrumentedResourceMethodApplicationListene
 
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.info.Contact;
 import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import jakarta.ws.rs.ApplicationPath;
 
 @SecurityScheme(
-    name = "basic",
-    type = SecuritySchemeType.HTTP,
-    scheme = "basic"
+        name = "basic",
+        type = SecuritySchemeType.HTTP,
+        scheme = "basic"
 )
 @SecurityScheme(
-    name = "bearer",
-    type = SecuritySchemeType.HTTP,
-    scheme = "bearer"
+        name = "bearer",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer"
 )
 @ApplicationPath("/")
 @OpenAPIDefinition(
-    info = @Info(
-        title = "HugeGraph RESTful API",
-        version = CoreVersion.DEFAULT_VERSION,
-        description = "All management API for HugeGraph",
-        contact = @Contact(url = "https://github.com/apache/hugegraph", name = "HugeGraph")
-    ),
-    security = {@SecurityRequirement(name = "basic"), @SecurityRequirement(name = "bearer")}
+        info = @Info(
+                title = "HugeGraph RESTful API",
+                version = CoreVersion.DEFAULT_VERSION,
+                description = "All management API for HugeGraph",
+                contact = @Contact(url = "https://github.com/apache/hugegraph", name = "HugeGraph")
+        ),
+        security = {@SecurityRequirement(name = "basic"), @SecurityRequirement(name = "bearer")}
 )
 public class ApplicationConfig extends ResourceConfig {
 
@@ -131,9 +131,9 @@ public class ApplicationConfig extends ResourceConfig {
         public GraphManagerFactory(HugeConfig conf, EventHub hub) {
             register(new ApplicationEventListener() {
                 private final ApplicationEvent.Type eventInited =
-                              ApplicationEvent.Type.INITIALIZATION_FINISHED;
+                        ApplicationEvent.Type.INITIALIZATION_FINISHED;
                 private final ApplicationEvent.Type eventDestroyed =
-                              ApplicationEvent.Type.DESTROY_FINISHED;
+                        ApplicationEvent.Type.DESTROY_FINISHED;
 
                 @Override
                 public void onEvent(ApplicationEvent event) {

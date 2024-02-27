@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.schema;
@@ -23,13 +23,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public class IndexLabel extends SchemaElement {
@@ -90,10 +91,10 @@ public class IndexLabel extends SchemaElement {
                 return HugeType.SYS_SCHEMA;
             default:
                 throw new AssertionError(String.format(
-                          "Query type of index label is either '%s' or '%s', " +
-                          "but '%s' is used",
-                          HugeType.VERTEX_LABEL, HugeType.EDGE_LABEL,
-                          this.baseType));
+                        "Query type of index label is either '%s' or '%s', " +
+                        "but '%s' is used",
+                        HugeType.VERTEX_LABEL, HugeType.EDGE_LABEL,
+                        this.baseType));
         }
     }
 
@@ -180,7 +181,7 @@ public class IndexLabel extends SchemaElement {
                 return ILN_IL;
             default:
                 throw new AssertionError(String.format(
-                          "No primitive index label for '%s'", type));
+                        "No primitive index label for '%s'", type));
         }
     }
 
@@ -202,7 +203,7 @@ public class IndexLabel extends SchemaElement {
                     return ILN_IL;
                 default:
                     throw new AssertionError(String.format(
-                              "No primitive index label for '%s'", id));
+                            "No primitive index label for '%s'", id));
             }
         }
         return graph.indexLabel(id);
@@ -238,8 +239,8 @@ public class IndexLabel extends SchemaElement {
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported base type '%s' of index label",
-                          baseType));
+                        "Unsupported base type '%s' of index label",
+                        baseType));
         }
 
         E.checkArgumentNotNull(label, "Can't find the %s with name '%s'",

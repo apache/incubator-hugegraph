@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.schema.builder;
@@ -20,19 +20,19 @@ package org.apache.hugegraph.schema.builder;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.schema.Userdata;
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.exception.NotSupportException;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.SchemaElement;
+import org.apache.hugegraph.schema.Userdata;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.type.define.AggregateType;
@@ -42,7 +42,7 @@ import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
 
 public class PropertyKeyBuilder extends AbstractBuilder
-                                implements PropertyKey.Builder {
+        implements PropertyKey.Builder {
 
     private Id id;
     private String name;
@@ -98,6 +98,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
      * Check whether this has same properties with propertyKey.
      * Only dataType, cardinality, aggregateType are checked.
      * The id, checkExist, userdata are not checked.
+     *
      * @param propertyKey to be compared with
      * @return true if this has same properties with propertyKey
      */
@@ -117,12 +118,9 @@ public class PropertyKeyBuilder extends AbstractBuilder
             return false;
         }
 
-        if (this.writeType != propertyKey.writeType()) {
-            return false;
-        }
+        return this.writeType == propertyKey.writeType();
 
         // all properties are same, return true.
-        return true;
     }
 
     @Override
@@ -156,7 +154,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     public PropertyKey create() {
         // Create index label async
         SchemaElement.TaskWithSchema propertyKeyWithTask =
-                                     this.createWithTask();
+                this.createWithTask();
 
         Id task = propertyKeyWithTask.task();
         if (task == IdGenerator.ZERO) {
@@ -174,7 +172,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
             graph.taskScheduler().waitUntilTaskCompleted(task, timeout);
         } catch (TimeoutException e) {
             throw new HugeException(
-                      "Failed to wait property key create task completed", e);
+                    "Failed to wait property key create task completed", e);
         }
 
         // Return property key without task-info
@@ -424,17 +422,17 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         if (this.aggregateType.isSum() && this.dataType.isDate()) {
             throw new NotAllowException(
-                      "Not allowed to set aggregate type '%s' for " +
-                      "property key '%s' with data type '%s'",
-                      this.aggregateType, this.name, this.dataType);
+                    "Not allowed to set aggregate type '%s' for " +
+                    "property key '%s' with data type '%s'",
+                    this.aggregateType, this.name, this.dataType);
         }
 
         if (this.aggregateType.isNumber() &&
             !this.dataType.isNumber() && !this.dataType.isDate()) {
             throw new NotAllowException(
-                      "Not allowed to set aggregate type '%s' for " +
-                      "property key '%s' with data type '%s'",
-                      this.aggregateType, this.name, this.dataType);
+                    "Not allowed to set aggregate type '%s' for " +
+                    "property key '%s' with data type '%s'",
+                    this.aggregateType, this.name, this.dataType);
         }
     }
 
@@ -445,22 +443,22 @@ public class PropertyKeyBuilder extends AbstractBuilder
 
         if (!this.graph().backendStoreFeatures().supportsOlapProperties()) {
             throw new NotSupportException(
-                      "olap property key '%s' for backend '%s'",
-                      this.name, this.graph().backend());
+                    "olap property key '%s' for backend '%s'",
+                    this.name, this.graph().backend());
         }
 
         if (!this.aggregateType.isNone()) {
             throw new NotAllowException(
-                      "Not allowed to set aggregate type '%s' for olap " +
-                      "property key '%s'", this.aggregateType, this.name);
+                    "Not allowed to set aggregate type '%s' for olap " +
+                    "property key '%s'", this.aggregateType, this.name);
         }
 
         if (this.writeType == WriteType.OLAP_RANGE &&
             !this.dataType.isNumber() && !this.dataType.isDate()) {
             throw new NotAllowException(
-                      "Not allowed to set write type to OLAP_RANGE for " +
-                      "property key '%s' with data type '%s'",
-                      this.name, this.dataType);
+                    "Not allowed to set write type to OLAP_RANGE for " +
+                    "property key '%s' with data type '%s'",
+                    this.name, this.dataType);
         }
     }
 }

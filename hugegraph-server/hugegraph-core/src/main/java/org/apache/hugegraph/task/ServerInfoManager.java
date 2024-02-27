@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.task;
@@ -118,7 +118,7 @@ public class ServerInfoManager {
                 while (servers.hasNext()) {
                     existed = servers.next();
                     E.checkArgument(!existed.role().master() || !existed.alive(),
-                                    "Already existed master '%s' in current cluster", 
+                                    "Already existed master '%s' in current cluster",
                                     existed.id());
                 }
                 if (page != null) {
@@ -324,7 +324,7 @@ public class ServerInfoManager {
 
     private <V> V call(Callable<V> callable) {
         assert !Thread.currentThread().getName().startsWith(
-               "server-info-db-worker") : "can't call by itself";
+                "server-info-db-worker") : "can't call by itself";
         try {
             // Pass context for db thread
             callable = new TaskManager.ContextCallable<>(callable);
@@ -391,7 +391,7 @@ public class ServerInfoManager {
     protected Collection<HugeServerInfo> allServerInfos() {
         Iterator<HugeServerInfo> infos = this.serverInfos(NO_LIMIT, null);
         try (ListIterator<HugeServerInfo> iter = new ListIterator<>(
-                                                 MAX_SERVERS, infos)) {
+                MAX_SERVERS, infos)) {
             return iter.list();
         } catch (Exception e) {
             throw new HugeException("Failed to close server info iterator", e);

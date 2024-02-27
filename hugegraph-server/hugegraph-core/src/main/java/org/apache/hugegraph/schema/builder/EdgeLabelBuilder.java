@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.schema.builder;
@@ -26,27 +26,27 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
-
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.Userdata;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.Userdata;
+import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.collect.ImmutableList;
 
 public class EdgeLabelBuilder extends AbstractBuilder
-                              implements EdgeLabel.Builder {
+        implements EdgeLabel.Builder {
 
     private Id id;
     private String name;
@@ -114,7 +114,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         edgeLabel.ttl(this.ttl);
         if (this.ttlStartTime != null) {
             edgeLabel.ttlStartTime(this.graph().propertyKey(
-                                   this.ttlStartTime).id());
+                    this.ttlStartTime).id());
         }
         edgeLabel.enableLabelIndex(this.enableLabelIndex == null ||
                                    this.enableLabelIndex);
@@ -170,6 +170,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
      * Only sourceId, targetId, frequency, enableLabelIndex, properties, sortKeys,
      * nullableKeys are checked.
      * The id, ttl, ttlStartTime, userdata are not checked.
+     *
      * @param existedEdgeLabel to be compared with
      * @return true if this has same properties with existedVertexLabel
      */
@@ -426,15 +427,15 @@ public class EdgeLabelBuilder extends AbstractBuilder
             case ELIMINATE:
                 if (!this.properties.isEmpty()) {
                     throw new NotAllowException(
-                              "Not support to eliminate properties " +
-                              "for edge label currently");
+                            "Not support to eliminate properties " +
+                            "for edge label currently");
                 }
                 break;
             case DELETE:
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
+                        "Unknown schema action '%s'", action));
         }
     }
 
@@ -444,8 +445,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
         if (action == Action.ELIMINATE) {
             if (!this.nullableKeys.isEmpty()) {
                 throw new NotAllowException(
-                          "Not support to eliminate nullableKeys " +
-                          "for edge label currently");
+                        "Not support to eliminate nullableKeys " +
+                        "for edge label currently");
             }
             return;
         }
@@ -459,7 +460,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         Set<String> appendProps = this.properties;
 
         E.checkArgument(CollectionUtil.union(originProps, appendProps)
-                        .containsAll(this.nullableKeys),
+                                      .containsAll(this.nullableKeys),
                         "The nullableKeys: %s to be created or appended " +
                         "must belong to the origin/new properties: %s/%s ",
                         this.nullableKeys, originProps, appendProps);
@@ -476,7 +477,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
 
         if (action == Action.APPEND) {
             Collection<String> newAddedProps = CollectionUtils.subtract(
-                                               appendProps, originProps);
+                    appendProps, originProps);
             E.checkArgument(this.nullableKeys.containsAll(newAddedProps),
                             "The new added properties: %s must be nullable",
                             newAddedProps);
@@ -534,28 +535,28 @@ public class EdgeLabelBuilder extends AbstractBuilder
     private void checkStableVars() {
         if (this.sourceLabel != null) {
             throw new NotAllowException(
-                      "Not allowed to update source label " +
-                      "for edge label '%s', it must be null", this.name);
+                    "Not allowed to update source label " +
+                    "for edge label '%s', it must be null", this.name);
         }
         if (this.targetLabel != null) {
             throw new NotAllowException(
-                      "Not allowed to update target label " +
-                      "for edge label '%s', it must be null", this.name);
+                    "Not allowed to update target label " +
+                    "for edge label '%s', it must be null", this.name);
         }
         if (this.frequency != Frequency.DEFAULT) {
             throw new NotAllowException(
-                      "Not allowed to update frequency " +
-                      "for edge label '%s'", this.name);
+                    "Not allowed to update frequency " +
+                    "for edge label '%s'", this.name);
         }
         if (!this.sortKeys.isEmpty()) {
             throw new NotAllowException(
-                      "Not allowed to update sort keys " +
-                      "for edge label '%s'", this.name);
+                    "Not allowed to update sort keys " +
+                    "for edge label '%s'", this.name);
         }
         if (this.enableLabelIndex != null) {
             throw new NotAllowException(
-                      "Not allowed to update enable_label_index " +
-                      "for edge label '%s'", this.name);
+                    "Not allowed to update enable_label_index " +
+                    "for edge label '%s'", this.name);
         }
     }
 
@@ -600,8 +601,8 @@ public class EdgeLabelBuilder extends AbstractBuilder
                 for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
                     if (e.getValue() == null) {
                         throw new NotAllowException(
-                                  "Not allowed pass null userdata value when " +
-                                  "create or append edge label");
+                                "Not allowed pass null userdata value when " +
+                                "create or append edge label");
                     }
                 }
                 break;
@@ -611,7 +612,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unknown schema action '%s'", action));
+                        "Unknown schema action '%s'", action));
         }
     }
 

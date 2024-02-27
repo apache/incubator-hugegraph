@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.traversal.optimize;
@@ -28,8 +28,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
 public final class HugeGraphStepStrategy
-             extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
-             implements ProviderOptimizationStrategy {
+        extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
+        implements ProviderOptimizationStrategy {
 
     private static final long serialVersionUID = -2952498905649139719L;
 
@@ -44,13 +44,13 @@ public final class HugeGraphStepStrategy
     }
 
     @Override
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void apply(Traversal.Admin<?, ?> traversal) {
         TraversalUtil.convAllHasSteps(traversal);
 
         // Extract conditions in GraphStep
         List<GraphStep> steps = TraversalHelper.getStepsOfClass(
-                                GraphStep.class, traversal);
+                GraphStep.class, traversal);
         for (GraphStep originStep : steps) {
             TraversalUtil.trySetGraph(originStep,
                                       TraversalUtil.tryGetGraph(steps.get(0)));

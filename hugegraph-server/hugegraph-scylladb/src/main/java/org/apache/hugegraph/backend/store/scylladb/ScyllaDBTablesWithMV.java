@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.scylladb;
@@ -29,6 +29,7 @@ import org.apache.hugegraph.backend.store.cassandra.CassandraTable;
 import org.apache.hugegraph.backend.store.cassandra.CassandraTables;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
+
 import com.datastax.driver.core.querybuilder.Select;
 
 public class ScyllaDBTablesWithMV {
@@ -62,17 +63,17 @@ public class ScyllaDBTablesWithMV {
     }
 
     private static void createSchemaIndexTable(
-                        CassandraSessionPool.Session session,
-                        String mvName, String table) {
+            CassandraSessionPool.Session session,
+            String mvName, String table) {
         final String NAME = CassandraTable.formatKey(HugeKeys.NAME);
         final String ID = CassandraTable.formatKey(HugeKeys.ID);
         String cql = String.format(
-                     "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
-                     "  SELECT * FROM %s " +
-                     "  WHERE %s IS NOT NULL " +
-                     "  PRIMARY KEY(%s, %s)",
-                     mvName, table, NAME,
-                     NAME, ID);
+                "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
+                "  SELECT * FROM %s " +
+                "  WHERE %s IS NOT NULL " +
+                "  PRIMARY KEY(%s, %s)",
+                mvName, table, NAME,
+                NAME, ID);
         session.execute(cql);
     }
 
@@ -206,11 +207,11 @@ public class ScyllaDBTablesWithMV {
             final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
             final String ID = CassandraTable.formatKey(HugeKeys.ID);
             String cql = String.format(
-                         "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
-                         "  SELECT * FROM %s " +
-                         "  WHERE %s IS NOT NULL " +
-                         "  PRIMARY KEY(%s, %s)",
-                         mvLabel2Vertex, this.table(), LABEL, LABEL, ID);
+                    "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
+                    "  SELECT * FROM %s " +
+                    "  WHERE %s IS NOT NULL " +
+                    "  PRIMARY KEY(%s, %s)",
+                    mvLabel2Vertex, this.table(), LABEL, LABEL, ID);
             session.execute(cql);
         }
 
@@ -219,7 +220,6 @@ public class ScyllaDBTablesWithMV {
             dropIndexTable(session, mvLabel2Vertex);
             super.dropTable(session);
         }
-
 
         /**
          * Query data from label index table if just want to query by label
@@ -240,13 +240,13 @@ public class ScyllaDBTablesWithMV {
 
         private static final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
         private final List<String> keys = this.idColumnName().stream()
-                                          .filter(k -> k != HugeKeys.LABEL)
-                                          .map(k -> CassandraTable.formatKey(k))
-                                          .collect(Collectors.toList());
+                                              .filter(k -> k != HugeKeys.LABEL)
+                                              .map(CassandraTable::formatKey)
+                                              .collect(Collectors.toList());
         private final String prKeys = this.keys.stream()
-                                      .collect(Collectors.joining(","));
+                                               .collect(Collectors.joining(","));
         private final String prkeysNn = this.keys.stream().collect(
-                             Collectors.joining(" IS NOT NULL AND "));
+                Collectors.joining(" IS NOT NULL AND "));
 
         public Edge(String store, Directions direction) {
             super(store, direction);
@@ -257,13 +257,13 @@ public class ScyllaDBTablesWithMV {
                                    String indexLabel,
                                    HugeKeys column) {
             String cql = String.format(
-                         "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
-                         "  SELECT * FROM %s " +
-                         "  WHERE %s IS NOT NULL AND %s IS NOT NULL " +
-                         "  PRIMARY KEY(%s, %s)",
-                         mvLabel2Edge, this.table(),
-                         this.LABEL, this.prkeysNn,
-                         this.LABEL, this.prKeys);
+                    "CREATE MATERIALIZED VIEW IF NOT EXISTS %s AS " +
+                    "  SELECT * FROM %s " +
+                    "  WHERE %s IS NOT NULL AND %s IS NOT NULL " +
+                    "  PRIMARY KEY(%s, %s)",
+                    mvLabel2Edge, this.table(),
+                    LABEL, this.prkeysNn,
+                    LABEL, this.prKeys);
             session.execute(cql);
         }
 

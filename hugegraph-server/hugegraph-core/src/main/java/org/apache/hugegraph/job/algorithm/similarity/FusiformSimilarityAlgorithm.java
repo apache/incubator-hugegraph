@@ -1,26 +1,24 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.job.algorithm.similarity;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.job.UserJob;
@@ -32,6 +30,7 @@ import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.ParameterUtil;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
@@ -164,7 +163,7 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
             HugeGraph graph = this.graph();
 
             FusiformSimilarityTraverser traverser =
-                                        new FusiformSimilarityTraverser(graph);
+                    new FusiformSimilarityTraverser(graph);
 
             AtomicLong count = new AtomicLong(0L);
             JsonMap similarsJson = new JsonMap();
@@ -172,11 +171,11 @@ public class FusiformSimilarityAlgorithm extends AbstractAlgorithm {
 
             this.traverse(sourceLabel, sourceCLabel, v -> {
                 SimilarsMap similars = traverser.fusiformSimilarity(
-                                       IteratorUtils.of(v), direction,
-                                       label, minNeighbors, alpha,
-                                       minSimilars, (int) topSimilars,
-                                       groupProperty, minGroups, degree,
-                                       MAX_CAPACITY, NO_LIMIT, true);
+                        IteratorUtils.of(v), direction,
+                        label, minNeighbors, alpha,
+                        minSimilars, (int) topSimilars,
+                        groupProperty, minGroups, degree,
+                        MAX_CAPACITY, NO_LIMIT, true);
                 if (similars.isEmpty()) {
                     return;
                 }

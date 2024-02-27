@@ -1,29 +1,29 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.util;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.exception.NotSupportException;
-import org.slf4j.Logger;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.NotSupportException;
+import org.slf4j.Logger;
 
 public class Reflection {
 
@@ -34,9 +34,9 @@ public class Reflection {
     private static final Method REGISTER_METHODS_TO_FILTER_MOTHOD;
 
     public static final String JDK_INTERNAL_REFLECT_REFLECTION =
-                               "jdk.internal.reflect.Reflection";
+            "jdk.internal.reflect.Reflection";
     public static final String SUN_REFLECT_REFLECTION =
-                               "sun.reflect.Reflection";
+            "sun.reflect.Reflection";
 
     static {
         Method registerFieldsToFilterMethodTemp = null;
@@ -44,7 +44,7 @@ public class Reflection {
         Class<?> reflectionClazzTemp = null;
         try {
             reflectionClazzTemp = Class.forName(
-                                  JDK_INTERNAL_REFLECT_REFLECTION);
+                    JDK_INTERNAL_REFLECT_REFLECTION);
         } catch (ClassNotFoundException e) {
             try {
                 reflectionClazzTemp = Class.forName(SUN_REFLECT_REFLECTION);
@@ -80,7 +80,7 @@ public class Reflection {
                                               String... fieldNames) {
         if (REGISTER_FILEDS_TO_FILTER_METHOD == null) {
             throw new NotSupportException(
-                      "Reflection.registerFieldsToFilter()");
+                    "Reflection.registerFieldsToFilter()");
         }
 
         try {
@@ -89,8 +89,8 @@ public class Reflection {
                                                     containingClass, fieldNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
-                      "Failed to register class '%s' fields to filter: %s",
-                       containingClass, Arrays.toString(fieldNames));
+                    "Failed to register class '%s' fields to filter: %s",
+                    containingClass, Arrays.toString(fieldNames));
         }
     }
 
@@ -98,7 +98,7 @@ public class Reflection {
                                                String... methodNames) {
         if (REGISTER_METHODS_TO_FILTER_MOTHOD == null) {
             throw new NotSupportException(
-                      "Reflection.registerMethodsToFilterMethod()");
+                    "Reflection.registerMethodsToFilterMethod()");
         }
 
         try {
@@ -107,8 +107,8 @@ public class Reflection {
                                                      containingClass, methodNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
             throw new HugeException(
-                      "Failed to register class '%s' methods to filter: %s",
-                      containingClass, Arrays.toString(methodNames));
+                    "Failed to register class '%s' methods to filter: %s",
+                    containingClass, Arrays.toString(methodNames));
         }
     }
 }

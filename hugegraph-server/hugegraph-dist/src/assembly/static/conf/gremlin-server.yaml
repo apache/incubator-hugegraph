@@ -28,8 +28,8 @@ graphs: {
 scriptEngines: {
   gremlin-groovy: {
     staticImports: [
-        org.opencypher.gremlin.process.traversal.CustomPredicates.*',
-        org.opencypher.gremlin.traversal.CustomFunctions.*
+      org.opencypher.gremlin.process.traversal.CustomPredicates.*',
+      org.opencypher.gremlin.traversal.CustomFunctions.*
     ],
     plugins: {
       org.apache.hugegraph.plugin.HugeGraphGremlinPlugin: {},
@@ -70,9 +70,9 @@ scriptEngines: {
           org.opencypher.gremlin.traversal.CustomPredicate
         ],
         methodImports: [
-            java.lang.Math#*,
-            org.opencypher.gremlin.traversal.CustomPredicate#*,
-            org.opencypher.gremlin.traversal.CustomFunctions#*
+          java.lang.Math#*,
+          org.opencypher.gremlin.traversal.CustomPredicate#*,
+          org.opencypher.gremlin.traversal.CustomFunctions#*
         ]
       },
       org.apache.tinkerpop.gremlin.jsr223.ScriptFileGremlinPlugin: {
@@ -82,29 +82,29 @@ scriptEngines: {
   }
 }
 serializers:
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphBinaryMessageSerializerV1,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV1d0,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV2d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV2d0,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
-  - { className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0,
-      config: {
-        serializeResultToString: false,
-        ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
-      }
+  - {className: org.apache.tinkerpop.gremlin.driver.ser.GraphSONMessageSerializerV3d0,
+     config: {
+       serializeResultToString: false,
+       ioRegistries: [org.apache.hugegraph.io.HugeGraphIoRegistry]
+     }
   }
 metrics: {
   consoleReporter: {enabled: false, interval: 180000},

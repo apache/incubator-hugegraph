@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit;
@@ -21,8 +21,6 @@ import java.util.Date;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
@@ -41,6 +39,7 @@ import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.type.define.IndexType;
+import org.mockito.Mockito;
 
 public final class FakeObjects {
 
@@ -142,7 +141,7 @@ public final class FakeObjects {
                                              name.id(), age.id(), city.id());
 
         EdgeLabel el = this.newEdgeLabel(IdGenerator.of(1), "knows",
-                                         Frequency.SINGLE,  vl.id(), vl.id(),
+                                         Frequency.SINGLE, vl.id(), vl.id(),
                                          date.id(), weight.id());
 
         HugeVertex source = new HugeVertex(this.graph(),
@@ -178,14 +177,14 @@ public final class FakeObjects {
         PropertyKey date = this.newPropertyKey(IdGenerator.of(4), "date",
                                                DataType.DATE);
         PropertyKey weight = this.newPropertyKey(IdGenerator.of(5),
-                                                "weight", DataType.DOUBLE);
+                                                 "weight", DataType.DOUBLE);
 
         VertexLabel vl = this.newVertexLabel(IdGenerator.of(1), "person",
                                              IdStrategy.CUSTOMIZE_NUMBER,
                                              name.id(), age.id(), city.id());
 
         EdgeLabel el = this.newEdgeLabel(IdGenerator.of(1), "knows",
-                                         Frequency.SINGLE,  vl.id(), vl.id(),
+                                         Frequency.SINGLE, vl.id(), vl.id(),
                                          date.id(), weight.id());
 
         HugeVertex source = new HugeVertex(this.graph(),

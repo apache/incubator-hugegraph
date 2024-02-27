@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.traversal.optimize;
@@ -243,7 +243,7 @@ public final class TraversalUtil {
                     long limit = holder.setRange(range.getLowRange(),
                                                  range.getHighRange());
                     RangeGlobalStep<Object> newRange = new RangeGlobalStep<>(
-                                                       traversal, 0, limit);
+                            traversal, 0, limit);
                     TraversalHelper.replaceStep(range, newRange, traversal);
                 }
             }
@@ -311,9 +311,9 @@ public final class TraversalUtil {
     }
 
     public static ConditionQuery fillConditionQuery(
-                                 ConditionQuery query,
-                                 List<HasContainer> hasContainers,
-                                 HugeGraph graph) {
+            ConditionQuery query,
+            List<HasContainer> hasContainers,
+            HugeGraph graph) {
         HugeType resultType = query.resultType();
 
         for (HasContainer has : hasContainers) {
@@ -550,7 +550,7 @@ public final class TraversalUtil {
         // Convert contains-key or contains-value
         BiPredicate<?, ?> bp = has.getPredicate().getBiPredicate();
         E.checkArgument(bp == Compare.eq, "CONTAINS query with relation " +
-                        "'%s' is not supported", bp);
+                                          "'%s' is not supported", bp);
 
         HugeKeys key = token2HugeKey(has.getKey());
         E.checkNotNull(key, "token key");
@@ -602,8 +602,8 @@ public final class TraversalUtil {
 
     @SuppressWarnings("unchecked")
     public static <V> Iterator<V> filterResult(
-                                  List<HasContainer> hasContainers,
-                                  Iterator<? extends Element> iterator) {
+            List<HasContainer> hasContainers,
+            Iterator<? extends Element> iterator) {
         if (hasContainers.isEmpty()) {
             return (Iterator<V>) iterator;
         }
@@ -626,8 +626,8 @@ public final class TraversalUtil {
         // Extract all has steps in traversal
         @SuppressWarnings("rawtypes")
         List<HasStep> steps =
-                      TraversalHelper.getStepsOfAssignableClassRecursively(
-                      HasStep.class, traversal);
+                TraversalHelper.getStepsOfAssignableClassRecursively(
+                        HasStep.class, traversal);
 
         if (steps.isEmpty()) {
             return;
@@ -644,8 +644,8 @@ public final class TraversalUtil {
             }
 
             Optional<Graph> parentGraph = ((Traversal<?, ?>) traversal.getParent())
-                                                                      .asAdmin()
-                                                                      .getGraph();
+                    .asAdmin()
+                    .getGraph();
             if (parentGraph.filter(g -> !(g instanceof EmptyGraph)).isPresent()) {
                 traversal.setGraph(parentGraph.get());
             }
@@ -980,7 +980,7 @@ public final class TraversalUtil {
             }
 
             throw new HugeException(
-                      "Invalid value '%s', expect a number", e, value);
+                    "Invalid value '%s', expect a number", e, value);
         }
     }
 
@@ -1005,7 +1005,7 @@ public final class TraversalUtil {
                 continue;
             }
             throw new HugeException(
-                      "Invalid value '%s', expect a list of number", value);
+                    "Invalid value '%s', expect a list of number", value);
         }
         return values.toArray(new Number[0]);
     }
@@ -1016,7 +1016,7 @@ public final class TraversalUtil {
             return (V) JsonUtil.fromJson(value, Object.class);
         } catch (Exception e) {
             throw new HugeException(
-                      "Invalid value '%s', expect a single value", e, value);
+                    "Invalid value '%s', expect a single value", e, value);
         }
     }
 
@@ -1026,7 +1026,7 @@ public final class TraversalUtil {
             return JsonUtil.fromJson("[" + value + "]", List.class);
         } catch (Exception e) {
             throw new HugeException(
-                      "Invalid value '%s', expect a list", e, value);
+                    "Invalid value '%s', expect a list", e, value);
         }
     }
 }

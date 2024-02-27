@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.core;
@@ -25,9 +25,6 @@ import java.util.Map;
 import javax.security.sasl.AuthenticationException;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.junit.After;
-import org.junit.Test;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.AuthManager;
@@ -49,6 +46,9 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.StringEncoding;
+import org.junit.After;
+import org.junit.Test;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -352,7 +352,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals("group2", groups.get(2).name());
 
         groups = authManager.listGroups(ImmutableList.of(
-                                        id1, id2, IdGenerator.of("fake")));
+                id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, groups.size());
     }
 
@@ -497,7 +497,7 @@ public class AuthTest extends BaseCoreTest {
                         "{\"type\":\"EDGE\",\"label\":\"transfer\"," +
                         "\"properties\":null}]";
         Assert.assertEquals(expect, JsonUtil.toJson(target.asMap()
-                                                    .get("target_resources")));
+                                                          .get("target_resources")));
     }
 
     @Test
@@ -509,7 +509,7 @@ public class AuthTest extends BaseCoreTest {
         Id id2 = authManager.createTarget(makeTarget("target2", "url2"));
 
         List<HugeTarget> targets = authManager.listTargets(ImmutableList.of(
-                                                           id1, id2));
+                id1, id2));
         Assert.assertEquals(2, targets.size());
         Assert.assertEquals("target1", targets.get(0).name());
         Assert.assertEquals("target2", targets.get(1).name());
@@ -521,7 +521,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals("target2", targets.get(2).name());
 
         targets = authManager.listTargets(ImmutableList.of(
-                                          id1, id2, IdGenerator.of("fake")));
+                id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, targets.size());
     }
 
@@ -710,7 +710,7 @@ public class AuthTest extends BaseCoreTest {
         Id id2 = authManager.createBelong(makeBelong(user, group2));
 
         List<HugeBelong> belongs = authManager.listBelong(ImmutableList.of(
-                                                          id1, id2));
+                id1, id2));
         Assert.assertEquals(2, belongs.size());
         Assert.assertEquals(user, belongs.get(0).source());
         Assert.assertEquals(user, belongs.get(1).source());
@@ -721,7 +721,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals(3, belongs.size());
 
         belongs = authManager.listBelong(ImmutableList.of(
-                                         id1, id2, IdGenerator.of("fake")));
+                id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, belongs.size());
 
         belongs = authManager.listBelongByUser(user, -1);
@@ -793,7 +793,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id target = authManager.createTarget(makeTarget("graph1", ""));
             Id access = authManager.createAccess(makeAccess(group1, target,
-                                                 HugePermission.READ));
+                                                            HugePermission.READ));
             authManager.getBelong(access);
         });
     }
@@ -865,7 +865,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             Id target = authManager.createTarget(makeTarget("graph1", ""));
             Id access = authManager.createAccess(makeAccess(group1, target,
-                                                 HugePermission.READ));
+                                                            HugePermission.READ));
             authManager.deleteBelong(access);
         });
     }
@@ -1016,7 +1016,7 @@ public class AuthTest extends BaseCoreTest {
                                                      HugePermission.READ));
 
         List<HugeAccess> access = authManager.listAccess(ImmutableList.of(
-                                                         id1, id2));
+                id1, id2));
         Assert.assertEquals(2, access.size());
         Assert.assertEquals(group, access.get(0).source());
         Assert.assertEquals(group, access.get(1).source());
@@ -1027,7 +1027,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertEquals(3, access.size());
 
         access = authManager.listAccess(ImmutableList.of(
-                                        id1, id2, IdGenerator.of("fake")));
+                id1, id2, IdGenerator.of("fake")));
         Assert.assertEquals(2, access.size());
 
         access = authManager.listAccessByGroup(group, -1);
@@ -1215,16 +1215,16 @@ public class AuthTest extends BaseCoreTest {
         Id graph2 = authManager.createTarget(makeTarget("hugegraph1", "url2"));
 
         List<HugeResource> rv = HugeResource.parseResources(
-            "[{\"type\": \"VERTEX\", \"label\": \"person\", " +
-            "\"properties\":{\"city\": \"Beijing\", \"age\": \"P.gte(20)\"}}," +
-            " {\"type\": \"VERTEX_LABEL\", \"label\": \"*\"}," +
-            " {\"type\": \"PROPERTY_KEY\", \"label\": \"*\"}]");
+                "[{\"type\": \"VERTEX\", \"label\": \"person\", " +
+                "\"properties\":{\"city\": \"Beijing\", \"age\": \"P.gte(20)\"}}," +
+                " {\"type\": \"VERTEX_LABEL\", \"label\": \"*\"}," +
+                " {\"type\": \"PROPERTY_KEY\", \"label\": \"*\"}]");
         List<HugeResource> re = HugeResource.parseResources(
-            "[{\"type\": \"EDGE\", \"label\": \"write\"}, " +
-            " {\"type\": \"PROPERTY_KEY\"}, {\"type\": \"VERTEX_LABEL\"}, " +
-            " {\"type\": \"EDGE_LABEL\"}, {\"type\": \"INDEX_LABEL\"}]");
+                "[{\"type\": \"EDGE\", \"label\": \"write\"}, " +
+                " {\"type\": \"PROPERTY_KEY\"}, {\"type\": \"VERTEX_LABEL\"}, " +
+                " {\"type\": \"EDGE_LABEL\"}, {\"type\": \"INDEX_LABEL\"}]");
         List<HugeResource> rg = HugeResource.parseResources(
-            "[{\"type\": \"GREMLIN\"}]");
+                "[{\"type\": \"GREMLIN\"}]");
         Id graph1v = authManager.createTarget(makeTarget("hugegraph-v", "hugegraph",
                                                          "url1", rv));
         Id graph1e = authManager.createTarget(makeTarget("hugegraph-e", "hugegraph",
@@ -1251,27 +1251,29 @@ public class AuthTest extends BaseCoreTest {
         authManager.createAccess(makeAccess(group1, graph1e,
                                             HugePermission.READ));
         Id access1g = authManager.createAccess(makeAccess(group1, graph1gremlin,
-                                               HugePermission.EXECUTE));
+                                                          HugePermission.EXECUTE));
 
         RolePermission role;
         role = authManager.rolePermission(authManager.getUser(user0));
         String expected = "{\"roles\":" +
-                "{\"hugegraph\":{\"READ\":[" +
-                "{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"WRITE\":" +
-                "[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}],\"EXECUTE\":" +
-                "[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}," +
-                "\"hugegraph1\":{\"READ\":[]}}}";
+                          "{\"hugegraph\":{\"READ\":[" +
+                          "{\"type\":\"EDGE\",\"label\":\"write\",\"properties\":null}," +
+                          "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"EDGE_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"INDEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                          "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                          "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]," +
+                          "\"WRITE\":" +
+                          "[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                          "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                          "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                          "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]," +
+                          "\"EXECUTE\":" +
+                          "[{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}," +
+                          "\"hugegraph1\":{\"READ\":[]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getBelong(belong1));
@@ -1282,15 +1284,15 @@ public class AuthTest extends BaseCoreTest {
 
         role = authManager.rolePermission(authManager.getAccess(access1v));
         expected = "{\"roles\":" +
-                "{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\"," +
-                "\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+                   "{\"hugegraph\":{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\"," +
+                   "\"properties\":{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                   "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                   "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getAccess(access1g));
         expected = "{\"roles\":{\"hugegraph\":{\"EXECUTE\":[" +
-                "{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}}}";
+                   "{\"type\":\"GREMLIN\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
 
         role = authManager.rolePermission(authManager.getUser(user1));
@@ -1303,11 +1305,11 @@ public class AuthTest extends BaseCoreTest {
 
         role = authManager.rolePermission(authManager.getTarget(graph1v));
         expected = "{\"roles\":" +
-                "{\"hugegraph\":" +
-                "{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
-                "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
-                "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
-                "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
+                   "{\"hugegraph\":" +
+                   "{\"READ\":[{\"type\":\"VERTEX\",\"label\":\"person\",\"properties\":" +
+                   "{\"city\":\"Beijing\",\"age\":\"P.gte(20)\"}}," +
+                   "{\"type\":\"VERTEX_LABEL\",\"label\":\"*\",\"properties\":null}," +
+                   "{\"type\":\"PROPERTY_KEY\",\"label\":\"*\",\"properties\":null}]}}}";
         Assert.assertEquals(expected, role.toJson());
     }
 
@@ -1483,7 +1485,7 @@ public class AuthTest extends BaseCoreTest {
         Assert.assertNotNull(project);
         Assert.assertFalse(project.graphs().isEmpty());
         projectId = authManager.projectRemoveGraphs(
-                                project.id(), ImmutableSet.of("graph_test"));
+                project.id(), ImmutableSet.of("graph_test"));
         project = authManager.getProject(projectId);
         Assert.assertNotNull(project);
         Assert.assertTrue(project.graphs().isEmpty());

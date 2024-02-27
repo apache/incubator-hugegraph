@@ -1,23 +1,42 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.api.auth;
 
 import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.api.filter.StatusFilter.Status;
+import org.apache.hugegraph.auth.HugeUser;
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.define.Checkable;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.StringEncoding;
+import org.slf4j.Logger;
+
+import com.codahale.metrics.annotation.Timed;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
@@ -32,25 +51,6 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.core.GraphManager;
-import org.apache.hugegraph.define.Checkable;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.StatusFilter.Status;
-import org.apache.hugegraph.auth.HugeUser;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import org.apache.hugegraph.util.StringEncoding;
-import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Path("graphs/{graph}/auth/users")
 @Singleton

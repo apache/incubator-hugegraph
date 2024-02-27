@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.job.algorithm.comm;
@@ -26,11 +26,8 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import org.apache.hugegraph.type.define.Directions;
@@ -38,6 +35,9 @@ import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.ParameterUtil;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+
 import com.google.common.collect.ImmutableSet;
 
 public class KCoreAlgorithm extends AbstractCommAlgorithm {
@@ -190,7 +190,6 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
             return extractKcore(map, k);
         }
 
-
         @SuppressWarnings("unchecked")
         private static Set<Id> extractKcore(SimilarsMap similarsMap, int k) {
             assert similarsMap.size() == 1;
@@ -198,7 +197,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
                                                            .iterator().next();
             Id source = entry.getKey();
             Set<KcoreSimilar> similars = new HashSet<>();
-            for (Similar similar: entry.getValue()) {
+            for (Similar similar : entry.getValue()) {
                 similars.add(new KcoreSimilar(similar));
             }
 
@@ -236,7 +235,8 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
                     }
 
                     Set<Id> survivedIds = new HashSet<>(CollectionUtils
-                                          .subtract(similar.ids(), failedIds));
+                                                                .subtract(similar.ids(),
+                                                                          failedIds));
                     if (survivedIds.size() < k) {
                         for (Id id : survivedIds) {
                             counts.get(id).decrement();
@@ -247,7 +247,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
                     }
                 }
                 similars = new HashSet<>(CollectionUtils.subtract(
-                                         similars, failedSimilars));
+                        similars, failedSimilars));
             } while (!stop);
 
             if (similars.isEmpty()) {
