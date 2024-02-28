@@ -39,7 +39,7 @@ public class HstoreMetrics implements BackendMetrics {
         Map<String, Object> results = InsertionOrderUtil.newMap();
         results.put(NODES, 1);
         results.put(CLUSTER_ID, SERVER_LOCAL);
-
+        // TODO get metrics info or exception and return
         return results;
     }
 }
