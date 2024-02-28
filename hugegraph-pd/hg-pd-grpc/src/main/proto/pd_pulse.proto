@@ -66,14 +66,14 @@ message PartitionHeartbeatRequest {
 
 /* responses */
 message PulseResponse {
-    PulseType pulse_type = 1;
-    int64 observer_id = 2;
-    int32 status = 3;   //0=ok,1=fail
-    int64 notice_id=4;
-    oneof response_union {
-        PartitionHeartbeatResponse partition_heartbeat_response = 10;
-        PdInstructionResponse instruction_response = 11;
-    }
+  PulseType pulse_type = 1;
+  int64 observer_id = 2;
+  int32 status = 3;   //0=ok,1=fail
+  int64 notice_id = 4;
+  oneof response_union {
+    PartitionHeartbeatResponse partition_heartbeat_response = 10;
+    PdInstructionResponse instruction_response = 11;
+  }
 }
 
 message PartitionHeartbeatResponse {
@@ -136,15 +136,15 @@ message PartitionKeyRange{
 }
 
 message PdInstructionResponse {
-    PdInstructionType instruction_type = 1;
-    string leader_ip = 2;
+  PdInstructionType instruction_type = 1;
+  string leader_ip = 2;
 }
 
 /* enums */
 enum PulseType {
-    PULSE_TYPE_UNKNOWN = 0;
-    PULSE_TYPE_PARTITION_HEARTBEAT = 1;
-    PULSE_TYPE_PD_INSTRUCTION = 2;
+  PULSE_TYPE_UNKNOWN = 0;
+  PULSE_TYPE_PARTITION_HEARTBEAT = 1;
+  PULSE_TYPE_PD_INSTRUCTION = 2;
 }
 
 enum PulseChangeType {
@@ -163,10 +163,10 @@ enum ConfChangeType {
 }
 
 enum CleanType {
-    CLEAN_TYPE_KEEP_RANGE = 0; // 仅保留这个range
-    CLEAN_TYPE_EXCLUDE_RANGE = 1; // 删除这个range
+  CLEAN_TYPE_KEEP_RANGE = 0; // 仅保留这个range
+  CLEAN_TYPE_EXCLUDE_RANGE = 1; // 删除这个range
 }
 
 enum PdInstructionType {
-    CHANGE_TO_FOLLOWER = 0;
+  CHANGE_TO_FOLLOWER = 0;
 }
