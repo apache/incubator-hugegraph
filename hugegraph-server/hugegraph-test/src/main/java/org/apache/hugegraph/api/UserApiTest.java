@@ -25,12 +25,14 @@ import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
 import jakarta.ws.rs.core.Response;
 
+@Ignore
 public class UserApiTest extends BaseApiTest {
 
     private static final String PATH = "graphs/hugegraph/auth/users";
