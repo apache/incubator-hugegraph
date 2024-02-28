@@ -90,6 +90,7 @@ public interface PDPulse {
      * Interface of pulse.
      */
     interface Listener<T> {
+
         /**
          * Invoked on new events.
          *
@@ -128,6 +129,7 @@ public interface PDPulse {
      * @param <T>
      */
     interface Notifier<T> extends Closeable {
+
         /**
          * closes this watcher and all its resources.
          */

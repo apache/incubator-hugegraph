@@ -22,6 +22,7 @@ import java.util.Objects;
 import org.apache.hugegraph.pd.grpc.watch.NodeEventType;
 
 public class NodeEvent {
+
     private final String graph;
     private final long nodeId;
     private final EventType eventType;

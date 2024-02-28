@@ -22,6 +22,7 @@ import java.util.Objects;
 import org.apache.hugegraph.pd.grpc.watch.WatchChangeType;
 
 public class PartitionEvent {
+
     private final String graph;
     private final int partitionId;
     private final ChangeType changeType;

@@ -34,19 +34,6 @@ public interface PDWatch {
      */
     //PDWatcher watchNode(Listener<NodeEvent> listener);
 
-    /**
-     * Watch the events of the store-nodes assigned to a specified graph.
-     *
-     * @param graph the graph name which you want to watch
-     * @param listener
-     * @return
-     */
-    //PDWatcher watchNode(String graph, Listener<NodeEvent> listener);
-
-    String getCurrentHost();
-
-    boolean checkChannel();
-
     /*** inner static methods ***/
     static <T> Listener<T> listener(Consumer<T> onNext) {
         return listener(onNext, t -> {
@@ -85,6 +72,19 @@ public interface PDWatch {
     }
 
     /**
+     * Watch the events of the store-nodes assigned to a specified graph.
+     *
+     * @param graph    the graph name which you want to watch
+     * @param listener
+     * @return
+     */
+    //PDWatcher watchNode(String graph, Listener<NodeEvent> listener);
+
+    String getCurrentHost();
+
+    boolean checkChannel();
+
+    /**
      * @param listener
      * @return
      */
@@ -96,11 +96,11 @@ public interface PDWatch {
 
     Watcher watchShardGroup(Listener<WatchResponse> listener);
 
-
     /**
      * Interface of Watcher.
      */
     interface Listener<T> {
+
         /**
          * Invoked on new events.
          *
@@ -118,10 +118,13 @@ public interface PDWatch {
         /**
          * Invoked on completion.
          */
-        default void onCompleted() {};
+        default void onCompleted() {
+        }
+
     }
 
     interface Watcher extends Closeable {
+
         /**
          * closes this watcher and all its resources.
          */

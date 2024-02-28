@@ -57,6 +57,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class PDClient {
+
     private final PDConfig config;
     private final Pdpb.RequestHeader header;
     private final ClientCache cache;
@@ -1287,6 +1288,7 @@ public class PDClient {
     }
 
     public interface PDEventListener {
+
         void onStoreChanged(NodeEvent event);
 
         void onPartitionChanged(PartitionEvent event);

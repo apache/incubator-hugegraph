@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.pulse;
 
 public interface PulseServerNotice<T> {
+
     /**
      * @throws RuntimeException when failed to send ack-message to pd-server
      */

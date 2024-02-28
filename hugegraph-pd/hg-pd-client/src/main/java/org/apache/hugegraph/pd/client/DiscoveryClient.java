@@ -124,20 +124,20 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
         try {
             if (requireResetStub.get()) {
                 while (channel != null && !channel.shutdownNow().awaitTermination(
-                    100, TimeUnit.MILLISECONDS)) {
+                        100, TimeUnit.MILLISECONDS)) {
                     continue;
                 }
                 channel = ManagedChannelBuilder.forTarget(
-                    singleAddress).usePlaintext().build();
+                        singleAddress).usePlaintext().build();
                 this.registerStub = DiscoveryServiceGrpc.newBlockingStub(
-                    channel);
+                        channel);
                 this.blockingStub = DiscoveryServiceGrpc.newBlockingStub(
-                    channel);
+                        channel);
                 requireResetStub.set(false);
             }
         } catch (Exception e) {
             throw new PDException(-1, String.format(
-                "Reset channel with error : %s.", e.getMessage()));
+                    "Reset channel with error : %s.", e.getMessage()));
         } finally {
             readWriteLock.writeLock().unlock();
         }
@@ -209,7 +209,7 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
         readWriteLock.writeLock().lock();
         try {
             while (channel != null && !channel.shutdownNow().awaitTermination(
-                100, TimeUnit.MILLISECONDS)) {
+                    100, TimeUnit.MILLISECONDS)) {
                 continue;
             }
         } catch (Exception e) {

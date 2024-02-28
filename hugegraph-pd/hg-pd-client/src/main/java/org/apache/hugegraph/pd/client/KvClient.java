@@ -28,8 +28,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.pd.client.AbstractClient;
-import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.kv.K;
 import org.apache.hugegraph.pd.grpc.kv.KResponse;
@@ -80,14 +78,12 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         return response;
     }
 
-
     public KResponse get(String key) throws PDException {
         K k = K.newBuilder().setKey(key).build();
         KResponse response = blockingUnaryCall(KvServiceGrpc.getGetMethod(), k);
         handleErrors(response.getHeader());
         return response;
     }
-
 
     public KvResponse delete(String key) throws PDException {
         K k = K.newBuilder().setKey(key).build();
@@ -96,14 +92,12 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         return response;
     }
 
-
     public KvResponse deletePrefix(String prefix) throws PDException {
         K k = K.newBuilder().setKey(prefix).build();
         KvResponse response = blockingUnaryCall(KvServiceGrpc.getDeletePrefixMethod(), k);
         handleErrors(response.getHeader());
         return response;
     }
-
 
     public ScanPrefixResponse scanPrefix(String prefix) throws PDException {
         K k = K.newBuilder().setKey(prefix).build();
@@ -182,7 +176,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
             public void onError(Throwable t) {
                 listenWrapper.accept(key, consumer);
             }
-
 
             @Override
             public void onCompleted() {
@@ -269,17 +262,7 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
             throw e;
         }
         return response;
-    }    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
-        try {
-            listen(key, consumer);
-        } catch (PDException e) {
-            try {
-                log.warn("start listen with warning:", e);
-                Thread.sleep(1000);
-            } catch (InterruptedException ex) {
-            }
-        }
-    };
+    }
 
     public LockResponse lockWithoutReentrant(String key, long ttl) throws PDException {
         acquire();
@@ -334,7 +317,17 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         super.close();
     }
 
-
+    BiConsumer<String, Consumer> listenWrapper = (key, consumer) -> {
+        try {
+            listen(key, consumer);
+        } catch (PDException e) {
+            try {
+                log.warn("start listen with warning:", e);
+                Thread.sleep(1000);
+            } catch (InterruptedException ex) {
+            }
+        }
+    };
 
     BiConsumer<String, Consumer> prefixListenWrapper = (key, consumer) -> {
         try {
@@ -347,6 +340,4 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
             }
         }
     };
-
-
 }

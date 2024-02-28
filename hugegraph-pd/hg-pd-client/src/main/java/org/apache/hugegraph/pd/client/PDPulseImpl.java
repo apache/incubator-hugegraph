@@ -55,7 +55,6 @@ public final class PDPulseImpl implements PDPulse {
         threadPool = Executors.newSingleThreadExecutor(namedThreadFactory);
     }
 
-
     private String getCurrentHost() {
         return this.pdServerAddress;
     }
@@ -93,6 +92,7 @@ public final class PDPulseImpl implements PDPulse {
     private class PartitionHeartbeat extends
                                      AbstractConnector<PartitionHeartbeatRequest.Builder,
                                              PulseResponse> {
+
         private long observerId = -1;
 
         PartitionHeartbeat(Listener<PulseResponse> listener) {
@@ -131,6 +131,7 @@ public final class PDPulseImpl implements PDPulse {
 
     private abstract class AbstractConnector<N, L> implements Notifier<N>,
                                                               StreamObserver<PulseResponse> {
+
         Listener<L> listener;
         StreamObserver<PulseRequest> reqStream;
         PulseType pulseType;

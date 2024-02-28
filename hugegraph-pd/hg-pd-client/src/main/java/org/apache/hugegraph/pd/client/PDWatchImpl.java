@@ -91,9 +91,9 @@ final class PDWatchImpl implements PDWatch {
         private GraphWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                      .newBuilder()
-                      .setWatchType(WatchType.WATCH_TYPE_GRAPH_CHANGE)
-                      .build()
+                          .newBuilder()
+                          .setWatchType(WatchType.WATCH_TYPE_GRAPH_CHANGE)
+                          .build()
             );
         }
 
@@ -108,9 +108,9 @@ final class PDWatchImpl implements PDWatch {
         private ShardGroupWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                      .newBuilder()
-                      .setWatchType(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE)
-                      .build()
+                          .newBuilder()
+                          .setWatchType(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE)
+                          .build()
             );
         }
 
@@ -125,9 +125,9 @@ final class PDWatchImpl implements PDWatch {
         private PartitionWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                      .newBuilder()
-                      .setWatchType(WatchType.WATCH_TYPE_PARTITION_CHANGE)
-                      .build()
+                          .newBuilder()
+                          .setWatchType(WatchType.WATCH_TYPE_PARTITION_CHANGE)
+                          .build()
             );
         }
 
@@ -136,18 +136,19 @@ final class PDWatchImpl implements PDWatch {
             WatchPartitionResponse res = watchResponse.getPartitionResponse();
             PartitionEvent event = new PartitionEvent(res.getGraph(), res.getPartitionId(),
                                                       PartitionEvent.ChangeType.grpcTypeOf(
-                                                          res.getChangeType()));
+                                                              res.getChangeType()));
             this.listener.onNext(event);
         }
     }
 
     private class NodeWatcher extends AbstractWatcher<NodeEvent> {
+
         private NodeWatcher(Listener listener) {
             super(listener,
                   () -> WatchCreateRequest
-                      .newBuilder()
-                      .setWatchType(WatchType.WATCH_TYPE_STORE_NODE_CHANGE)
-                      .build()
+                          .newBuilder()
+                          .setWatchType(WatchType.WATCH_TYPE_STORE_NODE_CHANGE)
+                          .build()
             );
         }
 
@@ -161,6 +162,7 @@ final class PDWatchImpl implements PDWatch {
     }
 
     private abstract class AbstractWatcher<T> implements Watcher, StreamObserver<WatchResponse> {
+
         Listener<T> listener;
         StreamObserver<WatchRequest> reqStream;
         Supplier<WatchCreateRequest> requestSupplier;
@@ -175,7 +177,7 @@ final class PDWatchImpl implements PDWatch {
         void init() {
             this.reqStream = PDWatchImpl.this.stub.watch(this);
             this.reqStream.onNext(WatchRequest.newBuilder().setCreateRequest(
-                this.requestSupplier.get()
+                    this.requestSupplier.get()
             ).build());
         }
 

@@ -34,7 +34,6 @@ public class DiscoveryClientImpl extends DiscoveryClient {
     private final Map labels;
     private final Consumer registerConsumer;
 
-
     private DiscoveryClientImpl(Builder builder) {
         super(builder.centerAddress, builder.delay);
         period = builder.delay;
@@ -52,7 +51,6 @@ public class DiscoveryClientImpl extends DiscoveryClient {
         return new Builder();
     }
 
-
     @Override
     NodeInfo getRegisterNode() {
         return NodeInfo.newBuilder().setAddress(this.address)
@@ -65,7 +63,6 @@ public class DiscoveryClientImpl extends DiscoveryClient {
     Consumer getRegisterConsumer() {
         return registerConsumer;
     }
-
 
     public static final class Builder {
 
