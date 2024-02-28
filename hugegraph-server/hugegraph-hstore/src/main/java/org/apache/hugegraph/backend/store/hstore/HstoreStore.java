@@ -99,7 +99,6 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         Supplier<List<HstoreSessions>> dbsGet = () -> {
             List<HstoreSessions> dbs = new ArrayList<>();
             dbs.add(this.sessions);
-            //dbs.addAll(this.tableDBMapping().values());
             return dbs;
         };
         this.registerMetaHandler("metrics", (session, meta, args) -> {
