@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -59,7 +60,6 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public abstract class HstoreStore extends AbstractBackendStore<Session> {
@@ -96,8 +96,15 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     }
 
     private void registerMetaHandlers() {
+        Supplier<List<HstoreSessions>> dbsGet = () -> {
+            List<HstoreSessions> dbs = new ArrayList<>();
+            dbs.add(this.sessions);
+            //dbs.addAll(this.tableDBMapping().values());
+            return dbs;
+        };
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            return ImmutableMap.of();
+            HstoreMetrics metrics = new HstoreMetrics(dbsGet.get(), session);
+            return metrics.metrics();
         });
         this.registerMetaHandler("mode", (session, meta, args) -> {
             E.checkArgument(args.length == 1,
@@ -390,8 +397,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     //                for (ConditionQuery conditionQuery :
     //                    ConditionQueryFlatten.flatten(cq)) {
     //                    Id label = conditionQuery.condition(HugeKeys.LABEL);
-    //                 /* 父类型 + sortKeys： g.V("V.id").outE("parentLabel").has
-    //                 ("sortKey","value")转成 所有子类型 + sortKeys*/
+    //                 /* 父类型 + sortKeys：g.V("V.id").outE("parentLabel").has
+    //                 ("sortKey","value") 转成 所有子类型 + sortKeys*/
     //                    if ((this.subEls == null ||
     //                         !this.subEls.hasNext()) && label != null &&
     //                        hugeGraph.edgeLabel(label).isFather() &&
@@ -557,7 +564,7 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         if (this.isGraphStore && !olapPks.isEmpty()) {
             List<Iterator<BackendEntry>> iterators = new ArrayList<>();
             for (Id pk : olapPks) {
-                // 构造olap表查询query condition
+                // 构造 olap 表查询 query condition
                 Query q = this.constructOlapQueryCondition(pk, query);
                 table = this.table(HugeType.OLAP);
                 iterators.add(table.queryOlap(this.session(HugeType.OLAP), q));
@@ -570,9 +577,9 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
 
     /**
-     * 重新构造 查询olap表 query
-     * 由于 olap合并成一张表, 在写入olap数据, key在后面增加了pk
-     * 所以在此进行查询的时候,需要重新构造pk前缀
+     * 重新构造 查询 olap 表 query
+     * 由于 olap 合并成一张表，在写入 olap 数据，key 在后面增加了 pk
+     * 所以在此进行查询的时候，需要重新构造 pk 前缀
      * 写入参考 BinarySerializer.writeOlapVertex
      *
      * @param pk
