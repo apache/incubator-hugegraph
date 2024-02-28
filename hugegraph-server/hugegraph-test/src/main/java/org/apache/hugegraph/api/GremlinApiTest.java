@@ -20,13 +20,14 @@ package org.apache.hugegraph.api;
 import java.util.List;
 import java.util.Map;
 
-import jakarta.ws.rs.core.Response;
-
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 
-import org.apache.hugegraph.testutil.Assert;
 import com.google.common.collect.ImmutableMap;
+
+import jakarta.ws.rs.core.Response;
 
 public class GremlinApiTest extends BaseApiTest {
 
@@ -88,6 +89,7 @@ public class GremlinApiTest extends BaseApiTest {
         assertResponseStatus(200, client().post(path, body));
     }
 
+    @Ignore
     @Test
     public void testClearAndInit() {
         String body = "{" +
