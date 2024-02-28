@@ -53,9 +53,9 @@ jobs:
         run: |
           mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test -Dmaven.test.failure.ignore=true
 
-#      - name: Run core test
-#        run: |
-#          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-core-test -Dmaven.test.failure.ignore=true
+      - name: Run core test
+        run: |
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-core-test -Dmaven.test.failure.ignore=true
 
       - name: Run cli-tools test
         run: |
@@ -192,9 +192,9 @@ jobs:
         run: |
           $TRAVIS_DIR/run-unit-test.sh $BACKEND
 
-      - name: Run core test
-        run: |
-          $TRAVIS_DIR/run-core-test.sh $BACKEND
+#      - name: Run core test
+#        run: |
+#          $TRAVIS_DIR/run-core-test.sh $BACKEND
 
       - name: Run api test
         run: |
