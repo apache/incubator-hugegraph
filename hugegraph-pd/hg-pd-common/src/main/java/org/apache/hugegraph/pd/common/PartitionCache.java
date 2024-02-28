@@ -42,17 +42,15 @@ public class PartitionCache {
 
     // 读写锁对象
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+    private final Map<String, AtomicBoolean> locks = new HashMap<>();
     Lock writeLock = readWriteLock.writeLock();
     // 每张图一个缓存
     private volatile Map<String, RangeMap<Long, Integer>> keyToPartIdCache;
     // graphName + PartitionID 组成 key
     private volatile Map<String, Map<Integer, Metapb.Partition>> partitionCache;
-
     private volatile Map<Integer, Metapb.ShardGroup> shardGroupCache;
     private volatile Map<Long, Metapb.Store> storeCache;
     private volatile Map<String, Metapb.Graph> graphCache;
-
-    private final Map<String, AtomicBoolean> locks = new HashMap<>();
 
     public PartitionCache() {
         keyToPartIdCache = new HashMap<>();
