@@ -25,7 +25,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.util.JsonUtil;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -33,7 +32,6 @@ import com.google.common.collect.ImmutableMap;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.core.Response;
 
-@Ignore
 public class ProjectApiTest extends BaseApiTest {
 
     private static final String PATH = "graphs/hugegraph/auth/projects";

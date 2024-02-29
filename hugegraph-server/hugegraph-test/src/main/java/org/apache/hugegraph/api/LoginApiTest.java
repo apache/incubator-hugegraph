@@ -25,7 +25,6 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import jakarta.ws.rs.core.GenericType;
@@ -33,7 +32,7 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
-@Ignore
+
 public class LoginApiTest extends BaseApiTest {
 
     private static final String PATH = "graphs/hugegraph/auth";
