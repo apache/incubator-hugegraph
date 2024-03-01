@@ -789,5 +789,14 @@ public class HstoreSessionsImpl extends HstoreSessions {
             HstoreSessionsImpl.getDefaultPdClient()
                               .resetIdByKey(this.getGraphName());
         }
+
+        @Override
+        public int getActiveStoreSize() {
+            try {
+                return defaultPdClient.getActiveStores().size();
+            } catch (PDException ignore) {
+            }
+            return 0;
+        }
     }
 }

@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.apache.hugegraph.testutil.Assert;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -89,7 +88,6 @@ public class GremlinApiTest extends BaseApiTest {
         assertResponseStatus(200, client().post(path, body));
     }
 
-    @Ignore
     @Test
     public void testClearAndInit() {
         String body = "{" +

@@ -37,9 +37,8 @@ public class HstoreMetrics implements BackendMetrics {
     @Override
     public Map<String, Object> metrics() {
         Map<String, Object> results = InsertionOrderUtil.newMap();
-        results.put(NODES, 1);
-        results.put(CLUSTER_ID, SERVER_LOCAL);
-        // TODO get metrics info or exception and return
+        // TODO(metrics): fetch more metrics from PD
+        results.put(NODES, session.getActiveStoreSize());
         return results;
     }
 }
