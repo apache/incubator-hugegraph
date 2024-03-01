@@ -17,9 +17,16 @@
 
 package org.apache.hugegraph.api.filter;
 
+import static org.apache.hugegraph.api.API.CHARSET;
+
+import java.io.BufferedInputStream;
 import java.io.IOException;
 
+import org.apache.commons.io.Charsets;
+import org.apache.commons.io.IOUtils;
+
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
@@ -35,24 +42,29 @@ public class PathFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        context.setProperty(REQUEST_TIME, System.currentTimeMillis());
+        long startTime = System.currentTimeMillis();
 
-        // TODO: temporarily comment it to fix loader bug, handle it later
-        /*// record the request json
+        context.setProperty(REQUEST_TIME, startTime);
+
+        recordRequestJson(context);
+    }
+
+    private void recordRequestJson(ContainerRequestContext context) throws IOException {
         String method = context.getMethod();
-        String requestParamsJson = "";
         if (method.equals(HttpMethod.POST)) {
-            requestParamsJson = IOUtils.toString(context.getEntityStream(),
-                                                 Charsets.toCharset(CHARSET));
-            // replace input stream because we have already read it
-            InputStream in = IOUtils.toInputStream(requestParamsJson, Charsets.toCharset(CHARSET));
-            context.setEntityStream(in);
-        } else if (method.equals(HttpMethod.GET)) {
-            MultivaluedMap<String, String> pathParameters = context.getUriInfo()
-                                                                   .getPathParameters();
-            requestParamsJson = pathParameters.toString();
-        }
+            BufferedInputStream bufferedStream = new BufferedInputStream(context.getEntityStream());
 
-        context.setProperty(REQUEST_PARAMS_JSON, requestParamsJson);*/
+            bufferedStream.mark(Integer.MAX_VALUE);
+
+            context.setProperty(REQUEST_PARAMS_JSON,
+                                IOUtils.toString(bufferedStream, Charsets.toCharset(CHARSET)));
+
+            bufferedStream.reset();
+
+            context.setEntityStream(bufferedStream);
+        } else if (method.equals(HttpMethod.GET)) {
+            context.setProperty(REQUEST_PARAMS_JSON,
+                                context.getUriInfo().getPathParameters().toString());
+        }
     }
 }

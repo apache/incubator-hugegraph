@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.api.filter;
 
+import static org.apache.hugegraph.api.filter.PathFilter.REQUEST_PARAMS_JSON;
 import static org.apache.hugegraph.api.filter.PathFilter.REQUEST_TIME;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_FAILED_COUNTER;
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_RESPONSE_TIME_HISTOGRAM;
@@ -24,7 +25,9 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_SUCCESS_COUN
 import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTER;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
@@ -38,6 +41,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.Provider;
 
 // TODO: should add test for this class
@@ -109,10 +113,22 @@ public class AccessLogFilter implements ContainerResponseFilter {
             // Record slow query if meet needs, watch out the perf
             if (timeThreshold > 0 && executeTime > timeThreshold &&
                 needRecordLog(requestContext)) {
-                // TODO: set RequestBody null, handle it later & should record "client IP"
-                LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
-                         executeTime, null, method, path, uri.getQuery());
+
+                LOG.info("[Slow Query] ip={} execTime={}ms, body={}, method={}, path={}, query={}",
+                         getClientIP(requestContext), executeTime,
+                         requestContext.getProperty(REQUEST_PARAMS_JSON), method, path,
+                         uri.getQuery());
             }
+        }
+    }
+
+    private String getClientIP(ContainerRequestContext requestContext) {
+        try {
+            UriInfo uriInfo = requestContext.getUriInfo();
+            String host = uriInfo.getRequestUri().getHost();
+            return InetAddress.getByName(host).getHostAddress();
+        } catch (UnknownHostException e) {
+            return "unknown";
         }
     }
 
