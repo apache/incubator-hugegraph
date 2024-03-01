@@ -20,6 +20,7 @@ package org.apache.hugegraph.api.gremlin;
 import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.util.E;
 
 import com.codahale.metrics.Histogram;
 import com.codahale.metrics.annotation.Timed;
@@ -77,6 +78,7 @@ public class GremlinAPI extends GremlinQueryAPI {
                         @Context UriInfo uriInfo) {
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         String query = uriInfo.getRequestUri().getRawQuery();
+        E.checkArgumentNotNull(query, "The request query can't be empty");
         MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
         Response response = this.client().doGetRequest(auth, params);
         GREMLIN_INPUT_HISTOGRAM.update(query.length());
