@@ -300,6 +300,7 @@ public class MetricsApiTest extends BaseApiTest {
                 }
                 break;
             case "hstore":
+                // TODO(metrics): check metrics info
                 break;
             default:
                 Assert.fail("Unexpected backend " + backend);
