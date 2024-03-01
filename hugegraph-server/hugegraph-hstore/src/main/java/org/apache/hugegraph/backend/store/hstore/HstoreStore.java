@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -59,7 +60,6 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public abstract class HstoreStore extends AbstractBackendStore<Session> {
@@ -96,8 +96,14 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     }
 
     private void registerMetaHandlers() {
+        Supplier<List<HstoreSessions>> dbsGet = () -> {
+            List<HstoreSessions> dbs = new ArrayList<>();
+            dbs.add(this.sessions);
+            return dbs;
+        };
         this.registerMetaHandler("metrics", (session, meta, args) -> {
-            return ImmutableMap.of();
+            HstoreMetrics metrics = new HstoreMetrics(dbsGet.get(), session);
+            return metrics.metrics();
         });
         this.registerMetaHandler("mode", (session, meta, args) -> {
             E.checkArgument(args.length == 1,

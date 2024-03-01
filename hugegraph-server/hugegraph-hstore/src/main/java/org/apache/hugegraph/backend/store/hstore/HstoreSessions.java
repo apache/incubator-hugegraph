@@ -202,5 +202,7 @@ public abstract class HstoreSessions extends BackendSessionPool {
         }
 
         public abstract void beginTx();
+
+        public abstract int getActiveStoreSize();
     }
 }
