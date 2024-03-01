@@ -33,7 +33,6 @@
         <skip.dump>true</skip.dump>
         <!--maven.test.skip>true</maven.test.skip-->
         <powermock.version>2.0.0-RC.3</powermock.version>
-        <jackson.version>2.14.2</jackson.version>
     </properties>
 
     <profiles>
@@ -114,17 +113,17 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
+            <version>2.13.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
+            <version>2.13.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
+            <version>2.13.0</version>
         </dependency>
 
         <dependency>
