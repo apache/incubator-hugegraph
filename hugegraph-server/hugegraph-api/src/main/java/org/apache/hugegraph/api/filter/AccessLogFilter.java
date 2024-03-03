@@ -26,6 +26,7 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 import java.io.IOException;
 import java.net.URI;
 
+import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.metrics.MetricsUtil;
@@ -114,6 +115,9 @@ public class AccessLogFilter implements ContainerResponseFilter {
                          executeTime, null, method, path, uri.getQuery());
             }
         }
+
+        // request thread multiplex will not clear TLS, need release the context
+        HugeGraphAuthProxy.resetContext();
     }
 
     private boolean statusOk(int status) {

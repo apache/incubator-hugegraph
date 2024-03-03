@@ -1818,7 +1818,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return old;
     }
 
-    protected static void resetContext() {
+    public static void resetContext() {
         CONTEXTS.remove();
     }
 
