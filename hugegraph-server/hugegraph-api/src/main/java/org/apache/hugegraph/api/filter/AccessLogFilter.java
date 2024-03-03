@@ -116,7 +116,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
             }
         }
 
-        // request thread multiplex will not clear TLS, need release the context
+        // Release the context
         HugeGraphAuthProxy.resetContext();
     }
 
