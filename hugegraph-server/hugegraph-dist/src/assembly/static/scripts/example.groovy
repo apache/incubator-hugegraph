@@ -15,16 +15,15 @@
  * limitations under the License.
  */
 import org.apache.hugegraph.HugeFactory
-import org.apache.hugegraph.backend.id.IdGenerator
 import org.apache.hugegraph.dist.RegisterUtil
-import org.apache.hugegraph.type.define.NodeRole
+import org.apache.hugegraph.masterelection.GlobalMasterInfo
 import org.apache.tinkerpop.gremlin.structure.T
 
 RegisterUtil.registerRocksDB()
 
 conf = "conf/graphs/hugegraph.properties"
 graph = HugeFactory.open(conf)
-graph.serverStarted(IdGenerator.of("server-tinkerpop"), NodeRole.MASTER)
+graph.serverStarted(GlobalMasterInfo.master("server-tinkerpop"))
 schema = graph.schema()
 
 schema.propertyKey("name").asText().ifNotExist().create()
