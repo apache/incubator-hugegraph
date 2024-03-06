@@ -164,12 +164,6 @@
             <artifactId>arthas-packaging</artifactId>
             <version>${arthas.version}</version>
         </dependency>
-      <dependency>
-        <groupId>org.gridkit.jvmtool</groupId>
-        <artifactId>sjk-core</artifactId>
-        <version>0.22</version>
-        <scope>compile</scope>
-      </dependency>
     </dependencies>
 
     <build>
@@ -194,7 +188,7 @@
                         </manifest>
                         <manifestEntries>
                             <!-- TODO: update it -->
-                            <Implementation-Version>0.71.0.0</Implementation-Version>
+                            <Implementation-Version>0.70.0.0</Implementation-Version>
                         </manifestEntries>
                     </archive>
                 </configuration>
