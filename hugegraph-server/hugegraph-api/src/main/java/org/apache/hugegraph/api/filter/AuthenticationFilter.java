@@ -41,11 +41,11 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
-import org.gridkit.jvmtool.cmd.AntPathMatcher;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.util.StringUtils;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.BadRequestException;
@@ -71,12 +71,13 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
-    private static final List<String> WHITE_API_LIST = ImmutableList.of(
-            "graphs/*/auth/login",
+    private static final ImmutableSet<String> FIXED_WHITE_API_SET = ImmutableSet.of(
             "versions",
             "openapi.json"
     );
-    private static final AntPathMatcher MATCHER = new AntPathMatcher();
+    private static final List<String> FLEXIBLE_WHITE_API_LIST = ImmutableList.of(
+            "auth/login"
+    );
 
     private static String whiteIpStatus;
 
@@ -316,8 +317,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     public static boolean isWhiteAPI(ContainerRequestContext context) {
         String path = context.getUriInfo().getPath();
-        for (String whiteApi : WHITE_API_LIST) {
-            if (MATCHER.match(whiteApi, path)) {
+        if (FIXED_WHITE_API_SET.contains(path)) {
+            return true;
+        }
+        for (String whiteApi : FLEXIBLE_WHITE_API_LIST) {
+            if (path.endsWith(whiteApi)) {
                 return true;
             }
         }
