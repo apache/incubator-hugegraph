@@ -103,9 +103,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         HugeGraphAuthProxy.logUser(user, credentials.get(KEY_PATH));
-        /*
-         * Set authentication context
-         */
+        // Set authentication context & unset in AccessLogFilter
         HugeGraphAuthProxy.setContext(new Context(user));
 
         return user;

@@ -116,7 +116,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
             }
         }
 
-        // Release the context
+        //Unset the context in "HugeAuthenticator"
         HugeGraphAuthProxy.resetContext();
     }
 
