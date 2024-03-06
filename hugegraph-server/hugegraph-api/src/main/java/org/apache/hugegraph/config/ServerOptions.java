@@ -294,7 +294,7 @@ public class ServerOptions extends OptionHolder {
                     "arthas.ip",
                     "The IP provided by Arthas, it can be accessible from the outside.",
                     disallowEmpty(),
-                    "0.0.0.0"
+                    "127.0.0.1"
             );
 
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =
