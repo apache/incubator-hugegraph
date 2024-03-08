@@ -71,13 +71,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
-    private static final ImmutableSet<String> FIXED_WHITE_API_SET = ImmutableSet.of(
+    private static final Set<String> FIXED_WHITE_API_SET = ImmutableSet.of(
             "versions",
             "openapi.json"
     );
-    private static final List<String> FLEXIBLE_WHITE_API_LIST = ImmutableList.of(
-            "auth/login"
-    );
+    // Remove auth/login API from white list
+    private static final Set<String> FLEXIBLE_WHITE_API_LIST = ImmutableSet.of();
 
     private static String whiteIpStatus;
 
@@ -95,7 +94,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        if (AuthenticationFilter.isWhiteAPI(context)) {
+        if (isWhiteAPI(context)) {
             return;
         }
         User user = this.authenticate(context);
@@ -320,6 +319,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         if (FIXED_WHITE_API_SET.contains(path)) {
             return true;
         }
+
         for (String whiteApi : FLEXIBLE_WHITE_API_LIST) {
             if (path.endsWith(whiteApi)) {
                 return true;
