@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.api.filter;
@@ -24,6 +24,18 @@ import java.util.NoSuchElementException;
 import javax.json.Json;
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.exception.HugeGremlinException;
+import org.apache.hugegraph.exception.NotFoundException;
+import org.glassfish.hk2.api.MultiException;
+
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
@@ -40,18 +52,6 @@ import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.config.ServerOptions;
-import org.glassfish.hk2.api.MultiException;
-
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.exception.HugeGremlinException;
-import org.apache.hugegraph.exception.NotFoundException;
-import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
 
 public class ExceptionFilter {
 
@@ -107,8 +107,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class HugeExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<HugeException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<HugeException> {
 
         @Override
         public Response toResponse(HugeException exception) {
@@ -121,8 +121,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class IllegalArgumentExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<IllegalArgumentException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<IllegalArgumentException> {
 
         @Override
         public Response toResponse(IllegalArgumentException exception) {
@@ -135,8 +135,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class NotFoundExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<NotFoundException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<NotFoundException> {
 
         @Override
         public Response toResponse(NotFoundException exception) {
@@ -149,8 +149,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class NoSuchElementExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<NoSuchElementException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<NoSuchElementException> {
 
         @Override
         public Response toResponse(NoSuchElementException exception) {
@@ -163,8 +163,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class WebApplicationExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<WebApplicationException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<WebApplicationException> {
 
         @Override
         public Response toResponse(WebApplicationException exception) {
@@ -189,8 +189,8 @@ public class ExceptionFilter {
 
     @Provider
     public static class HugeGremlinExceptionMapper
-                  extends TracedExceptionMapper
-                  implements ExceptionMapper<HugeGremlinException> {
+            extends TracedExceptionMapper
+            implements ExceptionMapper<HugeGremlinException> {
 
         @Override
         public Response toResponse(HugeGremlinException exception) {
@@ -204,7 +204,7 @@ public class ExceptionFilter {
 
     @Provider
     public static class AssertionErrorMapper extends TracedExceptionMapper
-                  implements ExceptionMapper<AssertionError> {
+            implements ExceptionMapper<AssertionError> {
 
         @Override
         public Response toResponse(AssertionError exception) {
@@ -217,7 +217,7 @@ public class ExceptionFilter {
 
     @Provider
     public static class UnknownExceptionMapper extends TracedExceptionMapper
-                  implements ExceptionMapper<Throwable> {
+            implements ExceptionMapper<Throwable> {
 
         @Override
         public Response toResponse(Throwable exception) {

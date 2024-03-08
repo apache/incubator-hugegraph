@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.task;
@@ -149,7 +149,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             do {
                 Iterator<HugeTask<V>> iter;
                 for (iter = this.findTask(status, PAGE_SIZE, page);
-                     iter.hasNext();) {
+                     iter.hasNext(); ) {
                     HugeTask<V> task = iter.next();
                     if (selfServer.equals(task.server())) {
                         taskList.add(task);
@@ -160,7 +160,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
             } while (page != null);
         }
-        for (HugeTask<V> task : taskList){
+        for (HugeTask<V> task : taskList) {
             LOG.info("restore task {}", task);
             this.restore(task);
         }
@@ -328,7 +328,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 }
 
                 HugeServerInfo server = this.serverManager().pickWorkerNode(
-                                        serverInfos, task);
+                        serverInfos, task);
                 if (server == null) {
                     LOG.info("The master can't find suitable servers to " +
                              "execute task '{}', wait for next schedule",
@@ -443,7 +443,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         HugeTask<?> delTask = this.tasks.remove(task.id());
         if (delTask != null && delTask != task) {
             LOG.warn("Task '{}' may be inconsistent status {}(expect {})",
-                      task.id(), task.status(), delTask.status());
+                     task.id(), task.status(), delTask.status());
         }
         assert delTask == null || delTask.completed() ||
                delTask.cancelling() || delTask.isCancelled() : delTask;
@@ -528,7 +528,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     public <V> HugeTask<V> findTask(Id id) {
-        HugeTask<V> result =  this.call(() -> {
+        HugeTask<V> result = this.call(() -> {
             Iterator<Vertex> vertices = this.tx().queryVertices(id);
             Vertex vertex = QueryResults.one(vertices);
             if (vertex == null) {
@@ -595,13 +595,13 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
-                                                  throws TimeoutException {
+            throws TimeoutException {
         return this.waitUntilTaskCompleted(id, seconds, QUERY_INTERVAL);
     }
 
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
-                                                  throws TimeoutException {
+            throws TimeoutException {
         // This method is just used by tests
         long timeout = this.graph.configuration()
                                  .get(CoreOptions.TASK_WAIT_TIMEOUT);
@@ -610,10 +610,10 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     private <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
                                                    long intervalMs)
-                                                   throws TimeoutException {
+            throws TimeoutException {
         long passes = seconds * 1000 / intervalMs;
         HugeTask<V> task = null;
-        for (long pass = 0;; pass++) {
+        for (long pass = 0; ; pass++) {
             try {
                 task = this.task(id);
             } catch (NotFoundException e) {
@@ -635,15 +635,15 @@ public class StandardTaskScheduler implements TaskScheduler {
             sleep(intervalMs);
         }
         throw new TimeoutException(String.format(
-                  "Task '%s' was not completed in %s seconds", id, seconds));
+                "Task '%s' was not completed in %s seconds", id, seconds));
     }
 
     @Override
     public void waitUntilAllTasksCompleted(long seconds)
-                                           throws TimeoutException {
+            throws TimeoutException {
         long passes = seconds * 1000 / QUERY_INTERVAL;
         int taskSize;
-        for (long pass = 0;; pass++) {
+        for (long pass = 0; ; pass++) {
             taskSize = this.pendingTasks();
             if (taskSize == 0) {
                 sleep(QUERY_INTERVAL);
@@ -655,8 +655,8 @@ public class StandardTaskScheduler implements TaskScheduler {
             sleep(QUERY_INTERVAL);
         }
         throw new TimeoutException(String.format(
-                  "There are still %s incomplete tasks after %s seconds",
-                  taskSize, seconds));
+                "There are still %s incomplete tasks after %s seconds",
+                taskSize, seconds));
     }
 
     @Override
@@ -711,7 +711,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     private <V> V call(Callable<V> callable) {
         assert !Thread.currentThread().getName().startsWith(
-               "task-db-worker") : "can't call by itself";
+                "task-db-worker") : "can't call by itself";
         try {
             // Pass task context for db thread
             callable = new ContextCallable<>(callable);
@@ -804,7 +804,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         private boolean existVertexLabel(String label) {
             return this.params().schemaTransaction()
-                                .getVertexLabel(label) != null;
+                       .getVertexLabel(label) != null;
         }
 
         private String[] initProperties() {

@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.serializer;
@@ -23,15 +23,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.commons.lang.NotImplementedException;
-
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -42,6 +37,8 @@ import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.IdPrefixQuery;
 import org.apache.hugegraph.backend.query.IdRangeQuery;
 import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -55,6 +52,7 @@ import org.apache.hugegraph.structure.HugeIndex.IdWithExpiredTime;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.AggregateType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
@@ -66,13 +64,15 @@ import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.JsonUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class TextSerializer extends AbstractSerializer {
 
     private static final String VALUE_SPLITOR = TextBackendEntry.VALUE_SPLITOR;
     private static final String EDGE_NAME_ENDING =
-                                ConditionQuery.INDEX_SYM_ENDING;
+            ConditionQuery.INDEX_SYM_ENDING;
 
     private static final String EDGE_OUT_TYPE = writeType(HugeType.EDGE_OUT);
 
@@ -163,7 +163,7 @@ public class TextSerializer extends AbstractSerializer {
         } else {
             if (!(value instanceof Collection)) {
                 throw new BackendException(
-                          "Invalid value of non-single property: %s", colValue);
+                        "Invalid value of non-single property: %s", colValue);
             }
             for (Object v : (Collection<?>) value) {
                 v = JsonUtil.castNumber(v, pkey.dataType().clazz());
@@ -313,7 +313,7 @@ public class TextSerializer extends AbstractSerializer {
         HugeVertex vertex = new HugeVertex(graph, id, vertexLabel);
 
         String expiredTime = entry.column(this.formatSyspropName(
-                             HugeKeys.EXPIRED_TIME));
+                HugeKeys.EXPIRED_TIME));
         // Expired time is null when backend entry is fake vertex with edges
         if (expiredTime != null) {
             vertex.expiredTime(readLong(expiredTime));
@@ -355,7 +355,7 @@ public class TextSerializer extends AbstractSerializer {
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
         TextBackendEntry entry = newBackendEntry(index.type(), index.id());
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+        if (index.fieldValues() == null && index.elementIds().isEmpty()) {
             /*
              * When field-values is null and elementIds size is 0, it is
              * meaningful for deletion of index data in secondary/range index.
@@ -385,11 +385,11 @@ public class TextSerializer extends AbstractSerializer {
 
         TextBackendEntry entry = this.convertEntry(backendEntry);
         String indexValues = entry.column(
-                             formatSyspropName(HugeKeys.FIELD_VALUES));
+                formatSyspropName(HugeKeys.FIELD_VALUES));
         String indexLabelId = entry.column(
-                              formatSyspropName(HugeKeys.INDEX_LABEL_ID));
+                formatSyspropName(HugeKeys.INDEX_LABEL_ID));
         String elemIds = entry.column(
-                         formatSyspropName(HugeKeys.ELEMENT_IDS));
+                formatSyspropName(HugeKeys.ELEMENT_IDS));
 
         IndexLabel indexLabel = IndexLabel.label(graph, readId(indexLabelId));
         HugeIndex index = new HugeIndex(graph, indexLabel);
@@ -497,7 +497,7 @@ public class TextSerializer extends AbstractSerializer {
             }
         }
 
-        if (condParts.size() > 0) {
+        if (!condParts.isEmpty()) {
             // Conditions to id
             String id = EdgeId.concat(condParts.toArray(new String[0]));
             return new IdPrefixQuery(cq, IdGenerator.of(id));
@@ -865,7 +865,7 @@ public class TextSerializer extends AbstractSerializer {
                 Map<String, Object> map = (Map<String, Object>) values[i];
                 idValue = map.get(HugeKeys.ID.string());
                 expiredTime = ((Number) map.get(
-                              HugeKeys.EXPIRED_TIME.string())).longValue();
+                        HugeKeys.EXPIRED_TIME.string())).longValue();
             } else {
                 idValue = values[i];
                 expiredTime = 0L;

@@ -26,7 +26,9 @@ header: # `header` section is configurations for source codes license header.
       The ASF licenses this file to You under the Apache License, Version 2.0
       (the "License"); you may not use this file except in compliance with
       the License.  You may obtain a copy of the License at
+
           http://www.apache.org/licenses/LICENSE-2.0
+
       Unless required by applicable law or agreed to in writing, software
       distributed under the License is distributed on an "AS IS" BASIS,
       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -34,20 +36,20 @@ header: # `header` section is configurations for source codes license header.
       limitations under the License.
     # `pattern` is optional regexp if all the file headers are the same as `license` or the license of `spdx-id` and `copyright-owner`.
     pattern: |
-      Licensed to the Apache Software Foundation under one or more contributor
-      license agreements. See the NOTICE file distributed with
-      this work for additional information regarding copyright
-      ownership. The Apache Software Foundation licenses this file to you under
-      the Apache License, Version 2.0 \(the "License"\); you may
-      not use this file except in compliance with the License.
-      You may obtain a copy of the License at
+      Licensed to the Apache Software Foundation \(ASF\) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      \(the "License"\); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+
           http://www.apache.org/licenses/LICENSE-2.0
-      Unless required by applicable law or agreed to in writing,
-      software distributed under the License is distributed on an
-      "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-      KIND, either express or implied.  See the License for the
-      specific language governing permissions and limitations
-      under the License.
+
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
   paths: # `paths` are the path list that will be checked (and fixed) by license-eye, default is ['**'].
     - '**'
 
@@ -90,13 +92,13 @@ header: # `header` section is configurations for source codes license header.
     - '.repository/**'
     - '**/.flattened-pom.xml'
     - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/SnowflakeIdGenerator.java'
-    - '**/optimize/HugeScriptTraversal.java'
-    - '**/type/Nameable.java'
-    - '**/define/Cardinality.java'
-    - '**/util/StringEncoding.java'
+    - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/traversal/optimize/HugeScriptTraversal.java'
+    - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/type/Nameable.java'
+    - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/type/define/Cardinality.java'
+    - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/util/StringEncoding.java'
+    - 'hugegraph-server/hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/ProcessBasicSuite.java'
     - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java'
     - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java'
-    - 'hugegraph-server/hugegraph-dist/src/assembly/static/bin/wait-storage.sh'
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.
 
   # license-location-threshold specifies the index threshold where the license header can be located,

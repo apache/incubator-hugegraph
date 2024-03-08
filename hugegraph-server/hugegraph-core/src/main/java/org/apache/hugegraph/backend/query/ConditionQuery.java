@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.query;
@@ -44,6 +44,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.LongEncoding;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -57,10 +58,11 @@ public class ConditionQuery extends IdQuery {
     public static final char INDEX_SYM_MAX = '\u0003';
 
     // Note: here we use "new String" to distinguish normal string code
-    public static final String INDEX_VALUE_NULL = new String("<null>");
-    public static final String INDEX_VALUE_EMPTY = new String("<empty>");
+    public static final String INDEX_VALUE_NULL = "<null>";
+    public static final String INDEX_VALUE_EMPTY = "<empty>";
 
     public static final Set<String> IGNORE_SYM_SET;
+
     static {
         List<String> list = new ArrayList<>(INDEX_SYM_MAX - INDEX_SYM_MIN);
         for (char ch = INDEX_SYM_MIN; ch <= INDEX_SYM_MAX; ch++) {
@@ -239,12 +241,12 @@ public class ConditionQuery extends IdQuery {
         if (valuesEQ.isEmpty() && valuesIN.isEmpty()) {
             return null;
         }
-        if (valuesEQ.size() == 1 && valuesIN.size() == 0) {
+        if (valuesEQ.size() == 1 && valuesIN.isEmpty()) {
             @SuppressWarnings("unchecked")
             T value = (T) valuesEQ.get(0);
             return value;
         }
-        if (valuesEQ.size() == 0 && valuesIN.size() == 1) {
+        if (valuesEQ.isEmpty() && valuesIN.size() == 1) {
             @SuppressWarnings("unchecked")
             T value = (T) valuesIN.get(0);
             return value;
@@ -271,7 +273,7 @@ public class ConditionQuery extends IdQuery {
             }
         }
 
-        if (intersectValues.size() == 0) {
+        if (intersectValues.isEmpty()) {
             return null;
         }
         E.checkState(intersectValues.size() == 1,
@@ -422,6 +424,7 @@ public class ConditionQuery extends IdQuery {
     /**
      * This method is only used for secondary index scenario,
      * its relation must be EQ
+     *
      * @param fields the user property fields
      * @return the corresponding user property serial values of fields
      */
@@ -443,8 +446,8 @@ public class ConditionQuery extends IdQuery {
             }
             if (!got) {
                 throw new BackendException(
-                          "No such userprop named '%s' in the query '%s'",
-                          field, this);
+                        "No such userprop named '%s' in the query '%s'",
+                        field, this);
             }
         }
         return concatValues(values);
@@ -513,7 +516,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean matchUserpropKeys(List<Id> keys) {
         Set<Id> conditionKeys = this.userpropKeys();
-        return keys.size() > 0 && conditionKeys.containsAll(keys);
+        return !keys.isEmpty() && conditionKeys.containsAll(keys);
     }
 
     @Override
@@ -535,6 +538,23 @@ public class ConditionQuery extends IdQuery {
         query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;
         return query;
+    }
+
+    public Condition.Relation copyRelationAndUpdateQuery(Object key) {
+        Condition.Relation copyRes = null;
+        for (int i = 0; i < this.conditions.size(); i++) {
+            Condition c = this.conditions.get(i);
+            if (c.isRelation()) {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(key)) {
+                    copyRes = r.copy();
+                    this.conditions.set(i, copyRes);
+                    break;
+                }
+            }
+        }
+        E.checkArgument(copyRes != null, "Failed to copy Condition.Relation: %s", key);
+        return copyRes;
     }
 
     @Override
@@ -602,7 +622,7 @@ public class ConditionQuery extends IdQuery {
 
     public void optimized(OptimizedType optimizedType) {
         assert this.optimizedType.ordinal() <= optimizedType.ordinal() :
-               this.optimizedType + " !<= " + optimizedType;
+                this.optimizedType + " !<= " + optimizedType;
         this.optimizedType = optimizedType;
 
         Query originQuery = this.originQuery();
@@ -672,7 +692,8 @@ public class ConditionQuery extends IdQuery {
     public static String concatValues(Object value) {
         if (value instanceof String) {
             return escapeSpecialValueIfNeeded((String) value);
-        } if (value instanceof List) {
+        }
+        if (value instanceof List) {
             return concatValues((List<?>) value);
         } else if (needConvertNumber(value)) {
             return LongEncoding.encodeNumber(value);
@@ -736,7 +757,7 @@ public class ConditionQuery extends IdQuery {
                 this.filed2IndexValues.putIfAbsent(indexField, new HashMap<>());
             }
             Map<Id, Set<Object>> element2IndexValueMap =
-                                 this.filed2IndexValues.get(indexField);
+                    this.filed2IndexValues.get(indexField);
             if (element2IndexValueMap.containsKey(elementId)) {
                 element2IndexValueMap.get(elementId).add(indexValue);
             } else {
@@ -781,7 +802,7 @@ public class ConditionQuery extends IdQuery {
             }
 
             Condition.UserpropRelation propRelation =
-                                       (Condition.UserpropRelation) cond;
+                    (Condition.UserpropRelation) cond;
             Id propId = propRelation.key();
             Set<Object> fieldValues = this.toRemoveIndexValues(propId,
                                                                element.id());
@@ -804,7 +825,7 @@ public class ConditionQuery extends IdQuery {
              */
             boolean hasRightValue = removeFieldValue(fieldValues,
                                                      property.value());
-            if (fieldValues.size() > 0) {
+            if (!fieldValues.isEmpty()) {
                 this.addLeftIndex(element.id(), propId, fieldValues);
             }
 

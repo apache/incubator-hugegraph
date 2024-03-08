@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.cassandra;
@@ -26,9 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
@@ -51,6 +48,9 @@ import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.CopyUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
+
 import com.datastax.driver.core.ColumnDefinitions.Definition;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PagingState;
@@ -74,7 +74,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public abstract class CassandraTable
-                extends BackendTable<CassandraSessionPool.Session, CassandraBackendEntry.Row> {
+        extends BackendTable<CassandraSessionPool.Session, CassandraBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(CassandraTable.class);
     private static final int MAX_ELEMENTS_IN_CLAUSE = 65535;
@@ -90,8 +90,8 @@ public abstract class CassandraTable
                             "The args count of %s must be 1", meta);
             long splitSize = (long) args[0];
             CassandraShard splitter = new CassandraShard(session,
-                                                        session.keyspace(),
-                                                        this.table());
+                                                         session.keyspace(),
+                                                         this.table());
             return splitter.getSplits(0, splitSize);
         });
     }
@@ -118,12 +118,12 @@ public abstract class CassandraTable
             statement.setReadTimeoutMillis(timeout * 1000);
             return session.query(statement);
         }, (q, rs) -> {
-                Row row = rs.one();
-                if (row == null) {
-                    return IteratorUtils.of(aggregate.defaultValue());
-                }
-                return IteratorUtils.of(row.getLong(0));
-            });
+            Row row = rs.one();
+            if (row == null) {
+                return IteratorUtils.of(aggregate.defaultValue());
+            }
+            return IteratorUtils.of(row.getLong(0));
+        });
         return aggregate.reduce(results);
     }
 
@@ -135,8 +135,7 @@ public abstract class CassandraTable
 
     protected <R> Iterator<R> query(Query query,
                                     Function<Statement, ResultSet> fetcher,
-                                    BiFunction<Query, ResultSet, Iterator<R>>
-                                    parser) {
+                                    BiFunction<Query, ResultSet, Iterator<R>> parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {
@@ -279,8 +278,8 @@ public abstract class CassandraTable
             List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new NotFoundException(
-                          "Unsupported ID format: '%s' (should contain %s)",
-                          id, nameParts);
+                        "Unsupported ID format: '%s' (should contain %s)",
+                        id, nameParts);
             }
             ids.add(idParts);
         }
@@ -373,7 +372,7 @@ public abstract class CassandraTable
                 return QueryBuilder.containsKey(key, value);
             case SCAN:
                 String[] col = pkColumnName().stream()
-                                             .map(pk -> formatKey(pk))
+                                             .map(CassandraTable::formatKey)
                                              .toArray(String[]::new);
                 Shard shard = (Shard) value;
                 Object start = QueryBuilder.raw(shard.start());
@@ -510,7 +509,7 @@ public abstract class CassandraTable
     }
 
     protected Insert buildInsert(CassandraBackendEntry.Row entry) {
-        assert entry.columns().size() > 0;
+        assert !entry.columns().isEmpty();
         Insert insert = QueryBuilder.insertInto(this.table());
 
         for (Map.Entry<HugeKeys, Object> c : entry.columns().entrySet()) {

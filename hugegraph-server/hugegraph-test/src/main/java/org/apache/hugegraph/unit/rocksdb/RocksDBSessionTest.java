@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit.rocksdb;
@@ -59,7 +59,8 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
     @Test
     public void testPutAndMultiGet() {
         BackendColumnIterator values =
-            this.rocks.session().get(TABLE, Collections.singletonList(getBytes("person:1gname")));
+                this.rocks.session()
+                          .get(TABLE, Collections.singletonList(getBytes("person:1gname")));
         Assert.assertFalse(values.hasNext());
 
         this.rocks.session().put(TABLE, getBytes("person:1gname"), getBytes("James"));
@@ -75,9 +76,9 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         Assert.assertFalse(values.hasNext());
 
         values = this.rocks.session().get(TABLE, Arrays.asList(
-                                                 getBytes("person:1gname"),
-                                                 getBytes("person:1gage"),
-                                                 getBytes("person:1gcity")));
+                getBytes("person:1gname"),
+                getBytes("person:1gage"),
+                getBytes("person:1gcity")));
         Assert.assertTrue(values.hasNext());
         Assert.assertEquals("James", getString(values.next().value));
         Assert.assertEquals(19, getLong(values.next().value));
@@ -85,19 +86,19 @@ public class RocksDBSessionTest extends BaseRocksDBUnitTest {
         Assert.assertFalse(values.hasNext());
 
         values = this.rocks.session().get(TABLE, Arrays.asList(
-                                                 getBytes("person:1gname"),
-                                                 getBytes("person:1gage-non-exist"),
-                                                 getBytes("person:1gcity")));
+                getBytes("person:1gname"),
+                getBytes("person:1gage-non-exist"),
+                getBytes("person:1gcity")));
         Assert.assertTrue(values.hasNext());
         Assert.assertEquals("James", getString(values.next().value));
         Assert.assertEquals("Beijing", getString(values.next().value));
         Assert.assertFalse(values.hasNext());
 
         values = this.rocks.session().get(TABLE, Arrays.asList(
-                                                 getBytes("person:1gname"),
-                                                 getBytes("person:1gage-non-exist"),
-                                                 getBytes("person:1gcity"),
-                                                 getBytes("person:1gname")));
+                getBytes("person:1gname"),
+                getBytes("person:1gage-non-exist"),
+                getBytes("person:1gcity"),
+                getBytes("person:1gname")));
         Assert.assertTrue(values.hasNext());
         Assert.assertEquals("James", getString(values.next().value));
         Assert.assertEquals("Beijing", getString(values.next().value));

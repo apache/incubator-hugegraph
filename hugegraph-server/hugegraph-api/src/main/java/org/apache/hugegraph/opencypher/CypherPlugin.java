@@ -28,13 +28,6 @@
 
 package org.apache.hugegraph.opencypher;
 
-import org.apache.tinkerpop.gremlin.jsr223.Customizer;
-import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
-import org.apache.tinkerpop.gremlin.jsr223.GremlinPlugin;
-import org.apache.tinkerpop.gremlin.jsr223.ImportCustomizer;
-import org.opencypher.gremlin.traversal.CustomFunctions;
-import org.opencypher.gremlin.traversal.CustomPredicate;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
@@ -42,15 +35,24 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.tinkerpop.gremlin.jsr223.Customizer;
+import org.apache.tinkerpop.gremlin.jsr223.DefaultImportCustomizer;
+import org.apache.tinkerpop.gremlin.jsr223.GremlinPlugin;
+import org.apache.tinkerpop.gremlin.jsr223.ImportCustomizer;
+import org.opencypher.gremlin.traversal.CustomFunctions;
+import org.opencypher.gremlin.traversal.CustomPredicate;
+
 public class CypherPlugin implements GremlinPlugin {
 
     private static final ImportCustomizer IMPORTS =
-        DefaultImportCustomizer.build()
-                               .addClassImports(CustomPredicate.class)
-                               .addMethodImports(getDeclaredPublicMethods(CustomPredicate.class))
-                               .addClassImports(CustomFunctions.class)
-                               .addMethodImports(getDeclaredPublicMethods(CustomFunctions.class))
-                               .create();
+            DefaultImportCustomizer.build()
+                                   .addClassImports(CustomPredicate.class)
+                                   .addMethodImports(
+                                           getDeclaredPublicMethods(CustomPredicate.class))
+                                   .addClassImports(CustomFunctions.class)
+                                   .addMethodImports(
+                                           getDeclaredPublicMethods(CustomFunctions.class))
+                                   .create();
 
     private static List<Method> getDeclaredPublicMethods(Class<?> klass) {
         Method[] declaredMethods = klass.getDeclaredMethods();

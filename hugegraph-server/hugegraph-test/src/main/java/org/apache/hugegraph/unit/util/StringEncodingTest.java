@@ -1,29 +1,28 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit.util;
 
 import java.util.UUID;
 
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.StringEncoding;
+import org.junit.Test;
 
 public class StringEncodingTest {
 
@@ -96,9 +95,9 @@ public class StringEncodingTest {
     public void testUuid() {
         UUID uuid = UUID.fromString("835e1153-9281-4957-8691-cf79258e90eb");
         Assert.assertEquals(uuid, StringEncoding.uuid(
-                                  "835e1153-9281-4957-8691-cf79258e90eb"));
+                "835e1153-9281-4957-8691-cf79258e90eb"));
         Assert.assertEquals(uuid, StringEncoding.uuid(
-                                  "835e1153928149578691cf79258e90eb"));
+                "835e1153928149578691cf79258e90eb"));
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             StringEncoding.uuid("");
@@ -148,10 +147,10 @@ public class StringEncodingTest {
     @Test
     public void testDecompress() {
         Assert.assertEquals("", StringEncoding.decompress(Bytes.fromHex(
-                            "4c5a34426c6f636b12000000000000000000000000")));
+                "4c5a34426c6f636b12000000000000000000000000")));
         Assert.assertEquals("abc", StringEncoding.decompress(Bytes.fromHex(
-                            "4c5a34426c6f636b12030000000300000022b24c0d616" +
-                            "2634c5a34426c6f636b12000000000000000000000000")));
+                "4c5a34426c6f636b12030000000300000022b24c0d616" +
+                "2634c5a34426c6f636b12000000000000000000000000")));
     }
 
     @Test

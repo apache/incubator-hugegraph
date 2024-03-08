@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph;
@@ -121,26 +121,26 @@ import com.google.common.util.concurrent.RateLimiter;
 public class StandardHugeGraph implements HugeGraph {
 
     public static final Class<?>[] PROTECT_CLASSES = {
-        StandardHugeGraph.class,
-        StandardHugeGraph.StandardHugeGraphParams.class,
-        TinkerPopTransaction.class,
-        StandardHugeGraph.Txs.class,
-        StandardHugeGraph.SysTransaction.class
+            StandardHugeGraph.class,
+            StandardHugeGraph.StandardHugeGraphParams.class,
+            TinkerPopTransaction.class,
+            StandardHugeGraph.Txs.class,
+            StandardHugeGraph.SysTransaction.class
     };
 
     public static final Set<TypedOption<?, ?>> ALLOWED_CONFIGS = ImmutableSet.of(
-           CoreOptions.TASK_WAIT_TIMEOUT,
-           CoreOptions.TASK_SYNC_DELETION,
-           CoreOptions.TASK_TTL_DELETE_BATCH,
-           CoreOptions.TASK_INPUT_SIZE_LIMIT,
-           CoreOptions.TASK_RESULT_SIZE_LIMIT,
-           CoreOptions.OLTP_CONCURRENT_THREADS,
-           CoreOptions.OLTP_CONCURRENT_DEPTH,
-           CoreOptions.OLTP_COLLECTION_TYPE,
-           CoreOptions.VERTEX_DEFAULT_LABEL,
-           CoreOptions.VERTEX_ENCODE_PK_NUMBER,
-           CoreOptions.STORE_GRAPH,
-           CoreOptions.STORE
+            CoreOptions.TASK_WAIT_TIMEOUT,
+            CoreOptions.TASK_SYNC_DELETION,
+            CoreOptions.TASK_TTL_DELETE_BATCH,
+            CoreOptions.TASK_INPUT_SIZE_LIMIT,
+            CoreOptions.TASK_RESULT_SIZE_LIMIT,
+            CoreOptions.OLTP_CONCURRENT_THREADS,
+            CoreOptions.OLTP_CONCURRENT_DEPTH,
+            CoreOptions.OLTP_COLLECTION_TYPE,
+            CoreOptions.VERTEX_DEFAULT_LABEL,
+            CoreOptions.VERTEX_ENCODE_PK_NUMBER,
+            CoreOptions.STORE_GRAPH,
+            CoreOptions.STORE
     );
 
     private static final Logger LOG = Log.logger(StandardHugeGraph.class);
@@ -294,14 +294,17 @@ public class StandardHugeGraph implements HugeGraph {
     private void initRoleStateMachine(Id serverId) {
         HugeConfig conf = this.configuration;
         Config roleConfig = new RoleElectionConfig(serverId.toString(),
-                            conf.get(RoleElectionOptions.NODE_EXTERNAL_URL),
-                            conf.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
-                            conf.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
-                            conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND),
-                            conf.get(RoleElectionOptions.MASTER_DEAD_TIMES),
-                            conf.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
+                                                   conf.get(RoleElectionOptions.NODE_EXTERNAL_URL),
+                                                   conf.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT),
+                                                   conf.get(
+                                                           RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND),
+                                                   conf.get(
+                                                           RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND),
+                                                   conf.get(RoleElectionOptions.MASTER_DEAD_TIMES),
+                                                   conf.get(
+                                                           RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
         ClusterRoleStore roleStore = new StandardClusterRoleStore(this.params);
-        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleConfig, 
+        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleConfig,
                                                                              roleStore);
     }
 
@@ -572,7 +575,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public <C extends GraphComputer> C compute(Class<C> clazz)
-                                               throws IllegalArgumentException {
+            throws IllegalArgumentException {
         throw Graph.Exceptions.graphComputerNotSupported();
     }
 
@@ -581,11 +584,12 @@ public class StandardHugeGraph implements HugeGraph {
         throw Graph.Exceptions.graphComputerNotSupported();
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Override
     public <I extends Io> I io(final Io.Builder<I> builder) {
         return (I) builder.graph(this).onMapper(mapper ->
-            mapper.addRegistry(HugeGraphIoRegistry.instance())
+                                                        mapper.addRegistry(
+                                                                HugeGraphIoRegistry.instance())
         ).create();
     }
 
@@ -1135,12 +1139,12 @@ public class StandardHugeGraph implements HugeGraph {
         // The proxy is sometimes unavailable (issue #664)
         CacheNotifier proxy = clientConfig.serviceProxy(this.name, clazz1);
         serverConfig.addService(this.name, clazz1, new HugeGraphCacheNotifier(
-                                                   this.graphEventHub, proxy));
+                this.graphEventHub, proxy));
 
         Class<SchemaCacheNotifier> clazz2 = SchemaCacheNotifier.class;
         proxy = clientConfig.serviceProxy(this.name, clazz2);
         serverConfig.addService(this.name, clazz2, new HugeSchemaCacheNotifier(
-                                                   this.schemaEventHub, proxy));
+                this.schemaEventHub, proxy));
     }
 
     private void closeTx() {
@@ -1493,7 +1497,7 @@ public class StandardHugeGraph implements HugeGraph {
         private void destroyTransaction() {
             if (this.isOpen()) {
                 throw new HugeException(
-                          "Transaction should be closed before destroying");
+                        "Transaction should be closed before destroying");
             }
 
             // Do close if needed, then remove the reference
@@ -1634,8 +1638,8 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private static class HugeSchemaCacheNotifier
-                   extends AbstractCacheNotifier
-                   implements SchemaCacheNotifier {
+            extends AbstractCacheNotifier
+            implements SchemaCacheNotifier {
 
         public HugeSchemaCacheNotifier(EventHub hub, CacheNotifier proxy) {
             super(hub, proxy);
@@ -1643,8 +1647,8 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private static class HugeGraphCacheNotifier
-                   extends AbstractCacheNotifier
-                   implements GraphCacheNotifier {
+            extends AbstractCacheNotifier
+            implements GraphCacheNotifier {
 
         public HugeGraphCacheNotifier(EventHub hub, CacheNotifier proxy) {
             super(hub, proxy);

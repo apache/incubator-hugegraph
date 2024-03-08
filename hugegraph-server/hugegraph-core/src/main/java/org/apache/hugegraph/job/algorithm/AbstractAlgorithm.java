@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.job.algorithm;
@@ -29,18 +29,10 @@ import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
+import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-
-import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.FlatMapperIterator;
 import org.apache.hugegraph.job.UserJob;
@@ -55,6 +47,14 @@ import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.ParameterUtil;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
+
 import com.google.common.base.Objects;
 
 @SuppressWarnings("deprecation") // StringEscapeUtils
@@ -87,7 +87,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final String KEY_TIMES = "times";
     public static final String KEY_STABLE_TIMES = "stable_times";
     public static final String KEY_PRECISION = "precision";
-    public static final String KEY_SHOW_MOD= "show_modularity";
+    public static final String KEY_SHOW_MOD = "show_modularity";
     public static final String KEY_SHOW_COMM = "show_community";
     public static final String KEY_EXPORT_COMM = "export_community";
     public static final String KEY_SKIP_ISOLATED = "skip_isolated";
@@ -104,7 +104,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
     public static final long DEFAULT_DEGREE = 100L;
     public static final long DEFAULT_SAMPLE = 1L;
     public static final long DEFAULT_TIMES = 20L;
-    public static final long DEFAULT_STABLE_TIMES= 3L;
+    public static final long DEFAULT_STABLE_TIMES = 3L;
     public static final double DEFAULT_PRECISION = 1.0 / 1000;
     public static final double DEFAULT_ALPHA = 0.5D;
 
@@ -267,13 +267,13 @@ public abstract class AbstractAlgorithm implements Algorithm {
             return Directions.IN;
         } else {
             throw new IllegalArgumentException(String.format(
-                      "The value of direction must be in [OUT, IN, BOTH], " +
-                      "but got '%s'", direction));
+                    "The value of direction must be in [OUT, IN, BOTH], " +
+                    "but got '%s'", direction));
         }
     }
 
     public static class AlgoTraverser extends HugeTraverser
-                                      implements AutoCloseable {
+            implements AutoCloseable {
 
         private final UserJob<Object> job;
         protected final ExecutorService executor;
@@ -369,7 +369,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
             if (value != null) {
                 vertices = filter(vertices, key, value);
             }
-           return vertices;
+            return vertices;
         }
 
         protected Iterator<Vertex> vertices(Object label, long limit) {
@@ -379,7 +379,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.capacity(Query.NO_CAPACITY);
             query.limit(limit);
-            query.eq(HugeKeys.LABEL, this.getVertexLabelId(label));
+            query.eq(HugeKeys.LABEL, this.getVertexLabelIdOrNull(label));
             return this.graph().vertices(query);
         }
 

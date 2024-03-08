@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit.core;
@@ -21,19 +21,18 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.analyzer.Analyzer;
 import org.apache.hugegraph.analyzer.AnalyzerFactory;
 import org.apache.hugegraph.testutil.Assert;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class AnalyzerTest {
 
     private static final String TEXT_1 = "England wins World Cup";
     private static final String TEXT_2 = "英格兰世界杯夺冠，中华人民共和国国歌，" +
-                                        "百度科技园位于北京市海淀区西北旺东路10号院";
+                                         "百度科技园位于北京市海淀区西北旺东路10号院";
 
     @Before
     public void setup() {
@@ -85,7 +84,7 @@ public class AnalyzerTest {
                             analyzer.segment(TEXT_1));
         Assert.assertEquals(setOf("英格兰", "英格", "格兰", "世界杯", "世界", "夺冠", "，",
                                   "中华人民共和国", "中华", "华人", "人民", "共和国",
-                                  "共和","国歌", "百度", "科技园", "科技", "位于",
+                                  "共和", "国歌", "百度", "科技园", "科技", "位于",
                                   "北京市", "北京", "海淀区", "海淀", "淀区", "西北旺",
                                   "西北", "东路", "10", "号", "院"),
                             analyzer.segment(TEXT_2));

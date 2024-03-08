@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.id;
@@ -35,12 +35,12 @@ import org.apache.hugegraph.util.StringEncoding;
  */
 public class EdgeId implements Id {
 
-    public static final HugeKeys[] KEYS = new HugeKeys[] {
-        HugeKeys.OWNER_VERTEX,
-        HugeKeys.DIRECTION,
-        HugeKeys.LABEL,
-        HugeKeys.SORT_VALUES,
-        HugeKeys.OTHER_VERTEX
+    public static final HugeKeys[] KEYS = new HugeKeys[]{
+            HugeKeys.OWNER_VERTEX,
+            HugeKeys.DIRECTION,
+            HugeKeys.LABEL,
+            HugeKeys.SORT_VALUES,
+            HugeKeys.OTHER_VERTEX
     };
 
     private final Id ownerVertexId;
@@ -135,17 +135,17 @@ public class EdgeId implements Id {
         }
         if (this.directed) {
             this.cache = SplicingIdGenerator.concat(
-                         IdUtil.writeString(this.ownerVertexId),
-                         this.direction.type().string(),
-                         IdUtil.writeLong(this.edgeLabelId),
-                         this.sortValues,
-                         IdUtil.writeString(this.otherVertexId));
+                    IdUtil.writeString(this.ownerVertexId),
+                    this.direction.type().string(),
+                    IdUtil.writeLong(this.edgeLabelId),
+                    this.sortValues,
+                    IdUtil.writeString(this.otherVertexId));
         } else {
             this.cache = SplicingIdGenerator.concat(
-                         IdUtil.writeString(this.sourceVertexId()),
-                         IdUtil.writeLong(this.edgeLabelId),
-                         this.sortValues,
-                         IdUtil.writeString(this.targetVertexId()));
+                    IdUtil.writeString(this.sourceVertexId()),
+                    IdUtil.writeLong(this.edgeLabelId),
+                    this.sortValues,
+                    IdUtil.writeString(this.targetVertexId()));
         }
         return this.cache;
     }
@@ -233,7 +233,7 @@ public class EdgeId implements Id {
     }
 
     public static EdgeId parse(String id, boolean returnNullIfError)
-                               throws NotFoundException {
+            throws NotFoundException {
         String[] idParts = SplicingIdGenerator.split(id);
         if (!(idParts.length == 4 || idParts.length == 5)) {
             if (returnNullIfError) {
@@ -284,10 +284,10 @@ public class EdgeId implements Id {
     public static String asStoredString(Id id) {
         EdgeId eid = (EdgeId) id;
         return SplicingIdGenerator.concat(
-               IdUtil.writeStoredString(eid.sourceVertexId()),
-               IdGenerator.asStoredString(eid.edgeLabelId()),
-               eid.sortValues(),
-               IdUtil.writeStoredString(eid.targetVertexId()));
+                IdUtil.writeStoredString(eid.sourceVertexId()),
+                IdGenerator.asStoredString(eid.edgeLabelId()),
+                eid.sortValues(),
+                IdUtil.writeStoredString(eid.targetVertexId()));
     }
 
     public static String concat(String... ids) {

@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.job.algorithm.cent;
@@ -25,15 +25,14 @@ import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableFloat;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
+import org.apache.hugegraph.job.UserJob;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.Pop;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import org.apache.hugegraph.job.UserJob;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.type.define.Directions;
 
 public class BetweennessCentralityAlgorithm extends AbstractCentAlgorithm {
 
@@ -97,7 +96,7 @@ public class BetweennessCentralityAlgorithm extends AbstractCentAlgorithm {
         }
 
         protected GraphTraversal<Vertex, ?> groupPathByEndpoints(
-                                            GraphTraversal<Vertex, Vertex> t) {
+                GraphTraversal<Vertex, Vertex> t) {
             return t.map(it -> {
                 // t.select(Pop.all, "v").unfold().id()
                 List<HugeElement> path = it.path(Pop.all, "v");
@@ -112,13 +111,13 @@ public class BetweennessCentralityAlgorithm extends AbstractCentAlgorithm {
                 List<Id> path = (List<Id>) it;
                 assert path.size() >= 2;
                 String first = path.get(0).toString();
-                String last = path.get(path.size() -1).toString();
+                String last = path.get(path.size() - 1).toString();
                 return SplicingIdGenerator.concat(first, last);
             }).unfold();
         }
 
         protected GraphTraversal<Vertex, ?> computeBetweenness(
-                                            GraphTraversal<Vertex, ?> t) {
+                GraphTraversal<Vertex, ?> t) {
             return t.fold(new HashMap<Id, MutableFloat>(), (results, it) -> {
                 @SuppressWarnings("unchecked")
                 Map.Entry<Id, List<?>> entry = (Map.Entry<Id, List<?>>) it;

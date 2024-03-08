@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.backend.store.hbase;
@@ -30,8 +30,6 @@ import java.util.stream.Collectors;
 import org.apache.hadoop.hbase.NamespaceExistException;
 import org.apache.hadoop.hbase.TableExistsException;
 import org.apache.hadoop.hbase.TableNotFoundException;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
@@ -41,11 +39,13 @@ import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendMutation;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
+import org.apache.hugegraph.backend.store.BackendTable;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Session> {
 
@@ -110,8 +110,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
     }
 
     protected List<String> tableNames() {
-        return this.tables.values().stream().map(t -> t.table())
-                                            .collect(Collectors.toList());
+        return this.tables.values().stream().map(BackendTable::table)
+                          .collect(Collectors.toList());
     }
 
     public String namespace() {
@@ -190,7 +190,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         this.checkOpened();
         HbaseSessions.Session session = this.sessions.session();
 
-        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext();) {
+        for (Iterator<BackendAction> it = mutation.mutation(); it.hasNext(); ) {
             this.mutate(session, it.next());
         }
     }
@@ -220,7 +220,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                 break;
             default:
                 throw new AssertionError(String.format(
-                          "Unsupported mutate action: %s", item.action()));
+                        "Unsupported mutate action: %s", item.action()));
         }
     }
 
@@ -253,8 +253,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
             // Ignore due to both schema & graph store would create namespace
         } catch (IOException e) {
             throw new BackendException(
-                      "Failed to create namespace '%s' for '%s' store",
-                      e, this.namespace, this.store);
+                    "Failed to create namespace '%s' for '%s' store",
+                    e, this.namespace, this.store);
         }
 
         // Create tables
@@ -262,10 +262,10 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
             try {
                 if (table.equals("g_oe") || table.equals("g_ie")) {
                     this.sessions.createPreSplitTable(table, HbaseTable.cfs(),
-                        this.edgeLogicPartitions);
+                                                      this.edgeLogicPartitions);
                 } else if (table.equals("g_v")) {
-                    this.sessions.createPreSplitTable(table, HbaseTable.cfs(), 
-                        this.vertexLogicPartitions);
+                    this.sessions.createPreSplitTable(table, HbaseTable.cfs(),
+                                                      this.vertexLogicPartitions);
                 } else {
                     this.sessions.createTable(table, HbaseTable.cfs());
                 }
@@ -274,8 +274,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                 continue;
             } catch (IOException e) {
                 throw new BackendException(
-                          "Failed to create table '%s' for '%s' store",
-                          e, table, this.store);
+                        "Failed to create table '%s' for '%s' store",
+                        e, table, this.store);
             }
         }
 
@@ -293,8 +293,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
             }
         } catch (IOException e) {
             throw new BackendException(
-                      "Exception when checking for the existence of '%s'",
-                      e, this.namespace);
+                    "Exception when checking for the existence of '%s'",
+                    e, this.namespace);
         }
 
         if (!clearSpace) {
@@ -307,8 +307,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                              "when trying to drop", table, this.store);
                 } catch (IOException e) {
                     throw new BackendException(
-                              "Failed to drop table '%s' of '%s' store",
-                              e, table, this.store);
+                            "Failed to drop table '%s' of '%s' store",
+                            e, table, this.store);
                 }
             }
         } else {
@@ -322,8 +322,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                               this.namespace, e);
                 } else {
                     throw new BackendException(
-                              "Failed to drop namespace '%s' of '%s' store",
-                              e, this.namespace, this.store);
+                            "Failed to drop namespace '%s' of '%s' store",
+                            e, this.namespace, this.store);
                 }
             }
         }
@@ -365,8 +365,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                 return future.get(remainingTime, TimeUnit.SECONDS);
             } catch (Exception e) {
                 throw new BackendException(
-                          "Error when truncating table '%s' of '%s' store: %s",
-                          table, this.store, e.toString());
+                        "Error when truncating table '%s' of '%s' store: %s",
+                        table, this.store, e.toString());
             }
         };
 
@@ -385,7 +385,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         } catch (Exception e) {
             this.enableTables();
             throw new BackendException(
-                      "Failed to disable table for '%s' store", e, this.store);
+                    "Failed to disable table for '%s' store", e, this.store);
         }
 
         try {
@@ -399,7 +399,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         } catch (Exception e) {
             this.enableTables();
             throw new BackendException(
-                      "Failed to truncate table for '%s' store", e, this.store);
+                    "Failed to truncate table for '%s' store", e, this.store);
         }
 
         LOG.debug("Store truncated: {}", this.store);
@@ -450,8 +450,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
 
         public HbaseSchemaStore(HugeConfig config, BackendStoreProvider provider,
                                 String namespace, String store) {
-            super(provider, namespace, store, 
-                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
+            super(provider, namespace, store,
+                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION));
 
             this.counters = new HbaseTables.Counters();
 
@@ -495,12 +495,14 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
     }
 
     public static class HbaseGraphStore extends HbaseStore {
+
         private boolean enablePartition;
+
         public HbaseGraphStore(HugeConfig config, BackendStoreProvider provider,
                                String namespace, String store) {
-            super(provider, namespace, store, 
-                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
-            this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue();
+            super(provider, namespace, store,
+                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION));
+            this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION);
             registerTableManager(HugeType.VERTEX,
                                  new HbaseTables.Vertex(store, enablePartition));
 
@@ -539,19 +541,19 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
-                      "HbaseGraphStore.nextId()");
+                    "HbaseGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                      "HbaseGraphStore.increaseCounter()");
+                    "HbaseGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "HbaseGraphStore.getCounter()");
+                    "HbaseGraphStore.getCounter()");
         }
     }
 

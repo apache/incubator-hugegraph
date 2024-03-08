@@ -1,25 +1,21 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.unit.cache;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
@@ -38,6 +34,9 @@ import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.Events;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class CachedGraphTransactionTest extends BaseUnitTest {
 
@@ -216,7 +215,7 @@ public class CachedGraphTransactionTest extends BaseUnitTest {
         Assert.assertEquals(0L,
                             Whitebox.invoke(cache, "edgesCache", "size"));
         String name = cache.queryEdgesByVertex(IdGenerator.of(1)).next().outVertex()
-                     .value("name");
+                           .value("name");
         Assert.assertEquals("test-name", name);
     }
 }

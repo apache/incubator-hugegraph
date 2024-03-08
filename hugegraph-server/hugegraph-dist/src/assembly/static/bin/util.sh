@@ -1,26 +1,26 @@
 #!/bin/bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements. See the NOTICE file distributed with this
-# work for additional information regarding copyright ownership. The ASF
-# licenses this file to You under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 function command_available() {
     local cmd=$1
-    if [ "$(command -v "$cmd" >/dev/null 2>&1)" ]; then
-        return 1
-    else
+    if [[ -x "$(command -v "$cmd")" ]]; then
         return 0
+    else
+        return 1
     fi
 }
 
@@ -131,6 +131,7 @@ function wait_for_startup() {
     local stop_s=$((now_s + timeout_s))
 
     local status
+    local error_file_name="startup_error.txt"
 
     echo -n "Connecting to $server_name ($server_url)"
     while [ "$now_s" -le $stop_s ]; do
@@ -138,19 +139,28 @@ function wait_for_startup() {
         process_status "$server_name" "$pid" >/dev/null
         if [ $? -eq 1 ]; then
             echo "Starting $server_name failed"
+            if [ -e "$error_file_name" ]; then
+                rm "$error_file_name"
+            fi
             return 1
         fi
 
-        status=$(curl -I -s -k -w "%{http_code}" -o /dev/null "$server_url")
+        status=$(curl -I -sS -k -w "%{http_code}" -o /dev/null "$server_url" 2> "$error_file_name")
         if [[ $status -eq 200 || $status -eq 401 ]]; then
             echo "OK"
             echo "Started [pid $pid]"
+            if [ -e "$error_file_name" ]; then
+                rm "$error_file_name"
+            fi
             return 0
         fi
         sleep 2
         now_s=$(date '+%s')
     done
 
+    echo ""
+    cat "$error_file_name"
+    rm "$error_file_name"
     echo "The operation timed out(${timeout_s}s) when attempting to connect to $server_url" >&2
     return 1
 }
@@ -267,15 +277,20 @@ function get_ip() {
 
 function download() {
     local path=$1
-    local link_url=$2
-
-    if command_available "wget"; then
+    local download_url=$2
+    if command_available "curl"; then
+        if [ ! -d "$path" ]; then
+            mkdir -p "$path" || {
+                echo "Failed to create directory: $path"
+                exit 1
+            }
+        fi
+        curl -L "${download_url}" -o "${path}/$(basename "${download_url}")"
+    elif command_available "wget"; then
         wget --help | grep -q '\--show-progress' && progress_opt="-q --show-progress" || progress_opt=""
-        wget "${link_url}" -P "${path}" $progress_opt
-    elif command_available "curl"; then
-        curl "${link_url}" -o "${path}"/"${link_url}"
+        wget "${download_url}" -P "${path}" $progress_opt
     else
-        echo "Required wget or curl but they are unavailable"
+        echo "Required curl or wget but they are unavailable"
         exit 1
     fi
 }

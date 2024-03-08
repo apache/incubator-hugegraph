@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.core;
@@ -219,9 +219,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 61,
+                                       "lived", "California");
 
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
         Vertex python = graph.addVertex(T.label, "language", "name", "python",
@@ -254,9 +254,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 61,
+                                       "lived", "California");
 
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
         Vertex python = graph.addVertex(T.label, "language", "name", "python",
@@ -297,8 +297,8 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
 
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
-                                      "name", "James Gosling", "age", 62,
-                                      "lived", "Canadian");
+                                       "name", "James Gosling", "age", 62,
+                                       "lived", "Canadian");
 
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
@@ -539,9 +539,9 @@ public class EdgeCoreTest extends BaseCoreTest {
             graph.tx().commit();
 
             List<Edge> edges = graph.traversal().V(james.id())
-                                                .outE("write")
-                                                .has("time", "2017-5-27\u0000")
-                                                .toList();
+                                    .outE("write")
+                                    .has("time", "2017-5-27\u0000")
+                                    .toList();
             Assert.assertEquals(1, edges.size());
             Assert.assertEquals("2017-5-27\u0000", edges.get(0).value("time"));
         }
@@ -1138,7 +1138,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                   "date", "2019-12-23 15:01:00");
         Edge edge10 = baby.addEdge("read", java5,
                                    "place", "library of school",
-                                  "date", "2019-12-23 16:01:00");
+                                   "date", "2019-12-23 16:01:00");
         graph().tx().commit();
         // Due to overridden edges are expired, query will lead to async delete
         edges = graph().traversal().E().has("date", "2019-12-23 14:00:00");
@@ -1274,12 +1274,12 @@ public class EdgeCoreTest extends BaseCoreTest {
         @SuppressWarnings("unused")
         Edge edge10 = baby.addEdge("read", java4,
                                    "place", "library of school",
-                                  "date", "2019-12-23 15:01:00");
+                                   "date", "2019-12-23 15:01:00");
         Edge edge11 = baby.addEdge("read", java5,
                                    "place", "library of school",
-                                  "date", "2019-12-23 16:01:00");
+                                   "date", "2019-12-23 16:01:00");
         Edge edge12 = baby.addEdge("read", java6, "place", "library",
-                                  "date", "2019-12-23 14:01:00");
+                                   "date", "2019-12-23 14:01:00");
         graph().tx().commit();
 
         // Due to overridden edges are expired, query will lead to async delete
@@ -1416,11 +1416,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java2 = graph().addVertex(T.label, "book",
                                          "name", "Java2 in action");
         Edge edge1 = baby.addEdge("read", java1, "place", "library of school",
-                                 "date", "2019-12-23 12:00:00");
+                                  "date", "2019-12-23 12:00:00");
         graph().tx().commit();
         // Add edges in tx
         Edge edge2 = baby.addEdge("read", java2, "place", "library of school",
-                                 "date", "2019-12-23 12:00:00");
+                                  "date", "2019-12-23 12:00:00");
 
         Iterator<Edge> edges = graph().edges(edge1);
         Assert.assertTrue(edges.hasNext());
@@ -1777,9 +1777,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         init18Edges();
 
         List<Edge> edges = graph.traversal().V()
-                           .hasLabel("person").has("name", "Louise")
-                           .outE("look").order().by("time")
-                           .toList();
+                                .hasLabel("person").has("name", "Louise")
+                                .outE("look").order().by("time")
+                                .toList();
         Assert.assertEquals(4, edges.size());
         Assert.assertEquals("2017-5-1", edges.get(0).value("time"));
         Assert.assertEquals("2017-5-1", edges.get(1).value("time"));
@@ -1998,23 +1998,23 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(1, edges.size());
 
         edges = graph.traversal().E()
-                                 .range(1, -1)
-                                 .range(6, 8)
-                                 .toList();
+                     .range(1, -1)
+                     .range(6, 8)
+                     .toList();
         // [7, 9)
         Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().E()
-                                 .range(1, 6)
-                                 .range(6, 8)
-                                 .toList();
+                     .range(1, 6)
+                     .range(6, 8)
+                     .toList();
         // [7, 6) will be converted to NoneStep by EarlyLimitStrategy
         Assert.assertEquals(0, edges.size());
 
         edges = graph.traversal().E()
-                                 .range(1, 6)
-                                 .range(7, 8)
-                                 .toList();
+                     .range(1, 6)
+                     .range(7, 8)
+                     .toList();
         // [8, 6) will be converted to NoneStep by EarlyLimitStrategy
         Assert.assertEquals(0, edges.size());
     }
@@ -2962,7 +2962,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeVertex james = (HugeVertex) vertex("author", "id", 1);
 
         List<Vertex> vertices = ImmutableList.copyOf(
-                                james.getVertices(Directions.BOTH));
+                james.getVertices(Directions.BOTH));
         Assert.assertEquals(6, vertices.size());
 
         vertices = ImmutableList.copyOf(james.getVertices(Directions.OUT));
@@ -3014,7 +3014,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         // Query edges of a vertex
         Vertex james = vertex("author", "id", 1);
         List<Edge> edges = ImmutableList.copyOf(
-                           graph.adjacentEdges((Id) james.id()));
+                graph.adjacentEdges((Id) james.id()));
         Assert.assertEquals(6, edges.size());
 
         List<Edge> edges2 = ImmutableList.copyOf(james.edges(Direction.BOTH));
@@ -3063,9 +3063,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author2", T.id, 13579,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author2", T.id, 24680,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author2", T.id, 24680,
+                                       "name", "Guido van Rossum", "age", 61,
+                                       "lived", "California");
 
         Vertex java = graph.addVertex(T.label, "language2", "name", "java",
                                       T.id, UUID.randomUUID());
@@ -3131,7 +3131,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(2, vertices.size());
 
         vertices = ImmutableList.copyOf(
-                   jeff.vertices(Direction.BOTH, "friend"));
+                jeff.vertices(Direction.BOTH, "friend"));
         Assert.assertEquals(2, vertices.size());
 
         // OUT
@@ -3193,7 +3193,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryAdjacentVerticesOfEdgesWithoutVertex()
-                throws InterruptedException, ExecutionException {
+            throws InterruptedException, ExecutionException {
         HugeGraph graph = graph();
 
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
@@ -3261,7 +3261,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertThrows(HugeException.class, () -> {
                 // read from cache
                 graph.traversal().V(james.id()).outE().has("score", 3)
-                                 .otherV().values().toList();
+                     .otherV().values().toList();
             }, e -> {
                 Assert.assertContains("Vertex 'java' does not exist",
                                       e.getMessage());
@@ -3286,7 +3286,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
             Assert.assertThrows(HugeException.class, () -> {
                 graph.traversal().V(james.id()).outE().otherV()
-                                 .values().toList();
+                     .values().toList();
             }, e -> {
                 Assert.assertContains("Vertex 'java' does not exist",
                                       e.getMessage());
@@ -3326,7 +3326,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryAdjacentVerticesOfEdgesWithInvalidVertexLabel()
-                throws InterruptedException, ExecutionException {
+            throws InterruptedException, ExecutionException {
         HugeGraph graph = graph();
         SchemaManager schema = graph.schema();
 
@@ -3400,7 +3400,7 @@ public class EdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryAdjacentVerticesOfEdgesWithoutVertexAndNoLazyLoad()
-                throws InterruptedException, ExecutionException {
+            throws InterruptedException, ExecutionException {
         HugeGraph graph = graph();
 
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
@@ -3421,7 +3421,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             Assert.assertEquals(0, graph.traversal().V(java).toList().size());
 
             List<Vertex> vertices = graph.traversal().V(james.id())
-                                                     .out().toList();
+                                         .out().toList();
             Assert.assertEquals(1, vertices.size());
             HugeVertex adjacent = (HugeVertex) vertices.get(0);
             Assert.assertTrue("label: " + adjacent.schemaLabel(),
@@ -4604,23 +4604,23 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         long size;
         size = graph.traversal().V().outE("created", "authored", "look")
-                                    .hasLabel("authored", "created")
-                                    .count().next();
+                    .hasLabel("authored", "created")
+                    .count().next();
         Assert.assertEquals(5L, size);
 
         size = graph.traversal().V().outE("created", "authored", "look")
-                                    .hasLabel("authored", "friend")
-                                    .count().next();
+                    .hasLabel("authored", "friend")
+                    .count().next();
         Assert.assertEquals(3L, size);
 
         size = graph.traversal().V().outE("created")
-                                    .hasLabel("authored", "created")
-                                    .count().next();
+                    .hasLabel("authored", "created")
+                    .count().next();
         Assert.assertEquals(2L, size);
 
         size = graph.traversal().V().inE("created", "authored", "look")
-                                    .has("score", 3)
-                                    .count().next();
+                    .has("score", 3)
+                    .count().next();
         Assert.assertEquals(3L, size);
     }
 
@@ -4812,11 +4812,11 @@ public class EdgeCoreTest extends BaseCoreTest {
         schema.indexLabel("buyByDate").onE("buy").by("date").range().create();
 
         Vertex louise = graph.addVertex(T.label, "person", "name", "Louise",
-                "city", "Beijing", "age", 21);
+                                        "city", "Beijing", "age", 21);
         Vertex jeff = graph.addVertex(T.label, "person", "name", "Jeff",
-                "city", "Beijing", "age", 22);
+                                      "city", "Beijing", "age", 22);
         Vertex sean = graph.addVertex(T.label, "person", "name", "Sean",
-                "city", "Beijing", "age", 23);
+                                      "city", "Beijing", "age", 23);
 
         Vertex java1 = graph.addVertex(T.label, "book", "name", "java-1");
         Vertex java2 = graph.addVertex(T.label, "book", "name", "java-2");
@@ -4873,9 +4873,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-            "2012-01-01 00:00:00.000",
-            "2013-01-01 00:00:00.000",
-            "2014-01-01 00:00:00.000"
+                "2012-01-01 00:00:00.000",
+                "2013-01-01 00:00:00.000",
+                "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -4925,9 +4925,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-            "2012-01-01 00:00:00.000",
-            "2013-01-01 00:00:00.000",
-            "2014-01-01 00:00:00.000"
+                "2012-01-01 00:00:00.000",
+                "2013-01-01 00:00:00.000",
+                "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -4978,9 +4978,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-            "2012-01-01",
-            "2013-01-01 00:00:00",
-            "2014-01-01 00:00:00.000"
+                "2012-01-01",
+                "2013-01-01 00:00:00",
+                "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -5028,9 +5028,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex java3 = graph.addVertex(T.label, "book", "name", "java-3");
 
         String[] dates = new String[]{
-            "2012-01-01 00:00:00.000",
-            "2013-01-01 00:00:00.000",
-            "2014-01-01 00:00:00.000"
+                "2012-01-01 00:00:00.000",
+                "2013-01-01 00:00:00.000",
+                "2014-01-01 00:00:00.000"
         };
 
         louise.addEdge("buy", java1, "place", "haidian", "date", dates[0]);
@@ -5079,14 +5079,14 @@ public class EdgeCoreTest extends BaseCoreTest {
                        "contribution", "1992 2 2", "score", 4);
 
         edges = graph.traversal().E().hasLabel("authored")
-                                 .has("contribution", Text.contains("2"))
-                                 .toList();
+                     .has("contribution", Text.contains("2"))
+                     .toList();
         Assert.assertEquals(2, edges.size());
 
         edges = graph.traversal().E().hasLabel("authored")
-                                 .has("score", P.gt(3))
-                                 .has("contribution", Text.contains("3"))
-                                 .toList();
+                     .has("score", P.gt(3))
+                     .has("contribution", Text.contains("3"))
+                     .toList();
         Assert.assertEquals(1, edges.size());
         assertContains(edges, "authored", james, book1,
                        "contribution", "1991 3 1", "score", 5);
@@ -5125,22 +5125,22 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         // Won't query by search index, just filter by property after outE()
         edges = graph.traversal().V(james).outE("authored")
-                                 .has("contribution", "1992 2 2")
-                                 .toList();
+                     .has("contribution", "1992 2 2")
+                     .toList();
         Assert.assertEquals(1, edges.size());
 
         // Won't query by search index, just filter by property after outE()
         edges = graph.traversal().V(james).outE("authored")
-                                 .has("contribution", "1992 2 2")
-                                 .has("score", P.gte(4))
-                                 .toList();
+                     .has("contribution", "1992 2 2")
+                     .has("score", P.gte(4))
+                     .toList();
         Assert.assertEquals(1, edges.size());
 
         // Won't query by search index, just filter by property after outE()
         edges = graph.traversal().V(james).outE("authored")
-                                 .has("contribution", "1992 2 2")
-                                 .has("score", P.gt(4))
-                                 .toList();
+                     .has("contribution", "1992 2 2")
+                     .has("score", P.gt(4))
+                     .toList();
         Assert.assertEquals(0, edges.size());
 
         // Query by search index
@@ -5151,8 +5151,8 @@ public class EdgeCoreTest extends BaseCoreTest {
 
         // Won't query by search index, just filter by property after outE()
         edges = graph.traversal().V(james).outE("authored")
-                                 .has("contribution", "1992")
-                                 .toList();
+                     .has("contribution", "1992")
+                     .toList();
         Assert.assertEquals(0, edges.size()); // be careful!
     }
 
@@ -5313,53 +5313,53 @@ public class EdgeCoreTest extends BaseCoreTest {
         Assert.assertEquals(4L, g.E().hasLabel("friend").count().next());
         Assert.assertEquals(1L, g.E().hasLabel("follow").count().next());
         Assert.assertEquals(11L, g.E().hasLabel("look", "friend")
-                                      .count().next());
+                                  .count().next());
 
         Assert.assertEquals(5L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27").count().next());
+                                 .has("time", "2017-5-27").count().next());
         Assert.assertEquals(2L, g.E().hasLabel("look")
-                                     .has("score", 3).count().next());
+                                 .has("score", 3).count().next());
         Assert.assertEquals(3L, g.E().hasLabel("look")
-                                     .has("score", P.gte(3)).count().next());
+                                 .has("score", P.gte(3)).count().next());
         Assert.assertEquals(1L, g.E().hasLabel("look")
-                                     .has("score", P.lt(3)).count().next());
+                                 .has("score", P.lt(3)).count().next());
 
         Assert.assertEquals(1L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27")
-                                     .has("score", 3)
-                                     .count().next());
+                                 .has("time", "2017-5-27")
+                                 .has("score", 3)
+                                 .count().next());
         Assert.assertEquals(2L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27")
-                                     .has("score", P.gte(3))
-                                     .count().next());
+                                 .has("time", "2017-5-27")
+                                 .has("score", P.gte(3))
+                                 .count().next());
         Assert.assertEquals(2L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27")
-                                     .has("score", P.gt(0))
-                                     .count().next());
+                                 .has("time", "2017-5-27")
+                                 .has("score", P.gt(0))
+                                 .count().next());
         Assert.assertEquals(3L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27")
-                                     .has("score", P.gte(0))
-                                     .count().next());
+                                 .has("time", "2017-5-27")
+                                 .has("score", P.gte(0))
+                                 .count().next());
         Assert.assertEquals(0L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27")
-                                     .has("score", P.lt(0))
-                                     .count().next());
+                                 .has("time", "2017-5-27")
+                                 .has("score", P.lt(0))
+                                 .count().next());
         Assert.assertEquals(1L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27")
-                                     .has("score", P.lte(0))
-                                     .count().next());
+                                 .has("time", "2017-5-27")
+                                 .has("score", P.lte(0))
+                                 .count().next());
         Assert.assertEquals(2L, g.E().hasLabel("look")
-                                     .has("time", "2017-5-27")
-                                     .has("score", P.lte(3))
-                                     .count().next());
+                                 .has("time", "2017-5-27")
+                                 .has("score", P.lte(3))
+                                 .count().next());
 
         Assert.assertEquals(18L, g.E().count().min().next());
         Assert.assertEquals(7L, g.E().hasLabel("look").count().max().next());
 
         Assert.assertEquals(4L, g.E().hasLabel("look")
-                                     .values("score").count().next());
+                                 .values("score").count().next());
         Assert.assertEquals(11L, g.E().hasLabel("look")
-                                      .values().count().next());
+                                  .values().count().next());
     }
 
     @Test
@@ -5435,7 +5435,7 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges = graph.traversal().E().toList();
         Assert.assertEquals(3, edges.size());
         Assert.assertFalse(Utils.contains(edges,
-                           new FakeObjects.FakeEdge("authored", james, java1)));
+                                          new FakeObjects.FakeEdge("authored", james, java1)));
     }
 
     @Test
@@ -5499,9 +5499,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 61,
+                                       "lived", "California");
 
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
         Vertex python = graph.addVertex(T.label, "language", "name", "python",
@@ -5534,9 +5534,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 61,
+                                       "lived", "California");
 
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
         Vertex python = graph.addVertex(T.label, "language", "name", "python",
@@ -5584,9 +5584,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 61,
+                                       "lived", "California");
 
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
         Vertex python = graph.addVertex(T.label, "language", "name", "python",
@@ -6506,14 +6506,14 @@ public class EdgeCoreTest extends BaseCoreTest {
                   .onE("attack").by("port").secondary().ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type SET is not indexable"));
+                    "The aggregate type SET is not indexable"));
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             schema.indexLabel("attackByType")
                   .onE("attack").by("type").secondary().ifNotExist().create();
         }, e -> {
             Assert.assertTrue(e.getMessage(), e.getMessage().contains(
-                              "The aggregate type LIST is not indexable"));
+                    "The aggregate type LIST is not indexable"));
         });
 
         Vertex ip1 = graph.addVertex(T.label, "ip", T.id, "10.0.0.1");
@@ -7020,7 +7020,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                    "arrested", false);
 
         List<Edge> el = graph.traversal().E().has("tool", "shovel")
-                        .toList();
+                             .toList();
         Assert.assertEquals(1, el.size());
         Assert.assertEquals(1, (int) el.get(0).value("id"));
         el = graph.traversal().E().has("tool", "knife").toList();
@@ -7051,7 +7051,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                                    "arrested", false);
 
         List<Edge> el = graph.traversal().E().has("timestamp", current)
-                        .toList();
+                             .toList();
         Assert.assertEquals(1, el.size());
         Assert.assertEquals(1, (int) el.get(0).value("id"));
         el = graph.traversal().E().has("timestamp", 666L).toList();
@@ -7081,7 +7081,7 @@ public class EdgeCoreTest extends BaseCoreTest {
                        "tool", "shovel", "arrested", false);
 
         List<Edge> el = graph.traversal().E().has("place", "park")
-                        .toList();
+                             .toList();
         Assert.assertEquals(1, el.size());
         Assert.assertEquals(1, (int) el.get(0).value("id"));
         el = graph.traversal().E().has("place", "park")
@@ -7331,23 +7331,23 @@ public class EdgeCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
 
         Vertex huge = graph.addVertex(
-                      T.label, "soft",
-                      "name", "hugegraph",
-                      "country", "china",
-                      "category", ImmutableList.of("graphdb", "db"),
-                      "tags", ImmutableList.of("graphdb", "gremlin"));
+                T.label, "soft",
+                "name", "hugegraph",
+                "country", "china",
+                "category", ImmutableList.of("graphdb", "db"),
+                "tags", ImmutableList.of("graphdb", "gremlin"));
 
         Vertex neo4j = graph.addVertex(
-                       T.label, "soft", "name", "neo4j",
-                       "country", "usa",
-                       "category", ImmutableList.of("graphdb", "db"),
-                       "tags", ImmutableList.of("graphdb", "cypher"));
+                T.label, "soft", "name", "neo4j",
+                "country", "usa",
+                "category", ImmutableList.of("graphdb", "db"),
+                "tags", ImmutableList.of("graphdb", "cypher"));
 
         Vertex janus = graph.addVertex(
-                       T.label, "soft", "name", "janusgraph",
-                       "country", "usa",
-                       "category", ImmutableList.of("graphdb", "db"),
-                       "tags", ImmutableList.of("graphdb", "gremlin"));
+                T.label, "soft", "name", "janusgraph",
+                "country", "usa",
+                "category", ImmutableList.of("graphdb", "db"),
+                "tags", ImmutableList.of("graphdb", "gremlin"));
 
         huge.addEdge("related", neo4j, "tags", ImmutableList.of("graphdb"));
 
@@ -7361,17 +7361,17 @@ public class EdgeCoreTest extends BaseCoreTest {
                                       "gremlin").toList();
         });
 
-        List<Edge> edges =  graph.traversal().E()
-                                 .has("related", "tags",
-                                      ConditionP.contains("gremlin"))
-                                 .toList();
+        List<Edge> edges = graph.traversal().E()
+                                .has("related", "tags",
+                                     ConditionP.contains("gremlin"))
+                                .toList();
 
         Assert.assertEquals(1, edges.size());
 
-        edges =  graph.traversal().E()
-                      .has("related",
-                           "tags", ConditionP.contains("graphdb"))
-                      .toList();
+        edges = graph.traversal().E()
+                     .has("related",
+                          "tags", ConditionP.contains("graphdb"))
+                     .toList();
 
         Assert.assertEquals(2, edges.size());
 
@@ -7379,17 +7379,17 @@ public class EdgeCoreTest extends BaseCoreTest {
         huge2janus.property("tags", ImmutableList.of("newTag"));
         graph.tx().commit();
 
-        edges =  graph.traversal().E()
-                      .has("related",
-                           "tags", ConditionP.contains("newTag"))
-                      .toList();
+        edges = graph.traversal().E()
+                     .has("related",
+                          "tags", ConditionP.contains("newTag"))
+                     .toList();
 
         Assert.assertEquals(1, edges.size());
 
-        edges =  graph.traversal().E()
-                      .has("related",
-                           "tags", ConditionP.contains("graphdb"))
-                      .toList();
+        edges = graph.traversal().E()
+                     .has("related",
+                          "tags", ConditionP.contains("graphdb"))
+                     .toList();
 
         Assert.assertEquals(2, edges.size());
 
@@ -7397,10 +7397,10 @@ public class EdgeCoreTest extends BaseCoreTest {
         edges.get(0).remove();
         graph.tx().commit();
 
-        edges =  graph.traversal().E()
-                      .has("related",
-                           "tags", ConditionP.contains("graphdb"))
-                      .toList();
+        edges = graph.traversal().E()
+                     .has("related",
+                          "tags", ConditionP.contains("graphdb"))
+                     .toList();
         Assert.assertEquals(1, edges.size());
     }
 
@@ -7414,9 +7414,9 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex james = graph.addVertex(T.label, "author", "id", 1,
                                        "name", "James Gosling", "age", 62,
                                        "lived", "Canadian");
-        Vertex guido =  graph.addVertex(T.label, "author", "id", 2,
-                                        "name", "Guido van Rossum", "age", 61,
-                                        "lived", "California");
+        Vertex guido = graph.addVertex(T.label, "author", "id", 2,
+                                       "name", "Guido van Rossum", "age", 61,
+                                       "lived", "California");
 
         Vertex java = graph.addVertex(T.label, "language", "name", "java");
         Vertex python = graph.addVertex(T.label, "language", "name", "python",
@@ -7516,7 +7516,8 @@ public class EdgeCoreTest extends BaseCoreTest {
             Vertex inVertex,
             Object... kvs) {
         Assert.assertTrue(Utils.contains(edges,
-                          new FakeObjects.FakeEdge(label, outVertex, inVertex, kvs)));
+                                         new FakeObjects.FakeEdge(label, outVertex, inVertex,
+                                                                  kvs)));
     }
 
     private int traverseInPage(Function<String, GraphTraversal<?, ?>> fetcher) {

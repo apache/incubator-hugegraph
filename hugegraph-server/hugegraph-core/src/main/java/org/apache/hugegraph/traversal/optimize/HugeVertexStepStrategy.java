@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.traversal.optimize;
@@ -31,8 +31,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.util.EmptyTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
 public final class HugeVertexStepStrategy
-             extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
-             implements ProviderOptimizationStrategy {
+        extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
+        implements ProviderOptimizationStrategy {
 
     private static final long serialVersionUID = 491355700217483162L;
 
@@ -47,12 +47,12 @@ public final class HugeVertexStepStrategy
     }
 
     @Override
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void apply(final Traversal.Admin<?, ?> traversal) {
         TraversalUtil.convAllHasSteps(traversal);
 
         List<VertexStep> steps = TraversalHelper.getStepsOfClass(
-                                 VertexStep.class, traversal);
+                VertexStep.class, traversal);
 
         boolean batchOptimize = false;
         if (!steps.isEmpty()) {
@@ -92,12 +92,13 @@ public final class HugeVertexStepStrategy
 
     /**
      * Does a Traversal contain any Path step
+     *
      * @param traversal
      * @return the traversal or its parents contain at least one Path step
      */
     protected static boolean containsPath(Traversal.Admin<?, ?> traversal) {
-        boolean hasPath = TraversalHelper.getStepsOfClass(
-                          PathStep.class, traversal).size() > 0;
+        boolean hasPath = !TraversalHelper.getStepsOfClass(
+                PathStep.class, traversal).isEmpty();
         if (hasPath) {
             return true;
         } else if (traversal instanceof EmptyTraversal) {
@@ -110,12 +111,13 @@ public final class HugeVertexStepStrategy
 
     /**
      * Does a Traversal contain any Tree step
+     *
      * @param traversal
      * @return the traversal or its parents contain at least one Tree step
      */
     protected static boolean containsTree(Traversal.Admin<?, ?> traversal) {
-        boolean hasTree = TraversalHelper.getStepsOfClass(
-                          TreeStep.class, traversal).size() > 0;
+        boolean hasTree = !TraversalHelper.getStepsOfClass(
+                TreeStep.class, traversal).isEmpty();
         if (hasTree) {
             return true;
         } else if (traversal instanceof EmptyTraversal) {

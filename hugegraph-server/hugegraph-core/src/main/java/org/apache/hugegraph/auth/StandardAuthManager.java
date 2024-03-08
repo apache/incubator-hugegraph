@@ -1,18 +1,18 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package org.apache.hugegraph.auth;
@@ -180,7 +180,7 @@ public class StandardAuthManager implements AuthManager {
         }
 
         List<HugeUser> users = this.users.query(P.NAME, name, 2L);
-        if (users.size() > 0) {
+        if (!users.isEmpty()) {
             assert users.size() == 1;
             user = users.get(0);
             this.usersCache.update(username, user);
@@ -411,13 +411,13 @@ public class StandardAuthManager implements AuthManager {
             Id adminGroupId = project.adminGroupId();
             Id opGroupId = project.opGroupId();
             HugeAccess adminGroupWriteAccess = new HugeAccess(
-                                                   adminGroupId, targetId,
-                                                   HugePermission.WRITE);
+                    adminGroupId, targetId,
+                    HugePermission.WRITE);
             // Ditto
             adminGroupWriteAccess.creator(project.creator());
             HugeAccess adminGroupReadAccess = new HugeAccess(
-                                                  adminGroupId, targetId,
-                                                  HugePermission.READ);
+                    adminGroupId, targetId,
+                    HugePermission.READ);
             // Ditto
             adminGroupReadAccess.creator(project.creator());
             HugeAccess opGroupReadAccess = new HugeAccess(opGroupId, targetId,
@@ -634,7 +634,7 @@ public class StandardAuthManager implements AuthManager {
 
     @Override
     public String loginUser(String username, String password)
-                            throws AuthenticationException {
+            throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
             String msg = "Incorrect username or password";
@@ -672,10 +672,10 @@ public class StandardAuthManager implements AuthManager {
         Claims payload = null;
         boolean needBuildCache = false;
         if (username == null) {
-            try{
+            try {
                 payload = this.tokenGenerator.verify(token);
-            }catch (Throwable t){
-                LOG.error(String.format("Failed to verify token:[ %s ], cause:",token),t);
+            } catch (Throwable t) {
+                LOG.error(String.format("Failed to verify token:[ %s ], cause:", token), t);
                 return new UserWithRole("");
             }
             username = (String) payload.get(AuthConstant.TOKEN_USER_NAME);
