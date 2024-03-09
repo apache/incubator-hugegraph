@@ -72,6 +72,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
+    private static final AntPathMatcher MATCHER = new AntPathMatcher();
     private static final Set<String> FIXED_WHITE_API_SET = ImmutableSet.of(
             "versions",
             "openapi.json"
@@ -80,7 +81,6 @@ public class AuthenticationFilter implements ContainerRequestFilter {
     private static final Set<String> FLEXIBLE_WHITE_API_LIST = ImmutableSet.of();
 
     private static String whiteIpStatus;
-
     private static final String STRING_WHITE_IP_LIST = "whiteiplist";
     private static final String STRING_ENABLE = "enable";
 
