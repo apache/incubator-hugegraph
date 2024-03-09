@@ -41,6 +41,7 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.utils.Charsets;
+import org.gridkit.jvmtool.cmd.AntPathMatcher;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.util.StringUtils;
@@ -321,7 +322,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         for (String whiteApi : FLEXIBLE_WHITE_API_LIST) {
-            if (path.endsWith(whiteApi)) {
+            if (MATCHER.match(whiteApi, path)) {
                 return true;
             }
         }
