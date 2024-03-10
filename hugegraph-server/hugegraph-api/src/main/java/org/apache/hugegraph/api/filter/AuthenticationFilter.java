@@ -45,7 +45,6 @@ import org.gridkit.jvmtool.cmd.AntPathMatcher;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.util.StringUtils;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import jakarta.annotation.Priority;
@@ -78,9 +77,9 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             "openapi.json"
     );
     // Remove auth/login API from white list
-    private static final Set<String> FLEXIBLE_WHITE_API_LIST = ImmutableSet.of();
+    private static final Set<String> FLEXIBLE_WHITE_API_SET = ImmutableSet.of();
 
-    private static String whiteIpStatus;
+    private static Boolean enabledWhiteIpCheck;
     private static final String STRING_WHITE_IP_LIST = "whiteiplist";
     private static final String STRING_ENABLE = "enable";
 
@@ -122,11 +121,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         // Check whiteIp
-        if (whiteIpStatus == null) {
-            whiteIpStatus = this.configProvider.get().get(WHITE_IP_STATUS);
+        if (enabledWhiteIpCheck == null) {
+            enabledWhiteIpCheck = Objects.equals(this.configProvider.get().get(WHITE_IP_STATUS), STRING_ENABLE);
         }
 
-        if (Objects.equals(whiteIpStatus, STRING_ENABLE) && request != null) {
+        if (enabledWhiteIpCheck && request != null) {
             peer = request.getRemoteAddr() + ":" + request.getRemotePort();
             path = request.getRequestURI();
 
@@ -321,7 +320,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             return true;
         }
 
-        for (String whiteApi : FLEXIBLE_WHITE_API_LIST) {
+        for (String whiteApi : FLEXIBLE_WHITE_API_SET) {
             if (MATCHER.match(whiteApi, path)) {
                 return true;
             }
