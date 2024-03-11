@@ -23,11 +23,11 @@ import java.util.concurrent.atomic.AtomicLong;
  * 2022/1/29
  */
 public class MetricX {
-    // Total working time consumed by Iterator
+    // Total working time consumed by Iterators
     public static AtomicLong iteratorSum = new AtomicLong();
     // Num of Iterators
     public static AtomicLong iteratorCount = new AtomicLong();
-    // Max working time consumed by Iterator
+    // Max working time consumed by Iterators
     public static AtomicLong iteratorMax = new AtomicLong();
     public AtomicLong failureCount = new AtomicLong();
     // Combined to be used to record a task's time
