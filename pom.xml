@@ -89,8 +89,6 @@
     </prerequisites>
 
     <properties>
-<!--        NOTE: Mac with M-series chip users can add this line below to avoid dependencies-resolving problems -->
-<!--        <os.detected.classifier>osx-x86_64</os.detected.classifier>-->
         <revision>1.5.0.1</revision>
     </properties>
 
@@ -294,7 +292,7 @@
             </build>
         </profile>
 
-        <!-- use mvn -P stage to enable the remote apache-stage repo -->
+        <!-- Use mvn -P stage to enable the remote apache-stage repo -->
         <profile>
             <id>stage</id>
             <repositories>
@@ -303,6 +301,19 @@
                     <url>https://repository.apache.org/content/groups/staging/</url>
                 </repository>
             </repositories>
+        </profile>
+        <!-- enable it by default in ARM Mac to handle the compilation problems:) -->
+        <profile>
+            <id>arm-mac</id>
+            <activation>
+                <os>
+                    <family>mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <os.detected.classifier>osx-x86_64</os.detected.classifier>
+            </properties>
         </profile>
     </profiles>
 </project>
