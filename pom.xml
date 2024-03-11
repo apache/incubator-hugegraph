@@ -84,10 +84,6 @@
         <developerConnection>scm:git:https://github.com/apache/hugegraph.git</developerConnection>
     </scm>
 
-    <prerequisites>
-        <maven>3.5.0</maven>
-    </prerequisites>
-
     <properties>
         <revision>1.5.0.1</revision>
     </properties>
