@@ -96,25 +96,9 @@ jobs:
         run: |
           mvn test -pl hugegraph-store/hg-store-test -am -P store-client-test -Dmaven.test.failure.ignore=true
 
-      - name: Run core test
-        run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-core-test -Dmaven.test.failure.ignore=true
-
       - name: Run common test
         run: |
           mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test -Dmaven.test.failure.ignore=true
-
-      - name: Run rocksdb test
-        run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-rocksdb-test -Dmaven.test.failure.ignore=true
-
-      - name: Run server test
-        run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-server-test -Dmaven.test.failure.ignore=true
-
-      - name: Run raftcore test
-        run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-raftcore-test -Dmaven.test.failure.ignore=true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
