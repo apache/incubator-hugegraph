@@ -33,6 +33,7 @@
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
         <version>23</version>
+        <relativePath/>
     </parent>
 
     <inceptionYear>2017</inceptionYear>
@@ -91,7 +92,7 @@
     <modules>
         <module>hugegraph-server</module>
         <module>hugegraph-pd</module>
-<!--        <module>hugegraph-store</module>-->
+        <module>hugegraph-store</module>
     </modules>
 
     <build>
@@ -151,6 +152,7 @@
                             <exclude>**/*.md</exclude>
                             <exclude>**/dependency-reduced-pom.xml</exclude>
                             <exclude>**/logs/*.log</exclude>
+                            <exclude>**/null/**</exclude>
                             <exclude>**/META-INF/**/*</exclude>
                             <exclude>**/target/*</exclude>
                             <exclude>style/*</exclude>
