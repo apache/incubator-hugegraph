@@ -85,7 +85,7 @@ jobs:
 
       - name: Run common test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test -Dmaven.test.failure.ignore=true
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
