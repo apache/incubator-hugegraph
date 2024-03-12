@@ -17,6 +17,7 @@
 #
 OPEN_MONITOR="false"
 OPEN_SECURITY_CHECK="true"
+OPEN_TELEMETRY="false"
 DAEMON="true"
 #VERBOSE=""
 GC_OPTION=""
@@ -37,12 +38,13 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 CONF="$TOP/conf"
 LOGS="$TOP/logs"
+PLUGINS="$TOP/plugins"
 SCRIPTS="$TOP/scripts"
 PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
 
-while getopts "d:g:m:p:s:j:t:v" arg; do
+while getopts "d:g:m:p:s:j:t:v:y:" arg; do
     case ${arg} in
         d) DAEMON="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
@@ -53,6 +55,7 @@ while getopts "d:g:m:p:s:j:t:v" arg; do
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
         # TODO: should remove it in future (check the usage carefully)
         v) VERBOSE="verbose" ;;
+        y) OPEN_TELEMETRY="$OPTARG";;
         # Note: update usage info when the params changed
         ?) exit_with_usage_help ;;
     esac
@@ -77,6 +80,26 @@ check_port "$REST_SERVER_URL"
 
 if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
+fi
+
+ensure_path_writable "$PLUGINS"
+
+if [ "${OPEN_TELEMETRY}" == "true" ]; then
+    if [[ ! -e "${PLUGINS}/opentelemetry-javaagent.jar" ]]; then
+      echo "Downloading opentelemetry-javaagent.jar..."
+      download "${PLUGINS}" "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/opentelemetry-javaagent.jar"
+    fi
+
+    export JAVA_TOOL_OPTIONS="-javaagent:${PLUGINS}/opentelemetry-javaagent.jar"
+    export OTEL_TRACES_EXPORTER=otlp
+    export OTEL_METRICS_EXPORTER=none
+    export OTEL_LOGS_EXPORTER=none
+    export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
+    # 127.0.0.1:4317 is the port of otel-collector running in Docker located in
+    # 'hugegraph-server/hugegraph-dist/docker/example/docker-compose-trace.yaml'.
+    # Make sure the otel-collector is running before starting HugeGraphServer.
+    export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4317
+    export OTEL_RESOURCE_ATTRIBUTES=service.name=server
 fi
 
 GREMLIN_SERVER_CONF="gremlin-server.yaml"

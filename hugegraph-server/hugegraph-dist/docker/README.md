@@ -81,3 +81,30 @@ If you want to customize the pre-loaded data, please mount the the groovy script
           - AUTH=true
           - PASSWORD=123456
     ```
+## 4. Running Open-Telemetry-Collector
+
+1. Start Open-Telemetry-Collector
+
+    ```
+    cd hugegraph-server/hugegraph-dist/docker/example
+    docker-compose -f docker-compose-trace.yaml -p hugegraph-trace up -d
+    ```
+   
+2. Active Open-Telemetry-Agent
+
+    ```
+    ./start-hugegraph.sh -y true
+    ```
+   
+3. Stop Open-Telemetry-Collector
+
+    ```
+    cd hugegraph-server/hugegraph-dist/docker/example
+    docker-compose -f docker-compose-trace.yaml -p hugegraph-trace stop
+    ```
+   
+4. References
+
+   - [What is OpenTelemetry](https://opentelemetry.io/docs/what-is-opentelemetry/)
+
+   - [Tempo in Grafana](https://grafana.com/docs/tempo/latest/getting-started/tempo-in-grafana/)

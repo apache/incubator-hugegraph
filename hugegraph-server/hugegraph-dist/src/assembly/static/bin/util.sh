@@ -385,6 +385,6 @@ function kill_process_and_wait() {
 }
 
 function exit_with_usage_help(){
-    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options] [-t timeout]"
+    echo "USAGE: $0 [-d true|false] [-g g1] [-m true|false] [-p true|false] [-s true|false] [-j java_options] [-t timeout] [-y true|false]"
     exit 1
 }
