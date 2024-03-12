@@ -37,13 +37,13 @@
         <module>hg-store-common</module>
         <module>hg-store-grpc</module>
         <module>hg-store-client</module>
+        <module>hg-store-test</module>
 <!--        TODO: uncomment later-->
 <!--        <module>hg-store-rocksdb</module>-->
 <!--        <module>hg-store-core</module>-->
 <!--        <module>hg-store-node</module>-->
 <!--        <module>hg-store-dist</module>-->
 <!--        <module>hg-store-cli</module>-->
-<!--        <module>hg-store-test</module>-->
     </modules>
 
     <properties>
