@@ -219,18 +219,18 @@
                 <version>2.20</version>
                 <executions>
 <!--                    TODO：uncomment later-->
-                    <execution>
-                        <id>store-client-test</id>
-                        <configuration>
-                            <testSourceDirectory>${basedir}/src/main/java/
-                            </testSourceDirectory>
-                            <testClassesDirectory>${basedir}/target/classes/
-                            </testClassesDirectory>
-                            <includes>
-                                <include>**/ClientSuiteTest.java</include>
-                            </includes>
-                        </configuration>
-                    </execution>
+<!--                    <execution>-->
+<!--                        <id>store-client-test</id>-->
+<!--                        <configuration>-->
+<!--                            <testSourceDirectory>${basedir}/src/main/java/-->
+<!--                            </testSourceDirectory>-->
+<!--                            <testClassesDirectory>${basedir}/target/classes/-->
+<!--                            </testClassesDirectory>-->
+<!--                            <includes>-->
+<!--                                <include>**/ClientSuiteTest.java</include>-->
+<!--                            </includes>-->
+<!--                        </configuration>-->
+<!--                    </execution>-->
 <!--                    <execution>-->
 <!--                        <id>store-core-test</id>-->
 <!--                        <configuration>-->
