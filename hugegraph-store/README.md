@@ -1,6 +1,6 @@
-> Note: From revision 1.5.0, the code of HugeGraph-PD will be adapted to this location (WIP).
+> Note: From revision 1.5.0, the code of HugeGraph-Store will be adapted to this location (WIP).
 
-# HugeGraph Store(BETA)
+# HugeGraph Store (BETA)
 
 HugeGraph Store is a new built-in storage backend, which uses RocksDB as the distributed backend storage engine.
 
