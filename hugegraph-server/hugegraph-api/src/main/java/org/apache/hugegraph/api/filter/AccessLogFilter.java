@@ -26,6 +26,7 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 import java.io.IOException;
 import java.net.URI;
 
+import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.core.GraphManager;
@@ -120,9 +121,11 @@ public class AccessLogFilter implements ContainerResponseFilter {
         }
 
         // Unset the context in "HugeAuthenticator", need distinguish Graph/Auth server lifecycle
-        GraphManager graphManager = managerProvider.get();
+        GraphManager manager = managerProvider.get();
         // TODO transfer Authorizer if we need after.
-        graphManager.unAuthenticate(null);
+        if (manager.requireAuthentication()) {
+            manager.unAuthenticate(null);
+        }
     }
 
     private boolean statusOk(int status) {
