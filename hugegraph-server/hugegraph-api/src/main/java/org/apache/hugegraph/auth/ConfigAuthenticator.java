@@ -24,6 +24,7 @@ import java.util.Objects;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.filter.AuthenticationFilter;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
@@ -78,6 +79,11 @@ public class ConfigAuthenticator implements HugeAuthenticator {
         }
 
         return new UserWithRole(IdGenerator.of(username), username, role);
+    }
+
+    @Override
+    public void unAuthenticate(AuthenticationFilter.Authorizer authorizer) {
+        throw new NotImplementedException("unAuthenticate is unsupported by ConfigAuthenticator");
     }
 
     @Override

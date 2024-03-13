@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.filter.AuthenticationFilter;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy.Context;
 import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
 import org.apache.hugegraph.backend.id.Id;
@@ -63,6 +64,8 @@ public interface HugeAuthenticator extends Authenticator {
     void setup(HugeConfig config);
 
     UserWithRole authenticate(String username, String password, String token);
+
+    void unAuthenticate(AuthenticationFilter.Authorizer authorizer);
 
     AuthManager authManager();
 
