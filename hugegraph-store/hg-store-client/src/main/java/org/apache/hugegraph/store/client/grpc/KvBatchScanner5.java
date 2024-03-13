@@ -55,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NotThreadSafe
 class KvBatchScanner5 {
+
     private final static HgStoreClientConfig storeClientConfig = HgStoreClientConfig.of();
     //private final static int HAVE_NEXT_TIMEOUT_SECONDS = storeClientConfig
     // .getNetKvScannerHaveNextTimeout();
@@ -81,6 +82,7 @@ class KvBatchScanner5 {
 
     /*** Broker ***/
     private static class OrderBroker {
+
         public final OrderKeeper keeper = new OrderKeeper();
         private final HgScanQuery scanQuery;
         private final StreamObserver<ScanStreamBatchReq> requestObserver;
@@ -215,6 +217,7 @@ class KvBatchScanner5 {
         }
 
         private class OrderAgent implements StreamObserver<KvPageRes> {
+
             private final AtomicInteger count = new AtomicInteger(0);
             private final AtomicBoolean over = new AtomicBoolean(false);
             private final String agentId;
@@ -271,6 +274,7 @@ class KvBatchScanner5 {
 
         /*** Inventory Keeper ***/
         private class OrderKeeper {
+
             private final BlockingQueue<Supplier<List<Kv>>> queue = new LinkedBlockingQueue<>();
             private final ReentrantLock pickUpLock = new ReentrantLock();
             private final AtomicBoolean done = new AtomicBoolean();
@@ -358,9 +362,9 @@ class KvBatchScanner5 {
 
     }
 
-
     /* iterator */
     private static class OrderConsumer implements KvCloseableIterator<Kv>, HgPageSize {
+
         private final OrderBroker broker;
         private final String consumerId;
         private Iterator<Kv> dataIterator;

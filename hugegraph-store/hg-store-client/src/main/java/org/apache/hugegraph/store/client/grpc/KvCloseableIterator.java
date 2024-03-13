@@ -24,6 +24,7 @@ import java.util.Iterator;
  * 2022/3/16
  */
 public interface KvCloseableIterator<T> extends Iterator<T>, Closeable {
+
     @Override
     void close();
 }

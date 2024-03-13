@@ -21,8 +21,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.function.Supplier;
 
-
 public final class HgAssert {
+
     public static void isTrue(boolean expression, String message) {
         if (message == null) {
             throw new IllegalArgumentException("message is null");

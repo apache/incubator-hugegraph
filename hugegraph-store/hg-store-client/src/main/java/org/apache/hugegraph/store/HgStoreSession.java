@@ -19,7 +19,6 @@ package org.apache.hugegraph.store;
 
 import org.apache.hugegraph.store.client.type.HgStoreClientException;
 
-
 public interface HgStoreSession extends HgKvStore {
 
     void beginTx();

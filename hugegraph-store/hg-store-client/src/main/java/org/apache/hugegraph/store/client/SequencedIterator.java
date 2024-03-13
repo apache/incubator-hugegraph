@@ -38,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class SequencedIterator implements HgKvIterator {
+
     private static final byte[] EMPTY_BYTES = new byte[0];
     private final Queue<HgKvOrderedIterator> queue;
     private final long limit;

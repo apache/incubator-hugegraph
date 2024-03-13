@@ -23,6 +23,7 @@ package org.apache.hugegraph.store;
  * created on 2021/10/24
  */
 public interface HgPageSize {
+
     long getPageSize();
 
     default boolean isPageEmpty() {

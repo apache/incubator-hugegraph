@@ -32,6 +32,7 @@ import org.apache.hugegraph.store.client.HgStoreSessionProvider;
 
 @ThreadSafe
 public final class HgStoreClient {
+
     // TODO: Holding more than one HgSessionManager is available,if you want to connect multi
     private final HgSessionProvider sessionProvider;
     private PDClient pdClient;

@@ -30,6 +30,7 @@ import org.apache.hugegraph.store.client.util.HgAssert;
  */
 @NotThreadSafe
 public class HgStoreNotice {
+
     private final Long nodeId;
     private final HgNodeStatus nodeStatus;
     private final String message;

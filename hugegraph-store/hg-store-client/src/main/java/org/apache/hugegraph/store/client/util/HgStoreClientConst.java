@@ -23,8 +23,8 @@ import java.util.List;
 import org.apache.hugegraph.store.HgKvStore;
 import org.apache.hugegraph.store.HgOwnerKey;
 
-
 public final class HgStoreClientConst {
+
     public final static String DEFAULT_NODE_CLUSTER_ID = "default-node-cluster";
 
     public final static String EMPTY_STRING = "";
@@ -46,6 +46,5 @@ public final class HgStoreClientConst {
 
     public final static int TX_SESSIONS_MAP_CAPACITY = 32;
     public static final int NODE_MAX_RETRYING_TIMES = 10;
-
 
 }

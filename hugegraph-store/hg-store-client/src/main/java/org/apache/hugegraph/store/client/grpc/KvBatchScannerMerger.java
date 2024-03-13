@@ -93,7 +93,6 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
         return current != null && current != KvBatchScanner.NO_DATA;
     }
 
-
     @Override
     public HgKvIterator<HgKvEntry> next() {
         HgKvIterator<HgKvEntry> iterator = null;
@@ -150,6 +149,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
      * 组装一个Scanner的多个有序迭代器为一个迭代器
      */
     static class ScannerDataQueue {
+
         private BlockingQueue<Supplier<HgKvIterator<HgKvEntry>>> queue;
         private HgKvOrderedIterator<HgKvEntry> iterator = null;
         private int currentSN = 0;
@@ -224,6 +224,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
      * 对多个Scanner返回结果进行归并排序
      */
     static class SortedScannerMerger extends KvBatchScannerMerger {
+
         // 每一个流对应一个接收队列
         private final Map<KvBatchScanner, ScannerDataQueue> scannerQueues =
                 new ConcurrentHashMap<>();

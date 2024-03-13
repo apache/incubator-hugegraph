@@ -144,7 +144,6 @@ class GrpcKvIteratorImpl implements HgKvPagingIterator<HgKvEntry>, HgKvOrderedIt
         return !iterator.hasNext();
     }
 
-
     @Override
     public int compareTo(HgKvOrderedIterator o) {
         return Long.compare(this.getSequence(), o.getSequence());

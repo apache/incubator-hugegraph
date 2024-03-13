@@ -50,7 +50,6 @@ public class GrpcStoreStateClient extends AbstractGrpcClient {
         pdClient = PDClient.create(this.pdConfig);
     }
 
-
     public Set<ScanState> getScanState() throws Exception {
         try {
             List<Metapb.Store> activeStores = pdClient.getActiveStores();
@@ -64,7 +63,6 @@ public class GrpcStoreStateClient extends AbstractGrpcClient {
         } catch (Exception e) {
             throw e;
         }
-
 
     }
 

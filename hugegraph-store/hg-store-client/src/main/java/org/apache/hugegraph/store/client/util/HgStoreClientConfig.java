@@ -42,7 +42,6 @@ public final class HgStoreClientConfig {
     private Integer netKvScannerPageSize = NET_KV_SCANNER_PAGE_SIZE;
     private Integer netKvScannerHaveNextTimeout = NET_KV_SCANNER_HAVE_NEXT_TIMEOUT;
 
-
     private HgStoreClientConfig() {
     }
 
@@ -132,6 +131,7 @@ public final class HgStoreClientConfig {
     }
 
     private static class PropertiesWrapper {
+
         private final PropertyResourceBundle prb;
 
         PropertiesWrapper(PropertyResourceBundle prb) {

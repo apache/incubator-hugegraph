@@ -20,7 +20,6 @@ package org.apache.hugegraph.store.client.util;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-
 public final class HgUuid {
 
     private static String encode(UUID uuid) {

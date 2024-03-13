@@ -23,8 +23,8 @@ import java.security.PrivilegedAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class PropertyUtil {
+
     private static final Logger LOG = LoggerFactory.getLogger(PropertyUtil.class);
 
     public static String get(String key) {
@@ -57,7 +57,6 @@ public class PropertyUtil {
 
         return value;
     }
-
 
     public static boolean getBoolean(String key, boolean def) {
         String value = get(key, Boolean.toString(def));

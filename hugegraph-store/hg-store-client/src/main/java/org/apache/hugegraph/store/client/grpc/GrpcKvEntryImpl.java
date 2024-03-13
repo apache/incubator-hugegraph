@@ -21,8 +21,8 @@ import java.util.Arrays;
 
 import org.apache.hugegraph.store.HgKvEntry;
 
-
 class GrpcKvEntryImpl implements HgKvEntry {
+
     private final byte[] key;
     private final byte[] value;
     private final int code;

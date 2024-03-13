@@ -40,5 +40,4 @@ public interface HgStoreNodeSession extends HgStoreSession {
      */
     HgStoreNode getStoreNode();
 
-
 }

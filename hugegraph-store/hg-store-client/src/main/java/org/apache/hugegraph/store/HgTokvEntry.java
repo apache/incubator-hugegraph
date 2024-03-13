@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.store;
 
-
 public interface HgTokvEntry {
+
     String table();
 
     HgOwnerKey ownerKey();

@@ -21,4 +21,5 @@ package org.apache.hugegraph.store;
  * created on 2021/10/24
  */
 public interface HgKvPagingIterator<E> extends HgKvIterator<E>, HgPageSize {
+
 }

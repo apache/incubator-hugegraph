@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.store.client;
 
-
 public class HgStoreService {
+
     private static final HgStoreService instance = new HgStoreService();
 
     private HgStoreService() {
@@ -27,6 +27,5 @@ public class HgStoreService {
     static HgStoreService of() {
         return instance;
     }
-
 
 }

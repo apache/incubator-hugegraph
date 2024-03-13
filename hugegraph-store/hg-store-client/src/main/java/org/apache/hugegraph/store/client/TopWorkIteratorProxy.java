@@ -31,6 +31,7 @@ import org.apache.hugegraph.store.HgKvIterator;
  * @version 0.1.0
  */
 class TopWorkIteratorProxy implements HgKvIterator {
+
     private static final byte[] EMPTY_BYTES = new byte[0];
     private final Queue<HgKvIterator> queue;
     private final long limit;

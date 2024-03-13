@@ -21,6 +21,7 @@ package org.apache.hugegraph.store.client;
  * created on 2021/10/26
  */
 public class HgPrivate {
+
     private final static HgPrivate instance = new HgPrivate();
 
     private HgPrivate() {

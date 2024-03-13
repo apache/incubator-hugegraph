@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store;
 
-
 public final class HgPrivate {
 
     private static final HgPrivate INSTANCE = new HgPrivate();

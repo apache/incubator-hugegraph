@@ -26,7 +26,6 @@ import com.google.protobuf.ByteString;
 
 public class ScanUtil {
 
-
     public static Header getHeader(HgStoreNodeSession nodeSession) {
         return Header.newBuilder().setGraph(nodeSession.getGraphName()).build();
     }

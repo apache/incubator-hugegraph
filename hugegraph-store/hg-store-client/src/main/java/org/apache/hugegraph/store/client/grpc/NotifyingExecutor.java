@@ -47,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 final class NotifyingExecutor {
+
     private final String graphName;
     private final HgStoreNodeManager nodeManager;
     private final HgStoreNodeSession nodeSession;

@@ -42,10 +42,11 @@ public abstract class AbstractGrpcClient {
     private static int concurrency = 1 << n;
     private static AtomicLong counter = new AtomicLong(0);
     private static long limit = Long.MAX_VALUE >> 1;
+    private static HgStoreClientConfig config = HgStoreClientConfig.of();
     private Map<String, HgPair<ManagedChannel, AbstractBlockingStub>[]> blockingStubs =
             new ConcurrentHashMap<>();
-    private Map<String, HgPair<ManagedChannel, AbstractAsyncStub>[]> asyncStubs = new ConcurrentHashMap<>();
-    private static HgStoreClientConfig config = HgStoreClientConfig.of();
+    private Map<String, HgPair<ManagedChannel, AbstractAsyncStub>[]> asyncStubs =
+            new ConcurrentHashMap<>();
     private ThreadPoolExecutor executor;
 
     {
@@ -67,7 +68,7 @@ public abstract class AbstractGrpcClient {
                         for (int i = 0; i < concurrency; i++) {
                             int fi = i;
                             executor.execute(() -> {
-                                try{
+                                try {
                                     value[fi] = getManagedChannel(target);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
@@ -118,7 +119,7 @@ public abstract class AbstractGrpcClient {
     }
 
     private AbstractStub setBlockingStubOption(AbstractBlockingStub stub) {
-        return stub.withDeadlineAfter(config.getGrpcTimeoutSeconds(),TimeUnit.SECONDS)
+        return stub.withDeadlineAfter(config.getGrpcTimeoutSeconds(), TimeUnit.SECONDS)
                    .withMaxInboundMessageSize(
                            config.getGrpcMaxInboundMessageSize())
                    .withMaxOutboundMessageSize(
@@ -171,6 +172,5 @@ public abstract class AbstractGrpcClient {
     private ManagedChannel getManagedChannel(String target) {
         return ManagedChannelBuilder.forTarget(target).usePlaintext().build();
     }
-
 
 }

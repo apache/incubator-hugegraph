@@ -28,6 +28,7 @@ import org.apache.hugegraph.store.client.HgStoreSessionProvider;
 
 @ThreadSafe
 public final class HgSessionManager {
+
     // TODO: Holding more than one HgSessionManager is available,if you want to connect multi
     private final static HgSessionManager INSTANCE = new HgSessionManager();
     private final HgSessionProvider sessionProvider;
@@ -36,7 +37,6 @@ public final class HgSessionManager {
         // TODO: constructed by SPI
         this.sessionProvider = new HgStoreSessionProvider();
     }
-
 
     public static HgSessionManager getInstance() {
         return INSTANCE;

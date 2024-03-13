@@ -30,6 +30,7 @@ import org.apache.hugegraph.store.grpc.common.ScanOrderType;
  * @version 0.5.0
  */
 public interface HgScanQuery {
+
     static HgScanQuery tableOf(String table) {
         return ScanBuilder.tableOf(table).build();
     }
@@ -99,6 +100,7 @@ public interface HgScanQuery {
     }
 
     class ScanBuilder {
+
         private final String table;
         private final HgScanQuery.ScanMethod sanMethod;
         private long limit = Integer.MAX_VALUE;
@@ -201,7 +203,6 @@ public interface HgScanQuery {
             this.onlyKey = onlyKey;
             return this;
         }
-
 
         public HgScanQuery build() {
             return this.new BatchScanQuery();
@@ -325,7 +326,6 @@ public interface HgScanQuery {
                 return sb.toString();
             }
         }
-
 
     }
 }

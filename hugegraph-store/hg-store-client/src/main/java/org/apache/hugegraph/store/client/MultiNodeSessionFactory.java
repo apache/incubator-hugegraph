@@ -26,6 +26,7 @@ import org.apache.hugegraph.store.HgStoreSession;
  */
 @ThreadSafe
 public final class MultiNodeSessionFactory {
+
     // TODO multi-instance ?
     private final static MultiNodeSessionFactory INSTANCE = new MultiNodeSessionFactory();
     // TODO multi-instance ?

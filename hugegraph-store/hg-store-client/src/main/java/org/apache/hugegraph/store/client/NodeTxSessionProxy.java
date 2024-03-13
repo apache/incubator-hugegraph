@@ -64,6 +64,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NotThreadSafe
 class NodeTxSessionProxy implements HgStoreSession {
+
     private final HgStoreNodeManager nodeManager;
     private final HgStoreNodePartitioner nodePartitioner;
     private final String graphName;
@@ -143,7 +144,6 @@ class NodeTxSessionProxy implements HgStoreSession {
                 );
     }
 
-
     @Override
     public boolean deleteSingle(String table, HgOwnerKey ownerKey) {
         HgAssert.isFalse(HgAssert.isInvalid(table), "The argument is invalid: table");
@@ -161,7 +161,6 @@ class NodeTxSessionProxy implements HgStoreSession {
                 );
     }
 
-
     @Override
     public boolean deletePrefix(String table, HgOwnerKey prefix) {
         HgAssert.isFalse(HgAssert.isInvalid(table), "The argument is invalid: table");
@@ -178,7 +177,6 @@ class NodeTxSessionProxy implements HgStoreSession {
                         e -> e.getSession().deletePrefix(table, e.getKey())
                 );
     }
-
 
     @Override
     public boolean deleteRange(String table, HgOwnerKey start, HgOwnerKey end) {
@@ -740,7 +738,6 @@ class NodeTxSessionProxy implements HgStoreSession {
         }
         return nodeTkvs;
     }
-
 
     private List<NodeTkv> toNodeTkvList(String table, int startCode, int endCode) {
         Collection<HgNodePartition> partitions = this.doPartition(table, startCode, endCode);

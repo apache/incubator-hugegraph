@@ -29,6 +29,7 @@ import org.apache.hugegraph.store.HgStoreSession;
  */
 @ThreadSafe
 class NodeTkv {
+
     private final HgNodePartition nodePartition;
     private final String table;
     private final HgOwnerKey key;

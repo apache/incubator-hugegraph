@@ -122,7 +122,6 @@ public class GrpcStoreStreamClient extends AbstractGrpcClient {
         );
     }
 
-
     KvCloseableIterator<Kv> doScan(HgStoreNodeSession nodeSession
             , String table
             , long limit
@@ -199,7 +198,6 @@ public class GrpcStoreStreamClient extends AbstractGrpcClient {
     KvCloseableIterator<Kv> doBatchScan(HgStoreNodeSession nodeSession, HgScanQuery scanQuery) {
         return KvBatchScanner5.scan(nodeSession, this.getStub(nodeSession), scanQuery);
     }
-
 
     // 返回多个小的迭代器，允许上层并行处理
     KvCloseableIterator<HgKvIterator<HgKvEntry>> doBatchScan3(HgStoreNodeSession nodeSession,

@@ -46,6 +46,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NotThreadSafe
 class KvOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
+
     private static final HgStoreClientConfig storeClientConfig = HgStoreClientConfig.of();
     private final HgStoreNodeSession session;
     private final HgStoreStreamBlockingStub stub;

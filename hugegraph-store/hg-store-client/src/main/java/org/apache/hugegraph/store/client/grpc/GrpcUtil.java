@@ -79,7 +79,6 @@ final class GrpcUtil {
                 .build();
     }
 
-
     static Key toKey(HgOwnerKey ownerKey) {
         if (ownerKey == null) {
             return null;

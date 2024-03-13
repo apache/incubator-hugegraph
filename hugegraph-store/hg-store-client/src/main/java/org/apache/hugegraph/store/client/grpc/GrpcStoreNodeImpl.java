@@ -27,6 +27,7 @@ import org.apache.hugegraph.store.client.HgStoreNodeManager;
  * created on 2021/10/11
  */
 class GrpcStoreNodeImpl implements HgStoreNode {
+
     private final GrpcStoreSessionClient sessionClient;
     private final GrpcStoreStreamClient streamClient;
     private final HgStoreNodeManager nodeManager;

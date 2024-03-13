@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class HgStoreClientUtil {
+
     public static HgOwnerKey toOwnerKey(byte[] key) {
         return new HgOwnerKey(HgStoreClientConst.EMPTY_BYTES, key);
     }

@@ -195,6 +195,7 @@ public class KvBatchScanner implements Closeable {
      * 任务拆分器
      */
     static class TaskSplitter {
+
         final HgScanQuery scanQuery;
         final BiFunction<HgScanQuery, KvCloseableIterator, Boolean> taskHandler;
         private KvBatchScannerMerger notifier;
@@ -294,6 +295,7 @@ public class KvBatchScanner implements Closeable {
      * 查询结果接收器
      */
     static class KvBatchReceiver implements StreamObserver<KvStream> {
+
         KvBatchScanner scanner;
         boolean sortByVertex;
 
@@ -342,6 +344,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     static class KVBytesIterator implements HgKvOrderedIterator<HgKvEntry> {
+
         private final KvBatchScanner scanner;
         KVByteBuffer buffer;
         HgKvEntry entry;

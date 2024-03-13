@@ -24,5 +24,6 @@ import javax.annotation.concurrent.ThreadSafe;
  */
 @ThreadSafe
 public interface HgSessionProvider {
+
     HgStoreSession createSession(String graphName);
 }

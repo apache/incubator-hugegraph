@@ -26,6 +26,7 @@ import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
  * @version 0.2.0
  */
 public interface HgKvStore {
+
     /**
      * CAUTION: THE CONST BELOW MUST KEEP CONSISTENCE TO ScanIterator.Trait.
      */

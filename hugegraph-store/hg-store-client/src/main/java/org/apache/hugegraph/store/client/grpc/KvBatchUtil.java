@@ -41,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NotThreadSafe
 class KvBatchUtil {
+
     static final byte[] EMPTY_POSITION = HgStoreClientConst.EMPTY_BYTES;
 
     static ScanStreamBatchReq.Builder getRequestBuilder(HgStoreNodeSession nodeSession) {

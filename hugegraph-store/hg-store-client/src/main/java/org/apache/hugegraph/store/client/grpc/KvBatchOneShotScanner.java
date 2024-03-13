@@ -42,6 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @NotThreadSafe
 class KvBatchOneShotScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
+
     private final HgStoreNodeSession nodeSession;
     private final HgStoreStreamGrpc.HgStoreStreamBlockingStub stub;
     private final HgScanQuery scanQuery;

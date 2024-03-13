@@ -25,6 +25,7 @@ import java.util.Objects;
  * created on 2021/10/26
  */
 public final class HgNodePartition {
+
     private final Long nodeId;
     //当前key的hashcode
     private final Integer keyCode;

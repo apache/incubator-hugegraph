@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ShiftWorkIteratorProxy implements HgKvIterator {
+
     private static final byte[] EMPTY_BYTES = new byte[0];
     private final int limit;
     private HgKvPagingIterator<HgKvEntry> iterator;

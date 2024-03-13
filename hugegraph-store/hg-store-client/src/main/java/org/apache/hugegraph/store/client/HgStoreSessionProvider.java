@@ -27,6 +27,7 @@ import org.apache.hugegraph.store.HgStoreSession;
  */
 @ThreadSafe
 public class HgStoreSessionProvider implements HgSessionProvider {
+
     private final MultiNodeSessionFactory sessionFactory = MultiNodeSessionFactory.getInstance();
 
     @Override

@@ -21,5 +21,6 @@ package org.apache.hugegraph.store;
  * created on 2022/03/10
  */
 public interface HgKvOrderedIterator<E> extends HgKvIterator<E>, Comparable<HgKvOrderedIterator> {
+
     long getSequence();
 }

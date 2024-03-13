@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @ThreadSafe
 @Slf4j
 public final class HgStoreNodeManager {
+
     private final static Set<String> CLUSTER_ID_SET = new HashSet<>();
     private final static HgStoreNodeManager instance = new HgStoreNodeManager();
 
@@ -231,7 +232,6 @@ public final class HgStoreNodeManager {
             }
             nodes.add(node);
         }
-
 
         return node;
     }

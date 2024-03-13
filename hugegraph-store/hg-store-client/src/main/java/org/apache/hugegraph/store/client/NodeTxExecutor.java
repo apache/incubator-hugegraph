@@ -48,13 +48,13 @@ import org.apache.hugegraph.store.term.HgTriple;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 /**
  * 2021/11/18
  */
 @Slf4j
 @NotThreadSafe
 final class NodeTxExecutor {
+
     private static final String maxTryMsg =
             "the number of retries reached the upper limit : " + NODE_MAX_RETRYING_TIMES +
             ",caused by:";
@@ -74,7 +74,6 @@ final class NodeTxExecutor {
     private boolean isTx;
     private List<HgPair<HgTriple<String, HgOwnerKey, Object>,
             Function<NodeTkv, Boolean>>> entries = new LinkedList<>();
-
 
     private NodeTxExecutor(String graphName, NodeTxSessionProxy proxy) {
         this.graphName = graphName;
@@ -419,6 +418,7 @@ final class NodeTxExecutor {
     }
 
     class SessionData<T> {
+
         HgStoreSession session;
         T data;
 

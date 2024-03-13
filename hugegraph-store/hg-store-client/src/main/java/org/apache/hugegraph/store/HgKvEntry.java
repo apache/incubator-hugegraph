@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.store;
 
-
 public interface HgKvEntry {
+
     byte[] key();
 
     byte[] value();

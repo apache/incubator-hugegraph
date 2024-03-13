@@ -35,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 public class HgStoreNodePartitionerImpl implements HgStoreNodePartitioner,
                                                    HgStoreNodeProvider,
                                                    HgStoreNodeNotifier {
+
     private PDClient pdClient;
     private HgStoreNodeManager nodeManager;
 
@@ -115,7 +116,6 @@ public class HgStoreNodePartitionerImpl implements HgStoreNodePartitioner,
         }
         return 0;
     }
-
 
     @Override
     public int partition(HgNodePartitionerBuilder builder, String graphName,

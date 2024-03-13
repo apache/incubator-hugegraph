@@ -29,7 +29,8 @@ public enum HgNodeStatus {
 
     PARTITION_COMMON_FAULT(200, "PARTITION_COMMON_FAULT"),
     NOT_PARTITION_LEADER(205,
-                         "NOT_PARTITION_LEADER"); // When a Store-Node is not a specific partition leader.
+                         "NOT_PARTITION_LEADER"); // When a Store-Node is not a specific
+    // partition leader.
 
     private final int status;
     private final String name;
