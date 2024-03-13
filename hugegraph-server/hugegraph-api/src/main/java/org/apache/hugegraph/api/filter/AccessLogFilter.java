@@ -121,7 +121,8 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
         // Unset the context in "HugeAuthenticator", need distinguish Graph/Auth server lifecycle
         GraphManager graphManager = managerProvider.get();
-        graphManager.unAuthenticate((AuthenticationFilter.Authorizer) requestContext.getSecurityContext());
+        // TODO transfer Authorizer if we need after.
+        graphManager.unAuthenticate(null);
     }
 
     private boolean statusOk(int status) {
