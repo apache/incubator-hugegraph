@@ -8,7 +8,7 @@
 
 ## 1. Deploy
 
-We can use docker to quickly start an inner HugeGraph server with RocksDB in background.
+We can use docker to quickly start an inner HugeGraph server with RocksDB in the background.
 
 1. Using docker run
 
