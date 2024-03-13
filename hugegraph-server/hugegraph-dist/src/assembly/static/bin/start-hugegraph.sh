@@ -46,6 +46,7 @@ PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
 
+# Note: keep ':' in the end of the string to indicate the option needs a value
 while getopts "d:g:m:p:s:j:t:y:" arg; do
     case ${arg} in
         d) DAEMON="$OPTARG" ;;
@@ -93,6 +94,7 @@ if [[ $PRELOAD == "true" ]]; then
     sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRIPT}"
 fi
 
+# TODO: show the output message in hugegraph-server.sh when start the server
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \

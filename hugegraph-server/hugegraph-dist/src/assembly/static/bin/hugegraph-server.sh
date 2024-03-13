@@ -69,26 +69,6 @@ if [[ ! -e "${CONF}/hugegraph-server.keystore" ]]; then
     download "${CONF}" "${GITHUB}/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
 fi
 
-if [ "${OPEN_TELEMETRY}" == "true" ]; then
-    OT_JAR="opentelemetry-javaagent.jar"
-    if [[ ! -e "${PLUGINS}/${OT_JAR}" ]]; then
-      echo "Downloading ${OT_JAR}..."
-      download "${PLUGINS}" \
-      "${GITHUB}/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/${OT_JAR}"
-    fi
-
-    export JAVA_TOOL_OPTIONS="-javaagent:${PLUGINS}/${OT_JAR}"
-    export OTEL_TRACES_EXPORTER=otlp
-    export OTEL_METRICS_EXPORTER=none
-    export OTEL_LOGS_EXPORTER=none
-    export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
-    # 127.0.0.1:4317 is the port of otel-collector running in Docker located in
-    # 'hugegraph-server/hugegraph-dist/docker/example/docker-compose-trace.yaml'.
-    # Make sure the otel-collector is running before starting HugeGraphServer.
-    export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4317
-    export OTEL_RESOURCE_ATTRIBUTES=service.name=server
-fi
-
 # Add the slf4j-log4j12 binding
 CP=$(find -L $LIB -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
 # Add the jars in lib that start with "hugegraph"
@@ -99,7 +79,7 @@ CP="$CP":$(find -L $LIB -name '*.jar' \
     \! -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
 # Add the jars in ext (at any subdirectory depth)
 CP="$CP":$(find -L $EXT -name '*.jar' | sort | tr '\n' ':')
-# Add the jars in plugins (at any subdirectory depth)
+# Add the jars in plugins (at any subdirectory depth), check "javaagent" related jars carefully
 CP="$CP":$(find -L $PLUGINS -name '*.jar' | sort | tr '\n' ':')
 
 # (Cygwin only) Use ; classpath separator and reformat paths for Windows ("C:\foo")
@@ -169,6 +149,27 @@ esac
 JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml"
 if [[ ${OPEN_SECURITY_CHECK} == "true" ]]; then
     JVM_OPTIONS="${JVM_OPTIONS} -Djava.security.manager=org.apache.hugegraph.security.HugeSecurityManager"
+fi
+
+if [ "${OPEN_TELEMETRY}" == "true" ]; then
+    OT_JAR="opentelemetry-javaagent.jar"
+    if [[ ! -e "${PLUGINS}/${OT_JAR}" ]]; then
+      echo "## Downloading ${OT_JAR}..."
+      download "${PLUGINS}" \
+      "${GITHUB}/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/${OT_JAR}"
+    fi
+
+    # Note: check carefully if multi "javeagent" params are set
+    export JAVA_TOOL_OPTIONS="-javaagent:${PLUGINS}/${OT_JAR}"
+    export OTEL_TRACES_EXPORTER=otlp
+    export OTEL_METRICS_EXPORTER=none
+    export OTEL_LOGS_EXPORTER=none
+    export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
+    # 127.0.0.1:4317 is the port of otel-collector running in Docker located in
+    # 'hugegraph-server/hugegraph-dist/docker/example/docker-compose-trace.yaml'.
+    # Make sure the otel-collector is running before starting HugeGraphServer.
+    export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4317
+    export OTEL_RESOURCE_ATTRIBUTES=service.name=server
 fi
 
 # Turn on security check
