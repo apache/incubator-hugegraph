@@ -20,6 +20,7 @@ package org.apache.hugegraph.store.buffer;
 import java.nio.ByteBuffer;
 
 public class KVByteBuffer {
+
     ByteBuffer buffer;
 
     public KVByteBuffer(int capacity) {

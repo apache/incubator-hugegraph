@@ -20,6 +20,7 @@ package org.apache.hugegraph.store.term;
 import java.nio.ByteBuffer;
 
 public class Bits {
+
     /**
      * 大头字节序写入short
      */

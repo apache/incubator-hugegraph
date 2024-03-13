@@ -23,8 +23,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
 public class ByteBufferAllocator {
+
     // size of each Buffer
     final int capacity;
     // max num of Buffers

@@ -23,6 +23,7 @@ import java.util.Objects;
  * created on 2021/10/19
  */
 public class HgTriple<X, Y, Z> {
+
     private final X x;
     private final Y y;
     private final Z z;
