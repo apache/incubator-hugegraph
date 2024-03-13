@@ -183,6 +183,12 @@ public abstract class AbstractRestClient implements RestClient {
             builder.connectTimeout(config.getTimeout(), TimeUnit.MILLISECONDS)
                    .readTimeout(config.getTimeout(), TimeUnit.MILLISECONDS);
         }
+        if (config.getConnectTimeout() != null) {
+            builder.connectTimeout(config.getConnectTimeout(), TimeUnit.MILLISECONDS);
+        }
+        if (config.getReadTimeout() != null) {
+            builder.readTimeout(config.getReadTimeout(), TimeUnit.MILLISECONDS);
+        }
 
         if (config.getMaxIdleConns() != null || config.getIdleTime() != null) {
             ConnectionPool connectionPool = new ConnectionPool(config.getMaxIdleConns(),
@@ -204,6 +210,11 @@ public abstract class AbstractRestClient implements RestClient {
         // ssl
         configSsl(builder, this.baseUrl, config.getTrustStoreFile(),
                   config.getTrustStorePassword());
+
+        // Execute builder callback before builder.build() for user configs
+        if (config.getBuilderCallback() != null) {
+            config.getBuilderCallback().accept(builder);
+        }
 
         OkHttpClient okHttpClient = builder.build();
 

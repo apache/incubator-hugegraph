@@ -21,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
 import javax.net.ssl.SSLContext;
@@ -322,6 +323,29 @@ public class RestClientTest {
 
     @SneakyThrows
     @Test
+    public void testBuilderCallback() {
+        // default configs
+        MockRestClientImpl restClient = new MockRestClientImpl(TEST_URL,
+                                                               RestClientConfig.builder().build());
+        OkHttpClient okHttpClient = Whitebox.getInternalState(restClient, "client");
+        Assert.assertEquals(okHttpClient.connectTimeoutMillis(), 10000);
+        Assert.assertEquals(okHttpClient.readTimeoutMillis(), 10000);
+
+        // set config by (user)builderCallback
+        RestClientConfig config = RestClientConfig.builder().builderCallback(
+                builder -> builder.connectTimeout(5, TimeUnit.SECONDS)
+                                  .readTimeout(30, TimeUnit.SECONDS))
+                                  .build();
+
+        restClient = new MockRestClientImpl(TEST_URL, config);
+        okHttpClient = Whitebox.getInternalState(restClient, "client");
+
+        Assert.assertEquals(okHttpClient.connectTimeoutMillis(), 5000);
+        Assert.assertEquals(okHttpClient.readTimeoutMillis(), 30000);
+    }
+
+    @SneakyThrows
+    @Test
     public void testRequest() {
         Response response = Mockito.mock(Response.class, Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(response.code()).thenReturn(200);
@@ -483,6 +507,10 @@ public class RestClientTest {
 
         public MockRestClientImpl(String url, int timeout) {
             super(url, timeout);
+        }
+
+        public MockRestClientImpl(String url, RestClientConfig config) {
+            super(url, config);
         }
 
         @Override

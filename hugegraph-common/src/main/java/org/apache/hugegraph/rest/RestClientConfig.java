@@ -17,9 +17,12 @@
 
 package org.apache.hugegraph.rest;
 
+import java.util.function.Consumer;
+
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
+import okhttp3.OkHttpClient;
 
 @Builder
 @Getter
@@ -30,8 +33,15 @@ public class RestClientConfig {
     private String user;
     private String password;
     private String token;
-    // unit in milliseconds
+    /**
+     * @deprecated use connectTimeout and readTimeout instead
+     */
+    @Deprecated
     private Integer timeout;
+    /** unit in milliseconds */
+    private Integer connectTimeout;
+    /** unit in milliseconds */
+    private Integer readTimeout;
     private Integer maxConns;
     private Integer maxConnsPerRoute;
     // unit in seconds
@@ -39,4 +49,5 @@ public class RestClientConfig {
     private Integer maxIdleConns = 5;
     private String trustStoreFile;
     private String trustStorePassword;
+    private Consumer<OkHttpClient.Builder> builderCallback;
 }

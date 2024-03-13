@@ -90,7 +90,7 @@
 
     <properties>
         <!-- Note: We need also update the version in CommonVersion.java & RpcVersion.java now -->
-        <revision>1.2.0</revision>
+        <revision>1.3.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <compiler.source>1.8</compiler.source>
@@ -266,6 +266,14 @@
                     <execution>
                         <id>flatten.clean</id>
                         <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                    <!-- auto delete .flattened-pom.xml after "install" step -->
+                    <execution>
+                        <id>remove-flattened-pom</id>
+                        <phase>install</phase>
                         <goals>
                             <goal>clean</goal>
                         </goals>
