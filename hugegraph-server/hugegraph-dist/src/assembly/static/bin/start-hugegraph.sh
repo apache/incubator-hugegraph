@@ -46,7 +46,7 @@ PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
 
-while getopts "d:g:m:p:s:j:t:y" arg; do
+while getopts "d:g:m:p:s:j:t:y:" arg; do
     case ${arg} in
         d) DAEMON="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
