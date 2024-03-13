@@ -52,7 +52,6 @@ public class KVByteBufferTest {
         KVByteBuffer buffer2 = new KVByteBuffer(bytes);
         assertArrayEquals(buffer2.array(), bytes);
 
-
         ByteBuffer bb = ByteBuffer.allocate(10);
         KVByteBuffer buffer3 = new KVByteBuffer(bb);
         buffer3.put(bytes);

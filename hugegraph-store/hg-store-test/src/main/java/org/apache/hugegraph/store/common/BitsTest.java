@@ -22,6 +22,7 @@ import org.junit.Assert;
 // import org.junit.Test;
 
 public class BitsTest {
+
     // @Test
     public void test() {
         for (int i = 0; i < Integer.MAX_VALUE; i = i + 10) {
