@@ -132,7 +132,7 @@ enum PartitionFaultType{
 
 }
 message Agg {
-    Header header = 1;
-    int64 count = 2;
+  Header header = 1;
+  int64 count = 2;
 }
 
