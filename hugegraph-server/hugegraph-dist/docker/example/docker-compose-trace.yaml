@@ -20,7 +20,7 @@ version: "3"
 services:
   tempo:
     image: grafana/tempo:latest
-    command: [ "-config.file=/etc/tempo.yaml" ]
+    command: ["-config.file=/etc/tempo.yaml"]
     volumes:
       - ../conf/tempo.yaml:/etc/tempo.yaml
       - ../data/tempo:/tmp/tempo

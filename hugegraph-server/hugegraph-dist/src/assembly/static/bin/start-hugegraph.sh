@@ -15,15 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 OPEN_MONITOR="false"
 OPEN_SECURITY_CHECK="true"
+# change to "true" to enable telemetry(Trace) by default
 OPEN_TELEMETRY="false"
 DAEMON="true"
 #VERBOSE=""
 GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
-# todo: move abs_path funtion to shell like util.sh
+
+# TODO: move abs_path function to shell like util.sh
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [[ -h "$SOURCE" ]]; do
@@ -38,13 +41,12 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 CONF="$TOP/conf"
 LOGS="$TOP/logs"
-PLUGINS="$TOP/plugins"
 SCRIPTS="$TOP/scripts"
 PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
 
-while getopts "d:g:m:p:s:j:t:v:y:" arg; do
+while getopts "d:g:m:p:s:j:t:y" arg; do
     case ${arg} in
         d) DAEMON="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
@@ -53,9 +55,8 @@ while getopts "d:g:m:p:s:j:t:v:y:" arg; do
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
-        # TODO: should remove it in future (check the usage carefully)
-        v) VERBOSE="verbose" ;;
-        y) OPEN_TELEMETRY="$OPTARG";;
+        # Telemetry is used to collect metrics, traces and logs
+        y) OPEN_TELEMETRY="$OPTARG" ;;
         # Note: update usage info when the params changed
         ?) exit_with_usage_help ;;
     esac
@@ -82,44 +83,26 @@ if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi
 
-ensure_path_writable "$PLUGINS"
-
-if [ "${OPEN_TELEMETRY}" == "true" ]; then
-    if [[ ! -e "${PLUGINS}/opentelemetry-javaagent.jar" ]]; then
-      echo "Downloading opentelemetry-javaagent.jar..."
-      download "${PLUGINS}" "https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/opentelemetry-javaagent.jar"
-    fi
-
-    export JAVA_TOOL_OPTIONS="-javaagent:${PLUGINS}/opentelemetry-javaagent.jar"
-    export OTEL_TRACES_EXPORTER=otlp
-    export OTEL_METRICS_EXPORTER=none
-    export OTEL_LOGS_EXPORTER=none
-    export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
-    # 127.0.0.1:4317 is the port of otel-collector running in Docker located in
-    # 'hugegraph-server/hugegraph-dist/docker/example/docker-compose-trace.yaml'.
-    # Make sure the otel-collector is running before starting HugeGraphServer.
-    export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4317
-    export OTEL_RESOURCE_ATTRIBUTES=service.name=server
-fi
-
 GREMLIN_SERVER_CONF="gremlin-server.yaml"
 if [[ $PRELOAD == "true" ]]; then
     GREMLIN_SERVER_CONF="gremlin-server-preload.yaml"
-    EXAMPLE_SCRPIT="example-preload.groovy"
+    EXAMPLE_SCRIPT="example-preload.groovy"
     cp "${CONF}"/gremlin-server.yaml "${CONF}/${GREMLIN_SERVER_CONF}"
-    cp "${SCRIPTS}"/example.groovy "${SCRIPTS}/${EXAMPLE_SCRPIT}"
-    sed -i -e "s/empty-sample.groovy/$EXAMPLE_SCRPIT/g" "${CONF}/${GREMLIN_SERVER_CONF}"
-    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRPIT}"
+    cp "${SCRIPTS}"/example.groovy "${SCRIPTS}/${EXAMPLE_SCRIPT}"
+    sed -i -e "s/empty-sample.groovy/$EXAMPLE_SCRIPT/g" "${CONF}/${GREMLIN_SERVER_CONF}"
+    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRIPT}"
 fi
 
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
-    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
+    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" "${OPEN_TELEMETRY}" \
+    >>"${LOGS}"/hugegraph-server.log 2>&1 &
 else
     echo "Starting HugeGraphServer in foreground mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
-    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
+    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" "${OPEN_TELEMETRY}" \
+    >>"${LOGS}"/hugegraph-server.log 2>&1
 fi
 
 PID="$!"

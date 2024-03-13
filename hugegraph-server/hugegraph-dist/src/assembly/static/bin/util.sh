@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 function command_available() {
     local cmd=$1
     if [[ -x "$(command -v "$cmd")" ]]; then
