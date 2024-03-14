@@ -166,6 +166,7 @@ if [ "${OPEN_TELEMETRY}" == "true" ]; then
         fi
     fi
 
+    # Note: remember update it if we change the jar 
     expected_md5="e3bcbbe8ed9b6d840fa4c333b36f369f"
     actual_md5=$(md5sum "${OT_JAR_PATH}" | awk '{print $1}')
 
