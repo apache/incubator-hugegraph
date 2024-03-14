@@ -292,7 +292,7 @@ public class MetadataKeyHelper {
     }
 
     public static byte[] getLogKeyPrefix(String action, long time) {
-        //LOG_DATA_SPLIT/{time}/{GraphName}
+        //LOG_RECORD/{action}/{time}/
         StringBuilder builder = StringBuilderHelper.get()
                                                    .append(LOG_RECORD)
                                                    .append(DELIMITER)
