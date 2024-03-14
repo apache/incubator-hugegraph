@@ -128,22 +128,22 @@ fi
 # mention: zgc is only available on ARM-Mac with java > 13
 case "$GC_OPTION" in
     g1|G1|g1gc)
-        echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+    echo "Using G1GC as the default garbage collector"
+    JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
                                       -XX:InitiatingHeapOccupancyPercent=50 \
                                       -XX:G1RSetUpdatingPauseTimePercent=5"
-        ;;
+    ;;
     zgc|ZGC)
-        echo "Using ZGC as the default garbage collector (Only support Java 11+)"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
+    echo "Using ZGC as the default garbage collector (Only support Java 11+)"
+    JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
                                       -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
                                       -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
                                       -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
-        ;;
-    "") ;;
-    *)
+    ;;
+"") ;;
+*)
         echo "Unrecognized gc option: '$GC_OPTION', only support 'G1/ZGC' now" >> ${OUTPUT}
-        exit 1
+    exit 1
 esac
 
 JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml"
@@ -153,10 +153,26 @@ fi
 
 if [ "${OPEN_TELEMETRY}" == "true" ]; then
     OT_JAR="opentelemetry-javaagent.jar"
-    if [[ ! -e "${PLUGINS}/${OT_JAR}" ]]; then
-      echo "## Downloading ${OT_JAR}..."
-      download "${PLUGINS}" \
-      "${GITHUB}/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/${OT_JAR}"
+    OT_JAR_PATH="${PLUGINS}/${OT_JAR}"
+
+    if [[ ! -e "${OT_JAR_PATH}" ]]; then
+        echo "## Downloading ${OT_JAR}..."
+        download "${PLUGINS}" \
+            "${GITHUB}/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/${OT_JAR}"
+
+        if [[ ! -e "${OT_JAR_PATH}" ]]; then
+            echo "## Error: Failed to download ${OT_JAR}." >>${OUTPUT}
+            exit 1
+        fi
+    fi
+
+    expected_md5="e3bcbbe8ed9b6d840fa4c333b36f369f"
+    actual_md5=$(md5sum "${OT_JAR_PATH}" | awk '{print $1}')
+
+    if [[ "${expected_md5}" != "${actual_md5}" ]]; then
+        echo "## Error: MD5 checksum verification failed for ${OT_JAR_PATH}." >>${OUTPUT}
+        echo "## Tips: Remove the file and try again." >>${OUTPUT}
+        exit 1
     fi
 
     # Note: check carefully if multi "javeagent" params are set
