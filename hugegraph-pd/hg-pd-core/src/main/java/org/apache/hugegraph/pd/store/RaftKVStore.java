@@ -37,7 +37,6 @@ import com.alipay.sofa.jraft.error.RaftError;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 public class RaftKVStore implements HgKVStore, RaftTaskHandler {
 
@@ -102,7 +101,6 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
         }
         return 0;
     }
-
 
     @Override
     public long removeByPrefix(byte[] bytes) throws PDException {

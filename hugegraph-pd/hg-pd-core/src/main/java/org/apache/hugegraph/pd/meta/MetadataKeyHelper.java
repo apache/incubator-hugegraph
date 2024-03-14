@@ -345,6 +345,7 @@ public class MetadataKeyHelper {
     }
 
     static class StringBuilderHelper {
+
         private static final int DISCARD_LIMIT = 1024 << 3;     // 8k
 
         private static final ThreadLocal<StringBuilderHolder> holderThreadLocal = ThreadLocal

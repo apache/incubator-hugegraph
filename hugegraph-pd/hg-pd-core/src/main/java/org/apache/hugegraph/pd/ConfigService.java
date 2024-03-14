@@ -41,7 +41,6 @@ public class ConfigService implements RaftStateListener {
         meta = MetadataFactory.newConfigMeta(config);
     }
 
-
     public Metapb.PDConfig getPDConfig(long version) throws PDException {
         return this.meta.getPdConfig(version);
     }

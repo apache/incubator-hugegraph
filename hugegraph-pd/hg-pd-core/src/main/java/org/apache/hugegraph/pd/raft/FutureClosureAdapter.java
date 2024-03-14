@@ -23,6 +23,7 @@ import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Status;
 
 public class FutureClosureAdapter<T> implements Closure {
+
     public final CompletableFuture<T> future = new CompletableFuture<>();
     private T resp;
 

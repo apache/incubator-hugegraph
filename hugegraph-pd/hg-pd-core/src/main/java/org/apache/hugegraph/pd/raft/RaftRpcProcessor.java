@@ -27,7 +27,6 @@ import lombok.Data;
 
 public class RaftRpcProcessor<T extends RaftRpcProcessor.BaseRequest> implements RpcProcessor<T> {
 
-
     private final Class<?> requestClass;
     private final RaftEngine raftEngine;
 
@@ -97,6 +96,7 @@ public class RaftRpcProcessor<T extends RaftRpcProcessor.BaseRequest> implements
     }
 
     public abstract static class BaseRequest implements Serializable {
+
         public static final byte GET_GRPC_ADDRESS = 0x01;
 
         public abstract byte magic();
@@ -104,12 +104,14 @@ public class RaftRpcProcessor<T extends RaftRpcProcessor.BaseRequest> implements
 
     @Data
     public abstract static class BaseResponse implements Serializable {
+
         private Status status;
 
     }
 
     @Data
     public static class GetMemberRequest extends BaseRequest {
+
         @Override
         public byte magic() {
             return GET_GRPC_ADDRESS;
@@ -118,6 +120,7 @@ public class RaftRpcProcessor<T extends RaftRpcProcessor.BaseRequest> implements
 
     @Data
     public static class GetMemberResponse extends BaseResponse {
+
         private long clusterId;
         private String raftAddress;
         private String grpcAddress;

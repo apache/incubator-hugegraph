@@ -24,6 +24,7 @@ import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 
 public interface HgKVStore {
+
     void init(PDConfig config);
 
     void put(byte[] key, byte[] value) throws PDException;

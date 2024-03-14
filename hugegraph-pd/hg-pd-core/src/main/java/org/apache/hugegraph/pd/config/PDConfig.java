@@ -32,7 +32,6 @@ import org.springframework.stereotype.Component;
 
 import lombok.Data;
 
-
 /**
  * PD配置文件
  */
@@ -114,6 +113,7 @@ public class PDConfig {
     @Data
     @Configuration
     public class ThreadPoolGrpc {
+
         @Value("${thread.pool.grpc.core:600}")
         private int core;
         @Value("${thread.pool.grpc.max:1000}")
@@ -125,6 +125,7 @@ public class PDConfig {
     @Data
     @Configuration
     public class Raft {
+
         @Value("${raft.enable:true }")
         private boolean enable;
         @Value("${raft.address}")
@@ -155,6 +156,7 @@ public class PDConfig {
     @Data
     @Configuration
     public class Store {
+
         // store 心跳超时时间
         @Value("${store.keepAlive-timeout:300}")
         private long keepAliveTimeout = 300;
@@ -201,7 +203,7 @@ public class PDConfig {
         private Long parseTimeExpression(String exp) {
             if (exp != null) {
                 Pattern pattern = Pattern.compile(
-                    "(?<n>(\\d+)*)(\\s)*(?<unit>(second|minute|hour|day|month|year)$)");
+                        "(?<n>(\\d+)*)(\\s)*(?<unit>(second|minute|hour|day|month|year)$)");
                 Matcher matcher = pattern.matcher(exp.trim());
                 if (matcher.find()) {
                     String n = matcher.group("n");
@@ -244,6 +246,7 @@ public class PDConfig {
     @Data
     @Configuration
     public class Partition {
+
         private int totalCount = 0;
 
         // 每个Store最大副本数
@@ -269,6 +272,7 @@ public class PDConfig {
     @Data
     @Configuration
     public class Discovery {
+
         // 客户端注册后，无心跳最长次数，超过后，之前的注册信息会被删除
         @Value("${discovery.heartbeat-try-count:3}")
         private int heartbeatOutTimes = 3;

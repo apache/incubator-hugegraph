@@ -76,7 +76,6 @@ public class MetadataFactory {
         return new TaskInfoMeta(pdConfig);
     }
 
-
     public static QueueStore newQueueStore(PDConfig pdConfig) {
         return new QueueStore(pdConfig);
     }

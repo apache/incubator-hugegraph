@@ -43,7 +43,6 @@ import org.apache.hugegraph.pd.raft.RaftEngine;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 /**
  * 任务调度服务，定时检查Store、资源、分区的状态，及时迁移数据，错误节点
  * 1、监测Store是否离线
@@ -53,6 +52,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class TaskScheduleService {
+
     private static final String BALANCE_SHARD_KEY = "BALANCE_SHARD_KEY";
     private final long TurnOffAndBalanceInterval = 30 * 60 * 1000; //机器下线30后才能进行动态平衡
     private final long BalanceLeaderInterval = 30 * 1000;   // leader平衡时间间隔
@@ -81,7 +81,6 @@ public class TaskScheduleService {
     };
     private long lastStoreTurnoffTime = 0;
     private long lastBalanceLeaderTime = 0;
-
 
     public TaskScheduleService(PDConfig config, StoreNodeService storeService,
                                PartitionService partitionService) {
@@ -239,7 +238,6 @@ public class TaskScheduleService {
         return changedStores;
     }
 
-
     /**
      * 巡查所有的分区，检查副本数是否正确
      */
@@ -278,7 +276,6 @@ public class TaskScheduleService {
         return null;
     }
 
-
     /**
      * 在Store之间平衡分区的数量
      * 机器转为UP半小时后才能进行动态平衡
@@ -294,7 +291,6 @@ public class TaskScheduleService {
         if (System.currentTimeMillis() - lastStoreTurnoffTime < TurnOffAndBalanceInterval) {
             return null;//机器下线半小时后才能进行动态平衡
         }
-
 
         int activeStores = storeService.getActiveStores().size();
         if (activeStores == 0) {
@@ -565,7 +561,6 @@ public class TaskScheduleService {
         return results;
     }
 
-
     private long getMaxIndexGap(Map<Integer, Map<Long, Long>> committedIndexMap, int partitionId) {
         long maxGap = Long.MAX_VALUE;
         if (committedIndexMap == null || !committedIndexMap.containsKey(partitionId)) {
@@ -584,7 +579,6 @@ public class TaskScheduleService {
         maxGap = sortedList.get(0) - sortedList.get(sortedList.size() - 1);
         return maxGap;
     }
-
 
     /**
      * 执行分区分裂，分为自动分裂和手工分裂
@@ -662,7 +656,6 @@ public class TaskScheduleService {
 
         return null;
     }
-
 
     /**
      * Store汇报任务状态
@@ -848,6 +841,5 @@ public class TaskScheduleService {
         });
         return movedPartitions;
     }
-
 
 }

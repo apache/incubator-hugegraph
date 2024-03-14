@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RaftRpcClient {
+
     protected volatile RpcClient rpcClient;
     private RpcOptions rpcOptions;
 

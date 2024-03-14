@@ -48,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RaftStateMachine extends StateMachineAdapter {
+
     private static final String SNAPSHOT_DIR_NAME = "snapshot";
     private static final String SNAPSHOT_ARCHIVE_NAME = "snapshot.zip";
     private final AtomicLong leaderTerm = new AtomicLong(-1);
@@ -147,7 +148,6 @@ public class RaftStateMachine extends StateMachineAdapter {
         super.onStopFollowing(ctx);
     }
 
-
     @Override
     public void onConfigurationCommitted(final Configuration conf) {
         log.info("Raft  onConfigurationCommitted {}", conf);
@@ -235,7 +235,6 @@ public class RaftStateMachine extends StateMachineAdapter {
             return false;
         }
 
-
         try {
             // TODO: remove file from meta
             // SnapshotReader 沒有提供刪除文件的接口
@@ -288,8 +287,8 @@ public class RaftStateMachine extends StateMachineAdapter {
         }
     }
 
-
     public static class RaftClosureAdapter implements KVStoreClosure {
+
         private final KVOperation op;
         private final KVStoreClosure closure;
 

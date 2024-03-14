@@ -36,10 +36,10 @@ import org.springframework.stereotype.Service;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 @Service
 public class StoreMonitorDataService {
+
     private static final String MONITOR_DATA_PREFIX = "SMD";
     private final PDConfig pdConfig;
     private final KvService kvService;
@@ -48,7 +48,6 @@ public class StoreMonitorDataService {
      * used for determine the gap of store's heartbeat.
      */
     private final Map<Long, Long> lastStoreStateTimestamp;
-
 
     public StoreMonitorDataService(PDConfig pdConfig) {
         this.pdConfig = pdConfig;

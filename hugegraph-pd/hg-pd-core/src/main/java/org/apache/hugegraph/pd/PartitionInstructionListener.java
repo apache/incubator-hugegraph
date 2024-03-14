@@ -31,6 +31,7 @@ import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
  * 分区命令监听
  */
 public interface PartitionInstructionListener {
+
     void changeShard(Metapb.Partition partition, ChangeShard changeShard) throws PDException;
 
     void transferLeader(Metapb.Partition partition, TransferLeader transferLeader) throws

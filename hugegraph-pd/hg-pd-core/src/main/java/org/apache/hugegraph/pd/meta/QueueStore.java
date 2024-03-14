@@ -27,6 +27,7 @@ import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.store.RaftKVStore;
 
 public class QueueStore extends MetadataRocksDBStore {
+
     QueueStore(PDConfig pdConfig) {
         super(pdConfig);
     }

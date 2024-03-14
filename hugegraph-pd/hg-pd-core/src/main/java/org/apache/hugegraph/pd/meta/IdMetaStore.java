@@ -40,7 +40,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class IdMetaStore extends MetadataRocksDBStore {
 
-
     private static final String ID_PREFIX = "@ID@";
     private static final String CID_PREFIX = "@CID@";
     private static final String CID_SLOT_PREFIX = "@CID_SLOT@";

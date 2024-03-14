@@ -55,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RaftEngine {
+
     private static final RaftEngine INSTANCE = new RaftEngine();
     private final RaftStateMachine stateMachine;
     private PDConfig.Raft config;

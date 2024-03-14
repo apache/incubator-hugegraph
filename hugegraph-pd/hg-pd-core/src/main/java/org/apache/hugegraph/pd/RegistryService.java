@@ -26,6 +26,7 @@ import org.apache.hugegraph.pd.meta.DiscoveryMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 
 public class RegistryService {
+
     private final PDConfig pdConfig;
     private final DiscoveryMetaStore meta;
 

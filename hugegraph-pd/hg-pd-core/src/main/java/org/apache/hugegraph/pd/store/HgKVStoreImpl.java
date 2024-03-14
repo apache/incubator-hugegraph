@@ -52,6 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HgKVStoreImpl implements HgKVStore {
+
     private static final ConcurrentHashMap<String,
             ConcurrentMap<String, Object>> CACHE = new ConcurrentHashMap();
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
@@ -323,7 +324,6 @@ public class HgKVStoreImpl implements HgKVStore {
     public void close() {
         closeRocksDB();
     }
-
 
     private void closeRocksDB() {
         if (this.db != null) {

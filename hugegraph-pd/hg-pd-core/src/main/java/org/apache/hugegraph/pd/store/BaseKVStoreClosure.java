@@ -21,6 +21,7 @@ import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.raft.KVStoreClosure;
 
 public abstract class BaseKVStoreClosure implements KVStoreClosure {
+
     private Pdpb.Error error;
     private Object data;
 
@@ -43,6 +44,5 @@ public abstract class BaseKVStoreClosure implements KVStoreClosure {
     public void setData(Object data) {
         this.data = data;
     }
-
 
 }

@@ -32,6 +32,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class PartitionMeta extends MetadataRocksDBStore {
+
     static String CID_GRAPH_ID_KEY = "GraphID";
     static int CID_GRAPH_ID_MAX = 0xFFFE;
     private final PDConfig pdConfig;
@@ -232,7 +233,6 @@ public class PartitionMeta extends MetadataRocksDBStore {
         byte[] prefix = MetadataKeyHelper.getPartitionStatusKey(graphName, id);
         return getOne(Metapb.PartitionStats.parser(), prefix);
     }
-
 
     /**
      * 获取分区状态

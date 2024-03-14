@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.pd.store;
 
-
 public class KV {
+
     private byte[] key;
     private byte[] value;
 

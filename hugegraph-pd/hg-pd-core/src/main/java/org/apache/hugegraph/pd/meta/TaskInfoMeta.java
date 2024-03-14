@@ -30,6 +30,7 @@ import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
  * 任务管理
  */
 public class TaskInfoMeta extends MetadataRocksDBStore {
+
     public TaskInfoMeta(PDConfig pdConfig) {
         super(pdConfig);
     }

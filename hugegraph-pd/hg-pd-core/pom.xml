@@ -37,7 +37,7 @@
         <dependency>
             <groupId>com.alipay.sofa</groupId>
             <artifactId>jraft-core</artifactId>
-           <!-- TODO: use open source version & adopt the code later -->
+            <!-- TODO: use open source version & adopt the code later -->
             <version>1.3.13</version>
             <exclusions>
                 <exclusion>

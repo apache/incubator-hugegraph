@@ -26,7 +26,6 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 
 public class ConfigMetaStore extends MetadataRocksDBStore {
 
-
     private final long clusterId;
 
     public ConfigMetaStore(PDConfig pdConfig) {
@@ -68,6 +67,5 @@ public class ConfigMetaStore extends MetadataRocksDBStore {
                 (o1, o2) -> (o1.getVersion() > o2.getVersion()) ? 1 : -1);
         return max.isPresent() ? max.get() : null;
     }
-
 
 }

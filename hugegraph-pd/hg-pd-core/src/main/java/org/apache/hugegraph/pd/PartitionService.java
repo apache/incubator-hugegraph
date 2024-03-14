@@ -991,7 +991,6 @@ public class PartitionService implements RaftStateListener {
         }
     }
 
-
     public void addInstructionListener(PartitionInstructionListener event) {
         instructionListeners.add(event);
     }
