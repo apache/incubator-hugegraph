@@ -99,6 +99,16 @@
             <artifactId>hg-pd-common</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hg-pd-client</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hg-pd-core</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <dependency>
             <groupId>com.google.code.gson</groupId>
