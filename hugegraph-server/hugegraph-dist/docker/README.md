@@ -83,6 +83,11 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
     ```
 ## 4. Running Open-Telemetry-Collector
 
+> CAUTION:
+> 
+> The docker-compose-trace.yaml file utilizes Grafana and Grafana-Tempo, both of which are  licensed under AGPL-3.0, requiring users to disclose their source code.
+>
+> [GNU AFFERO GENERAL PUBLIC LICENSE](https://www.gnu.org/licenses/agpl-3.0.en.html)
 1. Start Open-Telemetry-Collector
 
     ```bash
