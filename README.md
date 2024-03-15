@@ -16,7 +16,9 @@
 ## What is Apache HugeGraph?
 
 [HugeGraph](https://hugegraph.apache.org/) is a fast-speed and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database). 
-Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be accomplished through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
+Billions of vertices and edges can be easily stored into and queried from HugeGraph due to its excellent OLTP ability. 
+As compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/) framework, various complicated graph queries can be 
+achieved through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful graph traversal language).
 
 
 ## Features
@@ -40,7 +42,7 @@ You can visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-
 >  
 > 1. The docker image of hugegraph is a convenience release, but not **official distribution** artifacts. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
 > 
-> 2. Recommand to use `release tag`(like `1.2.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> 2. Recommend to use `release tag`(like `1.2.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ### 2. Download Way
 
