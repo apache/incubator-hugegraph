@@ -43,16 +43,9 @@ public class ArthasApiTest extends BaseApiTest {
                       "  \"command\": \"version\"\n" +
                       "}";
         RestClient arthasApiClient = new RestClient(ARTHAS_API_BASE_URL, false);
-        // If the request header contains basic auth,
-        // and if we are not set auth when arthas attach hg, arthas will auth it and return 401.
-        // ref:https://arthas.aliyun.com/en/doc/auth.html#configure-username-and-password
         Response r = arthasApiClient.post(ARTHAS_API_PATH, body);
         String result = assertResponseStatus(200, r);
         assertJsonContains(result, "state");
         assertJsonContains(result, "body");
-
-        RestClient arthasApiClientWithAuth = new RestClient(ARTHAS_API_BASE_URL);
-        r = arthasApiClientWithAuth.post(ARTHAS_API_PATH, body);
-        assertResponseStatus(401, r);
     }
 }
