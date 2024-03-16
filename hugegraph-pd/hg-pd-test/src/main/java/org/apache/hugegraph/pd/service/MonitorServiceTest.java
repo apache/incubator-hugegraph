@@ -15,10 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd;
+package org.apache.hugegraph.pd.service;
 
 import java.util.concurrent.ExecutionException;
 
+import org.apache.hugegraph.pd.PartitionService;
+import org.apache.hugegraph.pd.StoreNodeService;
+import org.apache.hugegraph.pd.TaskScheduleService;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;

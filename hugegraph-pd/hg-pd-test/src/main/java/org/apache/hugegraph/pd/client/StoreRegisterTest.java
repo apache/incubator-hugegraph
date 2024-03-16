@@ -15,15 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd;
+package org.apache.hugegraph.pd.client;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.hugegraph.pd.client.PDClient;
-import org.apache.hugegraph.pd.client.PDConfig;
-import org.apache.hugegraph.pd.client.PDPulse;
-import org.apache.hugegraph.pd.client.PDPulseImpl;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;

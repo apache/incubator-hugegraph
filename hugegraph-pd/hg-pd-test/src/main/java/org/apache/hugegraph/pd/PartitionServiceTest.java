@@ -21,9 +21,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Test;
 
+@Useless
 public class PartitionServiceTest {
     @Test
     public void testPartitionHeartbeat() {

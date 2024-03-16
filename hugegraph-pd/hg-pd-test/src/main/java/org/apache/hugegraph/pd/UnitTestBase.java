@@ -19,6 +19,9 @@ package org.apache.hugegraph.pd;
 
 import java.io.File;
 
+import org.apache.hugegraph.pd.common.Useless;
+
+@Useless
 public class UnitTestBase {
     public static boolean deleteDir(File dir) {
         if (dir.isDirectory()) {

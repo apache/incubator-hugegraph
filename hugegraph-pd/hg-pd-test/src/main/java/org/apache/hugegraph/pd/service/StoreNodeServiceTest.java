@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd;
+package org.apache.hugegraph.pd.service;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +25,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.pd.ConfigService;
+import org.apache.hugegraph.pd.PartitionInstructionListener;
+import org.apache.hugegraph.pd.PartitionService;
+import org.apache.hugegraph.pd.PartitionStatusListener;
+import org.apache.hugegraph.pd.StoreNodeService;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
