@@ -17,9 +17,11 @@
 
 package org.apache.hugegraph.pd.client;
 
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
 import org.apache.hugegraph.pd.grpc.discovery.Query;
 
+@Useless
 public interface Discoverable {
 
     NodeInfos getNodeInfos(Query query);
