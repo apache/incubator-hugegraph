@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
