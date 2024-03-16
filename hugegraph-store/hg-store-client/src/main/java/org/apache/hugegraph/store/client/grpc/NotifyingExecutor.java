@@ -61,7 +61,7 @@ final class NotifyingExecutor {
         this.nodeSession = nodeSession;
     }
 
-    private void intHandler() {
+    private void initHandler() {
         this.partitionFaultHandlers = new HashMap<>();
 
         this.partitionFaultHandlers.put(
@@ -158,7 +158,7 @@ final class NotifyingExecutor {
             return null;
         }
         if (this.partitionFaultHandlers == null) {
-            intHandler();
+            initHandler();
         }
         Consumer<PartitionFaultResponse> consumer =
                 this.partitionFaultHandlers.get(res.getFaultType());

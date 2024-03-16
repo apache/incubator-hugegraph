@@ -97,7 +97,6 @@ message FeedbackRes {
     PartitionFaultResponse partition_fault_response = 10;
     ValueResponse value_response = 11;
     KeyValueResponse key_value_response = 12;
-
   }
 
 }
