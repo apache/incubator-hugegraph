@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import java.util.concurrent.ExecutionException;
 
@@ -27,8 +27,7 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-
-// import org.junit.Test;
+import org.junit.Test;
 
 public class MonitorServiceTest {
     static PDConfig pdConfig;
@@ -70,7 +69,7 @@ public class MonitorServiceTest {
         //client.close();
     }
 
-    // @Test
+    @Test
     public void testPatrolStores() throws PDException, InterruptedException {
         StoreNodeService storeService = new StoreNodeService(pdConfig);
         PartitionService partitionService = new PartitionService(pdConfig, storeService);

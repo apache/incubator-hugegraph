@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.rest;
 
 import java.io.File;
 import java.net.http.HttpClient;

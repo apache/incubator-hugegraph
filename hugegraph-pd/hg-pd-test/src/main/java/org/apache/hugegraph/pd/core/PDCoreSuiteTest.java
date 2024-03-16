@@ -27,9 +27,19 @@ import lombok.extern.slf4j.Slf4j;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        StoreNodeServiceTest.class,
         MetadataKeyHelperTest.class,
-        HgKVStoreImplTest.class
+        HgKVStoreImplTest.class,
+        ConfigServiceTest.class,
+        IdServiceTest.class,
+        KvServiceTest.class,
+        LogServiceTest.class,
+        MonitorServiceTest.class,
+        PartitionServiceTest.class,
+        StoreMonitorDataServiceTest.class,
+        StoreNodeServiceNewTest.class,
+        StoreNodeServiceTest.class,
+        StoreServiceTest.class,
+        TaskScheduleServiceTest.class
 })
 
 @Slf4j

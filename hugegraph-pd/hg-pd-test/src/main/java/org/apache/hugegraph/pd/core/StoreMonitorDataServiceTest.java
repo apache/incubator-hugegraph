@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -29,7 +29,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Before;
 import org.junit.Test;
 
-public class StoreMonitorDataServiceTest extends PdTestBase {
+public class StoreMonitorDataServiceTest extends PDCoreTestBase {
 
     StoreMonitorDataService service;
 

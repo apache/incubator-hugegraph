@@ -245,7 +245,7 @@
             </build>
         </profile>
         <profile>
-            <id>pd-service-test</id>
+            <id>pd-rest-test</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
@@ -257,7 +257,7 @@
                         <version>2.20</version>
                         <executions>
                             <execution>
-                                <id>pd-service-test</id>
+                                <id>pd-rest-test</id>
                                 <goals>
                                     <goal>test</goal>
                                 </goals>

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -33,6 +33,7 @@ import org.apache.hugegraph.pd.StoreStatusListener;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Before;
 import org.junit.Test;
 

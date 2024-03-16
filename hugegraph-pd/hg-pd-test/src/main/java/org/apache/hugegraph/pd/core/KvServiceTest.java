@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import org.apache.hugegraph.pd.KvService;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Assert;
 import org.junit.Test;
 

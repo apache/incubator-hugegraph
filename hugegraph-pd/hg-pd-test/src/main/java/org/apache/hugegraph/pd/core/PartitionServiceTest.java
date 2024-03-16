@@ -15,10 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.hugegraph.pd.PartitionService;
@@ -30,7 +32,7 @@ import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.junit.Before;
 import org.junit.Test;
 
-public class PartitionServiceTest extends PdTestBase {
+public class PartitionServiceTest extends PDCoreTestBase {
 
     private PartitionService service;
 
@@ -128,6 +130,24 @@ public class PartitionServiceTest extends PdTestBase {
                 lastId = partitionShard.getPartition().getEndKey();
             }
         }
+
+    }
+
+    @Test
+    public void testPartitionHeartbeat() {
+        List<Metapb.Shard> shardList = new ArrayList<>();
+        shardList.add(Metapb.Shard.newBuilder().setStoreId(1).build());
+        shardList.add(Metapb.Shard.newBuilder().setStoreId(2).build());
+        shardList.add(Metapb.Shard.newBuilder().setStoreId(3).build());
+        shardList = new ArrayList<>(shardList);
+        Metapb.PartitionStats stats = Metapb.PartitionStats.newBuilder()
+                                                           .addAllShard(shardList).build();
+        List<Metapb.Shard> shardList2 = new ArrayList<>(stats.getShardList());
+        Collections.shuffle(shardList2);
+        shardList2.forEach(shard -> {
+            System.out.println(shard.getStoreId());
+        });
+
 
     }
 }

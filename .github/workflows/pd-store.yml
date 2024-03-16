@@ -65,9 +65,9 @@ jobs:
         run: |
           mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-common-test -Dmaven.test.failure.ignore=true
 
-      - name: Run service test
+      - name: Run rest test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-service-test -Dmaven.test.failure.ignore=true
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-rest-test -Dmaven.test.failure.ignore=true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0

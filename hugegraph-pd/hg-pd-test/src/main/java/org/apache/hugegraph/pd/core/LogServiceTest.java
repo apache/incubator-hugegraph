@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import java.util.List;
 
 import org.apache.hugegraph.pd.LogService;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
