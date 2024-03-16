@@ -17,10 +17,11 @@
 
 package org.apache.hugegraph.pd.grpc;
 
+import org.apache.hugegraph.pd.common.Useless;
 import org.junit.After;
 import org.junit.BeforeClass;
 
-
+@Useless
 public class BaseGrpcTest {
 
     @BeforeClass
