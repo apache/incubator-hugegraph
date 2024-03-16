@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.store;
+package org.apache.hugegraph.pd.core.store;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +24,8 @@ import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.store.HgKVStore;
+import org.apache.hugegraph.pd.store.HgKVStoreImpl;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
