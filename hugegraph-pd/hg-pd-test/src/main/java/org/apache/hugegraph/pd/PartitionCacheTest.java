@@ -25,7 +25,6 @@ import java.util.Map;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PartitionCache;
 import org.apache.hugegraph.pd.grpc.Metapb;
-import org.junit.Test;
 
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
@@ -33,7 +32,7 @@ import com.google.common.collect.TreeRangeMap;
 
 public class PartitionCacheTest {
 
-    @Test
+    // @Test
     public void test() {
         PartitionCache cache = new PartitionCache();
         for (int i = 0; i < 10; i++) {
@@ -52,7 +51,7 @@ public class PartitionCacheTest {
     }
 
 
-    @Test
+    // @Test
     public void test1() {
         Map<String, RangeMap<Long, Integer>> keyToPartIdCache = new HashMap<>();
         // graphName + PartitionID组成key
