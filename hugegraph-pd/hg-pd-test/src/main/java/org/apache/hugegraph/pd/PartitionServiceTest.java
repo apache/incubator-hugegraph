@@ -25,7 +25,7 @@ import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Test;
 
-@Useless
+@Useless // can be merged to org.apache.hugegraph.pd.service.PartitionServiceTest
 public class PartitionServiceTest {
     @Test
     public void testPartitionHeartbeat() {
