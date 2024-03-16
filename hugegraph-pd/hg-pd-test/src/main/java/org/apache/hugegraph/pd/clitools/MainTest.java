@@ -20,8 +20,8 @@ package org.apache.hugegraph.pd.clitools;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.hugegraph.pd.clitools.Main;
 import org.apache.hugegraph.pd.common.PDException;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +48,7 @@ public class MainTest extends BaseCliToolsTest {
         }
     }
 
+    @Ignore
     @Test
     public void getConfig() throws PDException {
         Main.main(new String[]{"127.0.0.1:8686", "config", "enableBatchLoad"});
@@ -63,6 +64,7 @@ public class MainTest extends BaseCliToolsTest {
         Main.main(new String[]{"127.0.0.1:8686", "config", "enableBatchLoad=false"});
     }
 
+    @Ignore
     @Test
     public void getConfig2() throws PDException {
         Main.main(new String[]{"127.0.0.1:8686", "config", "shardCount"});

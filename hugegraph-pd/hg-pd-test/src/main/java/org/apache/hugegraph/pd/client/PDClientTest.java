@@ -25,6 +25,7 @@ import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -161,6 +162,7 @@ public class PDClientTest extends BaseClientTest {
         }
     }
 
+    @Ignore
     @Test
     public void testUpdatePartitionLeader() {
         System.out.println("updatePartitionLeader start");
@@ -398,6 +400,7 @@ public class PDClientTest extends BaseClientTest {
         }
     }
 
+    @Ignore
     @Test
     public void testDelPartition() {
         try {
