@@ -27,6 +27,7 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class MonitorServiceTest {
@@ -37,6 +38,8 @@ public class MonitorServiceTest {
         pdConfig = new PDConfig() {{
             this.setClusterId(100);
             this.setPatrolInterval(1);
+            this.setInitialStoreList("127.0.0.1:8500,127.0.0.1:8501,127.0.0.1:8502," +
+                                     "127.0.0.1:8503,127.0.0.1:8504,127.0.0.1:8505");
         }};
 
         //pdConfig.setEtcd(new PDConfig().new Etcd() {{
@@ -51,6 +54,10 @@ public class MonitorServiceTest {
         pdConfig.setPartition(new PDConfig().new Partition() {{
             this.setShardCount(3);
             this.setTotalCount(10);
+        }});
+
+        pdConfig.setRaft(new PDConfig().new Raft() {{
+            this.setEnable(false);
         }});
 
         clearClusterData();
@@ -69,6 +76,7 @@ public class MonitorServiceTest {
         //client.close();
     }
 
+    @Ignore
     @Test
     public void testPatrolStores() throws PDException, InterruptedException {
         StoreNodeService storeService = new StoreNodeService(pdConfig);

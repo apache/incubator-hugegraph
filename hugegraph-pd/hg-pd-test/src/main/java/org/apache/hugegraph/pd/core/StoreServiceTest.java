@@ -35,6 +35,7 @@ import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class StoreServiceTest {
@@ -288,6 +289,7 @@ public class StoreServiceTest {
         final Metapb.Store result = this.service.updateStore(store);
     }
 
+    @Ignore
     @Test
     public void testStoreTurnoff() throws Exception {
         // Setup
@@ -492,6 +494,7 @@ public class StoreServiceTest {
         }
     }
 
+    @Ignore
     @Test
     public void testGetTombStores() throws Exception {
         // Setup

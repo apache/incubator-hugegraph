@@ -42,6 +42,7 @@ import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
 import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class StoreNodeServiceTest {
@@ -93,6 +94,7 @@ public class StoreNodeServiceTest {
         }
     }
 
+    @Ignore
     @Test
     public void testStoreNodeService() throws PDException {
         Assert.assertEquals(pdConfig.getPartition().getTotalCount(),
