@@ -28,6 +28,7 @@ import org.apache.hugegraph.pd.store.HgKVStore;
 import org.apache.hugegraph.pd.store.HgKVStoreImpl;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class HgKVStoreImplTest {
     static final String testPath = "tmp/test";
@@ -45,7 +46,7 @@ public class HgKVStoreImplTest {
         }};
     }
 
-    // @Test
+    @Test
     public void Test() throws PDException {
         HgKVStore kvStore = new HgKVStoreImpl();
         kvStore.init(pdConfig);
@@ -65,9 +66,11 @@ public class HgKVStoreImplTest {
 
         kvStore.removeByPrefix("k".getBytes());
         Assert.assertEquals(0, kvStore.scanPrefix("k".getBytes()).size());
+
+        kvStore.close();
     }
 
-    // @Test
+    @Test
     public void TestSnapshot() throws PDException {
         HgKVStore kvStore = new HgKVStoreImpl();
         kvStore.init(pdConfig);
@@ -103,5 +106,7 @@ public class HgKVStoreImplTest {
             kvStore.put(key, value);
         }
         Assert.assertEquals(200, kvStore.scanPrefix("k".getBytes()).size());
+
+        kvStore.close();
     }
 }
