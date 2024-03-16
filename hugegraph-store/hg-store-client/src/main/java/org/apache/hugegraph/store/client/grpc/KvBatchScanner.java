@@ -348,6 +348,7 @@ public class KvBatchScanner implements Closeable {
         private final KvBatchScanner scanner;
         KVByteBuffer buffer;
         HgKvEntry entry;
+        // sequence no
         int sn;
         boolean hasSN;
 
