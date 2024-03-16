@@ -25,8 +25,6 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
-// import org.junit.Test;
-
 public class MonitorServiceTest {
     static PDConfig pdConfig;
 

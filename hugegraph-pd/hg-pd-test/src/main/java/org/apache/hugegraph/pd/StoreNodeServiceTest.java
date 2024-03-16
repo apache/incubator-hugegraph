@@ -37,6 +37,7 @@ import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
 import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class StoreNodeServiceTest {
     static PDConfig pdConfig;
@@ -87,13 +88,16 @@ public class StoreNodeServiceTest {
         }
     }
 
-    // @Test
+    @Test
     public void testStoreNodeService() throws PDException {
         Assert.assertEquals(pdConfig.getPartition().getTotalCount(),
                             (long) pdConfig.getInitialStoreMap().size() *
                             pdConfig.getPartition().getMaxShardsPerStore()
                             / pdConfig.getPartition().getShardCount());
         StoreNodeService storeService = new StoreNodeService(pdConfig);
+        PartitionService partitionService = new PartitionService(pdConfig, storeService);
+        storeService.init(partitionService);
+
         int count = 6;
         Metapb.Store[] stores = new Metapb.Store[count];
         for (int i = 0; i < count; i++) {
@@ -168,7 +172,7 @@ public class StoreNodeServiceTest {
 
     }
 
-    // @Test
+    @Test
     public void testSplitPartition() throws PDException {
         StoreNodeService storeService = new StoreNodeService(pdConfig);
         PartitionService partitionService = new PartitionService(pdConfig, storeService);
@@ -258,7 +262,7 @@ public class StoreNodeServiceTest {
         });
     }
 
-    // @Test
+    @Test
     public void testPartitionService() throws PDException, ExecutionException,
                                               InterruptedException {
         StoreNodeService storeService = new StoreNodeService(pdConfig);
@@ -267,7 +271,7 @@ public class StoreNodeServiceTest {
         for (int i = 0; i < count; i++) {
             Metapb.Store store = Metapb.Store.newBuilder()
                                              .setId(0)
-                                             .setAddress(String.valueOf(i))
+                                             .setAddress("127.0.0.1:850" + i)
                                              .setDeployPath("/data")
                                              .addLabels(Metapb.StoreLabel.newBuilder()
                                                                          .setKey("namespace")
@@ -281,6 +285,7 @@ public class StoreNodeServiceTest {
 
 
         PartitionService partitionService = new PartitionService(pdConfig, storeService);
+        storeService.init(partitionService);
 
         Metapb.Graph graph = Metapb.Graph.newBuilder()
                                          .setGraphName("defaultGH")
@@ -420,7 +425,7 @@ public class StoreNodeServiceTest {
 
     }
 
-    // @Test
+    @Test
     public void testMergeGraphParams() throws PDException {
         StoreNodeService storeService = new StoreNodeService(pdConfig);
         PartitionService partitionService = new PartitionService(pdConfig, storeService);
@@ -465,21 +470,5 @@ public class StoreNodeServiceTest {
 
         Assert.assertEquals(dfGraph.getPartitionCount(), graph.getPartitionCount());
 
-    }
-
-    // @Test
-    public void test() {
-        int[] n = new int[3];
-
-
-        if (++n[2] > 1) {
-            System.out.println(n[2]);
-        }
-        if (++n[2] > 1) {
-            System.out.println(n[2]);
-        }
-        if (++n[2] > 1) {
-            System.out.println(n[2]);
-        }
     }
 }
