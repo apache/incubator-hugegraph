@@ -28,4 +28,7 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.FIELD, ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.TYPE})
 @Retention(RetentionPolicy.SOURCE)
-public @interface Useless {}
+public @interface Useless {
+
+    String value() default "Remove or handle it later";
+}

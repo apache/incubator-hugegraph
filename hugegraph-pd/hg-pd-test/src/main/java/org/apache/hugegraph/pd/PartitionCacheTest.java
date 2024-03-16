@@ -31,7 +31,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
 
-@Useless // can be merged to org.apache.hugegraph.pd.common.PartitionCacheTest
+@Useless("can be merged to org.apache.hugegraph.pd.common.PartitionCacheTest")
 public class PartitionCacheTest {
 
     // @Test
