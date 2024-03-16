@@ -37,6 +37,7 @@ class TopWorkIteratorProxy implements HgKvIterator {
     private final long limit;
     private HgKvIterator<HgKvEntry> iterator;
     private HgKvEntry entry;
+    // result count
     private int count;
 
     TopWorkIteratorProxy(List<HgKvIterator> iterators, long limit) {
