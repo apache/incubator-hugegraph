@@ -31,7 +31,6 @@ import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.api.filter.AuthenticationFilter;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
@@ -76,6 +75,8 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.rpc.config.ServerConfig;
+
+import jakarta.ws.rs.core.SecurityContext;
 
 public final class GraphManager {
 
@@ -264,8 +265,8 @@ public final class GraphManager {
         return this.authenticator().authenticate(credentials);
     }
 
-    public void unAuthenticate(AuthenticationFilter.Authorizer authorizer) {
-        this.authenticator().unAuthenticate(authorizer);
+    public void unauthorize(SecurityContext context) {
+        this.authenticator().unauthorize(context);
     }
 
     public AuthManager authManager() {

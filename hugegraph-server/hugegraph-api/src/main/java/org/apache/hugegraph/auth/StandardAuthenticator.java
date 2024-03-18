@@ -40,6 +40,8 @@ import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
+import jakarta.ws.rs.core.SecurityContext;
+
 public class StandardAuthenticator implements HugeAuthenticator {
 
     private static final String INITING_STORE = "initing_store";
@@ -194,7 +196,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
     }
 
     @Override
-    public void unAuthenticate(AuthenticationFilter.Authorizer authorizer) {
+    public void unauthorize(SecurityContext context) {
         HugeGraphAuthProxy.resetContext();
     }
 

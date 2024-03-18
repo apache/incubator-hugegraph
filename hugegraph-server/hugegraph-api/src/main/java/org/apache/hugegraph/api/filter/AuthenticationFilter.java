@@ -122,7 +122,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
         // Check whiteIp
         if (enabledWhiteIpCheck == null) {
-            enabledWhiteIpCheck = Objects.equals(this.configProvider.get().get(WHITE_IP_STATUS), STRING_ENABLE);
+            String whiteIpStatus = this.configProvider.get().get(WHITE_IP_STATUS);
+            enabledWhiteIpCheck = Objects.equals(whiteIpStatus, STRING_ENABLE);
         }
 
         if (enabledWhiteIpCheck && request != null) {

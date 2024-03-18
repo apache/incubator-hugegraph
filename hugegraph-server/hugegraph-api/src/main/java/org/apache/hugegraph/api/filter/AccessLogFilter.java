@@ -124,7 +124,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
         GraphManager manager = managerProvider.get();
         // TODO transfer Authorizer if we need after.
         if (manager.requireAuthentication()) {
-            manager.unAuthenticate(null);
+            manager.unauthorize(requestContext.getSecurityContext());
         }
     }
 

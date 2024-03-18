@@ -40,9 +40,9 @@ public class ArthasApiTest extends BaseApiTest {
     public void testArthasApi() {
         // command exec
         String execBody = "{\n" +
-                      "  \"action\": \"exec\",\n" +
-                      "  \"command\": \"version\"\n" +
-                      "}";
+                          "  \"action\": \"exec\",\n" +
+                          "  \"command\": \"version\"\n" +
+                          "}";
         RestClient arthasApiClient = new RestClient(ARTHAS_API_BASE_URL, false);
         Response execResponse = arthasApiClient.post(ARTHAS_API_PATH, execBody);
         String result = assertResponseStatus(200, execResponse);
@@ -57,8 +57,7 @@ public class ArthasApiTest extends BaseApiTest {
         String sessionResult = assertResponseStatus(200, sessionResponse);
         assertJsonContains(sessionResult, "sessionId");
         assertJsonContains(sessionResult, "consumerId");
-        assertJsonContains(sessionResult,"state");
-
+        assertJsonContains(sessionResult, "state");
 
         // join session: using invalid sessionId
         String joinSessionBody = "{\n" +
@@ -67,7 +66,7 @@ public class ArthasApiTest extends BaseApiTest {
                                  "}";
         Response joinSessionResponse = arthasApiClient.post(ARTHAS_API_PATH, joinSessionBody);
         String joinSessionResult = assertResponseStatus(200, joinSessionResponse);
-        assertJsonContains(joinSessionResult,"message");
-        assertJsonContains(joinSessionResult,"state");
+        assertJsonContains(joinSessionResult, "message");
+        assertJsonContains(joinSessionResult, "state");
     }
 }
