@@ -76,7 +76,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             "versions",
             "openapi.json"
     );
-    // Remove auth/login API from white list
+    /** Remove auth/login API from whitelist */
     private static final Set<String> FLEXIBLE_WHITE_API_SET = ImmutableSet.of();
 
     private static Boolean enabledWhiteIpCheck;
@@ -107,7 +107,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         E.checkState(manager != null, "Context GraphManager is absent");
 
         if (!manager.requireAuthentication()) {
-            // Return anonymous user with admin role if disable authentication
+            // Return anonymous user with an admin role if disable authentication
             return User.ANONYMOUS;
         }
 
@@ -135,9 +135,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             boolean whiteIpEnabled = manager.authManager().getWhiteIpStatus();
             if (!path.contains(STRING_WHITE_IP_LIST) && whiteIpEnabled &&
                 !whiteIpList.contains(remoteIp)) {
-                throw new ForbiddenException(
-                        String.format("Remote ip '%s' is not permitted",
-                                      remoteIp));
+                throw new ForbiddenException(String.format("Remote ip '%s' is not permitted",
+                                                           remoteIp));
             }
         }
 
@@ -145,28 +144,23 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         // Extract authentication credentials
         String auth = context.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (auth == null) {
-            throw new NotAuthorizedException(
-                    "Authentication credentials are required",
-                    "Missing authentication credentials");
+            throw new NotAuthorizedException("Authentication credentials are required",
+                                             "Missing authentication credentials");
         }
 
         if (auth.startsWith(BASIC_AUTH_PREFIX)) {
             auth = auth.substring(BASIC_AUTH_PREFIX.length());
-            auth = new String(DatatypeConverter.parseBase64Binary(auth),
-                              Charsets.ASCII_CHARSET);
+            auth = new String(DatatypeConverter.parseBase64Binary(auth), Charsets.ASCII_CHARSET);
             String[] values = auth.split(":");
             if (values.length != 2) {
-                throw new BadRequestException(
-                        "Invalid syntax for username and password");
+                throw new BadRequestException("Invalid syntax for username and password");
             }
 
             final String username = values[0];
             final String password = values[1];
 
-            if (StringUtils.isEmpty(username) ||
-                StringUtils.isEmpty(password)) {
-                throw new BadRequestException(
-                        "Invalid syntax for username and password");
+            if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
+                throw new BadRequestException("Invalid syntax for username and password");
             }
 
             credentials.put(HugeAuthenticator.KEY_USERNAME, username);
@@ -175,8 +169,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             String token = auth.substring(BEARER_TOKEN_PREFIX.length());
             credentials.put(HugeAuthenticator.KEY_TOKEN, token);
         } else {
-            throw new BadRequestException(
-                    "Only HTTP Basic or Bearer authentication is supported");
+            throw new BadRequestException("Only HTTP Basic or Bearer authentication is supported");
         }
 
         credentials.put(HugeAuthenticator.KEY_ADDRESS, peer);
@@ -186,8 +179,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         try {
             return manager.authenticate(credentials);
         } catch (AuthenticationException e) {
-            throw new NotAuthorizedException("Authentication failed",
-                                             e.getMessage());
+            throw new NotAuthorizedException("Authentication failed", e.getMessage());
         }
     }
 
@@ -251,7 +243,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 requiredPerm = RequiredPerm.fromPermission(required);
 
                 /*
-                 * Replace owner value(it may be a variable) if the permission
+                 * Replace owner value (it may be a variable) if the permission
                  * format like: "$owner=$graph $action=vertex_write"
                  */
                 String owner = requiredPerm.owner();

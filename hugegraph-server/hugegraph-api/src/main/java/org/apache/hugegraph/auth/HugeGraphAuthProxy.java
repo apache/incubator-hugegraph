@@ -1752,9 +1752,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             }
 
             /*
-             * Verify gremlin-execute permission for user gremlin(in gremlin-
-             * server-exec worker) and gremlin job(in task worker).
-             * But don't check permission in rest worker, because the following
+             * Verify gremlin-execute permission for user gremlin (in gremlin-server-exec worker)
+             * and gremlin job(in task worker).
+             * But don't check permission in rest worker because the following
              * places need to call traversal():
              *  1.vertices/edges rest api
              *  2.oltp rest api (like crosspointpath/neighborrank)
