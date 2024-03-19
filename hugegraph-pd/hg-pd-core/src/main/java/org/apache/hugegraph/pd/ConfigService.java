@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
@@ -128,7 +129,11 @@ public class ConfigService implements RaftStateListener {
      * @throws PDException when io error
      */
     public int getPartitionCount() throws PDException {
-        return getPDConfig().getPartitionCount();
+        Metapb.PDConfig config = getPDConfig();
+        if (Objects.nonNull(config)) {
+            return config.getPartitionCount();
+        }
+        return pdConfig.getInitialPartitionCount();
     }
 
     @Override

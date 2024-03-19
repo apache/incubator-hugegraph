@@ -159,6 +159,9 @@ public class RaftEngine {
     }
 
     public boolean isLeader() {
+        if (Objects.isNull(this.raftNode)) {
+            return false;
+        }
         return this.raftNode.isLeader(true);
     }
 

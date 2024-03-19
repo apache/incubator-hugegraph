@@ -292,14 +292,14 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>pd-service-test</id>
+                        <id>pd-rest-test</id>
                         <configuration>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
                             </testClassesDirectory>
                             <includes>
-                                <include>**/ServerSuiteTest.java</include>
+                                <include>**/PDRestSuiteTest.java</include>
                             </includes>
                         </configuration>
                     </execution>

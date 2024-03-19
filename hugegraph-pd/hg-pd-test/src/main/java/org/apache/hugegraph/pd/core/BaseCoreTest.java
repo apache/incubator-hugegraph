@@ -22,11 +22,12 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.ConfigService;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.junit.After;
 import org.junit.BeforeClass;
 
-
+@Useless
 public class BaseCoreTest {
 
     static org.apache.hugegraph.pd.config.PDConfig pdConfig;

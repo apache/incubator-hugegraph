@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.store;
+package org.apache.hugegraph.pd.core.store;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,8 +24,11 @@ import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.store.HgKVStore;
+import org.apache.hugegraph.pd.store.HgKVStoreImpl;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class HgKVStoreImplTest {
     static final String testPath = "tmp/test";
@@ -43,7 +46,7 @@ public class HgKVStoreImplTest {
         }};
     }
 
-    // @Test
+    @Test
     public void Test() throws PDException {
         HgKVStore kvStore = new HgKVStoreImpl();
         kvStore.init(pdConfig);
@@ -63,9 +66,11 @@ public class HgKVStoreImplTest {
 
         kvStore.removeByPrefix("k".getBytes());
         Assert.assertEquals(0, kvStore.scanPrefix("k".getBytes()).size());
+
+        kvStore.close();
     }
 
-    // @Test
+    @Test
     public void TestSnapshot() throws PDException {
         HgKVStore kvStore = new HgKVStoreImpl();
         kvStore.init(pdConfig);
@@ -101,5 +106,7 @@ public class HgKVStoreImplTest {
             kvStore.put(key, value);
         }
         Assert.assertEquals(200, kvStore.scanPrefix("k".getBytes()).size());
+
+        kvStore.close();
     }
 }

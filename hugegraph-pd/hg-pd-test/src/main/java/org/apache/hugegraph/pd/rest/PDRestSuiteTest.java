@@ -15,28 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.rest;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         RestApiTest.class,
-        ConfigServiceTest.class,
-        IdServiceTest.class,
-        KvServiceTest.class,
-        LogServiceTest.class,
-        StoreServiceTest.class,
-        StoreNodeServiceNewTest.class,
-        StoreMonitorDataServiceTest.class,
-        TaskScheduleServiceTest.class,
-        PartitionServiceTest.class
 })
 
 @Slf4j
-public class ServerSuiteTest {
+public class PDRestSuiteTest {
+
 }

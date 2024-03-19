@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import java.io.File;
 
@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.IdService;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.meta.IdMetaStore;
+import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Assert;
 import org.junit.Test;
 

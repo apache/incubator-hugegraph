@@ -24,12 +24,14 @@ import java.util.Map;
 
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PartitionCache;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.Metapb;
 
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
 
+@Useless("can be merged to org.apache.hugegraph.pd.common.PartitionCacheTest")
 public class PartitionCacheTest {
 
     // @Test

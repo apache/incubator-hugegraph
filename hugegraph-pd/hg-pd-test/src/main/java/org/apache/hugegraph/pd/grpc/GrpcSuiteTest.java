@@ -17,12 +17,13 @@
 
 package org.apache.hugegraph.pd.grpc;
 
+import org.apache.hugegraph.pd.common.Useless;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import lombok.extern.slf4j.Slf4j;
 
-
+@Useless
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
 })

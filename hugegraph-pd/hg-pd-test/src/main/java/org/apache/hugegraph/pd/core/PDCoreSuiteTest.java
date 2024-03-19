@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.core;
 
 import org.apache.hugegraph.pd.core.meta.MetadataKeyHelperTest;
+import org.apache.hugegraph.pd.core.store.HgKVStoreImplTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -26,8 +27,19 @@ import lombok.extern.slf4j.Slf4j;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        MetadataKeyHelperTest.class,
+        HgKVStoreImplTest.class,
+        ConfigServiceTest.class,
+        IdServiceTest.class,
+        KvServiceTest.class,
+        LogServiceTest.class,
+        MonitorServiceTest.class,
+        PartitionServiceTest.class,
+        StoreMonitorDataServiceTest.class,
+        StoreNodeServiceNewTest.class,
         StoreNodeServiceTest.class,
-        MetadataKeyHelperTest.class
+        StoreServiceTest.class,
+        TaskScheduleServiceTest.class
 })
 
 @Slf4j

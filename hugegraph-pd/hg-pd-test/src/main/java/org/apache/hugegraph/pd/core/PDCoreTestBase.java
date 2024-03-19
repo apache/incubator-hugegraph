@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.service;
+package org.apache.hugegraph.pd.core;
 
 import java.io.File;
 
@@ -42,7 +42,7 @@ import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
-public class PdTestBase {
+public class PDCoreTestBase {
     private static final String DATA_PATH = "/tmp/pd_data";
     private static PDConfig pdConfig;
     private static StoreNodeService storeNodeService;
