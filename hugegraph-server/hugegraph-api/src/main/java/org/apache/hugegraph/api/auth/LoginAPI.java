@@ -70,11 +70,9 @@ public class LoginAPI extends API {
         checkCreatingBody(jsonLogin);
 
         try {
-            String token = manager.authManager()
-                                  .loginUser(jsonLogin.name, jsonLogin.password);
+            String token = manager.authManager().loginUser(jsonLogin.name, jsonLogin.password);
             HugeGraph g = graph(manager, graph);
-            return manager.serializer(g)
-                          .writeMap(ImmutableMap.of("token", token));
+            return manager.serializer(g).writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
             throw new NotAuthorizedException(e.getMessage(), e);
         }
