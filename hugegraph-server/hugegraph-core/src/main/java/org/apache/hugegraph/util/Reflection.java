@@ -31,20 +31,17 @@ public class Reflection {
 
     private static final Class<?> REFLECTION_CLAZZ;
     private static final Method REGISTER_FILEDS_TO_FILTER_METHOD;
-    private static final Method REGISTER_METHODS_TO_FILTER_MOTHOD;
+    private static final Method REGISTER_METHODS_TO_FILTER_METHOD;
 
-    public static final String JDK_INTERNAL_REFLECT_REFLECTION =
-            "jdk.internal.reflect.Reflection";
-    public static final String SUN_REFLECT_REFLECTION =
-            "sun.reflect.Reflection";
+    public static final String JDK_INTERNAL_REFLECT_REFLECTION = "jdk.internal.reflect.Reflection";
+    public static final String SUN_REFLECT_REFLECTION = "sun.reflect.Reflection";
 
     static {
         Method registerFieldsToFilterMethodTemp = null;
         Method registerMethodsToFilterMethodTemp = null;
         Class<?> reflectionClazzTemp = null;
         try {
-            reflectionClazzTemp = Class.forName(
-                    JDK_INTERNAL_REFLECT_REFLECTION);
+            reflectionClazzTemp = Class.forName(JDK_INTERNAL_REFLECT_REFLECTION);
         } catch (ClassNotFoundException e) {
             try {
                 reflectionClazzTemp = Class.forName(SUN_REFLECT_REFLECTION);
@@ -73,42 +70,43 @@ public class Reflection {
             }
         }
         REGISTER_FILEDS_TO_FILTER_METHOD = registerFieldsToFilterMethodTemp;
-        REGISTER_METHODS_TO_FILTER_MOTHOD = registerMethodsToFilterMethodTemp;
+        REGISTER_METHODS_TO_FILTER_METHOD = registerMethodsToFilterMethodTemp;
     }
 
-    public static void registerFieldsToFilter(Class<?> containingClass,
-                                              String... fieldNames) {
+    public static void registerFieldsToFilter(Class<?> containingClass, String... fieldNames) {
         if (REGISTER_FILEDS_TO_FILTER_METHOD == null) {
-            throw new NotSupportException(
-                    "Reflection.registerFieldsToFilter()");
+            throw new NotSupportException("Reflection.registerFieldsToFilter()");
         }
 
         try {
             REGISTER_FILEDS_TO_FILTER_METHOD.setAccessible(true);
-            REGISTER_FILEDS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ,
-                                                    containingClass, fieldNames);
+            REGISTER_FILEDS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ, containingClass, fieldNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new HugeException(
-                    "Failed to register class '%s' fields to filter: %s",
-                    containingClass, Arrays.toString(fieldNames));
+            throw new HugeException("Failed to register class '%s' fields to filter: %s",
+                                    containingClass, Arrays.toString(fieldNames));
         }
     }
 
-    public static void registerMethodsToFilter(Class<?> containingClass,
-                                               String... methodNames) {
-        if (REGISTER_METHODS_TO_FILTER_MOTHOD == null) {
-            throw new NotSupportException(
-                    "Reflection.registerMethodsToFilterMethod()");
+    public static void registerMethodsToFilter(Class<?> containingClass, String... methodNames) {
+        if (REGISTER_METHODS_TO_FILTER_METHOD == null) {
+            throw new NotSupportException("Reflection.registerMethodsToFilterMethod()");
         }
 
         try {
-            REGISTER_METHODS_TO_FILTER_MOTHOD.setAccessible(true);
-            REGISTER_METHODS_TO_FILTER_MOTHOD.invoke(REFLECTION_CLAZZ,
-                                                     containingClass, methodNames);
+            REGISTER_METHODS_TO_FILTER_METHOD.setAccessible(true);
+            REGISTER_METHODS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ, containingClass,
+                                                     methodNames);
         } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new HugeException(
-                    "Failed to register class '%s' methods to filter: %s",
-                    containingClass, Arrays.toString(methodNames));
+            throw new HugeException("Failed to register class '%s' methods to filter: %s",
+                                    containingClass, Arrays.toString(methodNames));
+        }
+    }
+
+    public static Class<?> loadClass(String clazz) {
+        try {
+            return Class.forName(clazz);
+        } catch (ClassNotFoundException e) {
+            throw new HugeException(e.getMessage(), e);
         }
     }
 }
