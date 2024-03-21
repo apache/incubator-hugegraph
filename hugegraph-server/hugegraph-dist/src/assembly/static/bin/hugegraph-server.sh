@@ -65,6 +65,7 @@ MIN_MEM=$((1 * 512))
 MIN_JAVA_VERSION=8
 
 # Note: Download for HTTPS, could comment out if you don't need it
+# TODO: only download it when we config https (check the conf file)
 if [[ ! -e "${CONF}/hugegraph-server.keystore" ]]; then
     download "${CONF}" "${GITHUB}/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
 fi
