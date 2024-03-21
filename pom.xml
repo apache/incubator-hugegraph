@@ -26,7 +26,8 @@
     <name>${project.artifactId}</name>
     <url>https://github.com/apache/hugegraph</url>
     <description>
-        HugeGraph is a fast-speed and highly scalable graph database.
+        HugeGraph is a fast-speed and highly scalable graph database that supports more than 100 billion data, high
+        performance and scalability (Include OLTP Engine &amp; REST-API &amp; Backends)
     </description>
 
     <parent>
@@ -84,12 +85,8 @@
         <developerConnection>scm:git:https://github.com/apache/hugegraph.git</developerConnection>
     </scm>
 
-    <prerequisites>
-        <maven>3.5.0</maven>
-    </prerequisites>
-
     <properties>
-        <revision>1.2.0</revision>
+        <revision>1.3.0</revision>
     </properties>
 
     <modules>
