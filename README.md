@@ -36,7 +36,8 @@ achieved through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful
 
 We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
 HugeGraph server with `RocksDB` (in backgrounds) for **test/dev**.
-You can visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy) or the [README](hugegraph-server/hugegraph-dist/docker/READEME.md) for more details.
+You can visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy) or
+the [README](hugegraph-server/hugegraph-dist/docker/READEME.md) for more details. ([Docker Compose](./hugegraph-server/hugegraph-dist/docker/example))
 
 > Note:
 >  
@@ -58,12 +59,11 @@ The project [doc page](https://hugegraph.apache.org/docs/) contains more informa
 and provides detailed documentation for users. (Structure / Usage / API / Configs...)
 
 And here are links of other **HugeGraph** component/repositories:
-1. [hugegraph-toolchain](https://github.com/apache/incubator-hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-client)**)
-2. [hugegraph-computer](https://github.com/apache/incubator-hugegraph-computer) (integrated **graph computing** system)
-3. [hugegraph-commons](https://github.com/apache/incubator-hugegraph-commons) (**common & rpc** libs)
-4. [hugegraph-website](https://github.com/apache/incubator-hugegraph-doc) (**doc & website** code)
-
-
+1. [hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-client)**)
+2. [hugegraph-computer](https://github.com/apache/hugegraph-computer) (integrated **graph computing** system)
+3. [hugegraph-commons](https://github.com/apache/hugegraph-commons) (**common & rpc** libs)
+4. [hugegraph-website](https://github.com/apache/hugegraph-doc) (**doc & website** code)
+5. [hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai) (integrated **Graph AI/LLM/KG** system)
 
 ## License
 

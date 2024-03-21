@@ -259,8 +259,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Verify permission {} {} for user '{}' with role {}",
-                          requiredPerm.action().string(),
-                          requiredPerm.resourceObject(),
+                          requiredPerm.action().string(), requiredPerm.resourceObject(),
                           this.user.username(), this.user.role());
             }
 
@@ -269,9 +268,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             if (!valid && LOG.isInfoEnabled() &&
                 !required.equals(HugeAuthenticator.USER_ADMIN)) {
-                LOG.info("User '{}' is denied to {} {}",
-                         this.user.username(), requiredPerm.action().string(),
-                         requiredPerm.resourceObject());
+                LOG.info("User '{}' is denied to {} {}", this.user.username(),
+                         requiredPerm.action().string(), requiredPerm.resourceObject());
             }
             return valid;
         }

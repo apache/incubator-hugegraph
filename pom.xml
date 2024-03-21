@@ -26,7 +26,7 @@
     <name>${project.artifactId}</name>
     <url>https://github.com/apache/hugegraph</url>
     <description>
-        HugeGraph is a fast-speed and highly-scalable graph database.
+        HugeGraph is a fast-speed and highly scalable graph database.
     </description>
 
     <parent>

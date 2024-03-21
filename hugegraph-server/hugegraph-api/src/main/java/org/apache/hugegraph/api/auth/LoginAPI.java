@@ -84,8 +84,7 @@ public class LoginAPI extends API {
     @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public void logout(@Context GraphManager manager,
-                       @PathParam("graph") String graph,
+    public void logout(@Context GraphManager manager, @PathParam("graph") String graph,
                        @HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
         E.checkArgument(StringUtils.isNotEmpty(auth),
                         "Request header Authorization must not be null");
@@ -105,10 +104,8 @@ public class LoginAPI extends API {
     @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public String verifyToken(@Context GraphManager manager,
-                              @PathParam("graph") String graph,
-                              @HeaderParam(HttpHeaders.AUTHORIZATION)
-                              String token) {
+    public String verifyToken(@Context GraphManager manager, @PathParam("graph") String graph,
+                              @HeaderParam(HttpHeaders.AUTHORIZATION) String token) {
         E.checkArgument(StringUtils.isNotEmpty(token),
                         "Request header Authorization must not be null");
         LOG.debug("Graph [{}] get user: {}", graph, token);
