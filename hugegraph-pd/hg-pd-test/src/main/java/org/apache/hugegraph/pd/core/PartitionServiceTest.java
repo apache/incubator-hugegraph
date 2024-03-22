@@ -138,7 +138,6 @@ public class PartitionServiceTest extends PDCoreTestBase {
                 lastId = partitionShard.getPartition().getEndKey();
             }
         }
-
     }
 
     @Test
