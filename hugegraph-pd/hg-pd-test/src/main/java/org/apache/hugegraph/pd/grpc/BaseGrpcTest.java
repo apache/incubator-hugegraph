@@ -21,7 +21,7 @@ import org.apache.hugegraph.pd.common.Useless;
 import org.junit.After;
 import org.junit.BeforeClass;
 
-@Useless
+@Useless("empty now")
 public class BaseGrpcTest {
 
     @BeforeClass

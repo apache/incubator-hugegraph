@@ -23,7 +23,7 @@ import org.junit.runners.Suite;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Useless
+@Useless("empty now")
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
 })
