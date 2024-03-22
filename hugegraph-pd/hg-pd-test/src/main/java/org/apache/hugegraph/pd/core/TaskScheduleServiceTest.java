@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.pd.core;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,26 +37,28 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         this.service = getTaskService();
     }
 
-    @Test
+    // TODO
     public void testStoreOffline() {
 
     }
 
+    // TODO
     public void testPatrolStores() {
 
     }
 
+    // TODO
     public void testPatrolPartitions() {
 
     }
 
+    // TODO
     public void testBalancePartitionShard() {
 
     }
 
     @Test
     public void testBalancePartitionLeader() throws PDException {
-
         var list = new ArrayList<Metapb.Partition>();
         for (int i = 0; i < 6; i++) {
             getStoreNodeService().getStoreInfoMeta().updateShardGroup(genShardGroup(i));
@@ -67,20 +69,23 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
 
         getPartitionService().updatePartition(list);
         var rst = this.service.balancePartitionLeader(true);
-        assertTrue(rst.size() > 0);
+        assertFalse(rst.isEmpty());
         // recover
         getPdConfig().getPartition().setShardCount(1);
         getStoreNodeService().getStoreInfoMeta().removeAll();
     }
 
+    // TODO
     public void testSplitPartition() {
 
     }
 
+    // TODO
     public void testSplitPartition2() {
 
     }
 
+    // TODO
     public void testCanAllPartitionsMovedOut() {
 
     }
@@ -97,8 +102,8 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                                .setId(groupId)
                                .setState(Metapb.PartitionState.PState_Normal)
                                .setGraphName("graph1")
-                               .setStartKey(groupId * 10)
-                               .setEndKey(groupId * 10 + 10)
+                               .setStartKey(groupId * 10L)
+                               .setEndKey(groupId * 10L + 10)
                                .build();
     }
 

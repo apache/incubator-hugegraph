@@ -31,7 +31,7 @@ import org.junit.Test;
 
 public class StoreMonitorDataServiceTest extends PDCoreTestBase {
 
-    StoreMonitorDataService service;
+    private StoreMonitorDataService service;
 
     @Before
     public void init() {
@@ -63,11 +63,9 @@ public class StoreMonitorDataServiceTest extends PDCoreTestBase {
 
         assertNotNull(this.service.getStoreMonitorDataText(1));
 
-
         this.service.removeExpiredMonitorData(1, now + 1);
         assertEquals(0, this.service.getStoreMonitorData(1).size());
     }
-
 
     private Metapb.StoreStats genStats() {
         return Metapb.StoreStats.newBuilder()
@@ -77,6 +75,5 @@ public class StoreMonitorDataServiceTest extends PDCoreTestBase {
                                                          .build())
                                 .build();
     }
-
 
 }

@@ -23,8 +23,6 @@ import static org.mockito.Mockito.mock;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.pd.client.KvClient;
-import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.grpc.kv.KResponse;
 import org.apache.hugegraph.pd.grpc.kv.ScanPrefixResponse;
 import org.apache.hugegraph.pd.grpc.kv.WatchEvent;
@@ -58,7 +56,6 @@ public class KvClientTest extends BaseClientTest {
         } catch (Exception e) {
 
         }
-
 
         // Verify the results
     }

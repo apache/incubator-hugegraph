@@ -20,34 +20,29 @@ package org.apache.hugegraph.pd.core;
 import java.util.List;
 
 import org.apache.hugegraph.pd.LogService;
-import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
-import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.protobuf.Any;
 
-public class LogServiceTest {
-
-    private final PDConfig mockPdConfig = BaseServerTest.getConfig();
+public class LogServiceTest extends PDCoreTestBase {
 
     private LogService logServiceUnderTest;
 
     @Before
     public void setUp() {
-        this.logServiceUnderTest = new LogService(this.mockPdConfig);
+        this.logServiceUnderTest = new LogService(getPdConfig());
     }
 
     @Test
     public void testGetLog() throws Exception {
-        this.logServiceUnderTest.insertLog("action", "message",
-                                           Any.newBuilder().build());
+        this.logServiceUnderTest.insertLog("action", "message", Any.newBuilder().build());
 
         // Run the test
-        final List<Metapb.LogRecord> result = this.logServiceUnderTest.getLog(
-                "action", 0L, System.currentTimeMillis());
+        final List<Metapb.LogRecord> result =
+                this.logServiceUnderTest.getLog("action", 0L, System.currentTimeMillis());
 
         // Verify the results
         Assert.assertEquals(result.size(), 1);

@@ -31,8 +31,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class HgKVStoreImplTest {
-    static final String testPath = "tmp/test";
-    static PDConfig pdConfig;
+
+    private static final String testPath = "tmp/test";
+    private static PDConfig pdConfig;
 
     @BeforeClass
     public static void init() throws IOException {

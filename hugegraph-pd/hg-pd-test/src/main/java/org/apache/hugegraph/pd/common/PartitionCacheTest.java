@@ -230,7 +230,6 @@ public class PartitionCacheTest {
         var partition6 = createPartition(1, "graph0", 0, 1);
         this.cache.updatePartition(partition6);
 
-
         System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
         var partition5 = createPartition(1, "graph0", 0, 3);

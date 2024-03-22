@@ -19,16 +19,15 @@ package org.apache.hugegraph.pd.core;
 
 import org.apache.hugegraph.pd.KvService;
 import org.apache.hugegraph.pd.config.PDConfig;
-import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class KvServiceTest {
+public class KvServiceTest extends PDCoreTestBase {
 
     @Test
     public void testKv() {
         try {
-            PDConfig pdConfig = BaseServerTest.getConfig();
+            PDConfig pdConfig = getPdConfig();
             KvService service = new KvService(pdConfig);
             String key = "kvTest";
             String kvTest = service.get(key);
@@ -43,17 +42,18 @@ public class KvServiceTest {
             service.put(key, "kvTestValue", 1000L);
             service.keepAlive(key);
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
     }
 
     @Test
     public void testMember() {
         try {
-            PDConfig pdConfig = BaseServerTest.getConfig();
+            PDConfig pdConfig = getPdConfig();
             KvService service = new KvService(pdConfig);
             service.setPdConfig(pdConfig);
             PDConfig config = service.getPdConfig();
+            // TODO
         } catch (Exception e) {
             e.printStackTrace();
         }

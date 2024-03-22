@@ -22,7 +22,6 @@ import org.junit.runners.Suite;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         PartitionUtilsTest.class,
@@ -30,9 +29,7 @@ import lombok.extern.slf4j.Slf4j;
         HgAssertTest.class,
         KVPairTest.class,
 })
-
 @Slf4j
 public class CommonSuiteTest {
-
 
 }

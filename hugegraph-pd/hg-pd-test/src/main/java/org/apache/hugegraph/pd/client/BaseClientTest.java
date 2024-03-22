@@ -24,21 +24,18 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class BaseClientTest {
-    public static PDClient pdClient;
-    public final String storeAddr = "localhost";
-    public final String graphName = "default/hugegraph/g";
-    public long storeId = 0;
+
+    protected static PDClient pdClient;
 
     @BeforeClass
-    public static void beforeClass() throws Exception {
+    public static void beforeClass() {
         PDConfig config = PDConfig.of("localhost:8686");
-//        PDConfig config = PDConfig.of("10.81.116.77:8986");
         config.setEnableCache(true);
         pdClient = PDClient.create(config);
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         // pass
     }
 }

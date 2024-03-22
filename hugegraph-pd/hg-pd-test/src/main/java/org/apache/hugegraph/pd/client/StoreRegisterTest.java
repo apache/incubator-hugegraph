@@ -28,32 +28,31 @@ import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
 
 public class StoreRegisterTest {
+
     private static PDClient pdClient;
     private final String storeAddr = "localhost";
     private final String graphName = "default/hugegraph/g";
     private long storeId = 0;
 
     @BeforeClass
-    public static void beforeClass() throws Exception {
+    public static void beforeClass() {
         PDConfig config = PDConfig.of("localhost:8686");
         config.setEnableCache(true);
         pdClient = PDClient.create(config);
     }
 
-    // @Test
+    @Test
     public void testRegisterStore() throws PDException {
         Metapb.Store store = Metapb.Store.newBuilder().setAddress(storeAddr).build();
-        try {
-            storeId = pdClient.registerStore(store);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        storeId = pdClient.registerStore(store);
         Assert.assertTrue("RegisterStore store_id = " + storeId, storeId != 0);
     }
 
-    // @Test
+    @Test
     public void testGetStore() throws PDException {
         testRegisterStore();
         Metapb.Store store = pdClient.getStore(storeId);
@@ -61,7 +60,8 @@ public class StoreRegisterTest {
         System.out.println(store);
     }
 
-    // @Test
+    @Ignore // no active store
+    @Test
     public void testGetActiveStores() throws PDException {
         testRegisterStore();
         List<Metapb.Store> stores = pdClient.getActiveStores(graphName);
@@ -71,8 +71,8 @@ public class StoreRegisterTest {
         });
     }
 
-
-    // @Test
+    @Ignore // no active store
+    @Test
     public void testStoreHeartbeat() throws PDException {
         testRegisterStore();
         Metapb.StoreStats stats = Metapb.StoreStats.newBuilder().setStoreId(storeId).build();
@@ -88,14 +88,14 @@ public class StoreRegisterTest {
         Assert.assertTrue(exist);
     }
 
-
-    // @Test
-    public void testPartitionHeartbeat() throws InterruptedException, PDException {
+    @Ignore // no active store
+    @Test
+    public void testPartitionHeartbeat() throws PDException {
         testRegisterStore();
         PDPulse pdPulse = new PDPulseImpl(pdClient.getLeaderIp());
 
         PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier = pdPulse.connectPartition(
-                new PDPulse.Listener<PulseResponse>() {
+                new PDPulse.Listener<>() {
 
                     @Override
                     public void onNext(PulseResponse response) {
@@ -123,9 +123,5 @@ public class StoreRegisterTest {
                 Metapb.PartitionStats.newBuilder().addGraphName("test")
                                      .setId(partShard.getKey().getId())
                                      .setLeader(Metapb.Shard.newBuilder().setStoreId(1).build())));
-
-
-        Thread.sleep(10000);
     }
-
 }
