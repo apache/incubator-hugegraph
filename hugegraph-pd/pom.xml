@@ -38,9 +38,7 @@
         <module>hg-pd-service</module>
         <module>hg-pd-common</module>
         <module>hg-pd-dist</module>
-        <module>hg-pd-clitools</module>
         <module>hg-pd-test</module>
-
     </modules>
 
     <properties>
@@ -186,30 +184,6 @@
                         <executions>
                             <execution>
                                 <id>pd-core-test</id>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <phase>test</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>pd-cli-tools-test</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.20</version>
-                        <executions>
-                            <execution>
-                                <id>pd-cli-tools-test</id>
                                 <goals>
                                     <goal>test</goal>
                                 </goals>

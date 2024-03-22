@@ -62,10 +62,6 @@ jobs:
         run: |
           mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test
 
-      - name: Run cli-tools test
-        run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-cli-tools-test
-
       - name: Run rest test
         run: |
           mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-rest-test

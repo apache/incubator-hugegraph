@@ -20,21 +20,18 @@ package org.apache.hugegraph.pd.client;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.hugegraph.pd.client.test.HgPDTestUtil;
+import org.apache.hugegraph.pd.common.Useless;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-@Deprecated
+@Useless("used for development")
 public class PDWatchTest {
-    private static PDClient pdClient;
 
-    private final long storeId = 0;
-    private final String storeAddr = "localhost";
-    private final String graphName = "graph1";
+    private static PDClient pdClient;
 
     @BeforeClass
     public static void beforeClass() {
-        pdClient = PDClient.create(PDConfig.of("localhost:9000"));
+        pdClient = PDClient.create(PDConfig.of("localhost:8686"));
     }
 
     @Test
@@ -45,8 +42,6 @@ public class PDWatchTest {
         PDWatch.Watcher watcher1 = watch.watchPartition(new WatchListener<>(latch, "watcher1"));
         PDWatch.Watcher watcher2 = watch.watchPartition(new WatchListener<>(latch, "watcher2"));
         PDWatch.Watcher watcher3 = watch.watchPartition(new WatchListener<>(latch, "watcher3"));
-
-        PDWatch.Watcher nodeWatcher1 = watch.watchNode(new WatchListener<>(latch, "nodeWatcher1"));
 
         try {
             latch.await(15, TimeUnit.SECONDS);
@@ -59,6 +54,7 @@ public class PDWatchTest {
     }
 
     private class WatchListener<T> implements PDWatch.Listener<T> {
+
         private final String watcherName;
         CountDownLatch latch;
 
@@ -69,18 +65,18 @@ public class PDWatchTest {
 
         @Override
         public void onNext(T response) {
-            HgPDTestUtil.println(this.watcherName + " res: " + response);
+            System.out.println(this.watcherName + " res: " + response);
             this.latch.countDown();
         }
 
         @Override
         public void onError(Throwable throwable) {
-            HgPDTestUtil.println(this.watcherName + " error: " + throwable.toString());
+            System.out.println(this.watcherName + " error: " + throwable.toString());
         }
 
         @Override
         public void onCompleted() {
-            HgPDTestUtil.println(this.watcherName + " is completed");
+            System.out.println(this.watcherName + " is completed");
         }
     }
 }
