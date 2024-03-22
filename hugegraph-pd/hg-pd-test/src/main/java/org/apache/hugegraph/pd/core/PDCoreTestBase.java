@@ -19,7 +19,6 @@ package org.apache.hugegraph.pd.core;
 
 import java.io.File;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.ConfigService;
 import org.apache.hugegraph.pd.IdService;
 import org.apache.hugegraph.pd.PartitionInstructionListener;
@@ -216,17 +215,5 @@ public class PDCoreTestBase {
 
     public static StoreMonitorDataService getStoreMonitorDataService() {
         return storeMonitorDataService;
-    }
-
-    public static PDConfig getConfig() {
-        FileUtils.deleteQuietly(new File(DATA_PATH));
-        return new PDConfig() {{
-            this.setClusterId(100);
-            this.setPatrolInterval(1);
-            this.setRaft(new Raft() {{
-                setEnable(false);
-            }});
-            this.setDataPath(DATA_PATH);
-        }};
     }
 }
