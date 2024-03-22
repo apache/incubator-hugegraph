@@ -19,6 +19,7 @@ package org.apache.hugegraph.pd.core;
 
 import java.io.File;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.ConfigService;
 import org.apache.hugegraph.pd.IdService;
 import org.apache.hugegraph.pd.PartitionInstructionListener;
@@ -43,6 +44,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 public class PDCoreTestBase {
+
     private static final String DATA_PATH = "/tmp/pd_data";
     private static PDConfig pdConfig;
     private static StoreNodeService storeNodeService;
@@ -61,6 +63,7 @@ public class PDCoreTestBase {
         config.setHost("127.0.0.1");
         config.setVerifyPath("");
         config.setLicensePath("");
+
         PDConfig.Raft raft = new PDConfig().new Raft();
         raft.setAddress("127.0.0.1:8601");
         raft.setPeersList("127.0.0.1:8601");
@@ -70,7 +73,6 @@ public class PDCoreTestBase {
         raft.setPort(8621);
 
         config.setRaft(raft);
-
         config.setStore(new PDConfig().new Store());
         config.setPartition(new PDConfig().new Partition() {{
             setShardCount(1);
@@ -96,7 +98,6 @@ public class PDCoreTestBase {
         storeMonitorDataService = new StoreMonitorDataService(pdConfig);
         RaftEngine.getInstance().addStateListener(partitionService);
         pdConfig.setIdService(idService);
-
 
         storeNodeService.init(partitionService);
         partitionService.init();
@@ -215,5 +216,17 @@ public class PDCoreTestBase {
 
     public static StoreMonitorDataService getStoreMonitorDataService() {
         return storeMonitorDataService;
+    }
+
+    public static PDConfig getConfig() {
+        FileUtils.deleteQuietly(new File(DATA_PATH));
+        return new PDConfig() {{
+            this.setClusterId(100);
+            this.setPatrolInterval(1);
+            this.setRaft(new Raft() {{
+                setEnable(false);
+            }});
+            this.setDataPath(DATA_PATH);
+        }};
     }
 }

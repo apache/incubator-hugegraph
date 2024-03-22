@@ -30,28 +30,28 @@ import org.junit.BeforeClass;
 @Useless
 public class BaseCoreTest {
 
-    static org.apache.hugegraph.pd.config.PDConfig pdConfig;
+    private static PDConfig pdConfig;
 
     @BeforeClass
     public static void init() throws Exception {
         String path = "tmp/unitTest";
         deleteDirectory(new File(path));
-        pdConfig = new org.apache.hugegraph.pd.config.PDConfig() {{
+        pdConfig = new PDConfig() {{
             this.setClusterId(100);
             this.setInitialStoreList("127.0.0.1:8500,127.0.0.1:8501,127.0.0.1:8502," +
                                      "127.0.0.1:8503,127.0.0.1:8504,127.0.0.1:8505");
         }};
 
-        pdConfig.setStore(new org.apache.hugegraph.pd.config.PDConfig().new Store() {{
+        pdConfig.setStore(new PDConfig().new Store() {{
             this.setMaxDownTime(3600);
             this.setKeepAliveTimeout(3600);
         }});
 
-        pdConfig.setPartition(new org.apache.hugegraph.pd.config.PDConfig().new Partition() {{
+        pdConfig.setPartition(new PDConfig().new Partition() {{
             this.setShardCount(3);
             this.setMaxShardsPerStore(3);
         }});
-        pdConfig.setRaft(new org.apache.hugegraph.pd.config.PDConfig().new Raft() {{
+        pdConfig.setRaft(new PDConfig().new Raft() {{
             this.setEnable(false);
         }});
         pdConfig.setDiscovery(new PDConfig().new Discovery());

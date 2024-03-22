@@ -47,7 +47,7 @@ public class IdMetaStore extends MetadataRocksDBStore {
     private static final String CID_DEL_SLOT_PREFIX = "@CID_DEL_SLOT@";
     private static final String SEPARATOR = "@";
     private static final ConcurrentHashMap<String, Object> SEQUENCES = new ConcurrentHashMap<>();
-    public static long CID_DEL_TIMEOUT = 24 * 3600 * 1000;
+    private static long CID_DEL_TIMEOUT = 24 * 3600 * 1000;
     private final long clusterId;
 
     public IdMetaStore(PDConfig pdConfig) {

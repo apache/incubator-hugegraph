@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,20 +26,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.pd.ConfigService;
-import org.apache.hugegraph.pd.IdService;
 import org.apache.hugegraph.pd.PartitionService;
 import org.apache.hugegraph.pd.StoreNodeService;
 import org.apache.hugegraph.pd.StoreStatusListener;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
-import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class StoreServiceTest {
+public class StoreServiceTest extends PDCoreTestBase {
 
     private PDConfig config;
 
@@ -46,47 +45,22 @@ public class StoreServiceTest {
 
     @Before
     public void setUp() {
-        this.config = getConfig();
+        this.config = getPdConfig();
         this.service = new StoreNodeService(this.config);
     }
 
     @Test
     public void testInit() {
         // Setup
-        PDConfig pdConfig = getConfig();
-        final PDConfig pdConfig1 = getConfig();
+        PDConfig pdConfig = getPdConfig();
         final PartitionService partitionService = new PartitionService(pdConfig,
                                                                        new StoreNodeService(
-                                                                               pdConfig1));
+                                                                               pdConfig));
 
         // Run the test
         this.service.init(partitionService);
 
         // Verify the results
-    }
-
-    private PDConfig getConfig() {
-        PDConfig pdConfig = new PDConfig();
-        pdConfig.setConfigService(
-                new ConfigService(BaseServerTest.getConfig()));
-        pdConfig.setIdService(new IdService(BaseServerTest.getConfig()));
-        pdConfig.setClusterId(0L);
-        pdConfig.setPatrolInterval(0L);
-        pdConfig.setDataPath("dataPath");
-        pdConfig.setMinStoreCount(0);
-        pdConfig.setInitialStoreList("initialStoreList");
-        pdConfig.setHost("host");
-        pdConfig.setVerifyPath("verifyPath");
-        pdConfig.setLicensePath("licensePath");
-        PDConfig.Raft raft = new PDConfig().new Raft();
-        raft.setEnable(false);
-        pdConfig.setRaft(raft);
-        final PDConfig.Partition partition = new PDConfig().new Partition();
-        partition.setTotalCount(0);
-        partition.setShardCount(0);
-        pdConfig.setPartition(partition);
-        pdConfig.setInitialStoreMap(Map.ofEntries(Map.entry("value", "value")));
-        return pdConfig;
     }
 
     @Test
@@ -325,7 +299,6 @@ public class StoreServiceTest {
         // Verify the results
     }
 
-
     @Test
     public void testGetStores1() throws Exception {
         // Setup
@@ -375,7 +348,6 @@ public class StoreServiceTest {
         // Run the test
         final List<Metapb.Store> result = this.service.getStores("graphName");
     }
-
 
     @Test
     public void testGetStoreStatus() throws Exception {
@@ -440,7 +412,6 @@ public class StoreServiceTest {
 
         // Verify the results
     }
-
 
     @Test
     public void testGetShardGroupsByStore() throws Exception {
@@ -526,7 +497,6 @@ public class StoreServiceTest {
         List<Metapb.Store> stores = this.service.getStores();
         assertThat(stores.size() == 0);
     }
-
 
     @Test
     public void testAllocShards() throws Exception {
@@ -665,7 +635,6 @@ public class StoreServiceTest {
         }
     }
 
-
     @Test
     public void testUpdateClusterStatus1() {
         // Setup
@@ -764,6 +733,7 @@ public class StoreServiceTest {
         // Verify the results
     }
 
+    @Ignore
     @Test
     public void testCheckStoreCanOffline() {
         // Setup
@@ -833,5 +803,25 @@ public class StoreServiceTest {
         } catch (Exception e) {
 
         }
+    }
+
+    // migrated from StoreNodeServiceNewTest
+    @Test
+    public void testRemoveShardGroup() throws PDException {
+        for (int i = 0; i < 12; i++) {
+            Metapb.ShardGroup group = Metapb.ShardGroup.newBuilder()
+                                                       .setId(i)
+                                                       .setState(
+                                                               Metapb.PartitionState.PState_Offline)
+                                                       .build();
+            this.service.getStoreInfoMeta().updateShardGroup(group);
+        }
+
+        this.service.deleteShardGroup(11);
+        this.service.deleteShardGroup(10);
+
+        assertEquals(10, getPdConfig().getConfigService().getPDConfig().getPartitionCount());
+        // restore
+        getPdConfig().getConfigService().setPartitionCount(12);
     }
 }

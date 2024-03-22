@@ -44,7 +44,11 @@ public class PartitionServiceTest extends PDCoreTestBase {
     @Test
     public void testCombinePartition() throws PDException {
         buildEnv();
-        // 0, 1, 2-> 0, 3,4,5->1, 6,7,8 ->2, 9,10, 11-> 3
+
+        // 0, 1, 2 -> 0
+        // 3, 4, 5 -> 1
+        // 6, 7, 8 -> 2
+        // 9, 10, 11 -> 3
         this.service.combinePartition(4);
 
         var partition = this.service.getPartitionById("graph0", 0);
@@ -66,7 +70,11 @@ public class PartitionServiceTest extends PDCoreTestBase {
     @Test
     public void testCombinePartition2() throws PDException {
         buildEnv();
-        // 0, 1, 2-> 0, 3,4,5->1, 6,7,8 ->2, 9,10, 11-> 3
+
+        // 0, 1, 2 -> 0
+        // 3, 4, 5 -> 1
+        // 6, 7, 8 -> 2
+        // 9, 10, 11 -> 3
         this.service.combinePartition(4);
 
         var partition = this.service.getPartitionById("graph0", 0);
@@ -144,10 +152,6 @@ public class PartitionServiceTest extends PDCoreTestBase {
                                                            .addAllShard(shardList).build();
         List<Metapb.Shard> shardList2 = new ArrayList<>(stats.getShardList());
         Collections.shuffle(shardList2);
-        shardList2.forEach(shard -> {
-            System.out.println(shard.getStoreId());
-        });
-
-
+        shardList2.forEach(shard -> System.out.println(shard.getStoreId()));
     }
 }

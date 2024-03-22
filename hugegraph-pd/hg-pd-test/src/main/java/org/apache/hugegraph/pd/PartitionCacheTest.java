@@ -52,7 +52,6 @@ public class PartitionCacheTest {
         }
     }
 
-
     // @Test
     public void test1() {
         Map<String, RangeMap<Long, Integer>> keyToPartIdCache = new HashMap<>();
@@ -69,7 +68,6 @@ public class PartitionCacheTest {
 
         allStoresCache.put("a", new ArrayList<>());
         allStoresCache.get("a").add(Metapb.Store.newBuilder().setId(34).build());
-
 
         Map<String, RangeMap<Long, Integer>> keyToPartIdCache2 =
                 cloneKeyToPartIdCache(keyToPartIdCache);

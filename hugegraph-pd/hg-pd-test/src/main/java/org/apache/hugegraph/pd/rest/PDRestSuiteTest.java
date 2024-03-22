@@ -26,7 +26,6 @@ import lombok.extern.slf4j.Slf4j;
 @Suite.SuiteClasses({
         RestApiTest.class,
 })
-
 @Slf4j
 public class PDRestSuiteTest {
 

@@ -17,21 +17,17 @@
 
 package org.apache.hugegraph.pd.core;
 
-import java.io.File;
-
-import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.IdService;
 import org.apache.hugegraph.pd.config.PDConfig;
-import org.apache.hugegraph.pd.meta.IdMetaStore;
-import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class IdServiceTest {
+public class IdServiceTest extends PDCoreTestBase {
+
     @Test
     public void testCid() {
         try {
-            PDConfig pdConfig = BaseServerTest.getConfig();
+            PDConfig pdConfig = getPdConfig();
             int max = 0x2000;
             IdService idService = new IdService(pdConfig);
             for (int i = 0; i < max; i++) {
@@ -62,7 +58,7 @@ public class IdServiceTest {
             Thread.sleep(5000);
             long cid3 = idService.getCId("test", "name", max);
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
         // MetadataFactory.closeStore();
     }
@@ -70,16 +66,7 @@ public class IdServiceTest {
     @Test
     public void testId() {
         try {
-            FileUtils.deleteQuietly(new File("tmp/testId/"));
-            IdMetaStore.CID_DEL_TIMEOUT = 2000;
-            PDConfig pdConfig = new PDConfig() {{
-                this.setClusterId(100);
-                this.setPatrolInterval(1);
-                this.setRaft(new Raft() {{
-                    setEnable(false);
-                }});
-                this.setDataPath("tmp/testId/");
-            }};
+            PDConfig pdConfig = getPdConfig();
             IdService idService = new IdService(pdConfig);
             long first = idService.getId("abc", 100);
             Assert.assertEquals(first, 0L);
@@ -88,8 +75,8 @@ public class IdServiceTest {
             idService.resetId("abc");
             first = idService.getId("abc", 100);
             Assert.assertEquals(first, 0L);
-        } catch (Exception ignored) {
-
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         // MetadataFactory.closeStore();
     }
@@ -97,7 +84,7 @@ public class IdServiceTest {
     @Test
     public void testMember() {
         try {
-            PDConfig pdConfig = BaseServerTest.getConfig();
+            PDConfig pdConfig = getPdConfig();
             IdService idService = new IdService(pdConfig);
             idService.setPdConfig(pdConfig);
             PDConfig config = idService.getPdConfig();
