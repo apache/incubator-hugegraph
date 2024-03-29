@@ -408,6 +408,7 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * sigar (org.fusesource:sigar:1.6.4 - http://fusesource.com/sigar/)
 	(Apache License, Version 2.0) * stream-lib (com.clearspring.analytics:stream:2.5.2 - https://github.com/clearspring/stream-lib)
 	(Apache License, Version 2.0) * swagger-annotations (io.swagger:swagger-annotations:1.5.18 - https://github.com/swagger-api/swagger-core/modules/swagger-annotations)
+	(Apache License, Version 2.0) * swagger-ui (https://github.com/swagger-api/swagger-ui)
 	(Apache License, Version 2.0) * swagger-core (io.swagger:swagger-core:1.5.18 - https://github.com/swagger-api/swagger-core/modules/swagger-core)
 	(Apache License, Version 2.0) * swagger-models (io.swagger:swagger-models:1.5.18 - https://github.com/swagger-api/swagger-core/modules/swagger-models)
 	(Apache License, Version 2.0) * tracer-core (com.alipay.sofa:tracer-core:3.0.8 - https://projects.spring.io/spring-boot/#/spring-boot-starter-parent/sofaboot-dependencies/tracer-all-parent/tracer-core)
