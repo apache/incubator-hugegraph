@@ -41,7 +41,6 @@ github:
           - Analyze (java)
           - CodeQL
           - check-license
-          - build (memory, 8)
           - build (memory, 11)
       required_pull_request_reviews:
         dismiss_stale_reviews: true
