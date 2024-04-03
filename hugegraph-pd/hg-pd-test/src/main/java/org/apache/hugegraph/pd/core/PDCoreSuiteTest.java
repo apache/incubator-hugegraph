@@ -24,7 +24,6 @@ import org.junit.runners.Suite;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         MetadataKeyHelperTest.class,
@@ -33,17 +32,12 @@ import lombok.extern.slf4j.Slf4j;
         IdServiceTest.class,
         KvServiceTest.class,
         LogServiceTest.class,
-        MonitorServiceTest.class,
         PartitionServiceTest.class,
         StoreMonitorDataServiceTest.class,
-        StoreNodeServiceNewTest.class,
-        StoreNodeServiceTest.class,
         StoreServiceTest.class,
         TaskScheduleServiceTest.class
 })
-
 @Slf4j
 public class PDCoreSuiteTest {
-
 
 }

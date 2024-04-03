@@ -43,6 +43,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 public class PDCoreTestBase {
+
     private static final String DATA_PATH = "/tmp/pd_data";
     private static PDConfig pdConfig;
     private static StoreNodeService storeNodeService;
@@ -61,6 +62,7 @@ public class PDCoreTestBase {
         config.setHost("127.0.0.1");
         config.setVerifyPath("");
         config.setLicensePath("");
+
         PDConfig.Raft raft = new PDConfig().new Raft();
         raft.setAddress("127.0.0.1:8601");
         raft.setPeersList("127.0.0.1:8601");
@@ -70,7 +72,6 @@ public class PDCoreTestBase {
         raft.setPort(8621);
 
         config.setRaft(raft);
-
         config.setStore(new PDConfig().new Store());
         config.setPartition(new PDConfig().new Partition() {{
             setShardCount(1);
@@ -96,7 +97,6 @@ public class PDCoreTestBase {
         storeMonitorDataService = new StoreMonitorDataService(pdConfig);
         RaftEngine.getInstance().addStateListener(partitionService);
         pdConfig.setIdService(idService);
-
 
         storeNodeService.init(partitionService);
         partitionService.init();

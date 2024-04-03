@@ -166,14 +166,8 @@
         </dependency>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hg-pd-clitools</artifactId>
-            <version>${revision}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-common</artifactId>
             <version>${revision}</version>
-
         </dependency>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>

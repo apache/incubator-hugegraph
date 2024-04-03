@@ -23,24 +23,21 @@ import org.apache.hugegraph.pd.ConfigService;
 import org.apache.hugegraph.pd.IdService;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
-import org.apache.hugegraph.pd.rest.BaseServerTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ConfigServiceTest {
-
-    private final PDConfig config = BaseServerTest.getConfig();
+public class ConfigServiceTest extends PDCoreTestBase {
 
     private ConfigService service;
 
     @Before
     public void setUp() {
-        this.service = new ConfigService(this.config);
+        this.service = new ConfigService(getPdConfig());
     }
 
     @Test
-    public void testGetPDConfig() throws Exception {
+    public void testGetPDConfig() {
         // Setup
         try {
             final Metapb.PDConfig config = Metapb.PDConfig.newBuilder()
@@ -50,17 +47,17 @@ public class ConfigServiceTest {
                                                           .setMaxShardsPerStore(0)
                                                           .setTimestamp(0L).build();
             this.service.setPDConfig(config);
+
             // Run the test
             Metapb.PDConfig result = this.service.getPDConfig(0L);
 
             // Verify the results
-            Assert.assertTrue(result.getShardCount() == 55);
+            Assert.assertEquals(55, result.getShardCount());
             result = this.service.getPDConfig();
-            Assert.assertTrue(result.getShardCount() == 55);
+            Assert.assertEquals(55, result.getShardCount());
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
-
     }
 
     @Test
@@ -69,13 +66,14 @@ public class ConfigServiceTest {
         Metapb.GraphSpace space = Metapb.GraphSpace.newBuilder()
                                                    .setName("gs1")
                                                    .setTimestamp(0L).build();
-        final List<Metapb.GraphSpace> expectedResult = List.of(space);
         this.service.setGraphSpace(space);
-        // Run the test
-        final List<Metapb.GraphSpace> result = this.service.getGraphSpace(
-                "gs1");
 
+        // Run the test
+        final List<Metapb.GraphSpace> result = this.service.getGraphSpace("gs1");
+
+        // Verify the results
         Assert.assertEquals(1, result.size());
+        Assert.assertEquals(space.getName(), result.get(0).getName());
     }
 
     @Test
@@ -101,7 +99,7 @@ public class ConfigServiceTest {
             expectedResult.setLicensePath("licensePath");
             this.service.updatePDConfig(mConfig);
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
     }
 }

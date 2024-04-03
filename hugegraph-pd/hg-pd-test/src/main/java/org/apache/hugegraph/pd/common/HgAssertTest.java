@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.hugegraph.pd.common.HgAssert;
 import org.junit.Test;
 
 public class HgAssertTest {
@@ -77,7 +76,6 @@ public class HgAssertTest {
     public void testIsNotNull() {
         HgAssert.isNotNull(null, "");
     }
-
 
     @Test
     public void testIsInvalid() {

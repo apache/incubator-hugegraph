@@ -25,23 +25,20 @@ import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+// TODO: Exceptions should be thrown rather than silenced.
 public class PDClientTest extends BaseClientTest {
+
     @Test
     public void testDbCompaction() {
-        System.out.println("testDbCompaction start");
-
         try {
             pdClient.dbCompaction("");
             pdClient.dbCompaction();
         } catch (PDException e) {
             e.printStackTrace();
         }
-
-        System.out.println("pdclienttest testDbCompaction end");
     }
 
     @Test
@@ -110,15 +107,15 @@ public class PDClientTest extends BaseClientTest {
         }
     }
 
-//    @Test
-//    public void testStoreHeartbeat(){
-//        Metapb.StoreStats stats = Metapb.StoreStats.newBuilder().build();
-//        try {
-//            pdClient.storeHeartbeat(stats);
-//        } catch (PDException e) {
-//            e.printStackTrace();
-//        }
-//    }
+    @Test
+    public void testStoreHeartbeat() {
+        Metapb.StoreStats stats = Metapb.StoreStats.newBuilder().build();
+        try {
+            pdClient.storeHeartbeat(stats);
+        } catch (PDException e) {
+            e.printStackTrace();
+        }
+    }
 
     @Test
     public void testKeyToCode() {
@@ -162,11 +159,8 @@ public class PDClientTest extends BaseClientTest {
         }
     }
 
-    @Ignore
     @Test
     public void testUpdatePartitionLeader() {
-        System.out.println("updatePartitionLeader start");
-
         pdClient.updatePartitionLeader("aaa", 0, 0L);
     }
 
@@ -362,7 +356,6 @@ public class PDClientTest extends BaseClientTest {
         }
     }
 
-
     @Test
     public void testBalanceLeaders() {
         try {
@@ -400,7 +393,6 @@ public class PDClientTest extends BaseClientTest {
         }
     }
 
-    @Ignore
     @Test
     public void testDelPartition() {
         try {

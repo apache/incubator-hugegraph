@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.pd.common;
 
-import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.Assert;
