@@ -28,7 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         BACKEND: [ memory, rocksdb, hbase, cassandra, mysql, postgresql, scylladb ]
-        JAVA_VERSION: [ '8', '11' ]
+        JAVA_VERSION: [ '11' ]
 
     steps:
       - name: Checkout
