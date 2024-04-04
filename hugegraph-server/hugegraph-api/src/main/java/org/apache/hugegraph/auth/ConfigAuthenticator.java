@@ -30,6 +30,8 @@ import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
 
+import jakarta.ws.rs.core.SecurityContext;
+
 public class ConfigAuthenticator implements HugeAuthenticator {
 
     public static final String KEY_USERNAME = CredentialGraphTokens.PROPERTY_USERNAME;
@@ -78,6 +80,10 @@ public class ConfigAuthenticator implements HugeAuthenticator {
         }
 
         return new UserWithRole(IdGenerator.of(username), username, role);
+    }
+
+    @Override
+    public void unauthorize(SecurityContext context) {
     }
 
     @Override

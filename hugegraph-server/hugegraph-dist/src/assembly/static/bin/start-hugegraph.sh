@@ -15,14 +15,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 OPEN_MONITOR="false"
 OPEN_SECURITY_CHECK="true"
+# change to "true" to enable telemetry(Trace) by default
+OPEN_TELEMETRY="false"
 DAEMON="true"
 #VERBOSE=""
 GC_OPTION=""
 USER_OPTION=""
 SERVER_STARTUP_TIMEOUT_S=30
-# todo: move abs_path funtion to shell like util.sh
+
+# TODO: move abs_path function to shell like util.sh
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [[ -h "$SOURCE" ]]; do
@@ -42,7 +46,8 @@ PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
 
-while getopts "d:g:m:p:s:j:t:v" arg; do
+# Note: keep ':' in the end of the string to indicate the option needs a value
+while getopts "d:g:m:p:s:j:t:y:" arg; do
     case ${arg} in
         d) DAEMON="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
@@ -51,8 +56,8 @@ while getopts "d:g:m:p:s:j:t:v" arg; do
         s) OPEN_SECURITY_CHECK="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
         t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
-        # TODO: should remove it in future (check the usage carefully)
-        v) VERBOSE="verbose" ;;
+        # Telemetry is used to collect metrics, traces and logs
+        y) OPEN_TELEMETRY="$OPTARG" ;;
         # Note: update usage info when the params changed
         ?) exit_with_usage_help ;;
     esac
@@ -82,21 +87,24 @@ fi
 GREMLIN_SERVER_CONF="gremlin-server.yaml"
 if [[ $PRELOAD == "true" ]]; then
     GREMLIN_SERVER_CONF="gremlin-server-preload.yaml"
-    EXAMPLE_SCRPIT="example-preload.groovy"
+    EXAMPLE_SCRIPT="example-preload.groovy"
     cp "${CONF}"/gremlin-server.yaml "${CONF}/${GREMLIN_SERVER_CONF}"
-    cp "${SCRIPTS}"/example.groovy "${SCRIPTS}/${EXAMPLE_SCRPIT}"
-    sed -i -e "s/empty-sample.groovy/$EXAMPLE_SCRPIT/g" "${CONF}/${GREMLIN_SERVER_CONF}"
-    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRPIT}"
+    cp "${SCRIPTS}"/example.groovy "${SCRIPTS}/${EXAMPLE_SCRIPT}"
+    sed -i -e "s/empty-sample.groovy/$EXAMPLE_SCRIPT/g" "${CONF}/${GREMLIN_SERVER_CONF}"
+    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRIPT}"
 fi
 
+# TODO: show the output message in hugegraph-server.sh when start the server
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
-    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1 &
+    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" "${OPEN_TELEMETRY}" \
+    >>"${LOGS}"/hugegraph-server.log 2>&1 &
 else
     echo "Starting HugeGraphServer in foreground mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
-    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" >>"${LOGS}"/hugegraph-server.log 2>&1
+    "${OPEN_SECURITY_CHECK}" "${USER_OPTION}" "${GC_OPTION}" "${OPEN_TELEMETRY}" \
+    >>"${LOGS}"/hugegraph-server.log 2>&1
 fi
 
 PID="$!"

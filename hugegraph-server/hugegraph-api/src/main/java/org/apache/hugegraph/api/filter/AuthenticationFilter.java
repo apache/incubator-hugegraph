@@ -45,7 +45,7 @@ import org.gridkit.jvmtool.cmd.AntPathMatcher;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.util.StringUtils;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 import jakarta.annotation.Priority;
 import jakarta.ws.rs.BadRequestException;
@@ -71,15 +71,15 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
-    private static final List<String> WHITE_API_LIST = ImmutableList.of(
-            "graphs/*/auth/login",
+    private static final AntPathMatcher MATCHER = new AntPathMatcher();
+    private static final Set<String> FIXED_WHITE_API_SET = ImmutableSet.of(
             "versions",
             "openapi.json"
     );
-    private static final AntPathMatcher MATCHER = new AntPathMatcher();
+    /** Remove auth/login API from whitelist */
+    private static final Set<String> FLEXIBLE_WHITE_API_SET = ImmutableSet.of();
 
-    private static String whiteIpStatus;
-
+    private static Boolean enabledWhiteIpCheck;
     private static final String STRING_WHITE_IP_LIST = "whiteiplist";
     private static final String STRING_ENABLE = "enable";
 
@@ -94,7 +94,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        if (AuthenticationFilter.isWhiteAPI(context)) {
+        if (isWhiteAPI(context)) {
             return;
         }
         User user = this.authenticate(context);
@@ -107,7 +107,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         E.checkState(manager != null, "Context GraphManager is absent");
 
         if (!manager.requireAuthentication()) {
-            // Return anonymous user with admin role if disable authentication
+            // Return anonymous user with an admin role if disable authentication
             return User.ANONYMOUS;
         }
 
@@ -121,11 +121,12 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         }
 
         // Check whiteIp
-        if (whiteIpStatus == null) {
-            whiteIpStatus = this.configProvider.get().get(WHITE_IP_STATUS);
+        if (enabledWhiteIpCheck == null) {
+            String whiteIpStatus = this.configProvider.get().get(WHITE_IP_STATUS);
+            enabledWhiteIpCheck = Objects.equals(whiteIpStatus, STRING_ENABLE);
         }
 
-        if (Objects.equals(whiteIpStatus, STRING_ENABLE) && request != null) {
+        if (enabledWhiteIpCheck && request != null) {
             peer = request.getRemoteAddr() + ":" + request.getRemotePort();
             path = request.getRequestURI();
 
@@ -134,9 +135,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             boolean whiteIpEnabled = manager.authManager().getWhiteIpStatus();
             if (!path.contains(STRING_WHITE_IP_LIST) && whiteIpEnabled &&
                 !whiteIpList.contains(remoteIp)) {
-                throw new ForbiddenException(
-                        String.format("Remote ip '%s' is not permitted",
-                                      remoteIp));
+                throw new ForbiddenException(String.format("Remote ip '%s' is not permitted",
+                                                           remoteIp));
             }
         }
 
@@ -144,28 +144,23 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         // Extract authentication credentials
         String auth = context.getHeaderString(HttpHeaders.AUTHORIZATION);
         if (auth == null) {
-            throw new NotAuthorizedException(
-                    "Authentication credentials are required",
-                    "Missing authentication credentials");
+            throw new NotAuthorizedException("Authentication credentials are required",
+                                             "Missing authentication credentials");
         }
 
         if (auth.startsWith(BASIC_AUTH_PREFIX)) {
             auth = auth.substring(BASIC_AUTH_PREFIX.length());
-            auth = new String(DatatypeConverter.parseBase64Binary(auth),
-                              Charsets.ASCII_CHARSET);
+            auth = new String(DatatypeConverter.parseBase64Binary(auth), Charsets.ASCII_CHARSET);
             String[] values = auth.split(":");
             if (values.length != 2) {
-                throw new BadRequestException(
-                        "Invalid syntax for username and password");
+                throw new BadRequestException("Invalid syntax for username and password");
             }
 
             final String username = values[0];
             final String password = values[1];
 
-            if (StringUtils.isEmpty(username) ||
-                StringUtils.isEmpty(password)) {
-                throw new BadRequestException(
-                        "Invalid syntax for username and password");
+            if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
+                throw new BadRequestException("Invalid syntax for username and password");
             }
 
             credentials.put(HugeAuthenticator.KEY_USERNAME, username);
@@ -174,8 +169,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
             String token = auth.substring(BEARER_TOKEN_PREFIX.length());
             credentials.put(HugeAuthenticator.KEY_TOKEN, token);
         } else {
-            throw new BadRequestException(
-                    "Only HTTP Basic or Bearer authentication is supported");
+            throw new BadRequestException("Only HTTP Basic or Bearer authentication is supported");
         }
 
         credentials.put(HugeAuthenticator.KEY_ADDRESS, peer);
@@ -185,8 +179,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
         try {
             return manager.authenticate(credentials);
         } catch (AuthenticationException e) {
-            throw new NotAuthorizedException("Authentication failed",
-                                             e.getMessage());
+            throw new NotAuthorizedException("Authentication failed", e.getMessage());
         }
     }
 
@@ -250,7 +243,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
                 requiredPerm = RequiredPerm.fromPermission(required);
 
                 /*
-                 * Replace owner value(it may be a variable) if the permission
+                 * Replace owner value (it may be a variable) if the permission
                  * format like: "$owner=$graph $action=vertex_write"
                  */
                 String owner = requiredPerm.owner();
@@ -266,8 +259,7 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Verify permission {} {} for user '{}' with role {}",
-                          requiredPerm.action().string(),
-                          requiredPerm.resourceObject(),
+                          requiredPerm.action().string(), requiredPerm.resourceObject(),
                           this.user.username(), this.user.role());
             }
 
@@ -276,9 +268,8 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
             if (!valid && LOG.isInfoEnabled() &&
                 !required.equals(HugeAuthenticator.USER_ADMIN)) {
-                LOG.info("User '{}' is denied to {} {}",
-                         this.user.username(), requiredPerm.action().string(),
-                         requiredPerm.resourceObject());
+                LOG.info("User '{}' is denied to {} {}", this.user.username(),
+                         requiredPerm.action().string(), requiredPerm.resourceObject());
             }
             return valid;
         }
@@ -316,7 +307,11 @@ public class AuthenticationFilter implements ContainerRequestFilter {
 
     public static boolean isWhiteAPI(ContainerRequestContext context) {
         String path = context.getUriInfo().getPath();
-        for (String whiteApi : WHITE_API_LIST) {
+        if (FIXED_WHITE_API_SET.contains(path)) {
+            return true;
+        }
+
+        for (String whiteApi : FLEXIBLE_WHITE_API_SET) {
             if (MATCHER.match(whiteApi, path)) {
                 return true;
             }

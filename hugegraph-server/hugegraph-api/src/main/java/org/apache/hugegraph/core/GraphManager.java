@@ -76,6 +76,8 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.rpc.config.ServerConfig;
 
+import jakarta.ws.rs.core.SecurityContext;
+
 public final class GraphManager {
 
     private static final Logger LOG = Log.logger(GraphManager.class);
@@ -261,6 +263,10 @@ public final class GraphManager {
     public HugeAuthenticator.User authenticate(Map<String, String> credentials)
             throws AuthenticationException {
         return this.authenticator().authenticate(credentials);
+    }
+
+    public void unauthorize(SecurityContext context) {
+        this.authenticator().unauthorize(context);
     }
 
     public AuthManager authManager() {

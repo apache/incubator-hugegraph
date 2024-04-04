@@ -83,3 +83,6 @@ hs_err_pid*
 .mtj.tmp/
 # blueJ files
 *.ctxt
+
+# docker volumes ignore
+hugegraph-server/hugegraph-dist/docker/data/

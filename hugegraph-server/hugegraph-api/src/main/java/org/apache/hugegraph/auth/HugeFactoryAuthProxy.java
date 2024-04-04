@@ -57,13 +57,16 @@ import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeVertexStepStrategy;
+import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.Reflection;
 import org.apache.hugegraph.variables.HugeVariables;
+import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableSet;
 
 public final class HugeFactoryAuthProxy {
 
+    private static final Logger LOG = Log.logger(HugeFactoryAuthProxy.class);
     public static final String GRAPH_FACTORY =
             "gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy";
 
@@ -90,7 +93,11 @@ public final class HugeFactoryAuthProxy {
         return proxy;
     }
 
+    // TODO: add some test to ensure the effect & partially move to HugeSecurityManager
     private static void registerPrivateActions() {
+        // Sensitive classes (Be careful to add classes here due to JDK compatibility)
+        filterCriticalSystemClasses();
+
         // Thread
         Reflection.registerFieldsToFilter(java.lang.Thread.class, "name", "priority", "threadQ",
                                           "eetop", "single_step", "daemon", "stillborn", "target",
@@ -106,7 +113,7 @@ public final class HugeFactoryAuthProxy {
                                           "threadLocalRandomSecondarySeed");
         Reflection.registerMethodsToFilter(java.lang.Thread.class, "exit",
                                            "dispatchUncaughtException", "clone", "isInterrupted",
-                                           "registerNatives", "init", "init", "nextThreadNum",
+                                           "registerNatives", "init", "nextThreadNum",
                                            "nextThreadID", "blockedOn", "start0", "isCCLOverridden",
                                            "auditSubclass", "dumpThreads", "getThreads",
                                            "processQueue", "setPriority0", "stop0", "suspend0",
@@ -477,6 +484,26 @@ public final class HugeFactoryAuthProxy {
         //genRegisterPrivateActions();
     }
 
+    public static void filterCriticalSystemClasses() {
+        // TODO: merge them in HugeSecurityManager after 1.5.0
+        Reflection.registerMethodsToFilter(Class.class, "forName", "newInstance");
+        Reflection.registerMethodsToFilter(ClassLoader.class, "loadClass", "newInstance");
+        Reflection.registerMethodsToFilter(Method.class, "invoke", "setAccessible");
+        Reflection.registerMethodsToFilter(Field.class, "set", "setAccessible");
+        Reflection.registerMethodsToFilter(java.lang.reflect.Constructor.class, "newInstance",
+                                           "setAccessible");
+        Reflection.registerMethodsToFilter(Runtime.class, "exec", "getRuntime");
+        Reflection.registerMethodsToFilter(ProcessBuilder.class, "command", "start",
+                                           "startPipeline");
+        Reflection.registerMethodsToFilter(loadClass("java.lang.ProcessImpl"), "forkAndExec",
+                                           "setAccessible", "start");
+
+        optionalMethodsToFilter("sun.invoke.util.BytecodeDescriptor", "parseMethod", "parseSig");
+        optionalMethodsToFilter("sun.reflect.misc.MethodUtil", "invoke");
+        optionalMethodsToFilter("jdk.internal.reflect.MethodAccessor", "invoke");
+        optionalMethodsToFilter("jdk.internal.reflect.NativeMethodAccessorImpl", "invoke");
+    }
+
     @SuppressWarnings("unused")
     private static void genRegisterPrivateActions() {
         registerPrivateActions(Thread.class);
@@ -562,20 +589,18 @@ public final class HugeFactoryAuthProxy {
         }
     }
 
-    private static boolean registerClass(Class<?> clazz,
-                                         List<String> fields,
-                                         List<String> methods) {
-        if (clazz.getName().startsWith("java") ||
-            fields.isEmpty() && methods.isEmpty()) {
-            return false;
+    private static void registerClass(Class<?> clazz, List<String> fields, List<String> methods) {
+        if (clazz.getName().startsWith("java") || fields.isEmpty() && methods.isEmpty()) {
+            return;
         }
+
         final String[] array = new String[fields.size()];
         try {
             Reflection.registerFieldsToFilter(clazz, fields.toArray(array));
             Reflection.registerMethodsToFilter(clazz, methods.toArray(array));
         } catch (IllegalArgumentException e) {
             if (e.getMessage().contains("Filter already registered: class")) {
-                return false;
+                return;
             }
             throw e;
         }
@@ -596,8 +621,6 @@ public final class HugeFactoryAuthProxy {
             System.out.println(code);
             // CHECKSTYLE:ON
         }
-
-        return true;
     }
 
     private static Class<?> loadClass(String clazz) {
@@ -605,6 +628,19 @@ public final class HugeFactoryAuthProxy {
             return Class.forName(clazz);
         } catch (ClassNotFoundException e) {
             throw new HugeException(e.getMessage(), e);
+        }
+    }
+
+    public static void optionalMethodsToFilter(String className, String... methodNames) {
+        Class<?> clazz = null;
+        try {
+            clazz = Class.forName(className);
+        } catch (ClassNotFoundException e) {
+            // TODO: we just ignore the exception, change it after we drop Java8 support
+            LOG.warn("Skip register class {} to filter", className);
+        }
+        if (clazz != null) {
+            Reflection.registerMethodsToFilter(clazz, methodNames);
         }
     }
 }
