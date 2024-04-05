@@ -144,21 +144,23 @@
                             <exclude>**/*.conf</exclude>
                             <exclude>**/*.map</exclude>
                             <exclude>**/*.properties</exclude>
-                            <exclude>dist/**/*</exclude>
                             <exclude>**/bin/hugegraph.service</exclude>
                             <exclude>**/swagger-ui/**/*</exclude>
-                            <exclude>scripts/dev/reviewers</exclude>
                             <exclude>scripts/dev/reviewers</exclude>
                             <exclude>**/*.md</exclude>
                             <exclude>**/dependency-reduced-pom.xml</exclude>
                             <exclude>**/logs/*.log</exclude>
                             <exclude>**/META-INF/**/*</exclude>
-                            <exclude>**/target/*</exclude>
                             <exclude>style/*</exclude>
                             <exclude>ChangeLog</exclude>
                             <exclude>CONFIG.ini</exclude>
                             <exclude>GROUPS</exclude>
                             <exclude>OWNERS</exclude>
+                            <!-- gRPC / Generated code/files -->
+                            <exclude>**/pd/grpc/**/*.java</exclude>
+                            <exclude>**/store/grpc/**/*.java</exclude>
+                            <exclude>**/target/**</exclude>
+                            <exclude>dist/**/*</exclude>
                             <!-- Git & GitHub  -->
                             <exclude>.github/**/*</exclude>
                             <exclude>.gitignore</exclude>

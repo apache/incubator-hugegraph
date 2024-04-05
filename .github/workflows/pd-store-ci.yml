@@ -1,4 +1,4 @@
-name: "pd-store"
+name: "hugegraph-pd-store-ci"
 
 on:
   push:
@@ -8,11 +8,14 @@ on:
       - 'test-*'
   pull_request:
 
+# TODO: consider merge to one ci.yml file
 jobs:
   pd:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      # TODO: avoid duplicated env setup in pd & store
+      USE_STAGE: 'false' # Whether to include the stage repository.
+      # TODO: remove outdated env
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
 
@@ -31,9 +34,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 5
 
       - name: use staged maven repo settings
         if: ${{ env.USE_STAGE == 'true' }}
@@ -54,7 +57,8 @@ jobs:
     # TODO: avoid duplicated env setup
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      USE_STAGE: 'false' # Whether to include the stage repository.
+      # TODO: remove outdated env
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
 
@@ -73,9 +77,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 5
 
       - name: use staged maven repo settings
         if: ${{ env.USE_STAGE == 'true' }}
