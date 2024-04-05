@@ -1,4 +1,4 @@
-name: "hugegraph-ci"
+name: "hugegraph-server-ci"
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     # TODO: we need test & replace it to ubuntu-24.04 or ubuntu-latest
     runs-on: ubuntu-20.04
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      USE_STAGE: 'false' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}
@@ -34,7 +34,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 5
 
       # TODO: Remove this step after install-backend.sh updated
       - name: Install Java8 for backend
