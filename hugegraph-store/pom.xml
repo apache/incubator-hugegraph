@@ -254,7 +254,7 @@
         <!--                        <version>2.20</version>-->
         <!--                        <executions>-->
         <!--                            <execution>-->
-        <!--                                <id>store-rocksdb-test</id>-->
+        <!--                                <id>sit -test</id>-->
         <!--                                <goals>-->
         <!--                                    <goal>test</goal>-->
         <!--                                </goals>-->
