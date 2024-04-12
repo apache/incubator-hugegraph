@@ -19,9 +19,11 @@ import org.apache.hugegraph.dist.RegisterUtil
 import org.apache.hugegraph.masterelection.GlobalMasterInfo
 import org.apache.tinkerpop.gremlin.structure.T
 
-RegisterUtil.registerRocksDB()
+RegisterUtil.registerBackends()
 
-conf = "conf/graphs/hugegraph.properties"
+conf = HugeFactory.getLocalConfig("conf/graphs/hugegraph.properties")
+conf.setProperty("backend", "memory")
+conf.setProperty("serializer", "text")
 graph = HugeFactory.open(conf)
 graph.serverStarted(GlobalMasterInfo.master("server-tinkerpop"))
 schema = graph.schema()
