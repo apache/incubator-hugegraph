@@ -90,7 +90,7 @@ HugeGraph is licensed under [Apache 2.0 License](LICENSE).
 
 We welcome all contributions to HugeGraph, please
 see [`How to Contribute`](CONTRIBUTING.md) & [Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/)
-for more information. Here are some ways you can help,
+for more information. Here are some ways you can help:
 
 - Tutorials + Blogposts: We always want to find ways to improve the user experience and sharing uses
   for HugeGraph is a huge help.
@@ -103,8 +103,10 @@ Pull Requests
 
 - Even small changes such as a typo fix are welcome if it helps the project.
 - Make sure you check existing issues before opening a new issue.
-- Follow established coding styles and reference style guide if in doubt.
-- Reach out on WeChat to ask questions!
+- Follow established coding styles and
+  reference [style guide](https://github.com/apache/incubator-hugegraph/wiki/The-style-config-for-HugeGraph-in-IDEA)
+  whenever you are in doubt.
+- Reach out on Github to ask questions!
 
 Note: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to greatly simplify the
 PR and commit process.
