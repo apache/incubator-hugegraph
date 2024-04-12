@@ -91,7 +91,7 @@ if [[ $PRELOAD == "true" ]]; then
     cp "${CONF}"/gremlin-server.yaml "${CONF}/${GREMLIN_SERVER_CONF}"
     cp "${SCRIPTS}"/example.groovy "${SCRIPTS}/${EXAMPLE_SCRIPT}"
     sed -i -e "s/empty-sample.groovy/$EXAMPLE_SCRIPT/g" "${CONF}/${GREMLIN_SERVER_CONF}"
-    sed -i -e '/registerRocksDB/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRIPT}"
+    sed -i -e '/registerBackends/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRIPT}"
 fi
 
 # TODO: show the output message in hugegraph-server.sh when start the server

@@ -21,9 +21,7 @@ import org.apache.tinkerpop.gremlin.structure.T
 
 RegisterUtil.registerBackends()
 
-conf = HugeFactory.getLocalConfig("conf/graphs/hugegraph.properties")
-conf.setProperty("backend", "memory")
-conf.setProperty("serializer", "text")
+conf = "conf/graphs/hugegraph.properties"
 graph = HugeFactory.open(conf)
 graph.serverStarted(GlobalMasterInfo.master("server-tinkerpop"))
 schema = graph.schema()
