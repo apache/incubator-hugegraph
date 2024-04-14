@@ -19,8 +19,9 @@ gen-java
 .svn
 
 ### IntelliJ IDEA ###
-.idea
-.idea/
+.idea/*
+!.idea/vcs.xml
+!.idea/icon.png
 *.iws
 *.iml
 *.ipr
