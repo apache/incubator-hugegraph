@@ -275,7 +275,7 @@ public class RaftStateMachine extends StateMachineAdapter {
         final Checksum checksum = new CRC64();
         final String snapshotArchive = reader.getPath() + File.separator + SNAPSHOT_ARCHIVE_NAME;
         try {
-            ZipUtils.decompress(snapshotArchive, reader.getPath(), checksum);
+            ZipUtils.decompress(snapshotArchive, new File(reader.getPath()), checksum);
             if (meta.hasChecksum()) {
                 if (!meta.getChecksum().equals(Long.toHexString(checksum.getValue()))) {
                     throw new PDException(Pdpb.ErrorType.ROCKSDB_LOAD_SNAPSHOT_ERROR_VALUE,
