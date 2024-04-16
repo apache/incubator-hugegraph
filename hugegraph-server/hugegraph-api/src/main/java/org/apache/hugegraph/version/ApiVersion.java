@@ -125,7 +125,7 @@ public final class ApiVersion {
 
     /**
      * The second parameter of Version.of() is for IDE running without JAR
-     * Note: Also update the version number in hugegraph-api/pom.xml
+     * Note: Also update the version number in hugegraph-server/hugegraph-api/pom.xml
      */
     public static final Version VERSION = Version.of(ApiVersion.class, "0.71");
 
