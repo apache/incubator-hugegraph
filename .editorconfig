@@ -22,10 +22,13 @@ charset = utf-8
 end_of_line = lf
 insert_final_newline = true
 
-[*.{java, xml, py}]
+[*.{java,xml,py}]
 indent_style = space
 indent_size = 4
 
-[*.{java, xml}]
+[*.{java,xml}]
 # Ignore the IDEA unsupported warning & it works well (indeed)
 continuation_indent_size = 8
+
+[*.md]
+max_line_length = off
