@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.CheckedOutputStream;
@@ -78,7 +79,13 @@ public final class ZipUtils {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
                 final String fileName = entry.getName();
-                final File entryFile = new File(Paths.get(outputDir, fileName).toString());
+                final Path entryPath = Paths.get(outputDir).resolve(fileName).normalize();
+                if (!entryPath.startsWith(Paths.get(outputDir).normalize())) {
+                    // The file path is not in the expected directory. There may be a Zip Slip
+                    // vulnerability. Ignore it or handle it accordingly.
+                    continue;
+                }
+                final File entryFile = entryPath.toFile();
                 FileUtils.forceMkdir(entryFile.getParentFile());
                 try (final FileOutputStream fos = new FileOutputStream(entryFile);
                      final BufferedOutputStream bos = new BufferedOutputStream(fos)) {
