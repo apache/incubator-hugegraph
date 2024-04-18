@@ -52,18 +52,18 @@ public class SessionOperatorImpl implements SessionOperator {
         assert bytes.length > 0;
         byte last = bytes[bytes.length - 1];
         if (last != BYTE_MAX_VALUE) {
-            bytes[bytes.length - 1] += 0x01;
+            bytes[bytes.length - 1] += (byte) 0x01;
         } else {
             // Process overflow (like [1, 255] => [2, 0])
             int i = bytes.length - 1;
             for (; i > 0 && bytes[i] == BYTE_MAX_VALUE; --i) {
-                bytes[i] += 0x01;
+                bytes[i] += (byte) 0x01;
             }
             if (bytes[i] == BYTE_MAX_VALUE) {
                 assert i == 0;
                 throw new DBStoreException("Unable to increase bytes: %s", Bytes.toHex(bytes));
             }
-            bytes[i] += 0x01;
+            bytes[i] += (byte) 0x01;
         }
         return bytes;
     }
