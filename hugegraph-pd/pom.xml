@@ -36,11 +36,10 @@
         <module>hg-pd-common</module>
         <module>hg-pd-client</module>
         <module>hg-pd-test</module>
+        <module>hg-pd-core</module>
         <!-- TODO: uncomment later -->
-        <!-- <module>hg-pd-core</module> -->
         <!-- <module>hg-pd-service</module> -->
         <!-- <module>hg-pd-dist</module> -->
-        <!-- <module>hg-pd-clitools</module> -->
     </modules>
 
     <properties>
