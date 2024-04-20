@@ -37,8 +37,8 @@
         <module>hg-pd-client</module>
         <module>hg-pd-test</module>
         <module>hg-pd-core</module>
+        <module>hg-pd-service</module>
         <!-- TODO: uncomment later -->
-        <!-- <module>hg-pd-service</module> -->
         <!-- <module>hg-pd-dist</module> -->
     </modules>
 
