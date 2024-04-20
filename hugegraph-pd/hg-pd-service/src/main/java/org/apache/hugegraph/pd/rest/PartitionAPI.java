@@ -51,6 +51,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/v1")
 public class PartitionAPI extends API {
+
     public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     @Autowired
     PDRestService pdRestService;
@@ -240,7 +241,6 @@ public class PartitionAPI extends API {
                             role = finalShardStats.get(shard.getStoreId()).getRole();
                         }
 
-
                         HashMap<Integer, Metapb.RaftStats> storeRaftStats =
                                 raftMap.get(shard.getStoreId());
                         if (storeRaftStats != null) {
@@ -338,6 +338,7 @@ public class PartitionAPI extends API {
 
     @Data
     class Shard {
+
         String address;
         String storeId;
         Metapb.ShardRole role;
@@ -350,6 +351,7 @@ public class PartitionAPI extends API {
 
     @Data
     class Partition {
+
         int id;
         long version;
         String graphName;
@@ -359,7 +361,6 @@ public class PartitionAPI extends API {
         Metapb.PartitionState workState;
         List<Shard> shards;
         String timestamp;
-
 
         Partition(Metapb.Partition pt) {
             id = pt.getId();
@@ -379,11 +380,11 @@ public class PartitionAPI extends API {
     @Data
     class Statistics {
 
-
     }
 
     @Data
     class HighLevelPartition {
+
         int partitionId;
         String state;
         String leaderAddress;
@@ -430,6 +431,7 @@ public class PartitionAPI extends API {
 
     @Data
     class GraphStats {
+
         String graphName;
         long keyCount;
         long startKey;
@@ -449,6 +451,7 @@ public class PartitionAPI extends API {
 
     @Data
     class ShardStats {
+
         long storeId;
         String role;
         String state;

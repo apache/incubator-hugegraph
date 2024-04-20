@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @Slf4j
 public final class PDMetrics {
+
     public static final String PREFIX = "hg";
     private static final AtomicLong GRAPHS = new AtomicLong(0);
     private MeterRegistry registry;

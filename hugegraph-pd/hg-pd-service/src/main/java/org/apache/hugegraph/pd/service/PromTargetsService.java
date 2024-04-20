@@ -175,7 +175,6 @@ public class PromTargetsService {
                              }
                          });
 
-
                          return model;
                      })
                      .filter(e -> e != null)

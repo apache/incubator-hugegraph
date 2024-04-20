@@ -50,11 +50,11 @@ final class PartitionChangeSubject extends AbstractWatchSubject {
 
         super.notifyWatcher(builder -> {
             builder.setPartitionResponse(
-                builder.getPartitionResponseBuilder().clear()
-                       .setGraph(graph)
-                       .setPartitionId(partitionId)
-                       .setChangeType(changeType)
-                       .build()
+                    builder.getPartitionResponseBuilder().clear()
+                           .setGraph(graph)
+                           .setPartitionId(partitionId)
+                           .setChangeType(changeType)
+                           .build()
             );
 
         });

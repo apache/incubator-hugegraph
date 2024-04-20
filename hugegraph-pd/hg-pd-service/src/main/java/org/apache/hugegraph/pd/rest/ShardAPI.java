@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.pd.rest;
 
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/v1")
 public class ShardAPI extends API {
+
     @Autowired
     PDRestService pdRestService;
     @Autowired
@@ -109,6 +109,7 @@ public class ShardAPI extends API {
 
     @Data
     class Shard {
+
         long storeId;
         long partitionId;
         String role;

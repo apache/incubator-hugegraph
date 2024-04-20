@@ -42,8 +42,9 @@ import lombok.extern.slf4j.Slf4j;
 public class PDPulseService extends HgPdPulseGrpc.HgPdPulseImplBase {
 
     private static final Supplier<List<Metapb.QueueItem>> QUEUE_RETRIEVE_FUNCTION =
-        () -> Collections.emptyList();
-    private static final Function<Metapb.QueueItem, Boolean> QUEUE_ITEM_BOOLEAN_FUNCTION = (e) -> true;
+            () -> Collections.emptyList();
+    private static final Function<Metapb.QueueItem, Boolean> QUEUE_ITEM_BOOLEAN_FUNCTION =
+            (e) -> true;
     private static final Function<String, Boolean> QUEUE_REMOVE_FUNCTION = (e) -> true;
     @Autowired
     private PDConfig pdConfig;

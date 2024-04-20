@@ -38,6 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @ThreadSafe
 public class PDWatchSubject implements StreamObserver<WatchRequest> {
+
     public final static Map<String, AbstractWatchSubject> subjectHolder = new ConcurrentHashMap<>();
     private final static byte[] lock = new byte[0];
 
@@ -101,8 +102,8 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
         subjectHolder.get(type.name()).notifyWatcher(builder);
     }
 
-    public static void notifyError(int code, String message){
-        subjectHolder.forEach((k, v)->{
+    public static void notifyError(int code, String message) {
+        subjectHolder.forEach((k, v) -> {
             v.notifyError(code, message);
         });
     }
@@ -132,7 +133,6 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
         this.subject.removeObserver(this.watcherId, this.responseObserver);
     }
 
-
     private WatchType getWatchType(WatchCreateRequest request) {
         WatchType watchType = request.getWatchType();
 
@@ -154,7 +154,6 @@ public class PDWatchSubject implements StreamObserver<WatchRequest> {
 
         return subject;
     }
-
 
     private void addWatcher(WatchCreateRequest request) {
         if (this.subject != null) {

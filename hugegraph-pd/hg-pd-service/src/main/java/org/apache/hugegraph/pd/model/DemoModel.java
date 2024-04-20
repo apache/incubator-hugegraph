@@ -20,6 +20,7 @@ package org.apache.hugegraph.pd.model;
 import java.util.Objects;
 
 public class DemoModel {
+
     private int status;
     private String text;
 

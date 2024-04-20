@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.pulse;
 
 public interface PulseListener<T> {
+
     /**
      * Invoked on new notice.
      *

@@ -25,6 +25,7 @@ import lombok.Data;
 
 @Data
 public class RestApiResponse {
+
     String message;
     Object data;
     int status;

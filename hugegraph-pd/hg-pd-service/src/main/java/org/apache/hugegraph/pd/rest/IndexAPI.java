@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/")
 public class IndexAPI extends API {
+
     @Autowired
     PDService pdService;
     @Autowired
@@ -132,6 +133,7 @@ public class IndexAPI extends API {
 
     @Data
     class BriefStatistics {
+
         String state;
         String leader;
         int memberSize;
@@ -142,6 +144,7 @@ public class IndexAPI extends API {
 
     @Data
     class Store {
+
         long storeId;
         String address;
         String raftAddress;
@@ -164,6 +167,7 @@ public class IndexAPI extends API {
 
     @Data
     class Member {
+
         String raftUrl;
         String grpcUrl;
         String restUrl;
@@ -194,6 +198,7 @@ public class IndexAPI extends API {
 
     @Data
     class Statistics {
+
         /**
          * 集群状态
          */

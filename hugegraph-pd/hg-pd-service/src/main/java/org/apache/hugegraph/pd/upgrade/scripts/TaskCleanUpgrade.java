@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TaskCleanUpgrade implements VersionUpgradeScript {
+
     @Override
     public String getHighVersion() {
         return UNLIMITED_VERSION;

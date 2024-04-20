@@ -32,9 +32,9 @@ import org.apache.hugegraph.pd.common.HgAssert;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 public final class HgExecutorUtil {
+
     private static final Map<String, ThreadPoolExecutor> EXECUTOR_MAP = new ConcurrentHashMap<>();
     private static final Executor COMMON_EXECUTOR
             = new ThreadPoolExecutor(0, Integer.MAX_VALUE,
@@ -123,6 +123,7 @@ public final class HgExecutorUtil {
      * The default thread factory
      */
     static class HgThreadFactory implements ThreadFactory {
+
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         private final String namePrefix;
         private final int priority;
@@ -152,6 +153,7 @@ public final class HgExecutorUtil {
      * The default thread factory, which added threadNamePrefix in construction method.
      */
     static class HgDefaultThreadFactory implements ThreadFactory {
+
         private static final AtomicInteger POOL_NUMBER = new AtomicInteger(1);
         private final AtomicInteger threadNumber = new AtomicInteger(1);
         private final String namePrefix;

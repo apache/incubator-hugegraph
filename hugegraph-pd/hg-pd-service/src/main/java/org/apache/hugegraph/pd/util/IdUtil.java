@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class IdUtil {
+
     private static final byte[] LOCK = new byte[0];
 
     public static String createMillisStr() {

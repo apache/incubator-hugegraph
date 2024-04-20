@@ -27,6 +27,7 @@ import io.grpc.ServerBuilder;
 
 @Component
 public class GRpcServerConfig extends GRpcServerBuilderConfigurer {
+
     public static final String EXECUTOR_NAME = "hg-grpc";
     @Autowired
     private PDConfig pdConfig;

@@ -21,6 +21,7 @@ import lombok.Data;
 
 @Data
 public class TimeRangeRequest {
+
     String startTime;
     String endTime;
 }

@@ -21,5 +21,6 @@ import lombok.Data;
 
 @Data
 public class PeerRestRequest {
+
     private String peerList;
 }

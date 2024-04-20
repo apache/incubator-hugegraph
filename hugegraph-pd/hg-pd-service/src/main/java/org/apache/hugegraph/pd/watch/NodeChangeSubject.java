@@ -48,11 +48,11 @@ final class NodeChangeSubject extends AbstractWatchSubject {
 
         super.notifyWatcher(builder -> {
             builder.setNodeResponse(
-                builder.getNodeResponseBuilder().clear()
-                       .setGraph(graph)
-                       .setNodeId(nodeId)
-                       .setNodeEventType(nodeEventType)
-                       .build()
+                    builder.getNodeResponseBuilder().clear()
+                           .setGraph(graph)
+                           .setNodeId(nodeId)
+                           .setNodeEventType(nodeEventType)
+                           .build()
             );
 
         });

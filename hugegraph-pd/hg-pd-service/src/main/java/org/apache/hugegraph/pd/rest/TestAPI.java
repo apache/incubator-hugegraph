@@ -130,7 +130,6 @@ public class TestAPI {
                                                            .setItemClass("item-class")
                                                            .setItemContent(response.toByteString());
 
-
         QueueStore store = MetadataFactory.newQueueStore(pdConfig);
 
         try {
@@ -157,7 +156,6 @@ public class TestAPI {
             }
             PDPulseSubject.notifyClient(PartitionHeartbeatResponse.newBuilder(buf));
         });
-
 
     }
 }

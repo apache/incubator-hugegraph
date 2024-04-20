@@ -50,6 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class PDRestService implements InitializingBean {
+
     private static final String EMPTY_STRING = "";
     @Autowired
     PDService pdService;
@@ -78,7 +79,6 @@ public class PDRestService implements InitializingBean {
         HgAssert.isNotNull(storeNodeService, "storeNodeService does not initialize");
         HgAssert.isNotNull(partitionService, "partitionService does not initialize");
     }
-
 
     public List<Metapb.Store> getStores(String graphName) throws PDException {
         return storeNodeService.getStores(graphName);
@@ -252,7 +252,6 @@ public class PDRestService implements InitializingBean {
     public List<Metapb.LogRecord> getStoreStatusLog(Long start, Long end) throws PDException {
         return logService.getLog(LogService.NODE_CHANGE, start, end);
     }
-
 
     public List<Metapb.LogRecord> getPartitionLog(Long start, Long end) throws PDException {
         return logService.getLog(LogService.PARTITION_CHANGE, start, end);

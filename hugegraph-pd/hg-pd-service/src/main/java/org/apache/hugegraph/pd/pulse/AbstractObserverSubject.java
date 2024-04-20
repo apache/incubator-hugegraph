@@ -37,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @ThreadSafe
 @Slf4j
 abstract class AbstractObserverSubject {
+
     /* send notice to client */
     private final Map<Long, StreamObserver<PulseResponse>> observerHolder = new HashMap<>(1024);
     /* notice from client */
@@ -149,7 +150,7 @@ abstract class AbstractObserverSubject {
 
     abstract long notifyClient(com.google.protobuf.GeneratedMessageV3 response);
 
-    protected void notifyError(int code, String message){
+    protected void notifyError(int code, String message) {
         synchronized (lock) {
             Iterator<Map.Entry<Long, StreamObserver<PulseResponse>>> iter =
                     observerHolder.entrySet().iterator();
@@ -158,10 +159,12 @@ abstract class AbstractObserverSubject {
                 Long observerId = entry.getKey();
                 PulseResponse res = this.builder.setObserverId(observerId).build();
                 try {
-                    entry.getValue().onError(Status.fromCodeValue(code).withDescription(message).asRuntimeException());
+                    entry.getValue().onError(Status.fromCodeValue(code).withDescription(message)
+                                                   .asRuntimeException());
                 } catch (Throwable e) {
                     log.warn("Failed to send {} 's notice[{}] to observer[{}], error:{}",
-                            this.pulseType.name(),  toNoticeString(res), observerId, e.getMessage());
+                             this.pulseType.name(), toNoticeString(res), observerId,
+                             e.getMessage());
                 }
             }
         }

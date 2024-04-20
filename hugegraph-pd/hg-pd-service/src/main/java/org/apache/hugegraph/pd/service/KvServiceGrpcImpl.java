@@ -357,7 +357,6 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
 
     }
 
-
     /**
      * 加锁
      *
@@ -483,7 +482,6 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
-
 
     /**
      * 锁续活

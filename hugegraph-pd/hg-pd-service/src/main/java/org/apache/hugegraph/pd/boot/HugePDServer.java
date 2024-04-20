@@ -29,6 +29,7 @@ import com.alipay.remoting.util.StringUtils;
 @ComponentScan(basePackages = {"org.apache.hugegraph.pd"})
 @SpringBootApplication
 public class HugePDServer {
+
     public static void main(String[] args) {
         String logPath = System.getProperty("logging.path");
         if (StringUtils.isBlank(logPath)) {

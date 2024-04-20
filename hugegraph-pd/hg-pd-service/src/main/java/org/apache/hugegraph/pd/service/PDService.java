@@ -191,7 +191,6 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             }
         });
 
-
         /**
          * 监听分区指令，并转发给 Store
          */
@@ -1759,7 +1758,6 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         observer.onNext(response);
         observer.onCompleted();
     }
-
 
     private List<KVPair<String, PeerId>> parseConfig(String conf) {
         List<KVPair<String, PeerId>> result = new LinkedList<>();

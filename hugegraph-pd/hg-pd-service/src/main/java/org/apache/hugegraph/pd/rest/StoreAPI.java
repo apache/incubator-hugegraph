@@ -181,7 +181,6 @@ public class StoreAPI extends API {
         }
     }
 
-
     @GetMapping(value = "store/{storeId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestApiResponse getStore(@PathVariable long storeId) {
@@ -238,6 +237,7 @@ public class StoreAPI extends API {
 
     @Data
     class Partition {
+
         //分区信息
         int partitionId;
         String graphName;
@@ -261,6 +261,7 @@ public class StoreAPI extends API {
 
     @Data
     class StoreStatistics {
+
         //store的统计信息
         long storeId;
         String address;

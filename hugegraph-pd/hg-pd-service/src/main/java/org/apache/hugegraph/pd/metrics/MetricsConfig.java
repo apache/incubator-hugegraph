@@ -26,6 +26,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 @Configuration
 public class MetricsConfig {
+
     @Autowired
     private PDMetrics metrics;
 

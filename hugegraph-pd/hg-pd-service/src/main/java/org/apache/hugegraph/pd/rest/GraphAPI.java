@@ -50,6 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/v1")
 public class GraphAPI extends API {
+
     @Autowired
     PDRestService pdRestService;
     @Autowired
@@ -125,7 +126,6 @@ public class GraphAPI extends API {
         }
     }
 
-
     @GetMapping(value = "/graph/**", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestApiResponse getGraph(HttpServletRequest request) throws
@@ -158,6 +158,7 @@ public class GraphAPI extends API {
 
     @Data
     class Shard {
+
         long partitionId;
         long storeId;
         String state;
@@ -184,6 +185,7 @@ public class GraphAPI extends API {
 
     @Data
     class Partition {
+
         int partitionId;
         String graphName;
         String workState;
@@ -227,13 +229,13 @@ public class GraphAPI extends API {
                     this.shards = shardsList;
                 }
 
-
             }
         }
     }
 
     @Data
     class GraphStatistics {
+
         //图统计信息
         String graphName;
         long partitionCount;

@@ -55,6 +55,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/v1")
 public class MemberAPI extends API {
+
     //TODO
     @Autowired
     PDService pdService;
@@ -130,9 +131,9 @@ public class MemberAPI extends API {
         }
     }
 
-
     public static class CallStreamObserverWrap<V> extends CallStreamObserver<V> implements
                                                                                 Future<List<V>> {
+
         CompletableFuture<List<V>> future = new CompletableFuture<>();
         List<V> values = new ArrayList<>();
 
@@ -206,6 +207,7 @@ public class MemberAPI extends API {
 
     @Data
     class Member {
+
         String raftUrl;
         String grpcUrl;
         String restUrl;

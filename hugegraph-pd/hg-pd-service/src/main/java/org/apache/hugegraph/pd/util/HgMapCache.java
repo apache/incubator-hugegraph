@@ -26,6 +26,7 @@ import java.util.function.Supplier;
  * @param <V>
  */
 public class HgMapCache<K, V> {
+
     private final Map<K, V> cache = new ConcurrentHashMap<K, V>();
     private final Supplier<Boolean> expiry;
 
@@ -52,7 +53,6 @@ public class HgMapCache<K, V> {
         this.cache.put(key, value);
     }
 
-
     public V get(K key) {
         if (isExpired()) {
             return null;
@@ -77,6 +77,7 @@ public class HgMapCache<K, V> {
     }
 
     private static class CycleIntervalPolicy implements Supplier<Boolean> {
+
         private long expireTime = 0;
         private long interval = 0;
 

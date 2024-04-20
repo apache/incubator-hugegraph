@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class PromTargetsModel {
+
     private static final String LABEL_METRICS_PATH = "__metrics_path__";
     private static final String LABEL_SCHEME = "__scheme__";
     private static final String LABEL_JOB_NAME = "job";
