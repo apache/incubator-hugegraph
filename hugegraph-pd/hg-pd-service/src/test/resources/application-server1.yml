@@ -1,0 +1,71 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+spring:
+  application:
+    name: hugegraph-pd
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+grpc:
+  port: 8686
+  netty-server:
+    max-inbound-message-size: 100MB
+
+server:
+  port: 8620
+
+pd:
+
+  patrol-interval: 3000000
+  data-path: tmp/8686
+  # 最少节点数，少于该数字，集群停止入库
+  initial-store-count: 1
+  # 初始store列表，在列表内的store自动激活
+  initial-store-list: 127.0.0.1:8501,127.0.0.1:8502,127.0.0.1:8503
+  #initial-store-list: 127.0.0.1:8501
+raft:
+  address: 127.0.0.1:8610
+  # raft集群
+  peers-list: 127.0.0.1:8610
+  # raft rpc读写超时时间,单位毫秒
+  rpc-timeout: 10000
+  # 快照生成时间间隔，单位秒
+  snapshotInterval: 30000
+  metrics: true
+store:
+  # store心跳超时时间，超过该时间，认为store临时不可用，转移Leader到其他副本,单位秒
+  keepAlive-timeout: 300
+  # store下线时间。超过该时间，认为store永久不可用，分配副本到其他机器，单位秒
+  max-down-time: 180000
+partition:
+  # 默认每个分区副本数
+  default-shard-count: 3
+  # 默认每机器最大副本数,初始分区数= store-max-shard-count * store-number / default-shard-count
+  store-max-shard-count: 6
+
+discovery:
+  #客户端注册后，无心跳最长次数，超过后，之前的注册信息会被删除
+  heartbeat-try-count: 3
