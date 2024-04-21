@@ -52,7 +52,7 @@ COPY hugegraph-pd/hg-pd-dist/docker/docker-entrypoint.sh .
 RUN chmod 755 ./docker-entrypoint.sh
 
 EXPOSE 8620
-VOLUME /hugegraph-server
+VOLUME /hugegraph-pd
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./docker-entrypoint.sh"]

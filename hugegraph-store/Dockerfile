@@ -51,8 +51,8 @@ RUN set -x \
 COPY hugegraph-store/hg-store-dist/docker/docker-entrypoint.sh .
 RUN chmod 755 ./docker-entrypoint.sh
 
-EXPOSE 8620
-VOLUME /hugegraph-server
+EXPOSE 8520
+VOLUME /hugegraph-store
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["./docker-entrypoint.sh"]
