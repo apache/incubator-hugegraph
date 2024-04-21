@@ -39,7 +39,7 @@ else
     echo "Hugegraph Initialization already done. Skipping re-init..."
 fi
 
-# start hugegraph
+# start hugegraph-server
 # remove "-g zgc" now, which is only available on ARM-Mac with java > 13 
 ./bin/start-hugegraph.sh -j "$JAVA_OPTS" 
 
