@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.upgrade.scripts;
 
 import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.apache.hugegraph.pd.meta.MetadataRocksDBStore;
@@ -25,6 +26,7 @@ import org.apache.hugegraph.pd.upgrade.VersionUpgradeScript;
 
 import lombok.extern.slf4j.Slf4j;
 
+@Useless
 @Slf4j
 public class TaskCleanUpgrade implements VersionUpgradeScript {
 
