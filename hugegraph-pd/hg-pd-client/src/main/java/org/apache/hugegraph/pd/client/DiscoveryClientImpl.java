@@ -24,7 +24,7 @@ import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 
-@Useless
+@Useless("discovery related")
 public class DiscoveryClientImpl extends DiscoveryClient {
 
     private final String id;

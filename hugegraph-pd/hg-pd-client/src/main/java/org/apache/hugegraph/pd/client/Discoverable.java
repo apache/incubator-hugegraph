@@ -21,7 +21,7 @@ import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
 import org.apache.hugegraph.pd.grpc.discovery.Query;
 
-@Useless
+@Useless("discovery related")
 public interface Discoverable {
 
     NodeInfos getNodeInfos(Query query);

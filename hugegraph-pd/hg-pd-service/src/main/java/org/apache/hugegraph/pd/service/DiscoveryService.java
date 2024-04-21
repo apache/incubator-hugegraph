@@ -26,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.pd.RegistryService;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.common.PDRuntimeException;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
@@ -41,7 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import io.grpc.ManagedChannel;
 import lombok.extern.slf4j.Slf4j;
 
-// TODO: uncomment later
+@Useless("discovery related")
 @Slf4j
 @GRpcService
 public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplBase implements

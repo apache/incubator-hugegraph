@@ -28,7 +28,7 @@ import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 import lombok.extern.slf4j.Slf4j;
 
-@Useless
+@Useless("license related")
 @Slf4j
 public class LicenseClient extends AbstractClient {
 

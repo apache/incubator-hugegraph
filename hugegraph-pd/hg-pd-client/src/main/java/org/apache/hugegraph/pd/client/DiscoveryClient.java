@@ -39,7 +39,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
 
-@Useless
+@Useless("discovery related")
 @Slf4j
 public abstract class DiscoveryClient implements Closeable, Discoverable {
 

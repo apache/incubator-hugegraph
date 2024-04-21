@@ -20,7 +20,7 @@ package org.apache.hugegraph.pd.upgrade;
 import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.config.PDConfig;
 
-@Useless
+@Useless("upgrade related")
 public interface VersionUpgradeScript {
 
     String UNLIMITED_VERSION = "UNLIMITED_VERSION";

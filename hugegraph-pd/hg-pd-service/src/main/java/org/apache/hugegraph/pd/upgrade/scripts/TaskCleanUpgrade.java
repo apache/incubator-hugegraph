@@ -26,7 +26,7 @@ import org.apache.hugegraph.pd.upgrade.VersionUpgradeScript;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Useless
+@Useless("upgrade related")
 @Slf4j
 public class TaskCleanUpgrade implements VersionUpgradeScript {
 
