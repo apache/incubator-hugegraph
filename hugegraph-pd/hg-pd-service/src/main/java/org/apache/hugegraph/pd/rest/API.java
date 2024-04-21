@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.util.VersionUtil;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +32,8 @@ import com.google.protobuf.util.JsonFormat;
 
 public class API {
 
-    public static final String VERSION = "3.6.3";
+    // Currently reading directly from the pom.
+    public static final String VERSION = VersionUtil.getPomVersion();
     public static final String PD = "PD";
     public static final String STORE = "STORE";
     public static String STATUS_KEY = "status";
