@@ -77,7 +77,6 @@ public class TestAPI {
                                           .setPartition(Metapb.Partition.newBuilder()
                                                                         .setId(8)
                                                                         .setGraphName("graphName8"))
-
                                           .setChangeShard(
                                                   ChangeShard.newBuilder()
                                                              .setChangeTypeValue(8)

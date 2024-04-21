@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * TODO: ensure if we need this class & method (delete)
+ * TODO: ensure if we need this class & method (seems used for prometheus)
  */
 @RestController
 @Slf4j
