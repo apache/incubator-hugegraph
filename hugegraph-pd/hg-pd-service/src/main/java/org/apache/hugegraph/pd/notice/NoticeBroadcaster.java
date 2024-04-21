@@ -24,6 +24,7 @@ import org.apache.hugegraph.pd.common.HgAssert;
 
 import lombok.extern.slf4j.Slf4j;
 
+// TODO: merge/move to another package
 @Slf4j
 public class NoticeBroadcaster {
 

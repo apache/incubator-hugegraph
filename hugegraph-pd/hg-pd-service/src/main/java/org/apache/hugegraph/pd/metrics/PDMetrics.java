@@ -54,11 +54,11 @@ public final class PDMetrics {
     private void registerMeters() {
         Gauge.builder(PREFIX + ".up", () -> 1).register(registry);
 
-        Gauge.builder(PREFIX + ".graphs", () -> updateGraphs())
+        Gauge.builder(PREFIX + ".graphs", this::updateGraphs)
              .description("Number of graphs registered in PD")
              .register(registry);
 
-        Gauge.builder(PREFIX + ".stores", () -> updateStores())
+        Gauge.builder(PREFIX + ".stores", this::updateStores)
              .description("Number of stores registered in PD")
              .register(registry);
 

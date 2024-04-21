@@ -29,5 +29,4 @@ public class RegistryRestResponse {
     Pdpb.ErrorType errorType;
     String message;
     Serializable data;
-
 }

@@ -94,7 +94,6 @@ public class PDPulseSubject {
         expireQueue();
         //retry
         broadcasterQueue.forEach(e -> {
-
             e.notifying();
         });
     }

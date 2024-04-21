@@ -31,6 +31,7 @@ import java.util.concurrent.TimeoutException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.model.PeerRestRequest;
@@ -234,8 +235,7 @@ public class MemberAPI extends API {
 
         }
 
-        public Member() {
-
-        }
+        @Useless("delete later")
+        public Member() {}
     }
 }
