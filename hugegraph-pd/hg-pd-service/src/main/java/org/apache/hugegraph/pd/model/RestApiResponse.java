@@ -15,18 +15,40 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.model;
 
-import org.apache.hugegraph.pd.common.Useless;
-import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
-import org.apache.hugegraph.pd.grpc.discovery.Query;
+import java.util.HashMap;
 
-@Useless("discovery related")
-public interface Discoverable {
+import org.apache.hugegraph.pd.grpc.Pdpb;
 
-    NodeInfos getNodeInfos(Query query);
+import lombok.Data;
 
-    void scheduleTask();
+@Data
+public class RestApiResponse {
 
-    void cancelTask();
+    String message;
+    Object data;
+    int status;
+
+    public RestApiResponse(Object data, Pdpb.ErrorType status, String message) {
+        if (data == null) {
+            data = new HashMap<String, Object>();
+        }
+        this.data = data;
+        this.status = status.getNumber();
+        this.message = message;
+    }
+
+    public RestApiResponse() {
+
+    }
+
+    public RestApiResponse(Object data, int status, String message) {
+        if (data == null) {
+            data = new HashMap<String, Object>();
+        }
+        this.data = data;
+        this.status = status;
+        this.message = message;
+    }
 }

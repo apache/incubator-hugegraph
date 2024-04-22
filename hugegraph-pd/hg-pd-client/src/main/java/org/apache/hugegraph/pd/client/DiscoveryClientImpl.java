@@ -20,9 +20,11 @@ package org.apache.hugegraph.pd.client;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 
+@Useless("discovery related")
 public class DiscoveryClientImpl extends DiscoveryClient {
 
     private final String id;

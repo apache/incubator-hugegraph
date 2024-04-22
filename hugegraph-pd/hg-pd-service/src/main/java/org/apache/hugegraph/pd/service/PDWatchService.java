@@ -15,18 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.service;
 
-import org.apache.hugegraph.pd.common.Useless;
-import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
-import org.apache.hugegraph.pd.grpc.discovery.Query;
+import org.apache.hugegraph.pd.grpc.watch.HgPdWatchGrpc;
+import org.apache.hugegraph.pd.grpc.watch.WatchRequest;
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
+import org.apache.hugegraph.pd.watch.PDWatchSubject;
+import org.lognet.springboot.grpc.GRpcService;
 
-@Useless("discovery related")
-public interface Discoverable {
+import io.grpc.stub.StreamObserver;
+import lombok.extern.slf4j.Slf4j;
 
-    NodeInfos getNodeInfos(Query query);
+@Slf4j
+@GRpcService
+public class PDWatchService extends HgPdWatchGrpc.HgPdWatchImplBase {
 
-    void scheduleTask();
-
-    void cancelTask();
+    @Override
+    public StreamObserver<WatchRequest> watch(StreamObserver<WatchResponse> responseObserver) {
+        return PDWatchSubject.addObserver(responseObserver);
+    }
 }

@@ -15,18 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.metrics;
 
-import org.apache.hugegraph.pd.common.Useless;
-import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
-import org.apache.hugegraph.pd.grpc.discovery.Query;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@Useless("discovery related")
-public interface Discoverable {
+import io.micrometer.core.instrument.MeterRegistry;
 
-    NodeInfos getNodeInfos(Query query);
+@Configuration
+public class MetricsConfig {
 
-    void scheduleTask();
+    @Autowired
+    private PDMetrics metrics;
 
-    void cancelTask();
+    @Bean
+    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
+        return (registry) -> registry.config().commonTags("hg", "pd");
+    }
+
+    @Bean
+    public MeterRegistryCustomizer<MeterRegistry> registerMeters() {
+        return (registry) -> {
+            metrics.init(registry);
+        };
+    }
+
 }

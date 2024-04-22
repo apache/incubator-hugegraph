@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.discovery.DiscoveryServiceGrpc;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
@@ -38,6 +39,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import lombok.extern.slf4j.Slf4j;
 
+@Useless("discovery related")
 @Slf4j
 public abstract class DiscoveryClient implements Closeable, Discoverable {
 

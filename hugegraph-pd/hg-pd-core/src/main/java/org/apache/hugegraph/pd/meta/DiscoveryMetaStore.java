@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
@@ -30,6 +31,7 @@ import org.apache.hugegraph.pd.grpc.discovery.Query;
 
 import lombok.extern.slf4j.Slf4j;
 
+@Useless("discovery related")
 @Slf4j
 public class DiscoveryMetaStore extends MetadataRocksDBStore {
 

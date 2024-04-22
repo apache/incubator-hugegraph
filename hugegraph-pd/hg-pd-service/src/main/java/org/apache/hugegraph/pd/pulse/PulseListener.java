@@ -15,18 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.pulse;
 
-import org.apache.hugegraph.pd.common.Useless;
-import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
-import org.apache.hugegraph.pd.grpc.discovery.Query;
+public interface PulseListener<T> {
 
-@Useless("discovery related")
-public interface Discoverable {
+    /**
+     * Invoked on new notice.
+     *
+     * @param notice the notice.
+     */
+    void onNext(T notice) throws Exception;
 
-    NodeInfos getNodeInfos(Query query);
+    /**
+     * Invoked on errors.
+     *
+     * @param throwable the error.
+     */
+    void onError(Throwable throwable);
 
-    void scheduleTask();
-
-    void cancelTask();
+    /**
+     * Invoked on completion.
+     */
+    void onCompleted();
 }

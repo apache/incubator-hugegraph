@@ -15,18 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.model;
 
-import org.apache.hugegraph.pd.common.Useless;
-import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
-import org.apache.hugegraph.pd.grpc.discovery.Query;
+import java.io.Serializable;
 
-@Useless("discovery related")
-public interface Discoverable {
+import org.apache.hugegraph.pd.grpc.Pdpb;
 
-    NodeInfos getNodeInfos(Query query);
+import lombok.Data;
 
-    void scheduleTask();
+@Data
+public class RegistryRestResponse {
 
-    void cancelTask();
+    Pdpb.ErrorType errorType;
+    String message;
+    Serializable data;
 }

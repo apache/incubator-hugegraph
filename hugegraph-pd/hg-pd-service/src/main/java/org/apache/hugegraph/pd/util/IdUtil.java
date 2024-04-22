@@ -15,18 +15,34 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.util;
 
-import org.apache.hugegraph.pd.common.Useless;
-import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
-import org.apache.hugegraph.pd.grpc.discovery.Query;
+import lombok.extern.slf4j.Slf4j;
 
-@Useless("discovery related")
-public interface Discoverable {
+@Slf4j
+public final class IdUtil {
 
-    NodeInfos getNodeInfos(Query query);
+    private static final byte[] LOCK = new byte[0];
 
-    void scheduleTask();
+    public static String createMillisStr() {
+        return String.valueOf(createMillisId());
+    }
 
-    void cancelTask();
+    /**
+     * Create millisecond style ID;
+     *
+     * @return
+     */
+    public static Long createMillisId() {
+        synchronized (LOCK) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                log.error("Failed to sleep", e);
+            }
+
+            return System.currentTimeMillis();
+        }
+
+    }
 }

@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.client;
 
 import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.PDGrpc;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 
@@ -27,6 +28,7 @@ import io.grpc.stub.AbstractBlockingStub;
 import io.grpc.stub.AbstractStub;
 import lombok.extern.slf4j.Slf4j;
 
+@Useless("license related")
 @Slf4j
 public class LicenseClient extends AbstractClient {
 

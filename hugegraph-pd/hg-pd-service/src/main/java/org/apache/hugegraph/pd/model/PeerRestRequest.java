@@ -15,18 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.model;
 
-import org.apache.hugegraph.pd.common.Useless;
-import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
-import org.apache.hugegraph.pd.grpc.discovery.Query;
+import lombok.Data;
 
-@Useless("discovery related")
-public interface Discoverable {
+@Data
+public class PeerRestRequest {
 
-    NodeInfos getNodeInfos(Query query);
-
-    void scheduleTask();
-
-    void cancelTask();
+    private String peerList;
 }
