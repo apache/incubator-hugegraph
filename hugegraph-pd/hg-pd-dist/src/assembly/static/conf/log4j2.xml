@@ -26,32 +26,32 @@
 
     <appenders>
         <Console name="console" target="SYSTEM_OUT">
-            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n" />
         </Console>
 
         <!-- Normal server log config -->
         <RollingRandomAccessFile name="file" fileName="${LOG_PATH}/${FILE_NAME}.log"
                                  filePattern="${LOG_PATH}/$${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd}-%i.log"
                                  bufferedIO="true" bufferSize="524288" immediateFlush="false">
-            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n" />
             <!--JsonLayout compact="true" eventEol="true" complete="true" locationInfo="true">
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
             <Policies>
-                <SizeBasedTriggeringPolicy size="128MB"/>
-                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="128MB" />
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
             </Policies>
             <!-- Keep 5 files per day & auto delete after over 2GB or 100 files -->
             <DefaultRolloverStrategy max="16">
                 <Delete basePath="${LOG_PATH}" maxDepth="2">
-                    <IfFileName glob="*/*.log"/>
+                    <IfFileName glob="*/*.log" />
                     <!-- Limit log amount & size -->
                     <IfAny>
-                        <IfAccumulatedFileSize exceeds="2GB"/>
-                        <IfAccumulatedFileCount exceeds="100"/>
+                        <IfAccumulatedFileSize exceeds="2GB" />
+                        <IfAccumulatedFileCount exceeds="100" />
                     </IfAny>
                 </Delete>
             </DefaultRolloverStrategy>
@@ -61,24 +61,24 @@
         <RollingRandomAccessFile name="raft_file" fileName="${LOG_PATH}/${FILE_NAME}_raft.log"
                                  filePattern="${LOG_PATH}/$${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd}-%i.log"
                                  bufferedIO="true" bufferSize="524288" immediateFlush="false">
-            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
-            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n" />
             <!--JsonLayout compact="true" eventEol="true" complete="true" locationInfo="true">
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
             <Policies>
-                <SizeBasedTriggeringPolicy size="128MB"/>
-                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="128MB" />
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
             </Policies>
             <!-- Keep 5 files per day & auto Delete after over 2GB or 100 files -->
             <DefaultRolloverStrategy max="16">
                 <Delete basePath="${LOG_PATH}" maxDepth="2">
-                    <IfFileName glob="*/*.log"/>
+                    <IfFileName glob="*/*.log" />
                     <!-- Limit log amount & size -->
                     <IfAny>
-                        <IfAccumulatedFileSize exceeds="2GB"/>
-                        <IfAccumulatedFileCount exceeds="100"/>
+                        <IfAccumulatedFileSize exceeds="2GB" />
+                        <IfAccumulatedFileCount exceeds="100" />
                     </IfAny>
                 </Delete>
             </DefaultRolloverStrategy>
@@ -88,25 +88,25 @@
         <RollingRandomAccessFile name="audit" fileName="${LOG_PATH}/audit-${FILE_NAME}.log"
                                  filePattern="${LOG_PATH}/$${date:yyyy-MM}/audit-${FILE_NAME}-%d{yyyy-MM-dd-HH}-%i.gz"
                                  bufferedIO="true" bufferSize="524288" immediateFlush="false">
-            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY" />
             <!-- Use simple format for audit log to speed up -->
             <!-- PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} - %m%n"/ -->
             <JsonLayout compact="true" eventEol="true" locationInfo="true">
-                <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
+                <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}" />
             </JsonLayout>
             <!-- Trigger after exceeding 1hour or 500MB -->
             <Policies>
-                <SizeBasedTriggeringPolicy size="512MB"/>
-                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <SizeBasedTriggeringPolicy size="512MB" />
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
             </Policies>
             <!-- Keep 2 files per hour & auto delete [after 60 days] or [over 5GB or 500 files] -->
             <DefaultRolloverStrategy max="16">
                 <Delete basePath="${LOG_PATH}" maxDepth="2">
-                    <IfFileName glob="*/*.gz"/>
-                    <IfLastModified age="60d"/>
+                    <IfFileName glob="*/*.gz" />
+                    <IfLastModified age="60d" />
                     <IfAny>
-                        <IfAccumulatedFileSize exceeds="5GB"/>
-                        <IfAccumulatedFileCount exceeds="500"/>
+                        <IfAccumulatedFileSize exceeds="5GB" />
+                        <IfAccumulatedFileCount exceeds="500" />
                     </IfAny>
                 </Delete>
             </DefaultRolloverStrategy>
@@ -115,21 +115,21 @@
 
     <loggers>
         <root level="INFO">
-            <appender-ref ref="file"/>
+            <appender-ref ref="file" />
         </root>
         <logger name="com.alipay.sofa" level="INFO" additivity="false">
-            <appender-ref ref="raft_file"/>
+            <appender-ref ref="raft_file" />
         </logger>
         <logger name="io.netty" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
+            <appender-ref ref="file" />
         </logger>
         <logger name="org.apache.commons" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
+            <appender-ref ref="file" />
         </logger>
         <!-- Use mixed async way to output logs -->
         <logger name="org.apache.hugegraph" level="INFO" additivity="false">
-            <appender-ref ref="file"/>
-            <appender-ref ref="console"/>
+            <appender-ref ref="file" />
+            <appender-ref ref="console" />
         </logger>
     </loggers>
 </configuration>
