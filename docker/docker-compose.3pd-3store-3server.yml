@@ -1,0 +1,178 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+version: "3"
+
+services:
+  pd0:
+    image: hugegraph/pd
+    container_name: pd0
+    hostname: pd0
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8620"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/application-pd0.yml:/hugegraph-pd/conf/application.yml
+
+  pd1:
+    image: hugegraph/pd
+    container_name: pd1
+    hostname: pd1
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8621"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/application-pd1.yml:/hugegraph-pd/conf/application.yml
+
+  pd2:
+    image: hugegraph/pd
+    container_name: pd2
+    hostname: pd2
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8622"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/application-pd2.yml:/hugegraph-pd/conf/application.yml
+
+  store0:
+    image: hugegraph/store
+    container_name: store0
+    hostname: store0
+    network_mode: host
+    depends_on:
+      pd0:
+        condition: service_healthy
+      pd1:
+        condition: service_healthy
+      pd2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8520"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/application-store0.yml:/hugegraph-store/conf/application.yml
+
+  store1:
+    image: hugegraph/store
+    container_name: store1
+    hostname: store1
+    network_mode: host
+    depends_on:
+      pd0:
+        condition: service_healthy
+      pd1:
+        condition: service_healthy
+      pd2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8521"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/application-store1.yml:/hugegraph-store/conf/application.yml
+
+  store2:
+    image: hugegraph/store
+    container_name: store2
+    hostname: store2
+    network_mode: host
+    depends_on:
+      pd0:
+        condition: service_healthy
+      pd1:
+        condition: service_healthy
+      pd2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8522"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/application-store2.yml:/hugegraph-store/conf/application.yml
+
+  server1:
+    image: hugegraph/server
+    container_name: server1
+    hostname: server1
+    network_mode: host
+    depends_on:
+      store0:
+        condition: service_healthy
+      store1:
+        condition: service_healthy
+      store2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/server1-conf:/hugegraph-server/conf
+
+  server2:
+    image: hugegraph/server
+    container_name: server2
+    hostname: server2
+    network_mode: host
+    depends_on:
+      store0:
+        condition: service_healthy
+      store1:
+        condition: service_healthy
+      store2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/server2-conf:/hugegraph-server/conf
+
+  server3:
+    image: hugegraph/server
+    container_name: server3
+    hostname: server3
+    network_mode: host
+    depends_on:
+      store0:
+        condition: service_healthy
+      store1:
+        condition: service_healthy
+      store2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./configs/server3-conf:/hugegraph-server/conf
