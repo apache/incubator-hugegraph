@@ -38,8 +38,7 @@
         <module>hg-pd-test</module>
         <module>hg-pd-core</module>
         <module>hg-pd-service</module>
-        <!-- TODO: uncomment later -->
-        <!-- <module>hg-pd-dist</module> -->
+        <module>hg-pd-dist</module>
     </modules>
 
     <properties>
