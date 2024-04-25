@@ -23,7 +23,8 @@ COPY . /pkg
 WORKDIR /pkg
 ARG MAVEN_ARGS
 
-RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l && rm ./hugegraph-server/*.tar.gz
+RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l
+RUN rm ./hugegraph-server/*.tar.gz && rm ./hugegraph-pd/dist/*.tar.gz && rm ./hugegraph-store/dist/*.tar.gz
 
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13 
