@@ -384,5 +384,4 @@ public class PartitionCacheTest {
 
         assertEquals(this.cache.getLeaderShard(shardGroup.getId()), leader);
     }
-
 }

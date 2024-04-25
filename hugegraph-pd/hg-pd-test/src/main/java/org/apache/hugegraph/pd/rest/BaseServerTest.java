@@ -15,21 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.rest;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import java.net.http.HttpClient;
 
-import lombok.extern.slf4j.Slf4j;
+import org.junit.After;
+import org.junit.BeforeClass;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        PartitionUtilsTest.class,
-        PartitionCacheTest.class,
-        HgAssertTest.class,
-        KVPairTest.class,
-})
-@Slf4j
-public class CommonSuiteTest {
+public class BaseServerTest {
+
+    protected static HttpClient client;
+    protected static String pdRestAddr;
+
+    @BeforeClass
+    public static void init() {
+        client = HttpClient.newHttpClient();
+        pdRestAddr = "http://127.0.0.1:8620";
+    }
+
+    @After
+    public void teardown() {
+        // pass
+    }
 
 }

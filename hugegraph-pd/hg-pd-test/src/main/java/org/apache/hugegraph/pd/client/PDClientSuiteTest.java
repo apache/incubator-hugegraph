@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.client;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -24,12 +24,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        PartitionUtilsTest.class,
-        PartitionCacheTest.class,
-        HgAssertTest.class,
-        KVPairTest.class,
+        PDClientTest.class,
+        KvClientTest.class,
+        StoreRegisterTest.class,
 })
 @Slf4j
-public class CommonSuiteTest {
+public class PDClientSuiteTest {
 
 }

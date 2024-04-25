@@ -15,21 +15,23 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.grpc;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.apache.hugegraph.pd.common.Useless;
+import org.junit.After;
+import org.junit.BeforeClass;
 
-import lombok.extern.slf4j.Slf4j;
+@Useless("empty now")
+public class BaseGrpcTest {
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        PartitionUtilsTest.class,
-        PartitionCacheTest.class,
-        HgAssertTest.class,
-        KVPairTest.class,
-})
-@Slf4j
-public class CommonSuiteTest {
+    @BeforeClass
+    public static void init() {
+
+    }
+
+    @After
+    public void teardown() {
+        // pass
+    }
 
 }
