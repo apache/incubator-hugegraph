@@ -45,6 +45,5 @@
             <artifactId>hg-pd-client</artifactId>
             <version>${revision}</version>
         </dependency>
-
     </dependencies>
 </project>
