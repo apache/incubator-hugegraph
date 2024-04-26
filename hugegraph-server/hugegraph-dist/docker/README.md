@@ -35,7 +35,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
 
 1. Using docker run
 
-    Use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD=true -v /absolute/path/to/your/script:/hugegraph-server/scripts/example.groovy hugegraph/hugegraph`
+    Use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD=true -v /path/to/script:/hugegraph-server/scripts/example.groovy hugegraph/hugegraph`
     to start hugegraph server.
 
 2. Using docker compose 
@@ -50,7 +50,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
         environment:
           - PRELOAD=true
         volumes:
-          - /absolute/path/to/your/script:/hugegraph-server/scripts/example.groovy
+          - /path/to/script:/hugegraph-server/scripts/example.groovy
         ports:
           - 8080:8080
     ```
