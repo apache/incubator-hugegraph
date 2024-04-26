@@ -597,6 +597,10 @@ public final class BytesBuffer extends OutputStream {
         }
     }
 
+    public static byte getType(int value) {
+        return (byte) (value & 0x3f);
+    }
+
     public Object readProperty(DataType dataType) {
         switch (dataType) {
             case BOOLEAN:
@@ -752,11 +756,11 @@ public final class BytesBuffer extends OutputStream {
     public BinaryId readIndexId(HugeType type) {
         byte[] id;
         if (type.isRange4Index()) {
-            // IndexLabel 4 bytes + fieldValue 4 bytes
-            id = this.read(8);
+            // HugeTypeCode 1 byte + IndexLabel 4 bytes + fieldValue 4 bytes
+            id = this.read(9);
         } else if (type.isRange8Index()) {
-            // IndexLabel 4 bytes + fieldValue 8 bytes
-            id = this.read(12);
+            // HugeTypeCode 1 byte + IndexLabel 4 bytes + fieldValue 8 bytes
+            id = this.read(13);
         } else {
             assert type.isStringIndex();
             id = this.readBytesWithEnding();
@@ -782,6 +786,34 @@ public final class BytesBuffer extends OutputStream {
          * so readId() will return the source vertex id instead of edge id,
          * can't call: type.isEdge() ? this.readEdgeId() : this.readId();
          */
+        Id id = this.readId();
+        int end = this.buffer.position();
+        int len = end - start;
+        byte[] bytes = new byte[len];
+        System.arraycopy(this.array(), start, bytes, 0, len);
+        return new BinaryId(bytes, id);
+    }
+
+    /**
+     * 解析 olap id
+     * @param type
+     * @param isOlap
+     * @return
+     */
+    public BinaryId parseOlapId(HugeType type, boolean isOlap) {
+        if (type.isIndex()) {
+            return this.readIndexId(type);
+        }
+        // Parse id from bytes
+        int start = this.buffer.position();
+        /**
+         * OLAP
+         * {PropertyKey}{VertexId}
+         */
+        if (isOlap) {
+            // 先 read olap property id
+            Id pkId = this.readId();
+        }
         Id id = this.readId();
         int end = this.buffer.position();
         int len = end - start;
