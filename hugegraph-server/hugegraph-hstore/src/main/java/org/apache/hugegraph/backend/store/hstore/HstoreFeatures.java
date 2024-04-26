@@ -129,5 +129,7 @@ public class HstoreFeatures implements BackendFeatures {
     }
 
     @Override
-    public boolean supportsTaskAndServerVertex() { return true; }
+    public boolean supportsTaskAndServerVertex() {
+        return true;
+    }
 }

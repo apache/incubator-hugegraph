@@ -72,9 +72,9 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     Function<BackendEntry, byte[]> ownerDelegate = (entry) -> getOwner(entry);
     Function<Id, byte[]> ownerByIdDelegate = (id) -> getOwnerId(id);
     BiFunction<HugeType, Id, byte[]> ownerByQueryDelegate =
-        (type, id) -> getOwnerId(type, id);
+            (type, id) -> getOwnerId(type, id);
     Supplier<byte[]> ownerScanDelegate =
-        () -> HgStoreClientConst.ALL_PARTITION_OWNER;
+            () -> HgStoreClientConst.ALL_PARTITION_OWNER;
 
     public HstoreTable(String database, String table) {
         super(String.format("%s+%s", database, table));
@@ -110,7 +110,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected static BackendEntryIterator newEntryIterator(
-        BackendColumnIterator cols, Query query) {
+            BackendColumnIterator cols, Query query) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();
@@ -123,7 +123,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected static BackendEntryIterator newEntryIteratorOlap(
-        BackendColumnIterator cols, Query query, boolean isOlap) {
+            BackendColumnIterator cols, Query query, boolean isOlap) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();
@@ -329,14 +329,14 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
                                               List<IdPrefixQuery> queries,
                                               String tableName) {
         List<BackendColumnIterator> queryByPrefixList =
-            this.queryByPrefixList(session, queries, tableName);
+                this.queryByPrefixList(session, queries, tableName);
         LinkedList<Iterator<BackendEntry>> iterators = new LinkedList<>();
         for (int i = 0; i < queryByPrefixList.size(); i++) {
             IdPrefixQuery q = queries.get(i).copy();
             q.capacity(Query.NO_CAPACITY);
             q.limit(Query.NO_LIMIT);
             BackendEntryIterator iterator =
-                newEntryIterator(queryByPrefixList.get(i), q);
+                    newEntryIterator(queryByPrefixList.get(i), q);
             iterators.add(iterator);
         }
         return iterators;
@@ -359,7 +359,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         byte[] queryBytes = originQuery == null ? null : originQuery.bytes();
 
         BackendEntry.BackendIterator<BackendColumnIterator> it
-            = session.scan(tableName, new Iterator<HgOwnerKey>() {
+                = session.scan(tableName, new Iterator<HgOwnerKey>() {
             @Override
             public boolean hasNext() {
                 if (first[0] != null) {
@@ -521,9 +521,9 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     protected List<BackendColumnIterator> queryByPrefixList(
-        Session session,
-        List<IdPrefixQuery> queries,
-        String tableName) {
+            Session session,
+            List<IdPrefixQuery> queries,
+            String tableName) {
         E.checkArgument(queries.size() > 0,
                         "The size of queries must be greater than zero");
         IdPrefixQuery query = queries.get(0);

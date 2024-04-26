@@ -52,6 +52,7 @@ public class HstoreTables {
      * task信息存储表
      */
     public static class TaskInfo extends HstoreTable {
+
         public static final String TABLE = HugeTableType.TASK_INFO_TABLE.string();
 
         public TaskInfo(String database) {
@@ -65,6 +66,7 @@ public class HstoreTables {
     }
 
     public static class ServerInfo extends HstoreTable {
+
         public static final String TABLE = HugeTableType.SERVER_INFO_TABLE.string();
 
         public ServerInfo(String database) {

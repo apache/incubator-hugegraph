@@ -67,11 +67,11 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     private static final Logger LOG = Log.logger(HstoreStore.class);
 
     private static final Set<HugeType> INDEX_TYPES = ImmutableSet.of(
-        HugeType.SECONDARY_INDEX, HugeType.VERTEX_LABEL_INDEX,
-        HugeType.EDGE_LABEL_INDEX, HugeType.RANGE_INT_INDEX,
-        HugeType.RANGE_FLOAT_INDEX, HugeType.RANGE_LONG_INDEX,
-        HugeType.RANGE_DOUBLE_INDEX, HugeType.SEARCH_INDEX,
-        HugeType.SHARD_INDEX, HugeType.UNIQUE_INDEX
+            HugeType.SECONDARY_INDEX, HugeType.VERTEX_LABEL_INDEX,
+            HugeType.EDGE_LABEL_INDEX, HugeType.RANGE_INT_INDEX,
+            HugeType.RANGE_FLOAT_INDEX, HugeType.RANGE_LONG_INDEX,
+            HugeType.RANGE_DOUBLE_INDEX, HugeType.SEARCH_INDEX,
+            HugeType.SHARD_INDEX, HugeType.UNIQUE_INDEX
     );
 
     private static final BackendFeatures FEATURES = new HstoreFeatures();
@@ -154,7 +154,7 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                 break;
             default:
                 throw new AssertionError(String.format(
-                    "Invalid type: %s", type));
+                        "Invalid type: %s", type));
         }
         return this.tables.get((int) table.code());
     }
@@ -299,8 +299,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                         break;
                     default:
                         throw new AssertionError(String.format(
-                            "Unsupported mutate action: %s",
-                            item.action()));
+                                "Unsupported mutate action: %s",
+                                item.action()));
                 }
             }
         }
@@ -512,8 +512,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
                 builder.append((table = this.table(type)).table()).append(",");
             }
             List<Iterator<BackendEntry>> iteratorList =
-                table.query(session, queries,
-                            builder.substring(0, builder.length() - 1));
+                    table.query(session, queries,
+                                builder.substring(0, builder.length() - 1));
             for (int i = 0; i < iteratorList.size(); i++) {
                 Iterator<BackendEntry> entries = iteratorList.get(i);
                 // Merge olap results as needed
@@ -546,8 +546,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             }
 
             Iterator<Iterator<BackendEntry>> iterators =
-                table.query(session, queries,
-                            builder.substring(0, builder.length() - 1));
+                    table.query(session, queries,
+                                builder.substring(0, builder.length() - 1));
 
             return iterators;
         } finally {
@@ -556,8 +556,8 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
     }
 
     private Iterator<BackendEntry> getBackendEntryIterator(
-        Iterator<BackendEntry> entries,
-        Query query) {
+            Iterator<BackendEntry> entries,
+            Query query) {
         HstoreTable table;
         Set<Id> olapPks = query.olapPks();
         if (this.isGraphStore && !olapPks.isEmpty()) {
@@ -573,7 +573,6 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         }
         return entries;
     }
-
 
     /**
      * 重新构造 查询olap表 query
@@ -598,10 +597,10 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
 
                 // create binary id
                 BytesBuffer buffer =
-                    BytesBuffer.allocate(1 + pk.length() + 1 + id.length());
+                        BytesBuffer.allocate(1 + pk.length() + 1 + id.length());
                 buffer.writeId(pk);
                 id = new BinaryBackendEntry.BinaryId(
-                    buffer.writeId(id).bytes(), id);
+                        buffer.writeId(id).bytes(), id);
                 linkedHashSet.add(id);
             }
             q.resetIds();
@@ -611,7 +610,7 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             // create binary id
             BytesBuffer buffer = BytesBuffer.allocate(1 + pk.length());
             pk = new BinaryBackendEntry.BinaryId(
-                buffer.writeId(pk).bytes(), pk);
+                    buffer.writeId(pk).bytes(), pk);
 
             IdPrefixQuery idPrefixQuery = new IdPrefixQuery(HugeType.OLAP, pk);
             return idPrefixQuery;
@@ -708,6 +707,11 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         this.increaseCounter(type, lowest);
     }
 
+    @Override
+    public String storedVersion() {
+        return "1.13";
+    }
+
     /***************************** Store defines *****************************/
 
     public static class HstoreSchemaStore extends HstoreStore {
@@ -724,13 +728,13 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                "HstoreSchemaStore.increaseCounter()");
+                    "HstoreSchemaStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                "HstoreSchemaStore.getCounter()");
+                    "HstoreSchemaStore.getCounter()");
         }
     }
 
@@ -764,19 +768,19 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
         @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
-                "HstoreGraphStore.nextId()");
+                    "HstoreGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long num) {
             throw new UnsupportedOperationException(
-                "HstoreGraphStore.increaseCounter()");
+                    "HstoreGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                "HstoreGraphStore.getCounter()");
+                    "HstoreGraphStore.getCounter()");
         }
 
         @Override
@@ -816,10 +820,5 @@ public abstract class HstoreStore extends AbstractBackendStore<Session> {
             String tableName = this.olapTableName(pkId);
             return super.sessions.existsTable(tableName);
         }
-    }
-
-    @Override
-    public String storedVersion() {
-        return "1.13";
     }
 }

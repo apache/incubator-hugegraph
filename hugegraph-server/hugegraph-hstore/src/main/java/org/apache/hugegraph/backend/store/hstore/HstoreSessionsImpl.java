@@ -61,7 +61,7 @@ import org.apache.hugegraph.util.StringEncoding;
 public class HstoreSessionsImpl extends HstoreSessions {
 
     private static final Set<String> infoInitializedGraph =
-        Collections.synchronizedSet(new HashSet<>());
+            Collections.synchronizedSet(new HashSet<>());
     private static int tableCode = 0;
     private static volatile Boolean initializedNode = Boolean.FALSE;
     private static volatile PDClient defaultPdClient;
@@ -104,11 +104,11 @@ public class HstoreSessionsImpl extends HstoreSessions {
             synchronized (this) {
                 if (!initializedNode) {
                     PDConfig pdConfig =
-                        PDConfig.of(config.get(CoreOptions.PD_PEERS))
-                                .setEnableCache(true);
+                            PDConfig.of(config.get(CoreOptions.PD_PEERS))
+                                    .setEnableCache(true);
                     defaultPdClient = PDClient.create(pdConfig);
                     hgStoreClient =
-                        HgStoreClient.create(defaultPdClient);
+                            HgStoreClient.create(defaultPdClient);
                     initializedNode = Boolean.TRUE;
                 }
             }
@@ -121,15 +121,15 @@ public class HstoreSessionsImpl extends HstoreSessions {
             synchronized (infoInitializedGraph) {
                 if (!infoInitializedGraph.contains(this.graphName)) {
                     Integer partitionCount =
-                        this.config.get(HstoreOptions.PARTITION_COUNT);
+                            this.config.get(HstoreOptions.PARTITION_COUNT);
                     Assert.assertTrue("The value of hstore.partition_count" +
                                       " cannot be less than 0.",
                                       partitionCount > -1);
                     defaultPdClient.setGraph(Metapb.Graph.newBuilder()
                                                          .setGraphName(
-                                                             this.graphName)
+                                                                 this.graphName)
                                                          .setPartitionCount(
-                                                             partitionCount)
+                                                                 partitionCount)
                                                          .build());
                     infoInitializedGraph.add(this.graphName);
                 }
@@ -312,7 +312,6 @@ public class HstoreSessionsImpl extends HstoreSessions {
             return Session.matchScanType(expected, this.scanType);
         }
 
-
         @Override
         public boolean hasNext() {
             if (gotNext) {
@@ -360,7 +359,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
             } else {
                 assert this.match(Session.SCAN_ANY) || this.match(Session.SCAN_GT_BEGIN) ||
                        this.match(
-                           Session.SCAN_GTE_BEGIN) : "Unknown scan type";
+                               Session.SCAN_GTE_BEGIN) : "Unknown scan type";
                 return true;
             }
         }
@@ -372,8 +371,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
                 throw new NoSuchElementException();
             }
             BackendColumn col =
-                BackendColumn.of(this.iter.key(),
-                                 this.iter.value());
+                    BackendColumn.of(this.iter.key(),
+                                     this.iter.value());
             if (this.iter.hasNext()) {
                 gotNext = true;
                 this.iter.next();
@@ -562,7 +561,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         @Override
         public byte[] get(String table, byte[] key) {
             return this.graph.get(table, HgOwnerKey.of(
-                HgStoreClientConst.ALL_PARTITION_OWNER, key));
+                    HgStoreClientConst.ALL_PARTITION_OWNER, key));
         }
 
         @Override
@@ -587,7 +586,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] conditionQueryToByte) {
             assert !this.hasChanges();
             HgKvIterator results =
-                this.graph.scanIterator(table, conditionQueryToByte);
+                    this.graph.scanIterator(table, conditionQueryToByte);
             return new ColumnIterator<>(table, results);
         }
 
@@ -597,8 +596,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> result = this.graph.scanIterator(table,
                                                                      HgOwnerKey.of(
-                                                                         ownerKey,
-                                                                         prefix));
+                                                                             ownerKey,
+                                                                             prefix));
             return new ColumnIterator<>(table, result);
         }
 
@@ -612,21 +611,21 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                                .setQuery(query)
                                                .setPerKeyLimit(limit).build();
             List<HgKvIterator<HgKvEntry>> scanIterators =
-                this.graph.scanBatch(scanQuery);
+                    this.graph.scanBatch(scanQuery);
             LinkedList<BackendColumnIterator> columnIterators =
-                new LinkedList<>();
+                    new LinkedList<>();
             scanIterators.forEach(item -> {
                 columnIterators.add(
-                    new ColumnIterator<>(table, item));
+                        new ColumnIterator<>(table, item));
             });
             return columnIterators;
         }
 
         @Override
         public BackendEntry.BackendIterator<BackendColumnIterator> scan(
-            String table,
-            Iterator<HgOwnerKey> keys,
-            int scanType, Query queryParam, byte[] query) {
+                String table,
+                Iterator<HgOwnerKey> keys,
+                int scanType, Query queryParam, byte[] query) {
             ScanOrderType orderType;
             switch (queryParam.orderType()) {
                 case ORDER_NONE:
@@ -685,10 +684,10 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           int scanType) {
             assert !this.hasChanges();
             HgKvIterator result = this.graph.scanIterator(table, HgOwnerKey.of(
-                                                              ownerKeyFrom, keyFrom),
+                                                                  ownerKeyFrom, keyFrom),
                                                           HgOwnerKey.of(
-                                                              ownerKeyTo,
-                                                              keyTo), 0,
+                                                                  ownerKeyTo,
+                                                                  keyTo), 0,
                                                           scanType,
                                                           null);
             return new ColumnIterator<>(table, result, keyFrom,
@@ -703,11 +702,11 @@ public class HstoreSessionsImpl extends HstoreSessions {
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> result = this.graph.scanIterator(table,
                                                                      HgOwnerKey.of(
-                                                                         ownerKeyFrom,
-                                                                         keyFrom),
+                                                                             ownerKeyFrom,
+                                                                             keyFrom),
                                                                      HgOwnerKey.of(
-                                                                         ownerKeyTo,
-                                                                         keyTo),
+                                                                             ownerKeyTo,
+                                                                             keyTo),
                                                                      0,
                                                                      scanType,
                                                                      query);
@@ -724,11 +723,11 @@ public class HstoreSessionsImpl extends HstoreSessions {
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> result = this.graph.scanIterator(table,
                                                                      HgOwnerKey.of(
-                                                                         ownerKeyFrom,
-                                                                         keyFrom),
+                                                                             ownerKeyFrom,
+                                                                             keyFrom),
                                                                      HgOwnerKey.of(
-                                                                         ownerKeyTo,
-                                                                         keyTo),
+                                                                             ownerKeyTo,
+                                                                             keyTo),
                                                                      0,
                                                                      scanType,
                                                                      query);
@@ -743,8 +742,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] query) {
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> iterator =
-                this.graph.scanIterator(table, codeFrom, codeTo, 256,
-                                        new byte[0]);
+                    this.graph.scanIterator(table, codeFrom, codeTo, 256,
+                                            new byte[0]);
             return new ColumnIterator<>(table, iterator, new byte[0],
                                         new byte[0], scanType);
         }
@@ -755,8 +754,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] query, byte[] position) {
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> iterator =
-                this.graph.scanIterator(table, codeFrom, codeTo, 256,
-                                        new byte[0]);
+                    this.graph.scanIterator(table, codeFrom, codeTo, 256,
+                                            new byte[0]);
             iterator.seek(position);
             return new ColumnIterator<>(table, iterator, new byte[0],
                                         new byte[0], scanType);
@@ -767,7 +766,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                                   List<HgOwnerKey> keys) {
             assert !this.hasChanges();
             HgKvIterator<HgKvEntry> kvIterator =
-                this.graph.batchPrefix(table, keys);
+                    this.graph.batchPrefix(table, keys);
             return new ColumnIterator<>(table, kvIterator);
         }
 
