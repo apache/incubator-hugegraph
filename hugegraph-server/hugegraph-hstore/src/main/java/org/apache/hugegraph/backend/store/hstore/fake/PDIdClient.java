@@ -20,8 +20,10 @@ package org.apache.hugegraph.backend.store.hstore.fake;
 import org.apache.hugegraph.backend.store.hstore.HstoreSessions;
 import org.apache.hugegraph.backend.store.hstore.HstoreSessionsImpl;
 import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 
+@Useless
 public class PDIdClient extends IdClient {
 
     PDClient pdClient;

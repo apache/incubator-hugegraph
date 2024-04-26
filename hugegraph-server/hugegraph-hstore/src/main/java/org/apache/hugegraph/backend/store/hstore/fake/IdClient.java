@@ -21,8 +21,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import org.apache.hugegraph.backend.store.hstore.HstoreSessions;
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 
+@Useless
 public abstract class IdClient {
 
     protected HstoreSessions.Session session;
