@@ -64,17 +64,20 @@ import org.apache.hugegraph.util.StringEncoding;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.slf4j.Logger;
 
+/**
+ * This class provides the implementation for the HStore table in the backend store.
+ * It provides methods for querying, inserting, deleting, and updating entries in the table.
+ * It also provides methods for handling metadata and managing shards.
+ */
 public class HstoreTable extends BackendTable<Session, BackendEntry> {
 
     private static final Logger LOG = Log.logger(HstoreStore.class);
 
     private final HstoreShardSplitter shardSpliter;
-    Function<BackendEntry, byte[]> ownerDelegate = (entry) -> getOwner(entry);
-    Function<Id, byte[]> ownerByIdDelegate = (id) -> getOwnerId(id);
-    BiFunction<HugeType, Id, byte[]> ownerByQueryDelegate =
-            (type, id) -> getOwnerId(type, id);
-    Supplier<byte[]> ownerScanDelegate =
-            () -> HgStoreClientConst.ALL_PARTITION_OWNER;
+    Function<BackendEntry, byte[]> ownerDelegate = this::getOwner;
+    Function<Id, byte[]> ownerByIdDelegate = this::getOwnerId;
+    BiFunction<HugeType, Id, byte[]> ownerByQueryDelegate = this::getOwnerId;
+    Supplier<byte[]> ownerScanDelegate = () -> HgStoreClientConst.ALL_PARTITION_OWNER;
 
     public HstoreTable(String database, String table) {
         super(String.format("%s+%s", database, table));
@@ -187,7 +190,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     public byte[] getInsertOwner(BackendEntry entry) {
-        // 为适应label索引散列，不聚焦在一个分区
+        // 为适应 label 索引散列，不聚焦在一个分区
         if (entry.type().isLabelIndex() && (entry.columns().size() == 1)) {
             Iterator<BackendColumn> iterator = entry.columns().iterator();
             while (iterator.hasNext()) {
@@ -201,7 +204,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     /**
-     * 返回Id所属的点ID
+     * 返回 Id 所属的点 ID
      *
      * @param id
      * @return
@@ -218,7 +221,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     /**
-     * 返回Id所属的点ID
+     * 返回 Id 所属的点 ID
      *
      * @param id
      * @return
@@ -422,7 +425,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
-            // 单个id查询 走get接口查询
+            // 单个 id 查询 走 get 接口查询
             if (query.ids().size() == 1) {
                 return this.getById(session, query.ids().iterator().next());
             }
@@ -500,7 +503,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         byte[] ownerKeyTo = this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.prefix());
         byte[] keyFrom = query.start().asBytes();
-        // 前缀分页查询中, start为最初的位置。因为在不同的分区 都是从start位置开始查询
+        // 前缀分页查询中，start 为最初的位置。因为在不同的分区 都是从 start 位置开始查询
         if (query.paging()) {
             keyFrom = query.prefix().asBytes();
         }

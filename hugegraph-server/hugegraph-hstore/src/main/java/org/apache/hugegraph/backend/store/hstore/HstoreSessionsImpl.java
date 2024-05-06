@@ -58,6 +58,14 @@ import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.StringEncoding;
 
+/**
+ * This class is an implementation of HstoreSessions, which is used to manage sessions for HStore
+ * backend (Raft + RocksDB).
+ * It provides methods to create, drop, and check the existence of tables, as well as to perform
+ * CRUD operations on the tables.
+ * It also provides methods to manage transactions, such as commit, rollback, and check if there
+ * are any changes in the session.
+ */
 public class HstoreSessionsImpl extends HstoreSessions {
 
     private static final Set<String> infoInitializedGraph =
@@ -72,8 +80,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
     private final AtomicInteger refCount;
     private final String graphName;
 
-    public HstoreSessionsImpl(HugeConfig config, String database,
-                              String store) {
+    public HstoreSessionsImpl(HugeConfig config, String database, String store) {
         super(config, database, store);
         this.config = config;
         this.graphName = database + "/" + store;
@@ -103,12 +110,10 @@ public class HstoreSessionsImpl extends HstoreSessions {
         if (!initializedNode) {
             synchronized (this) {
                 if (!initializedNode) {
-                    PDConfig pdConfig =
-                            PDConfig.of(config.get(CoreOptions.PD_PEERS))
-                                    .setEnableCache(true);
+                    PDConfig pdConfig = PDConfig.of(config.get(CoreOptions.PD_PEERS))
+                                                .setEnableCache(true);
                     defaultPdClient = PDClient.create(pdConfig);
-                    hgStoreClient =
-                            HgStoreClient.create(defaultPdClient);
+                    hgStoreClient = HgStoreClient.create(defaultPdClient);
                     initializedNode = Boolean.TRUE;
                 }
             }
@@ -120,16 +125,12 @@ public class HstoreSessionsImpl extends HstoreSessions {
         if (!infoInitializedGraph.contains(this.graphName)) {
             synchronized (infoInitializedGraph) {
                 if (!infoInitializedGraph.contains(this.graphName)) {
-                    Integer partitionCount =
-                            this.config.get(HstoreOptions.PARTITION_COUNT);
+                    Integer partitionCount = this.config.get(HstoreOptions.PARTITION_COUNT);
                     Assert.assertTrue("The value of hstore.partition_count" +
-                                      " cannot be less than 0.",
-                                      partitionCount > -1);
+                                      " cannot be less than 0.", partitionCount > -1);
                     defaultPdClient.setGraph(Metapb.Graph.newBuilder()
-                                                         .setGraphName(
-                                                                 this.graphName)
-                                                         .setPartitionCount(
-                                                                 partitionCount)
+                                                         .setGraphName(this.graphName)
+                                                         .setPartitionCount(partitionCount)
                                                          .build());
                     infoInitializedGraph.add(this.graphName);
                 }
@@ -179,7 +180,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         this.session.deleteGraph();
         try {
             hgStoreClient.getPdClient().delGraph(this.graphName);
-        } catch (PDException e) {
+        } catch (PDException ignored) {
 
         }
     }
@@ -432,11 +433,6 @@ public class HstoreSessionsImpl extends HstoreSessions {
         }
 
         @Override
-        public boolean closed() {
-            return !this.opened;
-        }
-
-        @Override
         public void reset() {
             if (this.changedSize != 0) {
                 this.rollback();
@@ -585,8 +581,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         public BackendColumnIterator scan(String table,
                                           byte[] conditionQueryToByte) {
             assert !this.hasChanges();
-            HgKvIterator results =
-                    this.graph.scanIterator(table, conditionQueryToByte);
+            HgKvIterator<HgKvEntry> results = this.graph.scanIterator(table, conditionQueryToByte);
             return new ColumnIterator<>(table, results);
         }
 
@@ -594,10 +589,8 @@ public class HstoreSessionsImpl extends HstoreSessions {
         public BackendColumnIterator scan(String table, byte[] ownerKey,
                                           byte[] prefix) {
             assert !this.hasChanges();
-            HgKvIterator<HgKvEntry> result = this.graph.scanIterator(table,
-                                                                     HgOwnerKey.of(
-                                                                             ownerKey,
-                                                                             prefix));
+            HgKvIterator<HgKvEntry> result = this.graph.scanIterator(table, HgOwnerKey.of(ownerKey,
+                                                                                          prefix));
             return new ColumnIterator<>(table, result);
         }
 
@@ -671,8 +664,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
 
                 @Override
                 public BackendColumnIterator next() {
-                    return new ColumnIterator<HgKvIterator>(table,
-                                                            scanIterators.next());
+                    return new ColumnIterator<HgKvIterator>(table, scanIterators.next());
                 }
             };
         }
@@ -683,15 +675,13 @@ public class HstoreSessionsImpl extends HstoreSessions {
                                           byte[] keyFrom, byte[] keyTo,
                                           int scanType) {
             assert !this.hasChanges();
-            HgKvIterator result = this.graph.scanIterator(table, HgOwnerKey.of(
-                                                                  ownerKeyFrom, keyFrom),
-                                                          HgOwnerKey.of(
-                                                                  ownerKeyTo,
-                                                                  keyTo), 0,
-                                                          scanType,
-                                                          null);
-            return new ColumnIterator<>(table, result, keyFrom,
-                                        keyTo, scanType);
+            HgKvIterator<HgKvEntry> result = this.graph.scanIterator(table,
+                                                                     HgOwnerKey.of(ownerKeyFrom,
+                                                                                   keyFrom),
+                                                                     HgOwnerKey.of(ownerKeyTo,
+                                                                                   keyTo),
+                                                                     0, scanType, null);
+            return new ColumnIterator<>(table, result, keyFrom, keyTo, scanType);
         }
 
         @Override
