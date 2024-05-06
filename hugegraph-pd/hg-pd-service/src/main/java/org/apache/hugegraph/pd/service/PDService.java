@@ -1347,6 +1347,7 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         observer.onCompleted();
     }
 
+    // TODO: keep it now & clean it later
     @Override
     public void putLicense(PutLicenseRequest request,
                            StreamObserver<PutLicenseResponse> responseObserver) {
@@ -1366,12 +1367,12 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
             }
             FileUtils.writeByteArrayToFile(licenseFile, content, false);
         } catch (Exception e) {
-            log.error("putLicense with error: {}", e);
+            log.error("putLicense with error:", e);
             if (moved) {
                 try {
                     FileUtils.moveFile(bakFile, licenseFile);
                 } catch (IOException ex) {
-                    log.error("failed to restore the license file.{}", ex);
+                    log.error("failed to restore the license file:", ex);
                 }
             }
             Pdpb.ResponseHeader header =

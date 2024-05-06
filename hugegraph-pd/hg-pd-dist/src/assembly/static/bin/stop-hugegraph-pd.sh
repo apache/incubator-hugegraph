@@ -40,7 +40,7 @@ if [ ! -f ${PID_FILE} ]; then
     exit 0
 fi
 
-PID=`cat $PID_FILE`
+PID=$(cat $PID_FILE)
 kill_process_and_wait "HugeGraphPDServer" "$PID" "$SERVER_SHUTDOWN_TIMEOUT_S"
 
 if [ $? -eq 0 ]; then

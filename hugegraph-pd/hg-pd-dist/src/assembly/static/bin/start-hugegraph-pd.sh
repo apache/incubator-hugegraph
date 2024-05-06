@@ -62,7 +62,7 @@ PID_FILE="$BIN/pid"
 ensure_path_writable "$LOGS"
 ensure_path_writable "$PLUGINS"
 
-# The maximum and minium heap memory that service can use
+# The maximum and minimum heap memory that service can use
 MAX_MEM=$((32 * 1024))
 MIN_MEM=$((1 * 512))
 EXPECT_JDK_VERSION=11

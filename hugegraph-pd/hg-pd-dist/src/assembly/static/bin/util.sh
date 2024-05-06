@@ -17,6 +17,7 @@
 # limitations under the License.
 #
 
+# TODO: consider reuse it with server-dist module (almost same as it)
 function command_available() {
     local cmd=$1
     if [ $(command -v $cmd >/dev/null 2>&1) ]; then
@@ -31,7 +32,7 @@ function read_property() {
     # file path
     file_name=$1
     # replace "." to "\."
-    property_name=`echo $2 | sed 's/\./\\\./g'`
+    property_name=$(echo $2 | sed 's/\./\\\./g')
     cat $file_name | sed -n -e "s/^[ ]*//g;/^#/d;s/^$property_name=//p" | tail -1
 }
 
@@ -40,7 +41,7 @@ function write_property() {
     local key=$2
     local value=$3
 
-    local os=`uname`
+    local os=$(uname)
     case $os in
         # Note: in mac os should use sed -i '' "xxx" to replace string,
         # otherwise prompt 'command c expects \ followed by text'.

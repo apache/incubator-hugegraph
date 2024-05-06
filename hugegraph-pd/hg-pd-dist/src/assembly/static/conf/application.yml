@@ -31,6 +31,7 @@ management:
 
 logging:
   config: 'file:./conf/log4j2.xml'
+# TODO: handle the license file later (PDConfig)
 license:
   verify-path: ./conf/verify-license.json
   license-path: ./conf/hugegraph.license
