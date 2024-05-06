@@ -44,9 +44,30 @@ jobs:
           cp $HOME/.m2/settings.xml /tmp/settings.xml
           mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
 
+      - name: Package
+        run: |
+          mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
+
       - name: Run common test
         run: |
           mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-common-test
+
+      - name: Run core test
+        run: |
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-core-test
+
+      # The above tests do not require starting a PD instance.
+      - name: Prepare env and service
+        run: |
+          $TRAVIS_DIR/start-pd.sh
+
+      - name: Run client test
+        run: |
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test
+
+      - name: Run rest test
+        run: |
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-rest-test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0

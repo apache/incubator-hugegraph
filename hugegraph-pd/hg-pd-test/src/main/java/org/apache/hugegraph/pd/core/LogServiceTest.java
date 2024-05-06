@@ -15,37 +15,36 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.core;
 
-import java.nio.charset.StandardCharsets;
+import java.util.List;
 
+import org.apache.hugegraph.pd.LogService;
+import org.apache.hugegraph.pd.grpc.Metapb;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
-import lombok.extern.slf4j.Slf4j;
+import com.google.protobuf.Any;
 
-@Slf4j
-public class PartitionUtilsTest {
+public class LogServiceTest extends PDCoreTestBase {
 
-    @Test
-    public void testCalcHashcode() {
-        byte[] key = new byte[5];
-        long code = PartitionUtils.calcHashcode(key);
-        Assert.assertEquals(code, 31912L);
+    private LogService logServiceUnderTest;
+
+    @Before
+    public void setUp() {
+        this.logServiceUnderTest = new LogService(getPdConfig());
     }
 
     @Test
-    public void testHashCode() {
-        int partCount = 10;
-        int partSize = PartitionUtils.MAX_VALUE / partCount + 1;
-        int[] counter = new int[partCount];
-        for (int i = 0; i < 10000; i++) {
-            String s = String.format("BATCH-GET-UNIT-%02d", i);
-            int c = PartitionUtils.calcHashcode(s.getBytes(StandardCharsets.UTF_8));
-            counter[c / partSize]++;
-        }
-        for (int i = 0; i < counter.length; i++) {
-            System.out.println(i + " " + counter[i]);
-        }
+    public void testGetLog() throws Exception {
+        this.logServiceUnderTest.insertLog("action", "message", Any.newBuilder().build());
+
+        // Run the test
+        final List<Metapb.LogRecord> result =
+                this.logServiceUnderTest.getLog("action", 0L, System.currentTimeMillis());
+
+        // Verify the results
+        Assert.assertEquals(result.size(), 1);
     }
 }

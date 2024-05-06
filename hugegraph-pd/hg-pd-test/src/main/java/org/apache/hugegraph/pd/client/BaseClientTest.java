@@ -15,21 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.client;
 
+import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.mockito.runners.MockitoJUnitRunner;
 
-import lombok.extern.slf4j.Slf4j;
+@RunWith(MockitoJUnitRunner.class)
+public class BaseClientTest {
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        PartitionUtilsTest.class,
-        PartitionCacheTest.class,
-        HgAssertTest.class,
-        KVPairTest.class,
-})
-@Slf4j
-public class CommonSuiteTest {
+    protected static PDClient pdClient;
 
+    @BeforeClass
+    public static void beforeClass() {
+        PDConfig config = PDConfig.of("localhost:8686");
+        config.setEnableCache(true);
+        pdClient = PDClient.create(config);
+    }
+
+    @After
+    public void teardown() {
+        // pass
+    }
 }

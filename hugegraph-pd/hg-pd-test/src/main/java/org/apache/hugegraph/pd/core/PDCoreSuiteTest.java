@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.core;
 
+import org.apache.hugegraph.pd.core.meta.MetadataKeyHelperTest;
+import org.apache.hugegraph.pd.core.store.HgKVStoreImplTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -24,12 +26,18 @@ import lombok.extern.slf4j.Slf4j;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        PartitionUtilsTest.class,
-        PartitionCacheTest.class,
-        HgAssertTest.class,
-        KVPairTest.class,
+        MetadataKeyHelperTest.class,
+        HgKVStoreImplTest.class,
+        ConfigServiceTest.class,
+        IdServiceTest.class,
+        KvServiceTest.class,
+        LogServiceTest.class,
+        PartitionServiceTest.class,
+        StoreMonitorDataServiceTest.class,
+        StoreServiceTest.class,
+        TaskScheduleServiceTest.class
 })
 @Slf4j
-public class CommonSuiteTest {
+public class PDCoreSuiteTest {
 
 }
