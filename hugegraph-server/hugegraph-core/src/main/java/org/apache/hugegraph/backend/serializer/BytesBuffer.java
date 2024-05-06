@@ -790,6 +790,34 @@ public final class BytesBuffer extends OutputStream {
         return new BinaryId(bytes, id);
     }
 
+    /**
+     * 解析 olap id
+     * @param type
+     * @param isOlap
+     * @return
+     */
+    public BinaryId parseOlapId(HugeType type, boolean isOlap) {
+        if (type.isIndex()) {
+            return this.readIndexId(type);
+        }
+        // Parse id from bytes
+        int start = this.buffer.position();
+        /**
+         * OLAP
+         * {PropertyKey}{VertexId}
+         */
+        if (isOlap) {
+            // 先 read olap property id
+            Id pkId = this.readId();
+        }
+        Id id = this.readId();
+        int end = this.buffer.position();
+        int len = end - start;
+        byte[] bytes = new byte[len];
+        System.arraycopy(this.array(), start, bytes, 0, len);
+        return new BinaryId(bytes, id);
+    }
+
     private void writeNumber(long val) {
         /*
          * 8 kinds of number, 2 ~ 9 bytes number:

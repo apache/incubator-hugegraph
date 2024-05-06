@@ -350,4 +350,8 @@ public class BackendMutation {
             this.mutations.clear();
         }
     }
+
+    public Map<HugeType, Map<Id, List<BackendAction>>> mutations() {
+        return this.updates.mutations;
+    }
 }

@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
@@ -135,6 +136,10 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
     public abstract void clear(Session session);
 
     public abstract Iterator<BackendEntry> query(Session session, Query query);
+
+    public Iterator<BackendEntry> queryOlap(Session session, Query query) {
+        throw new NotImplementedException();
+    }
 
     public abstract Number queryNumber(Session session, Query query);
 

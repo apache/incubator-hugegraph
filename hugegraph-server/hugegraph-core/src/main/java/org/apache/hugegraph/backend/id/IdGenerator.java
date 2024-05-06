@@ -379,7 +379,7 @@ public abstract class IdGenerator {
     /**
      * This class is just used by backend store for wrapper object as Id
      */
-    private static final class ObjectId implements Id {
+    public static final class ObjectId implements Id {
 
         private final Object object;
 

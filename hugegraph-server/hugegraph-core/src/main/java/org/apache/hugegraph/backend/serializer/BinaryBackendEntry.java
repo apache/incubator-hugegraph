@@ -48,6 +48,11 @@ public class BinaryBackendEntry implements BackendEntry {
         this(type, BytesBuffer.wrap(bytes).parseId(type, enablePartition));
     }
 
+    // FIXME: `enablePartition` is unused here
+    public BinaryBackendEntry(HugeType type, byte[] bytes, boolean enablePartition, boolean isOlap) {
+        this(type, BytesBuffer.wrap(bytes).parseOlapId(type, isOlap));
+    }
+
     public BinaryBackendEntry(HugeType type, BinaryId id) {
         this.type = type;
         this.id = id;
@@ -169,7 +174,10 @@ public class BinaryBackendEntry implements BackendEntry {
             return false;
         }
         if (!this.id().equals(other.id())) {
-            return false;
+            // 兼容从ap查回的数据, vertex id
+            if (!this.id().origin().equals(other.originId())) {
+                return false;
+            }
         }
         this.columns(other.columns());
         return true;
@@ -199,7 +207,7 @@ public class BinaryBackendEntry implements BackendEntry {
         return this.id().hashCode() ^ this.columns.size();
     }
 
-    protected static final class BinaryId implements Id {
+    public static final class BinaryId implements Id {
 
         private final byte[] bytes;
         private final Id id;

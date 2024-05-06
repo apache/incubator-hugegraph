@@ -62,12 +62,15 @@ public class Query implements Cloneable {
     private long actualOffset;
     private long actualStoreOffset;
     private long limit;
+    private long skipDegree;
     private String page;
     private long capacity;
     private boolean showHidden;
     private boolean showDeleting;
     private boolean showExpired;
     private boolean olap;
+    private boolean withProperties;
+    private OrderType orderType;
     private Set<Id> olapPks;
 
     private Aggregate aggregate;
@@ -88,12 +91,16 @@ public class Query implements Cloneable {
         this.actualOffset = 0L;
         this.actualStoreOffset = 0L;
         this.limit = NO_LIMIT;
+        this.skipDegree = NO_LIMIT;
         this.page = null;
 
         this.capacity = defaultCapacity();
 
         this.showHidden = false;
         this.showDeleting = false;
+
+        this.withProperties = true;
+        this.orderType = OrderType.ORDER_STRICT;
 
         this.aggregate = null;
         this.showExpired = false;
@@ -105,10 +112,13 @@ public class Query implements Cloneable {
         E.checkNotNull(query, "query");
         this.offset = query.offset();
         this.limit = query.limit();
+        this.skipDegree = query.skipDegree();
         this.page = query.page();
         this.capacity = query.capacity();
         this.showHidden = query.showHidden();
         this.showDeleting = query.showDeleting();
+        this.withProperties = query.withProperties();
+        this.orderType = query.orderType();
         this.aggregate = query.aggregate();
         this.showExpired = query.showExpired();
         this.olap = query.olap();
@@ -441,6 +451,30 @@ public class Query implements Cloneable {
         this.showDeleting = showDeleting;
     }
 
+    public long skipDegree() {
+        return this.skipDegree;
+    }
+
+    public void skipDegree(long skipDegree) {
+        this.skipDegree = skipDegree;
+    }
+
+    public boolean withProperties() {
+        return this.withProperties;
+    }
+
+    public void withProperties(boolean withProperties) {
+        this.withProperties = withProperties;
+    }
+
+    public OrderType orderType() {
+        return this.orderType;
+    }
+
+    public void orderType(OrderType orderType) {
+        this.orderType = orderType;
+    }
+
     public boolean showExpired() {
         return this.showExpired;
     }
@@ -493,7 +527,8 @@ public class Query implements Cloneable {
                this.limit == other.limit &&
                Objects.equals(this.page, other.page) &&
                this.ids().equals(other.ids()) &&
-               this.conditions().equals(other.conditions());
+               this.conditions().equals(other.conditions()) &&
+               this.withProperties == other.withProperties;
     }
 
     @Override
@@ -504,7 +539,8 @@ public class Query implements Cloneable {
                Long.hashCode(this.limit) ^
                Objects.hashCode(this.page) ^
                this.ids().hashCode() ^
-               this.conditions().hashCode();
+               this.conditions().hashCode() ^
+               Boolean.hashCode(this.withProperties);
     }
 
     @Override
@@ -578,6 +614,13 @@ public class Query implements Cloneable {
                     "Too many records(must <= %s) for one query",
                     Query.DEFAULT_CAPACITY);
         }
+    }
+
+    public enum OrderType {
+        // 批量接口下，返回顺序的要求
+        ORDER_NONE,    // 允许无序
+        ORDER_WITHIN_VERTEX,   // 一个点内的边不会被打断，单不同点之间为无序
+        ORDER_STRICT      // 保证原始的输入点顺序
     }
 
     public enum Order {
