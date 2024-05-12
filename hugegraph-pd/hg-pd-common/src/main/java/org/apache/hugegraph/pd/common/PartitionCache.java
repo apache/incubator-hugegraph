@@ -35,18 +35,18 @@ import com.google.common.collect.RangeMap;
 import com.google.common.collect.TreeRangeMap;
 
 /**
- * 放弃 copy on write 的方式
- * 1. 在 graph * partition 数量极多的时候，效率严重下降，不能用
+ * abandon copy on write way
+ * 1. When the number of graph * partitions is extremely large, the efficiency is severely
+ * reduced and cannot be used
  */
 public class PartitionCache {
 
-    // 读写锁对象
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private final Map<String, AtomicBoolean> locks = new HashMap<>();
     Lock writeLock = readWriteLock.writeLock();
-    // 每张图一个缓存
+    // One cache per graph
     private volatile Map<String, RangeMap<Long, Integer>> keyToPartIdCache;
-    // graphName + PartitionID 组成 key
+    // graphName + PartitionID
     private volatile Map<String, Map<Integer, Metapb.Partition>> partitionCache;
     private volatile Map<Integer, Metapb.ShardGroup> shardGroupCache;
     private volatile Map<Long, Metapb.Store> storeCache;
@@ -96,7 +96,7 @@ public class PartitionCache {
     }
 
     /**
-     * 根据 partitionId 返回分区信息
+     * Returns partition information based on partitionId
      *
      * @param graphName
      * @param partId
@@ -116,7 +116,7 @@ public class PartitionCache {
     }
 
     /**
-     * 返回 key 所在的分区信息
+     * Returns the partition information where the key is located
      *
      * @param key
      * @return
@@ -127,7 +127,7 @@ public class PartitionCache {
     }
 
     /**
-     * 根据 key 的 hashcode 返回分区信息
+     * Returns partition information based on the hashcode of the key
      *
      * @param graphName
      * @param code
@@ -177,8 +177,10 @@ public class PartitionCache {
             partitionCache.computeIfAbsent(graphName, k -> new HashMap<>()).put(partId, partition);
 
             if (old != null) {
-                // old [1-3) 被 [2-3) 覆盖了。当 [1-3) 变成 [1-2) 不应该删除原先的 [1-3)
-                // 当确认老的 start, end 都是自己的时候，才可以删除老的。(即还没覆盖）
+                // old [1-3] is covered by [2-3]. When [1-3) becomes [1-2], the original [1-3]
+                // should not be deleted
+                // When you confirm that the old start and end are your own, you can delete the
+                // old ones. (i.e. not covered yet)
                 var graphRange = keyToPartIdCache.get(graphName);
                 if (Objects.equals(partition.getId(), graphRange.get(partition.getStartKey())) &&
                     Objects.equals(partition.getId(), graphRange.get(partition.getEndKey() - 1))) {
