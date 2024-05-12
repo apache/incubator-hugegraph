@@ -28,7 +28,7 @@ import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
 import org.apache.hugegraph.pd.grpc.pulse.TransferLeader;
 
 /**
- * 分区命令监听
+ * Partition command listening
  */
 public interface PartitionInstructionListener {
 

@@ -28,7 +28,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Store信息存储
+ * Store information storage
  */
 @Slf4j
 public class StoreInfoMeta extends MetadataRocksDBStore {
@@ -55,7 +55,7 @@ public class StoreInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 更新Store信息
+     * Update the Store information
      *
      * @param store
      * @throws PDException
@@ -66,7 +66,7 @@ public class StoreInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 更新Store的存活状态
+     * Update the survivability status of the store
      *
      * @param store
      */
@@ -87,7 +87,7 @@ public class StoreInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 获取所有的store
+     * Get all the stores
      *
      * @param graphName
      * @return
@@ -99,9 +99,8 @@ public class StoreInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 获取活跃的Store
+     * Get an active store
      *
-     * @param graphName
      * @return
      * @throws PDException
      */
@@ -120,7 +119,7 @@ public class StoreInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 检查storeid是否存在
+     * Check whether the storeID exists
      *
      * @param storeId
      * @return
@@ -131,7 +130,7 @@ public class StoreInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 更新存储状态信息
+     * Update the storage status information
      *
      * @param storeStats
      */
@@ -185,7 +184,7 @@ public class StoreInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * @return store及状态信息
+     * @return store and status information
      * @throws PDException
      */
     public List<Metapb.Store> getStoreStatus(boolean isActive) throws PDException {

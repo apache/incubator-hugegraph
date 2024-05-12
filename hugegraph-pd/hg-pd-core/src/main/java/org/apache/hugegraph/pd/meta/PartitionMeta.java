@@ -28,7 +28,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 分区信息管理
+ * Partition information management
  */
 @Slf4j
 public class PartitionMeta extends MetadataRocksDBStore {
@@ -46,7 +46,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 初始化，加载所有的分区
+     * Initialize, load all partitions
      */
     public void init() throws PDException {
         loadShardGroups();
@@ -69,7 +69,8 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * partition 和 shard group分开存储，再init的时候，需要加载进来
+     * The partition and shard group are stored separately, and when they are init, they need to
+     * be loaded
      *
      * @throws PDException
      */
@@ -89,7 +90,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 根据id查找分区 (先从缓存找，再到数据库中找）
+     * Find partitions by ID (first from the cache, then from the database)
      *
      * @param graphName
      * @param partId
@@ -124,7 +125,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 根据code查找分区
+     * Find partitions based on code
      */
     public Metapb.Partition getPartitionByCode(String graphName, long code) throws PDException {
         var pair = cache.getPartitionByCode(graphName, code);
@@ -144,14 +145,12 @@ public class PartitionMeta extends MetadataRocksDBStore {
             partitionCount = pdConfig.getPartition().getTotalCount();
         }
 
-        // 管理图，只有一个分区
         if (graphName.endsWith("/s") || graphName.endsWith("/m")) {
             partitionCount = 1;
         }
 
         Metapb.Graph graph = cache.getGraph(graphName);
         if (graph == null) {
-            // 保存图信息
             graph = Metapb.Graph.newBuilder()
                                 .setGraphName(graphName)
                                 .setPartitionCount(partitionCount)
@@ -163,7 +162,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 保存分区信息
+     * Save the partition information
      *
      * @param partition
      * @return
@@ -179,14 +178,6 @@ public class PartitionMeta extends MetadataRocksDBStore {
         return partition;
     }
 
-    /**
-     * 检查数据库，是否存在对应的图，不存在，则创建。
-     * 更新partition的 version, conf version 和 shard list
-     *
-     * @param partition
-     * @return
-     * @throws PDException
-     */
     public Metapb.Partition updateShardList(Metapb.Partition partition) throws PDException {
         if (!cache.hasGraph(partition.getGraphName())) {
             getAndCreateGraph(partition.getGraphName());
@@ -205,7 +196,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 删除所有分区
+     * Delete all partitions
      */
     public long removeAllPartitions(String graphName) throws PDException {
         cache.removeAll(graphName);
@@ -227,7 +218,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 获取分区状态
+     * Get the partition status
      */
     public Metapb.PartitionStats getPartitionStats(String graphName, int id) throws PDException {
         byte[] prefix = MetadataKeyHelper.getPartitionStatusKey(graphName, id);
@@ -235,7 +226,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 获取分区状态
+     * Get the partition status
      */
     public List<Metapb.PartitionStats> getPartitionStats(String graphName) throws PDException {
         byte[] prefix = MetadataKeyHelper.getPartitionStatusPrefixKey(graphName);
@@ -243,7 +234,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 更新图信息
+     * Update the diagram information
      *
      * @param graph
      * @return
@@ -251,7 +242,6 @@ public class PartitionMeta extends MetadataRocksDBStore {
     public Metapb.Graph updateGraph(Metapb.Graph graph) throws PDException {
         log.info("updateGraph {}", graph);
         byte[] key = MetadataKeyHelper.getGraphKey(graph.getGraphName());
-        // 保存图信息
         put(key, graph.toByteString().toByteArray());
         cache.updateGraph(graph);
         return graph;
@@ -281,7 +271,7 @@ public class PartitionMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 删除图，并删除图id
+     * Delete the diagram and delete the diagram ID
      */
     public long removeGraph(String graphName) throws PDException {
         byte[] key = MetadataKeyHelper.getGraphKey(graphName);

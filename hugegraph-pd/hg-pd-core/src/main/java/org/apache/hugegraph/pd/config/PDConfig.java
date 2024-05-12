@@ -33,23 +33,26 @@ import org.springframework.stereotype.Component;
 import lombok.Data;
 
 /**
- * PD配置文件
+ * PD profile
  */
 @Data
 @Component
 public class PDConfig {
 
+    // cluster ID
     @Value("${pd.cluster_id:1}")
-    private long clusterId;   // 集群ID
+    private long clusterId;
 
+    // The patrol task interval
     @Value("${pd.patrol-interval:300}")
-    private long patrolInterval = 300;  //巡查任务时间间隔
+    private long patrolInterval = 300;
     @Value("${pd.data-path}")
     private String dataPath;
     @Value("${pd.initial-store-count:3}")
     private int minStoreCount;
 
-    // 初始store列表，该列表内的store自动激活
+    // The initial store list, within which the store is automatically activated
+    // format: store_addresss, store_address, store_address/group_id, store_address/group_id
     @Value("${pd.initial-store-list: ''}")
     private String initialStoreList;
     @Value("${grpc.host}")
@@ -84,8 +87,8 @@ public class PDConfig {
     }
 
     /**
-     * 初始分区数量
-     * Store数量 * 每Store最大副本数 /每分区副本数
+     * The initial number of partitions
+     * Number of Stores * Maximum number of replicas per Store / Number of replicas per partition
      *
      * @return
      */
@@ -144,7 +147,7 @@ public class PDConfig {
         private int port;
 
         @Value("${pd.cluster_id:1}")
-        private long clusterId;   // 集群ID
+        private long clusterId;
         @Value("${grpc.port}")
         private int grpcPort;
 
@@ -157,7 +160,7 @@ public class PDConfig {
     @Configuration
     public class Store {
 
-        // store 心跳超时时间
+        // store Heartbeat timeout
         @Value("${store.keepAlive-timeout:300}")
         private long keepAliveTimeout = 300;
         @Value("${store.max-down-time:1800}")
@@ -249,11 +252,10 @@ public class PDConfig {
 
         private int totalCount = 0;
 
-        // 每个Store最大副本数
+        // Maximum number of replicas per Store
         @Value("${partition.store-max-shard-count:24}")
         private int maxShardsPerStore = 24;
 
-        // 默认分副本数量
         @Value("${partition.default-shard-count:3}")
         private int shardCount = 3;
 
@@ -273,7 +275,8 @@ public class PDConfig {
     @Configuration
     public class Discovery {
 
-        // 客户端注册后，无心跳最长次数，超过后，之前的注册信息会被删除
+        // After the client registers, the maximum number of heartbeats is not reached, and after
+        // that, the previous registration information will be deleted
         @Value("${discovery.heartbeat-try-count:3}")
         private int heartbeatOutTimes = 3;
     }

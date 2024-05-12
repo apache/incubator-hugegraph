@@ -44,18 +44,21 @@ import org.apache.hugegraph.pd.raft.RaftEngine;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 任务调度服务，定时检查Store、资源、分区的状态，及时迁移数据，错误节点
- * 1、监测Store是否离线
- * 2、监测Partition的副本是否正确
- * 3、监测Partition的工作模式是否正确
- * 4、监测Partition是否需要分裂,监测分裂是否完成
+ * The task scheduling service checks the status of stores, resources, and partitions on a
+ * regular basis, migrates data in a timely manner, and errors are on nodes
+ * 1. Monitor whether the store is offline
+ * 2. Check whether the replica of the partition is correct
+ * 3. Check whether the working mode of the partition is correct
+ * 4. Monitor whether the partition needs to be split and whether the split is completed
  */
 @Slf4j
 public class TaskScheduleService {
 
     private static final String BALANCE_SHARD_KEY = "BALANCE_SHARD_KEY";
-    private final long TurnOffAndBalanceInterval = 30 * 60 * 1000; //机器下线30后才能进行动态平衡
-    private final long BalanceLeaderInterval = 30 * 1000;   // leader平衡时间间隔
+    // The dynamic balancing can only be carried out after the machine is offline for 30 minutes
+    private final long TurnOffAndBalanceInterval = 30 * 60 * 1000;
+    // leader balances the time interval
+    private final long BalanceLeaderInterval = 30 * 1000;
     private final PDConfig pdConfig;
     private final long clusterStartTime;    //
     private final StoreNodeService storeService;
@@ -65,14 +68,12 @@ public class TaskScheduleService {
     private final StoreMonitorDataService storeMonitorDataService;
     private final KvService kvService;
     private final LogService logService;
-    // 先按照value排序，再按照key排序
     private final Comparator<KVPair<Long, Integer>> kvPairComparatorAsc = (o1, o2) -> {
         if (o1.getValue() == o2.getValue()) {
             return o1.getKey().compareTo(o2.getKey());
         }
         return o1.getValue().compareTo(o2.getValue());
     };
-    // 先按照value排序(倒序)，再按照key排序(升序）
     private final Comparator<KVPair<Long, Integer>> kvPairComparatorDesc = (o1, o2) -> {
         if (o1.getValue() == o2.getValue()) {
             return o2.getKey().compareTo(o1.getKey());
@@ -157,7 +158,7 @@ public class TaskScheduleService {
 
                 if (status == Metapb.StoreState.Up) {
                     executor.schedule(() -> {
-                        try {  //store 上线后延时1分钟进行leader平衡
+                        try {
                             balancePartitionLeader(false);
                         } catch (PDException e) {
                             log.error("exception {}", e);
@@ -190,7 +191,7 @@ public class TaskScheduleService {
     }
 
     /**
-     * 巡查所有的store，检查是否在线，存储空间是否充足
+     * Inspect all stores to see if they are online and have enough storage space
      */
     public List<Metapb.Store> patrolStores() throws PDException {
         if (!isLeader()) {
@@ -198,7 +199,7 @@ public class TaskScheduleService {
         }
 
         List<Metapb.Store> changedStores = new ArrayList<>();
-        // 检查store在线状态
+        // Check your store online status
         List<Metapb.Store> stores = storeService.getStores("");
         Map<Long, Metapb.Store> activeStores = storeService.getActiveStores("")
                                                            .stream().collect(
@@ -208,7 +209,7 @@ public class TaskScheduleService {
             if ((store.getState() == Metapb.StoreState.Up
                  || store.getState() == Metapb.StoreState.Unknown)
                 && !activeStores.containsKey(store.getId())) {
-                // 不在线，修改状态为离线
+                // If you are not online, the modification status is offline
                 changeStore = Metapb.Store.newBuilder(store)
                                           .setState(Metapb.StoreState.Offline)
                                           .build();
@@ -220,8 +221,8 @@ public class TaskScheduleService {
                          pdConfig.getStore().getMaxDownTime() * 1000) &&
                         (System.currentTimeMillis() - clusterStartTime >
                          pdConfig.getStore().getMaxDownTime() * 1000))) {
-                //手工修改为下线或者离线达到时长
-                // 修改状态为关机, 增加 checkStoreCanOffline 检测
+                // Manually change the parameter to Offline or Offline Duration
+                // Modify the status to shut down and increase checkStoreCanOffline detect
                 if (storeService.checkStoreCanOffline(store)) {
                     changeStore = Metapb.Store.newBuilder(store)
                                               .setState(Metapb.StoreState.Tombstone).build();
@@ -239,22 +240,22 @@ public class TaskScheduleService {
     }
 
     /**
-     * 巡查所有的分区，检查副本数是否正确
+     * Inspect all partitions to check whether the number of replicas is correct and the number
+     * of replicas in the shard group
      */
     public List<Metapb.Partition> patrolPartitions() throws PDException {
         if (!isLeader()) {
             return null;
         }
 
-        // 副本数不一致，重新分配副本
+        // If the number of replicas is inconsistent, reallocate replicas
         for (Metapb.ShardGroup group : storeService.getShardGroups()) {
             if (group.getShardsCount() != pdConfig.getPartition().getShardCount()) {
                 storeService.reallocShards(group);
-                // 避免后面的 balance partition shard 马上执行.
                 kvService.put(BALANCE_SHARD_KEY, "DOING", 180 * 1000);
             }
         }
-        //检查shard是否在线。
+        // Check if the shard is online.
         Map<Long, Metapb.Store> tombStores = storeService.getTombStores().stream().collect(
                 Collectors.toMap(Metapb.Store::getId, t -> t));
 
@@ -277,8 +278,8 @@ public class TaskScheduleService {
     }
 
     /**
-     * 在Store之间平衡分区的数量
-     * 机器转为UP半小时后才能进行动态平衡
+     * Balance the number of partitions between stores
+     * It takes half an hour for the machine to turn to UP before it can be dynamically balanced
      */
     public synchronized Map<Integer, KVPair<Long, Long>> balancePartitionShard() throws
                                                                                  PDException {
@@ -289,7 +290,7 @@ public class TaskScheduleService {
         }
 
         if (System.currentTimeMillis() - lastStoreTurnoffTime < TurnOffAndBalanceInterval) {
-            return null;//机器下线半小时后才能进行动态平衡
+            return null;
         }
 
         int activeStores = storeService.getActiveStores().size();
@@ -298,8 +299,6 @@ public class TaskScheduleService {
             return null;
         }
 
-        // 避免频繁调用. (当改变副本数，需要调整shard list，此时又需要平衡分区）会发送重复的指令。造成结果不可预料。
-        // 严重会删除掉分区.
         if (Objects.equals(kvService.get(BALANCE_SHARD_KEY), "DOING")) {
             return null;
         }
@@ -309,20 +308,18 @@ public class TaskScheduleService {
         int averageCount = totalShards / activeStores;
         int remainder = totalShards % activeStores;
 
-        // 统计每个store上分区, StoreId ->PartitionID, ShardRole
+        // Count the partitions on each store, StoreId -> PartitionID, ShardRole
         Map<Long, Map<Integer, Metapb.ShardRole>> partitionMap = new HashMap<>();
         storeService.getActiveStores().forEach(store -> {
             partitionMap.put(store.getId(), new HashMap<>());
         });
 
-        // 如果是leaner 说明迁移正在进行，不要重复提交任务
         AtomicReference<Boolean> isLeaner = new AtomicReference<>(false);
         partitionService.getPartitions().forEach(partition -> {
 
             try {
                 storeService.getShardList(partition.getId()).forEach(shard -> {
                     Long storeId = shard.getStoreId();
-                    // 判断每个shard为leaner或者状态非正常状态
                     if (shard.getRole() == Metapb.ShardRole.Learner
                         || partition.getState() != Metapb.PartitionState.PState_Normal) {
                         isLeaner.set(true);
@@ -342,24 +339,25 @@ public class TaskScheduleService {
             return null;
         }
 
-        // 按照shard数量由高到低排序store
+        // According to shard sort the quantity from highest to lowest
         List<KVPair<Long, Integer>> sortedList = new ArrayList<>();
         partitionMap.forEach((storeId, shards) -> {
             sortedList.add(new KVPair(storeId, shards.size()));
         });
-        // 由大到小排序的list
         sortedList.sort(((o1, o2) -> o2.getValue().compareTo(o1.getValue())));
-        // 最大堆
+        // The largest heap, moved in store -> shard count
         PriorityQueue<KVPair<Long, Integer>> maxHeap = new PriorityQueue<>(sortedList.size(),
                                                                            (o1, o2) -> o2.getValue()
                                                                                          .compareTo(
                                                                                                  o1.getValue()));
 
-        // 各个副本的 committedIndex
+        // of individual copies committedIndex
         Map<Integer, Map<Long, Long>> committedIndexMap = partitionService.getCommittedIndexStats();
-        // 分区ID --> 源StoreID,目标StoreID
+        // Partition ID -->source StoreID, target StoreID
         Map<Integer, KVPair<Long, Long>> movedPartitions = new HashMap<>();
-        // 移除多余的shard, 按照shards由多到少的顺序遍历store，余数remainder优先给shards多的store分配，减少迁移的概率
+        // Remove redundant shards, traverse the stores in the order of shards from most to
+        // least, and the remainder is allocated to the store with more shards first, reducing
+        // the probability of migration
         for (int index = 0; index < sortedList.size(); index++) {
             long storeId = sortedList.get(index).getKey();
             if (!partitionMap.containsKey(storeId)) {
@@ -368,7 +366,8 @@ public class TaskScheduleService {
             }
             Map<Integer, Metapb.ShardRole> shards = partitionMap.get(storeId);
             int targetCount = index < remainder ? averageCount + 1 : averageCount;
-            //  移除多余的shard, 添加源StoreID. 非Leader，并且该分区唯一
+            //  Remove the redundant shards and add the source StoreID. is not a leader, and the
+            //  partition is unique
             if (shards.size() > targetCount) {
                 int movedCount = shards.size() - targetCount;
                 log.info(
@@ -420,7 +419,7 @@ public class TaskScheduleService {
                 if (partitionMap.containsKey(destStoreId)) {
                     destContains = partitionMap.get(destStoreId).containsKey(partitionId);
                 }
-                // 如果目的store已经包含了该partition，则取一下store
+                // If the destination store already contains the partition, take the store
                 if (!destContains) {
                     moveEntry.getValue().setValue(pair.getKey());
                     log.info(
@@ -442,9 +441,9 @@ public class TaskScheduleService {
 
         kvService.put(BALANCE_SHARD_KEY, "DOING", 180 * 1000);
 
-        // 开始迁移
+        // Start the migration
         movedPartitions.forEach((partId, storePair) -> {
-            // 源和目标storeID都不为0
+            // Neither the source nor destination storeID is 0
             if (storePair.getKey() > 0 && storePair.getValue() > 0) {
                 partitionService.movePartitionsShard(partId, storePair.getKey(),
                                                      storePair.getValue());
@@ -457,7 +456,7 @@ public class TaskScheduleService {
     }
 
     /**
-     * 在Store之间平衡分区的Leader的数量
+     * Balance the number of leaders of partitions between stores
      */
     public synchronized Map<Integer, Long> balancePartitionLeader(boolean immediately) throws
                                                                                        PDException {
@@ -475,13 +474,12 @@ public class TaskScheduleService {
 
         List<Metapb.ShardGroup> shardGroups = storeService.getShardGroups();
 
-        // 分裂或者缩容任务的时候，退出
+        // When a task is split or scaled-in, it is exited
         var taskMeta = storeService.getTaskInfoMeta();
         if (taskMeta.hasSplitTaskDoing() || taskMeta.hasMoveTaskDoing()) {
             throw new PDException(1001, "split or combine task is processing, please try later!");
         }
 
-        // 数据迁移的时候，退出
         if (Objects.equals(kvService.get(BALANCE_SHARD_KEY), "DOING")) {
             throw new PDException(1001, "balance shard is processing, please try later!");
         }
@@ -502,7 +500,6 @@ public class TaskScheduleService {
         log.info("balancePartitionLeader, shard group size: {}, by store: {}", shardGroups.size(),
                  storeShardCount);
 
-        // 按照 target count， store id稳定排序
         PriorityQueue<KVPair<Long, Integer>> targetCount =
                 new PriorityQueue<>(kvPairComparatorDesc);
 
@@ -520,7 +517,6 @@ public class TaskScheduleService {
             targetCount.add(new KVPair<>(sortedGroups.get(i).getKey(), v));
             sum += v;
         }
-        // 最后一个, 除不尽的情况，保证总数正确
         targetCount.add(new KVPair<>(sortedGroups.get(sortedGroups.size() - 1).getKey(),
                                      shardGroups.size() - sum));
         log.info("target count: {}", targetCount);
@@ -529,7 +525,8 @@ public class TaskScheduleService {
             var map = group.getShardsList().stream()
                            .collect(Collectors.toMap(Metapb.Shard::getStoreId, shard -> shard));
             var tmpList = new ArrayList<KVPair<Long, Integer>>();
-            // store比较多的情况，可能不包含对应的store id. 则先将不符合的store保存到临时列表，直到找到一个合适的store
+            // If there are many stores, they may not contain the corresponding store ID. Save
+            // the non-compliant stores to the temporary list until you find a suitable store
             while (!targetCount.isEmpty()) {
                 var pair = targetCount.poll();
                 var storeId = pair.getKey();
@@ -549,7 +546,7 @@ public class TaskScheduleService {
                         pair.setValue(pair.getValue() - 1);
                         tmpList.add(pair);
                     }
-                    // 找到了，则处理完成
+                    // If it is found, the processing is complete
                     break;
                 } else {
                     tmpList.add(pair);
@@ -574,14 +571,13 @@ public class TaskScheduleService {
         shardMap.forEach((storeId, committedIndex) -> {
             sortedList.add(committedIndex);
         });
-        // 由大到小排序的list
         sortedList.sort(Comparator.reverseOrder());
         maxGap = sortedList.get(0) - sortedList.get(sortedList.size() - 1);
         return maxGap;
     }
 
     /**
-     * 执行分区分裂，分为自动分裂和手工分裂
+     * Perform partition splitting, which is divided into automatic splitting and manual splitting
      *
      * @return
      * @throws PDException
@@ -602,9 +598,11 @@ public class TaskScheduleService {
     }
 
     /**
-     * 自动进行分区分裂，每个store达到最大分区数量
-     * 执行条件
-     * 分裂后每台机器分区数量少于partition.max-partitions-per-store
+     * Partition splitting is performed automatically, and each store reaches the maximum number
+     * of partitions
+     * execution conditions
+     * The number of partitions per machine after the split is less than partition
+     * .max-partitions-per-store
      *
      * @throws PDException
      */
@@ -623,11 +621,7 @@ public class TaskScheduleService {
             }
         }
 
-        //For TEST
-        //   pdConfig.getPartition().setMaxShardsPerStore(pdConfig.getPartition()
-        //   .getMaxShardsPerStore()*2);
-
-        // 计算集群能能支持的最大split count
+        // The maximum split count that a compute cluster can support
         int splitCount = pdConfig.getPartition().getMaxShardsPerStore() *
                          storeService.getActiveStores().size() /
                          (storeService.getShardGroups().size() *
@@ -640,12 +634,12 @@ public class TaskScheduleService {
                                   + pdConfig.getPartition().getMaxShardsPerStore());
         }
 
-        // 每store未达最大分区数，进行分裂
+        // If the maximum number of partitions per store is not reached, it will be split
         log.info("Start to split partitions..., split count = {}", splitCount);
 
-        // 设置集群状态为下线
+        // Set the cluster status to Offline
         storeService.updateClusterStatus(Metapb.ClusterState.Cluster_Offline);
-        // 修改默认分区数量
+        // Modify the default number of partitions
         // pdConfig.getConfigService().setPartitionCount(storeService.getShardGroups().size() *
         // splitCount);
 
@@ -658,8 +652,9 @@ public class TaskScheduleService {
     }
 
     /**
-     * Store汇报任务状态
-     * 分区状态发生改变，重新计算分区所在的ShardGroup、图和整个集群的状态
+     * Store reports the status of the task
+     * The state of the partition changes, and the state of the ShardGroup, graph, and the entire
+     * cluster where the partition resides
      *
      * @param task
      */
@@ -684,7 +679,7 @@ public class TaskScheduleService {
     }
 
     /**
-     * 对rocksdb进行compaction
+     * Compaction on rocksdb
      *
      * @throws PDException
      */
@@ -702,39 +697,44 @@ public class TaskScheduleService {
     }
 
     /**
-     * 判断是否能把一个store的分区全部迁出，给出判断结果和迁移方案
+     * Determine whether all partitions of a store can be migrated out, and give the judgment
+     * result and migration plan
      */
     public Map<String, Object> canAllPartitionsMovedOut(Metapb.Store sourceStore) throws
                                                                                   PDException {
         if (!isLeader()) {
             return null;
         }
-        // 分析一个store上面的分区是否可以完全迁出
+        // Analyze whether the partition on a store can be completely checked out
         Map<String, Object> resultMap = new HashMap<>();
-        // 定义对象用于保存源store上面的分区 StoreId ->PartitionID, ShardRole
+        // The definition object is used to hold the partition above the source store StoreId
+        // ->PartitionID, ShardRole
         Map<Long, Map<Integer, Metapb.ShardRole>> sourcePartitionMap = new HashMap<>();
         sourcePartitionMap.put(sourceStore.getId(), new HashMap<>());
-        // 定义对象用于保存其他活跃store上面的分区 StoreId ->PartitionID, ShardRole
+        // The definition object is used to hold the partition above the other active stores
+        // StoreId ->PartitionID, ShardRole
         Map<Long, Map<Integer, Metapb.ShardRole>> otherPartitionMap = new HashMap<>();
-        Map<Long, Long> availableDiskSpace = new HashMap<>(); // 每个store剩余的磁盘空间
-        Map<Integer, Long> partitionDataSize = new HashMap<>(); // 记录待迁移的分区的数据量
+        // The amount of disk space remaining for each store
+        Map<Long, Long> availableDiskSpace = new HashMap<>();
+        // Record the amount of data in the partition to be migrated
+        Map<Integer, Long> partitionDataSize = new HashMap<>();
 
         storeService.getActiveStores().forEach(store -> {
             if (store.getId() != sourceStore.getId()) {
                 otherPartitionMap.put(store.getId(), new HashMap<>());
-                // 记录其他store的剩余的磁盘空间, 单位为Byte
+                // Records the remaining disk space of other stores, in bytes
                 availableDiskSpace.put(store.getId(), store.getStats().getAvailable());
             } else {
                 resultMap.put("current_store_is_online", true);
             }
         });
-        // 统计待迁移的分区的数据大小 (从storeStats中统计，单位为KB)
+        // Count the size of the partition to be migrated (from storeStats in KB)
         for (Metapb.GraphStats graphStats : sourceStore.getStats().getGraphStatsList()) {
             partitionDataSize.put(graphStats.getPartitionId(),
                                   partitionDataSize.getOrDefault(graphStats.getPartitionId(), 0L)
                                   + graphStats.getApproximateSize());
         }
-        // 给sourcePartitionMap 和 otherPartitionMap赋值
+        // Assign values to sourcePartitionMap and otherPartitionMap
         partitionService.getPartitions().forEach(partition -> {
             try {
                 storeService.getShardList(partition.getId()).forEach(shard -> {
@@ -752,13 +752,14 @@ public class TaskScheduleService {
                 throw new RuntimeException(e);
             }
         });
-        // 统计待移除的分区：即源store上面的所有分区
+        // Count the partitions to be removed: all partitions on the source store
         Map<Integer, KVPair<Long, Long>> movedPartitions = new HashMap<>();
         for (Map.Entry<Integer, Metapb.ShardRole> entry : sourcePartitionMap.get(
                 sourceStore.getId()).entrySet()) {
             movedPartitions.put(entry.getKey(), new KVPair<>(sourceStore.getId(), 0L));
         }
-        // 统计其他store的分区数量, 用小顶堆保存，以便始终把分区数量较少的store优先考虑
+        // Count the number of partitions of other stores and save them with a small top heap, so
+        // that stores with fewer partitions are always prioritized
         PriorityQueue<KVPair<Long, Integer>> minHeap = new PriorityQueue<>(otherPartitionMap.size(),
                                                                            (o1, o2) -> o1.getValue()
                                                                                          .compareTo(
@@ -766,24 +767,28 @@ public class TaskScheduleService {
         otherPartitionMap.forEach((storeId, shards) -> {
             minHeap.add(new KVPair(storeId, shards.size()));
         });
-        // 遍历待迁移的分区,优先迁移到分区比较少的store
+        // Traverse the partitions to be migrated, and prioritize the migration to the store with
+        // fewer partitions
         Iterator<Map.Entry<Integer, KVPair<Long, Long>>> moveIterator =
                 movedPartitions.entrySet().iterator();
         while (moveIterator.hasNext()) {
             Map.Entry<Integer, KVPair<Long, Long>> moveEntry = moveIterator.next();
             int partitionId = moveEntry.getKey();
-            List<KVPair<Long, Integer>> tmpList = new ArrayList<>(); // 记录已经弹出优先队列的元素
+            // Record the elements that have popped up in the priority
+            List<KVPair<Long, Integer>> tmpList = new ArrayList<>();
             while (minHeap.size() > 0) {
-                KVPair<Long, Integer> pair = minHeap.poll(); //弹出首个元素
+                KVPair<Long, Integer> pair = minHeap.poll(); // The first element pops up
                 long storeId = pair.getKey();
                 int partitionCount = pair.getValue();
                 Map<Integer, Metapb.ShardRole> shards = otherPartitionMap.get(storeId);
-                final int unitRate = 1024; // 平衡不同存储单位的进率
+                final int unitRate = 1024; // Balance the feed rate of different storage units
                 if ((!shards.containsKey(partitionId)) && (
                         availableDiskSpace.getOrDefault(storeId, 0L) / unitRate >=
                         partitionDataSize.getOrDefault(partitionId, 0L))) {
-                    // 如果目标store上面不包含该分区，且目标store剩余空间能容纳该分区，则进行迁移
-                    moveEntry.getValue().setValue(storeId); //设置移动的目标store
+                    // If the partition is not included on the destination store and the
+                    // remaining space of the destination store can accommodate the partition,
+                    // the migration is performed
+                    moveEntry.getValue().setValue(storeId); // Set the target store for the move
                     log.info("plan to move partition {} to store {}, " +
                              "available disk space {}, current partitionSize:{}",
                              partitionId,
@@ -791,12 +796,12 @@ public class TaskScheduleService {
                              availableDiskSpace.getOrDefault(storeId, 0L) / unitRate,
                              partitionDataSize.getOrDefault(partitionId, 0L)
                     );
-                    // 更新该store预期的剩余空间
+                    // Update the expected remaining space for the store
                     availableDiskSpace.put(storeId, availableDiskSpace.getOrDefault(storeId, 0L)
                                                     - partitionDataSize.getOrDefault(partitionId,
                                                                                      0L) *
                                                       unitRate);
-                    // 更新统计变量中该store的分区数量
+                    // Update the number of partitions for that store in the stat variable
                     partitionCount += 1;
                     pair.setValue(partitionCount);
                     tmpList.add(pair);
@@ -807,7 +812,7 @@ public class TaskScheduleService {
             }
             minHeap.addAll(tmpList);
         }
-        //检查是否未存在未分配目标store的分区
+        // Check that there are no partitions that don't have a target store assigned
         List<Integer> remainPartitions = new ArrayList<>();
         movedPartitions.forEach((partId, storePair) -> {
             if (storePair.getValue() == 0L) {
@@ -830,10 +835,10 @@ public class TaskScheduleService {
         if (!isLeader()) {
             return null;
         }
-        // 开始迁移
+        // Start the migration
         log.info("begin move partitions:");
         movedPartitions.forEach((partId, storePair) -> {
-            // 源和目标storeID都不为0
+            // Neither the source nor destination storeID is 0
             if (storePair.getKey() > 0 && storePair.getValue() > 0) {
                 partitionService.movePartitionsShard(partId, storePair.getKey(),
                                                      storePair.getValue());

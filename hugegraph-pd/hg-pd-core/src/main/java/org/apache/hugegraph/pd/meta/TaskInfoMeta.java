@@ -27,7 +27,7 @@ import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
 import org.apache.hugegraph.pd.grpc.pulse.SplitPartition;
 
 /**
- * 任务管理
+ * Task management
  */
 public class TaskInfoMeta extends MetadataRocksDBStore {
 
@@ -36,7 +36,7 @@ public class TaskInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 添加分区分裂任务
+     * Add a partition splitting task
      */
     public void addSplitTask(int groupID, Metapb.Partition partition, SplitPartition splitPartition)
             throws PDException {
@@ -115,9 +115,9 @@ public class TaskInfoMeta extends MetadataRocksDBStore {
     }
 
     /**
-     * 按照prefix删除迁移任务，一次分组的
+     * Delete the migration task by prefixing it and group them all at once
      *
-     * @param graphName 图名称
+     * @param graphName graphName
      * @throws PDException io error
      */
     public void removeMoveTaskPrefix(String graphName) throws PDException {

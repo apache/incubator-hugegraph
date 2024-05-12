@@ -44,7 +44,6 @@ import lombok.extern.slf4j.Slf4j;
 public class KvService {
 
     public static final char KV_DELIMITER = '@';
-    // TODO 主前缀之后，增加类名做区分
     private static final String TTL_PREFIX = "T";
     private static final String KV_PREFIX = "K";
     private static final String LOCK_PREFIX = "L";
