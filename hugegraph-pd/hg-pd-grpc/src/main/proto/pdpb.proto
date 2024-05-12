@@ -24,83 +24,83 @@ import "metaTask.proto";
 option java_package = "org.apache.hugegraph.pd.grpc";
 
 service PD {
-  // 注册store，首次注册会生成新的store_id， store_id是store唯一标识
+  // Register store, the first registration will generate a new store_id, store_id is the unique identifier of the store
   rpc RegisterStore(RegisterStoreRequest) returns (RegisterStoreResponse) {}
   rpc GetStore(GetStoreRequest) returns (GetStoreResponse) {}
-  // 修改Store状态等信息.
+  // Modify Store status and other information.
   rpc SetStore(SetStoreRequest) returns (SetStoreResponse) {}
-  // 根据可以查找所属分区
+  // Look up the partition based on the key
   rpc DelStore(DetStoreRequest) returns (DetStoreResponse) {}
   rpc GetAllStores(GetAllStoresRequest) returns (GetAllStoresResponse) {}
   rpc StoreHeartbeat(StoreHeartbeatRequest) returns (StoreHeartbeatResponse) {}
 
-  // 根据可以查找所属分区
+  // Look up the partition based on the key
   rpc GetPartition(GetPartitionRequest) returns (GetPartitionResponse) {}
 
-  // 根据HashCode查找所属分区
+  // Look up the partition based on HashCode
   rpc GetPartitionByCode(GetPartitionByCodeRequest) returns (GetPartitionResponse) {}
-  // 根据PartitionID返回分区
+  // Return partition by PartitionID
   rpc GetPartitionByID(GetPartitionByIDRequest) returns (GetPartitionResponse) {}
   rpc ScanPartitions(ScanPartitionsRequest) returns (ScanPartitionsResponse) {}
-  // 更新分区信息，主要用来更新分区key范围，调用此接口需谨慎，否则会造成数据丢失。
+  // Update partition information, mainly used to update partition key range, call this interface carefully, otherwise data loss will occur.
   rpc UpdatePartition(UpdatePartitionRequest) returns (UpdatePartitionResponse) {}
-  // 根据可以查找所属分区
+  // Look up the partition based on the key
   rpc DelPartition(DelPartitionRequest) returns (DelPartitionResponse) {}
-  // 根据条件查询分区信息, 包括Store、Graph等条件
+  // Query partition information based on conditions, including Store, Graph and other conditions
   rpc QueryPartitions(QueryPartitionsRequest) returns (QueryPartitionsResponse){}
-  // 读取图信息
+  // Read graph information
   rpc GetGraph(GetGraphRequest) returns (GetGraphResponse){}
-  // 修改图信息
+  // Modify graph information
   rpc SetGraph(SetGraphRequest) returns (SetGraphResponse){}
   rpc DelGraph(DelGraphRequest) returns (DelGraphResponse){}
-  // 全局唯一自增ID
+  // Global unique incremental ID
   rpc GetId(GetIdRequest) returns (GetIdResponse){}
   rpc ResetId(ResetIdRequest) returns (ResetIdResponse){}
-  // PD的集群列表
+  // PD cluster list
   rpc GetMembers(GetMembersRequest) returns (GetMembersResponse) {}
   rpc GetStoreStatus(GetAllStoresRequest) returns (GetAllStoresResponse) {}
   rpc GetPDConfig(GetPDConfigRequest) returns (GetPDConfigResponse){}
   rpc SetPDConfig(SetPDConfigRequest) returns (SetPDConfigResponse){}
   rpc GetGraphSpace(GetGraphSpaceRequest) returns (GetGraphSpaceResponse){}
   rpc SetGraphSpace(SetGraphSpaceRequest) returns (SetGraphSpaceResponse){}
-  // 获取集群健康状态
+  // Get cluster health status
   rpc GetClusterStats(GetClusterStatsRequest) returns (GetClusterStatsResponse){}
-  // 替换PD的集群节点
+  // Replace PD cluster nodes
   rpc ChangePeerList(ChangePeerListRequest) returns (getChangePeerListResponse) {}
-  // 数据分裂
+  // Data splitting
   rpc SplitData(SplitDataRequest) returns (SplitDataResponse){}
 
   rpc SplitGraphData(SplitGraphDataRequest) returns (SplitDataResponse) {}
-  // 数据迁移
+  // Data migration
   rpc MovePartition(MovePartitionRequest) returns (MovePartitionResponse){}
-  // 汇报分区分裂等任务执行结果
+  // Report partition splitting and other task execution results
   rpc ReportTask(ReportTaskRequest) returns (ReportTaskResponse){}
 
   rpc GetPartitionStats(GetPartitionStatsRequest) returns (GetPartitionStatsResponse){}
-  //平衡store中分区leader的数量
+  // Balance the number of partition leaders in the store
   rpc BalanceLeaders(BalanceLeadersRequest) returns (BalanceLeadersResponse){}
 
-  // 替换license文件
+  // Replace license file
   rpc PutLicense(PutLicenseRequest) returns (PutLicenseResponse){}
 
-  // 通知rocksdb进行compaction
+  // Notify rocksdb to perform compaction
   rpc DbCompaction(DbCompactionRequest) returns (DbCompactionResponse){}
 
-  // 合并分区
+  // Merge partitions
   rpc CombineCluster(CombineClusterRequest) returns (CombineClusterResponse){}
-  // 单个图缩容
+  // Shrink a single graph
   rpc CombineGraph(CombineGraphRequest) returns (CombineGraphResponse) {}
 
   // shard group
   rpc GetShardGroup(GetShardGroupRequest) returns (GetShardGroupResponse){}
   rpc UpdateShardGroup(UpdateShardGroupRequest) returns (UpdateShardGroupResponse){}
-  // 删除掉shard group
+  // Delete shard group
   rpc DeleteShardGroup(DeleteShardGroupRequest) returns (DeleteShardGroupResponse) {}
-  // shard group 运维相关的处理
+  // shard group operation related to operation
   rpc UpdateShardGroupOp(ChangeShardRequest) returns (ChangeShardResponse){}
-  // change shard
+  // Change shard
   rpc ChangeShard(ChangeShardRequest) returns (ChangeShardResponse) {}
-  // 更新pd raft
+  // Update pd raft
   rpc updatePdRaft(UpdatePdRaftRequest) returns (UpdatePdRaftResponse)  {}
 
   rpc getCache(GetGraphRequest) returns (CacheResponse)  {}
@@ -108,9 +108,7 @@ service PD {
 }
 
 message RequestHeader {
-  // 集群 ID.
   uint64 cluster_id = 1;
-  // 发送者 ID.
   uint64 sender_id = 2;
 }
 
@@ -141,21 +139,21 @@ enum ErrorType {
   ROCKSDB_SAVE_SNAPSHOT_ERROR = 1005;
   ROCKSDB_LOAD_SNAPSHOT_ERROR = 1006;
 
-  // 当前集群状态禁止分裂
+  // Current cluster state prohibits splitting
   Cluster_State_Forbid_Splitting = 1007;
-  // 正在分裂中
+  // Currently splitting
   Split_Partition_Doing = 1008;
-  // store上分区数量超过上限
+  // The number of partitions on the store exceeds the limit
   Too_Many_Partitions_Per_Store = 1009;
-  // license 错误
+  // License error
   LICENSE_ERROR = 107;
-  // license 认证错误
+  // License authentication error
   LICENSE_VERIFY_ERROR = 108;
 
-  //分区下线正在进行
+  // Partition offline is in progress
   Store_Tombstone_Doing = 1010;
 
-  // 不合法的分裂个数
+  // Invalid number of splits
   Invalid_Split_Partition_Count = 1011;
 }
 
@@ -193,7 +191,7 @@ message RegisterStoreRequest {
 
 message RegisterStoreResponse {
   ResponseHeader header = 1;
-  // 初次注册，返回新的store_id
+  // Upon initial registration, returns the new store_id
   uint64 store_id = 2;
 }
 
@@ -204,16 +202,15 @@ message SetStoreRequest {
 
 message SetStoreResponse {
   ResponseHeader header = 1;
-  // 返回修改后的Store
+  // Returns the modified Store
   metapb.Store store = 2;
 }
 
-
-// 返回graph_name所在的所有store，如果graph_name为空值，则返回系统所有的store
+// Returns all stores where graph_name is located. If graph_name is empty, returns all system stores.
 message GetAllStoresRequest {
   RequestHeader header = 1;
   string graph_name = 2;
-  // 是否返回离线的store
+  // Whether to exclude offline stores
   bool exclude_offline_stores = 3;
 }
 
@@ -254,7 +251,7 @@ message GetPartitionResponse {
   ResponseHeader header = 1;
   metapb.Partition partition = 2;
   metapb.Shard leader = 3;
-  // 离线的Shard
+  // Offline Shards
   repeated metapb.Shard offline_shards = 4;
 }
 
@@ -435,65 +432,65 @@ enum OperationMode {
   Expert = 1;
 }
 
-message SplitDataParam{
-  // 被分裂的源分区ID
+message SplitDataParam {
+  // ID of the source partition being split
   uint32 partition_id = 1;
-  //目标分区数量
+  // Number of target partitions
   uint32 count = 2;
 }
 
-message SplitDataRequest{
+message SplitDataRequest {
   RequestHeader header = 1;
-  //工作模式
-  //  Auto：自动分裂，每个Store上分区数达到最大值
-  //  Expert:专家模式，需要指定splitParams
+  // Operation mode
+  //  Auto: Automatic splitting, when the number of partitions on each Store reaches the maximum value
+  //  Expert: Expert mode, requires specifying splitParams
   OperationMode mode = 2;
   repeated SplitDataParam param = 3;
 }
 
-message SplitGraphDataRequest{
+message SplitGraphDataRequest {
   RequestHeader header = 1;
-  //工作模式
+  // Operation mode
   string graph_name = 2;
   uint32 to_count = 3;
 }
 
-message SplitDataResponse{
+message SplitDataResponse {
   ResponseHeader header = 1;
 }
 
-message MovePartitionParam{
+message MovePartitionParam {
   uint32 partition_id = 1;
   uint64 src_store_id = 2;
   uint64 dst_store_id = 3;
 }
 
-message MovePartitionRequest{
+message MovePartitionRequest {
   RequestHeader header = 1;
-  //工作模式
-  //  Auto：自动转移，达到每个Store上分区数量相同
-  //  Expert:专家模式，需要指定transferParams
+  // Operation mode
+  //  Auto: Automatic transfer, aiming for equal number of partitions on each Store
+  //  Expert: Expert mode, requires specifying transferParams
   OperationMode mode = 2;
   repeated MovePartitionParam param = 3;
 }
 
-message MovePartitionResponse{
+message MovePartitionResponse {
   ResponseHeader header = 1;
 }
 
-message ReportTaskRequest{
+message ReportTaskRequest {
   RequestHeader header = 1;
   metaTask.Task task = 2;
 }
 
-message ReportTaskResponse{
+message ReportTaskResponse {
   ResponseHeader header = 1;
 }
 
-message GetPartitionStatsRequest{
+message GetPartitionStatsRequest {
   RequestHeader header = 1;
   uint32 partition_id = 2;
-  // 如果未空，返回所有图的同一分区ID
+  // If empty, returns the same partition ID for all graphs
   string graph_name = 4;
 }
 
@@ -596,7 +593,7 @@ message UpdatePdRaftResponse{
 }
 message CacheResponse {
   ResponseHeader header = 1;
-  // 返回修改后的Store
+  // Returns the modified Store
   repeated metapb.Store stores = 2;
   repeated metapb.ShardGroup shards = 3;
   repeated metapb.Graph graphs = 4;

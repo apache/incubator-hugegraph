@@ -21,17 +21,17 @@ option java_package = "org.apache.hugegraph.pd.grpc";
 import "google/protobuf/any.proto";
 
 enum ClusterState{
-  // 集群健康
+  // Cluster health
   Cluster_OK = 0;
-  // 分区警告，存在部分故障节点，短时间不影响读写
+  // Partition warning: There are some faulty nodes, which do not affect read/write for a short time
   Cluster_Warn = 2;
-  // 分区下线，可以读，无法写
+  // The partition is offline, which can be read but cannot be written
   Cluster_Offline = 10;
-  // 分区故障，无法读写,需要尽快修复故障节点。
+  // If the partition is faulty and cannot be read or written, you need to repair the faulty node as soon as possible.
   Cluster_Fault = 11;
   Cluster_Not_Ready = -1;
 }
-// 集群状态
+// Cluster status
 message ClusterStats{
   ClusterState state = 1;
   string message = 2;
@@ -40,15 +40,13 @@ message ClusterStats{
 
 enum StoreState {
   Unknown = 0;
-  // 未激活
+  // Not activated
   Pending = 4;
-  // 在线
+  // online
   Up = 1;
-  // 离线
+  // Offline
   Offline = 2;
-  // 下线中
   Exiting = 5;
-  // 已下线
   Tombstone = 3;
 }
 
@@ -64,7 +62,7 @@ message Store {
   string address = 2;
   string raft_address = 3;
   repeated StoreLabel labels = 4;
-  // Store软件版本号
+  // Store Software version number
   string version = 5;
   StoreState state = 6;
   // The start timestamp of the current store
@@ -73,7 +71,7 @@ message Store {
   // The last heartbeat timestamp of the store.
   int64 last_heartbeat = 9;
   StoreStats stats = 10;
-  // 数据格式版本号
+  // The version number of the data format
   int32 data_version = 11;
   int32 cores = 12;
   string data_path = 13;
@@ -103,38 +101,37 @@ message ShardGroup{
 
 message Graph {
   string graph_name = 2;
-  // 分区数量，0表示无效，不能大于raft分组总数
+  // The number of partitions, 0 indicates invalid and cannot be greater than the total number of raft packets
   int32 partition_count = 3;
-  // 当前工作状态
   PartitionState state = 10;
   string message = 11;
   GraphState graph_state = 12;
 }
-// 分区工作状态
+// Partition working status
 enum PartitionState{
   PState_None = 0;
   //
   PState_Normal = 1;
-  // 分区警告，存在部分故障节点，短时间不影响读写
+  // Partition warning: There are some faulty nodes, which do not affect read/write for a short time
   PState_Warn = 2;
-  // 分区下线，可以读，无法写
+  // The partition is offline, which can be read but cannot be written
   PState_Offline = 10;
-  // 分区故障，无法读写,需要尽快修复故障节点。
+  // If the partition is faulty and cannot be read or written, you need to repair the faulty node as soon as possible.
   PState_Fault = 11;
 }
 
 message PartitionV36 {
   uint32 id = 1;
   string graph_name = 3;
-  // 分区范围 [start_key, end_key).
+  // Partition range [start_key, end_key].
   uint64 start_key = 4;
   uint64 end_key = 5;
   repeated Shard shards = 6;
-  // Leader任期，leader切换后递增
+  // Leader term, leader increment after switching
   uint64 version = 7;
-  // shards版本号，每次改变后递增
+  // shards The version number, which is incremented with each change
   uint64 conf_ver = 8;
-  // 当前工作状态
+  // Current working status
   PartitionState state = 10;
   string message = 11;
 }
@@ -142,16 +139,16 @@ message PartitionV36 {
 message Partition {
   uint32 id = 1;
   string graph_name = 3;
-  // 分区范围 [start_key, end_key).
+  // Partition range [start_key, end_key].
   uint64 start_key = 4;
   uint64 end_key = 5;
-  // Partition 对象不在保存 shard list（根据对应的shard group 去查询), version 和 conf version不再有实际的意义
+  // The partition object no longer stores the shard list (which is queried according to the corresponding shard group), and the version and conf version are no longer meaningful
   // repeated Shard shards = 6;
-  // key range 每次改变后递增
+  // key range increment after each change
   uint64 version = 7;
-  // shards版本号，每次改变后递增
+  // shards The version number, which is incremented with each change
   // uint64 conf_ver = 8;
-  // 当前工作状态
+  // Current working status
   PartitionState state = 10;
   string message = 11;
 }
@@ -159,21 +156,21 @@ message Partition {
 message PartitionShard {
   metapb.Partition partition = 1;
   metapb.Shard leader = 2;
-  // 离线的Shard
+  // Offline Shard
   repeated metapb.Shard offline_shards = 3;
 }
-// 记录分区所在的存储位置
+// The storage location where the record partition is located
 message PartitionStore {
   uint32 partition_id = 1;
   string graph_name = 3;
-  // 存储位置
+  // Storage location
   string store_location = 4;
 }
 
 message PartitionRaft {
   uint32 partition_id = 1;
   string graph_name = 3;
-  // 存储位置
+  // Storage location
   string raft_location = 4;
 }
 
@@ -181,42 +178,43 @@ message ShardStats{
   uint64 store_id = 2;
   ShardRole role = 3;
   ShardState state = 4;
-  // 安装快照的进度
+  // The progress of the installation of the snapshot
   uint32 progress = 5;
 }
+
 message PartitionStats{
   uint32 id = 1;
-  // raft分组的任期.
+  // raft Term of office of the group.
   uint64 leader_term = 2;
   repeated string graph_name = 3;
   metapb.Shard leader = 4;
-  // 离线 shards
+  // Offline shards
   repeated metapb.Shard shard = 5;
   repeated metapb.Shard learner = 6;
   uint64 conf_ver = 7;
-  // 分区状态
+  // partition status
   PartitionState state = 8;
   repeated ShardStats shardStats = 9;
-  // 分区近似大小
+  // The approximate size of the partition
   uint64 approximate_size = 10;
-  // 分区key的近似数量
+  // The approximate number of partition keys
   uint64 approximate_keys = 13;
   // heartbeat timestamp
   int64 timestamp = 16;
 }
 
 message GraphStats{
-  // 图名
+  // graph
   string graph_name = 1;
-  // 分区近似大小
+  // The approximate size of the partition
   uint64 approximate_size = 2;
-  // 分区key的近似数量
+  // The approximate number of partition keys
   uint64 approximate_keys = 3;
   //  // committed index
   //  uint64 committed_index = 4;
   uint32 partition_id = 5;
   ShardRole role = 6;
-  // 当前工作状态
+  // Current working status
   PartitionState work_state = 8;
 }
 
@@ -252,11 +250,11 @@ message QueryStats {
 
 enum ShardState{
   SState_None = 0;
-  // 正常
+  // Normal
   SState_Normal = 1;
-  // 安装快照
+  // Install snapshots
   SState_Snapshot = 2;
-  // 离线
+  // Offline
   SState_Offline = 10;
 }
 
@@ -310,14 +308,14 @@ message StoreStats {
   repeated RecordPair system_metrics = 25;
 }
 
-// 分区查询条件
+// Partition query criteria
 message PartitionQuery{
-  optional uint64 store_id = 1;      // 0 表示查询条件不包含store_id
+  optional uint64 store_id = 1;      // 0 Indicates that the query criteria do not contain store_id
   optional string graph_name = 2;
   optional uint32 partition_id = 4;
 }
 
-//PD 节点信息
+// PD Node information
 message Member {
   uint64 cluster_id = 1;
   string raft_url = 3;
@@ -329,37 +327,38 @@ message Member {
   string replicator_state = 9;
 }
 
-// 图空间配置
+// Graph space configuration
 message GraphSpace{
   string name = 1;
-  // 最大占用存储
+  // Maximum occupied storage
   uint64 storage_limit = 2;
-  // 已使用空间
+  // Space used
   uint64 used_size = 3;
-  // 修改时间
+  // Modify time
   uint64 timestamp = 10;
 }
 
-// PD 配置
+// PD Config
 message PDConfig{
   uint64 version = 1;
-  // 分区数量, 初始化根据Store数量动态计算，分裂后进行修改
+  // The number of partitions is dynamically calculated based on the number of stores at the initialization and modified after splitting
+  // The exact count needs to be determined based on the store group
   int32 partition_count = 2;
-  // 每分区副本数量
+  // Number of replicas per partition
   int32 shard_count = 3;
-  // pd集群列表
+  // pd List of clusters
   string peers_list = 4;
-  // 集群中最少store数量
+  // The minimum number of stores in the cluster
   int32 min_store_count = 6;
-  // 每个store最大副本数
+  // Maximum number of replicas per store
   int32 max_Shards_Per_Store = 7;
-  // 修改时间
+  // Modify time
   uint64 timestamp = 10;
 }
 
 
 
-//消息持久化
+// Message persistence
 message QueueItem{
   string item_id = 1;
   string item_class = 2;
@@ -387,8 +386,7 @@ enum GraphMode{
 }
 
 enum GraphModeReason{
-  Empty = 0; // 空
-  Initiative = 1; // 主动的状态设置
-  Quota = 2; // 达到限额条件
-
+  Empty = 0;
+  Initiative = 1; // Active status settings
+  Quota = 2; // The limit condition is reached
 }
