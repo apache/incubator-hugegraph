@@ -41,7 +41,8 @@ public interface VersionUpgradeScript {
 
     /**
      * If there is no data version in the PD, whether to execute the . Generally, it corresponds
-     * to 3.6.2 previous versions     *
+     * to 3.6.2 previous versions
+     *
      * @return run when pd has no data version
      */
     boolean isRunWithoutDataVersion();

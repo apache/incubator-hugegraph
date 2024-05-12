@@ -236,6 +236,7 @@ public class MemberAPI extends API {
         }
 
         @Useless("delete later")
-        public Member() {}
+        public Member() {
+        }
     }
 }

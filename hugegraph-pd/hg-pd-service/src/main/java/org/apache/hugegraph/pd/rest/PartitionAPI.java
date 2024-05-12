@@ -149,7 +149,8 @@ public class PartitionAPI extends API {
             Integer partitionId = entry.getKey();
             HighLevelPartition currentPartition = resultPartitionsMap.get(partitionId);
             Map<String, GraphStats> graphsMap = partitions2GraphsMap
-                    .getOrDefault(partitionId, new HashMap<>()); // Avoid null pointer exceptions at the back
+                    .getOrDefault(partitionId,
+                                  new HashMap<>()); // Avoid null pointer exceptions at the back
             ArrayList<GraphStats> graphsList = new ArrayList<>();
             for (Map.Entry<String, GraphStats> entry1 : graphsMap.entrySet()) {
                 if (!entry1.getKey().endsWith("/g")) {
