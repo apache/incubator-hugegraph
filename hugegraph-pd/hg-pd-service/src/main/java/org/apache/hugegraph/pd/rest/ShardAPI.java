@@ -50,8 +50,6 @@ public class ShardAPI extends API {
     @GetMapping(value = "/shards", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestApiResponse getShards() {
-
-        //对shards信息的统计
         try {
             List<Shard> resultShardList = new ArrayList<>();
             List<Metapb.Graph> graphs = pdRestService.getGraphs();

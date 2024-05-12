@@ -64,7 +64,7 @@ public class PDRestService implements InitializingBean {
     private StoreMonitorDataService storeMonitorDataService;
 
     /**
-     * 初始化
+     * initialize
      *
      * @throws Exception
      */

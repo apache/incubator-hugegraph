@@ -41,7 +41,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * watch订阅、响应处理类
+ * Watch subscription and response processing classes
  **/
 @Slf4j
 public class KvWatchSubject {
@@ -57,7 +57,7 @@ public class KvWatchSubject {
     BiPredicate<String, String> startWith = String::startsWith;
 
     /**
-     * 会使用以下三组key:
+     * The following three sets of keys will be used:
      * clients -> W@KW@key@clientId
      * rocksdb key1 ->W@KW@key@clientId
      * rocksdb key2 ->W@clientId@KW@key@clientId
@@ -86,12 +86,13 @@ public class KvWatchSubject {
     }
 
     /**
-     * 增加观察者
+     * Increase observers
      *
-     * @param key       观察的key
-     * @param clientId  客户端标识
+     * @param key       The key of the observation
+     * @param clientId  Client identity
      * @param observer
-     * @param delimiter 观察类型标识符，对前缀监听或者对key的监听可以通过此参数区分
+     * @param delimiter Observe the type identifier, listen to the prefix or listen to the key
+     *                  can be distinguished by this parameter
      * @throws PDException
      */
     public void addObserver(String key, long clientId, StreamObserver<WatchResponse> observer,
@@ -111,11 +112,13 @@ public class KvWatchSubject {
     }
 
     /**
-     * 通知观察者方法，key和prefix都使用此方法，predicate不同
+     * The notification observer method, which is used by both key and prefix, is different from
+     * predicate
      *
      * @param key
-     * @param watchType 观察类型，一般是增加和删除
-     * @param predicate 判断等于或者是前匹配，用来适配key或prefix观察
+     * @param watchType Observation types, generally additions and deletions
+     * @param predicate Determine whether it is equal or pre-matched, and use it to adapt to the
+     *                  key or prefix observation
      * @param kvs
      * @throws PDException
      */
@@ -177,10 +180,10 @@ public class KvWatchSubject {
     }
 
     /**
-     * 续活客户端
-     * 1.往客户端发一个alive的消息，带重试哈
-     * 2.如果有响应，则续活之前保存的那两组key
-     * 3.如果多次都失败，则删除内存和rocksdb的数据
+     * Renew the client
+     * 1. Send an alive message to the client with a retry
+     * 2. If there is a response, the two sets of keys saved before will be reactivated
+     * 3. If it fails multiple times, delete the data of memory and rocksdb
      */
     public void keepClientAlive() {
         WatchResponse testAlive = WatchResponse.newBuilder().setState(WatchState.Alive).build();
@@ -256,7 +259,7 @@ public class KvWatchSubject {
     }
 
     /**
-     * 通知客户端leader切换了，重连
+     * Notify the client that the leader has switched and reconnect
      */
     public void notifyClientChangeLeader() {
         WatchResponse response =

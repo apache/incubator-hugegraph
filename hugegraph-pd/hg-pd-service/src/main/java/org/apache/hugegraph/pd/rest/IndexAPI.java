@@ -98,7 +98,6 @@ public class IndexAPI extends API {
             statistics.onlineStoreSize = pdService.getStoreNodeService().getActiveStores().size();
             statistics.offlineStoreSize = statistics.storeSize - statistics.onlineStoreSize;
             List<Metapb.Graph> graphs = pdRestService.getGraphs();
-            // 图的数量，只统计/g
             statistics.graphSize = graphs.stream().filter((g) -> (g.getGraphName() != null)
                                                                  &&
                                                                  (g.getGraphName().endsWith("/g")))
@@ -112,11 +111,15 @@ public class IndexAPI extends API {
                     statistics.dataSize += graphStats.getApproximateSize();
                 }
             }
-            // 数据状态：根据图的状态推出数据状态,枚举值越大，问题越严重， 默认为正常状态
+            // Data status: The data status is deduced based on the state of the graph, the
+            // larger the enumeration value, the more serious the problem, and the default is the
+            // normal state
             Metapb.PartitionState dataState = Metapb.PartitionState.PState_Normal;
             for (Metapb.Graph graph : pdRestService.getGraphs()) {
                 if (graph.getState() == Metapb.PartitionState.UNRECOGNIZED) {
-                    continue; // 未识别不参与对比，不然会抛出异常
+                    // If it is not recognized, it will not participate in the
+                    // comparison, otherwise an exception will be thrown
+                    continue;
                 }
                 if ((graph.getState() != null) &&
                     (graph.getState().getNumber() > dataState.getNumber())) {
@@ -174,9 +177,9 @@ public class IndexAPI extends API {
         String state;
         String dataPath;
         String role;
-        String serviceName; //服务名称，自定义属性
-        String serviceVersion; //静态定义
-        long startTimeStamp; //进程启动时间
+        String serviceName; // Service name, custom attributes
+        String serviceVersion; // Static definitions
+        long startTimeStamp; // The time when the process started
 
         public Member(Metapb.Member member) {
             if (member != null) {
@@ -200,31 +203,31 @@ public class IndexAPI extends API {
     class Statistics {
 
         /**
-         * 集群状态
+         * Cluster status, default of the cluster
          */
         String state;
         /**
-         * 数据状态
+         * Data status
          */
         String dataState;
         /**
-         * pd集群成员
+         * pd Cluster members
          */
         List<Member> pdList;
         /**
-         * pd集群的leader
+         * pd The leader of the cluster
          */
         Member pdLeader;
         /**
-         * pd集群的大小
+         * pd The size of the cluster
          */
         int memberSize;
         /**
-         * stores列表
+         * stores list
          */
         List<Store> stores;
         /**
-         * store的数量
+         * store quantity
          */
         int storeSize;
         /**
@@ -232,27 +235,27 @@ public class IndexAPI extends API {
          */
         int onlineStoreSize;
         /**
-         * 离线的store的数量
+         * The number of stores that are offline
          */
         int offlineStoreSize;
         /**
-         * 图的数量
+         * The number of graphs
          */
         long graphSize;
         /**
-         * 分区的数量
+         * The number of partitions
          */
         int partitionSize;
         /**
-         * 分区副本数
+         * Number of partition replicas
          */
         int shardCount;
         /**
-         * key的数量
+         * The number of keys
          */
         long keyCount;
         /**
-         * 数据量
+         * Amount of data
          */
         long dataSize;
 

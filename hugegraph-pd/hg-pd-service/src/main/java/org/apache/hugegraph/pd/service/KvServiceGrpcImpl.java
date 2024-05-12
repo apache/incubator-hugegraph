@@ -56,7 +56,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * kv 存储的核心实现类
+ * The core implementation class of KV storage
  */
 @Slf4j
 @GRpcService
@@ -87,7 +87,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的 put
+     * Ordinary put
      *
      * @param request
      * @param responseObserver
@@ -119,7 +119,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的 get
+     * Ordinary get
      *
      * @param request
      * @param responseObserver
@@ -151,7 +151,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的 delete
+     * Ordinary delete
      *
      * @param request
      * @param responseObserver
@@ -185,7 +185,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 按前缀删除
+     * Delete by prefix
      *
      * @param request
      * @param responseObserver
@@ -223,7 +223,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 按前缀查询
+     * Search by prefix
      *
      * @param request
      * @param responseObserver
@@ -253,7 +253,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 获取随机非 0 字符串做 Id
+     * Obtain a random non-0 string as an Id
      *
      * @return
      */
@@ -268,7 +268,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的 watch
+     * Ordinary watch
      *
      * @param request
      * @param responseObserver
@@ -295,7 +295,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 普通的前缀 watch
+     * Ordinary prefix watch
      *
      * @param request
      * @param responseObserver
@@ -322,7 +322,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 上面两个方法的通用方式
+     * A generic approach to the above two methods
      *
      * @param request
      * @param responseObserver
@@ -358,7 +358,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 加锁
+     * Locking
      *
      * @param request
      * @param responseObserver
@@ -450,7 +450,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 解锁
+     * Unlock
      *
      * @param request
      * @param responseObserver
@@ -484,7 +484,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 锁续活
+     * Lock renewal
      *
      * @param request
      * @param responseObserver
@@ -520,7 +520,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 带超时时间的 put
+     * PUT with timeout
      *
      * @param request
      * @param responseObserver
@@ -549,7 +549,7 @@ public class KvServiceGrpcImpl extends KvServiceGrpc.KvServiceImplBase implement
     }
 
     /**
-     * 续活带有超时时间的 key
+     * Reactivate the key with a timeout period
      *
      * @param request
      * @param responseObserver
