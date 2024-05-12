@@ -318,8 +318,6 @@ public class PDClientTest extends BaseClientTest {
             Metapb.PDConfig config = pdClient.getPDConfig();
             pdClient.setPDConfig(config.toBuilder().setMaxShardsPerStore(12).build());
             System.out.println(pdClient.getPDConfig());
-
-            // 开始分区分裂
             pdClient.splitData();
         } catch (Exception e) {
             e.printStackTrace();
