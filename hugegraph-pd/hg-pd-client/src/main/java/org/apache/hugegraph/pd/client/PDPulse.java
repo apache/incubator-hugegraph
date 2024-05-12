@@ -78,7 +78,8 @@ public interface PDPulse {
     Notifier<PartitionHeartbeatRequest.Builder> connectPartition(Listener<PulseResponse> listener);
 
     /**
-     * 切换成新的host。做 channel/host的检查，如果需要关闭，notifier调用close方法。
+     * Switch to the new host. Do a channel/host check, and if you need to close, notifier calls
+     * the close method.
      *
      * @param host     new host
      * @param notifier notifier

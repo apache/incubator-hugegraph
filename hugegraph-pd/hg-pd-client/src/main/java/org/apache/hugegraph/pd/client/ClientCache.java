@@ -105,13 +105,6 @@ public class ClientCache {
         return null;
     }
 
-    /**
-     * 根据key的hashcode返回分区信息
-     *
-     * @param graphName
-     * @param code
-     * @return
-     */
     public KVPair<Partition, Shard> getPartitionByCode(String graphName, long code) {
         try {
             GraphCache graph = initGraph(graphName);
@@ -172,12 +165,6 @@ public class ClientCache {
         }
     }
 
-    /**
-     * 返回key所在的分区信息
-     *
-     * @param key
-     * @return
-     */
     public KVPair<Partition, Shard> getPartitionByKey(String graphName, byte[] key) {
         int code = PartitionUtils.calcHashcode(key);
         return getPartitionByCode(graphName, code);
@@ -193,8 +180,6 @@ public class ClientCache {
             RangeMap<Long, Integer> range = graph.getRange();
             graph.addPartition(partId, partition);
             if (p != null) {
-                // old [1-3) 被 [2-3)覆盖了。当 [1-3) 变成[1-2) 不应该删除原先的[1-3)
-                // 当确认老的 start, end 都是自己的时候，才可以删除老的. (即还没覆盖）
                 if (Objects.equals(partition.getId(), range.get(partition.getStartKey())) &&
                     Objects.equals(partition.getId(), range.get(partition.getEndKey() - 1))) {
                     range.remove(range.getEntry(partition.getStartKey()).getKey());

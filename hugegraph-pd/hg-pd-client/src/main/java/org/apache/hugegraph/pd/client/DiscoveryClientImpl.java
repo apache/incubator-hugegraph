@@ -28,10 +28,10 @@ import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 public class DiscoveryClientImpl extends DiscoveryClient {
 
     private final String id;
-    private final RegisterType type; // 心跳类型，备用
+    private final RegisterType type;
     private final String version;
     private final String appName;
-    private final int times; // 心跳过期次数，备用
+    private final int times;
     private final String address;
     private final Map labels;
     private final Consumer registerConsumer;

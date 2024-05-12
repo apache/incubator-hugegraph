@@ -53,7 +53,7 @@ import io.grpc.stub.AbstractBlockingStub;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * PD客户端实现类
+ * PD client implementation class
  */
 @Slf4j
 public class PDClient {
@@ -78,7 +78,7 @@ public class PDClient {
     }
 
     /**
-     * 创建PDClient对象，并初始化stub
+     * Create a PD client object and initialize the stub
      *
      * @param config
      * @return
@@ -210,7 +210,6 @@ public class PDClient {
     }
 
     private synchronized void closeStub(boolean closeWatcher) {
-        // TODO ManagedChannel  没有正常关闭
         stubProxy.set(null);
         cache.reset();
 
@@ -308,7 +307,8 @@ public class PDClient {
     }
 
     /**
-     * Store注册，返回storeID，初次注册会返回新ID
+     * Store registration, the store ID will be returned, and the initial registration will
+     * return a new ID
      *
      * @param store
      * @return
@@ -325,7 +325,7 @@ public class PDClient {
     }
 
     /**
-     * 根据storeId返回Store对象
+     * Returns the Store object based on the store ID
      *
      * @param storeId
      * @return
@@ -348,7 +348,7 @@ public class PDClient {
     }
 
     /**
-     * 更新Store信息，包括上下线等
+     * Update the store information, including online and offline
      *
      * @param store
      * @return
@@ -368,7 +368,7 @@ public class PDClient {
     }
 
     /**
-     * 返回活跃的Store
+     * Return to the active store
      *
      * @param graphName
      * @return
@@ -400,7 +400,7 @@ public class PDClient {
     }
 
     /**
-     * 返回活跃的Store
+     * Return to the active store
      *
      * @param graphName
      * @return
@@ -418,7 +418,7 @@ public class PDClient {
     }
 
     /**
-     * Store心跳，定期调用，保持在线状态
+     * Store heartbeat, call regularly, stay online
      *
      * @param stats
      * @throws PDException
@@ -452,7 +452,7 @@ public class PDClient {
     }
 
     /**
-     * 查询Key所属分区信息
+     * Query the partition to which the key belongs
      *
      * @param graphName
      * @param key
@@ -461,7 +461,6 @@ public class PDClient {
      */
     public KVPair<Metapb.Partition, Metapb.Shard> getPartition(String graphName, byte[] key) throws
                                                                                              PDException {
-        // 先查cache，cache没有命中，在调用PD
         KVPair<Metapb.Partition, Metapb.Shard> partShard = cache.getPartitionByKey(graphName, key);
         partShard = getKvPair(graphName, key, partShard);
         return partShard;
@@ -477,7 +476,7 @@ public class PDClient {
     }
 
     /**
-     * 根据hashcode查询所属分区信息
+     * Query the partition information based on the hashcode
      *
      * @param graphName
      * @param hashCode
@@ -487,7 +486,6 @@ public class PDClient {
     public KVPair<Metapb.Partition, Metapb.Shard> getPartitionByCode(String graphName,
                                                                      long hashCode)
             throws PDException {
-        // 先查cache，cache没有命中，在调用PD
         KVPair<Metapb.Partition, Metapb.Shard> partShard =
                 cache.getPartitionByCode(graphName, hashCode);
         if (partShard == null) {
@@ -520,14 +518,14 @@ public class PDClient {
     }
 
     /**
-     * 获取Key的哈希值
+     * Obtain the hash value of the key
      */
     public int keyToCode(String graphName, byte[] key) {
         return PartitionUtils.calcHashcode(key);
     }
 
     /**
-     * 根据分区id返回分区信息, RPC请求
+     * Returns partition information based on the partition ID and RPC request
      *
      * @param graphName
      * @param partId
@@ -605,7 +603,7 @@ public class PDClient {
     }
 
     /**
-     * 返回startKey和endKey跨越的所有分区信息
+     * Returns information about all partitions spanned by the start and end keys
      *
      * @param graphName
      * @param startKey
@@ -626,8 +624,7 @@ public class PDClient {
 
         partitions.add(startPartShard);
         while (startPartShard.getKey().getEndKey() < endPartShard.getKey().getEndKey()
-               && startPartShard.getKey().getEndKey() <
-                  PartitionUtils.MAX_VALUE /*排除最后一个分区*/) {
+               && startPartShard.getKey().getEndKey() < PartitionUtils.MAX_VALUE) {
             startPartShard = getPartitionByCode(graphName, startPartShard.getKey().getEndKey());
             partitions.add(startPartShard);
         }
@@ -635,7 +632,7 @@ public class PDClient {
     }
 
     /**
-     * 根据条件查询分区信息
+     * Query partition information based on conditions
      *
      * @return
      * @throws PDException
@@ -654,12 +651,6 @@ public class PDClient {
         return response.getPartitionsList();
     }
 
-    /**
-     * 查找指定store上的指定partitionId
-     *
-     * @return
-     * @throws PDException
-     */
     public List<Metapb.Partition> queryPartitions(long storeId, int partitionId) throws
                                                                                  PDException {
 
@@ -765,32 +756,30 @@ public class PDClient {
     }
 
     /**
-     * 删除分区缓存
+     * Delete the partitioned cache
      */
     public void invalidPartitionCache(String graphName, int partitionId) {
-        // 检查是否存在缓存
         if (null != cache.getPartitionById(graphName, partitionId)) {
             cache.removePartition(graphName, partitionId);
         }
     }
 
     /**
-     * 删除分区缓存
+     * Delete the partitioned cache
      */
     public void invalidPartitionCache() {
-        // 检查是否存在缓存
         cache.removePartitions();
     }
 
     /**
-     * 删除分区缓存
+     * Delete the partitioned cache
      */
     public void invalidStoreCache(long storeId) {
         cache.removeStore(storeId);
     }
 
     /**
-     * Hugegraph server 调用，Leader发生改变，更新缓存
+     * Update the cache
      */
     public void updatePartitionLeader(String graphName, int partId, long leaderStoreId) {
         KVPair<Metapb.Partition, Metapb.Shard> partShard = null;
@@ -817,7 +806,6 @@ public class PDClient {
 
                 if (config.isEnableCache()) {
                     if (shard == null) {
-                        // 分区的shard中未找到leader，说明分区发生了迁移
                         cache.removePartition(graphName, partId);
                     }
                 }
@@ -828,7 +816,7 @@ public class PDClient {
     }
 
     /**
-     * Hugegraph-store调用，更新缓存
+     * Update the cache
      *
      * @param partition
      */
@@ -904,10 +892,7 @@ public class PDClient {
         } catch (Exception e) {
             log.error(method.getFullMethodName() + " exception, {}", e.getMessage());
             if (e instanceof StatusRuntimeException) {
-                StatusRuntimeException se = (StatusRuntimeException) e;
-                //se.getStatus() == Status.UNAVAILABLE &&
                 if (retry < stubProxy.getHostCount()) {
-                    // 网络不通，关掉之前连接，换host重新连接
                     closeStub(true);
                     return blockingUnaryCall(method, req, ++retry);
                 }
@@ -938,7 +923,7 @@ public class PDClient {
     }
 
     /**
-     * 返回Store状态信息
+     * Returns the store status information
      */
     public List<Metapb.Store> getStoreStatus(boolean offlineExcluded) throws PDException {
         Pdpb.GetAllStoresRequest request = Pdpb.GetAllStoresRequest.newBuilder()
@@ -1031,8 +1016,12 @@ public class PDClient {
     }
 
     /**
-     * 工作模式
-     * Auto：自动分裂，每个Store上分区数达到最大值
+     * Working mode
+     * Auto：If the number of partitions on each store reaches the maximum value, you need to
+     * specify the store group id. The store group id is 0, which is the default partition
+     * splitData(ClusterOp.OperationMode mode, int storeGroupId, List<ClusterOp.SplitDataParam>
+     * params)
+     * mode = Auto storeGroupId, params
      *
      * @throws PDException
      */
@@ -1046,9 +1035,11 @@ public class PDClient {
     }
 
     /**
-     * 工作模式
-     * Auto：自动分裂，每个Store上分区数达到最大值
-     * Expert:专家模式，需要指定splitParams
+     * Working mode
+     * Auto：If the number of partitions on each store reaches the maximum value, you need to
+     * specify the store group id. The store group id is 0, which is the default partition
+     * Expert:Expert Mode，Specifier is required splitParams, limit SplitDataParam in the same
+     * store group
      *
      * @param mode
      * @param params
@@ -1075,7 +1066,8 @@ public class PDClient {
     }
 
     /**
-     * 自动转移，达到每个Store上分区数量相同
+     * To automatically transfer to the same number of partitions on each Store, it is
+     * recommended to use balancePartition(int storeGroupId) to specify the storeGroupId
      *
      * @throws PDException
      */
@@ -1090,12 +1082,13 @@ public class PDClient {
     }
 
     /**
-     * //工作模式
-     * //  Auto：自动转移，达到每个Store上分区数量相同
-     * //  Expert:专家模式，需要指定transferParams
+     * Migrate partitions in manual mode
+     * //Working mode
+     * //  Auto：Automatic transfer to the same number of partitions per Store
+     * //  Expert:Expert Mode，Specifier is required transferParams
      *
-     * @param mode
-     * @param params
+     * @param params Designation transferParams, expert mode，request source store / target store
+     *               in the same store group
      * @throws PDException
      */
     public void movePartition(Pdpb.OperationMode mode, List<Pdpb.MovePartitionParam> params) throws
@@ -1128,7 +1121,7 @@ public class PDClient {
     }
 
     /**
-     * 平衡不同store中leader的数量
+     * Balance the number of leaders in different stores
      */
     public void balanceLeaders() throws PDException {
         Pdpb.BalanceLeadersRequest request = Pdpb.BalanceLeadersRequest.newBuilder()
@@ -1139,7 +1132,7 @@ public class PDClient {
     }
 
     /**
-     * 从pd中删除store
+     * Remove the store from the PD
      */
     public Metapb.Store delStore(long storeId) throws PDException {
         Pdpb.DetStoreRequest request = Pdpb.DetStoreRequest.newBuilder()
@@ -1152,7 +1145,7 @@ public class PDClient {
     }
 
     /**
-     * 对rocksdb整体进行compaction
+     * Compaction on rocksdb as a whole
      *
      * @throws PDException
      */
@@ -1166,7 +1159,7 @@ public class PDClient {
     }
 
     /**
-     * 对rocksdb指定表进行compaction
+     * Compaction on rocksdb specified tables
      *
      * @param tableName
      * @throws PDException
@@ -1182,9 +1175,9 @@ public class PDClient {
     }
 
     /**
-     * 分区合并，把当前的分区缩容至toCount个
+     * Merge partitions to reduce the current partition to toCount
      *
-     * @param toCount 缩容到分区的个数
+     * @param toCount The number of partitions that can be scaled down
      * @throws PDException
      */
     public void combineCluster(int toCount) throws PDException {
@@ -1198,7 +1191,9 @@ public class PDClient {
     }
 
     /**
-     * 将单图缩容到 toCount个
+     * Scaling a single image to toCount is similar to splitting to ensure that the number of
+     * partitions in the same store group is the same.
+     * If you have special requirements, you can consider migrating to other groups
      *
      * @param graphName graph name
      * @param toCount   target count
@@ -1228,7 +1223,7 @@ public class PDClient {
     }
 
     /**
-     * 用于 store的 shard list重建
+     * Used for the store's shard list rebuild
      *
      * @param groupId shard group id
      * @param shards  shard list，delete when shards size is 0
@@ -1316,7 +1311,7 @@ public class PDClient {
 
         public String nextHost() {
             String host = hostList.poll();
-            hostList.offer(host);   //移到尾部
+            hostList.offer(host);
             return host;
         }
 

@@ -164,7 +164,6 @@ public abstract class AbstractClient implements Closeable {
             log.error(method.getFullMethodName() + " exception, {}", e.getMessage());
             if (e instanceof StatusRuntimeException) {
                 if (retry < stubProxy.getHostCount()) {
-                    // 网络不通，关掉之前连接，换host重新连接
                     synchronized (this) {
                         stubProxy.setBlockingStub(null);
                     }
