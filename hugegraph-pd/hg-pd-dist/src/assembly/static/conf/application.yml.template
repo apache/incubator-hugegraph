@@ -33,8 +33,8 @@ management:
 
 grpc:
   port: $GRPC_PORT$
-  # grpc的服务地址,
-  #注意：部署时需要改为本地实际IPv4地址。
+  # grpc's service address,
+  # Note: You need to change to the local actual Iv 4 address when deploying.
   host: $GRPC_HOST$
   netty-server:
     max-inbound-message-size: 100MB
@@ -43,29 +43,30 @@ server:
   port : $SERVER_PORT$
 
 pd:
-  # 集群ID，区分不同的PD集群
+  # Cluster ID: to distinguish different PD clusters
 
   patrol-interval: 2147483647
   data-path: $PD_DATA_PATH$
 
 raft:
   address: $RAFT_ADDRESS$
-  # raft集群
+  # raft cluster
   peers-list: $RAFT_PEERS_LIST$
-  # 快照生成时间间隔，单位秒
+  # The interval between snapshot generation, in seconds
   snapshotInterval: 300
   metrics: true
 store:
-  # store心跳超时时间，超过该时间，认为store临时不可用，转移Leader到其他副本,单位秒
+  # If the store heartbeat timeout period exceeds this time, the store is temporarily unavailable and the leader is transferred to another replica in seconds
   keepAlive-timeout: 60
-  # store下线时间。超过该时间，认为store永久不可用，分配副本到其他机器，单位秒
+  # The time when the store went offline. After that time, the store is considered permanently unavailable, and the replica is allocated to another machine, in seconds
   max-down-time: 1800
 partition:
-  # 默认分区总数
+  # The default total number of partitions
   default-total-count: 30
-  # 默认每个分区副本数
+  # Default number of replicas per partition
   default-shard-count: 3
 
 discovery:
-  #客户端注册后，无心跳最长次数，超过后，之前的注册信息会被删除
+  # After the client registers, the maximum number of heartbeats is not reached, and after that, the
+   previous registration information will be deleted
   heartbeat-try-count: 3
