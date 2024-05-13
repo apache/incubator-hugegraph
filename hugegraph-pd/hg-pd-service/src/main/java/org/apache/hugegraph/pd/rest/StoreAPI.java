@@ -81,7 +81,7 @@ public class StoreAPI extends API {
         }
     }
 
-    // 仅支持通过该接口修改 storeState
+    // Only storeState can be modified through this API
     @PostMapping(value = "/store/{storeId}", consumes = MediaType.APPLICATION_JSON_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
@@ -113,7 +113,7 @@ public class StoreAPI extends API {
     }
 
     /**
-     * 返回每个store上的leader
+     * Returns the leader on each store
      *
      * @return
      */
@@ -184,7 +184,7 @@ public class StoreAPI extends API {
     @GetMapping(value = "store/{storeId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestApiResponse getStore(@PathVariable long storeId) {
-        //获取store的统计信息
+        // Get the statistics of the store
         Metapb.Store store = null;
         try {
             store = pdRestService.getStore(storeId);
@@ -238,12 +238,11 @@ public class StoreAPI extends API {
     @Data
     class Partition {
 
-        //分区信息
         int partitionId;
         String graphName;
         String role; // shard role
         String workState;
-        long dataSize; // 占用的存储空间
+        long dataSize; // The amount of storage space occupied
 
         Partition() {
         }
@@ -262,26 +261,27 @@ public class StoreAPI extends API {
     @Data
     class StoreStatistics {
 
-        //store的统计信息
+        // store statistics
         long storeId;
         String address;
         String raftAddress;
         String version;
         String state;
         String deployPath;
-        String dataPath; // 数据存储路径
+        String dataPath; // The path where the data is stored
         long startTimeStamp;
-        long registedTimeStamp; // 暂时取第一次心跳时间作为注册时间
-        long lastHeartBeat; // 上一次心跳时间
+        // For the time being, the time of the first heartbeat is taken as the registration time
+        long registedTimeStamp;
+        long lastHeartBeat; // Last heartbeat time
         long capacity;
         long available;
         int partitionCount;
         int graphSize;
         long keyCount;
-        long leaderCount; // shard role = 'Leader'的分区数量
+        long leaderCount; // shard role = 'Leader' The number of partitions
         String serviceName;
         String serviceVersion;
-        long serviceCreatedTimeStamp; // 服务创建时间
+        long serviceCreatedTimeStamp; // The time when the service was created
         List<Partition> partitions;
 
         StoreStatistics(Metapb.Store store) {
@@ -294,25 +294,26 @@ public class StoreAPI extends API {
                 deployPath = store.getDeployPath();
                 final String prefix = "file:";
                 if ((deployPath != null) && (deployPath.startsWith(prefix))) {
-                    // 去掉前缀
+                    // Remove the prefix
                     deployPath = deployPath.substring(prefix.length());
                 }
                 if ((deployPath != null) && (deployPath.contains(".jar"))) {
-                    // 去掉jar包之后的信息
+                    // Remove the information after the jar package
                     deployPath = deployPath.substring(0, deployPath.indexOf(".jar") + 4);
                 }
                 dataPath = store.getDataPath();
                 startTimeStamp = store.getStartTimestamp();
                 try {
                     serviceCreatedTimeStamp = pdRestService.getStore(store.getId())
-                                                           .getStats().getStartTime(); // 实例时间
+                                                           .getStats()
+                                                           .getStartTime(); // Instance time
                     final int base = 1000;
-                    serviceCreatedTimeStamp *= base; // 转化为毫秒
+                    serviceCreatedTimeStamp *= base; // Translates to milliseconds
                 } catch (PDException e) {
                     e.printStackTrace();
                     serviceCreatedTimeStamp = store.getStartTimestamp();
                 }
-                registedTimeStamp = store.getStartTimestamp(); // 注册时间
+                registedTimeStamp = store.getStartTimestamp(); // Time of registration
                 lastHeartBeat = store.getLastHeartbeat();
                 capacity = store.getStats().getCapacity();
                 available = store.getStats().getAvailable();
@@ -320,14 +321,17 @@ public class StoreAPI extends API {
                 serviceName = address + "-store";
                 serviceVersion = store.getVersion();
                 List<Metapb.GraphStats> graphStatsList = store.getStats().getGraphStatsList();
-                List<Partition> partitionStatsList = new ArrayList<>(); // 保存分区信息
-                HashSet<String> graphNameSet = new HashSet<>(); // 用于统计图的数量
-                HashSet<Integer> leaderPartitionIds = new HashSet<Integer>(); // 统计leader的分区数量
-                // 构造分区信息(store中存储的图信息)
+                // Save the partition information
+                List<Partition> partitionStatsList = new ArrayList<>();
+                // The number used for the chart
+                HashSet<String> graphNameSet = new HashSet<>();
+                // Statistics on the number of partitions of the leader
+                HashSet<Integer> leaderPartitionIds = new HashSet<Integer>();
+                // Construct partition information (graph information stored in the store)
                 Map<Integer, Long> partition2KeyCount = new HashMap<>();
                 for (Metapb.GraphStats graphStats : graphStatsList) {
                     String graphName = graphStats.getGraphName();
-                    // 图名只保留/g /m /s前面的部分
+                    // Only the part in front of /g /m /s is retained in the title
                     final int postfixLength = 2;
                     graphNameSet.add(graphName.substring(0, graphName.length() - postfixLength));
                     if ((graphStats.getGraphName() != null) &&
@@ -335,7 +339,7 @@ public class StoreAPI extends API {
                         Partition pt = new Partition(graphStats);
                         partitionStatsList.add(pt);
                     }
-                    // 统计每个分区的keyCount
+                    // Count the keyCount of each partition
                     partition2KeyCount.put(graphStats.getPartitionId(),
                                            graphStats.getApproximateKeys());
                     if (graphStats.getRole() == Metapb.ShardRole.Leader) {

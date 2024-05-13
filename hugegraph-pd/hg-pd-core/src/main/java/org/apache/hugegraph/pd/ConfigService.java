@@ -71,7 +71,7 @@ public class ConfigService implements RaftStateListener {
     }
 
     /**
-     * 从存储中读取配置项，并覆盖全局的PDConfig对象
+     * Read the configuration item from the storage and overwrite the global PD Config object
      *
      * @return
      */
@@ -120,8 +120,9 @@ public class ConfigService implements RaftStateListener {
     }
 
     /**
-     * meta store中的数量
-     * 由于可能会受分区分裂/合并的影响，原始的partition count不推荐使用
+     * Meta store
+     * The original partition count is not recommended due to the fact that it may be affected by
+     * partition splitting/merging
      *
      * @return partition count of cluster
      * @throws PDException when io error

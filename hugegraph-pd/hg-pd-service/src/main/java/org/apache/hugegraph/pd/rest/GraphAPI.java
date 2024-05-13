@@ -143,7 +143,7 @@ public class GraphAPI extends API {
                 statistics = new GraphStatistics(graph);
                 response.setData(statistics);
             } else {
-                response.setData(new HashMap<String, Object>()); //没有该图
+                response.setData(new HashMap<String, Object>());
             }
             response.setStatus(Pdpb.ErrorType.OK.getNumber());
             response.setMessage(Pdpb.ErrorType.OK.name());
@@ -176,7 +176,7 @@ public class GraphAPI extends API {
         public Shard(Metapb.Shard shard, long partitionId) {
             this.role = String.valueOf(shard.getRole());
             this.storeId = shard.getStoreId();
-            this.state = Metapb.ShardState.SState_Normal.name(); //gshard的状态默认为normal
+            this.state = Metapb.ShardState.SState_Normal.name();
             this.progress = 0;
             this.partitionId = partitionId;
         }
@@ -236,7 +236,7 @@ public class GraphAPI extends API {
     @Data
     class GraphStatistics {
 
-        //图统计信息
+        // Graph statistics
         String graphName;
         long partitionCount;
         String state;
@@ -255,7 +255,7 @@ public class GraphAPI extends API {
             graphName = graph.getGraphName();
             partitionCount = graph.getPartitionCount();
             state = String.valueOf(graph.getState());
-            // 数据量及key的数量
+            // The amount of data and the number of keys
             List<Metapb.Store> stores = pdRestService.getStores(graphName);
             for (Metapb.Store store : stores) {
                 List<Metapb.GraphStats> graphStatsList = store.getStats().getGraphStatsList();
@@ -272,7 +272,7 @@ public class GraphAPI extends API {
             List<Partition> resultPartitionList = new ArrayList<>();
             List<Metapb.Partition> tmpPartitions = pdRestService.getPartitions(graphName);
             if ((tmpPartitions != null) && (!tmpPartitions.isEmpty())) {
-                // 需要返回的分区信息
+                // The partition information to be returned
                 for (Metapb.Partition partition : tmpPartitions) {
                     Metapb.PartitionStats partitionStats = pdRestService
                             .getPartitionStats(graphName, partition.getId());
@@ -282,7 +282,7 @@ public class GraphAPI extends API {
                 }
             }
             partitions = resultPartitionList;
-            // 隐去图名后面的 /g /m /s
+            // Hide /g /m /s after the title of the graph
             final int postfixLength = 2;
             graphName = graphName.substring(0, graphName.length() - postfixLength);
         }

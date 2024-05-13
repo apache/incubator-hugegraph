@@ -30,7 +30,6 @@ enum TaskType {
   Change_KeyRange = 5;
 }
 
-// 一条任务信息
 message Task {
   uint64 id = 1;
   TaskType type = 2;
@@ -38,7 +37,6 @@ message Task {
   int64 start_timestamp = 4;
   metapb.Partition partition = 5;
   string message = 6;
-  //每个shard执行的任务状态
   repeated ShardTaskState shardState = 7;
   ChangeShard changeShard = 9;
   SplitPartition splitPartition = 10;
@@ -49,10 +47,10 @@ message Task {
 
 enum TaskState{
   Task_Unknown = 0;
-  Task_Ready = 1;   //任务就绪
-  Task_Doing = 2;   //执行中
-  Task_Done = 3;    //完成
-  Task_Exit = 4;    //退出
+  Task_Ready = 1;
+  Task_Doing = 2;
+  Task_Done = 3;
+  Task_Exit = 4;
   Task_Stop = 10;
   Task_Success = 11;
   Task_Failure = 12;

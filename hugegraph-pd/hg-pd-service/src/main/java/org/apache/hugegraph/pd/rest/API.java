@@ -107,7 +107,7 @@ public class API {
                     }
                     builder.append(",");
                 });
-                builder.deleteCharAt(builder.length() - 1); //删除最后一个逗号
+                builder.deleteCharAt(builder.length() - 1);
             }
             builder.append("]").append(COMMA);
         }

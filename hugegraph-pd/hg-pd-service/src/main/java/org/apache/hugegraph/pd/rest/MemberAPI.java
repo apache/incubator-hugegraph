@@ -216,9 +216,9 @@ public class MemberAPI extends API {
         String dataPath;
         String role;
         String replicateState;
-        String serviceName; //服务名称，自定义属性
-        String serviceVersion; //静态定义
-        long startTimeStamp; //启动时间，暂时取进程的启动时间
+        String serviceName; // Service name, custom attributes
+        String serviceVersion; // Static definitions
+        long startTimeStamp; // Startup time: temporarily takes the startup time of the process
 
         public Member(Metapb.Member member) {
             if (member != null) {
@@ -236,6 +236,7 @@ public class MemberAPI extends API {
         }
 
         @Useless("delete later")
-        public Member() {}
+        public Member() {
+        }
     }
 }

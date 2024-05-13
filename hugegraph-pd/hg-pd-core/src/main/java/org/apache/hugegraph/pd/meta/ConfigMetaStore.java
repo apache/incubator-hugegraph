@@ -34,7 +34,7 @@ public class ConfigMetaStore extends MetadataRocksDBStore {
     }
 
     /**
-     * 更新图空间存储状态信息
+     * Update the storage status of the graph space
      *
      * @param
      */

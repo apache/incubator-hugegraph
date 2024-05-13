@@ -58,12 +58,12 @@ public class PartitionAPI extends API {
 
     @GetMapping(value = "/highLevelPartitions", produces = MediaType.APPLICATION_JSON_VALUE)
     public RestApiResponse getHighLevelPartitions() {
-        // 分区下多个图的信息
+        // Information about multiple graphs under the partition
         Map<Integer, Map<String, GraphStats>> partitions2GraphsMap = new HashMap<>();
         Map<Integer, HighLevelPartition> resultPartitionsMap = new HashMap<>();
-        // 每一个分区的keyCount， 只从leader处取出
+        // The keyCount of each partition is only taken from the leader
         Map<Integer, Long> partition2KeyCount = new HashMap<>();
-        // 每一个分区的dataSize， 只从leader处取出
+        // The dataSize of each partition is only taken from the leader
         Map<Integer, Long> partition2DataSize = new HashMap<>();
         List<Metapb.Store> stores;
         Map<Long, Metapb.Store> storesMap = new HashMap<>();
@@ -77,20 +77,19 @@ public class PartitionAPI extends API {
             storesMap.put(store.getId(), store);
             List<Metapb.GraphStats> graphStatsList = store.getStats().getGraphStatsList();
             for (Metapb.GraphStats graphStats : graphStatsList) {
-                // 获取分区保存的图信息（只从leader处取出来）
+                // Obtaining Graph Information Saved by a Partition (Only from the Leader)
                 if (Metapb.ShardRole.Leader != graphStats.getRole()) {
                     continue;
                 }
-                // 计算分区的keyCount（不区分图）
+                // Calculating the key count of partitions (indiscriminate graphs)
                 partition2KeyCount.put(graphStats.getPartitionId(),
                                        partition2KeyCount.getOrDefault(graphStats.getPartitionId(),
                                                                        graphStats.getApproximateKeys()));
-                // 计算分区的dataSize, 通过累加图的大小实现
+                // The dataSize of the partition is calculated by adding the size of the graph
                 partition2DataSize.put(graphStats.getPartitionId(),
                                        partition2DataSize.getOrDefault(graphStats.getPartitionId(),
                                                                        0L)
                                        + graphStats.getApproximateSize());
-                // 构造分区下的图信息
                 if (partitions2GraphsMap.get(graphStats.getPartitionId()) == null) {
                     partitions2GraphsMap.put(graphStats.getPartitionId(),
                                              new HashMap<String, GraphStats>());
@@ -100,10 +99,10 @@ public class PartitionAPI extends API {
                 partitionGraphsMap.put(graphStats.getGraphName(), new GraphStats(graphStats));
             }
         }
-        // 构造分区的所有需返回的信息
+        // Construct all the information that needs to be returned for the partition
         List<Metapb.Partition> partitionList = pdRestService.getPartitions("");
         for (Metapb.Partition partition : partitionList) {
-            // 补充分区内图信息的startKey, endKey
+            // Supplement the startKey and endKey of the partition image
             if (partitions2GraphsMap.get(partition.getId()) != null) {
                 GraphStats graphStats =
                         partitions2GraphsMap.get(partition.getId()).get(partition.getGraphName());
@@ -112,7 +111,7 @@ public class PartitionAPI extends API {
                     graphStats.endKey = partition.getEndKey();
                 }
             }
-            // 构造分区整体信息（不区分图）
+            // Construct the overall information of the partition (regardless of the diagram)
             if ((resultPartitionsMap.get(partition.getId()) == null)
                 && (!partition.getGraphName().endsWith("/s"))
             ) {
@@ -124,7 +123,7 @@ public class PartitionAPI extends API {
                     log.error("getPartitionStats error", e);
                     partitionStats = null;
                 }
-                // 初始化分区信息
+                // Initialize the partition information
                 HighLevelPartition resultPartition =
                         new HighLevelPartition(partition, partitionStats);
                 resultPartition.keyCount =
@@ -132,28 +131,30 @@ public class PartitionAPI extends API {
                 resultPartition.dataSize =
                         partition2DataSize.getOrDefault(resultPartition.partitionId, 0L);
                 for (ShardStats shard : resultPartition.shards) {
-                    // 对副本的地址，分区信息赋值
+                    // Assign values to the address and partition information of the replica
                     shard.address = storesMap.get(shard.storeId).getAddress();
                     shard.partitionId = partition.getId();
                 }
                 if ((partitionStats != null) && (partitionStats.getLeader() != null)) {
-                    long storeId = partitionStats.getLeader().getStoreId(); // 获取leader的storeId
+                    long storeId = partitionStats.getLeader().getStoreId();
                     resultPartition.leaderAddress =
-                            storesMap.get(storeId).getAddress(); // 获取leader的address
+                            storesMap.get(storeId).getAddress();
                 }
                 resultPartitionsMap.put(partition.getId(), resultPartition);
             }
         }
-        // 构造需返回的分区下的图列表，只返回/g, 且按名称排序
+        // Construct a list of graphs under the partitions to be returned, return only /g, and
+        // sort by name
         for (Map.Entry<Integer, HighLevelPartition> entry : resultPartitionsMap.entrySet()) {
             Integer partitionId = entry.getKey();
             HighLevelPartition currentPartition = resultPartitionsMap.get(partitionId);
             Map<String, GraphStats> graphsMap = partitions2GraphsMap
-                    .getOrDefault(partitionId, new HashMap<>()); // 避免后面出现空指针异常
+                    .getOrDefault(partitionId,
+                                  new HashMap<>()); // Avoid null pointer exceptions at the back
             ArrayList<GraphStats> graphsList = new ArrayList<>();
             for (Map.Entry<String, GraphStats> entry1 : graphsMap.entrySet()) {
                 if (!entry1.getKey().endsWith("/g")) {
-                    continue; // 只保留/g的图
+                    continue; // Only the graph of /g is kept
                 }
                 String graphName = entry1.getKey();
                 GraphStats tmpGraph = graphsMap.get(graphName);
@@ -181,10 +182,10 @@ public class PartitionAPI extends API {
     @GetMapping(value = "/partitions", produces = MediaType.APPLICATION_JSON_VALUE)
     public RestApiResponse getPartitions() {
         try {
-            List<Partition> partitions = new ArrayList<>();//需返回的分区对象
+            List<Partition> partitions = new ArrayList<>();
             List<Metapb.Partition> partitionList = pdRestService.getPartitions("");
             List<Metapb.Store> stores = pdRestService.getStoreStats(false);
-            //分区的raftNode的状态
+            // The status of the raft node of the partition
             HashMap<Long, HashMap<Integer, Metapb.RaftStats>> raftMap = new HashMap<>();
 
             HashMap<Long, HashMap<String, Metapb.GraphStats>> shardIndexMap = new HashMap<>();
@@ -392,7 +393,7 @@ public class PartitionAPI extends API {
         long dataSize;
         String shardState;
         int progress;
-        long raftTerm; //任期
+        long raftTerm;
         List<GraphStats> graphs;
         List<ShardStats> shards;
         String failureCause = "";
@@ -424,7 +425,7 @@ public class PartitionAPI extends API {
                     log.error("get shard list failed, {}", e.getMessage());
                 }
             }
-            // 综合所有副本的状态，给shardState赋值
+            // Synthesize the state of all replicas and assign a value to shardState
             shardState = tmpShardState.name();
         }
     }
@@ -456,7 +457,7 @@ public class PartitionAPI extends API {
         String role;
         String state;
         int progress;
-        //额外属性
+        // Extra attributes
         long partitionId;
         String address;
 
@@ -468,7 +469,7 @@ public class PartitionAPI extends API {
         }
 
         ShardStats(Metapb.Shard shard) {
-            //当没有shardStats的初始化方法
+            // When there is no initialization method for shardStats
             storeId = shard.getStoreId();
             role = String.valueOf(shard.getRole());
             state = Metapb.ShardState.SState_Normal.name();

@@ -30,7 +30,7 @@ import com.google.protobuf.Parser;
 
 public abstract class MetadataStoreBase {
 
-    //  public long timeout = 3; // 请求超时时间，默认三秒
+    //  public long timeout = 3;
 
     public abstract byte[] getOne(byte[] key) throws PDException;
 
@@ -39,9 +39,8 @@ public abstract class MetadataStoreBase {
     public abstract void put(byte[] key, byte[] value) throws PDException;
 
     /**
-     * 带有过期时间的put
+     * A put with an expiration time
      */
-
     public abstract void putWithTTL(byte[] key,
                                     byte[] value,
                                     long ttl) throws PDException;
@@ -57,7 +56,7 @@ public abstract class MetadataStoreBase {
     public abstract void removeWithTTL(byte[] key) throws PDException;
 
     /**
-     * 前缀查询
+     * Prefix queries
      *
      * @param prefix
      * @return
@@ -66,13 +65,12 @@ public abstract class MetadataStoreBase {
     public abstract List<KV> scanPrefix(byte[] prefix) throws PDException;
 
     /**
-     * 前缀查询
+     * Prefix queries
      *
      * @param prefix
      * @return
      * @throws PDException
      */
-
     public abstract <E> List<E> scanPrefix(Parser<E> parser, byte[] prefix) throws PDException;
 
     public abstract List<KV> scanRange(byte[] start, byte[] end) throws PDException;
@@ -81,13 +79,12 @@ public abstract class MetadataStoreBase {
                                                                                       PDException;
 
     /**
-     * 检查Key是否存在
+     * Check if the key exists
      *
      * @param key
      * @return
      * @throws PDException
      */
-
     public abstract boolean containsKey(byte[] key) throws PDException;
 
     public abstract long remove(byte[] key) throws PDException;

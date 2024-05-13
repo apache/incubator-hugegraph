@@ -46,7 +46,7 @@ public class RaftRpcClient {
     }
 
     /**
-     * 请求快照
+     * Request a snapshot
      */
     public CompletableFuture<RaftRpcProcessor.GetMemberResponse>
     getGrpcAddress(final String address) {

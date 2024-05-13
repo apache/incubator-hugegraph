@@ -244,7 +244,6 @@ public class PartitionCacheTest {
         this.cache.updatePartition(partition2);
         System.out.println(this.cache.debugCacheByGraphName("graph0"));
 
-        // 中间有缺失
         var partition3 = createPartition(1, "graph0", 2, 3);
         this.cache.updatePartition(partition3);
         System.out.println(this.cache.debugCacheByGraphName("graph0"));

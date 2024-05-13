@@ -20,7 +20,7 @@ package org.apache.hugegraph.pd;
 import org.apache.hugegraph.pd.grpc.Metapb;
 
 /**
- * 分区状态监听
+ * Partition status listeners
  */
 public interface PartitionStatusListener {
 

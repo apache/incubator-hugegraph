@@ -42,7 +42,7 @@ public class AbstractClientStubProxy {
 
     public String nextHost() {
         String host = hostList.poll();
-        hostList.offer(host);   //移到尾部
+        hostList.offer(host);
         return host;
     }
 

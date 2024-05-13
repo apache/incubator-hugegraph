@@ -237,7 +237,6 @@ public class RaftStateMachine extends StateMachineAdapter {
 
         try {
             // TODO: remove file from meta
-            // SnapshotReader 沒有提供刪除文件的接口
             FileUtils.deleteDirectory(new File(snapshotDir));
             File file = new File(snapshotArchive);
             if (file.exists()) {

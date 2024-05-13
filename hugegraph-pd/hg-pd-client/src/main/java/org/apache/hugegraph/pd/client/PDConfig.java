@@ -19,11 +19,13 @@ package org.apache.hugegraph.pd.client;
 
 public final class PDConfig {
 
-    //TODO multi-server
+    // TODO: multi-server
     private String serverHost = "localhost:9000";
-    private long grpcTimeOut = 60000;   // grpc调用超时时间 10秒
 
-    // 是否接收PD异步通知
+    // The timeout period for grpc call is 10 seconds
+    private long grpcTimeOut = 60000;
+
+    // Whether to receive asynchronous PD notifications
     private boolean enablePDNotify = false;
 
     private boolean enableCache = false;
@@ -59,8 +61,6 @@ public final class PDConfig {
     @Deprecated
     public PDConfig setEnablePDNotify(boolean enablePDNotify) {
         this.enablePDNotify = enablePDNotify;
-
-        // TODO 临时代码，hugegraph修改完后删除
         this.enableCache = enablePDNotify;
         return this;
     }

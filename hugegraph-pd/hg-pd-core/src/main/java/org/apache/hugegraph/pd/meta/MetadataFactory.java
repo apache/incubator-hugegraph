@@ -24,7 +24,7 @@ import org.apache.hugegraph.pd.store.HgKVStoreImpl;
 import org.apache.hugegraph.pd.store.RaftKVStore;
 
 /**
- * 存储工厂类，创建相关对象的存储类
+ * Storage Factory class to create a storage class for related objects
  */
 public class MetadataFactory {
 

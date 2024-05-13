@@ -45,10 +45,10 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
 
     private final Timer timer = new Timer("serverHeartbeat", true);
     private final AtomicBoolean requireResetStub = new AtomicBoolean(false);
-    protected int period; //心跳周期
+    protected int period;
     LinkedList<String> pdAddresses = new LinkedList<>();
     ReentrantReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-    private volatile int currentIndex; // 当前在用pd地址位置
+    private volatile int currentIndex;
     private int maxTime = 6;
     private ManagedChannel channel = null;
     private DiscoveryServiceGrpc.DiscoveryServiceBlockingStub registerStub;
@@ -88,9 +88,6 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
         return null;
     }
 
-    /***
-     * 按照pd列表重置stub
-     */
     private void resetStub() {
         String errLog = null;
         for (int i = currentIndex + 1; i <= pdAddresses.size() + currentIndex; i++) {
@@ -115,11 +112,6 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
         }
     }
 
-    /***
-     * 按照某个pd的地址重置channel和stub
-     * @param singleAddress
-     * @throws PDException
-     */
     private void resetChannel(String singleAddress) throws PDException {
 
         readWriteLock.writeLock().lock();
@@ -146,7 +138,7 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
     }
 
     /***
-     * 获取注册节点信息
+     * Obtain the registration node information
      * @param query
      * @return
      */
@@ -167,7 +159,7 @@ public abstract class DiscoveryClient implements Closeable, Discoverable {
     }
 
     /***
-     * 启动心跳任务
+     * Start the heartbeat task
      */
     @Override
     public void scheduleTask() {

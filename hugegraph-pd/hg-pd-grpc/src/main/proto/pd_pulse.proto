@@ -56,8 +56,8 @@ message PulseAckRequest {
   int64 notice_id = 2;
 }
 
-// 分区心跳，分区的peer增减、leader改变等事件发生时，由leader发送心跳。
-// 同时pd对分区进行shard增减通过Response发送给leader
+// When an event such as a partition heartbeat occurs such as the increase or decrease of peers in a partition or the change of leader, the leader sends a heartbeat.
+// At the same time, the pd adds or decreases shards to the partition and sends the response to the leader
 message PartitionHeartbeatRequest {
   RequestHeader header = 1;
   // Leader Peer sending the heartbeat
@@ -83,15 +83,15 @@ message PartitionHeartbeatResponse {
   ChangeShard change_shard = 4;
 
   TransferLeader transfer_leader = 5;
-  // 拆分成多个分区，第一个SplitPartition是原分区，从第二开始是新分区
+  // Split into multiple partitions, with the first SplitPartition being the original partition and the second starting being the new partition
   SplitPartition split_partition = 6;
-  // rocksdb compaction 指定的表，null是针对所有
+  // rocksdb compaction specifies the table, null is for all
   DbCompaction db_compaction = 7;
-  // 将partition的数据，迁移到 target
+  // Migrate data from the partition to the target
   MovePartition move_partition = 8;
-  // 清理partition的graph的数据
+  // Clean up the data for the partition of the graph
   CleanPartition clean_partition = 9;
-  // partition key range 变化
+  // partition key range variation
   PartitionKeyRange key_range = 10;
 }
 
@@ -113,11 +113,11 @@ message DbCompaction {
   string table_name = 3;
 }
 
-message MovePartition{
-  // target partition的key range为，迁移后的新range
+message MovePartition {
+  // The new range after migration
   metapb.Partition target_partition = 1;
-  // partition 的 key start 和 key end的所有数据，
-  // 会迁移到 target partition 上
+  // partition's key start and key end,
+  // will migrate to target partition
   uint64 key_start = 2;
   uint64 key_end = 3;
 }
@@ -126,7 +126,7 @@ message CleanPartition {
   uint64 key_start = 1;
   uint64 key_end = 2;
   CleanType clean_type = 3;
-  bool delete_partition = 4; //是否删除分区
+  bool delete_partition = 4; // Whether to delete the partition
 }
 
 message PartitionKeyRange{
@@ -159,12 +159,12 @@ enum ConfChangeType {
   CONF_CHANGE_TYPE_ADD_NODE = 1;
   CONF_CHANGE_TYPE_REMOVE_NODE = 2;
   CONF_CHANGE_TYPE_ADD_LEARNER_NODE = 3;
-  CONF_CHANGE_TYPE_ADJUST = 4;    // 调整shard，leader根据新的配置动态增减。
+  CONF_CHANGE_TYPE_ADJUST = 4;    // Adjust the shard, and the leader dynamically increases or decreases according to the new configuration.
 }
 
 enum CleanType {
-  CLEAN_TYPE_KEEP_RANGE = 0; // 仅保留这个range
-  CLEAN_TYPE_EXCLUDE_RANGE = 1; // 删除这个range
+  CLEAN_TYPE_KEEP_RANGE = 0; // Only this range remains
+  CLEAN_TYPE_EXCLUDE_RANGE = 1; // Delete this range
 }
 
 enum PdInstructionType {

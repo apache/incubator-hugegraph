@@ -22,9 +22,7 @@ option java_package = "org.apache.hugegraph.pd.grpc.common";
 option java_outer_classname = "HgPdCommonProto";
 
 message RequestHeader {
-  // 集群 ID.
   uint64 cluster_id = 1;
-  // 发送者 ID.
   uint64 sender_id = 2;
 }
 

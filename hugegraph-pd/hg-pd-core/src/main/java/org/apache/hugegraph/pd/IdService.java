@@ -49,7 +49,8 @@ public class IdService {
     }
 
     /**
-     * 获取自增循环不重复id, 达到上限后从0开始自增.自动跳过正在使用的cid
+     * Obtain the non-duplicate ID of the auto-increment cycle, and automatically increment from
+     * 0 after the upper limit is reached
      *
      * @param key
      * @param max
@@ -65,7 +66,7 @@ public class IdService {
     }
 
     /**
-     * 删除一个自增循环id
+     * Delete an auto-increment loop ID
      *
      * @param key
      * @param cid

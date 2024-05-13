@@ -55,7 +55,9 @@ public class KVOperation {
 
     private byte[] key;
     private byte[] value;
-    private Object attach; // 原始对象，用于本机处理，减少一次反序列化操作
+    // Raw object, used for native processing, reducing the number of deserialization
+    // operations
+    private Object attach;
     private Object arg;
     private byte op;
 

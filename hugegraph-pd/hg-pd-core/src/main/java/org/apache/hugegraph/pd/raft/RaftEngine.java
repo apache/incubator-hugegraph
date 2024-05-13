@@ -92,25 +92,25 @@ public class RaftEngine {
             log.error("The RaftEngine parameter is incorrect." +
                       " When RAFT is enabled, the number of peers " + "cannot be less than 3");
         }
-        // 设置 Node 参数，包括日志存储路径和状态机实例
+        // Set node parameters, including the log storage path and state machine instance
         NodeOptions nodeOptions = new NodeOptions();
         nodeOptions.setFsm(stateMachine);
         nodeOptions.setEnableMetrics(true);
-        // 日志路径
+        // Log path
         nodeOptions.setLogUri(raftPath + "/log");
-        // raft 元数据路径
+        // raft metadata path
         nodeOptions.setRaftMetaUri(raftPath + "/meta");
-        // 快照路径
+        // Snapshot path
         nodeOptions.setSnapshotUri(raftPath + "/snapshot");
-        // 初始集群
+        // Initial cluster
         nodeOptions.setInitialConf(initConf);
-        // 快照时间间隔
+        // Snapshot interval
         nodeOptions.setSnapshotIntervalSecs(config.getSnapshotInterval());
 
         nodeOptions.setRpcConnectTimeoutMs(config.getRpcTimeout());
         nodeOptions.setRpcDefaultTimeout(config.getRpcTimeout());
         nodeOptions.setRpcInstallSnapshotTimeout(config.getRpcTimeout());
-        // 设置 raft 配置
+        // Set the raft configuration
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
 
         nodeOptions.setEnableMetrics(true);
@@ -118,7 +118,7 @@ public class RaftEngine {
         final PeerId serverId = JRaftUtils.getPeerId(config.getAddress());
 
         rpcServer = createRaftRpcServer(config.getAddress());
-        // 构建 raft 组并启动 raft
+        // construct raft group and start raft
         this.raftGroupService =
                 new RaftGroupService(groupId, serverId, nodeOptions, rpcServer, true);
         this.raftNode = raftGroupService.start(false);
@@ -128,7 +128,7 @@ public class RaftEngine {
     }
 
     /**
-     * 创建 raft rpc server，用于 pd 之间通讯
+     * Create a Raft RPC Server for communication between PDs
      */
     private RpcServer createRaftRpcServer(String raftAddr) {
         Endpoint endpoint = JRaftUtils.getEndPoint(raftAddr);
@@ -164,7 +164,7 @@ public class RaftEngine {
     }
 
     /**
-     * 添加 Raft 任务，grpc 通过该接口给 raft 发送数据
+     * Add a raft task, and grpc sends data to raft through this interface
      */
     public void addTask(Task task) {
         if (!isLeader()) {
@@ -193,7 +193,7 @@ public class RaftEngine {
     }
 
     /**
-     * 向 leader 发消息，获取 grpc 地址；
+     * Send a message to the leader to get the grpc address;
      */
     public String getLeaderGrpcAddress() throws ExecutionException, InterruptedException {
         if (isLeader()) {
