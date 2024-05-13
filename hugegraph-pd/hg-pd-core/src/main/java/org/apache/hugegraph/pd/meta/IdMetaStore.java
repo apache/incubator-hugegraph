@@ -34,6 +34,9 @@ import com.caucho.hessian.io.Hessian2Output;
 
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Implementation class for auto-increment ID.
+ */
 @Slf4j
 public class IdMetaStore extends MetadataRocksDBStore {
 
@@ -43,7 +46,7 @@ public class IdMetaStore extends MetadataRocksDBStore {
     private static final String CID_DEL_SLOT_PREFIX = "@CID_DEL_SLOT@";
     private static final String SEPARATOR = "@";
     private static final ConcurrentHashMap<String, Object> SEQUENCES = new ConcurrentHashMap<>();
-    private static long CID_DEL_TIMEOUT = 24 * 3600 * 1000;
+    private static final long CID_DEL_TIMEOUT = 24 * 3600 * 1000;
     private final long clusterId;
 
     public IdMetaStore(PDConfig pdConfig) {
@@ -63,6 +66,14 @@ public class IdMetaStore extends MetadataRocksDBStore {
         return buf.array();
     }
 
+    /**
+     * Get auto-increment ID.
+     *
+     * @param key
+     * @param delta
+     * @return
+     * @throws PDException
+     */
     public long getId(String key, int delta) throws PDException {
         Object probableLock = getLock(key);
         byte[] keyBs = (ID_PREFIX + key).getBytes(Charset.defaultCharset());
@@ -96,7 +107,20 @@ public class IdMetaStore extends MetadataRocksDBStore {
         }
     }
 
+    /**
+     * Within 24 hours of deleting the cid identified by the name,
+     * repeat applying for the same name's cid to keep the same value.
+     * This design is to prevent inconsistent caching, causing data errors.
+     *
+     * @param key
+     * @param name cid identifier
+     * @param max
+     * @return
+     * @throws PDException
+     */
     public long getCId(String key, String name, long max) throws PDException {
+        // Check for expired cids to delete. The frequency of deleting graphs is relatively low,
+        // so this has little performance impact.
         byte[] delKeyPrefix = (CID_DEL_SLOT_PREFIX +
                                key + SEPARATOR).getBytes(Charset.defaultCharset());
         synchronized (this) {
@@ -114,9 +138,11 @@ public class IdMetaStore extends MetadataRocksDBStore {
                 }
             });
 
+            // Restore key from delayed deletion queue
             byte[] cidDelayKey = getCIDDelayKey(key, name);
             byte[] value = getOne(cidDelayKey);
             if (value != null) {
+                // Remove from delayed deletion queue
                 remove(cidDelayKey);
                 return ((long[]) deserialize(value))[0];
             } else {
@@ -125,12 +151,25 @@ public class IdMetaStore extends MetadataRocksDBStore {
         }
     }
 
+    /**
+     * Add to the deletion queue for delayed deletion.
+     */
     public long delCIdDelay(String key, String name, long cid) throws PDException {
         byte[] delKey = getCIDDelayKey(key, name);
         put(delKey, serialize(new long[]{cid, System.currentTimeMillis()}));
         return cid;
     }
 
+    /**
+     * Get an auto-incrementing cyclic non-repeating ID. When the upper limit is reached, it
+     * starts from 0 again.
+     *
+     * @param key
+     * @param max the upper limit of the ID. After reaching this value, it starts incrementing
+     *            from 0 again.
+     * @return
+     * @throws PDException
+     */
     public long getCId(String key, long max) throws PDException {
         Object probableLock = getLock(key);
         byte[] keyBs = (CID_PREFIX + key).getBytes(Charset.defaultCharset());
@@ -138,7 +177,7 @@ public class IdMetaStore extends MetadataRocksDBStore {
             byte[] bs = getOne(keyBs);
             long current = bs != null ? bytesToLong(bs) : 0L;
             long last = current == 0 ? max - 1 : current - 1;
-            {
+            {   // Find an unused cid
                 List<KV> kvs = scanRange(genCIDSlotKey(key, current), genCIDSlotKey(key, max));
                 for (KV kv : kvs) {
                     if (current == bytesToLong(kv.getValue())) {
@@ -183,6 +222,14 @@ public class IdMetaStore extends MetadataRocksDBStore {
         return bsKey;
     }
 
+    /**
+     * Delete a cyclic ID and release its value.
+     *
+     * @param key
+     * @param cid
+     * @return
+     * @throws PDException
+     */
     public long delCId(String key, long cid) throws PDException {
         return remove(genCIDSlotKey(key, cid));
     }
