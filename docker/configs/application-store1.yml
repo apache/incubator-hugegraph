@@ -16,7 +16,6 @@
 #
 
 pdserver:
-  # pd 服务地址，多个 pd 地址用逗号分割
   address: 127.0.0.1:8686,127.0.0.1:8687,127.0.0.1:8688
 
 management:
@@ -30,26 +29,20 @@ management:
         include: "*"
 
 grpc:
-  # grpc 的服务地址
   host: 127.0.0.1
   port: 8501
   netty-server:
     max-inbound-message-size: 1000MB
 raft:
-  # raft 缓存队列大小
   disruptorBufferSize: 1024
   address: 127.0.0.1:8511
   max-log-file-size: 600000000000
-  # 快照生成时间间隔，单位秒
   snapshotInterval: 1800
 server:
-  # rest 服务地址
   port: 8521
 
 app:
-  # 存储路径，支持多个路径，逗号分割
   data-path: ./storage
-  #raft-path: ./storage
 
 spring:
   application:
