@@ -37,7 +37,7 @@ achieved through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful
 We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
 HugeGraph server with `RocksDB` (in backgrounds) for **test/dev**.
 You can visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy) or
-the [README](hugegraph-server/hugegraph-dist/docker/READEME.md) for more details. ([Docker Compose](./hugegraph-server/hugegraph-dist/docker/example))
+the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details. ([Docker Compose](./hugegraph-server/hugegraph-dist/docker/example))
 
 > Note:
 >  
