@@ -4,7 +4,7 @@
 > 
 > 1. The docker image of hugegraph is a convenience release, not official distribution artifacts from ASF. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
 > 
-> 2. Recommend to use `release tag`(like `1.2.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> 2. Recommend to use `release tag` (like `1.3.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ## 1. Deploy
 
@@ -35,7 +35,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
 
 1. Using docker run
 
-    Use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD=true -v /path/to/yourScript:/hugegraph/scripts/example.groovy hugegraph/hugegraph`
+    Use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD=true -v /path/to/script:/hugegraph-server/scripts/example.groovy hugegraph/hugegraph`
     to start hugegraph server.
 
 2. Using docker compose 
@@ -50,7 +50,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
         environment:
           - PRELOAD=true
         volumes:
-          - /path/to/yourscript:/hugegraph/scripts/example.groovy
+          - /path/to/script:/hugegraph-server/scripts/example.groovy
         ports:
           - 8080:8080
     ```
