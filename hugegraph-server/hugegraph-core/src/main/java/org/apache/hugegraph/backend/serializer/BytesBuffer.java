@@ -115,6 +115,10 @@ public final class BytesBuffer extends OutputStream {
         return new BytesBuffer(ByteBuffer.wrap(array, offset, length));
     }
 
+    public static byte getType(int value) {
+        return (byte) (value & 0x3f);
+    }
+
     public ByteBuffer asByteBuffer() {
         return this.buffer;
     }
@@ -792,6 +796,7 @@ public final class BytesBuffer extends OutputStream {
 
     /**
      * 解析 olap id
+     *
      * @param type
      * @param isOlap
      * @return
