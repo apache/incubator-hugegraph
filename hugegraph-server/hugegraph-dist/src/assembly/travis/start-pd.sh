@@ -18,7 +18,7 @@
 set -ev
 
 HOME_DIR=$(pwd)
-PD_DIR=$HOME_DIR/hugegraph-pd/dist/hugegraph-pd-1.3.0
+PD_DIR=$HOME_DIR/hugegraph-pd/apache-hugegraph-incubating-pd-1.3.0
 
 pushd $PD_DIR
 . bin/start-hugegraph-pd.sh
