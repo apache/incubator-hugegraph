@@ -39,15 +39,15 @@ echo "Current work dir: $(pwd)"
 rm -rf dist && mkdir -p dist/apache-${REPO}
 
 # step1: package the source code
-cd ../../../ && echo "Package source in: $(pwd)"
+cd ../../ && echo "Package source in: $(pwd)"
 git archive --format=tar.gz \
-  --output="hugegraph-server/hugegraph-dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
+  --output="dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
   --prefix=apache-${REPO}-incubating-"${RELEASE_VERSION}"-src/ "${GIT_BRANCH}" || exit
 cd - || exit
 
 # step2: copy the binary file (Optional)
 # Note: it's optional for project to generate binary package (skip this step if not need)
-cp -v ../../apache-${REPO}-incubating-"${RELEASE_VERSION}".tar.gz \
+cp -v ../../hugegraph-server/apache-${REPO}-incubating-server-"${RELEASE_VERSION}".tar.gz \
   dist/apache-${REPO} || exit
 
 # step3: sign + hash
