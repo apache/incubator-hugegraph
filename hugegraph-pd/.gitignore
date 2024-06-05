@@ -2,4 +2,4 @@
 hg-pd-grpc/src/main/java/
 
 # Exclude data files
-pd_data/
+**/pd_data/
