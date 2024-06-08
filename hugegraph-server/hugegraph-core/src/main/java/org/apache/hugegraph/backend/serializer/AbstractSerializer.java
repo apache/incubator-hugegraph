@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.backend.serializer;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.ConditionQuery;
@@ -24,7 +25,9 @@ import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.iterator.CIter;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 public abstract class AbstractSerializer
         implements GraphSerializer, SchemaSerializer {
@@ -88,5 +91,9 @@ public abstract class AbstractSerializer
         }
 
         return query;
+    }
+
+    public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
+        throw new RuntimeException("Method not implemented error.");
     }
 }
