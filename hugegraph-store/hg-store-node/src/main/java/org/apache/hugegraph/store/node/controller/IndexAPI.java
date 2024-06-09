@@ -41,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/")
 public class IndexAPI {
+
     @Autowired
     HgStoreNodeService nodeService;
 
@@ -61,12 +62,14 @@ public class IndexAPI {
 
     @Data
     class StoreInfo {
+
         private int leaderCount;
         private int partitionCount;
     }
 
     @Data
     public class Raft {
+
         private final List<PartitionInfo> partitions = new ArrayList<>();
         private int groupId;
         private String role;
@@ -79,6 +82,7 @@ public class IndexAPI {
 
     @Data
     public class PartitionInfo {
+
         private final int id;                                             // region id
         private final String graphName;
         // Region key range [startKey, endKey)
@@ -88,7 +92,6 @@ public class IndexAPI {
         private final Metapb.PartitionState workState;
         private HgStoreMetric.Partition metric;
         private String leader;
-
 
         public PartitionInfo(Partition pt) {
             id = pt.getId();

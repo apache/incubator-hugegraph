@@ -65,6 +65,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @GRpcService
 public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBase {
+
     @Autowired()
     private AppConfig appConfig;
     @Autowired
@@ -457,7 +458,6 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
         GrpcClosure.setResult(response, builder.build());
         log.debug(" - ended GrpcClosure:setResult ");
     }
-
 
     @Override
     public void graph(GraphReq request, StreamObserver<FeedbackRes> observer) {

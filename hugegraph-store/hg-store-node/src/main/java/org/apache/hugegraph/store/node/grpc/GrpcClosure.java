@@ -31,6 +31,7 @@ import io.grpc.stub.StreamObserver;
  */
 
 abstract class GrpcClosure<V> implements RaftClosure {
+
     private final Map<Integer, Long> leaderMap = new HashMap<>();
     private V result;
 

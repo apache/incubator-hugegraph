@@ -80,7 +80,6 @@ public class HgRegexUtil {
         return list.isEmpty() ? null : list;
     }
 
-
     public static void main(String[] args) {
         List<String> res = toGroupValues("(replicator)(.+?:\\d+)(.*)",
                                          "replicator_10.14.139.10:8081_append_entries_times");

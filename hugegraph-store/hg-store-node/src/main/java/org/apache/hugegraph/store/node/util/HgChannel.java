@@ -81,7 +81,6 @@ public final class HgChannel<T> {
         }
     }
 
-
     /**
      * return an item from the chan
      *

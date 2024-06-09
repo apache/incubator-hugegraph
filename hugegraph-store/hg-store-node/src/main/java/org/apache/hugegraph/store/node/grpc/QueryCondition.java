@@ -21,6 +21,7 @@ package org.apache.hugegraph.store.node.grpc;
  * 2023/2/8
  */
 public interface QueryCondition {
+
     byte[] getStart();
 
     byte[] getEnd();

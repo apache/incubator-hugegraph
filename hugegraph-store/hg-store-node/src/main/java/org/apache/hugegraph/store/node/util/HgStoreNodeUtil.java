@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class HgStoreNodeUtil {
+
     public static String toStr(byte[] b) {
         if (b == null) {
             return "";

@@ -56,11 +56,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class HgStoreNodeService implements RaftTaskHandler {
+
     public static final byte BATCH_OP = 0x12;
     public static final byte TABLE_OP = 0x13;
     public static final byte GRAPH_OP = 0x14;
     public static final byte CLEAN_OP = 0x15;
-
 
     public static final byte MAX_OP = 0x59;
     private final AppConfig appConfig;
@@ -221,7 +221,6 @@ public class HgStoreNodeService implements RaftTaskHandler {
     public void destroy() {
         storeEngine.shutdown();
     }
-
 
     private String getSerializingExceptionMessage(String target) {
         return "Serializing "

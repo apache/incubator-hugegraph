@@ -58,6 +58,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class RocksDBMetrics {
+
     private final static RocksDBFactory rocksDBFactory = RocksDBFactory.getInstance();
     private final static AtomicInteger rocks = new AtomicInteger(0);
     private final static Set<String> graphSet = new HashSet<>();
@@ -110,7 +111,6 @@ public class RocksDBMetrics {
     private static RocksDBSession getRocksDBSession(String graph) {
         return rocksDBFactory.queryGraphDB(graph);
     }
-
 
     private static synchronized void registerMeter() {
         Set<String> graphs = getGraphs();
@@ -264,6 +264,7 @@ public class RocksDBMetrics {
     }
 
     private static class MemoryUseWrapper {
+
         Map<MemoryUsageType, Long> mems = null;
         long lastTime = 0;
 
@@ -358,6 +359,7 @@ public class RocksDBMetrics {
     }
 
     private static class HistogramDataWrapper {
+
         private final Supplier<HistogramData> supplier;
         private final HistogramType histogramType;
         private HistogramData data = new HistogramData(0d, 0d, 0d, 0d, 0d);

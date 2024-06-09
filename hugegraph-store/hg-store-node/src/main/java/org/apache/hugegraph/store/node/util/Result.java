@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.store.node.util;
 
-
 public class Result<T> {
+
     private Err err;
     private T t;
 

@@ -41,7 +41,6 @@ import org.apache.hugegraph.store.grpc.stream.SelectParam;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 /**
  * created on 2022/02/22
  *
@@ -51,7 +50,6 @@ import lombok.extern.slf4j.Slf4j;
 class ScanUtil {
 
     private final static Map<String, byte[]> tableKeyMap = new HashMap<>();
-
 
     static ScanIterator getIterator(ScanStreamReq request, HgStoreWrapperEx wrapper) {
         String graph = request.getHeader().getGraph();
@@ -259,7 +257,6 @@ class ScanUtil {
             this.sqIterator = this.sqs.iterator();
         }
 
-
         //@Override
         public KVPair<QueryCondition, ScanIterator> get1() {
             ScanIterator iterator = null;
@@ -311,6 +308,7 @@ class ScanUtil {
         }
 
         private class Query2Iterator implements Supplier<ScanIterator> {
+
             ScanQuery[] queries;
             int index;
 

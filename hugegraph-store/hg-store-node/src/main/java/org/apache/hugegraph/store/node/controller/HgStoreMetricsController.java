@@ -37,6 +37,7 @@ import com.alipay.sofa.jraft.core.NodeMetrics;
 @RestController
 @RequestMapping(value = "/metrics", method = RequestMethod.GET)
 public class HgStoreMetricsController {
+
     private final SystemMetrics systemMetrics = new SystemMetrics();
     private final DriveMetrics driveMetrics = new DriveMetrics();
     @Autowired
@@ -61,6 +62,5 @@ public class HgStoreMetricsController {
     public Map<String, NodeMetrics> getRaftMetrics() {
         return nodeService.getNodeMetrics();
     }
-
 
 }

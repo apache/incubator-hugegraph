@@ -16,7 +16,6 @@
  */
 package org.apache.hugegraph.store.node.metrics;
 
-
 import static org.apache.hugegraph.store.node.metrics.ProcfsReader.ReadResult;
 
 import java.io.IOException;

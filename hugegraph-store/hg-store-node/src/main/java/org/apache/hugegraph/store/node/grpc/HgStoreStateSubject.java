@@ -33,9 +33,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class HgStoreStateSubject {
+
     public final static Map<String, StreamObserver<NodeStateRes>> subObserverHolder =
             new ConcurrentHashMap<>();
-
 
     public static void addObserver(String subId, StreamObserver<NodeStateRes> observer) {
         HgAssert.isArgumentValid(subId, "subId");

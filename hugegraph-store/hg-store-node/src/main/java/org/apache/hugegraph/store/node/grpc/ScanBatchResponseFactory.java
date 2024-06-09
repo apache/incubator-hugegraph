@@ -27,6 +27,7 @@ import com.alipay.sofa.jraft.util.concurrent.ConcurrentHashSet;
 import io.grpc.stub.StreamObserver;
 
 public class ScanBatchResponseFactory {
+
     private final static ScanBatchResponseFactory instance = new ScanBatchResponseFactory();
     private final Set<StreamObserver> streamObservers = new ConcurrentHashSet<>();
 

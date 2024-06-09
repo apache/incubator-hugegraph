@@ -32,8 +32,8 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import jline.internal.Log;
 
-
 public abstract class HgGrpc {
+
     private static final ResCode OK = ResCode.RES_CODE_OK;
 
     public static ResStatus not() {

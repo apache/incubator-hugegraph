@@ -33,6 +33,7 @@ import lombok.Data;
 @Data
 @Component
 public class AppConfig {
+
     @Value("${pdserver.address}")
     private String pdServerAddress;
 
@@ -47,7 +48,6 @@ public class AppConfig {
 
     @Value("${server.port}")
     private int restPort;
-
 
     //内置pd模式，用于单机部署
     @Value("${app.data-path: store}")
@@ -134,6 +134,7 @@ public class AppConfig {
     @Data
     @Configuration
     public class ThreadPoolGrpc {
+
         @Value("${thread.pool.grpc.core:600}")
         private int core;
         @Value("${thread.pool.grpc.max:1000}")
@@ -145,6 +146,7 @@ public class AppConfig {
     @Data
     @Configuration
     public class ThreadPoolScan {
+
         @Value("${thread.pool.scan.core: 128}")
         private int core;
         @Value("${thread.pool.scan.max: 1000}")
@@ -156,6 +158,7 @@ public class AppConfig {
     @Data
     @Configuration
     public class Raft {
+
         @Value("${raft.address}")
         private String address;
 
@@ -185,6 +188,7 @@ public class AppConfig {
     @Data
     @Configuration
     public class ArthasConfig {
+
         @Value("${arthas.telnetPort:8566}")
         private String telnetPort;
 
@@ -201,6 +205,7 @@ public class AppConfig {
     @Data
     @Configuration
     public class FakePdConfig {
+
         @Value("${fake-pd.store-list:''}")
         private String storeList;
         @Value("${fake-pd.peers-list:''}")
@@ -215,6 +220,7 @@ public class AppConfig {
     @Configuration
     @ConfigurationProperties(prefix = "app")
     public class LabelConfig {
+
         private final Map<String, String> label = new HashMap<>();
     }
 
@@ -222,6 +228,7 @@ public class AppConfig {
     @Configuration
     @ConfigurationProperties(prefix = "")
     public class RocksdbConfig {
+
         private final Map<String, String> rocksdb = new HashMap<>();
     }
 

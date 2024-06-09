@@ -40,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequestMapping("/test")
 public class HgTestController {
+
     @Autowired
     HgStoreNodeService nodeService;
 
@@ -76,7 +77,6 @@ public class HgTestController {
         } else {
             return "未找到分区";
         }
-
 
     }
 

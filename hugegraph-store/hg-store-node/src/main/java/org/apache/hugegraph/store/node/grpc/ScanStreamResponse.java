@@ -48,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ScanStreamResponse implements StreamObserver<ScanStreamReq> {
+
     private static final String msg =
             "to wait for client taking data exceeded max time: [{}] seconds,stop scanning.";
     private final StreamObserver<KvPageRes> responseObserver;

@@ -66,7 +66,6 @@ public class GraphStoreImpl extends GraphStoreImplBase {
         return this.storeStream.getExecutor();
     }
 
-
     /**
      * 流式回复消息，每个消息带有seqNo
      * 客户端每消费一个消息，应答一个seqNo

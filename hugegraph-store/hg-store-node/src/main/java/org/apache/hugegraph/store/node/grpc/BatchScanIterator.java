@@ -35,6 +35,7 @@ import org.apache.hugegraph.store.node.util.HgStoreConst;
  */
 @NotThreadSafe
 public final class BatchScanIterator implements ScanIterator {
+
     private final Supplier<KVPair<QueryCondition, ScanIterator>> batchSupplier;
     private final Supplier<Long> limitSupplier;
     private final AtomicBoolean closed = new AtomicBoolean();

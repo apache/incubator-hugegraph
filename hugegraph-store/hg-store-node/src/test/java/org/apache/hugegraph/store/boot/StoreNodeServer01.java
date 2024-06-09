@@ -43,7 +43,6 @@ public class StoreNodeServer01 {
                                Integer.toString(8 * 1024 * 1024));
         }
 
-
         SpringApplication.run(StoreNodeApplication.class, "--spring.profiles.active=server01");
         System.out.println("StoreNodeServer01 started.");
     }

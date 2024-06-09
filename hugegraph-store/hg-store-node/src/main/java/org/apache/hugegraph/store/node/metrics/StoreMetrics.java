@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store.node.metrics;
 
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,6 +32,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * 2021/12/28
  */
 public final class StoreMetrics {
+
     public final static String PREFIX = "hg";
     private final static HgStoreEngine storeEngine = HgStoreEngine.getInstance();
     private final static AtomicInteger graphs = new AtomicInteger(0);
@@ -98,6 +98,7 @@ public final class StoreMetrics {
     }
 
     private static class PartitionsGetter implements Supplier<Number> {
+
         private final String graph;
 
         PartitionsGetter(String graph) {

@@ -23,6 +23,7 @@ import lombok.Data;
 
 @Data
 public class RestResult implements Serializable {
+
     public static final String OK = "OK";
     public static final String ERR = "ERR";
     String state;

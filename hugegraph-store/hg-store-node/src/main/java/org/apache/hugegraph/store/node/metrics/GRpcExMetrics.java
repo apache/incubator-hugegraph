@@ -29,6 +29,7 @@ import io.micrometer.core.instrument.MeterRegistry;
  * 2022/3/8
  */
 public class GRpcExMetrics {
+
     public final static String PREFIX = "grpc";
     private final static ExecutorWrapper wrapper = new ExecutorWrapper();
     private static MeterRegistry registry;
@@ -66,6 +67,7 @@ public class GRpcExMetrics {
     }
 
     private static class ExecutorWrapper {
+
         ThreadPoolExecutor pool;
 
         void init() {

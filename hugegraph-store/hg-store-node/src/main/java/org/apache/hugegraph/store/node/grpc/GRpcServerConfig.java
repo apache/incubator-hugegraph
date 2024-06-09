@@ -30,6 +30,7 @@ import io.grpc.ServerBuilder;
  */
 @Component
 public class GRpcServerConfig extends GRpcServerBuilderConfigurer {
+
     public final static String EXECUTOR_NAME = "hg-grpc";
     @Autowired
     private AppConfig appConfig;

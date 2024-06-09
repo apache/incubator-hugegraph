@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store.node.metrics;
 
-
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 

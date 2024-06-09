@@ -102,6 +102,10 @@ public class ScanResponseObserver<T> implements
 
     private boolean sendCondition() {
         return nextSeqNo.get() - cltSeqNo.get() < MAX_PAGE;
+    }
+
+    private boolean sendTaskCondition() {
+        return sendCondition() && (sendTask == null || sendTask.isDone());
     }    Runnable rr = new Runnable() {
         @Override
         public void run() {
@@ -146,10 +150,6 @@ public class ScanResponseObserver<T> implements
         }
     };
 
-    private boolean sendTaskCondition() {
-        return sendCondition() && (sendTask == null || sendTask.isDone());
-    }
-
     private void offer(Iterable<T> data, boolean isVertex) {
         ScanResponse.Builder builder = ScanResponse.newBuilder();
         builder.setHeader(okHeader).setSeqNo(nextSeqNo.get());
@@ -172,34 +172,7 @@ public class ScanResponseObserver<T> implements
                 readLock.unlock();
             }
         }
-    }    Runnable sr = () -> {
-        while (sendCondition()) {
-            ScanResponse response;
-            try {
-                if (readOver.get()) {
-                    if ((response = packages.poll()) == null) {
-                        sender.onCompleted();
-                    } else {
-                        sender.onNext(response);
-                        nextSeqNo.incrementAndGet();
-                    }
-                } else {
-                    response = packages.poll(10,
-                                             TimeUnit.MILLISECONDS);
-                    if (response != null) {
-                        sender.onNext(response);
-                        nextSeqNo.incrementAndGet();
-                        startRead();
-                    } else {
-                        break;
-                    }
-                }
-
-            } catch (InterruptedException e) {
-                break;
-            }
-        }
-    };
+    }
 
     private void startSend() {
         if (sendTaskCondition()) {
@@ -230,7 +203,34 @@ public class ScanResponseObserver<T> implements
             cltSeqNo.getAndIncrement();
             startSend();
         }
-    }
+    }    Runnable sr = () -> {
+        while (sendCondition()) {
+            ScanResponse response;
+            try {
+                if (readOver.get()) {
+                    if ((response = packages.poll()) == null) {
+                        sender.onCompleted();
+                    } else {
+                        sender.onNext(response);
+                        nextSeqNo.incrementAndGet();
+                    }
+                } else {
+                    response = packages.poll(10,
+                                             TimeUnit.MILLISECONDS);
+                    if (response != null) {
+                        sender.onNext(response);
+                        nextSeqNo.incrementAndGet();
+                        startRead();
+                    } else {
+                        break;
+                    }
+                }
+
+            } catch (InterruptedException e) {
+                break;
+            }
+        }
+    };
 
     @Override
     public void onError(Throwable t) {
@@ -258,7 +258,6 @@ public class ScanResponseObserver<T> implements
             log.warn("on Complete with error:", e);
         }
     }
-
 
 
 

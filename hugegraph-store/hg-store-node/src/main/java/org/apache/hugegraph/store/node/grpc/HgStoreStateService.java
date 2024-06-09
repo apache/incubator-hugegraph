@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store.node.grpc;
 
-
 import org.apache.hugegraph.store.grpc.state.HgStoreStateGrpc;
 import org.apache.hugegraph.store.grpc.state.NodeStateRes;
 import org.apache.hugegraph.store.grpc.state.ScanState;

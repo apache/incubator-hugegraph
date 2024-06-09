@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store.node.grpc;
 
-
 import static org.apache.hugegraph.store.node.grpc.ScanUtil.getParallelIterator;
 
 import java.util.List;
@@ -45,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
+
     static ByteBufferAllocator bfAllocator =
             new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
     static ByteBufferAllocator alloc =
@@ -70,7 +70,6 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     // 上次读取数据时间
     private long activeTime;
     private volatile State state;
-
 
     public ScanBatchResponse(StreamObserver<KvStream> response, HgStoreWrapperEx wrapper,
                              ThreadPoolExecutor executor) {
@@ -131,7 +130,6 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     public void onCompleted() {
         closeQuery();
     }
-
 
     /**
      * 生成迭代器

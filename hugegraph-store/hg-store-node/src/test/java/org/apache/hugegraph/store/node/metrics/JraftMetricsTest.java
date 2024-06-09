@@ -23,7 +23,6 @@ import java.util.List;
 import org.apache.hugegraph.store.node.util.HgRegexUtil;
 import org.junit.Test;
 
-
 /**
  * 2022/3/7
  */
@@ -41,7 +40,6 @@ public class JraftMetricsTest {
                 "replicator_hg_0_10_14_139_10:8081::100_replicate_inflights_count_min",
                 "replicasdf14-13dasfies-times",
                 };
-
 
         Arrays.stream(sources).forEach(e -> {
             System.out.println("--- " + e + " ---");

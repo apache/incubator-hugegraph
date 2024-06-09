@@ -135,6 +135,7 @@ class ScanQueryProducer implements Iterable<ScanQuery> {
     /*---------------inner classes below--------------------*/
 
     private class GroupedNoConditionsIterator implements Iterator<ScanQuery[]> {
+
         private boolean isHasNext = true;
 
         @Override
@@ -161,6 +162,7 @@ class ScanQueryProducer implements Iterable<ScanQuery> {
     }
 
     private class GroupedConditionsIterator implements Iterator<ScanQuery[]> {
+
         private final Iterator<ScanCondition> conditionIterator =
                 ScanQueryProducer.this.conditionList.iterator();
 
@@ -187,6 +189,7 @@ class ScanQueryProducer implements Iterable<ScanQuery> {
      * TODO: no testing
      */
     private class NoConditionsIterator implements Iterator<ScanQuery> {
+
         private String tableName;
         private int tableIndex;
 
@@ -220,6 +223,7 @@ class ScanQueryProducer implements Iterable<ScanQuery> {
      * TODO: no testing
      */
     private class ConditionsIterator implements Iterator<ScanQuery> {
+
         private final Iterator<ScanCondition> conditionIterator =
                 ScanQueryProducer.this.conditionList.iterator();
         private ScanCondition condition;

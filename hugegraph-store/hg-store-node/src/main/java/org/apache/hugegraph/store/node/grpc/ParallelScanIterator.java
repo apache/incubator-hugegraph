@@ -255,6 +255,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     static class KV {
+
         public int sn;
         public byte[] key;
         public byte[] value;

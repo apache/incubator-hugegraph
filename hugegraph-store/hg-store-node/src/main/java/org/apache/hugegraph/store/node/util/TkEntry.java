@@ -24,6 +24,7 @@ import java.util.Objects;
  * Table Key pair.
  */
 public class TkEntry {
+
     private final String table;
     private final byte[] key;
 

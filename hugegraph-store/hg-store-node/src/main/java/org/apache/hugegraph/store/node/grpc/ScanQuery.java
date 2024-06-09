@@ -25,6 +25,7 @@ import org.apache.hugegraph.store.grpc.common.ScanMethod;
  * 2022/2/28
  */
 class ScanQuery implements QueryCondition {
+
     String graph;
     String table;
     ScanMethod method;

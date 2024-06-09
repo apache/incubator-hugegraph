@@ -31,7 +31,6 @@ import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
-
 /**
  * created on 2022/02/17
  *
@@ -91,6 +90,5 @@ public class ScanOneShotResponse {
         }
 
     }
-
 
 }

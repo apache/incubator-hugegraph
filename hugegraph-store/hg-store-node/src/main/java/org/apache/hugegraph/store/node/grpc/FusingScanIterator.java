@@ -29,6 +29,7 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
  * 2023/2/8
  */
 final class FusingScanIterator implements ScanIterator {
+
     public static final byte[] EMPTY_BYTES = new byte[0];
     private long max;
     private long accumulator;

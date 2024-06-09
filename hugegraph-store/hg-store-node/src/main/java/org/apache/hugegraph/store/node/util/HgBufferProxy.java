@@ -37,6 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public final class HgBufferProxy<T> {
+
     private final BlockingQueue<Supplier<T>> queue;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final ReentrantLock lock = new ReentrantLock();

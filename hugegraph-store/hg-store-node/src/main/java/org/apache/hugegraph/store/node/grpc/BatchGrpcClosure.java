@@ -50,6 +50,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 class BatchGrpcClosure<V> {
+
     private final CountDownLatch countDownLatch;
     private final List<Status> errorStatus;
     private final List<V> results;
@@ -111,7 +112,6 @@ class BatchGrpcClosure<V> {
             }
         };
     }
-
 
     public PartitionFaultResponse getErrorResponse() {
         PartitionFaultResponse errorResponse;

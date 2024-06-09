@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.store.node.util;
 
-
 class Err {
+
     private final String msg;
 
     private Err(String msg) {

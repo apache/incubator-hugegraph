@@ -59,7 +59,7 @@ public class HgStoreWrapperEx {
                              int scanType,
                              byte[] query) {
         ScanIterator scanIterator =
-            this.handler.scan(graph, partId, table, start, end, scanType, query);
+                this.handler.scan(graph, partId, table, start, end, scanType, query);
         return FilterIterator.of(scanIterator, query);
     }
 
@@ -74,7 +74,7 @@ public class HgStoreWrapperEx {
                                    int scanType,
                                    byte[] query) {
         ScanIterator scanIterator =
-            this.handler.scanPrefix(graph, partition, table, prefix, scanType);
+                this.handler.scanPrefix(graph, partition, table, prefix, scanType);
         return FilterIterator.of(scanIterator, query);
     }
 

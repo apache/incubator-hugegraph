@@ -53,6 +53,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class ScanBatchResponse3 {
+
     private final static long DEFAULT_PACKAGE_SIZE = 10_000;
     private final static int MAX_NOT_RECEIPT = 10;
 
@@ -75,6 +76,7 @@ public class ScanBatchResponse3 {
 
     /*** Broker ***/
     private static class Broker implements StreamObserver<ScanStreamBatchReq> {
+
         private final StreamObserver<KvPageRes> responseObserver;
         private final HgStoreWrapperEx wrapper;
         private final ThreadPoolExecutor executor;
@@ -154,6 +156,7 @@ public class ScanBatchResponse3 {
 
     @NotThreadSafe
     private static class OrderManager {
+
         OrderState state = OrderState.NEW;
         OrderWorker worker;
         OrderDeliverer deliverer;
@@ -196,6 +199,7 @@ public class ScanBatchResponse3 {
     }
 
     private static class OrderDeliverer {
+
         private final StreamObserver<KvPageRes> responseObserver;
         private final AtomicBoolean finishFlag = new AtomicBoolean();
         private final String delivererId;
@@ -249,6 +253,7 @@ public class ScanBatchResponse3 {
 
     /*** Worker ***/
     private static class OrderWorker {
+
         private final ScanIterator iterator;
         private final OrderDeliverer deliverer;
         private final AtomicBoolean pauseFlag = new AtomicBoolean();

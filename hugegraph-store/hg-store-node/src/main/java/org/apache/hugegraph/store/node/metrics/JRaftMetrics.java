@@ -45,6 +45,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class JRaftMetrics {
+
     public final static String PREFIX = "jraft";
     public static final String LABELS = "quantile";
     public static final String LABEL_50 = "0.5";
@@ -292,6 +293,7 @@ public class JRaftMetrics {
     }
 
     private static class HistogramWrapper {
+
         private final com.codahale.metrics.Histogram histogram;
 
         private Snapshot snapshot;
