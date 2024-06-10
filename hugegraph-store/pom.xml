@@ -41,7 +41,7 @@
         <module>hg-store-rocksdb</module>
         <module>hg-store-core</module>
         <!--        TODO: uncomment later-->
-        <!--        <module>hg-store-node</module>-->
+        <module>hg-store-node</module>
         <!--        <module>hg-store-dist</module>-->
         <!--        <module>hg-store-cli</module>-->
     </modules>

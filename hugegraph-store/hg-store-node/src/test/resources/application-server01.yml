@@ -1,0 +1,70 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+pdserver:
+  # pd服务地址，多个pd地址用逗号分割
+  address: localhost:8686
+grpc:
+  # grpc的服务地址
+  host: 127.0.0.1
+  port: 8501
+  netty-server:
+    max-inbound-message-size: 1000MB
+raft:
+  # enable: false
+  address: 127.0.0.1:8511
+  useRocksDBSegmentLogStorage: false
+  # 快照生成时间间隔，单位秒
+  snapshotInterval: 300
+  disruptorBufferSize: 128
+server:
+  # rest 服务地址
+  port: 8521
+
+app:
+  data-path: tmp/8501
+  # fake-pd: true
+  label:
+    label-name: label-value
+spring:
+  application:
+    name: store-node-grpc-server
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+rocksdb:
+  write_buffer_size: 2000000
+  level0_file_num_compaction_trigger: 2
+  bloom_filter_bits_per_key: 10
+#fakePd配置参数
+fake-pd:
+  # fake-pd模式下，store grpc集群列表
+  store-list: 127.0.0.1:8501,127.0.0.1:8502,127.0.0.1:8503
+  # fake-pd模式下，设置raft集群列表
+  peers-list: 127.0.0.1:8511,127.0.0.1:8512,127.0.0.1:8513
+  # 分区数量
+  partition-count: 10
+  # 每个分区副本数量
+  shard-count: 3
