@@ -41,7 +41,7 @@ rm -rf dist && mkdir -p dist/apache-${REPO}
 # step1: package the source code
 cd ../../ && echo "Package source in: $(pwd)"
 git archive --format=tar.gz \
-  --output="dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
+  --output="install-dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
   --prefix=apache-${REPO}-incubating-"${RELEASE_VERSION}"-src/ "${GIT_BRANCH}" || exit
 cd - || exit
 
