@@ -26,5 +26,5 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
     <!-- TODO: rename to hugegraph-dist later -->
-    <artifactId>dist</artifactId>
+    <artifactId>install-dist</artifactId>
 </project>
