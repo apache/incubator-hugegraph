@@ -40,6 +40,8 @@ import org.apache.hugegraph.backend.serializer.BinaryBackendEntry.BinaryId;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.iterator.CIter;
+import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -69,6 +71,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 public class BinarySerializer extends AbstractSerializer {
 
@@ -522,6 +525,40 @@ public class BinarySerializer extends AbstractSerializer {
                          edges.size());
         }
         return edges.iterator().next();
+    }
+
+    @Override
+    public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
+
+        BinaryBackendEntry entry = this.convertEntry(bytesEntry);
+
+        // Parse id
+        Id id = entry.id().origin();
+        Id vid = id.edge() ? ((EdgeId) id).ownerVertexId() : id;
+        HugeVertex vertex = new HugeVertex(graph, vid, VertexLabel.NONE);
+
+        // Parse all properties and edges of a Vertex
+        Iterator<BackendColumn> iterator = entry.columns().iterator();
+        for (int index = 0; iterator.hasNext(); index++) {
+            BackendColumn col = iterator.next();
+            if (entry.type().isEdge()) {
+                // NOTE: the entry id type is vertex even if entry type is edge
+                // Parse vertex edges
+                this.parseColumn(col, vertex);
+            } else {
+                assert entry.type().isVertex();
+                // Parse vertex properties
+                assert entry.columnsSize() >= 1 : entry.columnsSize();
+                if (index == 0) {
+                    this.parseVertex(col.value, vertex);
+                } else {
+                    this.parseVertexOlap(col.value, vertex);
+                }
+            }
+        }
+        // convert to CIter
+        return new MapperIterator<>(vertex.getEdges().iterator(),
+                                    (edge) -> edge);
     }
 
     @Override
