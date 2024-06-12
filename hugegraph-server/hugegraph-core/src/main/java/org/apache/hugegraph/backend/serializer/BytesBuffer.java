@@ -115,6 +115,10 @@ public final class BytesBuffer extends OutputStream {
         return new BytesBuffer(ByteBuffer.wrap(array, offset, length));
     }
 
+    public static byte getType(int value) {
+        return (byte) (value & 0x3f);
+    }
+
     public ByteBuffer asByteBuffer() {
         return this.buffer;
     }
@@ -782,6 +786,35 @@ public final class BytesBuffer extends OutputStream {
          * so readId() will return the source vertex id instead of edge id,
          * can't call: type.isEdge() ? this.readEdgeId() : this.readId();
          */
+        Id id = this.readId();
+        int end = this.buffer.position();
+        int len = end - start;
+        byte[] bytes = new byte[len];
+        System.arraycopy(this.array(), start, bytes, 0, len);
+        return new BinaryId(bytes, id);
+    }
+
+    /**
+     * 解析 olap id
+     *
+     * @param type
+     * @param isOlap
+     * @return
+     */
+    public BinaryId parseOlapId(HugeType type, boolean isOlap) {
+        if (type.isIndex()) {
+            return this.readIndexId(type);
+        }
+        // Parse id from bytes
+        int start = this.buffer.position();
+        /**
+         * OLAP
+         * {PropertyKey}{VertexId}
+         */
+        if (isOlap) {
+            // 先 read olap property id
+            Id pkId = this.readId();
+        }
         Id id = this.readId();
         int end = this.buffer.position();
         int len = end - start;

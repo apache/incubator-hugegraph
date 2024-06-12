@@ -58,7 +58,7 @@ public class KoutTraverser extends OltpTraverser {
                             capacity, limit);
         }
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
 
         Set<Id> sources = newIdSet();
         Set<Id> neighbors = newIdSet();

@@ -362,7 +362,6 @@ public class MetricsAPI extends API {
             Counter successCounter = reporter.counters().get(
                     joinWithSlash(metricsName, METRICS_PATH_SUCCESS_COUNTER));
 
-
             Histogram histogram = entry.getValue();
             Map<String, Object> entryMetricsMap = new HashMap<>();
             entryMetricsMap.put(MetricsKeys.MAX_RESPONSE_TIME.name(),

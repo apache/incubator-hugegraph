@@ -232,7 +232,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
     protected Map<Id, BackendEntry> queryById(Collection<Id> ids,
                                               Map<Id, BackendEntry> entries) {
-        assert ids.size() > 0;
+        assert !ids.isEmpty();
         Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
 
         for (Id id : ids) {
@@ -262,7 +262,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     protected Map<Id, BackendEntry> queryByFilter(
             Collection<Condition> conditions,
             Map<Id, BackendEntry> entries) {
-        assert conditions.size() > 0;
+        assert !conditions.isEmpty();
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 

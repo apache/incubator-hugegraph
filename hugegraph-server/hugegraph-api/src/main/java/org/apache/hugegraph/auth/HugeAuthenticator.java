@@ -39,6 +39,8 @@ import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
+import jakarta.ws.rs.core.SecurityContext;
+
 public interface HugeAuthenticator extends Authenticator {
 
     String KEY_USERNAME = CredentialGraphTokens.PROPERTY_USERNAME;
@@ -63,6 +65,8 @@ public interface HugeAuthenticator extends Authenticator {
     void setup(HugeConfig config);
 
     UserWithRole authenticate(String username, String password, String token);
+
+    void unauthorize(SecurityContext context);
 
     AuthManager authManager();
 
@@ -103,10 +107,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         HugeGraphAuthProxy.logUser(user, credentials.get(KEY_PATH));
-        /*
-         * Set authentication context
-         * TODO: unset context after finishing a request
-         */
+        // TODO: Ensure context lifecycle in GraphServer & AuthServer(#AccessLogFilter)
         HugeGraphAuthProxy.setContext(new Context(user));
 
         return user;

@@ -27,6 +27,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.util.E;
 
@@ -99,13 +100,24 @@ public class EdgeLabel extends SchemaLabel {
         return this.sourceLabel.equals(id) || this.targetLabel.equals(id);
     }
 
+    public boolean linkWithVertexLabel(Id label, Directions dir) {
+        if (dir.equals(Directions.IN)) {
+            return this.targetLabel.equals(label);
+        } else if (dir.equals(Directions.OUT)) {
+            return this.sourceLabel.equals(label);
+        } else if (dir.equals(Directions.BOTH)) {
+            return this.targetLabel.equals(label) || this.sourceLabel.equals(label);
+        }
+        return false;
+    }
+
     public boolean checkLinkEqual(Id sourceLabel, Id targetLabel) {
         return this.sourceLabel.equals(sourceLabel) &&
                this.targetLabel.equals(targetLabel);
     }
 
     public boolean existSortKeys() {
-        return this.sortKeys.size() > 0;
+        return !this.sortKeys.isEmpty();
     }
 
     public List<Id> sortKeys() {

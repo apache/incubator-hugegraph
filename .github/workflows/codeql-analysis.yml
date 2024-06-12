@@ -12,7 +12,7 @@ on:
 jobs:
   analyze:
     env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
+      USE_STAGE: 'true' # Whether to include the stage repository.
     name: Analyze
     runs-on: ubuntu-latest
     permissions:

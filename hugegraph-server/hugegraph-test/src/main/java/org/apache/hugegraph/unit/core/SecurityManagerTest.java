@@ -35,6 +35,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.job.GremlinJob;
 import org.apache.hugegraph.job.JobBuilder;
@@ -46,6 +47,7 @@ import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.JsonUtil;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -53,7 +55,7 @@ import com.google.common.collect.ImmutableMap;
 public class SecurityManagerTest {
 
     private static HugeGraph graph;
-    private static HugeSecurityManager sm = new HugeSecurityManager();
+    private static final HugeSecurityManager sm = new HugeSecurityManager();
 
     @BeforeClass
     public static void init() {
@@ -71,6 +73,25 @@ public class SecurityManagerTest {
         HugeFactory.shutdown(30L);
     }
 
+    @Ignore("Enable it after 1.5.0")
+    public void testProcessImplMethodAccess() throws Exception {
+        new HugeFactoryAuthProxy();
+        Class<?> clz = Class.forName("java.lang.ProcessImpl");
+        Assert.assertThrows(NoSuchMethodException.class, () -> {
+            clz.getDeclaredMethod("start", String[].class, Map.class, String.class,
+                                  ProcessBuilder.Redirect[].class, boolean.class);
+        });
+    }
+
+    @Ignore("Enable it after 1.5.0")
+    public void testThreadFieldAccess() throws Exception {
+        new HugeFactoryAuthProxy();
+        Class<?> clz = Class.forName("java.lang.Thread");
+        Assert.assertThrows(NoSuchFieldException.class, () -> {
+            clz.getDeclaredField("name");
+        });
+    }
+
     @Test
     public void testNormal() {
         String result = runGremlinJob("g.V()");
@@ -83,20 +104,18 @@ public class SecurityManagerTest {
     @Test
     public void testPermission() {
         String result = runGremlinJob("System.setSecurityManager(null)");
-        assertError(result,
-                    "Not allowed to access denied permission via Gremlin");
+        assertError(result, "Not allowed to access denied permission via Gremlin");
     }
 
     @Test
     public void testClassLoader() {
-        String result = runGremlinJob("System.getSecurityManager()" +
-                                      ".checkCreateClassLoader()");
+        String result = runGremlinJob("System.getSecurityManager().checkCreateClassLoader()");
         assertError(result, "Not allowed to create class loader via Gremlin");
     }
 
     @Test
     public void testThread() {
-        // access thread group
+        // access a thread group
         new Thread();
         String result = runGremlinJob("new Thread()");
         assertError(result, "Not allowed to access thread group via Gremlin");
@@ -116,7 +135,7 @@ public class SecurityManagerTest {
     @Test
     public void testFile() {
         // read file
-        try (FileInputStream fis = new FileInputStream(new File(""))) {
+        try (FileInputStream fis = new FileInputStream("")) {
             // pass
         } catch (IOException ignored) {
             // ignored exception
@@ -126,7 +145,7 @@ public class SecurityManagerTest {
 
         // read file
         String pom = System.getProperty("user.dir") + "/a.groovy";
-        try (FileInputStream fis = new FileInputStream(new File(pom))) {
+        try (FileInputStream fis = new FileInputStream(pom)) {
             // pass
         } catch (IOException ignored) {
             // ignored exception
@@ -147,7 +166,7 @@ public class SecurityManagerTest {
         assertError(result, "Not allowed to read file via Gremlin");
 
         // write file
-        try (FileOutputStream fos = new FileOutputStream(new File(""))) {
+        try (FileOutputStream fos = new FileOutputStream("")) {
             // pass
         } catch (IOException ignored) {
             // ignored IOException
@@ -258,14 +277,11 @@ public class SecurityManagerTest {
     public void testProperties() {
         System.getProperties();
         String result = runGremlinJob("System.getProperties()");
-        assertError(result,
-                    "Not allowed to access system properties via Gremlin");
+        assertError(result, "Not allowed to access system properties via Gremlin");
 
         System.getProperty("java.version");
         result = runGremlinJob("System.getProperty(\"java.version\")");
-        assertError(result,
-                    "Not allowed to access system property(java.version) " +
-                    "via Gremlin");
+        assertError(result, "Not allowed to access system property(java.version) via Gremlin");
     }
 
     @Test
@@ -287,8 +303,7 @@ public class SecurityManagerTest {
     }
 
     private static void assertError(String result, String message) {
-        Assert.assertTrue(result, result.endsWith(message) ||
-                                  result.contains(message));
+        Assert.assertTrue(result, result.endsWith(message) || result.contains(message));
     }
 
     private static String runGremlinJob(String gremlin) {

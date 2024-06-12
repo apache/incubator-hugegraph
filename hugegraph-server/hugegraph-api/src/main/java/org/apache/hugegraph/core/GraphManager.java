@@ -76,6 +76,8 @@ import org.slf4j.Logger;
 
 import com.alipay.sofa.rpc.config.ServerConfig;
 
+import jakarta.ws.rs.core.SecurityContext;
+
 public final class GraphManager {
 
     private static final Logger LOG = Log.logger(GraphManager.class);
@@ -263,6 +265,10 @@ public final class GraphManager {
         return this.authenticator().authenticate(credentials);
     }
 
+    public void unauthorize(SecurityContext context) {
+        this.authenticator().unauthorize(context);
+    }
+
     public AuthManager authManager() {
         return this.authenticator().authManager();
     }
@@ -346,7 +352,6 @@ public final class GraphManager {
                      "auth.authenticator option in rest-server.properties");
         return this.authenticator;
     }
-
 
     private void closeTx(final Set<String> graphSourceNamesToCloseTxOn,
                          final Transaction.Status tx) {

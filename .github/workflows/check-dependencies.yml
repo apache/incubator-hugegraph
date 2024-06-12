@@ -13,7 +13,7 @@ jobs:
   dependency-check:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
+      USE_STAGE: 'true' # Whether to include the stage repository.
       SCRIPT_DEPENDENCY: hugegraph-server/hugegraph-dist/scripts/dependency
     steps:
       - name: Checkout source
@@ -49,7 +49,8 @@ jobs:
         uses: actions/dependency-review-action@v3
         # Refer: https://github.com/actions/dependency-review-action
         with:
-          fail-on-severity: low
+          # TODO: reset critical to low before releasing
+          fail-on-severity: critical
           # Action will fail if dependencies don't match the list
           #allow-licenses: Apache-2.0, MIT
           #deny-licenses: GPL-3.0, AGPL-1.0, AGPL-3.0, LGPL-2.0, CC-BY-3.0

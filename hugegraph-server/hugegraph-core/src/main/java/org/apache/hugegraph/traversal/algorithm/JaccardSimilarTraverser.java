@@ -54,7 +54,7 @@ public class JaccardSimilarTraverser extends OltpTraverser {
         E.checkNotNull(dir, "direction");
         checkDegree(degree);
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
 
         Set<Id> sourceNeighbors = IteratorUtils.set(this.adjacentVertices(
                 vertex, dir, labelId, degree));

@@ -58,7 +58,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         checkSkipDegree(skipDegree, degree, capacity);
         checkLimit(limit);
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
         Traverser traverser = new Traverser(sourceV, dir, labelId, weight,
                                             degree, skipDegree, capacity, limit);
         while (true) {
@@ -94,7 +94,7 @@ public class SingleSourceShortestPathTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkSkipDegree(skipDegree, degree, capacity);
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
         Traverser traverser = new Traverser(sourceV, dir, labelId, weight,
                                             degree, skipDegree, capacity,
                                             NO_LIMIT);

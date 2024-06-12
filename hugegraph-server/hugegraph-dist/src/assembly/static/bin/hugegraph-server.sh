@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 function abs_path() {
     SOURCE="${BASH_SOURCE[0]}"
     while [[ -h "$SOURCE" ]]; do
@@ -39,24 +40,20 @@ EXT="$TOP/ext"
 PLUGINS="$TOP/plugins"
 LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-server.log
+GITHUB="https://github.com"
 
 export HUGEGRAPH_HOME="$TOP"
 . "${BIN}"/util.sh
 
-GREMLIN_SERVER_CONF="$1"
-REST_SERVER_CONF="$2"
-OPEN_SECURITY_CHECK="$3"
-
-if [[ $# -eq 3 ]]; then
-    USER_OPTION=""
-    GC_OPTION=""
-elif [[ $# -eq 4 ]]; then
-    USER_OPTION="$4"
-    GC_OPTION=""
-elif [[ $# -eq 5 ]]; then
-    USER_OPTION="$4"
-    GC_OPTION="$5"
-fi
+# Parse the server arguments in array way
+SERVER_ARGS=("$@")
+GREMLIN_SERVER_CONF="${SERVER_ARGS[0]:-}"
+REST_SERVER_CONF="${SERVER_ARGS[1]:-}"
+OPEN_SECURITY_CHECK="${SERVER_ARGS[2]:-}"
+# Param will be empty str("") if not set
+USER_OPTION="${SERVER_ARGS[3]:-}"
+GC_OPTION="${SERVER_ARGS[4]:-}"
+OPEN_TELEMETRY="${SERVER_ARGS[5]:-}"
 
 ensure_path_writable "$LOGS"
 ensure_path_writable "$PLUGINS"
@@ -64,11 +61,13 @@ ensure_path_writable "$PLUGINS"
 # The maximum and minimum heap memory that service can use
 MAX_MEM=$((32 * 1024))
 MIN_MEM=$((1 * 512))
+# TODO: upgrade to Java 11 in 1.5.0
 MIN_JAVA_VERSION=8
 
-# download binary file
+# Note: Download for HTTPS, could comment out if you don't need it
+# TODO: only download it when we config https (check the conf file)
 if [[ ! -e "${CONF}/hugegraph-server.keystore" ]]; then
-    download "${CONF}" "https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
+    download "${CONF}" "${GITHUB}/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
 fi
 
 # Add the slf4j-log4j12 binding
@@ -81,7 +80,7 @@ CP="$CP":$(find -L $LIB -name '*.jar' \
     \! -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
 # Add the jars in ext (at any subdirectory depth)
 CP="$CP":$(find -L $EXT -name '*.jar' | sort | tr '\n' ':')
-# Add the jars in plugins (at any subdirectory depth)
+# Add the jars in plugins (at any subdirectory depth), check "javaagent" related jars carefully
 CP="$CP":$(find -L $PLUGINS -name '*.jar' | sort | tr '\n' ':')
 
 # (Cygwin only) Use ; classpath separator and reformat paths for Windows ("C:\foo")
@@ -151,6 +150,44 @@ esac
 JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml"
 if [[ ${OPEN_SECURITY_CHECK} == "true" ]]; then
     JVM_OPTIONS="${JVM_OPTIONS} -Djava.security.manager=org.apache.hugegraph.security.HugeSecurityManager"
+fi
+
+if [ "${OPEN_TELEMETRY}" == "true" ]; then
+    OT_JAR="opentelemetry-javaagent.jar"
+    OT_JAR_PATH="${PLUGINS}/${OT_JAR}"
+
+    if [[ ! -e "${OT_JAR_PATH}" ]]; then
+        echo "## Downloading ${OT_JAR}..."
+        download "${PLUGINS}" \
+            "${GITHUB}/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/${OT_JAR}"
+
+        if [[ ! -e "${OT_JAR_PATH}" ]]; then
+            echo "## Error: Failed to download ${OT_JAR}." >>${OUTPUT}
+            exit 1
+        fi
+    fi
+
+    # Note: remember update it if we change the jar 
+    expected_md5="e3bcbbe8ed9b6d840fa4c333b36f369f"
+    actual_md5=$(md5sum "${OT_JAR_PATH}" | awk '{print $1}')
+
+    if [[ "${expected_md5}" != "${actual_md5}" ]]; then
+        echo "## Error: MD5 checksum verification failed for ${OT_JAR_PATH}." >>${OUTPUT}
+        echo "## Tips: Remove the file and try again." >>${OUTPUT}
+        exit 1
+    fi
+
+    # Note: check carefully if multi "javeagent" params are set
+    export JAVA_TOOL_OPTIONS="-javaagent:${PLUGINS}/${OT_JAR}"
+    export OTEL_TRACES_EXPORTER=otlp
+    export OTEL_METRICS_EXPORTER=none
+    export OTEL_LOGS_EXPORTER=none
+    export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
+    # 127.0.0.1:4317 is the port of otel-collector running in Docker located in
+    # 'hugegraph-server/hugegraph-dist/docker/example/docker-compose-trace.yaml'.
+    # Make sure the otel-collector is running before starting HugeGraphServer.
+    export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4317
+    export OTEL_RESOURCE_ATTRIBUTES=service.name=server
 fi
 
 # Turn on security check

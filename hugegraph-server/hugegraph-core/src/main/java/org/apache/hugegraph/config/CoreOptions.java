@@ -297,6 +297,14 @@ public class CoreOptions extends OptionHolder {
                     0
             );
 
+    public static final ConfigOption<Long> TASK_SCHEDULE_PERIOD =
+            new ConfigOption<>(
+                    "task.schedule_period",
+                    "Period time when scheduler to schedule task",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    10L
+            );
+
     public static final ConfigOption<Long> TASK_WAIT_TIMEOUT =
             new ConfigOption<>(
                     "task.wait_timeout",
@@ -331,12 +339,28 @@ public class CoreOptions extends OptionHolder {
                     1
             );
 
+    public static final ConfigOption<String> SCHEDULER_TYPE =
+            new ConfigOption<>(
+                    "task.scheduler_type",
+                    "The type of scheduler used in distribution system.",
+                    allowValues("local", "distributed"),
+                    "local"
+            );
+
     public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
             new ConfigOption<>(
                     "task.sync_deletion",
                     "Whether to delete schema or expired data synchronously.",
                     disallowEmpty(),
                     false
+            );
+
+    public static final ConfigOption<Integer> TASK_RETRY =
+            new ConfigOption<>(
+                    "task.retry",
+                    "Task retry times.",
+                    rangeInt(0, 3),
+                    0
             );
 
     public static final ConfigOption<Long> STORE_CONN_DETECT_INTERVAL =
@@ -650,4 +674,11 @@ public class CoreOptions extends OptionHolder {
                     CollectionType::valueOf,
                     "EC"
             );
+
+    public static final ConfigOption<String> PD_PEERS = new ConfigOption<>(
+            "pd.peers",
+            "The addresses of pd nodes, separated with commas.",
+            disallowEmpty(),
+            "127.0.0.1:8686"
+    );
 }

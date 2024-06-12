@@ -1,0 +1,73 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "store_common.proto";
+
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.store.grpc.state";
+option java_outer_classname = "HgStoreStateProto";
+
+service HgStoreState {
+
+  // Subscribe Store Node state publishing.
+  rpc SubState(SubStateReq) returns (stream NodeStateRes) {}
+
+  // Unsubscribe Store Node state publishing.
+  rpc UnsubState(SubStateReq) returns (google.protobuf.Empty){}
+  rpc getScanState(SubStateReq) returns (ScanState){}
+
+}
+
+message SubStateReq{
+  string subId = 1;
+}
+
+message NodeStateRes {
+  NodeStateType state = 1;
+}
+
+message ScanState{
+  string address = 1;
+  uint64 taskCount = 2;
+  uint64 completedTaskCount = 3;
+  uint32 activeCount = 4;
+  uint32 largestPoolSize = 5;
+  uint32 poolSize = 6;
+  int32 maximumPoolSize = 7;
+  int32 queueSize = 8;
+  int32 queueRemainingCapacity = 9;
+}
+
+enum NodeStateType {
+  UNKNOWN_STATE_TYPE = 0;
+  STARTING = 10;
+  STANDBY = 20;
+  ONLINE = 30;
+  PAUSE = 40;
+  PENDING = 50;
+  STOPPING = 60;
+  HALTED = 70;
+  ERROR = 90;
+  ZOMBIE = 99;
+}
+
+message QuotaRequest {
+  map<string, bool> limits = 1;
+}

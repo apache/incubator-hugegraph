@@ -39,6 +39,7 @@ import org.apache.hugegraph.backend.query.IdRangeQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.iterator.CIter;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -65,6 +66,7 @@ import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -352,10 +354,16 @@ public class TextSerializer extends AbstractSerializer {
         throw new NotImplementedException("Unsupported readEdge()");
     }
 
+    public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
+        E.checkNotNull(graph, "serializer graph");
+        // TODO: implement
+        throw new NotImplementedException("Unsupported readEdges()");
+    }
+
     @Override
     public BackendEntry writeIndex(HugeIndex index) {
         TextBackendEntry entry = newBackendEntry(index.type(), index.id());
-        if (index.fieldValues() == null && index.elementIds().size() == 0) {
+        if (index.fieldValues() == null && index.elementIds().isEmpty()) {
             /*
              * When field-values is null and elementIds size is 0, it is
              * meaningful for deletion of index data in secondary/range index.
@@ -497,7 +505,7 @@ public class TextSerializer extends AbstractSerializer {
             }
         }
 
-        if (condParts.size() > 0) {
+        if (!condParts.isEmpty()) {
             // Conditions to id
             String id = EdgeId.concat(condParts.toArray(new String[0]));
             return new IdPrefixQuery(cq, IdGenerator.of(id));

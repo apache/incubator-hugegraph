@@ -18,6 +18,7 @@
 package org.apache.hugegraph.backend.query;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -34,6 +35,8 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
 import org.apache.hugegraph.backend.query.Condition.Relation;
 import org.apache.hugegraph.backend.query.Condition.RelationType;
+import org.apache.hugegraph.backend.query.serializer.QueryAdapter;
+import org.apache.hugegraph.backend.query.serializer.QueryIdAdapter;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeProperty;
@@ -48,6 +51,8 @@ import org.apache.hugegraph.util.NumericUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class ConditionQuery extends IdQuery {
 
@@ -72,6 +77,12 @@ public class ConditionQuery extends IdQuery {
     }
 
     private static final List<Condition> EMPTY_CONDITIONS = ImmutableList.of();
+
+    private static final Gson gson = new GsonBuilder()
+            .registerTypeAdapter(Condition.class, new QueryAdapter())
+            .registerTypeAdapter(Id.class, new QueryIdAdapter())
+            .setDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+            .create();
 
     // Conditions will be contacted with `and` by default
     private List<Condition> conditions = EMPTY_CONDITIONS;
@@ -220,6 +231,31 @@ public class ConditionQuery extends IdQuery {
         return null;
     }
 
+    public boolean containsLabelOrUserpropRelation() {
+        for (Condition c : this.conditions) {
+            while (c instanceof Condition.Not) {
+                c = ((Condition.Not) c).condition();
+            }
+            if (c.isLogic()) {
+                Condition.BinCondition binCondition =
+                        (Condition.BinCondition) c;
+                ConditionQuery query = new ConditionQuery(HugeType.EDGE);
+                query.query(binCondition.left());
+                query.query(binCondition.right());
+                if (query.containsLabelOrUserpropRelation()) {
+                    return true;
+                }
+            } else {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(HugeKeys.LABEL) ||
+                    c instanceof Condition.UserpropRelation) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     @Watched
     public <T> T condition(Object key) {
         List<Object> valuesEQ = InsertionOrderUtil.newList();
@@ -241,12 +277,12 @@ public class ConditionQuery extends IdQuery {
         if (valuesEQ.isEmpty() && valuesIN.isEmpty()) {
             return null;
         }
-        if (valuesEQ.size() == 1 && valuesIN.size() == 0) {
+        if (valuesEQ.size() == 1 && valuesIN.isEmpty()) {
             @SuppressWarnings("unchecked")
             T value = (T) valuesEQ.get(0);
             return value;
         }
-        if (valuesEQ.size() == 0 && valuesIN.size() == 1) {
+        if (valuesEQ.isEmpty() && valuesIN.size() == 1) {
             @SuppressWarnings("unchecked")
             T value = (T) valuesIN.get(0);
             return value;
@@ -273,7 +309,7 @@ public class ConditionQuery extends IdQuery {
             }
         }
 
-        if (intersectValues.size() == 0) {
+        if (intersectValues.isEmpty()) {
             return null;
         }
         E.checkState(intersectValues.size() == 1,
@@ -298,6 +334,19 @@ public class ConditionQuery extends IdQuery {
             }
         }
         return false;
+    }
+
+    public boolean containsCondition(Condition.RelationType type) {
+        for (Relation r : this.relations()) {
+            if (r.relation().equals(type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean containsScanCondition() {
+        return this.containsCondition(Condition.RelationType.SCAN);
     }
 
     public boolean containsRelation(HugeKeys key, Condition.RelationType type) {
@@ -516,7 +565,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean matchUserpropKeys(List<Id> keys) {
         Set<Id> conditionKeys = this.userpropKeys();
-        return keys.size() > 0 && conditionKeys.containsAll(keys);
+        return !keys.isEmpty() && conditionKeys.containsAll(keys);
     }
 
     @Override
@@ -538,6 +587,23 @@ public class ConditionQuery extends IdQuery {
         query.optimizedType = OptimizedType.NONE;
         query.resultsFilter = null;
         return query;
+    }
+
+    public Condition.Relation copyRelationAndUpdateQuery(Object key) {
+        Condition.Relation copyRes = null;
+        for (int i = 0; i < this.conditions.size(); i++) {
+            Condition c = this.conditions.get(i);
+            if (c.isRelation()) {
+                Condition.Relation r = (Condition.Relation) c;
+                if (r.key().equals(key)) {
+                    copyRes = r.copy();
+                    this.conditions.set(i, copyRes);
+                    break;
+                }
+            }
+        }
+        E.checkArgument(copyRes != null, "Failed to copy Condition.Relation: %s", key);
+        return copyRes;
     }
 
     @Override
@@ -685,6 +751,18 @@ public class ConditionQuery extends IdQuery {
         }
     }
 
+    public static ConditionQuery fromBytes(byte[] bytes) {
+        Gson gson = new GsonBuilder()
+                .registerTypeAdapter(Condition.class, new QueryAdapter())
+                .registerTypeAdapter(Id.class, new QueryIdAdapter())
+                .setDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+                .create();
+        String cqs = new String(bytes, StandardCharsets.UTF_8);
+        ConditionQuery conditionQuery = gson.fromJson(cqs, ConditionQuery.class);
+
+        return conditionQuery;
+    }
+
     private static boolean needConvertNumber(Object value) {
         // Numeric or date values should be converted to number from string
         return NumericUtil.isNumber(value) || value instanceof Date;
@@ -808,7 +886,7 @@ public class ConditionQuery extends IdQuery {
              */
             boolean hasRightValue = removeFieldValue(fieldValues,
                                                      property.value());
-            if (fieldValues.size() > 0) {
+            if (!fieldValues.isEmpty()) {
                 this.addLeftIndex(element.id(), propId, fieldValues);
             }
 
@@ -873,5 +951,10 @@ public class ConditionQuery extends IdQuery {
     public interface ResultsFilter {
 
         boolean test(HugeElement element);
+    }
+
+    public byte[] bytes() {
+        String cqs = gson.toJson(this);
+        return cqs.getBytes(StandardCharsets.UTF_8);
     }
 }

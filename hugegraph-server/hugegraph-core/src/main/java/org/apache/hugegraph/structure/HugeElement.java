@@ -252,7 +252,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
     }
 
     public boolean hasProperties() {
-        return this.properties.size() > 0;
+        return !this.properties.isEmpty();
     }
 
     public int sizeOfProperties() {

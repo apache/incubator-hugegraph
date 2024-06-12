@@ -196,7 +196,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
 
         private void contributeToAdjacentVertices(Id sourceVertexId,
                                                   List<Id> adjacentVertices) {
-            if (adjacentVertices.size() == 0) {
+            if (adjacentVertices.isEmpty()) {
                 return;
             }
             DoublePair sourcePair = this.vertexRankMap.get(sourceVertexId);

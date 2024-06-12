@@ -1,0 +1,392 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+package metapb;
+option java_package = "org.apache.hugegraph.pd.grpc";
+import "google/protobuf/any.proto";
+
+enum ClusterState{
+  // Cluster health
+  Cluster_OK = 0;
+  // Partition warning: There are some faulty nodes, which do not affect read/write for a short time
+  Cluster_Warn = 2;
+  // The partition is offline, which can be read but cannot be written
+  Cluster_Offline = 10;
+  // If the partition is faulty and cannot be read or written, you need to repair the faulty node as soon as possible.
+  Cluster_Fault = 11;
+  Cluster_Not_Ready = -1;
+}
+// Cluster status
+message ClusterStats{
+  ClusterState state = 1;
+  string message = 2;
+  uint64 timestamp = 16;
+}
+
+enum StoreState {
+  Unknown = 0;
+  // Not activated
+  Pending = 4;
+  // online
+  Up = 1;
+  // Offline
+  Offline = 2;
+  Exiting = 5;
+  Tombstone = 3;
+}
+
+// Store label for Storage grouping.
+message StoreLabel {
+  string key = 1;
+  string value = 2;
+}
+
+message Store {
+  uint64 id = 1;
+  // Address to handle client requests
+  string address = 2;
+  string raft_address = 3;
+  repeated StoreLabel labels = 4;
+  // Store Software version number
+  string version = 5;
+  StoreState state = 6;
+  // The start timestamp of the current store
+  int64 start_timestamp = 7;
+  string deploy_path = 8;
+  // The last heartbeat timestamp of the store.
+  int64 last_heartbeat = 9;
+  StoreStats stats = 10;
+  // The version number of the data format
+  int32 data_version = 11;
+  int32 cores = 12;
+  string data_path = 13;
+}
+
+enum ShardRole {
+  None = 0;
+  Leader = 1;
+  Follower = 2;
+  // Learner/None -> Learner
+  Learner = 3;
+}
+
+message Shard {
+  uint64 store_id = 2;
+  ShardRole role = 3;
+}
+
+message ShardGroup{
+  uint32 id = 1;
+  uint64 version = 2;
+  uint64 conf_ver = 3;
+  repeated Shard shards = 6;
+  PartitionState state = 10;
+  string message = 11;
+}
+
+message Graph {
+  string graph_name = 2;
+  // The number of partitions, 0 indicates invalid and cannot be greater than the total number of raft packets
+  int32 partition_count = 3;
+  PartitionState state = 10;
+  string message = 11;
+  GraphState graph_state = 12;
+}
+// Partition working status
+enum PartitionState{
+  PState_None = 0;
+  //
+  PState_Normal = 1;
+  // Partition warning: There are some faulty nodes, which do not affect read/write for a short time
+  PState_Warn = 2;
+  // The partition is offline, which can be read but cannot be written
+  PState_Offline = 10;
+  // If the partition is faulty and cannot be read or written, you need to repair the faulty node as soon as possible.
+  PState_Fault = 11;
+}
+
+message PartitionV36 {
+  uint32 id = 1;
+  string graph_name = 3;
+  // Partition range [start_key, end_key].
+  uint64 start_key = 4;
+  uint64 end_key = 5;
+  repeated Shard shards = 6;
+  // Leader term, leader increment after switching
+  uint64 version = 7;
+  // shards The version number, which is incremented with each change
+  uint64 conf_ver = 8;
+  // Current working status
+  PartitionState state = 10;
+  string message = 11;
+}
+
+message Partition {
+  uint32 id = 1;
+  string graph_name = 3;
+  // Partition range [start_key, end_key].
+  uint64 start_key = 4;
+  uint64 end_key = 5;
+  // The partition object no longer stores the shard list (which is queried according to the corresponding shard group), and the version and conf version are no longer meaningful
+  // repeated Shard shards = 6;
+  // key range increment after each change
+  uint64 version = 7;
+  // shards The version number, which is incremented with each change
+  // uint64 conf_ver = 8;
+  // Current working status
+  PartitionState state = 10;
+  string message = 11;
+}
+
+message PartitionShard {
+  metapb.Partition partition = 1;
+  metapb.Shard leader = 2;
+  // Offline Shard
+  repeated metapb.Shard offline_shards = 3;
+}
+// The storage location where the record partition is located
+message PartitionStore {
+  uint32 partition_id = 1;
+  string graph_name = 3;
+  // Storage location
+  string store_location = 4;
+}
+
+message PartitionRaft {
+  uint32 partition_id = 1;
+  string graph_name = 3;
+  // Storage location
+  string raft_location = 4;
+}
+
+message ShardStats{
+  uint64 store_id = 2;
+  ShardRole role = 3;
+  ShardState state = 4;
+  // The progress of the installation of the snapshot
+  uint32 progress = 5;
+}
+
+message PartitionStats{
+  uint32 id = 1;
+  // raft Term of office of the group.
+  uint64 leader_term = 2;
+  repeated string graph_name = 3;
+  metapb.Shard leader = 4;
+  // Offline shards
+  repeated metapb.Shard shard = 5;
+  repeated metapb.Shard learner = 6;
+  uint64 conf_ver = 7;
+  // partition status
+  PartitionState state = 8;
+  repeated ShardStats shardStats = 9;
+  // The approximate size of the partition
+  uint64 approximate_size = 10;
+  // The approximate number of partition keys
+  uint64 approximate_keys = 13;
+  // heartbeat timestamp
+  int64 timestamp = 16;
+}
+
+message GraphStats{
+  // graph
+  string graph_name = 1;
+  // The approximate size of the partition
+  uint64 approximate_size = 2;
+  // The approximate number of partition keys
+  uint64 approximate_keys = 3;
+  //  // committed index
+  //  uint64 committed_index = 4;
+  uint32 partition_id = 5;
+  ShardRole role = 6;
+  // Current working status
+  PartitionState work_state = 8;
+}
+
+message RaftStats {
+  // partition id
+  uint32 partition_id = 1;
+  // committed index
+  uint64 committed_index = 2;
+}
+
+message TimeInterval {
+  // The unix timestamp in seconds of the start of this period.
+  uint64 start_timestamp = 1;
+  // The unix timestamp in seconds of the end of this period.
+  uint64 end_timestamp = 2;
+}
+
+message RecordPair {
+  string key = 1;
+  uint64 value = 2;
+}
+
+
+message QueryStats {
+  uint64 GC = 1;
+  uint64 Get = 2;
+  uint64 Scan = 3;
+  uint64 Coprocessor = 4;
+  uint64 Delete = 5;
+  uint64 DeleteRange = 6;
+  uint64 Put = 7;
+}
+
+enum ShardState{
+  SState_None = 0;
+  // Normal
+  SState_Normal = 1;
+  // Install snapshots
+  SState_Snapshot = 2;
+  // Offline
+  SState_Offline = 10;
+}
+
+
+message StoreStats {
+  uint64 store_id = 1;
+  // Capacity for the store.
+  uint64 capacity = 2;
+  // Available size for the store.
+  uint64 available = 3;
+  // Total partition count in this store.
+  uint32 partition_count = 4;
+  // Current sending snapshot count.
+  uint32 sending_snap_count = 5;
+  // Current receiving snapshot count.
+  uint32 receiving_snap_count = 6;
+  // When the store is started (unix timestamp in seconds).
+  uint32 start_time = 7;
+  // How many partition is applying snapshot.
+  uint32 applying_snap_count = 8;
+  // If the store is busy
+  bool is_busy = 9;
+  // Actually used space by db
+  uint64 used_size = 10;
+  // Bytes written for the store during this period.
+  uint64 bytes_written = 11;
+  // Keys written for the store during this period.
+  uint64 keys_written = 12;
+  // Bytes read for the store during this period.
+  uint64 bytes_read = 13;
+  // Keys read for the store during this period.
+  uint64 keys_read = 14;
+  // Actually reported time interval
+  TimeInterval interval = 15;
+  // Threads' CPU usages in the store
+  repeated RecordPair cpu_usages = 16;
+  // Threads' read disk I/O rates in the store
+  repeated RecordPair read_io_rates = 17;
+  // Threads' write disk I/O rates in the store
+  repeated RecordPair write_io_rates = 18;
+  // Operations' latencies in the store
+  repeated RecordPair op_latencies = 19;
+  // Store query stats
+  QueryStats query_stats = 21;
+  // graph stats
+  repeated GraphStats graph_stats = 22;
+  // raft stats
+  repeated RaftStats raft_stats = 23;
+  int32 cores = 24;
+  // system metrics
+  repeated RecordPair system_metrics = 25;
+}
+
+// Partition query criteria
+message PartitionQuery{
+  optional uint64 store_id = 1;      // 0 Indicates that the query criteria do not contain store_id
+  optional string graph_name = 2;
+  optional uint32 partition_id = 4;
+}
+
+// PD Node information
+message Member {
+  uint64 cluster_id = 1;
+  string raft_url = 3;
+  string grpc_url = 4;
+  string rest_url = 5;
+  string data_path = 6;
+  StoreState state = 7;
+  ShardRole role = 8;
+  string replicator_state = 9;
+}
+
+// Graph space configuration
+message GraphSpace{
+  string name = 1;
+  // Maximum occupied storage
+  uint64 storage_limit = 2;
+  // Space used
+  uint64 used_size = 3;
+  // Modify time
+  uint64 timestamp = 10;
+}
+
+// PD Config
+message PDConfig{
+  uint64 version = 1;
+  // The number of partitions is dynamically calculated based on the number of stores at the initialization and modified after splitting
+  // The exact count needs to be determined based on the store group
+  int32 partition_count = 2;
+  // Number of replicas per partition
+  int32 shard_count = 3;
+  // pd List of clusters
+  string peers_list = 4;
+  // The minimum number of stores in the cluster
+  int32 min_store_count = 6;
+  // Maximum number of replicas per store
+  int32 max_Shards_Per_Store = 7;
+  // Modify time
+  uint64 timestamp = 10;
+}
+
+
+
+// Message persistence
+message QueueItem{
+  string item_id = 1;
+  string item_class = 2;
+  bytes item_content = 3;
+  int64 timestamp = 10;
+}
+
+message LogRecord{
+  string action = 1;
+  int64 timestamp = 2;
+  map<string, string> labels = 3;
+  google.protobuf.Any object = 4;
+  string message = 5;
+}
+
+message GraphState{
+  GraphMode mode = 1;
+  GraphModeReason reason = 2;
+}
+
+enum GraphMode{
+  ReadWrite = 0;
+  ReadOnly = 1;
+  WriteOnly = 2;
+}
+
+enum GraphModeReason{
+  Empty = 0;
+  Initiative = 1; // Active status settings
+  Quota = 2; // The limit condition is reached
+}

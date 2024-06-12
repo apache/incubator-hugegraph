@@ -39,6 +39,7 @@ import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendMutation;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
+import org.apache.hugegraph.backend.store.BackendTable;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.exception.ConnectionException;
 import org.apache.hugegraph.type.HugeType;
@@ -109,7 +110,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
     }
 
     protected List<String> tableNames() {
-        return this.tables.values().stream().map(t -> t.table())
+        return this.tables.values().stream().map(BackendTable::table)
                           .collect(Collectors.toList());
     }
 
@@ -450,7 +451,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         public HbaseSchemaStore(HugeConfig config, BackendStoreProvider provider,
                                 String namespace, String store) {
             super(provider, namespace, store,
-                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
+                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION));
 
             this.counters = new HbaseTables.Counters();
 
@@ -500,8 +501,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         public HbaseGraphStore(HugeConfig config, BackendStoreProvider provider,
                                String namespace, String store) {
             super(provider, namespace, store,
-                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue());
-            this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION).booleanValue();
+                  config.get(HbaseOptions.HBASE_ENABLE_PARTITION));
+            this.enablePartition = config.get(HbaseOptions.HBASE_ENABLE_PARTITION);
             registerTableManager(HugeType.VERTEX,
                                  new HbaseTables.Vertex(store, enablePartition));
 

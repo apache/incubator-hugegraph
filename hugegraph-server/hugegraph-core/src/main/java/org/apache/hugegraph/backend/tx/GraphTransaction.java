@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hugegraph.HugeException;
@@ -180,23 +181,23 @@ public class GraphTransaction extends IndexableTransaction {
     public boolean hasUpdate(HugeType type, Action action) {
         if (type.isVertex()) {
             if (action == Action.DELETE) {
-                if (this.removedVertices.size() > 0) {
+                if (!this.removedVertices.isEmpty()) {
                     return true;
                 }
             } else {
-                if (this.addedVertices.size() > 0 ||
-                    this.updatedVertices.size() > 0) {
+                if (!this.addedVertices.isEmpty() ||
+                    !this.updatedVertices.isEmpty()) {
                     return true;
                 }
             }
         } else if (type.isEdge()) {
             if (action == Action.DELETE) {
-                if (this.removedEdges.size() > 0) {
+                if (!this.removedEdges.isEmpty()) {
                     return true;
                 }
             } else {
-                if (this.addedEdges.size() > 0 ||
-                    this.updatedEdges.size() > 0) {
+                if (!this.addedEdges.isEmpty() ||
+                    !this.updatedEdges.isEmpty()) {
                     return true;
                 }
             }
@@ -300,16 +301,16 @@ public class GraphTransaction extends IndexableTransaction {
     @Override
     protected BackendMutation prepareCommit() {
         // Serialize and add updates into super.deletions
-        if (this.removedVertices.size() > 0 || this.removedEdges.size() > 0) {
+        if (!this.removedVertices.isEmpty() || !this.removedEdges.isEmpty()) {
             this.prepareDeletions(this.removedVertices, this.removedEdges);
         }
 
-        if (this.addedProps.size() > 0 || this.removedProps.size() > 0) {
+        if (!this.addedProps.isEmpty() || !this.removedProps.isEmpty()) {
             this.prepareUpdates(this.addedProps, this.removedProps);
         }
 
         // Serialize and add updates into super.additions
-        if (this.addedVertices.size() > 0 || this.addedEdges.size() > 0) {
+        if (!this.addedVertices.isEmpty() || !this.addedEdges.isEmpty()) {
             this.prepareAdditions(this.addedVertices, this.addedEdges);
         }
 
@@ -690,7 +691,7 @@ public class GraphTransaction extends IndexableTransaction {
         // Override vertices in local `addedVertices`
         this.addedVertices.remove(vertex.id());
         // Force load vertex to ensure all properties are loaded (refer to #2181)
-        if (vertex.schemaLabel().indexLabels().size() > 0) {
+        if (!vertex.schemaLabel().indexLabels().isEmpty()) {
             vertex.forceLoad();
         }
         // Collect the removed vertex
@@ -710,7 +711,7 @@ public class GraphTransaction extends IndexableTransaction {
             for (Edge edge : batchEdges) {
                 vertexIds.add(((HugeEdge) edge).otherVertex().id());
             }
-            assert vertexIds.size() > 0;
+            assert !vertexIds.isEmpty();
             return this.queryAdjacentVertices(vertexIds.toArray());
         });
     }
@@ -1413,8 +1414,7 @@ public class GraphTransaction extends IndexableTransaction {
 
     private Query optimizeQuery(ConditionQuery query) {
         if (query.idsSize() > 0) {
-            throw new HugeException(
-                    "Not supported querying by id and conditions: %s", query);
+            throw new HugeException("Not supported querying by id and conditions: %s", query);
         }
 
         Id label = query.condition(HugeKeys.LABEL);
@@ -1434,11 +1434,10 @@ public class GraphTransaction extends IndexableTransaction {
                     String primaryValues = query.userpropValuesString(keys);
                     LOG.debug("Query vertices by primaryKeys: {}", query);
                     // Convert {vertex-label + primary-key} to vertex-id
-                    Id id = SplicingIdGenerator.splicing(label.asString(),
-                                                         primaryValues);
+                    Id id = SplicingIdGenerator.splicing(label.asString(), primaryValues);
                     /*
-                     * Just query by primary-key(id), ignore other userprop(if
-                     * exists) that it will be filtered by queryVertices(Query)
+                     * Just query by primary-key(id), ignore other user-props(if exists)
+                     * that it will be filtered by queryVertices(Query)
                      */
                     return new IdQuery(query, id);
                 }
@@ -1448,25 +1447,60 @@ public class GraphTransaction extends IndexableTransaction {
         // Optimize edge query
         if (query.resultType().isEdge() && label != null &&
             query.condition(HugeKeys.OWNER_VERTEX) != null &&
-            query.condition(HugeKeys.DIRECTION) != null &&
-            matchEdgeSortKeys(query, false, this.graph())) {
-            // Query edge by sourceVertex + direction + label + sort-values
-            query.optimized(OptimizedType.SORT_KEYS);
-            query = query.copy();
-            // Serialize sort-values
-            List<Id> keys = this.graph().edgeLabel(label).sortKeys();
-            List<Condition> conditions =
-                    GraphIndexTransaction.constructShardConditions(
-                            query, keys, HugeKeys.SORT_VALUES);
-            query.query(conditions);
-            /*
-             * Reset all userprop since transferred to sort-keys, ignore other
-             * userprop(if exists) that it will be filtered by queryEdges(Query)
-             */
-            query.resetUserpropConditions();
+            query.condition(HugeKeys.DIRECTION) != null) {
 
-            LOG.debug("Query edges by sortKeys: {}", query);
-            return query;
+            Directions dir = query.condition(HugeKeys.DIRECTION);
+            EdgeLabel edgeLabel = this.graph().edgeLabel(label);
+
+            if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.IN)) {
+                // For IN query, filter schema non-adjacent vertices.
+                ArrayList<Id> vertexIdList = query.condition(HugeKeys.OWNER_VERTEX);
+                List<Id> filterVertexList = vertexIdList.stream().filter(vertexId -> {
+                    Vertex vertex = this.graph().vertex(vertexId);
+                    VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
+                    return edgeLabel.linkWithVertexLabel(vertexLabel.id(), dir);
+                }).collect(Collectors.toList());
+
+                if (CollectionUtils.isEmpty(filterVertexList)) {
+                    return new Query(query.resultType());
+                }
+
+                if (vertexIdList.size() != filterVertexList.size()) {
+                    // Modify on the copied relation to avoid affecting other query
+                    Condition.Relation relation = 
+                            query.copyRelationAndUpdateQuery(HugeKeys.OWNER_VERTEX);
+                    relation.value(filterVertexList);
+                }
+            } else if (query.containsRelation(HugeKeys.OWNER_VERTEX, Condition.RelationType.EQ)) {
+                Id vertexId = query.condition(HugeKeys.OWNER_VERTEX);
+                Vertex vertex = QueryResults.one(this.queryVertices(vertexId));
+                if (vertex != null) {
+                    VertexLabel vertexLabel = graph().vertexLabel(vertex.label());
+                    // For EQ query, just skip query storage if adjacent schema doesn't exist
+                    if (!edgeLabel.linkWithVertexLabel(vertexLabel.id(), dir)) {
+                        return new Query(query.resultType());
+                    }
+                }
+            }
+
+            if (matchEdgeSortKeys(query, false, this.graph())) {
+                // Query edge by sourceVertex + direction + label + sort-values
+                query.optimized(OptimizedType.SORT_KEYS);
+                query = query.copy();
+                // Serialize sort-values
+                List<Id> keys = this.graph().edgeLabel(label).sortKeys();
+                List<Condition> conditions = GraphIndexTransaction
+                        .constructShardConditions(query, keys, HugeKeys.SORT_VALUES);
+                query.query(conditions);
+                /*
+                 * Reset all userprop since transferred to sort-keys, ignore other
+                 * userprop(if exists) that it will be filtered by queryEdges(Query)
+                 */
+                query.resetUserpropConditions();
+
+                LOG.debug("Query edges by sortKeys: {}", query);
+                return query;
+            }
         }
 
         /*

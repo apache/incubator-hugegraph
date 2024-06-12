@@ -221,7 +221,6 @@ public class ScyllaDBTablesWithMV {
             super.dropTable(session);
         }
 
-
         /**
          * Query data from label index table if just want to query by label
          */
@@ -242,7 +241,7 @@ public class ScyllaDBTablesWithMV {
         private static final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
         private final List<String> keys = this.idColumnName().stream()
                                               .filter(k -> k != HugeKeys.LABEL)
-                                              .map(k -> CassandraTable.formatKey(k))
+                                              .map(CassandraTable::formatKey)
                                               .collect(Collectors.toList());
         private final String prKeys = this.keys.stream()
                                                .collect(Collectors.joining(","));

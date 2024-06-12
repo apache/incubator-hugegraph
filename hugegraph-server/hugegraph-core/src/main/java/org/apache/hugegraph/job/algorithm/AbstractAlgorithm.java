@@ -379,7 +379,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
             ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
             query.capacity(Query.NO_CAPACITY);
             query.limit(limit);
-            query.eq(HugeKeys.LABEL, this.getVertexLabelId(label));
+            query.eq(HugeKeys.LABEL, this.getVertexLabelIdOrNull(label));
             return this.graph().vertices(query);
         }
 

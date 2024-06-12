@@ -536,7 +536,7 @@ public class LouvainTraverser extends AlgoTraverser {
         for (Pair<Community, Set<Id>> comm : comms) {
             all.removeAll(comm.getRight());
         }
-        if (all.size() > 0) {
+        if (!all.isEmpty()) {
             LOG.warn("Lost members of last pass: {}", all);
         }
         return all.isEmpty();
@@ -649,7 +649,7 @@ public class LouvainTraverser extends AlgoTraverser {
         final String C_PASS0 = labelOfPassN(0);
         Collection<Object> comms = Collections.singletonList(community);
         boolean reachPass0 = false;
-        while (comms.size() > 0 && !reachPass0) {
+        while (!comms.isEmpty() && !reachPass0) {
             Iterator<Vertex> subComms = this.vertices(comms.iterator());
             comms = new HashSet<>();
             while (subComms.hasNext()) {
@@ -703,7 +703,7 @@ public class LouvainTraverser extends AlgoTraverser {
         if (pass < 0) {
             // drop edges of all pass
             List<String> els = this.cpassEdgeLabels();
-            if (els.size() > 0) {
+            if (!els.isEmpty()) {
                 String first = els.remove(0);
                 te = te.hasLabel(first, els.toArray(new String[0]));
                 this.drop(te);
@@ -727,7 +727,7 @@ public class LouvainTraverser extends AlgoTraverser {
         if (pass < 0) {
             // drop vertices of all pass
             List<String> vls = this.cpassVertexLabels();
-            if (vls.size() > 0) {
+            if (!vls.isEmpty()) {
                 String first = vls.remove(0);
                 tv = tv.hasLabel(first, vls.toArray(new String[0]));
                 this.drop(tv);

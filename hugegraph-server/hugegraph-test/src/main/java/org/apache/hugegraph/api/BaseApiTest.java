@@ -101,8 +101,8 @@ public class BaseApiTest {
 
     public static class RestClient {
 
-        private Client client;
-        private WebTarget target;
+        private final Client client;
+        private final WebTarget target;
 
         public RestClient(String url) {
             this(url, true);
@@ -113,8 +113,7 @@ public class BaseApiTest {
             this.client.register(EncodingFilter.class);
             this.client.register(GZipEncoder.class);
             if (enableAuth) {
-                this.client.register(HttpAuthenticationFeature.basic(USERNAME,
-                                                                     PASSWORD));
+                this.client.register(HttpAuthenticationFeature.basic(USERNAME, PASSWORD));
             }
             this.target = this.client.target(url);
         }
