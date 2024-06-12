@@ -23,7 +23,7 @@ import org.apache.hugegraph.util.VersionUtil.Version;
 public class CoreVersion {
 
     public static final String NAME = "hugegraph-core";
-    public static final String DEFAULT_VERSION = "1.5.0.1";
+    public static final String DEFAULT_VERSION = "1.3.0";
     /**
      * The second parameter of Version.of() is for IDE running without JAR
      */
