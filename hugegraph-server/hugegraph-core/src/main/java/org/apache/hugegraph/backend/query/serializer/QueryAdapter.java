@@ -38,14 +38,14 @@ import com.google.gson.reflect.TypeToken;
 public class QueryAdapter extends AbstractSerializerAdapter<Condition> {
 
     static ImmutableMap<String, Type> cls =
-        ImmutableMap.<String, Type>builder()
-                    // TODO: uncomment later
-                    .put("N", Condition.Not.class)
-                    .put("A", Condition.And.class)
-                    .put("O", Condition.Or.class)
-                    .put("S", Condition.SyspropRelation.class)
-                    .put("U", Condition.UserpropRelation.class)
-                    .build();
+            ImmutableMap.<String, Type>builder()
+                        // TODO: uncomment later
+                        .put("N", Condition.Not.class)
+                        .put("A", Condition.And.class)
+                        .put("O", Condition.Or.class)
+                        .put("S", Condition.SyspropRelation.class)
+                        .put("U", Condition.UserpropRelation.class)
+                        .build();
 
     static boolean isPrimitive(Class clz) {
         try {
@@ -62,7 +62,7 @@ public class QueryAdapter extends AbstractSerializerAdapter<Condition> {
 
     @Override
     public Condition deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
-        throws JsonParseException {
+            throws JsonParseException {
         Condition condition = super.deserialize(json, typeOfT, context);
         if (condition instanceof Condition.Relation) {
             JsonObject object = json.getAsJsonObject();
@@ -129,16 +129,16 @@ public class QueryAdapter extends AbstractSerializerAdapter<Condition> {
                 valueElement.getAsJsonObject()
                             .add("cls",
                                  new JsonPrimitive(
-                                     ((Condition.Relation) src).value().getClass().getName()));
+                                         ((Condition.Relation) src).value().getClass().getName()));
             } else if (isPrimitive(((Condition.Relation) src).value().getClass())) {
                 object.get("el").getAsJsonObject()
                       .add("valuecls",
                            new JsonPrimitive(
-                               ((Condition.Relation) src).value().getClass().getName()));
+                                   ((Condition.Relation) src).value().getClass().getName()));
             } else if (valueElement.isJsonArray()) {
                 if (((Condition.Relation) src).value() instanceof List) {
                     String valueCls =
-                        ((List) ((Condition.Relation) src).value()).get(0).getClass().getName();
+                            ((List) ((Condition.Relation) src).value()).get(0).getClass().getName();
                     object.get("el").getAsJsonObject().add("valuecls", new JsonPrimitive(valueCls));
                 }
             }

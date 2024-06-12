@@ -79,10 +79,10 @@ public class ConditionQuery extends IdQuery {
     private static final List<Condition> EMPTY_CONDITIONS = ImmutableList.of();
 
     private static final Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Condition.class, new QueryAdapter())
-                .registerTypeAdapter(Id.class, new QueryIdAdapter())
-                .setDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-                .create();
+            .registerTypeAdapter(Condition.class, new QueryAdapter())
+            .registerTypeAdapter(Id.class, new QueryIdAdapter())
+            .setDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+            .create();
 
     // Conditions will be contacted with `and` by default
     private List<Condition> conditions = EMPTY_CONDITIONS;
@@ -238,7 +238,7 @@ public class ConditionQuery extends IdQuery {
             }
             if (c.isLogic()) {
                 Condition.BinCondition binCondition =
-                    (Condition.BinCondition) c;
+                        (Condition.BinCondition) c;
                 ConditionQuery query = new ConditionQuery(HugeType.EDGE);
                 query.query(binCondition.left());
                 query.query(binCondition.right());
