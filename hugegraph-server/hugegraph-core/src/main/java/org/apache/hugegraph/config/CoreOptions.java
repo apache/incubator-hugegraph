@@ -298,12 +298,12 @@ public class CoreOptions extends OptionHolder {
             );
 
     public static final ConfigOption<Long> TASK_SCHEDULE_PERIOD =
-        new ConfigOption<>(
-            "task.schedule_period",
-            "Period time when scheduler to schedule task",
-            rangeInt(0L, Long.MAX_VALUE),
-            10L
-        );
+            new ConfigOption<>(
+                    "task.schedule_period",
+                    "Period time when scheduler to schedule task",
+                    rangeInt(0L, Long.MAX_VALUE),
+                    10L
+            );
 
     public static final ConfigOption<Long> TASK_WAIT_TIMEOUT =
             new ConfigOption<>(
@@ -676,9 +676,9 @@ public class CoreOptions extends OptionHolder {
             );
 
     public static final ConfigOption<String> PD_PEERS = new ConfigOption<>(
-        "pd.peers",
-        "The addresses of pd nodes, separated with commas.",
-        disallowEmpty(),
-        "127.0.0.1:8686"
+            "pd.peers",
+            "The addresses of pd nodes, separated with commas.",
+            disallowEmpty(),
+            "127.0.0.1:8686"
     );
 }
