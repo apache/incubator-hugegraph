@@ -30,14 +30,14 @@ import com.google.common.collect.ImmutableMap;
 public class QueryIdAdapter extends AbstractSerializerAdapter<Id> {
 
     static ImmutableMap<String, Type> cls =
-            ImmutableMap.<String, Type>builder()
-                        .put("E", EdgeId.class)
-                        .put("S", IdGenerator.StringId.class)
-                        .put("L", IdGenerator.LongId.class)
-                        .put("U", IdGenerator.UuidId.class)
-                        .put("O", IdGenerator.ObjectId.class)
-                        .put("B", BinaryBackendEntry.BinaryId.class)
-                        .build();
+        ImmutableMap.<String, Type>builder()
+                    .put("E", EdgeId.class)
+                    .put("S", IdGenerator.StringId.class)
+                    .put("L", IdGenerator.LongId.class)
+                    .put("U", IdGenerator.UuidId.class)
+                    .put("O", IdGenerator.ObjectId.class)
+                    .put("B", BinaryBackendEntry.BinaryId.class)
+                    .build();
 
     @Override
     public Map<String, Type> validType() {

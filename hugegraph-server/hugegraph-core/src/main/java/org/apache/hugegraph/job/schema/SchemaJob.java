@@ -22,7 +22,7 @@ import java.lang.reflect.Method;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.job.SysJob;
 import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.type.HugeType;
@@ -85,10 +85,10 @@ public abstract class SchemaJob extends SysJob<Object> {
      * @param tx     The remove operation actual executer
      * @param schema the schema to be removed
      */
-    protected static void removeSchema(SchemaTransaction tx,
+    protected static void removeSchema(ISchemaTransaction tx,
                                        SchemaElement schema) {
         try {
-            Method method = SchemaTransaction.class
+            Method method = ISchemaTransaction.class
                     .getDeclaredMethod("removeSchema",
                                        SchemaElement.class);
             method.setAccessible(true);
@@ -108,10 +108,10 @@ public abstract class SchemaJob extends SysJob<Object> {
      * @param tx     The update operation actual execute
      * @param schema the schema to be updated
      */
-    protected static void updateSchema(SchemaTransaction tx,
+    protected static void updateSchema(ISchemaTransaction tx,
                                        SchemaElement schema) {
         try {
-            Method method = SchemaTransaction.class
+            Method method = ISchemaTransaction.class
                     .getDeclaredMethod("updateSchema",
                                        SchemaElement.class);
             method.setAccessible(true);

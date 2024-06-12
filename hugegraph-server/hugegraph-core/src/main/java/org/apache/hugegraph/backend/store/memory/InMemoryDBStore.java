@@ -93,7 +93,7 @@ public abstract class InMemoryDBStore
     @Override
     protected final InMemoryDBTable table(HugeType type) {
         assert type != null;
-        InMemoryDBTable table = this.tables.get(type);
+        InMemoryDBTable table = this.tables.get(convertTaskOrServerToVertex(type));
         if (table == null) {
             throw new BackendException("Unsupported table type: %s", type);
         }
