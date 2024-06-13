@@ -52,13 +52,13 @@ pd:
   # If the minimum number of nodes is less than this number, the cluster will stop being stored
   initial-store-count: 1
   # The initial store list is automatically activated in the store
-  initial-store-list: 127.0.0.1:8502
+  initial-store-list: 127.0.0.1:8500
 
 raft:
   # The address of the local raft service
   address: 127.0.0.1:8610
   # The service address of the PD cluster
-  peers-list: 127.0.0.1:8610,127.0.0.1:8611,127.0.0.1:8612
+  peers-list: 127.0.0.1:8610
   # The read and write timeout period of the raft rpc, in milliseconds
   rpc-timeout: 10000
   # The interval between snapshot generation, in seconds

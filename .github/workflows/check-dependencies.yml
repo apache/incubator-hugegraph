@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       USE_STAGE: 'true' # Whether to include the stage repository.
-      SCRIPT_DEPENDENCY: hugegraph-server/hugegraph-dist/scripts/dependency
+      SCRIPT_DEPENDENCY: install-dist/scripts/dependency
     steps:
       - name: Checkout source
         uses: actions/checkout@v4

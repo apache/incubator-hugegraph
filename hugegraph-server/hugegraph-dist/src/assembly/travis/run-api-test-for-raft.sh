@@ -23,7 +23,7 @@ REPORT_FILE=$REPORT_DIR/jacoco-api-test.xml
 
 TRAVIS_DIR=$(dirname $0)
 VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-SERVER_DIR=hugegraph-server/apache-hugegraph-incubating-$VERSION
+SERVER_DIR=hugegraph-server/apache-hugegraph-incubating-server-$VERSION
 RAFT1_DIR=hugegraph-raft1
 RAFT2_DIR=hugegraph-raft2
 RAFT3_DIR=hugegraph-raft3

@@ -1,2 +1,5 @@
 # Exclude the generated PB files
 hg-pd-grpc/src/main/java/
+
+# Exclude data files
+**/pd_data/
