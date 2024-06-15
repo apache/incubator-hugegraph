@@ -1,5 +1,8 @@
-# HugeGraph Store
+> Note: From revision 1.5.0, the code of HugeGraph-Store will be adapted to this location (WIP).
 
-HugeGraph Store is a new built-in storage backend, which uses RocksDB as the distributed backend storage engine.
+# HugeGraph Store (BETA)
 
-> Note: Currently, the contents of this folder are empty. Starting from revision 1.5.0, the code of HugeGraph Store will be adapted to this location (WIP).
+HugeGraph Store is a new built-in storage backend, which uses RocksDB as the distributed backend
+storage engine.
+
+> BTW, if you meet any problem when using HugeGraph Store, please feel free to contact us for help

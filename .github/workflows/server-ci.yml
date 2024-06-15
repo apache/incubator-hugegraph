@@ -1,4 +1,4 @@
-name: "hugegraph-ci"
+name: "hugegraph-server-ci"
 
 on:
   push:
@@ -10,6 +10,7 @@ on:
 
 jobs:
   build:
+    # TODO: we need test & replace it to ubuntu-24.04 or ubuntu-latest
     runs-on: ubuntu-20.04
     env:
       USE_STAGE: 'false' # Whether to include the stage repository.
@@ -27,13 +28,13 @@ jobs:
       fail-fast: false
       matrix:
         BACKEND: [ memory, rocksdb, hbase, cassandra, mysql, postgresql, scylladb ]
-        JAVA_VERSION: [ '8', '11' ]
+        JAVA_VERSION: [ '11' ]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 5
 
       # TODO: Remove this step after install-backend.sh updated
       - name: Install Java8 for backend

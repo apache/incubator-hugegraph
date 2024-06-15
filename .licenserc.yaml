@@ -97,6 +97,7 @@ header: # `header` section is configurations for source codes license header.
     - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/type/define/Cardinality.java'
     - 'hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/util/StringEncoding.java'
     - 'hugegraph-server/hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/ProcessBasicSuite.java'
+    - 'hugegraph-server/hugegraph-test/src/main/java/org/apache/hugegraph/tinkerpop/StructureBasicSuite.java'
     - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java'
     - 'hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java'
   comment: on-failure # on what condition license-eye will comment on the pull request, `on-failure`, `always`, `never`.

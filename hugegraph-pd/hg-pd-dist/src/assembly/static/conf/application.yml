@@ -1,0 +1,80 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+spring:
+  application:
+    name: hugegraph-pd
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+logging:
+  config: 'file:./conf/log4j2.xml'
+# TODO: handle the license file later (PDConfig)
+license:
+  verify-path: ./conf/verify-license.json
+  license-path: ./conf/hugegraph.license
+grpc:
+  port: 8686
+  # The service address of grpc needs to be changed to the actual local IPv4 address when deploying.
+  host: 127.0.0.1
+
+server:
+  # REST service port number
+  port: 8620
+
+pd:
+  # Storage path
+  data-path: ./pd_data
+  # The check cycle of automatic expansion regularly checks the number of partitions in each store and automatically balances the number of partitions
+  patrol-interval: 1800
+  # The initial store list, grpc IP: grpc port, the store in the list is automatically activated
+  initial-store-count: 1
+  # grpc IP:grpc port
+  initial-store-list: 127.0.0.1:8500
+
+raft:
+  # The address of the local raft service
+  address: 127.0.0.1:8610
+  # The service address of the PD cluster
+  peers-list: 127.0.0.1:8610
+
+store:
+  # The time when the store went offline. After that time, the store is considered permanently unavailable, and the replica is allocated to another machine, in seconds
+  max-down-time: 172800
+  # Specifies whether to enable store monitoring data storage
+  monitor_data_enabled: true
+  # The interval between monitoring data, minute, hour, second
+  # default: 1 min * 1 day = 1440
+  monitor_data_interval: 1 minute
+  # Retention time of monitoring data is 1 day; day, month, year
+  monitor_data_retention: 1 day
+  initial-store-count: 1
+
+partition:
+  # Default number of replicas per partition
+  default-shard-count: 1
+  # The default maximum number of replicas per machine
+  # the initial number of partitions= store-max-shard-count * store-number / default-shard-count
+  store-max-shard-count: 12
