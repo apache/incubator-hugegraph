@@ -39,6 +39,7 @@ public class PathFilter implements ContainerRequestFilter {
 
     public static final String REQUEST_TIME = "request_time";
     public static final String REQUEST_PARAMS_JSON = "request_params_json";
+    public static final int MAX_SLOW_LOG_BODY_LENGTH = 512;
 
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
@@ -46,18 +47,22 @@ public class PathFilter implements ContainerRequestFilter {
 
         context.setProperty(REQUEST_TIME, startTime);
 
-        recordRequestJson(context);
+        collectRequestParams(context);
     }
 
-    private void recordRequestJson(ContainerRequestContext context) throws IOException {
+    private void collectRequestParams(ContainerRequestContext context) throws IOException {
         String method = context.getMethod();
-        if (method.equals(HttpMethod.POST)) {
+        if (method.equals(HttpMethod.POST) || method.equals(HttpMethod.PUT) ||
+            method.equals(HttpMethod.DELETE)) {
             BufferedInputStream bufferedStream = new BufferedInputStream(context.getEntityStream());
 
             bufferedStream.mark(Integer.MAX_VALUE);
+            String body = IOUtils.toString(bufferedStream,
+                                           Charsets.toCharset(CHARSET));
+            body = body.length() > MAX_SLOW_LOG_BODY_LENGTH ?
+                   body.substring(0, MAX_SLOW_LOG_BODY_LENGTH) : body;
 
-            context.setProperty(REQUEST_PARAMS_JSON,
-                                IOUtils.toString(bufferedStream, Charsets.toCharset(CHARSET)));
+            context.setProperty(REQUEST_PARAMS_JSON, body);
 
             bufferedStream.reset();
 
