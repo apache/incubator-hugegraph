@@ -25,13 +25,14 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.zip.CRC32;
 
+import org.apache.hugegraph.rocksdb.access.util.ZipUtils;
 import org.apache.hugegraph.store.util.UnitTestBase;
-import org.apache.hugegraph.store.util.ZipUtils;
 import org.apache.logging.log4j.core.util.FileUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ZipUtilsTest {
+
     private static final String ZIP_TEST_PATH = "/tmp/zip_util_test";
 
     @Before
