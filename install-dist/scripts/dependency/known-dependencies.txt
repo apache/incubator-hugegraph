@@ -144,8 +144,6 @@ hg-store-core-1.3.0.jar
 hg-store-grpc-1.3.0.jar
 hg-store-rocksdb-1.3.0.jar
 hg-store-node-1.3.0.jar
-hg-store-dist-1.3.0.jar
-hg-store-cli-1.3.0.jar
 high-scale-lib-1.0.6.jar
 hk2-api-3.0.1.jar
 hk2-locator-3.0.1.jar
