@@ -24,7 +24,6 @@ import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.store.HgStoreClient;
 import org.apache.hugegraph.store.cli.loader.HgThread2DB;
 import org.apache.hugegraph.store.cli.scan.GrpcShardScanner;
-import org.apache.hugegraph.store.cli.scan.HgStoreCommitter;
 import org.apache.hugegraph.store.cli.scan.HgStoreScanner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
@@ -33,7 +32,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 /**
  * 2022/2/14
  */
@@ -41,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StoreConsoleApplication implements CommandLineRunner {
 
+    // TODO: this package seems to have many useless class and code, need to be updated.
     @Autowired
     private AppConfig appConfig;
 
@@ -53,9 +52,7 @@ public class StoreConsoleApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws IOException, InterruptedException, PDException {
         if (args.length <= 0) {
-            // HgThread2DB hB = new HgThread2DB("localhost:8686");
-            // hB.startMultiprocessQuery("12", "10");
-            System.out.println("参数类型 cmd[-load, -query, -scan]");
+            log.warn("参数类型 cmd[-load, -query, -scan]");
         } else {
             switch (args[0]) {
                 case "-load":
@@ -83,7 +80,7 @@ public class StoreConsoleApplication implements CommandLineRunner {
                     break;
                 case "-scan":
                     if (args.length < 4) {
-                        System.out.println("参数类型 -scan pd graphName tableName");
+                        log.warn("参数类型 -scan pd graphName tableName");
                     } else {
                         doScan(args[1], args[2], args[3]);
                     }
@@ -97,14 +94,9 @@ public class StoreConsoleApplication implements CommandLineRunner {
                     scanner.getDataSingle();
                     break;
                 default:
-                    System.out.println("参数类型错误，未执行任何程序");
+                    log.warn("参数类型错误，未执行任何程序");
             }
         }
-    }
-
-    private void doCommit() {
-        HgStoreCommitter committer = HgStoreCommitter.of(appConfig.getCommitterGraph());
-        committer.put(appConfig.getScannerTable(), appConfig.getCommitterAmount());
     }
 
     private void doScan(String pd, String graphName, String tableName) throws PDException {
@@ -113,6 +105,5 @@ public class StoreConsoleApplication implements CommandLineRunner {
 
         HgStoreScanner storeScanner = HgStoreScanner.of(storeClient, graphName);
         storeScanner.scanTable2(tableName);
-        //  storeScanner.scanHash();
     }
 }

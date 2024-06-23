@@ -50,13 +50,13 @@ import org.apache.hugegraph.store.client.util.MetricX;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 /**
  * 使用pd，支持raft
  * 读取文件并多线程进行入库
  */
 @Slf4j
 public class HgThread2DB {
+
     /*正在进行和在排队的任务的总数*/
     private static final AtomicInteger taskTotal = new AtomicInteger(0);
     private static final AtomicInteger queryTaskTotal = new AtomicInteger(0);
@@ -120,7 +120,6 @@ public class HgThread2DB {
                 }
             }
         }
-//            Thread.sleep(2000);
         if (!keys.isEmpty()) {
             if (session.isTx()) {
                 session.commit();
@@ -141,7 +140,6 @@ public class HgThread2DB {
         for (int y = 0; y < maxlist; y++) {
             insertDataCount.getAndIncrement();
             String strLine = getLong() + getLong() + getLong() + getLong();
-//            log.info("========{}",strLine);
             HgOwnerKey hgKey = HgCliUtil.toOwnerKey(strLine, strLine);
             byte[] value = HgCliUtil.toBytes(strLine);
             session.put(tableName, hgKey, value);
@@ -165,7 +163,6 @@ public class HgThread2DB {
         } else {
             session.rollback();
         }
-
 
         return true;
     }
@@ -196,15 +193,12 @@ public class HgThread2DB {
             int x = 0;
             while (iterable.hasNext()) {
                 HgKvEntry entry = iterable.next();
-//                log.info("data:{}-{}", toStr(entry.key()), entry.value());
                 x++;
             }
             log.info("x={}", x);
         } catch (Exception e) {
-            log.error("query error, message ");
-//                e.printStackTrace();
+            log.error("query error, message: {}", e.getMessage());
         }
-
 
         return true;
     }
@@ -241,20 +235,17 @@ public class HgThread2DB {
                     // 读取文件中的10000条数据，启一个线程入库
                     if (dataCount % maxlist == 0) {
                         List<String> finalKeys = keys;
-                        Runnable task = new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    if (!finalKeys.isEmpty()) {
-                                        boolean ret = singlePut(tableName, finalKeys);
-                                    }
-                                } catch (Exception e) {
-                                    e.printStackTrace();
+                        Runnable task = () -> {
+                            try {
+                                if (!finalKeys.isEmpty()) {
+                                    boolean ret = singlePut(tableName, finalKeys);
                                 }
-                                taskTotal.decrementAndGet();
-                                synchronized (taskTotal) {
-                                    taskTotal.notifyAll();
-                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            taskTotal.decrementAndGet();
+                            synchronized (taskTotal) {
+                                taskTotal.notifyAll();
                             }
                         };
                         taskTotal.getAndIncrement();
@@ -278,18 +269,15 @@ public class HgThread2DB {
             // 把剩余的入库
             if (!keys.isEmpty()) {
                 List<String> finalKeys1 = keys;
-                Runnable task = new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            boolean ret = singlePut(tableName, finalKeys1);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        taskTotal.decrementAndGet();
-                        synchronized (taskTotal) {
-                            taskTotal.notifyAll();
-                        }
+                Runnable task = () -> {
+                    try {
+                        boolean ret = singlePut(tableName, finalKeys1);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    taskTotal.decrementAndGet();
+                    synchronized (taskTotal) {
+                        taskTotal.notifyAll();
                     }
                 };
                 threadPool.execute(task);
@@ -331,7 +319,6 @@ public class HgThread2DB {
         log.info("--- start  autoMultiprocessInsert---");
         startTime = System.currentTimeMillis();
 
-
         MetricX metrics = null;
         long dataCount = 0;
 
@@ -343,18 +330,15 @@ public class HgThread2DB {
         for (int x = 0; x < 10000000; x++) {
             metrics = MetricX.ofStart();
             try {
-                Runnable task = new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            boolean ret = singlePut(tableName);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        taskTotal.decrementAndGet();
-                        synchronized (taskTotal) {
-                            taskTotal.notifyAll();
-                        }
+                Runnable task = () -> {
+                    try {
+                        boolean ret = singlePut(tableName);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    taskTotal.decrementAndGet();
+                    synchronized (taskTotal) {
+                        taskTotal.notifyAll();
                     }
                 };
                 taskTotal.getAndIncrement();
@@ -385,7 +369,6 @@ public class HgThread2DB {
 
         threadPool.shutdown();
 
-
         metrics.end();
         log.info("*************************************************");
         log.info("  主进程执行时间:" + metrics.past() / 1000 + "秒，一共执行：" + dataCount + "条");
@@ -399,7 +382,6 @@ public class HgThread2DB {
         //当前可保证1毫秒 生成 10000条不重复
         return String.format("%019x", longId.getAndIncrement());
     }
-
 
     /**
      * 执行查询，并将查询的结果做为下一次迭代的点放入队列
@@ -532,7 +514,7 @@ public class HgThread2DB {
                                                                      }
                                                                  }
                                                                  if (current == null) {
-                                                                     log.info(
+                                                                     log.warn(
                                                                              "===== current is " +
                                                                              "null ==========");
                                                                  }
@@ -574,7 +556,6 @@ public class HgThread2DB {
             log.info("===== read thread exit ==========");
         }
         latch.await();
-
 
         metrics.end();
         log.info("*************************************************");

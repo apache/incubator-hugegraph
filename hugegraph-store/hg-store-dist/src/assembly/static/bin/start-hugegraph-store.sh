@@ -38,8 +38,7 @@ GITHUB="https://github.com"
 PID_FILE="$BIN/pid"
 arch=$(arch)
 
-# TODO: replace it with uname -a?
-echo "Current arch: ", ${arch}
+echo "Current arch: ", "${arch}"
 #if [[ $arch =~ "aarch64" ]];then
 #	  export LD_PRELOAD="$TOP/bin/libjemalloc_aarch64.so"
 #else

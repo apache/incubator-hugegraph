@@ -31,13 +31,12 @@
     <artifactId>hg-store-dist</artifactId>
 
     <properties>
-        <!--  TODO: enhance the parent attribute -->
         <dist.dir>${project.basedir}/../dist</dist.dir>
         <shell-executable>bash</shell-executable>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
-        <final.name>hugegraph-store-${revision}</final.name>
+        <final.name>apache-hugegraph-incubating-pd-${project.parent.version}</final.name>
         <executable.jar.name>hg-store-node</executable.jar.name>
     </properties>
     <dependencies>
@@ -134,7 +133,6 @@
                 </executions>
                 <dependencies>
                     <dependency>
-                        <!-- TODO: why we need this? -->
                         <groupId>ant-contrib</groupId>
                         <artifactId>ant-contrib</artifactId>
                         <version>1.0b3</version>
