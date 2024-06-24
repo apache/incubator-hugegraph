@@ -17,40 +17,10 @@
 #
 set -ev
 
-if [[ $# -ne 1 ]]; then
-    echo "Must pass BACKEND type of hugegraph"
-    exit 1
-fi
+HOME_DIR=$(pwd)
+STORE_DIR=$HOME_DIR/hugegraph-store/apache-hugegraph-incubating-store-1.3.0
 
-BACKEND=$1
-TRAVIS_DIR=$(dirname "$0")
-
-if [ ! -d "$HOME"/downloads ]; then
-    mkdir "$HOME"/downloads
-fi
-
-case $BACKEND in
-    cassandra)
-        # TODO: replace it with docker
-        "$TRAVIS_DIR"/install-cassandra.sh
-        ;;
-    scylladb)
-        "$TRAVIS_DIR"/install-scylladb.sh
-        ;;
-    hbase)
-        # TODO: replace it with hbase2.3+ to avoid java8 env
-        "$TRAVIS_DIR"/install-hbase.sh
-        ;;
-    mysql)
-        "$TRAVIS_DIR"/install-mysql-via-docker.sh
-        ;;
-    postgresql)
-        "$TRAVIS_DIR"/install-postgresql-via-docker.sh
-        ;;
-    hstore)
-        "$TRAVIS_DIR"/install-hstore.sh
-        ;;
-    *)
-        # don't need to install for other backends
-        ;;
-esac
+pushd $STORE_DIR
+. bin/start-hugegraph-store.sh
+sleep 10
+popd
