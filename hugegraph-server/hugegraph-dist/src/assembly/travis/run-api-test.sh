@@ -23,7 +23,7 @@ REPORT_FILE=$REPORT_DIR/jacoco-api-test-for-raft.xml
 
 TRAVIS_DIR=$(dirname $0)
 VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-SERVER_DIR=hugegraph-server/apache-hugegraph-incubating-$VERSION/
+SERVER_DIR=hugegraph-server/apache-hugegraph-incubating-server-$VERSION/
 CONF=$SERVER_DIR/conf/graphs/hugegraph.properties
 REST_SERVER_CONF=$SERVER_DIR/conf/rest-server.properties
 GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml

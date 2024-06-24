@@ -40,10 +40,9 @@
         <module>hg-store-test</module>
         <module>hg-store-rocksdb</module>
         <module>hg-store-core</module>
-        <!--        TODO: uncomment later-->
         <module>hg-store-node</module>
-        <!--        <module>hg-store-dist</module>-->
-        <!--        <module>hg-store-cli</module>-->
+        <module>hg-store-dist</module>
+        <module>hg-store-cli</module>
     </modules>
 
     <properties>
@@ -154,7 +153,7 @@
                                 <include>*.tar</include>
                                 <include>*.tar.gz</include>
                                 <include>.flattened-pom.xml</include>
-                                <!-- WARN: delete dist dir may influence dev? -->
+                                <!-- TODO: replace with ${final.name} in store-dist -->
                                 <include>dist/**</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>

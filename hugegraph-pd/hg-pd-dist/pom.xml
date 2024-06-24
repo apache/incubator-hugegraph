@@ -30,12 +30,12 @@
     <artifactId>hg-pd-dist</artifactId>
 
     <properties>
-        <dist.dir>${project.parent.basedir}/dist</dist.dir>
+        <dist.dir>${project.parent.basedir}</dist.dir>
         <shell-executable>bash</shell-executable>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
-        <final.name>hugegraph-pd-${project.parent.version}</final.name>
+        <final.name>apache-hugegraph-incubating-pd-${project.parent.version}</final.name>
         <executable.jar.name>hg-pd-service</executable.jar.name>
     </properties>
 

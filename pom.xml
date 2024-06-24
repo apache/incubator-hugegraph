@@ -93,6 +93,7 @@
         <module>hugegraph-server</module>
         <module>hugegraph-pd</module>
         <module>hugegraph-store</module>
+        <module>install-dist</module>
     </modules>
 
     <build>
