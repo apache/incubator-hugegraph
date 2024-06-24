@@ -32,7 +32,6 @@ public class HgStoreCommitter {
 
     private final String graph;
 
-
     private HgStoreCommitter(String graph) {
         this.graph = graph;
     }
@@ -81,7 +80,6 @@ public class HgStoreCommitter {
         if (session.isTx()) {
             session.commit();
         }
-
 
     }
 }

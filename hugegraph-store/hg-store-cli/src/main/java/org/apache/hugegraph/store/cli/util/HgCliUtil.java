@@ -31,14 +31,12 @@ import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgStoreSession;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 
-
 /**
  * 2022/2/14
  */
 public class HgCliUtil {
 
     public final static String TABLE_NAME = "cli-table";
-
 
     public static Map<HgOwnerKey, byte[]> batchPut(HgStoreSession session, String keyPrefix) {
         return batchPut(session, keyPrefix, 100);

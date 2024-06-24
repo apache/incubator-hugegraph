@@ -21,6 +21,7 @@ package org.apache.hugegraph.store.cli.util;
  * 2022/1/29
  */
 public class HgMetricX {
+
     private long start;
     private long end;
 
