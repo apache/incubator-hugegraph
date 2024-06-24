@@ -141,7 +141,8 @@
                                 <include>*.tar.gz</include>
                                 <include>.flattened-pom.xml</include>
                                 <!-- WARN: delete dist dir may influence dev? -->
-                                <include>dist/**</include>
+                                <!-- TODO: replace with ${final.name} in pd-dist -->
+                                <include>apache-hugegraph-incubating-pd-*/**</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>

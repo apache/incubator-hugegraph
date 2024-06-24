@@ -31,12 +31,12 @@
     <artifactId>hg-store-dist</artifactId>
 
     <properties>
-        <dist.dir>${project.basedir}/../dist</dist.dir>
+        <dist.dir>${project.parent.basedir}</dist.dir>
         <shell-executable>bash</shell-executable>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
-        <final.name>apache-hugegraph-incubating-pd-${project.parent.version}</final.name>
+        <final.name>apache-hugegraph-incubating-store-${project.parent.version}</final.name>
         <executable.jar.name>hg-store-node</executable.jar.name>
     </properties>
     <dependencies>
@@ -124,7 +124,8 @@
                                     </then>
                                     <else>
                                         <!-- WARN: keep msg in one line -->
-                                        <echo message="We only tar package in Linux env, you could check pom.xml in pd-dist to modify it"/>
+                                        <echo
+                                                message="We only tar package in Linux env, you could check pom.xml in store-dist to modify it"/>
                                     </else>
                                 </if>
                             </tasks>

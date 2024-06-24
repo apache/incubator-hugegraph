@@ -153,8 +153,8 @@
                                 <include>*.tar</include>
                                 <include>*.tar.gz</include>
                                 <include>.flattened-pom.xml</include>
-                                <!-- WARN: delete dist dir may influence dev? -->
-                                <include>dist/**</include>
+                                <!-- TODO: replace with ${final.name} in store-dist -->
+                                <include>apache-hugegraph-incubating-store-*/**</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
