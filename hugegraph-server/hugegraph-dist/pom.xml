@@ -98,6 +98,11 @@
             <artifactId>hugegraph-postgresql</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-hstore</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
