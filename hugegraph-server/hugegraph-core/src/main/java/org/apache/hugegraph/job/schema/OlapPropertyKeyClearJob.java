@@ -20,6 +20,7 @@ package org.apache.hugegraph.job.schema;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -50,7 +51,7 @@ public class OlapPropertyKeyClearJob extends IndexLabelRemoveJob {
             return;
         }
         GraphTransaction graphTx = graph.graphTransaction();
-        SchemaTransaction schemaTx = graph.schemaTransaction();
+        ISchemaTransaction schemaTx = graph.schemaTransaction();
         IndexLabel indexLabel = schemaTx.getIndexLabel(olapIndexLabel);
         // If the index label does not exist, return directly
         if (indexLabel == null) {
@@ -80,7 +81,7 @@ public class OlapPropertyKeyClearJob extends IndexLabelRemoveJob {
     }
 
     protected static Id findOlapIndexLabel(HugeGraphParams graph, Id olap) {
-        SchemaTransaction schemaTx = graph.schemaTransaction();
+        ISchemaTransaction schemaTx = graph.schemaTransaction();
         for (IndexLabel indexLabel : schemaTx.getIndexLabels()) {
             if (indexLabel.indexFields().contains(olap)) {
                 return indexLabel.id();

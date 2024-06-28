@@ -74,4 +74,8 @@ public interface BackendStoreProvider {
     void onCloneConfig(HugeConfig config, String newGraph);
 
     void onDeleteConfig(HugeConfig config);
+
+    default boolean isHstore() {
+        return "hstore".equals(type());
+    }
 }

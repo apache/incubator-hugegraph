@@ -228,4 +228,9 @@ public class HugeAccess extends Relationship {
             return super.initProperties(props);
         }
     }
+
+    public static HugeAccess fromMap(Map<String, Object> map) {
+        HugeAccess access = new HugeAccess(null, null, null);
+        return fromMap(map, access);
+    }
 }

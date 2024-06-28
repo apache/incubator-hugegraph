@@ -47,6 +47,11 @@ public abstract class SchemaElement implements Nameable, Typeable,
     protected static final int ILN_IL_ID = -6;
     protected static final int OLAP_VL_ID = -7;
 
+    // OLAP_ID means all of vertex label ids
+    public static final Id OLAP_ID = IdGenerator.of(-7);
+    // OLAP means all of vertex label names
+    public static final String OLAP = "~olap";
+
     public static final Id NONE_ID = IdGenerator.ZERO;
 
     public static final String UNDEF = "~undefined";
@@ -216,5 +221,32 @@ public abstract class SchemaElement implements Nameable, Typeable,
         public Id task() {
             return this.task;
         }
+    }
+
+    public abstract Map<String, Object> asMap();
+
+    public Map<String, Object> asMap(Map<String, Object> map) {
+        E.checkState(this.id != null,
+                     "Property key id can't be null");
+        E.checkState(this.name != null,
+                     "Property key name can't be null");
+        E.checkState(this.status != null,
+                     "Property status can't be null");
+
+        map.put(P.ID, this.id);
+        map.put(P.NAME, this.name);
+        map.put(P.STATUS, this.status.string());
+        map.put(P.USERDATA, this.userdata);
+
+        return map;
+    }
+
+    public static final class P {
+
+        public static final String ID = "id";
+        public static final String NAME = "name";
+
+        public static final String STATUS = "status";
+        public static final String USERDATA = "userdata";
     }
 }

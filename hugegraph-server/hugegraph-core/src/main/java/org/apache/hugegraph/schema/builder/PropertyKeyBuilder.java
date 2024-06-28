@@ -24,6 +24,7 @@ import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.ExistedException;
@@ -53,7 +54,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
     private boolean checkExist;
     private Userdata userdata;
 
-    public PropertyKeyBuilder(SchemaTransaction transaction,
+    public PropertyKeyBuilder(ISchemaTransaction transaction,
                               HugeGraph graph, String name) {
         super(transaction, graph);
         E.checkNotNull(name, "name");
@@ -67,7 +68,7 @@ public class PropertyKeyBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
-    public PropertyKeyBuilder(SchemaTransaction transaction,
+    public PropertyKeyBuilder(ISchemaTransaction transaction,
                               HugeGraph graph, PropertyKey copy) {
         super(transaction, graph);
         E.checkNotNull(copy, "copy");

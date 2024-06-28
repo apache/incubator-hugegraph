@@ -44,6 +44,7 @@ public class HugeIndex implements GraphType, Cloneable {
     private Object fieldValues;
     private IndexLabel indexLabel;
     private Set<IdWithExpiredTime> elementIds;
+    private static final int HUGE_TYPE_CODE_LENGTH = 1;
 
     public HugeIndex(HugeGraph graph, IndexLabel indexLabel) {
         E.checkNotNull(graph, "graph");
@@ -210,11 +211,12 @@ public class HugeIndex implements GraphType, Cloneable {
              * index label in front(hugegraph-1317)
              */
             String strIndexLabelId = IdGenerator.asStoredString(indexLabelId);
-            return SplicingIdGenerator.splicing(strIndexLabelId, value);
+            return SplicingIdGenerator.splicing(type.string(), strIndexLabelId, value);
         } else {
             assert type.isRangeIndex();
             int length = type.isRange4Index() ? 4 : 8;
-            BytesBuffer buffer = BytesBuffer.allocate(4 + length);
+            BytesBuffer buffer = BytesBuffer.allocate(HUGE_TYPE_CODE_LENGTH + 4 + length);
+            buffer.write(type.code());
             buffer.writeInt(SchemaElement.schemaId(indexLabelId));
             if (fieldValues != null) {
                 E.checkState(fieldValues instanceof Number,
@@ -234,15 +236,16 @@ public class HugeIndex implements GraphType, Cloneable {
         if (type.isStringIndex()) {
             Id idObject = IdGenerator.of(id, IdType.STRING);
             String[] parts = SplicingIdGenerator.parse(idObject);
-            E.checkState(parts.length == 2, "Invalid secondary index id");
-            Id label = IdGenerator.ofStoredString(parts[0], IdType.LONG);
+            E.checkState(parts.length == 3, "Invalid secondary index id");
+            Id label = IdGenerator.ofStoredString(parts[1], IdType.LONG);
             indexLabel = IndexLabel.label(graph, label);
-            values = parts[1];
+            values = parts[2];
         } else {
             assert type.isRange4Index() || type.isRange8Index();
             final int labelLength = 4;
             E.checkState(id.length > labelLength, "Invalid range index id");
             BytesBuffer buffer = BytesBuffer.wrap(id);
+            buffer.read(HUGE_TYPE_CODE_LENGTH);
             Id label = IdGenerator.of(buffer.readInt());
             indexLabel = IndexLabel.label(graph, label);
             List<Id> fields = indexLabel.indexFields();
@@ -252,7 +255,7 @@ public class HugeIndex implements GraphType, Cloneable {
                          "Invalid range index field type");
             Class<?> clazz = dataType.isNumber() ?
                              dataType.clazz() : DataType.LONG.clazz();
-            values = bytes2number(buffer.read(id.length - labelLength), clazz);
+            values = bytes2number(buffer.read(id.length - labelLength - HUGE_TYPE_CODE_LENGTH), clazz);
         }
         HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(values);

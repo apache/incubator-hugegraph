@@ -136,11 +136,12 @@ public class TaskAPI extends API {
     @RedirectFilter.RedirectMasterRole
     public void delete(@Context GraphManager manager,
                        @PathParam("graph") String graph,
-                       @PathParam("id") long id) {
+                       @PathParam("id") long id,
+                       @DefaultValue("false") @QueryParam("force") boolean force) {
         LOG.debug("Graph [{}] delete task: {}", graph, id);
 
         TaskScheduler scheduler = graph(manager, graph).taskScheduler();
-        HugeTask<?> task = scheduler.delete(IdGenerator.of(id));
+        HugeTask<?> task = scheduler.delete(IdGenerator.of(id), force);
         E.checkArgument(task != null, "There is no task with id '%s'", id);
     }
 

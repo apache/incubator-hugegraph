@@ -146,7 +146,12 @@ public class StandardClusterRoleStore implements ClusterRoleStore {
 
     private Optional<Vertex> queryVertex() {
         GraphTransaction tx = this.graph.systemTransaction();
-        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        ConditionQuery query;
+        if (this.graph.backendStoreFeatures().supportsTaskAndServerVertex()) {
+            query = new ConditionQuery(HugeType.SERVER);
+        } else {
+            query = new ConditionQuery(HugeType.VERTEX);
+        }
         VertexLabel vl = this.graph.graph().vertexLabel(P.ROLE_DATA);
         query.eq(HugeKeys.LABEL, vl.id());
         query.query(Condition.eq(vl.primaryKeys().get(0), "default"));

@@ -354,6 +354,7 @@ public class TextSerializer extends AbstractSerializer {
         throw new NotImplementedException("Unsupported readEdge()");
     }
 
+    @Override
     public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
         E.checkNotNull(graph, "serializer graph");
         // TODO: implement

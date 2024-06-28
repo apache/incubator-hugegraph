@@ -68,7 +68,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.google.common.collect.ImmutableSet;
 
-public class SchemaTransaction extends IndexableTransaction {
+public class SchemaTransaction extends IndexableTransaction implements ISchemaTransaction {
 
     private final SchemaIndexTransaction indexTx;
     private final SystemSchemaStore systemSchemaStore;
@@ -524,7 +524,8 @@ public class SchemaTransaction extends IndexableTransaction {
         return results;
     }
 
-    protected void removeSchema(SchemaElement schema) {
+    @Override
+    public void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
         // System schema just remove from SystemSchemaStore in memory

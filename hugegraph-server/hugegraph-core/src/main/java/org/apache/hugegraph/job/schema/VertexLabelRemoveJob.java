@@ -24,6 +24,7 @@ import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.VertexLabel;
@@ -47,7 +48,7 @@ public class VertexLabelRemoveJob extends SchemaJob {
 
     private static void removeVertexLabel(HugeGraphParams graph, Id id) {
         GraphTransaction graphTx = graph.graphTransaction();
-        SchemaTransaction schemaTx = graph.schemaTransaction();
+        ISchemaTransaction schemaTx = graph.schemaTransaction();
         VertexLabel vertexLabel = schemaTx.getVertexLabel(id);
         // If the vertex label does not exist, return directly
         if (vertexLabel == null) {

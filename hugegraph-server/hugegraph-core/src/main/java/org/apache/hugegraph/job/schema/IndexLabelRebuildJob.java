@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
@@ -83,7 +84,7 @@ public class IndexLabelRebuildJob extends SchemaJob {
     }
 
     private void rebuildIndex(SchemaLabel label, Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        ISchemaTransaction schemaTx = this.params().schemaTransaction();
         GraphTransaction graphTx = this.params().graphTransaction();
 
         Consumer<?> indexUpdater = (elem) -> {
@@ -148,7 +149,7 @@ public class IndexLabelRebuildJob extends SchemaJob {
     }
 
     private void removeIndex(Collection<Id> indexLabelIds) {
-        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        ISchemaTransaction schemaTx = this.params().schemaTransaction();
         GraphTransaction graphTx = this.params().graphTransaction();
 
         for (Id id : indexLabelIds) {

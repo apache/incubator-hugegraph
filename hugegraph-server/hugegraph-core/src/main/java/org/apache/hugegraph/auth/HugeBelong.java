@@ -32,10 +32,15 @@ import org.apache.tinkerpop.gremlin.structure.T;
 
 public class HugeBelong extends Relationship {
 
+    public static final String UG = "ug";
+    public static final String UR = "ur";
+    public static final String GR = "gr";
+    public static final String ALL = "*";
     private static final long serialVersionUID = -7242751631755533423L;
 
     private final Id user;
     private final Id group;
+    private String link;
     private String description;
 
     public HugeBelong(Id user, Id group) {
@@ -72,6 +77,10 @@ public class HugeBelong extends Relationship {
     @Override
     public Id target() {
         return this.group;
+    }
+
+    public String link() {
+        return this.link;
     }
 
     public String description() {
@@ -192,5 +201,10 @@ public class HugeBelong extends Relationship {
 
             return super.initProperties(props);
         }
+    }
+
+    public static HugeBelong fromMap(Map<String, Object> map) {
+        HugeBelong belong = new HugeBelong(null, null);
+        return fromMap(map, belong);
     }
 }

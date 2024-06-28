@@ -425,6 +425,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeOlapVertex(HugeVertex vertex) {
+        // TODO: adapt to hstore (merge olap table)
         BinaryBackendEntry entry = newBackendEntry(HugeType.OLAP, vertex.id());
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16);
 
@@ -529,7 +530,6 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
-
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
 
         // Parse id
@@ -686,8 +686,10 @@ public class BinarySerializer extends AbstractSerializer {
         if (cq.paging() && !cq.page().isEmpty()) {
             includeStart = true;
             byte[] position = PageState.fromString(cq.page()).position();
-            E.checkArgument(Bytes.compare(position, startId.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(position, startId.asBytes()) >= 0,
+            //                 "Invalid page out of lower bound");
             startId = new BinaryId(position, null);
         }
         if (range.keyMax() == null) {
@@ -797,8 +799,10 @@ public class BinarySerializer extends AbstractSerializer {
             if (start == null) {
                 return new IdPrefixQuery(query, id);
             }
-            E.checkArgument(Bytes.compare(start.asBytes(), id.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(start.asBytes(), id.asBytes()) >= 0,
+            //                 "Invalid page out of lower bound");
             return new IdPrefixQuery(query, start, id);
         }
 
@@ -827,8 +831,10 @@ public class BinarySerializer extends AbstractSerializer {
         if (start == null) {
             start = min;
         } else {
-            E.checkArgument(Bytes.compare(start.asBytes(), min.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(start.asBytes(), min.asBytes()) >= 0,
+            //                 "Invalid page out of lower bound");
         }
 
         if (keyMax == null) {
@@ -923,8 +929,10 @@ public class BinarySerializer extends AbstractSerializer {
              * the page to id and use it as the starting row for this query
              */
             byte[] position = PageState.fromString(query.page()).position();
-            E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
+            //                "Invalid page out of lower bound");
             BinaryId start = new BinaryId(position, null);
             newQuery = new IdPrefixQuery(query, start, prefix);
         } else {
