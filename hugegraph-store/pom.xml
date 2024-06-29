@@ -19,9 +19,7 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>hugegraph-store</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
@@ -80,12 +78,11 @@
                 <artifactId>hg-store-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!--        TODO: uncomment later-->
-            <!--            <dependency>-->
-            <!--                <groupId>org.apache.hugegraph</groupId>-->
-            <!--                <artifactId>hg-store-transfer</artifactId>-->
-            <!--                <version>${project.version}</version>-->
-            <!--            </dependency>-->
+            <dependency>
+                <groupId>org.apache.hugegraph</groupId>
+                <artifactId>hg-store-transfer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-slf4j-impl</artifactId>
