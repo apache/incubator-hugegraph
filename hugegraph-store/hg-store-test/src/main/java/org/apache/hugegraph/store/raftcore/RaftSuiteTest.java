@@ -15,19 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.raftcore;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
-import lombok.extern.slf4j.Slf4j;
-
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
+        BytesCarrierTest.class,
+        ZeroByteStringHelperTest.class
 })
+public class RaftSuiteTest {
 
-@Slf4j
-public class CommonSuiteTest {
 }

@@ -15,19 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.core.raft;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.alipay.sofa.jraft.Iterator;
+import com.alipay.sofa.jraft.core.StateMachineAdapter;
 
-import lombok.extern.slf4j.Slf4j;
-
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
-})
-
-@Slf4j
-public class CommonSuiteTest {
+public class MockStateMachine extends StateMachineAdapter {
+    @Override
+    public void onApply(Iterator iter) {
+        while (iter.hasNext()) {
+            iter.next();
+        }
+    }
 }

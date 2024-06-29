@@ -15,19 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.meta;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
 
-import lombok.extern.slf4j.Slf4j;
+import org.junit.Assert;
+// import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
-})
+public class GraphManagerTest {
+    // @Test
+    public void testCloneGraph() {
+        Graph graph = new Graph();
+        graph.setGraphName("test1");
 
-@Slf4j
-public class CommonSuiteTest {
+
+        Graph graph1 = graph.clone();
+
+        Assert.assertNotSame(graph, graph1);
+
+        Assert.assertEquals(graph.getGraphName(), graph1.getGraphName());
+        graph1.setGraphName("test4");
+
+
+        Assert.assertNotEquals(graph.getGraphName(), graph1.getGraphName());
+
+        Assert.assertEquals(graph.getGraphName(), "test1");
+
+    }
+
 }

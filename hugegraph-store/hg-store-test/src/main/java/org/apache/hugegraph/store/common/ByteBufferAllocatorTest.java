@@ -27,7 +27,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class ByteBufferAllocatorTest extends BaseCommonTest {
-
     @Test
     public void getAndReleaseTest() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(2);

@@ -15,19 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.client;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import lombok.extern.slf4j.Slf4j;
 
+
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
+//        GraphStoreClientTest.class
+        HgKvStoreTest.class,
+        HgStoreClientTest.class,
+        HgStoreNodeStateTest.class,
+        ChangeShardNumTest.class,
+        HgSessionManagerRaftPDTest.class,
+        HgAssertTest.class,
+        HgPairTest.class
 })
 
 @Slf4j
-public class CommonSuiteTest {
+public class ClientSuiteTest {
+
 }
