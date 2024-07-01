@@ -90,7 +90,7 @@ public class AuthOptions extends OptionHolder {
                     "auth.token_secret",
                     "Secret key of HS256 algorithm.",
                     disallowEmpty(),
-                    "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg"
+                    ""
             );
 
     public static final ConfigOption<Double> AUTH_AUDIT_LOG_RATE =

@@ -20,6 +20,8 @@ package org.apache.hugegraph.auth;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
+import java.security.SecureRandom;
+import java.util.Base64;
 
 import javax.crypto.SecretKey;
 
@@ -40,7 +42,12 @@ public class TokenGenerator {
     private final SecretKey key;
 
     public TokenGenerator(HugeConfig config) {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[32];
         String secretKey = config.get(AuthOptions.AUTH_TOKEN_SECRET);
+
+        random.nextBytes(bytes);
+        secretKey += Base64.getEncoder().encodeToString(bytes);
         this.key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 
