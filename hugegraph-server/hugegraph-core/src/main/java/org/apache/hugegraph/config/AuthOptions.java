@@ -21,6 +21,9 @@ import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
 import static org.apache.hugegraph.config.OptionChecker.rangeDouble;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+
 public class AuthOptions extends OptionHolder {
 
     private AuthOptions() {
@@ -82,7 +85,7 @@ public class AuthOptions extends OptionHolder {
                     "through rpc forwarding. The remote url can be set to " +
                     "multiple addresses, which are concat by ','.",
                     null,
-                    ""
+                    generateRandomBase64Key()
             );
 
     public static final ConfigOption<String> AUTH_TOKEN_SECRET =
@@ -126,4 +129,11 @@ public class AuthOptions extends OptionHolder {
                     rangeInt(0L, Long.MAX_VALUE),
                     (3600 * 24L)
             );
+
+    private static String generateRandomBase64Key() {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[32]; // 32 bytes for HMAC-SHA256
+        random.nextBytes(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
+    }
 }
