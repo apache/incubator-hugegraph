@@ -25,8 +25,9 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.regex.Pattern;
 
-import org.apache.hugegraph.auth.HugeAuthenticator;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.core.GraphManager;
@@ -54,6 +55,9 @@ public class AccessLogFilter implements ContainerResponseFilter {
     private static final String GREMLIN = "gremlin";
     private static final String CYPHER = "cypher";
 
+    private static final Pattern ID_PATTERN = Pattern.compile("\"\\d+:\\w+\"");
+    private static final Pattern QUOTED_STRING_PATTERN = Pattern.compile("\"\\w+\"");
+
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
 
@@ -78,6 +82,17 @@ public class AccessLogFilter implements ContainerResponseFilter {
         return String.join(DELIMITER, path1, path2);
     }
 
+    private String normalizePath(String path, String method) {
+        // Replace variable parts of the path with placeholders
+        //TODO: Jersey Filter Determine if the method parameter is on the path.
+        if (method.equals("PUT") || method.equals("GET") || method.equals("DELETE")) {
+            path = ID_PATTERN.matcher(path).replaceAll(method);
+            path = QUOTED_STRING_PATTERN.matcher(path).replaceAll(method);
+        }
+
+        return path;
+    }
+
     /**
      * Use filter to log request info
      *
@@ -89,8 +104,10 @@ public class AccessLogFilter implements ContainerResponseFilter {
                        ContainerResponseContext responseContext) throws IOException {
         // Grab corresponding request / response info from context;
         URI uri = requestContext.getUriInfo().getRequestUri();
-        String path = uri.getRawPath();
         String method = requestContext.getMethod();
+        UriInfo uriInfo = requestContext.getUriInfo();
+
+        String path = normalizePath(uriInfo.getPath(),method);
         String metricsName = join(path, method);
 
         MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
