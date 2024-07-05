@@ -85,7 +85,7 @@ public class AuthOptions extends OptionHolder {
                     "through rpc forwarding. The remote url can be set to " +
                     "multiple addresses, which are concat by ','.",
                     null,
-                    generateRandomBase64Key()
+                    ""
             );
 
     public static final ConfigOption<String> AUTH_TOKEN_SECRET =
@@ -93,7 +93,7 @@ public class AuthOptions extends OptionHolder {
                     "auth.token_secret",
                     "Secret key of HS256 algorithm.",
                     disallowEmpty(),
-                    "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg"
+                    generateRandomBase64Key()
             );
 
     public static final ConfigOption<Double> AUTH_AUDIT_LOG_RATE =
