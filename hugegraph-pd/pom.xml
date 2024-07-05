@@ -141,6 +141,7 @@
                                 <include>*.tar.gz</include>
                                 <include>.flattened-pom.xml</include>
                                 <!-- WARN: delete dist dir may influence dev? -->
+                                <!-- TODO: replace with ${final.name} in pd-dist -->
                                 <include>dist/**</include>
                             </includes>
                             <followSymlinks>false</followSymlinks>
