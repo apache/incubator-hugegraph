@@ -58,7 +58,7 @@ jobs:
         run: |
           mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
 
-      - name: Prepare env and service
+      - name: Start PD instance
         run: |
           $TRAVIS_DIR/start-pd.sh
 
@@ -69,6 +69,10 @@ jobs:
       - name: Run rest test
         run: |
           mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-rest-test
+
+      - name: Stop PD instance
+        run: |
+          $TRAVIS_DIR/stop-pd.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
