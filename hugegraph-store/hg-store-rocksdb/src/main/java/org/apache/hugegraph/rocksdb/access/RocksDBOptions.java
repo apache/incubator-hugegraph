@@ -23,6 +23,8 @@ import static org.apache.hugegraph.config.OptionChecker.inValues;
 import static org.apache.hugegraph.config.OptionChecker.rangeDouble;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
+import java.util.Map;
+
 import org.apache.hugegraph.config.ConfigConvOption;
 import org.apache.hugegraph.config.ConfigListConvOption;
 import org.apache.hugegraph.config.ConfigOption;
@@ -82,18 +84,20 @@ public class RocksDBOptions extends OptionHolder {
                     ""
             );
 
-    public static final ConfigOption<InfoLogLevel> LOG_LEVEL =
+    public static final ConfigOption<String> LOG_LEVEL =
             new ConfigOption<>(
                     "rocksdb.log_level",
                     "The info log level of RocksDB.",
-                    allowValues(InfoLogLevel.DEBUG_LEVEL,
-                                InfoLogLevel.INFO_LEVEL,
-                                InfoLogLevel.WARN_LEVEL,
-                                InfoLogLevel.ERROR_LEVEL,
-                                InfoLogLevel.FATAL_LEVEL,
-                                InfoLogLevel.HEADER_LEVEL),
-                    InfoLogLevel.INFO_LEVEL
+                    allowValues("DEBUG", "INFO", "WARN", "ERROR", "FATAL", "HEADER"),
+                    "INFO"
             );
+    public static final Map<String, InfoLogLevel> LOG_LEVEL_MAPPING =
+            Map.of("DEBUG", InfoLogLevel.DEBUG_LEVEL,
+                   "INFO", InfoLogLevel.INFO_LEVEL,
+                   "WARN", InfoLogLevel.WARN_LEVEL,
+                   "ERROR", InfoLogLevel.ERROR_LEVEL,
+                   "FATAL", InfoLogLevel.FATAL_LEVEL,
+                   "HEADER", InfoLogLevel.HEADER_LEVEL);
 
     public static final ConfigOption<Integer> NUM_LEVELS =
             new ConfigOption<>(

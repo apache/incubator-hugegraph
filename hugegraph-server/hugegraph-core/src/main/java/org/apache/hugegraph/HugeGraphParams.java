@@ -24,6 +24,7 @@ import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
@@ -47,7 +48,7 @@ public interface HugeGraphParams {
 
     GraphReadMode readMode();
 
-    SchemaTransaction schemaTransaction();
+    ISchemaTransaction schemaTransaction();
 
     GraphTransaction systemTransaction();
 
@@ -94,4 +95,6 @@ public interface HugeGraphParams {
     RamTable ramtable();
 
     <T> void submitEphemeralJob(EphemeralJob<T> job);
+
+    String schedulerType();
 }

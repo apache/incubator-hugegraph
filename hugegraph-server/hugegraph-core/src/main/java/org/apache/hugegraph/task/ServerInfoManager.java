@@ -346,7 +346,7 @@ public class ServerInfoManager {
 
     private HugeServerInfo serverInfo(Id serverId) {
         return this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(serverId);
+            Iterator<Vertex> vertices = this.tx().queryServerInfos(serverId);
             Vertex vertex = QueryResults.one(vertices);
             if (vertex == null) {
                 return null;
@@ -374,7 +374,7 @@ public class ServerInfoManager {
         }
         LOG.info("Remove server info: {}", serverId);
         return this.call(() -> {
-            Iterator<Vertex> vertices = this.tx().queryVertices(serverId);
+            Iterator<Vertex> vertices = this.tx().queryServerInfos(serverId);
             Vertex vertex = QueryResults.one(vertices);
             if (vertex == null) {
                 return null;
@@ -409,7 +409,12 @@ public class ServerInfoManager {
     private Iterator<HugeServerInfo> serverInfos(Map<String, Object> conditions,
                                                  long limit, String page) {
         return this.call(() -> {
-            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            ConditionQuery query;
+            if (this.graph.backendStoreFeatures().supportsTaskAndServerVertex()) {
+                query = new ConditionQuery(HugeType.SERVER);
+            } else {
+                query = new ConditionQuery(HugeType.VERTEX);
+            }
             if (page != null) {
                 query.page(page);
             }
@@ -425,7 +430,7 @@ public class ServerInfoManager {
             if (limit != NO_LIMIT) {
                 query.limit(limit);
             }
-            Iterator<Vertex> vertices = this.tx().queryVertices(query);
+            Iterator<Vertex> vertices = this.tx().queryServerInfos(query);
             Iterator<HugeServerInfo> servers =
                     new MapperIterator<>(vertices, HugeServerInfo::fromVertex);
             // Convert iterator to list to avoid across thread tx accessed

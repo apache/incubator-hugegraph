@@ -143,7 +143,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 db.setAllowConcurrentMemtableWrite(true);
                 db.setEnableWriteThreadAdaptiveYield(true);
             }
-            db.setInfoLogLevel(conf.get(RocksDBOptions.LOG_LEVEL));
+            db.setInfoLogLevel(
+                    RocksDBOptions.LOG_LEVEL_MAPPING.get(conf.get(RocksDBOptions.LOG_LEVEL)));
             db.setMaxSubcompactions(conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
             db.setAllowMmapWrites(conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
             db.setAllowMmapReads(conf.get(RocksDBOptions.ALLOW_MMAP_READS));

@@ -29,6 +29,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
@@ -59,7 +60,7 @@ public class VertexLabelBuilder extends AbstractBuilder
     private Userdata userdata;
     private boolean checkExist;
 
-    public VertexLabelBuilder(SchemaTransaction transaction,
+    public VertexLabelBuilder(ISchemaTransaction transaction,
                               HugeGraph graph, String name) {
         super(transaction, graph);
         E.checkNotNull(name, "name");
@@ -76,7 +77,7 @@ public class VertexLabelBuilder extends AbstractBuilder
         this.checkExist = true;
     }
 
-    public VertexLabelBuilder(SchemaTransaction transaction,
+    public VertexLabelBuilder(ISchemaTransaction transaction,
                               HugeGraph graph, VertexLabel copy) {
         super(transaction, graph);
         E.checkNotNull(copy, "copy");
