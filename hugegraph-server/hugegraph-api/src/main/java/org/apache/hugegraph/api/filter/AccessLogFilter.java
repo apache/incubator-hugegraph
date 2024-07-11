@@ -25,9 +25,10 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 import java.util.regex.Pattern;
 
-import jakarta.ws.rs.core.UriInfo;
+import jakarta.ws.rs.core.MultivaluedMap;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.core.GraphManager;
@@ -82,15 +83,25 @@ public class AccessLogFilter implements ContainerResponseFilter {
         return String.join(DELIMITER, path1, path2);
     }
 
-    private String normalizePath(String path, String method) {
+    private String normalizePath(ContainerRequestContext requestContext) {
         // Replace variable parts of the path with placeholders
-        //TODO: Jersey Filter Determine if the method parameter is on the path.
-        if (method.equals("PUT") || method.equals("GET") || method.equals("DELETE")) {
-            path = ID_PATTERN.matcher(path).replaceAll(method);
-            path = QUOTED_STRING_PATTERN.matcher(path).replaceAll(method);
+        String requestPath = requestContext.getUriInfo().getPath();
+        // get uri params
+        MultivaluedMap<String, String> pathParameters = requestContext.getUriInfo().getPathParameters();
+
+        String newPath = requestPath;
+        for (Map.Entry<String, java.util.List<String>> entry : pathParameters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue().get(0);
+            if(key.equals("graph")){
+                newPath = newPath.replace(key, value);
+            }
+            newPath = newPath.replace(value, key);
         }
 
-        return path;
+        LOG.debug("Original Path: " + requestPath + " New Path: " + newPath);
+
+        return newPath;
     }
 
     /**
@@ -105,16 +116,24 @@ public class AccessLogFilter implements ContainerResponseFilter {
         // Grab corresponding request / response info from context;
         URI uri = requestContext.getUriInfo().getRequestUri();
         String method = requestContext.getMethod();
-        UriInfo uriInfo = requestContext.getUriInfo();
-
-        String path = normalizePath(uriInfo.getPath(),method);
+        String path = normalizePath(requestContext);
         String metricsName = join(path, method);
+        int status = responseContext.getStatus();
 
-        MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
+        if (status != 500 && status != 415) {
+            MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
+        }
+
         if (statusOk(responseContext.getStatus())) {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_SUCCESS_COUNTER)).inc();
+
         } else {
-            MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
+            //TODO: The return codes for compatibility need to be further detailed.
+            LOG.debug("Failed Status: "+status);
+            if (status != 500 && status != 415) {
+                MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
+            }
+
         }
 
         Object requestTime = requestContext.getProperty(REQUEST_TIME);
@@ -123,8 +142,10 @@ public class AccessLogFilter implements ContainerResponseFilter {
             long start = (Long) requestTime;
             long executeTime = now - start;
 
-            MetricsUtil.registerHistogram(join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
-                       .update(executeTime);
+            if (status != 500 && status != 415) {
+                MetricsUtil.registerHistogram(join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
+                           .update(executeTime);
+            }
 
             HugeConfig config = configProvider.get();
             long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
