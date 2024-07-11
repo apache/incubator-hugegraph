@@ -56,8 +56,6 @@ public class AccessLogFilter implements ContainerResponseFilter {
     private static final String GREMLIN = "gremlin";
     private static final String CYPHER = "cypher";
 
-    private static final Pattern ID_PATTERN = Pattern.compile("\"\\d+:\\w+\"");
-    private static final Pattern QUOTED_STRING_PATTERN = Pattern.compile("\"\\w+\"");
 
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
