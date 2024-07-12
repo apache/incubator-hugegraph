@@ -69,6 +69,7 @@ store:
   monitor_data_interval: 1 minute
   # 监控数据的保留时间 1 天; day, month, year
   monitor_data_retention: 1 day
+  # 最少存活的store节点数量，少于该数值整个集群不可用
   initial-store-count: 1
 
 partition:
