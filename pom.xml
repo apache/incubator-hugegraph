@@ -86,7 +86,7 @@
     </scm>
 
     <properties>
-        <revision>1.3.0</revision>
+        <revision>1.5.0</revision>
     </properties>
 
     <modules>
