@@ -151,7 +151,7 @@ case "$GC_OPTION" in
         exit 1
 esac
 
-JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dfastjson.parser.safeMode=true"
+JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dfastjson.parser.safeMode=true -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
 
 if [ "${OPEN_TELEMETRY}" == "true" ]; then
     OT_JAR="opentelemetry-javaagent.jar"

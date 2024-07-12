@@ -129,7 +129,7 @@
         <!-- Use mixed async way to output logs -->
         <logger name="org.apache.hugegraph" level="INFO" additivity="false">
             <appender-ref ref="file"/>
-            <appender-ref ref="console"/>
+<!--            <appender-ref ref="console"/>-->
         </logger>
     </loggers>
 </configuration>
