@@ -107,7 +107,7 @@ public class StandardAuthManager implements AuthManager {
                                                 HugeAccess::fromEdge);
 
         this.tokenGenerator = new TokenGenerator(config);
-        LOG.info("Key of default JWT token is generated randomly now");
+        LOG.info("Randomly generate a JWT secret key now");
 
         this.ipWhiteList = new HashSet<>();
 

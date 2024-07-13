@@ -132,7 +132,8 @@ public class AuthOptions extends OptionHolder {
 
     private static String generateRandomBase64Key() {
         SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[32]; // 32 bytes for HMAC-SHA256
+        // 32 bytes for HMAC-SHA256
+        byte[] bytes = new byte[32];
         random.nextBytes(bytes);
         return Base64.getEncoder().encodeToString(bytes);
     }
