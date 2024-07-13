@@ -109,14 +109,6 @@
                             <goal>clean</goal>
                         </goals>
                     </execution>
-                    <!-- auto delete .flattened-pom.xml after "install" step -->
-                    <execution>
-                        <id>remove-flattened-pom</id>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>clean</goal>
-                        </goals>
-                    </execution>
                 </executions>
             </plugin>
             <plugin>
