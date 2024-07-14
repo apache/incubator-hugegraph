@@ -21,6 +21,9 @@ import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
 import static org.apache.hugegraph.config.OptionChecker.rangeDouble;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+
 public class AuthOptions extends OptionHolder {
 
     private AuthOptions() {
@@ -90,7 +93,7 @@ public class AuthOptions extends OptionHolder {
                     "auth.token_secret",
                     "Secret key of HS256 algorithm.",
                     disallowEmpty(),
-                    "FXQXbJtbCLxODc6tGci732pkH1cyf8Qg"
+                    generateRandomBase64Key()
             );
 
     public static final ConfigOption<Double> AUTH_AUDIT_LOG_RATE =
@@ -126,4 +129,12 @@ public class AuthOptions extends OptionHolder {
                     rangeInt(0L, Long.MAX_VALUE),
                     (3600 * 24L)
             );
+
+    private static String generateRandomBase64Key() {
+        SecureRandom random = new SecureRandom();
+        // 32 bytes for HMAC-SHA256
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return Base64.getEncoder().encodeToString(bytes);
+    }
 }
