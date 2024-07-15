@@ -269,7 +269,7 @@
                         <!-- Note that maven submodule directories and many non-source file patterns are excluded by default -->
                         <!-- see https://github.com/ec4j/editorconfig-linters/blob/master/editorconfig-lint-api/src/main/java/org/ec4j/lint/api/Constants.java#L37 -->
                         <!-- You can exclude further files from processing: -->
-                        <exclude>src/main/**/*.whatever</exclude>
+                        <exclude>**/*.txt</exclude>
                     </excludes>
                     <!-- All files are included by default:
                     <includes>
