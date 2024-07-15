@@ -120,6 +120,13 @@ public class RocksDBOptions extends OptionHolder {
                     disallowEmpty(),
                     "rocksdb-snapshot"
             );
+    public static final ConfigOption<Boolean> DISABLE_AUTO_COMPACTION =
+            new ConfigOption<>(
+                    "rocksdb.disable_auto_compaction",
+                    "Set disable auto compaction.",
+                    disallowEmpty(),
+                    false
+            );
     public static final ConfigConvOption<String, CompactionStyle> COMPACTION_STYLE =
             new ConfigConvOption<>(
                     "rocksdb.compaction_style",
