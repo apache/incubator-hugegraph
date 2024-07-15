@@ -275,6 +275,7 @@ public class ClientCache {
         groups = new ConcurrentHashMap<>();
         stores = new ConcurrentHashMap<>();
         caches = new ConcurrentHashMap<>();
+        initialized.set(false);
     }
 
     public Shard getLeader(int partitionId) {
