@@ -344,7 +344,7 @@
         </profile>
 
         <!-- Use mvn -P stage to enable the remote apache-stage repo -->
-         <profile>
+        <profile>
             <id>stage</id>
             <repositories>
                 <repository>
