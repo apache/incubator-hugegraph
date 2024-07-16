@@ -31,7 +31,7 @@
 
     <properties>
         <!--maven.test.skip>true</maven.test.skip-->
-        <lombok.version>1.18.20</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
     </properties>
 
     <profiles>
