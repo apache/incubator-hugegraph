@@ -76,6 +76,7 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -154,6 +155,12 @@ public class VertexCoreTest extends BaseCoreTest {
               .ttlStartTime("birth")
               .ifNotExist()
               .create();
+    }
+
+    @After
+    public void resetGraphMode() {
+        // In OLAP-related tests, if an error occurs midway, the graph mode will not be reset.
+        graph().readMode(GraphReadMode.OLTP_ONLY);
     }
 
     protected void initPersonIndex(boolean indexCity) {
@@ -6247,7 +6254,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         String backend = graph.backend();
         Set<String> nonZeroBackends = ImmutableSet.of("postgresql",
-                                                      "rocksdb", "hbase");
+                                                      "rocksdb", "hbase", "hstore");
         if (nonZeroBackends.contains(backend)) {
             Assert.assertThrows(Exception.class, () -> {
                 graph.addVertex(T.label, "person", "name", "0",
@@ -9064,7 +9071,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(0, vertices.size());
 
         String backend = graph.backend();
-        if (ImmutableSet.of("rocksdb", "hbase").contains(backend)) {
+        if (ImmutableSet.of("rocksdb", "hbase", "hstore").contains(backend)) {
             Assert.assertThrows(Exception.class, () -> {
                 graph.addVertex(T.label, "person", "name", "0",
                                 "city", "xyz\u0000efg", "age", 0);

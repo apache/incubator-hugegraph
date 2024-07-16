@@ -35,7 +35,6 @@
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
-        <final.name>apache-hugegraph-incubating-pd-${project.parent.version}</final.name>
         <executable.jar.name>hg-pd-service</executable.jar.name>
     </properties>
 
@@ -83,7 +82,7 @@
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>initialize</phase>
+                        <phase>clean</phase>
                         <goals>
                             <goal>clean</goal>
                         </goals>

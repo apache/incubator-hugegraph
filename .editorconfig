@@ -21,6 +21,10 @@ root = true
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
+max_line_length = 100
+ij_wrap_on_typing = true
+ij_visual_guides = 100
+
 
 [*.{java,xml,py}]
 indent_style = space
@@ -32,3 +36,64 @@ continuation_indent_size = 8
 
 [*.md]
 max_line_length = off
+
+[*.java]
+ij_java_doc_add_p_tag_on_empty_lines = true
+ij_java_doc_do_not_wrap_if_one_line = true
+ij_java_annotation_parameter_wrap = normal
+ij_java_align_multiline_annotation_parameters = true
+ij_java_class_count_to_use_import_on_demand = 100
+ij_java_names_count_to_use_import_on_demand = 100
+ij_java_imports_layout = $*, |, java.**, |, javax.**, |, org.**, |, com.**, |, *
+
+ij_java_line_comment_at_first_column = false
+ij_java_align_multiline_chained_methods = true
+ij_java_align_multiline_parameters_in_calls = true
+ij_java_align_multiline_binary_operation = true
+ij_java_align_multiline_assignment = true
+ij_java_align_multiline_ternary_operation = true
+ij_java_align_multiline_throws_list = true
+ij_java_align_multiline_extends_list = true
+ij_java_align_multiline_array_initializer_expression = true
+
+ij_java_call_parameters_wrap = normal
+ij_java_method_parameters_wrap = normal
+ij_java_resource_list_wrap = normal
+ij_java_extends_list_wrap = normal
+ij_java_throws_list_wrap = normal
+ij_java_method_call_chain_wrap = normal
+ij_java_binary_operation_wrap = normal
+ij_java_ternary_operation_wrap = normal
+ij_java_for_statement_wrap = normal
+ij_java_array_initializer_wrap = normal
+ij_java_assignment_wrap = normal
+ij_java_assert_statement_wrap = normal
+ij_java_if_brace_force = if_multiline
+ij_java_do_while_brace_force = always
+ij_java_while_brace_force = if_multiline
+ij_java_for_brace_force = if_multiline
+ij_java_wrap_long_lines = true
+ij_java_parameter_annotation_wrap = normal
+ij_java_enum_constants_wrap = split_into_lines
+
+ij_java_keep_blank_lines_in_declarations = 1
+ij_java_keep_blank_lines_in_code = 1
+ij_java_keep_blank_lines_between_package_declaration_and_header = 1
+ij_java_keep_blank_lines_before_right_brace = 1
+ij_java_blank_lines_around_class = 1
+ij_java_blank_lines_after_class_header = 1
+
+ij_smart_tabs = true
+
+[*.xml]
+max_line_length = 120
+ij_visual_guides = 120
+ij_xml_text_wrap = off
+ij_xml_space_inside_empty_tag = true
+
+[.yaml]
+ij_yaml_spaces_within_braces = false
+ij_yaml_spaces_within_brackets = false
+
+[.properties]
+ij_properties_keep_blank_lines = true

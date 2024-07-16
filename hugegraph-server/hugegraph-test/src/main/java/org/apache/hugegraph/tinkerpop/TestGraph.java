@@ -144,7 +144,7 @@ public class TestGraph implements Graph {
 
         TaskScheduler scheduler = this.graph.taskScheduler();
         scheduler.tasks(null, -1, null).forEachRemaining(elem -> {
-            scheduler.delete(elem.id());
+            scheduler.delete(elem.id(), false);
         });
     }
 

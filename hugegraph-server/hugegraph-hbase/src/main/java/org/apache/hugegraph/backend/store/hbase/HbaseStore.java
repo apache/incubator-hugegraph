@@ -96,7 +96,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
     @Override
     protected final HbaseTable table(HugeType type) {
         assert type != null;
-        HbaseTable table = this.tables.get(type);
+        HbaseTable table = this.tables.get(convertTaskOrServerToVertex(type));
         if (table == null) {
             throw new BackendException("Unsupported table type: %s", type);
         }

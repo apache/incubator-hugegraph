@@ -36,6 +36,7 @@ public class HugeGroup extends Entity {
     private static final long serialVersionUID = 2330399818352242686L;
 
     private String name;
+    private String nickname;
     private String description;
 
     public HugeGroup(String name) {
@@ -65,6 +66,14 @@ public class HugeGroup extends Entity {
     @Override
     public String name() {
         return this.name;
+    }
+
+    public String nickname() {
+        return this.nickname;
+    }
+
+    public void nickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String description() {
@@ -193,5 +202,10 @@ public class HugeGroup extends Entity {
 
             return super.initProperties(props);
         }
+    }
+
+    public static HugeGroup fromMap(Map<String, Object> map) {
+        HugeGroup group = new HugeGroup("");
+        return fromMap(map, group);
     }
 }

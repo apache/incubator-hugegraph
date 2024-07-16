@@ -29,6 +29,7 @@ import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.ExistedException;
@@ -64,7 +65,7 @@ public class IndexLabelBuilder extends AbstractBuilder
     private boolean checkExist;
     private boolean rebuild;
 
-    public IndexLabelBuilder(SchemaTransaction transaction,
+    public IndexLabelBuilder(ISchemaTransaction transaction,
                              HugeGraph graph, String name) {
         super(transaction, graph);
         E.checkNotNull(name, "name");
@@ -79,7 +80,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         this.rebuild = true;
     }
 
-    public IndexLabelBuilder(SchemaTransaction transaction,
+    public IndexLabelBuilder(ISchemaTransaction transaction,
                              HugeGraph graph, IndexLabel copy) {
         super(transaction, graph);
         E.checkNotNull(copy, "copy");

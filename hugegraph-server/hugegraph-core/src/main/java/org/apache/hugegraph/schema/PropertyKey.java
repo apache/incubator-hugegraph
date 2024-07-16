@@ -20,6 +20,7 @@ package org.apache.hugegraph.schema;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,7 @@ import java.util.Set;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
@@ -35,6 +37,7 @@ import org.apache.hugegraph.type.Propertiable;
 import org.apache.hugegraph.type.define.AggregateType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
+import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.LongEncoding;
@@ -411,5 +414,86 @@ public class PropertyKey extends SchemaElement implements Propertiable {
         Builder userdata(String key, Object value);
 
         Builder userdata(Map<String, Object> userdata);
+    }
+
+    @Override
+    public Map<String, Object> asMap() {
+        Map<String, Object> map = new HashMap<>();
+
+        if (this.dataType != null) {
+            map.put(P.DATA_TYPE, this.dataType.string());
+        }
+
+        if (this.cardinality != null) {
+            map.put(P.CARDINALITY, this.cardinality.string());
+        }
+
+        if (this.aggregateType != null) {
+            map.put(P.AGGREGATE_TYPE, this.aggregateType.string());
+        }
+
+        if (this.writeType != null) {
+            map.put(P.WRITE_TYPE, this.writeType.string());
+        }
+
+        return super.asMap(map);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static PropertyKey fromMap(Map<String, Object> map, HugeGraph graph) {
+        Id id = IdGenerator.of((int) map.get(P.ID));
+        String name = (String) map.get(P.NAME);
+
+        PropertyKey propertyKey = new PropertyKey(graph, id, name);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            switch (entry.getKey()) {
+                case P.ID:
+                case P.NAME:
+                    break;
+                case P.STATUS:
+                    propertyKey.status(
+                        SchemaStatus.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                case P.USERDATA:
+                    propertyKey.userdata(new Userdata((Map<String, Object>) entry.getValue()));
+                    break;
+                case P.AGGREGATE_TYPE:
+                    propertyKey.aggregateType(
+                            AggregateType.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                case P.WRITE_TYPE:
+                    propertyKey.writeType(
+                            WriteType.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                case P.DATA_TYPE:
+                    propertyKey.dataType(
+                            DataType.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                case P.CARDINALITY:
+                    propertyKey.cardinality(
+                            Cardinality.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                            "Invalid key '%s' for property key",
+                            entry.getKey()));
+            }
+        }
+        return propertyKey;
+    }
+
+    public static final class P {
+
+        public static final String ID = "id";
+        public static final String NAME = "name";
+
+        public static final String STATUS = "status";
+        public static final String USERDATA = "userdata";
+
+        public static final String DATA_TYPE = "data_type";
+        public static final String CARDINALITY = "cardinality";
+
+        public static final String AGGREGATE_TYPE = "aggregate_type";
+        public static final String WRITE_TYPE = "write_type";
     }
 }
