@@ -219,8 +219,23 @@
                         </execution>
                     </executions>
                 </plugin>
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.1</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <compilerArguments>
+                            <Xmaxerrs>500</Xmaxerrs>
+                        </compilerArguments>
+                        <compilerArgs>
+                            <arg>-Xlint:unchecked</arg>
+                        </compilerArgs>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
+
         <plugins>
             <plugin>
                 <groupId>org.apache.rat</groupId>
@@ -234,6 +249,35 @@
                         <phase>validate</phase>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.ec4j.maven</groupId>
+                <artifactId>editorconfig-maven-plugin</artifactId>
+                <version>0.1.3</version>
+                <executions>
+                    <execution>
+                        <id>style-check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <phase>verify</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- See http://ec4j.github.io/editorconfig-maven-plugin/ for full configuration reference -->
+                    <excludes>
+                        <!-- Note that maven submodule directories and many non-source file patterns are excluded by default -->
+                        <!-- see https://github.com/ec4j/editorconfig-linters/blob/master/editorconfig-lint-api/src/main/java/org/ec4j/lint/api/Constants.java#L37 -->
+                        <!-- You can exclude further files from processing: -->
+                        <exclude>**/*.txt</exclude>
+                        <exclude>**/.flattened-pom.xml</exclude>
+                    </excludes>
+                    <!-- All files are included by default:
+                    <includes>
+                      <include>**</include>
+                    </includes>
+                    -->
+                </configuration>
             </plugin>
         </plugins>
     </build>
