@@ -36,14 +36,54 @@ LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-store-server.log
 GITHUB="https://github.com"
 PID_FILE="$BIN/pid"
-arch=$(arch)
 
-echo "Current arch: ", "${arch}"
-#if [[ $arch =~ "aarch64" ]];then
-#	  export LD_PRELOAD="$TOP/bin/libjemalloc_aarch64.so"
-#else
-export LD_PRELOAD="$TOP/bin/libjemalloc.so"
-#fi
+arch=$(uname -m)
+echo "Current arch: $arch"
+
+download_and_verify() {
+    local url=$1
+    local filepath=$2
+    local expected_md5=$3
+
+    if [[ -f $filepath ]]; then
+        echo "File $filepath exists. Verifying MD5 checksum..."
+        actual_md5=$(md5sum $filepath | awk '{ print $1 }')
+        if [[ $actual_md5 != $expected_md5 ]]; then
+            echo "MD5 checksum verification failed for $filepath. Expected: $expected_md5, but got: $actual_md5"
+            echo "Deleting $filepath..."
+            rm -f $filepath
+        else
+            echo "MD5 checksum verification succeeded for $filepath."
+            return
+        fi
+    fi
+
+    echo "Downloading $filepath..."
+    curl -L -o $filepath $url
+
+    actual_md5=$(md5sum $filepath | awk '{ print $1 }')
+    if [[ $actual_md5 != $expected_md5 ]]; then
+        echo "MD5 checksum verification failed for $filepath after download. Expected: $expected_md5, but got: $actual_md5"
+        exit 1
+    fi
+}
+
+if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
+    libfile="$TOP/bin/libjemalloc_aarch64.so"
+    download_url="https://github.com/apache/incubator-hugegraph/raw/master/hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc_aarch64.so"
+    expected_md5="2a631d2f81837f9d5864586761c5e380"
+    download_and_verify $download_url $libfile $expected_md5
+    export LD_PRELOAD=$libfile
+elif [[ $arch == "x86_64" ]]; then
+    libfile="$TOP/bin/libjemalloc.so"
+    download_url="https://github.com/apache/incubator-hugegraph/raw/master/hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc.so"
+    expected_md5="fd61765eec3bfea961b646c269f298df"
+    download_and_verify $download_url $libfile $expected_md5
+    export LD_PRELOAD=$libfile
+else
+    echo "Unsupported architecture: $arch"
+    exit 1
+fi
 
 ##pd/store max user processes, ulimit -u
 # Reduce the maximum number of processes that can be opened by a normal dev/user
