@@ -67,7 +67,7 @@ public class PartitionManagerTest extends StoreEngineTestBase {
         manager.setStore(store);
         var store2 = manager.getStoreMetadata().getStore();
 
-        assertSame(store.getId(), store2.getId());
+        assertEquals(store.getId(), store2.getId());
     }
 
     @Test
