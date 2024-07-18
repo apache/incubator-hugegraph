@@ -54,7 +54,7 @@ download_and_verify() {
             rm -f $filepath
         else
             echo "MD5 checksum verification succeeded for $filepath."
-            return
+            return 0
         fi
     fi
 
@@ -64,25 +64,32 @@ download_and_verify() {
     actual_md5=$(md5sum $filepath | awk '{ print $1 }')
     if [[ $actual_md5 != $expected_md5 ]]; then
         echo "MD5 checksum verification failed for $filepath after download. Expected: $expected_md5, but got: $actual_md5"
-        exit 1
+        return 1
     fi
+
+    return 0
 }
 
 if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
-    libfile="$TOP/bin/libjemalloc_aarch64.so"
+    lib_file="$TOP/bin/libjemalloc_aarch64.so"
     download_url="https://github.com/apache/incubator-hugegraph/raw/master/hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc_aarch64.so"
     expected_md5="2a631d2f81837f9d5864586761c5e380"
-    download_and_verify $download_url $libfile $expected_md5
-    export LD_PRELOAD=$libfile
+    if download_and_verify $download_url $lib_file $expected_md5; then
+        export LD_PRELOAD=$lib_file
+    else
+        echo "Failed to verify or download $lib_file, skip it"
+    fi
 elif [[ $arch == "x86_64" ]]; then
-    libfile="$TOP/bin/libjemalloc.so"
+    lib_file="$TOP/bin/libjemalloc.so"
     download_url="https://github.com/apache/incubator-hugegraph/raw/master/hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc.so"
     expected_md5="fd61765eec3bfea961b646c269f298df"
-    download_and_verify $download_url $libfile $expected_md5
-    export LD_PRELOAD=$libfile
+    if download_and_verify $download_url $lib_file $expected_md5; then
+        export LD_PRELOAD=$lib_file
+    else
+        echo "Failed to verify or download $lib_file, skip it"
+    fi
 else
     echo "Unsupported architecture: $arch"
-    exit 1
 fi
 
 ##pd/store max user processes, ulimit -u
