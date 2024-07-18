@@ -58,6 +58,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HgCmdClientTest {
+
     private static AtomicLong id;
     private final String pdAddress = "127.0.0.1:8686";
     private final String graphName = "hugegraph";
@@ -180,7 +181,6 @@ public class HgCmdClientTest {
             }
         }
 
-
         HgKvIterator<HgKvEntry> hgKvIterator = session.scanIterator(tableName);
         Assert.assertTrue(hgKvIterator.hasNext());
         boolean findKey = false;
@@ -243,7 +243,8 @@ public class HgCmdClientTest {
         }
     }
 
-    @Test
+    // @Test
+    // TODO: partition not local
     public void testUpdatePartitionLeader() {
         hgCmdClient = new HgCmdClient();
         pdProvider = new DefaultPdProvider(pdAddress);
@@ -270,7 +271,8 @@ public class HgCmdClientTest {
 
     }
 
-    @Test
+    // @Test
+    // TODO: partition not local
     public void testData() {
         hgCmdClient = new HgCmdClient();
         pdProvider = new DefaultPdProvider(pdAddress);
@@ -289,7 +291,6 @@ public class HgCmdClientTest {
         pdClient = storeClient.getPdClient();
         session.truncate();
 
-        String tableName = "cli-table";
         int loop = 3;
 
         for (int i = 0; i < loop; i++) {
@@ -312,8 +313,9 @@ public class HgCmdClientTest {
         }
     }
 
-    @Test
-    public void testComPressionData() {
+    // @Test
+    // TODO: partition not local
+    public void testCompressionData() {
 
         hgCmdClient = new HgCmdClient();
         pdProvider = new DefaultPdProvider(pdAddress);
@@ -332,7 +334,6 @@ public class HgCmdClientTest {
         pdClient = storeClient.getPdClient();
         session.truncate();
 
-        String tableName = "cli-table";
         int loop = 10;
 
         for (int i = 0; i < loop; i++) {

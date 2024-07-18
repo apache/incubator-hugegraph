@@ -33,6 +33,8 @@ import org.apache.hugegraph.store.pd.FakePdServiceProvider;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+import com.alipay.sofa.jraft.util.StorageOptionsFactory;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -42,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
 public class StoreEngineTestBase {
 
     private static final String DB_PATH = "/tmp/junit";
+    private static int initCount = 0;
 
     @BeforeClass
     public static void initEngine() {
@@ -65,10 +68,11 @@ public class StoreEngineTestBase {
             setShardCount(1);
         }});
 
-        // TODO: uncomment later (jraft)
-        //StorageOptionsFactory.clear();
-        RaftRocksdbOptions.initRocksdbGlobalConfig(options.getRocksdbConfig());
-
+        if (initCount == 0) {
+            StorageOptionsFactory.releaseAllOptions();
+            RaftRocksdbOptions.initRocksdbGlobalConfig(options.getRocksdbConfig());
+            initCount++;
+        }
         HgStoreEngine.getInstance().init(options);
     }
 
