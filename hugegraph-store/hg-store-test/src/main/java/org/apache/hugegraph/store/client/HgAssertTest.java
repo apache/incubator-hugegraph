@@ -30,8 +30,6 @@ public class HgAssertTest {
 
     @Test
     public void testIsTrue1() {
-        // Setup
-        // Run the test
         try {
             HgAssert.isTrue(false, "message");
         } catch (Exception e) {

@@ -38,6 +38,7 @@ import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgStoreClient;
 import org.apache.hugegraph.store.HgStoreSession;
+import org.apache.hugegraph.store.UnitTestBase;
 import org.apache.hugegraph.store.cmd.BatchPutRequest;
 import org.apache.hugegraph.store.cmd.BatchPutResponse;
 import org.apache.hugegraph.store.cmd.CleanDataRequest;
@@ -60,7 +61,7 @@ public class HgCmdClientTest {
     private static AtomicLong id;
     private final String pdAddress = "127.0.0.1:8686";
     private final String graphName = "hugegraph";
-    private final String tableName = "table-1";
+    private final String tableName = UnitTestBase.DEFAULT_TEST_TABLE;
     private PdProvider pdProvider;
     private HgCmdClient hgCmdClient;
     private HgStoreClient storeClient;

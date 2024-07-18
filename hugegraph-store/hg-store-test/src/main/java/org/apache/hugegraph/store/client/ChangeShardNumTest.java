@@ -29,14 +29,15 @@ import org.junit.Test;
 /**
  * 测试修改副本数
  */
-public class ChangeShardNumTest extends BaseClientTest {
+public class ChangeShardNumTest extends HgStoreClientBase {
+
     @Test
     public void test3To1() throws PDException {
         int number = 10000;
-        HgStoreSession session = storeClient.openSession(graphName);
-        HgStoreTestUtil.batchPut(session, tableName, "testKey", number);
+        HgStoreSession session = storeClient.openSession(GRAPH_NAME);
+        HgStoreTestUtil.batchPut(session, TABLE_NAME, "testKey", number);
 
-        try (HgKvIterator<HgKvEntry> iterators = session.scanIterator(tableName)) {
+        try (HgKvIterator<HgKvEntry> iterators = session.scanIterator(TABLE_NAME)) {
 //            Assert.assertEquals(number, HgStoreTestUtil.amountOf(iterators));
         }
 
@@ -50,10 +51,10 @@ public class ChangeShardNumTest extends BaseClientTest {
     //    @Test
     public void test1To3() throws PDException {
         int number = 10000;
-        HgStoreSession session = storeClient.openSession(graphName);
-        HgStoreTestUtil.batchPut(session, tableName, "testKey", number);
+        HgStoreSession session = storeClient.openSession(GRAPH_NAME);
+        HgStoreTestUtil.batchPut(session, TABLE_NAME, "testKey", number);
 
-        try (HgKvIterator<HgKvEntry> iterators = session.scanIterator(tableName)) {
+        try (HgKvIterator<HgKvEntry> iterators = session.scanIterator(TABLE_NAME)) {
             Assert.assertEquals(number, HgStoreTestUtil.amountOf(iterators));
         }
 

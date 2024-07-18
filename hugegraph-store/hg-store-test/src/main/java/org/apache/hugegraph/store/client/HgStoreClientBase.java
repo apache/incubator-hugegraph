@@ -21,22 +21,31 @@ import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.store.HgStoreClient;
 import org.apache.hugegraph.store.HgStoreSession;
+import org.apache.hugegraph.store.UnitTestBase;
+import org.junit.After;
 import org.junit.Before;
 
 public class HgStoreClientBase {
 
-    protected static String Graph_Name = "testGraphName";
-    protected static String Table_Name = "testTableName";
+    protected static String GRAPH_NAME = "testGraphName";
+    protected static String TABLE_NAME = UnitTestBase.DEFAULT_TEST_TABLE;
+    private static final String PD_ADDRESS = "127.0.0.1:8686";
     protected HgStoreClient storeClient;
     protected PDClient pdClient;
 
     @Before
-    public void init() {
-        storeClient = HgStoreClient.create(PDConfig.of("127.0.0.1:8686")
+    public void setup() throws Exception {
+        storeClient = HgStoreClient.create(PDConfig.of(PD_ADDRESS)
                                                    .setEnableCache(true));
         pdClient = storeClient.getPdClient();
 
-        HgStoreSession session = storeClient.openSession(Graph_Name);
-        session.dropTable(Table_Name);
+        HgStoreSession session = storeClient.openSession(TABLE_NAME);
+        session.dropTable(TABLE_NAME);
+        session.truncate();
+    }
+
+    @After
+    public void teardown() {
+        // pass
     }
 }

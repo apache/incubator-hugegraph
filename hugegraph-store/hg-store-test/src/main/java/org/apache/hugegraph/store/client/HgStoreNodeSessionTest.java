@@ -17,14 +17,7 @@
 
 package org.apache.hugegraph.store.client;
 
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.GRAPH_NAME;
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.amountOf;
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.batchPut;
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.println;
-
 import org.apache.hugegraph.store.HgStoreSession;
-import org.apache.hugegraph.store.client.HgStoreNode;
-import org.apache.hugegraph.store.client.HgStoreNodeManager;
 import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Assert;
 
@@ -32,6 +25,7 @@ import org.junit.Assert;
  * created on 2021/10/12
  */
 public class HgStoreNodeSessionTest {
+
     private static final HgStoreNodeManager nodeManager = HgStoreNodeManager.getInstance();
     private static HgStoreNode node;
 
@@ -63,7 +57,6 @@ public class HgStoreNodeSessionTest {
         String tableName2 = "UNIT_TRUNCATE_2";
         HgStoreTestUtil.batchPut(session, tableName2, keyName, 100);
         Assert.assertEquals(100, HgStoreTestUtil.amountOf(session.scanIterator(tableName2)));
-
 
         session.truncate();
         Assert.assertEquals(0, HgStoreTestUtil.amountOf(session.scanIterator(tableName)));

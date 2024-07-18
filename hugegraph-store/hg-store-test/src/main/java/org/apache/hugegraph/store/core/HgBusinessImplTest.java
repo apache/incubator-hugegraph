@@ -23,6 +23,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
+import org.apache.hugegraph.store.UnitTestBase;
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.util.Bytes;
 import org.junit.Assert;
@@ -34,6 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HgBusinessImplTest extends StoreEngineTestBase {
 
+    public static final String TABLE_NAME = UnitTestBase.DEFAULT_TEST_TABLE;
     public BusinessHandler getBusinessHandler() {
         return getStoreEngine().getBusinessHandler();
     }
@@ -47,22 +49,21 @@ public class HgBusinessImplTest extends StoreEngineTestBase {
         createPartitionEngine(0, graph1);
         createPartitionEngine(0, graph2);
 
-        String table = "testPut";
         BusinessHandler handler = getBusinessHandler();
-        handler.doPut(graph1, 0, table, "key1".getBytes(), "value1".getBytes());
-        handler.doPut(graph1, 0xF, table, "key2".getBytes(), "value1".getBytes());
-        handler.doPut(graph1, 0xFF, table, "key3".getBytes(), "value1".getBytes());
-        handler.doPut(graph1, 0xFFF, table, "key4".getBytes(), "value1".getBytes());
+        handler.doPut(graph1, 0, TABLE_NAME, "key1".getBytes(), "value1".getBytes());
+        handler.doPut(graph1, 0xF, TABLE_NAME, "key2".getBytes(), "value1".getBytes());
+        handler.doPut(graph1, 0xFF, TABLE_NAME, "key3".getBytes(), "value1".getBytes());
+        handler.doPut(graph1, 0xFFF, TABLE_NAME, "key4".getBytes(), "value1".getBytes());
 
-        handler.doPut(graph2, 0, table, "key21".getBytes(), "value1".getBytes());
-        handler.doPut(graph2, 0xF, table, "key22".getBytes(), "value1".getBytes());
-        handler.doPut(graph2, 0xFF, table, "key23".getBytes(), "value1".getBytes());
-        handler.doPut(graph2, 0xFFF, table, "key24".getBytes(), "value1".getBytes());
+        handler.doPut(graph2, 0, TABLE_NAME, "key21".getBytes(), "value1".getBytes());
+        handler.doPut(graph2, 0xF, TABLE_NAME, "key22".getBytes(), "value1".getBytes());
+        handler.doPut(graph2, 0xFF, TABLE_NAME, "key23".getBytes(), "value1".getBytes());
+        handler.doPut(graph2, 0xFFF, TABLE_NAME, "key24".getBytes(), "value1".getBytes());
 
         System.out.println("--------------------dump all -------");
         dump(handler, graph1, 0);
         System.out.println("--------------------dump scan 0 0xff -------");
-        ScanIterator iterator = handler.scan(graph1, table, 0, 0xff);
+        ScanIterator iterator = handler.scan(graph1, TABLE_NAME, 0, 0xff);
         int count = 0;
         while (iterator.hasNext()) {
             RocksDBSession.BackendColumn entry = iterator.next();
@@ -73,7 +74,7 @@ public class HgBusinessImplTest extends StoreEngineTestBase {
         Assert.assertEquals(2, count);
 
         System.out.println("--------------------dump scan prefix -------");
-        iterator = handler.scanPrefix(graph1, 0, table, "key".getBytes());
+        iterator = handler.scanPrefix(graph1, 0, TABLE_NAME, "key".getBytes());
 
         count = 0;
         while (iterator.hasNext()) {
@@ -84,7 +85,7 @@ public class HgBusinessImplTest extends StoreEngineTestBase {
 
         Assert.assertEquals(4, count);
         System.out.println("--------------------dump scan range key1 key4 -------");
-        iterator = handler.scan(graph1, 0, table, "key1".getBytes(), "key4".getBytes(),
+        iterator = handler.scan(graph1, 0, TABLE_NAME, "key1".getBytes(), "key4".getBytes(),
                                 ScanIterator.Trait.SCAN_LT_END);
         count = 0;
         while (iterator.hasNext()) {
@@ -108,11 +109,10 @@ public class HgBusinessImplTest extends StoreEngineTestBase {
         createPartitionEngine(0, graph1);
         BusinessHandler handler = getBusinessHandler();
 
-        String table = "LoadSnapshot-table";
         for (int i = 0; i < 256; i++) {
-            handler.doPut(graph1, i, table, ("key" + i).getBytes(), "value1".getBytes());
+            handler.doPut(graph1, i, TABLE_NAME, ("key" + i).getBytes(), "value1".getBytes());
         }
-        ScanIterator iterator = handler.scanAll(graph1, table);
+        ScanIterator iterator = handler.scanAll(graph1, TABLE_NAME);
 
         System.out.println(iterator.count());
 
@@ -125,7 +125,7 @@ public class HgBusinessImplTest extends StoreEngineTestBase {
 
         System.out.println("start loadSnapshot");
         handler.loadSnapshot(snapshotPath, graph1, 0, 10);
-        iterator = handler.scanAll(graph1, table);
+        iterator = handler.scanAll(graph1, TABLE_NAME);
         Assert.assertEquals(255, iterator.count());
         try (RocksDBSession session = handler.getSession(0)) {
             System.out.println(session.getDbPath());

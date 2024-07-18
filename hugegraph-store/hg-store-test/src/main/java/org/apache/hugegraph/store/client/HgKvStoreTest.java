@@ -28,8 +28,7 @@ import org.apache.hugegraph.store.HgStoreSession;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class HgKvStoreTest extends BaseClientTest {
-    public static final String TABLE_NAME = "unit-table";
+public class HgKvStoreTest extends HgStoreClientBase {
 
     @Test
     public void truncateTest() {

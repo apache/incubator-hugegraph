@@ -26,8 +26,9 @@ import org.junit.BeforeClass;
 
 
 public class BaseCoreTest {
+
     @BeforeClass
-    public static void init() throws Exception {
+    public static void setup() throws Exception {
 
     }
 

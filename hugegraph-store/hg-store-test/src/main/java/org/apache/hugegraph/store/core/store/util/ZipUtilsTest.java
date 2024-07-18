@@ -26,7 +26,7 @@ import java.nio.file.Paths;
 import java.util.zip.CRC32;
 
 import org.apache.hugegraph.rocksdb.access.util.ZipUtils;
-import org.apache.hugegraph.store.util.UnitTestBase;
+import org.apache.hugegraph.store.UnitTestBase;
 import org.apache.logging.log4j.core.util.FileUtils;
 import org.junit.Before;
 import org.junit.Test;

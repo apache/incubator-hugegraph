@@ -381,7 +381,7 @@ public class HgStoreTestUtil {
         }
         int count = 0;
         while (iterator.hasNext()) {
-            Object obj = iterator.next();
+            Object ignore = iterator.next();
             ++count;
         }
         return count;

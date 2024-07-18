@@ -23,6 +23,7 @@ import java.util.HashMap;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
+import org.apache.hugegraph.store.UnitTestBase;
 import org.apache.hugegraph.store.business.DefaultDataMover;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.ShardGroup;
@@ -33,13 +34,13 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hugegraph.store.util.UnitTestBase;
 
 /**
  * 使用 FakePd 和 FakePdOptions，初始化 HgStoreEngine，该类的各项 get 函数可用
  */
 @Slf4j
 public class StoreEngineTestBase {
+
     private static final String DB_PATH = "/tmp/junit";
 
     @BeforeClass
@@ -65,7 +66,7 @@ public class StoreEngineTestBase {
         }});
 
         // TODO: uncomment later (jraft)
-//        StorageOptionsFactory.clear();
+        //StorageOptionsFactory.clear();
         RaftRocksdbOptions.initRocksdbGlobalConfig(options.getRocksdbConfig());
 
         HgStoreEngine.getInstance().init(options);
@@ -94,7 +95,6 @@ public class StoreEngineTestBase {
     public static PartitionEngine createPartitionEngine(int partitionId) {
         return createPartitionEngine(partitionId, "graph0");
     }
-
 
     public static PartitionEngine createPartitionEngine(int partitionId, String graphName) {
         Metapb.Shard shard = Metapb.Shard.newBuilder()

@@ -24,8 +24,8 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.hugegraph.store.UnitTestBase;
 import org.apache.hugegraph.store.raft.util.RaftUtils;
-import org.apache.hugegraph.store.util.UnitTestBase;
 import org.junit.Before;
 import org.junit.Test;
 
