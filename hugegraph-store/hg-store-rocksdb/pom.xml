@@ -34,7 +34,7 @@
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
-            <version>1.3.0</version>
+            <version>${hugegraph-commons.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.glassfish.jersey.inject</groupId>
