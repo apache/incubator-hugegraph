@@ -1,4 +1,4 @@
-name: "hugegraph-pd-store-ci"
+name: "pd-store CI"
 
 on:
   push:
