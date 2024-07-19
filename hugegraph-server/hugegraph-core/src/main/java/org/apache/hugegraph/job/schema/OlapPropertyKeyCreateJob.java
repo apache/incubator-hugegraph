@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.job.schema;
 
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.PropertyKey;
 
@@ -29,7 +30,7 @@ public class OlapPropertyKeyCreateJob extends SchemaJob {
 
     @Override
     public Object execute() {
-        SchemaTransaction schemaTx = this.params().schemaTransaction();
+        ISchemaTransaction schemaTx = this.params().schemaTransaction();
         PropertyKey propertyKey = schemaTx.getPropertyKey(this.schemaId());
         // Create olap index label schema
         schemaTx.createIndexLabelForOlapPk(propertyKey);

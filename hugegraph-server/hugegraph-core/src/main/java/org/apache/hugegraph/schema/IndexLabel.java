@@ -20,8 +20,10 @@ package org.apache.hugegraph.schema;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
@@ -29,6 +31,7 @@ import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IndexType;
+import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
 
 import com.google.common.base.Objects;
@@ -165,6 +168,8 @@ public class IndexLabel extends SchemaElement {
 
     public static IndexLabel label(HugeType type) {
         switch (type) {
+            case TASK:
+            case SERVER:
             case VERTEX:
                 return VL_IL;
             case EDGE:
@@ -281,4 +286,74 @@ public class IndexLabel extends SchemaElement {
         Builder rebuild(boolean rebuild);
     }
 
+    @Override
+    public Map<String, Object> asMap() {
+        HashMap<String, Object> map = new HashMap<>();
+        map.put(P.BASE_TYPE, this.baseType().name());
+        map.put(P.BASE_VALUE, this.baseValue().asString());
+        map.put(P.INDEX_TYPE, this.indexType().name());
+        map.put(P.INDEX_FIELDS, this.indexFields());
+        return super.asMap(map);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static IndexLabel fromMap(Map<String, Object> map, HugeGraph graph) {
+        Id id = IdGenerator.of((int) map.get(IndexLabel.P.ID));
+        String name = (String) map.get(IndexLabel.P.NAME);
+
+        IndexLabel indexLabel = new IndexLabel(graph, id, name);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            switch (entry.getKey()) {
+                case P.ID:
+                case P.NAME:
+                    break;
+                case P.STATUS:
+                    indexLabel.status(
+                        SchemaStatus.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                case P.USERDATA:
+                    indexLabel.userdata(new Userdata((Map<String, Object>) entry.getValue()));
+                    break;
+                case P.BASE_TYPE:
+                    HugeType hugeType =
+                            HugeType.valueOf(((String) entry.getValue()).toUpperCase());
+                    indexLabel.baseType(hugeType);
+                    break;
+                case P.BASE_VALUE:
+                    long sourceLabel =
+                            Long.parseLong((String) entry.getValue());
+                    indexLabel.baseValue(IdGenerator.of(sourceLabel));
+                    break;
+                case P.INDEX_TYPE:
+                    IndexType indexType =
+                            IndexType.valueOf(((String) entry.getValue()).toUpperCase());
+                    indexLabel.indexType(indexType);
+                    break;
+                case P.INDEX_FIELDS:
+                    List<Id> ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toList());
+                    indexLabel.indexFields(ids.toArray(new Id[0]));
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                            "Invalid key '%s' for index label",
+                            entry.getKey()));
+            }
+        }
+        return indexLabel;
+    }
+
+    public static final class P {
+
+        public static final String ID = "id";
+        public static final String NAME = "name";
+
+        public static final String STATUS = "status";
+        public static final String USERDATA = "userdata";
+
+        public static final String BASE_TYPE = "baseType";
+        public static final String BASE_VALUE = "baseValue";
+        public static final String INDEX_TYPE = "indexType";
+        public static final String INDEX_FIELDS = "indexFields";
+    }
 }

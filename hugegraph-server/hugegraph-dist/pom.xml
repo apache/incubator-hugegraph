@@ -29,6 +29,7 @@
     <artifactId>hugegraph-dist</artifactId>
 
     <properties>
+        <final.destfile>${top.level.dir}/${final.name}.tar.gz</final.destfile>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
@@ -96,6 +97,11 @@
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-postgresql</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-hstore</artifactId>
             <version>${revision}</version>
         </dependency>
 

@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.auth.HugeTarget.P;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
@@ -243,6 +244,14 @@ public abstract class SchemaDefine {
 
         private static final long serialVersionUID = 4113319546914811762L;
 
+        public static <T extends Entity> T fromMap(Map<String, Object> map, T entity) {
+            for (Map.Entry<String, Object> item : map.entrySet()) {
+                entity.property(Hidden.hide(item.getKey()), item.getValue());
+            }
+            entity.id(IdGenerator.of(entity.name()));
+            return entity;
+        }
+
         public static <T extends Entity> T fromVertex(Vertex vertex, T entity) {
             E.checkArgument(vertex.label().equals(entity.label()),
                             "Illegal vertex label '%s' for entity '%s'",
@@ -278,6 +287,19 @@ public abstract class SchemaDefine {
         public abstract Id source();
 
         public abstract Id target();
+
+        public void setId() {
+            this.id(IdGenerator.of(this.source().asString() + "->" +
+                                   this.target().asString()));
+        }
+
+        public static <T extends Relationship> T fromMap(Map<String, Object> map, T entity) {
+            for (Map.Entry<String, Object> item : map.entrySet()) {
+                entity.property(Hidden.hide(item.getKey()), item.getValue());
+            }
+            entity.setId();
+            return entity;
+        }
 
         public static <T extends Relationship> T fromEdge(Edge edge,
                                                           T relationship) {

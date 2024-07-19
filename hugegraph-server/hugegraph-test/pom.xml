@@ -382,5 +382,15 @@
                 <serializer>postgresql</serializer>
             </properties>
         </profile>
+        <profile>
+            <id>hstore</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <backend>hstore</backend>
+                <serializer>binary</serializer>
+            </properties>
+        </profile>
     </profiles>
 </project>

@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.schema.builder.EdgeLabelBuilder;
 import org.apache.hugegraph.schema.builder.IndexLabelBuilder;
@@ -33,10 +33,10 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 
 public class SchemaManager {
 
-    private final SchemaTransaction transaction;
+    private final ISchemaTransaction transaction;
     private HugeGraph graph;
 
-    public SchemaManager(SchemaTransaction transaction, HugeGraph graph) {
+    public SchemaManager(ISchemaTransaction transaction, HugeGraph graph) {
         E.checkNotNull(transaction, "transaction");
         E.checkNotNull(graph, "graph");
         this.transaction = transaction;
