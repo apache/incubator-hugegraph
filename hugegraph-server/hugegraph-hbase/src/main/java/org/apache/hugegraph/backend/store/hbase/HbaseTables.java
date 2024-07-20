@@ -20,16 +20,15 @@ package org.apache.hugegraph.backend.store.hbase;
 import java.io.IOException;
 import java.util.Arrays;
 
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BinaryEntryIterator;
+import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;

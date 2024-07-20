@@ -25,12 +25,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.task.TaskManager.ContextCallable;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class Consumers<V> {
 
@@ -147,7 +146,7 @@ public class Consumers<V> {
             try {
                 this.queue.put(v);
             } catch (InterruptedException e) {
-                LOG.warn("Interrupted", e);;
+                LOG.warn("Interrupted", e);
             }
         }
     }

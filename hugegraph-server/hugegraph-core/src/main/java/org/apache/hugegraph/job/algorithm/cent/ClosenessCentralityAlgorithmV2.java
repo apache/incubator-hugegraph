@@ -16,6 +16,10 @@
  */
 package org.apache.hugegraph.job.algorithm.cent;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.exception.NotSupportException;
@@ -25,10 +29,6 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 public class ClosenessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
 
@@ -81,10 +81,7 @@ public class ClosenessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
             assert degree > 0L || degree == NO_LIMIT;
             assert topN >= 0L || topN == NO_LIMIT;
 
-            Id edgeLabelId = null;
-            if (label != null) {
-                edgeLabelId = this.graph().edgeLabel(label).id();
-            }
+            Id edgeLabelId = this.getEdgeLabelIdOrNull(label);
 
             // TODO: sample the startVertices
             Iterator<Vertex> startVertices = this.vertices(sourceLabel,

@@ -17,21 +17,21 @@
 
 package org.apache.hugegraph.backend.store.raft.rpc;
 
-import org.slf4j.Logger;
-
-import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
-import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.raft.RaftContext;
+import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersRequest;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.ListPeersResponse;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
+import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
+import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
 import com.google.common.collect.ImmutableList;
 import com.google.protobuf.Message;
 
 public class ListPeersProcessor
-       extends RpcRequestProcessor<ListPeersRequest> {
+        extends RpcRequestProcessor<ListPeersRequest> {
 
     private static final Logger LOG = Log.logger(ListPeersProcessor.class);
 

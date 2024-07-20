@@ -20,6 +20,7 @@ package org.apache.hugegraph.type;
  * @author Matthias Broecheler (me@matthiasb.com)
  */
 public interface Nameable {
+
     /**
      * Returns the unique name of this entity.
      *

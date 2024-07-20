@@ -21,4 +21,5 @@ import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.Typeable;
 
 public interface GraphType extends Nameable, Typeable {
+
 }

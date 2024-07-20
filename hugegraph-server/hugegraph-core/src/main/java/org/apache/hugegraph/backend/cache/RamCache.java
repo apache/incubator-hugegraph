@@ -156,7 +156,7 @@ public class RamCache extends AbstractCache<Id, Object> {
     @Override
     protected Iterator<CacheNode<Id, Object>> nodes() {
         Iterator<LinkNode<Id, Object>> iter = this.map.values().iterator();
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings({"unchecked", "rawtypes"})
         Iterator<CacheNode<Id, Object>> iterSuper = (Iterator) iter;
         return iterSuper;
     }
@@ -280,8 +280,8 @@ public class RamCache extends AbstractCache<Id, Object> {
         /**
          * Reset the head node and rear node
          * NOTE:
-         *  only called by LinkedQueueNonBigLock() without lock
-         *  or called by clear() with lock(head, rear)
+         * only called by LinkedQueueNonBigLock() without lock
+         * or called by clear() with lock(head, rear)
          */
         private void reset() {
             this.head.prev = this.empty;
@@ -316,7 +316,7 @@ public class RamCache extends AbstractCache<Id, Object> {
             List<K> keys = this.dumpKeys();
             if (keys.contains(key)) {
                 throw new RuntimeException(String.format(
-                          "Expect %s should be not in %s", key, keys));
+                        "Expect %s should be not in %s", key, keys));
             }
             return true;
         }
@@ -338,8 +338,8 @@ public class RamCache extends AbstractCache<Id, Object> {
             int selfPos = keys.indexOf(self.key());
             if (prevPos > selfPos && selfPos != -1) {
                 throw new RuntimeException(String.format(
-                          "Expect %s should be before %s, actual %s",
-                          prev.key(), self.key(), keys));
+                        "Expect %s should be before %s, actual %s",
+                        prev.key(), self.key(), keys));
             }
             return true;
         }

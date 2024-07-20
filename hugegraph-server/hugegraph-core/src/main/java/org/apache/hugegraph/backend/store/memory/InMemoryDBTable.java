@@ -27,15 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.serializer.TextBackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendSession;
-import org.apache.hugegraph.backend.store.BackendTable;
-import org.apache.hugegraph.backend.store.Shard;
-import org.apache.hugegraph.exception.NotSupportException;
-import org.apache.hugegraph.type.HugeType;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.query.Aggregate;
 import org.apache.hugegraph.backend.query.Aggregate.AggregateFunc;
 import org.apache.hugegraph.backend.query.Condition;
@@ -44,14 +35,23 @@ import org.apache.hugegraph.backend.query.IdPrefixQuery;
 import org.apache.hugegraph.backend.query.IdRangeQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.backend.serializer.TextBackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendSession;
+import org.apache.hugegraph.backend.store.BackendTable;
+import org.apache.hugegraph.backend.store.Shard;
+import org.apache.hugegraph.exception.NotSupportException;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
 public class InMemoryDBTable extends BackendTable<BackendSession,
-                                                  TextBackendEntry> {
+        TextBackendEntry> {
 
     private static final Logger LOG = Log.logger(InMemoryDBTable.class);
 
@@ -232,7 +232,7 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
 
     protected Map<Id, BackendEntry> queryById(Collection<Id> ids,
                                               Map<Id, BackendEntry> entries) {
-        assert ids.size() > 0;
+        assert !ids.isEmpty();
         Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
 
         for (Id id : ids) {
@@ -260,9 +260,9 @@ public class InMemoryDBTable extends BackendTable<BackendSession,
     }
 
     protected Map<Id, BackendEntry> queryByFilter(
-                                    Collection<Condition> conditions,
-                                    Map<Id, BackendEntry> entries) {
-        assert conditions.size() > 0;
+            Collection<Condition> conditions,
+            Map<Id, BackendEntry> entries) {
+        assert !conditions.isEmpty();
 
         Map<Id, BackendEntry> rs = new HashMap<>();
 

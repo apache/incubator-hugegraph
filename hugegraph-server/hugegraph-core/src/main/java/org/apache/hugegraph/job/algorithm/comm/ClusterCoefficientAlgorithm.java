@@ -73,7 +73,7 @@ public class ClusterCoefficientAlgorithm extends AbstractCommAlgorithm {
             assert triangles <= triads;
             double coefficient = triads == 0L ? 0d : 1d * triangles / triads;
 
-            @SuppressWarnings({ "unchecked", "rawtypes" })
+            @SuppressWarnings({"unchecked", "rawtypes"})
             Map<String, Double> converted = (Map) results;
             converted.put("cluster_coefficient", coefficient);
 

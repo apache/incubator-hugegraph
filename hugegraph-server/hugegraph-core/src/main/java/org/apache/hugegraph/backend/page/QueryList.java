@@ -22,14 +22,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.page.IdHolder.BatchIdHolder;
+import org.apache.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.ConditionQuery.OptimizedType;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.page.IdHolder.BatchIdHolder;
-import org.apache.hugegraph.backend.page.IdHolder.FixedIdHolder;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
 
@@ -46,7 +46,7 @@ public final class QueryList<R> {
         this.queries = new ArrayList<>();
     }
 
-    protected Query parent() {
+    Query parent() {
         return this.parent;
     }
 
@@ -98,7 +98,7 @@ public final class QueryList<R> {
         return QueryResults.flatMap(this.queries.iterator(), FlattenQuery::iterator);
     }
 
-    protected PageResults<R> fetchNext(PageInfo pageInfo, long pageSize) {
+    PageResults<R> fetchNext(PageInfo pageInfo, long pageSize) {
         FlattenQuery<R> query = null;
         int offset = pageInfo.offset();
         int visited = 0;
@@ -126,16 +126,18 @@ public final class QueryList<R> {
 
         /**
          * For non-paging situation
-         * @return          BackendEntry iterator
+         *
+         * @return BackendEntry iterator
          */
         QueryResults<R> iterator();
 
         /**
          * For paging situation
-         * @param index     position IdHolder(Query)
-         * @param page      set query page
-         * @param pageSize  set query page size
-         * @return          BackendEntry iterator with page
+         *
+         * @param index    position IdHolder(Query)
+         * @param page     set query page
+         * @param pageSize set query page size
+         * @return BackendEntry iterator with page
          */
         PageResults<R> iterator(int index, String page, long pageSize);
 
@@ -323,8 +325,8 @@ public final class QueryList<R> {
     public static class PageResults<R> {
 
         public static final PageResults<?> EMPTY = new PageResults<>(
-                                                   QueryResults.empty(),
-                                                   PageState.EMPTY);
+                QueryResults.empty(),
+                PageState.EMPTY);
 
         private final QueryResults<R> results;
         private final PageState pageState;

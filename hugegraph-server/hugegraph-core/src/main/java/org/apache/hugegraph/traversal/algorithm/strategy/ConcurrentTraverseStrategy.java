@@ -29,7 +29,7 @@ import org.apache.hugegraph.traversal.algorithm.OltpTraverser;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 
 public class ConcurrentTraverseStrategy extends OltpTraverser
-                                        implements TraverseStrategy {
+        implements TraverseStrategy {
 
     public ConcurrentTraverseStrategy(HugeGraph graph) {
         super(graph);

@@ -21,10 +21,9 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
+import org.apache.hugegraph.util.E;
 import org.eclipse.collections.api.collection.primitive.MutableIntCollection;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
-
-import org.apache.hugegraph.util.E;
 
 import io.netty.util.internal.shaded.org.jctools.util.UnsafeAccess;
 
@@ -59,13 +58,13 @@ public interface IntSet {
 
         private static final int DEFAULT_SEGMENTS = IntSet.CPUS * 100;
         private static final Function<Integer, IntSet> DEFAULT_CREATOR =
-                             size -> new IntSetByFixedAddr4Unsigned(size);
+                IntSetByFixedAddr4Unsigned::new;
 
         @SuppressWarnings("static-access")
         private static final int BASE_OFFSET = UNSAFE.ARRAY_OBJECT_BASE_OFFSET;
         @SuppressWarnings("static-access")
         private static final int SHIFT = 31 - Integer.numberOfLeadingZeros(
-                                              UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
+                UNSAFE.ARRAY_OBJECT_INDEX_SCALE);
 
         public IntSetBySegments(int capacity) {
             this(capacity, DEFAULT_SEGMENTS, DEFAULT_CREATOR);
@@ -185,7 +184,7 @@ public interface IntSet {
 
         private IntSet segmentAt(int index) {
             // volatile get this.sets[index]
-            long offset = (index << SHIFT) + BASE_OFFSET;
+            long offset = ((long) index << SHIFT) + BASE_OFFSET;
             IntSet set = (IntSet) UNSAFE.getObjectVolatile(this.sets, offset);
             return set;
         }
@@ -195,7 +194,7 @@ public interface IntSet {
      * NOTE: IntSetByFixedAddr is:
      * - faster 3x than ec IntIntHashSet for single thread;
      * - faster 6x than ec IntIntHashSet for 4 threads, 4x operations
-     *   with 0.67x cost;
+     * with 0.67x cost;
      * - faster 20x than ec IntIntHashSet-segment-lock for 4 threads;
      * - faster 60x than ec IntIntHashSet-global-lock for 4 threads;
      */
@@ -302,7 +301,7 @@ public interface IntSet {
         private static final int BASE_OFFSET = UNSAFE.ARRAY_LONG_BASE_OFFSET;
         @SuppressWarnings("static-access")
         private static final int MUL8 = 31 - Integer.numberOfLeadingZeros(
-                                             UNSAFE.ARRAY_LONG_INDEX_SCALE);
+                UNSAFE.ARRAY_LONG_INDEX_SCALE);
 
         public IntSetByFixedAddr4Unsigned(int numBits) {
             this.numBits = numBits;

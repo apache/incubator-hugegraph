@@ -17,27 +17,26 @@
 
 package org.apache.hugegraph.job.algorithm.rank;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
+import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.job.algorithm.comm.AbstractCommAlgorithm;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableMap;
 
 public class PageRankAlgorithm extends AbstractCommAlgorithm {
@@ -96,11 +95,11 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
          * If topN > 0, then return topN elements with rank value in json.
          */
         private Object pageRank(double alpha,
-                               int maxTimes,
-                               double precision,
-                               long degree,
-                               Directions direction,
-                               long topN) {
+                                int maxTimes,
+                                double precision,
+                                long degree,
+                                Directions direction,
+                                long topN) {
             this.initSchema();
 
             int times;
@@ -155,10 +154,10 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
             if (topN > 0) {
                 Object topNJson = this.getTopRank(topN);
                 return ImmutableMap.of("alpha", alpha,
-                        "iteration_times", times,
-                        "last_changed_rank", changedRank,
-                        "times", maxTimes,
-                        "top", topNJson);
+                                       "iteration_times", times,
+                                       "last_changed_rank", changedRank,
+                                       "times", maxTimes,
+                                       "top", topNJson);
             }
             return ImmutableMap.of("alpha", alpha,
                                    "iteration_times", times,
@@ -197,7 +196,7 @@ public class PageRankAlgorithm extends AbstractCommAlgorithm {
 
         private void contributeToAdjacentVertices(Id sourceVertexId,
                                                   List<Id> adjacentVertices) {
-            if (adjacentVertices.size() == 0) {
+            if (adjacentVertices.isEmpty()) {
                 return;
             }
             DoublePair sourcePair = this.vertexRankMap.get(sourceVertexId);

@@ -67,7 +67,7 @@ public class HugeFeatures implements Graph.Features {
     public class HugeGraphFeatures implements GraphFeatures {
 
         private final VariableFeatures variableFeatures =
-                                       new HugeVariableFeatures();
+                new HugeVariableFeatures();
 
         @Override
         public boolean supportsConcurrentAccess() {
@@ -157,12 +157,12 @@ public class HugeFeatures implements Graph.Features {
     }
 
     public class HugeVariableFeatures extends HugeDataTypeFeatures
-                                      implements VariableFeatures {
+            implements VariableFeatures {
 
     }
 
     public class HugeVertexPropertyFeatures extends HugeDataTypeFeatures
-                                            implements VertexPropertyFeatures {
+            implements VertexPropertyFeatures {
 
         @Override
         public boolean supportsRemoveProperty() {
@@ -206,7 +206,7 @@ public class HugeFeatures implements Graph.Features {
     }
 
     public class HugeEdgePropertyFeatures extends HugeDataTypeFeatures
-                                          implements EdgePropertyFeatures {
+            implements EdgePropertyFeatures {
 
         @Override
         public boolean supportsMapValues() {
@@ -231,10 +231,10 @@ public class HugeFeatures implements Graph.Features {
     }
 
     public class HugeVertexFeatures extends HugeElementFeatures
-                                    implements VertexFeatures {
+            implements VertexFeatures {
 
         private final VertexPropertyFeatures vertexPropertyFeatures =
-                                             new HugeVertexPropertyFeatures();
+                new HugeVertexPropertyFeatures();
 
         @Override
         public boolean supportsUserSuppliedIds() {
@@ -280,15 +280,15 @@ public class HugeFeatures implements Graph.Features {
 
         public String defaultLabel() {
             return HugeFeatures.this.graph
-                               .option(CoreOptions.VERTEX_DEFAULT_LABEL);
+                    .option(CoreOptions.VERTEX_DEFAULT_LABEL);
         }
     }
 
     public class HugeEdgeFeatures extends HugeElementFeatures
-                                  implements EdgeFeatures {
+            implements EdgeFeatures {
 
         private final EdgePropertyFeatures edgePropertyFeatures =
-                                           new HugeEdgePropertyFeatures();
+                new HugeEdgePropertyFeatures();
 
         @Override
         public EdgePropertyFeatures properties() {

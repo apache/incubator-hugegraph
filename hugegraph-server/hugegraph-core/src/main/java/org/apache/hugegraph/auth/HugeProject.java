@@ -25,18 +25,17 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.auth.SchemaDefine.Entity;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.auth.SchemaDefine.Entity;
-import org.apache.hugegraph.util.E;
 
 public class HugeProject extends Entity {
 

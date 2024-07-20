@@ -22,14 +22,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.config.ConfigException;
+import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.lionsoul.jcseg.ISegment;
 import org.lionsoul.jcseg.IWord;
 import org.lionsoul.jcseg.dic.ADictionary;
 import org.lionsoul.jcseg.dic.DictionaryFactory;
 import org.lionsoul.jcseg.segmenter.SegmenterConfig;
 
-import org.apache.hugegraph.config.ConfigException;
-import org.apache.hugegraph.util.InsertionOrderUtil;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -50,8 +50,8 @@ public class JcsegAnalyzer implements Analyzer {
     public JcsegAnalyzer(String mode) {
         if (!SUPPORT_MODES.contains(mode)) {
             throw new ConfigException(
-                      "Unsupported segment mode '%s' for jcseg analyzer, " +
-                      "the available values are %s", mode, SUPPORT_MODES);
+                    "Unsupported segment mode '%s' for jcseg analyzer, " +
+                    "the available values are %s", mode, SUPPORT_MODES);
         }
 
         if ("Simple".equals(mode)) {

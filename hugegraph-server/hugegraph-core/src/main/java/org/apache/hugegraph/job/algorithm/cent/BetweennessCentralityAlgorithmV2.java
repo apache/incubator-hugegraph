@@ -24,13 +24,13 @@ import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableFloat;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.job.algorithm.BfsTraverser;
+import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
 
@@ -81,10 +81,7 @@ public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
             assert topN >= 0L || topN == NO_LIMIT;
 
             this.globalBetweennesses = new HashMap<>();
-            Id edgeLabelId = null;
-            if (label != null) {
-                edgeLabelId = this.graph().edgeLabel(label).id();
-            }
+            Id edgeLabelId = this.getEdgeLabelIdOrNull(label);
 
             // TODO: sample the startVertices
             Iterator<Vertex> startVertices = this.vertices(sourceLabel,
@@ -129,7 +126,7 @@ public class BetweennessCentralityAlgorithmV2 extends AbstractCentAlgorithm {
                 return;
             }
             MutableFloat betweenness = this.globalBetweennesses.get(
-                                       currentVertex);
+                    currentVertex);
             if (betweenness == null) {
                 betweenness = new MutableFloat(0.0F);
                 this.globalBetweennesses.put(currentVertex, betweenness);

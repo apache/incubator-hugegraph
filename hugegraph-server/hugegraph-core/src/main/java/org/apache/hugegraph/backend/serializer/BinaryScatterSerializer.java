@@ -22,12 +22,12 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.structure.HugeVertexProperty;
 import org.apache.hugegraph.type.define.HugeKeys;
-import org.apache.hugegraph.config.HugeConfig;
 
 public class BinaryScatterSerializer extends BinarySerializer {
 

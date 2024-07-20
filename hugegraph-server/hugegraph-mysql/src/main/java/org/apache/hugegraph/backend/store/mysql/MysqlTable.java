@@ -27,10 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import org.apache.logging.log4j.util.Strings;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
@@ -50,10 +46,14 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.logging.log4j.util.Strings;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableList;
 
 public abstract class MysqlTable
-                extends BackendTable<MysqlSessions.Session, MysqlBackendEntry.Row> {
+        extends BackendTable<MysqlSessions.Session, MysqlBackendEntry.Row> {
 
     private static final Logger LOG = Log.logger(MysqlTable.class);
 
@@ -111,7 +111,7 @@ public abstract class MysqlTable
         sql.append(this.table()).append(" (");
         // Add columns
         for (Map.Entry<HugeKeys, String> entry :
-             tableDefine.columns().entrySet()) {
+                tableDefine.columns().entrySet()) {
             sql.append(formatKey(entry.getKey()));
             sql.append(" ");
             sql.append(entry.getValue());
@@ -458,7 +458,7 @@ public abstract class MysqlTable
 
     protected <R> Iterator<R> query(MysqlSessions.Session session, Query query,
                                     BiFunction<Query, ResultSetWrapper,
-                                               Iterator<R>> parser) {
+                                            Iterator<R>> parser) {
         ExtendableIterator<R> rs = new ExtendableIterator<>();
 
         if (query.limit() == 0L && !query.noLimit()) {
@@ -494,7 +494,7 @@ public abstract class MysqlTable
         // Set aggregate
         Aggregate aggregate = query.aggregate();
         if (aggregate != null) {
-            select.append(aggregate.toString());
+            select.append(aggregate);
         } else {
             select.append("*");
         }
@@ -610,8 +610,8 @@ public abstract class MysqlTable
             List<Object> idParts = this.idColumnValue(id);
             if (nameParts.size() != idParts.size()) {
                 throw new NotFoundException(
-                          "Unsupported ID format: '%s' (should contain %s)",
-                          id, nameParts);
+                        "Unsupported ID format: '%s' (should contain %s)",
+                        id, nameParts);
             }
             ids.add(idParts);
         }
@@ -714,7 +714,7 @@ public abstract class MysqlTable
         // Set order-by
         select.append(" ORDER BY ");
         for (Map.Entry<HugeKeys, Query.Order> order :
-             query.orders().entrySet()) {
+                query.orders().entrySet()) {
             String key = formatKey(order.getKey());
             Query.Order value = order.getValue();
             select.append(key).append(" ");
@@ -736,7 +736,7 @@ public abstract class MysqlTable
         if (!page.isEmpty()) {
             byte[] position = PageState.fromString(page).position();
             Map<HugeKeys, Object> columns = MysqlEntryIterator.PagePosition.fromBytes(position)
-                                                        .columns();
+                                                                           .columns();
 
             List<HugeKeys> idColumnNames = this.idColumnName();
             List<Object> values = new ArrayList<>(idColumnNames.size());

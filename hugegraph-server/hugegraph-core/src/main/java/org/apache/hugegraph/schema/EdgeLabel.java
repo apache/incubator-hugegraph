@@ -26,16 +26,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
+
 import com.google.common.base.Objects;
 
 public class EdgeLabel extends SchemaLabel {
@@ -110,13 +111,24 @@ public class EdgeLabel extends SchemaLabel {
         return this.sourceLabel.equals(id) || this.targetLabel.equals(id);
     }
 
+    public boolean linkWithVertexLabel(Id label, Directions dir) {
+        if (dir.equals(Directions.IN)) {
+            return this.targetLabel.equals(label);
+        } else if (dir.equals(Directions.OUT)) {
+            return this.sourceLabel.equals(label);
+        } else if (dir.equals(Directions.BOTH)) {
+            return this.targetLabel.equals(label) || this.sourceLabel.equals(label);
+        }
+        return false;
+    }
+
     public boolean checkLinkEqual(Id sourceLabel, Id targetLabel) {
         return this.sourceLabel.equals(sourceLabel) &&
                this.targetLabel.equals(targetLabel);
     }
 
     public boolean existSortKeys() {
-        return this.sortKeys.size() > 0;
+        return !this.sortKeys.isEmpty();
     }
 
     public List<Id> sortKeys() {
@@ -179,7 +191,7 @@ public class EdgeLabel extends SchemaLabel {
 
     @Override
     public Map<String, Object> asMap() {
-       Map<String, Object> map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
 
         if (this.sourceLabel() != null && this.sourceLabel() != NONE_ID) {
             map.put(P.SOURCE_LABEL, this.sourceLabel().asString());

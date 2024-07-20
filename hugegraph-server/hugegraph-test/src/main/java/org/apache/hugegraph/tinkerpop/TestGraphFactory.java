@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.tinkerpop;
 
-import org.apache.hugegraph.HugeFactory;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.hugegraph.HugeFactory;
 
 public class TestGraphFactory {
 

@@ -247,7 +247,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
                 this.gotNext = false;
                 // QUESTION: Resetting the position may result in the caller being unable to
                 //           retrieve the corresponding position.
-                // this.position = null;
+                this.position = null;
             }
             if (!ArrayUtils.isEmpty(this.keyBegin) ||
                 !ArrayUtils.isEmpty(this.keyEnd)) {
@@ -320,7 +320,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
             } else {
                 // QUESTION: Resetting the position may result in the caller being unable to
                 //           retrieve the corresponding position.
-                // this.position = null;
+                this.position = null;
             }
             return gotNext;
         }
@@ -788,6 +788,15 @@ public class HstoreSessionsImpl extends HstoreSessions {
             this.graph.truncate();
             HstoreSessionsImpl.getDefaultPdClient()
                               .resetIdByKey(this.getGraphName());
+        }
+
+        @Override
+        public int getActiveStoreSize() {
+            try {
+                return defaultPdClient.getActiveStores().size();
+            } catch (PDException ignore) {
+            }
+            return 0;
         }
     }
 }

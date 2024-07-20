@@ -1,7 +1,9 @@
 # How to Contribute to HugeGraph
 
-Thanks for taking the time to contribute! As an open source project, HugeGraph is looking forward to be contributed from everyone, 
-and we are also grateful to all the contributors.
+> Refer [website-doc](https://hugegraph.apache.org/docs/contribution-guidelines/) for the latest information.
+
+Thanks for taking the time to contribute!
+As an open source project, HugeGraph is looking forward to being contributed from everyone, and we are also grateful to all the contributors.
 
 The following is a contribution guide for HugeGraph:
 
@@ -15,7 +17,7 @@ We can contribute by reporting issues, submitting code patches or any other feed
 
 Before submitting the code, we need to do some preparation:
 
-1. Sign up or login to GitHub:  [https://github.com](https://github.com)
+1. Sign up or login to GitHub: [https://github.com](https://github.com)
 
 2. Fork HugeGraph repo from GitHub: [https://github.com/apache/incubator-hugegraph/fork](https://github.com/apache/incubator-hugegraph/fork)
 
@@ -64,26 +66,26 @@ Assume that we need to modify some files like "HugeGraph.java" and "HugeFactory.
 
 ```shell
 # modify code to fix a bug
-vim hugegraph-core/src/main/java/org/apache/hugegraph/HugeGraph.java
-vim hugegraph-core/src/main/java/org/apache/hugegraph/HugeFactory.java
+vim hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/HugeGraph.java
+vim hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/HugeFactory.java
 # run test locally (optional)
 mvn test -Pcore-test,memory
 ```
-Note: In order to be consistent with the code style easily, if you use [IDEA](https://www.jetbrains.com/idea/) as your IDE, you can directly [import](https://www.jetbrains.com/help/idea/configuring-code-style.html) our code style [configuration file](./hugegraph-style.xml). 
+Note: To be consistent with the code style easily, if you use [IDEA](https://www.jetbrains.com/idea/) as your IDE, you can directly [import](https://www.jetbrains.com/help/idea/configuring-code-style.html) our code style [configuration file](./hugegraph-style.xml). 
 
 ##### 3.2.1 Check licenses
 If we want to add new third-party dependencies to the `HugeGraph` project, we need to do the following things:
 1. Find the third-party dependent repository, put the dependent `license` file into [./hugegraph-dist/release-docs/licenses/](https://github.com/apache/incubator-hugegraph/tree/master/hugegraph-dist/release-docs/licenses) path.
-2. Declare the dependency in [./hugegraph-dist/release-docs/LICENSE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/release-docs/LICENSE) `LICENSE` information.
-3. Find the NOTICE file in the repository and append it to [./hugegraph-dist/release-docs/NOTICE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/release-docs/NOTICE) file (skip this step if there is no NOTICE file).
-4. Execute locally [./hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh) to update the dependency list [known-dependencies.txt](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-dist/scripts/dependency/known-dependencies.txt) (or manually update) .
+2. Declare the dependency in [./hugegraph-server/hugegraph-dist/release-docs/LICENSE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/release-docs/LICENSE) `LICENSE` information.
+3. Find the NOTICE file in the repository and append it to [./hugegraph-server/hugegraph-dist/release-docs/NOTICE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/release-docs/NOTICE) file (skip this step if there is no NOTICE file).
+4. Execute locally [./hugegraph-server/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh) to update the dependency list [known-dependencies.txt](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/scripts/dependency/known-dependencies.txt) (or manually update).
 
 **Example**: A new third-party dependency is introduced into the project -> `ant-1.9.1.jar`
 - The project source code is located at: https://github.com/apache/ant/tree/rel/1.9.1
 - LICENSE file: https://github.com/apache/ant/blob/rel/1.9.1/LICENSE
 - NOTICE file: https://github.com/apache/ant/blob/rel/1.9.1/NOTICE
 
-The license information of `ant-1.9.1.jar` needs to be specified in the LICENSE file, and the notice information needs to be specified in the NOTICE file. The detailed LICENSE file corresponding to ant-1.9.1.jar needs to be copied to our licenses/ directory. Finally update the known-dependencies.txt file.
+The license information of `ant-1.9.1.jar` needs to be specified in the LICENSE file, and the notice information needs to be specified in the NOTICE file. The detailed LICENSE file corresponding to ant-1.9.1.jar needs to be copied to our licenses/ directory. Finally, update the known-dependencies.txt file.
 
 #### 3.3 Commit changes to git repo
 
@@ -91,8 +93,8 @@ After the code has been completed, we submit them to the local git repo:
 
 ```shell
 # add files to local git index
-git add hugegraph-core/src/main/java/org/apache/hugegraph/HugeGraph.java
-git add hugegraph-core/src/main/java/org/apache/hugegraph/HugeFactory.java
+git add hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/HugeGraph.java
+git add hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/HugeFactory.java
 # commit to local git repo
 git commit
 ```
@@ -105,7 +107,7 @@ Fix bug: run deploy multiple times
 fix #ISSUE_ID
 ```
 
->  Please remember to fill in the issue id, which was generated by GitHub after issue creation.
+>  Please remember to fill in the issue id, which GitHub generated after issue creation.
 
 #### 3.4 Push commit to GitHub fork repo
 
@@ -121,7 +123,7 @@ Note that since GitHub requires submitting code through `username + token` (inst
 
 ## 4. Create a Pull Request
 
-Go to the web page of GitHub fork repo, there would be a chance to create a Pull Request after pushing to a new branch, just click button "Compare & pull request" to do it. Then edit the description for proposed changes, which can just be copied from the commit message.
+Go to the web page of GitHub fork repo, there would be a chance to create a Pull Request after pushing to a new branch, click the button "Compare & pull request" to do it. Then edit the description for proposed changes, which can just be copied from the commit message.
 
 Note: please make sure the email address you used to submit the code is bound to the GitHub account. For how to bind the email address, please refer to https://github.com/settings/emails:
 <img width="1280" alt="image" src="https://user-images.githubusercontent.com/9625821/163522445-2a50a72a-dea2-434f-9868-3a0d40d0d037.png">
@@ -131,7 +133,7 @@ Note: please make sure the email address you used to submit the code is bound to
  Maintainers will start the code review after all the **automatic** checks are passed:
 
 - Check: Contributor License Agreement is signed
-- Check: Travis CI builds is passed (automatically Test and Deploy)
+- Check: Travis CI builds are passed (automatically Test and Deploy)
 
 The commit will be accepted and merged if there is no problem after review.
 
@@ -171,8 +173,8 @@ And push it to GitHub fork repo again:
 git push -f origin bugfix-branch:bugfix-branch
 ```
 
-GitHub will automatically update the Pull Request after we push it, just wait for code review.
+GitHub will automatically update the Pull Request after we push it, wait for code review.
 
-Any question please contact to us through [hugegraph@googlegroups.com](mailto:hugegraph@googlegroups.com) or [other contact information](https://hugegraph.github.io/hugegraph-doc/).
+For Any question, please contact us through [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscriber](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/) only)
 
 

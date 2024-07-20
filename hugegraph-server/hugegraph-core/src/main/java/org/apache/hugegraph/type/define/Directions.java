@@ -60,7 +60,7 @@ public enum Directions implements SerialEnum {
                 return HugeType.EDGE_IN;
             default:
                 throw new IllegalArgumentException(String.format(
-                          "Can't convert direction '%s' to HugeType", this));
+                        "Can't convert direction '%s' to HugeType", this));
         }
     }
 
@@ -82,7 +82,7 @@ public enum Directions implements SerialEnum {
                 return Direction.BOTH;
             default:
                 throw new AssertionError(String.format(
-                          "Unrecognized direction: '%s'", this));
+                        "Unrecognized direction: '%s'", this));
         }
     }
 
@@ -96,7 +96,7 @@ public enum Directions implements SerialEnum {
                 return BOTH;
             default:
                 throw new AssertionError(String.format(
-                          "Unrecognized direction: '%s'", direction));
+                        "Unrecognized direction: '%s'", direction));
         }
     }
 
@@ -108,7 +108,7 @@ public enum Directions implements SerialEnum {
                 return IN;
             default:
                 throw new IllegalArgumentException(String.format(
-                          "Can't convert type '%s' to Direction", edgeType));
+                        "Can't convert type '%s' to Direction", edgeType));
         }
     }
 }

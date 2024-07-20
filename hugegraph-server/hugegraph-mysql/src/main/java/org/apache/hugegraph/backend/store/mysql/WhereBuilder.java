@@ -81,6 +81,7 @@ public class WhereBuilder {
 
     /**
      * Concat as: cond1 and cond2...
+     *
      * @return WhereBuilder
      */
     public WhereBuilder and() {
@@ -90,7 +91,8 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 op ? and key2 op ?...
-     * @param keys the keys to be concatted with value
+     *
+     * @param keys     the keys to be concatted with value
      * @param operator the operator to link every key and value pair
      * @return WhereBuilder
      */
@@ -108,8 +110,9 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 = value1 and key2 = value2...
-     * @param keys the keys to be concatted with values according to the
-     *             same index
+     *
+     * @param keys   the keys to be concatted with values according to the
+     *               same index
      * @param values the values to be concatted with every keys according to
      *               the same index
      * @return WhereBuilder
@@ -120,11 +123,12 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 op value1 and key2 op value2...
-     * @param keys the keys to be concatted with values according to the
-     *             same index
+     *
+     * @param keys     the keys to be concatted with values according to the
+     *                 same index
      * @param operator the operator to link every key and value pair
-     * @param values the values to be concatted with every keys according to
-     *               the same index
+     * @param values   the values to be concatted with every keys according to
+     *                 the same index
      * @return WhereBuilder
      */
     public WhereBuilder and(List<String> keys,
@@ -148,12 +152,13 @@ public class WhereBuilder {
 
     /**
      * Concat as: key1 op1 value1 and key2 op2 value2...
-     * @param keys the keys to be concatted with values according to the
-     *             same index
+     *
+     * @param keys      the keys to be concatted with values according to the
+     *                  same index
      * @param operators the operators to link every key and value pair
      *                  according to the same index
-     * @param values the values to be concatted with every keys according to
-     *               the same index
+     * @param values    the values to be concatted with every keys according to
+     *                  the same index
      * @return WhereBuilder
      */
     public WhereBuilder and(List<String> keys,
@@ -181,6 +186,7 @@ public class WhereBuilder {
 
     /**
      * Concat as: clause1 and clause2...
+     *
      * @param clauses the clauses to be concatted with 'AND' operator
      * @return WhereBuilder
      */
@@ -201,7 +207,8 @@ public class WhereBuilder {
 
     /**
      * Concat as: key in (value1, value2...)
-     * @param key the key to be concatted with 'IN' operator
+     *
+     * @param key    the key to be concatted with 'IN' operator
      * @param values the values to be concated with ',' and wrapped by '()'
      * @return WhereBuilder
      */
@@ -219,7 +226,8 @@ public class WhereBuilder {
 
     /**
      * Concat as: (key1, key2...keyn) {@code >=} (val1, val2...valn)
-     * @param keys the keys to be concatted with {@code >=} operator
+     *
+     * @param keys   the keys to be concatted with {@code >=} operator
      * @param values the values to be concatted with {@code >=} operator
      * @return WhereBuilder
      */

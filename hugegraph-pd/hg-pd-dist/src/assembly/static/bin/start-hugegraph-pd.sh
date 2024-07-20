@@ -2,19 +2,19 @@
 
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements. See the NOTICE file distributed with this
-# work for additional information regarding copyright ownership. The ASF
-# licenses this file to You under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 
 if [ -z "$GC_OPTION" ];then
@@ -23,12 +23,17 @@ fi
 if [ -z "$USER_OPTION" ];then
   USER_OPTION=""
 fi
+if [ -z "$OPEN_TELEMETRY" ];then
+  OPEN_TELEMETRY="false"
+fi
 
-while getopts "g:j:v" arg; do
+while getopts "g:j:y:" arg; do
     case ${arg} in
         g) GC_OPTION="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
-        ?) echo "USAGE: $0 [-g g1] [-j xxx] [-v]" && exit 1 ;;
+        # Telemetry is used to collect metrics, traces and logs
+        y) OPEN_TELEMETRY="$OPTARG" ;;
+        ?) echo "USAGE: $0 [-g g1] [-j xxx] [-y true|false]" && exit 1 ;;
     esac
 done
 
@@ -46,13 +51,16 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 CONF="$TOP/conf"
 LIB="$TOP/lib"
+PLUGINS="$TOP/plugins"
 LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-pd-stdout.log
+GITHUB="https://github.com"
 PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
 
-mkdir -p ${LOGS}
+ensure_path_writable "$LOGS"
+ensure_path_writable "$PLUGINS"
 
 # The maximum and minium heap memory that service can use
 MAX_MEM=$((32 * 1024))
@@ -103,6 +111,44 @@ case "$GC_OPTION" in
         echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
         exit 1
 esac
+
+if [ "${OPEN_TELEMETRY}" == "true" ]; then
+    OT_JAR="opentelemetry-javaagent.jar"
+    OT_JAR_PATH="${PLUGINS}/${OT_JAR}"
+
+    if [[ ! -e "${OT_JAR_PATH}" ]]; then
+        echo "## Downloading ${OT_JAR}..."
+        download "${PLUGINS}" \
+            "${GITHUB}/open-telemetry/opentelemetry-java-instrumentation/releases/download/v2.1.0/${OT_JAR}"
+
+        if [[ ! -e "${OT_JAR_PATH}" ]]; then
+            echo "## Error: Failed to download ${OT_JAR}." >>${OUTPUT}
+            exit 1
+        fi
+    fi
+
+    # Note: remember update it if we change the jar
+    expected_md5="e3bcbbe8ed9b6d840fa4c333b36f369f"
+    actual_md5=$(md5sum "${OT_JAR_PATH}" | awk '{print $1}')
+
+    if [[ "${expected_md5}" != "${actual_md5}" ]]; then
+        echo "## Error: MD5 checksum verification failed for ${OT_JAR_PATH}." >>${OUTPUT}
+        echo "## Tips: Remove the file and try again." >>${OUTPUT}
+        exit 1
+    fi
+
+    # Note: check carefully if multi "javeagent" params are set
+    export JAVA_TOOL_OPTIONS="-javaagent:${PLUGINS}/${OT_JAR}"
+    export OTEL_TRACES_EXPORTER=otlp
+    export OTEL_METRICS_EXPORTER=none
+    export OTEL_LOGS_EXPORTER=none
+    export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL=grpc
+    # 127.0.0.1:4317 is the port of otel-collector running in Docker located in
+    # 'hugegraph-server/hugegraph-dist/docker/example/docker-compose-trace.yaml'.
+    # Make sure the otel-collector is running before starting HugeGraphPD.
+    export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://127.0.0.1:4317
+    export OTEL_RESOURCE_ATTRIBUTES=service.name=pd
+fi
 
 #if [ "${JMX_EXPORT_PORT}" != "" ] && [ ${JMX_EXPORT_PORT} -ne 0 ] ; then
 #  JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:${LIB}/jmx_prometheus_javaagent-0.16.1.jar=${JMX_EXPORT_PORT}:${CONF}/jmx_exporter.yml"

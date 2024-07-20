@@ -40,10 +40,21 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.exception.ExistedException;
+import org.apache.hugegraph.iterator.ListIterator;
+import org.apache.hugegraph.job.UserJob;
+import org.apache.hugegraph.job.algorithm.AbstractAlgorithm;
+import org.apache.hugegraph.job.algorithm.AbstractAlgorithm.AlgoTraverser;
 import org.apache.hugegraph.job.algorithm.Consumers;
 import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.StringEncoding;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -51,17 +62,6 @@ import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.exception.ExistedException;
-import org.apache.hugegraph.iterator.ListIterator;
-import org.apache.hugegraph.job.UserJob;
-import org.apache.hugegraph.job.algorithm.AbstractAlgorithm;
-import org.apache.hugegraph.job.algorithm.AbstractAlgorithm.AlgoTraverser;
-import org.apache.hugegraph.structure.HugeEdge;
-import org.apache.hugegraph.structure.HugeVertex;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.hugegraph.util.InsertionOrderUtil;
-import org.apache.hugegraph.util.Log;
-import org.apache.hugegraph.util.StringEncoding;
 import com.google.common.collect.ImmutableMap;
 
 public class LouvainTraverser extends AlgoTraverser {
@@ -107,7 +107,7 @@ public class LouvainTraverser extends AlgoTraverser {
         if (this.graph().existsVertexLabel(label) ||
             this.graph().existsEdgeLabel(label)) {
             throw new IllegalArgumentException(
-                      "Please clear historical results before proceeding");
+                    "Please clear historical results before proceeding");
         }
 
         SchemaManager schema = this.graph().schema();
@@ -136,7 +136,7 @@ public class LouvainTraverser extends AlgoTraverser {
                   .create();
         } catch (ExistedException e) {
             throw new IllegalArgumentException(
-                      "Please clear historical results before proceeding", e);
+                    "Please clear historical results before proceeding", e);
         }
     }
 
@@ -452,11 +452,11 @@ public class LouvainTraverser extends AlgoTraverser {
         LOG.info("Merge community for pass {}", pass);
         // merge each community as a vertex
         Collection<Pair<Community, Set<Id>>> comms = this.cache.communities();
-        assert this.skipIsolated || this.allMembersExist(comms,  pass - 1);
+        assert this.skipIsolated || this.allMembersExist(comms, pass - 1);
         this.cache.resetVertexWeight();
 
         Consumers<Pair<Community, Set<Id>>> consumers = new Consumers<>(
-                                                        this.executor, pair -> {
+                this.executor, pair -> {
             // called by multi-threads
             this.mergeCommunity(pass, pair.getLeft(), pair.getRight());
         }, () -> {
@@ -536,7 +536,7 @@ public class LouvainTraverser extends AlgoTraverser {
         for (Pair<Community, Set<Id>> comm : comms) {
             all.removeAll(comm.getRight());
         }
-        if (all.size() > 0) {
+        if (!all.isEmpty()) {
             LOG.warn("Lost members of last pass: {}", all);
         }
         return all.isEmpty();
@@ -551,10 +551,10 @@ public class LouvainTraverser extends AlgoTraverser {
                        tryNext(this.g.V().hasLabel(label).count()).longValue();
         } else {
             expected = tryNext(this.g.V().hasLabel(labelOfPassN(lastPass))
-                                         .values(C_WEIGHT).sum());
+                                     .values(C_WEIGHT).sum());
         }
         Number actual = tryNext(this.g.V().hasLabel(label)
-                                          .values(C_WEIGHT).sum());
+                                      .values(C_WEIGHT).sum());
         boolean allExist = actual.floatValue() == expected.floatValue();
         assert allExist : actual + "!=" + expected;
         return allExist;
@@ -649,7 +649,7 @@ public class LouvainTraverser extends AlgoTraverser {
         final String C_PASS0 = labelOfPassN(0);
         Collection<Object> comms = Collections.singletonList(community);
         boolean reachPass0 = false;
-        while (comms.size() > 0 && !reachPass0) {
+        while (!comms.isEmpty() && !reachPass0) {
             Iterator<Vertex> subComms = this.vertices(comms.iterator());
             comms = new HashSet<>();
             while (subComms.hasNext()) {
@@ -703,7 +703,7 @@ public class LouvainTraverser extends AlgoTraverser {
         if (pass < 0) {
             // drop edges of all pass
             List<String> els = this.cpassEdgeLabels();
-            if (els.size() > 0) {
+            if (!els.isEmpty()) {
                 String first = els.remove(0);
                 te = te.hasLabel(first, els.toArray(new String[0]));
                 this.drop(te);
@@ -727,7 +727,7 @@ public class LouvainTraverser extends AlgoTraverser {
         if (pass < 0) {
             // drop vertices of all pass
             List<String> vls = this.cpassVertexLabels();
-            if (vls.size() > 0) {
+            if (!vls.isEmpty()) {
                 String first = vls.remove(0);
                 tv = tv.hasLabel(first, vls.toArray(new String[0]));
                 this.drop(tv);
@@ -821,7 +821,7 @@ public class LouvainTraverser extends AlgoTraverser {
         @Override
         public String toString() {
             return String.format("[%s](size=%s weight=%s kin=%s kout=%s)",
-                                 this.cid , this.size, this.weight,
+                                 this.cid, this.size, this.weight,
                                  this.kin, this.kout);
         }
     }
@@ -900,7 +900,7 @@ public class LouvainTraverser extends AlgoTraverser {
             return IdGenerator.of(id);
         }
 
-        public Collection<Pair<Community, Set<Id>>> communities(){
+        public Collection<Pair<Community, Set<Id>>> communities() {
             // TODO: get communities from backend store instead of ram
             Map<Id, Pair<Community, Set<Id>>> comms = new HashMap<>();
             for (Entry<Id, Community> e : this.vertex2Community.entrySet()) {

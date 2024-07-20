@@ -19,8 +19,9 @@ gen-java
 .svn
 
 ### IntelliJ IDEA ###
-.idea
-.idea/
+.idea/*
+!.idea/vcs.xml
+!.idea/icon.png
 *.iws
 *.iml
 *.ipr
@@ -83,3 +84,6 @@ hs_err_pid*
 .mtj.tmp/
 # blueJ files
 *.ctxt
+
+# docker volumes ignore
+hugegraph-server/hugegraph-dist/docker/data/

@@ -19,21 +19,20 @@ package org.apache.hugegraph.unit.core;
 
 import java.util.List;
 
+import org.apache.hugegraph.backend.store.BackendTable.ShardSplitter.Range;
+import org.apache.hugegraph.backend.store.Shard;
+import org.apache.hugegraph.testutil.Assert;
 import org.apache.logging.log4j.util.Strings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.backend.store.BackendTable.ShardSplitter.Range;
-import org.apache.hugegraph.backend.store.Shard;
-import org.apache.hugegraph.testutil.Assert;
-
 public class RangeTest {
 
     private static final byte[] START = new byte[]{0x0};
     private static final byte[] END = new byte[]{
-        -1, -1, -1, -1, -1, -1, -1, -1,
-        -1, -1, -1, -1, -1, -1, -1, -1
+            -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1
     };
 
     @Before

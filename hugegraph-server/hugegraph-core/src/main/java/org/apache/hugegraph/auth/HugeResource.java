@@ -23,6 +23,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.Typeable;
 import org.apache.hugegraph.util.JsonUtil;
@@ -39,10 +43,6 @@ import org.apache.tinkerpop.shaded.jackson.databind.deser.std.StdDeserializer;
 import org.apache.tinkerpop.shaded.jackson.databind.module.SimpleModule;
 import org.apache.tinkerpop.shaded.jackson.databind.ser.std.StdSerializer;
 
-import org.apache.hugegraph.HugeException;
-import org.apache.hugegraph.auth.SchemaDefine.AuthElement;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -55,7 +55,7 @@ public class HugeResource {
     public static final List<HugeResource> ALL_RES = ImmutableList.of(ALL);
 
     private static final Set<ResourceType> CHECK_NAME_RESS = ImmutableSet.of(
-                                                             ResourceType.META);
+            ResourceType.META);
 
     static {
         SimpleModule module = new SimpleModule();
@@ -143,7 +143,7 @@ public class HugeResource {
 
     private boolean filter(Nameable element) {
         assert !(element instanceof Typeable) || this.type.match(
-               ResourceType.from(((Typeable) element).type()));
+                ResourceType.from(((Typeable) element).type()));
 
         return this.matchLabel(element.name());
     }
@@ -258,7 +258,8 @@ public class HugeResource {
     }
 
     public static List<HugeResource> parseResources(String resources) {
-        TypeReference<?> type = new TypeReference<List<HugeResource>>() {};
+        TypeReference<?> type = new TypeReference<List<HugeResource>>() {
+        };
         return JsonUtil.fromJson(resources, type);
     }
 
@@ -298,7 +299,7 @@ public class HugeResource {
         @Override
         public void serialize(HugeResource res, JsonGenerator generator,
                               SerializerProvider provider)
-                              throws IOException {
+                throws IOException {
             generator.writeStartObject();
 
             generator.writeObjectField("type", res.type);
@@ -320,7 +321,7 @@ public class HugeResource {
         @Override
         public HugeResource deserialize(JsonParser parser,
                                         DeserializationContext ctxt)
-                                        throws IOException {
+                throws IOException {
             HugeResource res = new HugeResource();
             while (parser.nextToken() != JsonToken.END_OBJECT) {
                 String key = parser.getCurrentName();

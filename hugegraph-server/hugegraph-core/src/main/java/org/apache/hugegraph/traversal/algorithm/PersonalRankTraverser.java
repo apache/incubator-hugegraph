@@ -27,11 +27,10 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 public class PersonalRankTraverser extends HugeTraverser {
 
@@ -56,7 +55,7 @@ public class PersonalRankTraverser extends HugeTraverser {
         Map<Id, Double> ranks = newMap();
         ranks.put(source, 1.0);
 
-        Id labelId = this.graph().edgeLabel(label).id();
+        Id labelId = this.getEdgeLabelIdOrNull(label);
         Directions dir = this.getStartDirection(source, label);
 
         Set<Id> outSeeds = newIdSet();

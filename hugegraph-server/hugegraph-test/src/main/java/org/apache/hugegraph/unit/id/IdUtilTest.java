@@ -19,13 +19,12 @@ package org.apache.hugegraph.unit.id;
 
 import java.nio.ByteBuffer;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.IdUtil;
+import org.junit.Assert;
+import org.junit.Test;
 
 public class IdUtilTest {
 

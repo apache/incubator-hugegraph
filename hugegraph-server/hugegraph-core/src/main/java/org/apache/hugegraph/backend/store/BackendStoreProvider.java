@@ -17,10 +17,11 @@
 
 package org.apache.hugegraph.backend.store;
 
-import com.alipay.remoting.rpc.RpcServer;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.event.EventListener;
+
+import com.alipay.remoting.rpc.RpcServer;
 
 public interface BackendStoreProvider {
 

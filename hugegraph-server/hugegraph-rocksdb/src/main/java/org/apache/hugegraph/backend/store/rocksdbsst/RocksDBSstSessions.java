@@ -126,7 +126,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         }
     }
 
-    public void dropTable(String table) throws RocksDBException{
+    public void dropTable(String table) throws RocksDBException {
         try (SstFileWriter sst = this.tables.remove(table)) {
             assert sst == null || !sst.isOwningHandle() : "Please close table before drop to " +
                                                           "ensure call sst.finish()";
@@ -247,7 +247,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
          */
         @Override
         public boolean hasChanges() {
-            return this.batch.size() > 0;
+            return !this.batch.isEmpty();
         }
 
         /**
@@ -336,7 +336,7 @@ public class RocksDBSstSessions extends RocksDBSessions {
         /**
          * Merge a record to an existing key to a table
          * For more details about merge-operator:
-         *  <a href="https://github.com/facebook/rocksdb/wiki/merge-operator">...</a>
+         * <a href="https://github.com/facebook/rocksdb/wiki/merge-operator">...</a>
          */
         @Override
         public void merge(String table, byte[] key, byte[] value) {

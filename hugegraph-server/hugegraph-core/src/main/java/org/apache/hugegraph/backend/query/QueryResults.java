@@ -26,8 +26,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.iterator.CIter;
@@ -38,13 +36,14 @@ import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.type.Idfiable;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 public class QueryResults<R> {
 
     private static final Iterator<?> EMPTY_ITERATOR = new EmptyIterator<>();
 
     private static final QueryResults<?> EMPTY = new QueryResults<>(
-                                                 emptyIterator(), Query.NONE);
+            emptyIterator(), Query.NONE);
 
     private final Iterator<R> results;
     private final List<Query> queries;
@@ -60,7 +59,7 @@ public class QueryResults<R> {
     }
 
     public void setQuery(Query query) {
-        if (this.queries.size() > 0) {
+        if (!this.queries.isEmpty()) {
             this.queries.clear();
         }
         this.addQuery(query);
@@ -97,7 +96,7 @@ public class QueryResults<R> {
     }
 
     public <T extends Idfiable> Iterator<T> keepInputOrderIfNeeded(
-                                            Iterator<T> origin) {
+            Iterator<T> origin) {
         if (!origin.hasNext()) {
             // None result found
             return origin;
@@ -216,7 +215,7 @@ public class QueryResults<R> {
     }
 
     public static <T, R> QueryResults<R> flatMap(
-                  Iterator<T> iterator, Function<T, QueryResults<R>> func) {
+            Iterator<T> iterator, Function<T, QueryResults<R>> func) {
         @SuppressWarnings("unchecked")
         QueryResults<R>[] qr = new QueryResults[1];
         qr[0] = new QueryResults<>(new FlatMapperIterator<>(iterator, i -> {
@@ -266,7 +265,9 @@ public class QueryResults<R> {
         return (Iterator<T>) EMPTY_ITERATOR;
     }
 
-    public interface Fetcher<R> extends Function<Query, QueryResults<R>> {}
+    public interface Fetcher<R> extends Function<Query, QueryResults<R>> {
+
+    }
 
     private static class EmptyIterator<T> implements CIter<T> {
 

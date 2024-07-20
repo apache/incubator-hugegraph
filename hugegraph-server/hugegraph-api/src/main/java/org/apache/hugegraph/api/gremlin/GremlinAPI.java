@@ -17,7 +17,16 @@
 
 package org.apache.hugegraph.api.gremlin;
 
+import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.util.E;
+
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.annotation.Timed;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -28,14 +37,6 @@ import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
-
-import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
-import org.apache.hugegraph.api.filter.RedirectFilter;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.metrics.MetricsUtil;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.annotation.Timed;
-import jakarta.inject.Singleton;
 
 @Path("gremlin")
 @Singleton
@@ -77,6 +78,7 @@ public class GremlinAPI extends GremlinQueryAPI {
                         @Context UriInfo uriInfo) {
         String auth = headers.getHeaderString(HttpHeaders.AUTHORIZATION);
         String query = uriInfo.getRequestUri().getRawQuery();
+        E.checkArgumentNotNull(query, "The request query can't be empty");
         MultivaluedMap<String, String> params = uriInfo.getQueryParameters();
         Response response = this.client().doGetRequest(auth, params);
         GREMLIN_INPUT_HISTOGRAM.update(query.length());

@@ -25,10 +25,10 @@ import com.google.common.base.Stopwatch;
 /**
  * This class is used for fixed watch-window to rate limit request
  * Now just simplify for performance, don't need lock stop watch
- *
+ * <p>
  * Note: This class is not thread safe
  * TODO: Move to common module
- * */
+ */
 public class FixedWatchWindowRateLimiter implements RateLimiter {
 
     private final LongAdder count;

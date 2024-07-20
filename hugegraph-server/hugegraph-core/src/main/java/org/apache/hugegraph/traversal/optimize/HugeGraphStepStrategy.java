@@ -28,8 +28,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.strategy.AbstractTraversal
 import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalHelper;
 
 public final class HugeGraphStepStrategy
-             extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
-             implements ProviderOptimizationStrategy {
+        extends AbstractTraversalStrategy<ProviderOptimizationStrategy>
+        implements ProviderOptimizationStrategy {
 
     private static final long serialVersionUID = -2952498905649139719L;
 
@@ -44,13 +44,13 @@ public final class HugeGraphStepStrategy
     }
 
     @Override
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void apply(Traversal.Admin<?, ?> traversal) {
         TraversalUtil.convAllHasSteps(traversal);
 
         // Extract conditions in GraphStep
         List<GraphStep> steps = TraversalHelper.getStepsOfClass(
-                                GraphStep.class, traversal);
+                GraphStep.class, traversal);
         for (GraphStep originStep : steps) {
             TraversalUtil.trySetGraph(originStep,
                                       TraversalUtil.tryGetGraph(steps.get(0)));

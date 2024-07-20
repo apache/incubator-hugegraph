@@ -47,7 +47,7 @@ public interface IntIterator {
     }
 
     static IntIterator wrap(
-                  org.eclipse.collections.api.iterator.IntIterator iter) {
+            org.eclipse.collections.api.iterator.IntIterator iter) {
         return new EcIntIterator(iter);
     }
 
@@ -64,7 +64,7 @@ public interface IntIterator {
         private final org.eclipse.collections.api.iterator.IntIterator iterator;
 
         public EcIntIterator(org.eclipse.collections.api.iterator.IntIterator
-                             iterator) {
+                                     iterator) {
             this.iterator = iterator;
         }
 

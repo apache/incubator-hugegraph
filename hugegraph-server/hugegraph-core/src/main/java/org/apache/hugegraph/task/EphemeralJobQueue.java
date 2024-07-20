@@ -185,7 +185,8 @@ public class EphemeralJobQueue {
             return result;
         }
 
-        private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prevResult) throws Exception {
+        private Object executeBatchJob(List<EphemeralJob<?>> jobs, Object prevResult) throws
+                                                                                      Exception {
             GraphTransaction graphTx = this.params().systemTransaction();
             GraphTransaction systemTx = this.params().graphTransaction();
             Object result = prevResult;
@@ -236,6 +237,7 @@ public class EphemeralJobQueue {
     }
 
     public interface Reduce<T> {
-        T reduce(T t1,  T t2);
+
+        T reduce(T t1, T t2);
     }
 }

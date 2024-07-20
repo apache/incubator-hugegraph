@@ -81,7 +81,7 @@ public class SubGraphTraverser extends HugeTraverser {
         checkCapacity(capacity);
         checkLimit(limit);
 
-        Id labelId = this.getEdgeLabelId(label);
+        Id labelId = this.getEdgeLabelIdOrNull(label);
         Traverser traverser = new Traverser(sourceV, labelId, depth, degree,
                                             capacity, limit, rings,
                                             sourceInRing);

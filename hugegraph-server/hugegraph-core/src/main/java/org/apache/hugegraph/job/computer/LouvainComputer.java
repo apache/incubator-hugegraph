@@ -19,9 +19,10 @@ package org.apache.hugegraph.job.computer;
 
 import java.util.Map;
 
-import org.apache.hugegraph.util.ParameterUtil;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.ParameterUtil;
+
 import com.google.common.collect.ImmutableMap;
 
 public class LouvainComputer extends AbstractComputer {
@@ -64,7 +65,7 @@ public class LouvainComputer extends AbstractComputer {
 
     @Override
     protected Map<String, Object> checkAndCollectParameters(
-                                  Map<String, Object> parameters) {
+            Map<String, Object> parameters) {
         return ImmutableMap.of(TIMES, times(parameters),
                                PRECISION, precision(parameters),
                                DIRECTION, direction(parameters),

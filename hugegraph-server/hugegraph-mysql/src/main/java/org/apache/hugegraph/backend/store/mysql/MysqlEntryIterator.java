@@ -45,7 +45,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
     private boolean exceedLimit;
 
     public MysqlEntryIterator(ResultSetWrapper rs, Query query,
-           BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
+                              BiFunction<BackendEntry, BackendEntry, BackendEntry> merger) {
         super(query);
         this.results = rs;
         this.merger = merger;
@@ -100,7 +100,7 @@ public class MysqlEntryIterator extends BackendEntryIterator {
         byte[] position;
         // There is no latest or no next page
         if (this.lastest == null || !this.exceedLimit &&
-            this.fetched() <= this.query.limit() && this.next == null) {
+                                    this.fetched() <= this.query.limit() && this.next == null) {
             position = PageState.EMPTY_BYTES;
         } else {
             MysqlBackendEntry entry = (MysqlBackendEntry) this.lastest;

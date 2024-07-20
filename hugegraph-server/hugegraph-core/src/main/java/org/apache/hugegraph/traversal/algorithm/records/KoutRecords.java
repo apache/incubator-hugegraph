@@ -97,7 +97,7 @@ public class KoutRecords extends SingleWayMultiPathsRecords {
             if (this.sourceCode == targetCode) {
                 break;
             }
-            
+
             this.addPathToRecord(sourceCode, targetCode, record);
             sourceCode = targetCode;
         }

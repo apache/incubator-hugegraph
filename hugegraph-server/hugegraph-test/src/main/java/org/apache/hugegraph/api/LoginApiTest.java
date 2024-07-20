@@ -42,7 +42,8 @@ public class LoginApiTest extends BaseApiTest {
     @Before
     public void setup() {
         Response r = this.createUser("test", "test");
-        Map<String, Object> user = r.readEntity(new GenericType<Map<String, Object>>(){});
+        Map<String, Object> user = r.readEntity(new GenericType<Map<String, Object>>() {
+        });
         this.userId4Test = (String) user.get("id");
     }
 
@@ -115,7 +116,7 @@ public class LoginApiTest extends BaseApiTest {
         assertJsonContains(result, "user_name");
 
         Map<String, Object> user = JsonUtil.fromJson(result,
-                                                     new TypeReference<Map<String, Object>>(){});
+                                                     new TypeReference<Map<String, Object>>() {});
         Assert.assertEquals(this.userId4Test, user.get("user_id"));
         Assert.assertEquals("test", user.get("user_name"));
 
@@ -138,8 +139,7 @@ public class LoginApiTest extends BaseApiTest {
     private Response createUser(String name, String password) {
         String user = "{\"user_name\":\"%s\",\"user_password\":\"%s" +
                       "\",\"user_email\":\"user1@baidu.com\"," +
-                      "\"user_phone\":\"123456789\",\"user_avatar\":\"image1" +
-                      ".jpg\"}";
+                      "\"user_phone\":\"123456789\",\"user_avatar\":\"image1.jpg\"}";
         return this.client().post(USER_PATH, String.format(user, name, password));
     }
 
@@ -149,15 +149,14 @@ public class LoginApiTest extends BaseApiTest {
 
     private Response login(String name, String password) {
         String login = Paths.get(PATH, "login").toString();
-        String loginUser = "{\"user_name\":\"%s\"," +
-                           "\"user_password\":\"%s\"}";
+        String loginUser = "{\"user_name\":\"%s\",\"user_password\":\"%s\"}";
 
         return client().post(login, String.format(loginUser, name, password));
     }
 
     private String tokenFromResponse(String content) {
         Map<String, Object> data = JsonUtil.fromJson(content,
-                                                     new TypeReference<Map<String, Object>>(){});
+                                                     new TypeReference<Map<String, Object>>() {});
         return (String) data.get("token");
     }
 }

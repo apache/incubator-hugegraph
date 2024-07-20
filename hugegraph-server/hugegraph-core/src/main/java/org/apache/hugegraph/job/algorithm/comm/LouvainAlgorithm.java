@@ -62,8 +62,8 @@ public class LouvainAlgorithm extends AbstractCommAlgorithm {
         Long exportPass = exportCommunity(parameters);
 
         try (LouvainTraverser traverser = new LouvainTraverser(
-                                          job, workers, degree,
-                                          label, clabel, skipIsolated)) {
+                job, workers, degree,
+                label, clabel, skipIsolated)) {
             if (clearPass != null) {
                 return traverser.clearPass(clearPass.intValue());
             } else if (modPass != null) {

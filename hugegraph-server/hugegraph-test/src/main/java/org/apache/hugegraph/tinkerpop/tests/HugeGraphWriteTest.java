@@ -19,17 +19,16 @@ package org.apache.hugegraph.tinkerpop.tests;
 
 import java.io.IOException;
 
+import org.apache.hugegraph.io.HugeGraphIoRegistry;
 import org.apache.tinkerpop.gremlin.process.traversal.IO;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.step.map.WriteTest;
-
-import org.apache.hugegraph.io.HugeGraphIoRegistry;
 
 public class HugeGraphWriteTest extends WriteTest.Traversals {
 
     @Override
     public Traversal<Object, Object> get_g_io_write_withXwriter_gryoX(
-                                     String fileToWrite) throws IOException {
+            String fileToWrite) throws IOException {
         return g.io(fileToWrite)
                 .with(IO.writer, IO.gryo)
                 .with(IO.registry, HugeGraphIoRegistry.instance())
@@ -37,9 +36,9 @@ public class HugeGraphWriteTest extends WriteTest.Traversals {
     }
 
     @Override
-    public Traversal<Object,Object> get_g_io_writeXkryoX(
-                                    final String fileToWrite)
-                                    throws IOException {
+    public Traversal<Object, Object> get_g_io_writeXkryoX(
+            final String fileToWrite)
+            throws IOException {
         return g.io(fileToWrite)
                 .with(IO.registry, HugeGraphIoRegistry.instance())
                 .write();

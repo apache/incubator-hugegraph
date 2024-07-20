@@ -22,17 +22,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import jakarta.ws.rs.core.MultivaluedMap;
-
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.traversal.algorithm.steps.EdgeStep;
 import org.apache.hugegraph.type.define.Directions;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-
-import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.OrderLimitMap;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+
+import jakarta.ws.rs.core.MultivaluedMap;
 
 public class NeighborRankTraverser extends HugeTraverser {
 
@@ -162,7 +161,7 @@ public class NeighborRankTraverser extends HugeTraverser {
             Ranks prevLayerRanks = ranks.get(i);
             if (prevLayerRanks.containsKey(target)) {
                 Set<Id> nodes = prevLayerNodes.computeIfAbsent(
-                                i, HugeTraverser::newSet);
+                        i, HugeTraverser::newSet);
                 nodes.add(target);
                 return true;
             }
@@ -215,7 +214,7 @@ public class NeighborRankTraverser extends HugeTraverser {
 
     private List<Map<Id, Double>> topRanks(List<Ranks> ranks,
                                            List<Step> steps) {
-        assert ranks.size() > 0;
+        assert !ranks.isEmpty();
         List<Map<Id, Double>> results = newList(ranks.size());
         // The first layer is root node so skip i=0
         results.add(ranks.get(0));

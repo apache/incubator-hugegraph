@@ -21,13 +21,12 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.util.collection.IntSet;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 public class IntSetTest extends BaseUnitTest {
 
@@ -119,14 +118,14 @@ public class IntSetTest extends BaseUnitTest {
 
                 Assert.assertFalse(set.add(k));
                 Assert.assertTrue(set.remove(k));
-                Assert.assertFalse("unexpect " + k,  set.contains(k));
+                Assert.assertFalse("unexpect " + k, set.contains(k));
                 Assert.assertEquals(--count, set.size());
             } else {
                 Assert.assertFalse("unexpect " + k, exist);
 
                 Assert.assertFalse(set.remove(k));
                 Assert.assertTrue(set.add(k));
-                Assert.assertTrue("expect " + k,  set.contains(k));
+                Assert.assertTrue("expect " + k, set.contains(k));
                 Assert.assertEquals(++count, set.size());
             }
         }

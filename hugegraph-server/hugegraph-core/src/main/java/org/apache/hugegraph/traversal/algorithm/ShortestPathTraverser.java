@@ -61,7 +61,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
         Map<Id, String> labelMap = newMap(labels.size());
         for (String label : labels) {
-            labelMap.put(this.getEdgeLabelId(label), label);
+            labelMap.put(this.getEdgeLabelIdOrNull(label), label);
         }
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
@@ -122,7 +122,7 @@ public class ShortestPathTraverser extends HugeTraverser {
 
         Map<Id, String> labelMap = newMap(labels.size());
         for (String label : labels) {
-            labelMap.put(this.getEdgeLabelId(label), label);
+            labelMap.put(this.getEdgeLabelIdOrNull(label), label);
         }
         Traverser traverser = new Traverser(sourceV, targetV, dir, labelMap,
                                             degree, skipDegree, capacity);
@@ -198,8 +198,9 @@ public class ShortestPathTraverser extends HugeTraverser {
                     this.edgeResults.addEdge(source, target, edge);
 
                     PathSet paths = this.pathResults.findPath(target,
-                                                         t -> !this.superNode(t, this.direction),
-                                                         all, false);
+                                                              t -> !this.superNode(t,
+                                                                                   this.direction),
+                                                              all, false);
 
                     if (paths.isEmpty()) {
                         continue;
@@ -244,8 +245,8 @@ public class ShortestPathTraverser extends HugeTraverser {
                     this.edgeResults.addEdge(source, target, edge);
 
                     PathSet paths = this.pathResults.findPath(target,
-                                                         t -> !this.superNode(t, opposite),
-                                                         all, false);
+                                                              t -> !this.superNode(t, opposite),
+                                                              all, false);
 
                     if (paths.isEmpty()) {
                         continue;

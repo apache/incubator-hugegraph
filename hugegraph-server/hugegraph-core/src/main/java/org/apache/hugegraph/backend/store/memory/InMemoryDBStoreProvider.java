@@ -22,11 +22,11 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hugegraph.backend.store.AbstractBackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStore.InMemoryGraphStore;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySchemaStore;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStore.InMemorySystemStore;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.util.Events;
 
 public class InMemoryDBStoreProvider extends AbstractBackendStoreProvider {
 

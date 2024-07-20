@@ -620,18 +620,18 @@ public class HugeTraverser {
         }
     }
 
-    protected Object getVertexLabelId(Object label) {
+    protected Object getVertexLabelIdOrNull(Object label) {
         if (label == null) {
             return null;
         }
-        return SchemaLabel.getLabelId(this.graph, HugeType.VERTEX, label);
+        return SchemaLabel.getVertexLabelId(this.graph, label);
     }
 
-    protected Id getEdgeLabelId(Object label) {
+    protected Id getEdgeLabelIdOrNull(Object label) {
         if (label == null) {
             return null;
         }
-        return SchemaLabel.getLabelId(this.graph, HugeType.EDGE, label);
+        return SchemaLabel.getEdgeLabelId(this.graph, label);
     }
 
     protected void checkVertexExist(Id vertexId, String name) {
@@ -947,6 +947,7 @@ public class HugeTraverser {
     }
 
     public static class EdgeRecord {
+
         private final Map<Long, Edge> edgeMap;
         private final ObjectIntMapping<Id> idMapping;
 

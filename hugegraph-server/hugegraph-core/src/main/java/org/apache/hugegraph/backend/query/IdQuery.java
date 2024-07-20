@@ -27,6 +27,7 @@ import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -157,7 +158,7 @@ public class IdQuery extends Query {
         @Override
         public Set<Id> ids() {
             return this.id == null ? ImmutableSet.of() :
-                                     ImmutableSet.of(this.id);
+                   ImmutableSet.of(this.id);
         }
 
         @Override

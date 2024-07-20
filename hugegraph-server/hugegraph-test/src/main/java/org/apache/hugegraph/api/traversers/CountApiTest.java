@@ -17,12 +17,12 @@
 
 package org.apache.hugegraph.api.traversers;
 
-import jakarta.ws.rs.core.Response;
+import org.apache.hugegraph.api.BaseApiTest;
+import org.apache.hugegraph.testutil.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.hugegraph.api.BaseApiTest;
-import org.apache.hugegraph.testutil.Assert;
+import jakarta.ws.rs.core.Response;
 
 public class CountApiTest extends BaseApiTest {
 

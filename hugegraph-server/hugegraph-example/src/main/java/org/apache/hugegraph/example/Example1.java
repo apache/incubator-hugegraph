@@ -21,14 +21,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.BackendException;
@@ -45,6 +37,13 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 public class Example1 {
 
@@ -79,9 +78,9 @@ public class Example1 {
             graph.tx().commit();
 
             // New tx
-            GraphTransaction tx =  Whitebox.invoke(graph.getClass(),
-                                                   "openGraphTransaction",
-                                                   graph);
+            GraphTransaction tx = Whitebox.invoke(graph.getClass(),
+                                                  "openGraphTransaction",
+                                                  graph);
 
             tx.addVertex(T.label, "book", "name", "java-21");
             tx.addVertex(T.label, "book", "name", "java-22");
@@ -214,13 +213,13 @@ public class Example1 {
         graph.tx().commit();
 
         // must commit manually with new backend tx (independent of tinkerpop)
-        GraphTransaction tx =  Whitebox.invoke(graph.getClass(),
-                                               "openGraphTransaction",
-                                               graph);
+        GraphTransaction tx = Whitebox.invoke(graph.getClass(),
+                                              "openGraphTransaction",
+                                              graph);
 
         LOG.info("===============  addVertex  ================");
         Vertex james = tx.addVertex(T.label, "author", "id", 1,
-                                    "name", "James Gosling",  "age", 62,
+                                    "name", "James Gosling", "age", 62,
                                     "lived", "San Francisco Bay Area");
 
         Vertex java = tx.addVertex(T.label, "language", "name", "java",

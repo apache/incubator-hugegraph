@@ -26,11 +26,8 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.traversal.algorithm.FusiformSimilarityTraverser;
 import org.apache.hugegraph.type.define.Directions;
@@ -38,6 +35,9 @@ import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.ParameterUtil;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+
 import com.google.common.collect.ImmutableSet;
 
 public class KCoreAlgorithm extends AbstractCommAlgorithm {
@@ -190,7 +190,6 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
             return extractKcore(map, k);
         }
 
-
         @SuppressWarnings("unchecked")
         private static Set<Id> extractKcore(SimilarsMap similarsMap, int k) {
             assert similarsMap.size() == 1;
@@ -198,7 +197,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
                                                            .iterator().next();
             Id source = entry.getKey();
             Set<KcoreSimilar> similars = new HashSet<>();
-            for (Similar similar: entry.getValue()) {
+            for (Similar similar : entry.getValue()) {
                 similars.add(new KcoreSimilar(similar));
             }
 
@@ -236,7 +235,8 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
                     }
 
                     Set<Id> survivedIds = new HashSet<>(CollectionUtils
-                                          .subtract(similar.ids(), failedIds));
+                                                                .subtract(similar.ids(),
+                                                                          failedIds));
                     if (survivedIds.size() < k) {
                         for (Id id : survivedIds) {
                             counts.get(id).decrement();
@@ -247,7 +247,7 @@ public class KCoreAlgorithm extends AbstractCommAlgorithm {
                     }
                 }
                 similars = new HashSet<>(CollectionUtils.subtract(
-                                         similars, failedSimilars));
+                        similars, failedSimilars));
             } while (!stop);
 
             if (similars.isEmpty()) {

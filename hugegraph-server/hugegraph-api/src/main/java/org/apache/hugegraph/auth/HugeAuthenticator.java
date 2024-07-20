@@ -39,6 +39,8 @@ import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.auth.Authenticator;
 import org.apache.tinkerpop.shaded.jackson.annotation.JsonProperty;
 
+import jakarta.ws.rs.core.SecurityContext;
+
 public interface HugeAuthenticator extends Authenticator {
 
     String KEY_USERNAME = CredentialGraphTokens.PROPERTY_USERNAME;
@@ -64,6 +66,8 @@ public interface HugeAuthenticator extends Authenticator {
 
     UserWithRole authenticate(String username, String password, String token);
 
+    void unauthorize(SecurityContext context);
+
     AuthManager authManager();
 
     HugeGraph graph();
@@ -81,7 +85,7 @@ public interface HugeAuthenticator extends Authenticator {
 
     @Override
     default User authenticate(final Map<String, String> credentials)
-                              throws AuthenticationException {
+            throws AuthenticationException {
 
         HugeGraphAuthProxy.resetContext();
 
@@ -103,10 +107,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         HugeGraphAuthProxy.logUser(user, credentials.get(KEY_PATH));
-        /*
-         * Set authentication context
-         * TODO: unset context after finishing a request
-         */
+        // TODO: Ensure context lifecycle in GraphServer & AuthServer(#AccessLogFilter)
         HugeGraphAuthProxy.setContext(new Context(user));
 
         return user;
@@ -118,11 +119,7 @@ public interface HugeAuthenticator extends Authenticator {
     }
 
     default boolean verifyRole(RolePermission role) {
-        if (role == ROLE_NONE || role == null) {
-            return false;
-        } else {
-            return true;
-        }
+        return role != ROLE_NONE && role != null;
     }
 
     void initAdminUser(String password) throws Exception;
@@ -334,7 +331,7 @@ public interface HugeAuthenticator extends Authenticator {
             return null;
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings({"unchecked", "rawtypes"})
         public static RolePerm fromJson(Object role) {
             RolePermission table = RolePermission.fromJson(role);
             return new RolePerm((Map) table.map());

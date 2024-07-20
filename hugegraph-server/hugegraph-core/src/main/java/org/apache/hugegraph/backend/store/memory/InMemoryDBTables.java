@@ -32,23 +32,24 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.serializer.TextBackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
-import org.apache.hugegraph.backend.store.BackendSession;
-import org.apache.hugegraph.structure.HugeIndex;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.Condition.RangeConditions;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.IdQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
+import org.apache.hugegraph.backend.serializer.TextBackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
+import org.apache.hugegraph.backend.store.BackendSession;
 import org.apache.hugegraph.iterator.ExtendableIterator;
+import org.apache.hugegraph.structure.HugeIndex;
+import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableList;
 
 public class InMemoryDBTables {
@@ -103,18 +104,18 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryById(
-                                        Collection<Id> ids,
-                                        Map<Id, BackendEntry> entries) {
+                Collection<Id> ids,
+                Map<Id, BackendEntry> entries) {
             // Query edge(in a vertex) by id
             return this.queryEdgeById(ids, false, entries);
         }
 
         @Override
         protected Map<Id, BackendEntry> queryByIdPrefix(
-                                        Id start,
-                                        boolean inclusiveStart,
-                                        Id prefix,
-                                        Map<Id, BackendEntry> entries) {
+                Id start,
+                boolean inclusiveStart,
+                Id prefix,
+                Map<Id, BackendEntry> entries) {
             // Query edge(in a vertex) by v-id + column-name-prefix
             BackendEntry value = this.getEntryById(start, entries);
             if (value == null) {
@@ -145,11 +146,11 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryByIdRange(
-                                        Id start,
-                                        boolean inclusiveStart,
-                                        Id end,
-                                        boolean inclusiveEnd,
-                                        Map<Id, BackendEntry> entries) {
+                Id start,
+                boolean inclusiveStart,
+                Id end,
+                boolean inclusiveEnd,
+                Map<Id, BackendEntry> entries) {
             BackendEntry value = this.getEntryById(start, entries);
             if (value == null) {
                 return Collections.emptyMap();
@@ -178,9 +179,9 @@ public class InMemoryDBTables {
         }
 
         private Map<Id, BackendEntry> queryEdgeById(
-                                      Collection<Id> ids, boolean prefix,
-                                      Map<Id, BackendEntry> entries) {
-            assert ids.size() > 0;
+                Collection<Id> ids, boolean prefix,
+                Map<Id, BackendEntry> entries) {
+            assert !ids.isEmpty();
             Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
 
             for (Id id : ids) {
@@ -195,7 +196,7 @@ public class InMemoryDBTables {
                     } else if ((!prefix && entry.contains(column)) ||
                                (prefix && entry.containsPrefix(column))) {
                         BackendEntry edges = new TextBackendEntry(
-                                                 HugeType.VERTEX, entry.id());
+                                HugeType.VERTEX, entry.id());
                         if (prefix) {
                             // Some edges with specified prefix in the vertex
                             edges.columns(entry.columnsWithPrefix(column));
@@ -229,8 +230,8 @@ public class InMemoryDBTables {
 
         @Override
         protected Map<Id, BackendEntry> queryByFilter(
-                                        Collection<Condition> conditions,
-                                        Map<Id, BackendEntry> entries) {
+                Collection<Condition> conditions,
+                Map<Id, BackendEntry> entries) {
             if (conditions.isEmpty()) {
                 return entries;
             }
@@ -405,7 +406,7 @@ public class InMemoryDBTables {
             E.checkState(indexLabel != null, "Expect index label");
 
             Iterator<Entry<Id, BackendEntry>> iter;
-            for (iter = this.store().entrySet().iterator(); iter.hasNext();) {
+            for (iter = this.store().entrySet().iterator(); iter.hasNext(); ) {
                 Entry<Id, BackendEntry> e = iter.next();
                 // Delete if prefix with index label
                 if (e.getKey().asString().startsWith(indexLabel)) {
@@ -535,7 +536,7 @@ public class InMemoryDBTables {
             SortedMap<Id, BackendEntry> subStore;
             subStore = this.store().subMap(min, max);
             Iterator<Entry<Id, BackendEntry>> iter;
-            for (iter = subStore.entrySet().iterator(); iter.hasNext();) {
+            for (iter = subStore.entrySet().iterator(); iter.hasNext(); ) {
                 iter.next();
                 // Delete if prefix with index label
                 iter.remove();

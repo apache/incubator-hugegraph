@@ -115,8 +115,8 @@ public class ContextGremlinServer extends GremlinServer {
             String gName = G_PREFIX + graph;
             if (manager.getTraversalSource(gName) != null) {
                 throw new HugeException(
-                          "Found existing name '%s' in global bindings, " +
-                          "it may lead to gremlin query error.", gName);
+                        "Found existing name '%s' in global bindings, " +
+                        "it may lead to gremlin query error.", gName);
             }
             // Add a traversal source for all graphs with customed rule.
             manager.putTraversalSource(gName, g);
@@ -136,7 +136,7 @@ public class ContextGremlinServer extends GremlinServer {
         manager.putTraversalSource(G_PREFIX + name, g);
 
         Whitebox.invoke(executor, "globalBindings",
-                        new Class<?>[]{ String.class, Object.class },
+                        new Class<?>[]{String.class, Object.class},
                         "put", name, graph);
     }
 
@@ -149,7 +149,7 @@ public class ContextGremlinServer extends GremlinServer {
             manager.removeGraph(name);
             manager.removeTraversalSource(G_PREFIX + name);
             Whitebox.invoke(executor, "globalBindings",
-                            new Class<?>[]{ Object.class },
+                            new Class<?>[]{Object.class},
                             "remove", name);
         } catch (Exception e) {
             throw new HugeException("Failed to remove graph '%s' from " +

@@ -72,7 +72,6 @@ import com.codahale.metrics.annotation.Timed;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -362,7 +361,6 @@ public class MetricsAPI extends API {
                     joinWithSlash(metricsName, METRICS_PATH_FAILED_COUNTER));
             Counter successCounter = reporter.counters().get(
                     joinWithSlash(metricsName, METRICS_PATH_SUCCESS_COUNTER));
-
 
             Histogram histogram = entry.getValue();
             Map<String, Object> entryMetricsMap = new HashMap<>();

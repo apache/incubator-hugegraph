@@ -27,6 +27,7 @@ import java.util.Scanner;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.filter.AuthenticationFilter;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
@@ -38,6 +39,8 @@ import org.apache.hugegraph.util.StringEncoding;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticatedUser;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
+
+import jakarta.ws.rs.core.SecurityContext;
 
 public class StandardAuthenticator implements HugeAuthenticator {
 
@@ -110,7 +113,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
     public void setup(HugeConfig config) {
         String graphName = config.get(ServerOptions.AUTH_GRAPH_STORE);
         Map<String, String> graphConfs = ConfigUtil.scanGraphsDir(
-                                         config.get(ServerOptions.GRAPHS));
+                config.get(ServerOptions.GRAPHS));
         String graphPath = graphConfs.get(graphName);
         E.checkArgument(graphPath != null,
                         "Can't find graph name '%s' in config '%s' at " +
@@ -137,7 +140,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
         String remoteUrl = config.get(ServerOptions.AUTH_REMOTE_URL);
         if (StringUtils.isNotEmpty(remoteUrl)) {
             RpcClientProviderWithAuth clientProvider =
-                                      new RpcClientProviderWithAuth(config);
+                    new RpcClientProviderWithAuth(config);
             this.graph.switchAuthManager(clientProvider.authManager());
         }
     }
@@ -159,9 +162,10 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     /**
      * Verify if a user is legal
+     *
      * @param username the username for authentication
      * @param password the password for authentication
-     * @param token the token for authentication
+     * @param token    the token for authentication
      * @return String No permission if return ROLE_NONE else return a role
      */
     @Override
@@ -189,6 +193,11 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
         return new UserWithRole(userWithRole.userId(),
                                 userWithRole.username(), role);
+    }
+
+    @Override
+    public void unauthorize(SecurityContext context) {
+        HugeGraphAuthProxy.resetContext();
     }
 
     @Override

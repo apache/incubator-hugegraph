@@ -206,7 +206,7 @@ public class RoleElectionStateMachineTest {
         };
 
         final List<ClusterRole> clusterRoleLogs = Collections.synchronizedList(
-                                                  new ArrayList<>(100));
+                new ArrayList<>(100));
 
         final ClusterRoleStore clusterRoleStore = new ClusterRoleStore() {
 

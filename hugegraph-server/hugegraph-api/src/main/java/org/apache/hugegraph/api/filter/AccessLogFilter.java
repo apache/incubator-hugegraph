@@ -26,8 +26,10 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 import java.io.IOException;
 import java.net.URI;
 
+import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.metrics.MetricsUtil;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
@@ -54,6 +56,9 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
+
+    @Context
+    private jakarta.inject.Provider<GraphManager> managerProvider;
 
     public static boolean needRecordLog(ContainerRequestContext context) {
         // TODO: add test for 'path' result ('/gremlin' or 'gremlin')
@@ -113,6 +118,13 @@ public class AccessLogFilter implements ContainerResponseFilter {
                 LOG.info("[Slow Query] execTime={}ms, body={}, method={}, path={}, query={}",
                          executeTime, null, method, path, uri.getQuery());
             }
+        }
+
+        // Unset the context in "HugeAuthenticator", need distinguish Graph/Auth server lifecycle
+        GraphManager manager = managerProvider.get();
+        // TODO: transfer Authorizer if we need after.
+        if (manager.requireAuthentication()) {
+            manager.unauthorize(requestContext.getSecurityContext());
         }
     }
 

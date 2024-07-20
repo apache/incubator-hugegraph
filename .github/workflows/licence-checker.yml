@@ -11,7 +11,7 @@ jobs:
   check-license:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
+      USE_STAGE: 'true' # Whether to include the stage repository.
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +24,7 @@ jobs:
           token: ${{ github.token }}
           config: .licenserc.yaml
 
-      - name: License check(RAT)
+      - name: License Check (RAT)
         run: |
           mvn apache-rat:check -ntp
           find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt

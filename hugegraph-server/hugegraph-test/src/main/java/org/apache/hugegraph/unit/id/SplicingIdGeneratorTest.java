@@ -19,10 +19,6 @@ package org.apache.hugegraph.unit.id;
 
 import java.util.List;
 
-import org.apache.hugegraph.unit.FakeObjects;
-import org.junit.Test;
-import org.mockito.Mockito;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
@@ -31,6 +27,10 @@ import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.unit.FakeObjects;
+import org.junit.Test;
+import org.mockito.Mockito;
+
 import com.google.common.collect.ImmutableList;
 
 public class SplicingIdGeneratorTest {
@@ -41,8 +41,8 @@ public class SplicingIdGeneratorTest {
         PropertyKey name = fakeObjects.newPropertyKey(IdGenerator.of(1),
                                                       "name");
         VertexLabel vertexLabel = fakeObjects.newVertexLabel(
-                                  IdGenerator.of(1L), "fake",
-                                  IdStrategy.PRIMARY_KEY, name.id());
+                IdGenerator.of(1L), "fake",
+                IdStrategy.PRIMARY_KEY, name.id());
         HugeVertex vertex = Mockito.mock(HugeVertex.class);
         Mockito.when(vertex.schemaLabel()).thenReturn(vertexLabel);
         Mockito.when(vertex.name()).thenReturn("marko");
@@ -102,9 +102,9 @@ public class SplicingIdGeneratorTest {
     public void testParse() {
         Assert.assertArrayEquals(new String[]{"1", "marko"},
                                  SplicingIdGenerator.parse(
-                                 IdGenerator.of("1:marko")));
+                                         IdGenerator.of("1:marko")));
         Assert.assertArrayEquals(new String[]{"book", "c", "2020"},
                                  SplicingIdGenerator.parse(
-                                 IdGenerator.of("book:c:2020")));
+                                         IdGenerator.of("book:c:2020")));
     }
 }

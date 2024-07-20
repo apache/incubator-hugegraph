@@ -21,14 +21,14 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.apache.tinkerpop.gremlin.structure.Transaction;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.gremlin.structure.Transaction;
+import org.slf4j.Logger;
+
 import com.google.common.collect.ImmutableSet;
 
 public abstract class TaskCallable<V> implements Callable<V> {

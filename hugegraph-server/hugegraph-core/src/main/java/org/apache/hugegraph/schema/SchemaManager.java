@@ -20,11 +20,8 @@ package org.apache.hugegraph.schema;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.schema.builder.EdgeLabelBuilder;
 import org.apache.hugegraph.schema.builder.IndexLabelBuilder;
@@ -32,6 +29,7 @@ import org.apache.hugegraph.schema.builder.PropertyKeyBuilder;
 import org.apache.hugegraph.schema.builder.VertexLabelBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
 public class SchemaManager {
 
@@ -98,26 +96,26 @@ public class SchemaManager {
 
     public List<PropertyKey> getPropertyKeys() {
         return this.graph.propertyKeys().stream()
-                   .filter(pk -> !Graph.Hidden.isHidden(pk.name()))
-                   .collect(Collectors.toList());
+                         .filter(pk -> !Graph.Hidden.isHidden(pk.name()))
+                         .collect(Collectors.toList());
     }
 
     public List<VertexLabel> getVertexLabels() {
         return this.graph.vertexLabels().stream()
-                   .filter(vl -> !Graph.Hidden.isHidden(vl.name()))
-                   .collect(Collectors.toList());
+                         .filter(vl -> !Graph.Hidden.isHidden(vl.name()))
+                         .collect(Collectors.toList());
     }
 
     public List<EdgeLabel> getEdgeLabels() {
         return this.graph.edgeLabels().stream()
-                   .filter(el -> !Graph.Hidden.isHidden(el.name()))
-                   .collect(Collectors.toList());
+                         .filter(el -> !Graph.Hidden.isHidden(el.name()))
+                         .collect(Collectors.toList());
     }
 
     public List<IndexLabel> getIndexLabels() {
         return this.graph.indexLabels().stream()
-                   .filter(il -> !Graph.Hidden.isHidden(il.name()))
-                   .collect(Collectors.toList());
+                         .filter(il -> !Graph.Hidden.isHidden(il.name()))
+                         .collect(Collectors.toList());
     }
 
     public void copyFrom(SchemaManager schema) {

@@ -30,7 +30,11 @@ public interface CacheNotifier extends AutoCloseable {
 
     void reload();
 
-    interface GraphCacheNotifier extends CacheNotifier {}
+    interface GraphCacheNotifier extends CacheNotifier {
 
-    interface SchemaCacheNotifier extends CacheNotifier {}
+    }
+
+    interface SchemaCacheNotifier extends CacheNotifier {
+
+    }
 }

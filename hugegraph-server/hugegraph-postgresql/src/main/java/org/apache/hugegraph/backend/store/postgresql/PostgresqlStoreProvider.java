@@ -21,8 +21,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
@@ -33,6 +31,7 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class PostgresqlStoreProvider extends MysqlStoreProvider {
 
@@ -167,19 +166,19 @@ public class PostgresqlStoreProvider extends MysqlStoreProvider {
         @Override
         public Id nextId(HugeType type) {
             throw new UnsupportedOperationException(
-                      "PostgresqlGraphStore.nextId()");
+                    "PostgresqlGraphStore.nextId()");
         }
 
         @Override
         public void increaseCounter(HugeType type, long increment) {
             throw new UnsupportedOperationException(
-                      "PostgresqlGraphStore.increaseCounter()");
+                    "PostgresqlGraphStore.increaseCounter()");
         }
 
         @Override
         public long getCounter(HugeType type) {
             throw new UnsupportedOperationException(
-                      "PostgresqlGraphStore.getCounter()");
+                    "PostgresqlGraphStore.getCounter()");
         }
     }
 

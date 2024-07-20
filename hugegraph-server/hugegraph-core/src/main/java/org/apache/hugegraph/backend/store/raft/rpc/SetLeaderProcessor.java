@@ -22,15 +22,15 @@ import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.CommonResponse;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderRequest;
 import org.apache.hugegraph.backend.store.raft.rpc.RaftRequests.SetLeaderResponse;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.jraft.rpc.RpcRequestClosure;
 import com.alipay.sofa.jraft.rpc.RpcRequestProcessor;
-import org.apache.hugegraph.util.Log;
 import com.google.protobuf.Message;
 
 public class SetLeaderProcessor
-       extends RpcRequestProcessor<SetLeaderRequest> {
+        extends RpcRequestProcessor<SetLeaderRequest> {
 
     private static final Logger LOG = Log.logger(SetLeaderProcessor.class);
 

@@ -213,7 +213,6 @@ public abstract class BackendEntryIterator implements CIter<BackendEntry> {
 
         @Override
         public void close() throws Exception {
-            return;
         }
     }
 }

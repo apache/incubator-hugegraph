@@ -20,6 +20,7 @@ package org.apache.hugegraph.traversal.optimize;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
+import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.process.traversal.Step;
 import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser.Admin;
@@ -27,10 +28,8 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.util.AbstractStep;
 import org.apache.tinkerpop.gremlin.process.traversal.util.FastNoSuchElementException;
 import org.apache.tinkerpop.gremlin.structure.Element;
 
-import org.apache.hugegraph.util.E;
-
 public final class HugeCountStep<S extends Element>
-             extends AbstractStep<S, Long> {
+        extends AbstractStep<S, Long> {
 
     private static final long serialVersionUID = -679873894532085972L;
 
@@ -44,6 +43,7 @@ public final class HugeCountStep<S extends Element>
         this.originGraphStep = originGraphStep;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof HugeCountStep)) {
             return false;
@@ -69,7 +69,7 @@ public final class HugeCountStep<S extends Element>
             throw FastNoSuchElementException.instance();
         }
         this.done = true;
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings({"unchecked", "rawtypes"})
         Step<Long, Long> step = (Step) this;
         return this.getTraversal().getTraverserGenerator()
                    .generate(this.originGraphStep.count(), step, 1L);

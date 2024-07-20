@@ -44,7 +44,7 @@ public class BackendException extends HugeException {
     }
 
     public static final void check(boolean expression, String message, Object... args)
-                                   throws BackendException {
+            throws BackendException {
         if (!expression) {
             throw new BackendException(message, args);
         }

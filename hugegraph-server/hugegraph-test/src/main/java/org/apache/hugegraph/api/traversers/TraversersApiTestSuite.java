@@ -22,28 +22,29 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-    AllShortestPathsApiTest.class,
-    CountApiTest.class,
-    CrosspointsApiTest.class,
-    CustomizedCrosspointsApiTest.class,
-    EdgesApiTest.class,
-    FusiformSimilarityApiTest.class,
-    JaccardSimilarityApiTest.class,
-    KneighborApiTest.class,
-    KoutApiTest.class,
-    MultiNodeShortestPathApiTest.class,
-    NeighborRankApiTest.class,
-    PathsApiTest.class,
-    PersonalRankApiTest.class,
-    RaysApiTest.class,
-    RingsApiTest.class,
-    SameNeighborsApiTest.class,
-    ShortestPathApiTest.class,
-    SingleSourceShortestPathApiTest.class,
-    TemplatePathsApiTest.class,
-    WeightedShortestPathApiTest.class,
-    AdamicAdarAPITest.class,
-    ResourceAllocationAPITest.class
+        AllShortestPathsApiTest.class,
+        CountApiTest.class,
+        CrosspointsApiTest.class,
+        CustomizedCrosspointsApiTest.class,
+        EdgesApiTest.class,
+        FusiformSimilarityApiTest.class,
+        JaccardSimilarityApiTest.class,
+        KneighborApiTest.class,
+        KoutApiTest.class,
+        MultiNodeShortestPathApiTest.class,
+        NeighborRankApiTest.class,
+        PathsApiTest.class,
+        PersonalRankApiTest.class,
+        RaysApiTest.class,
+        RingsApiTest.class,
+        SameNeighborsApiTest.class,
+        ShortestPathApiTest.class,
+        SingleSourceShortestPathApiTest.class,
+        TemplatePathsApiTest.class,
+        WeightedShortestPathApiTest.class,
+        AdamicAdarAPITest.class,
+        ResourceAllocationAPITest.class
 })
 public class TraversersApiTestSuite {
+
 }

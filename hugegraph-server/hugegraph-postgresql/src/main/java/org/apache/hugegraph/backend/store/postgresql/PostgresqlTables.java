@@ -48,15 +48,15 @@ public class PostgresqlTables {
 
     private static final Map<String, String> TYPES_MAPPING =
             ImmutableMap.<String, String>builder()
-                    .put(BOOLEAN, "BOOL")
-                    .put(TINYINT, "INT")
-                    .put(INT, "INT")
-                    .put(NUMERIC, "DECIMAL")
-                    .put(SMALL_TEXT, "VARCHAR(255)")
-                    .put(MID_TEXT, "VARCHAR(1024)")
-                    .put(LARGE_TEXT, "VARCHAR(65533)")
-                    .put(HUGE_TEXT, "TEXT")
-                    .build();
+                        .put(BOOLEAN, "BOOL")
+                        .put(TINYINT, "INT")
+                        .put(INT, "INT")
+                        .put(NUMERIC, "DECIMAL")
+                        .put(SMALL_TEXT, "VARCHAR(255)")
+                        .put(MID_TEXT, "VARCHAR(1024)")
+                        .put(LARGE_TEXT, "VARCHAR(65533)")
+                        .put(HUGE_TEXT, "TEXT")
+                        .build();
 
     public static class PostgresqlTableTemplate extends PostgresqlTable {
 
@@ -112,17 +112,17 @@ public class PostgresqlTables {
         public void increaseCounter(Session session, HugeType type,
                                     long increment) {
             String update = String.format(
-                            "INSERT INTO %s (%s, %s) VALUES ('%s', %s) " +
-                            "ON CONFLICT (%s) DO UPDATE SET ID = %s.ID + %s;",
-                            this.table(), formatKey(HugeKeys.SCHEMA_TYPE),
-                            formatKey(HugeKeys.ID), type.name(), increment,
-                            formatKey(HugeKeys.SCHEMA_TYPE),
-                            this.table(), increment);
+                    "INSERT INTO %s (%s, %s) VALUES ('%s', %s) " +
+                    "ON CONFLICT (%s) DO UPDATE SET ID = %s.ID + %s;",
+                    this.table(), formatKey(HugeKeys.SCHEMA_TYPE),
+                    formatKey(HugeKeys.ID), type.name(), increment,
+                    formatKey(HugeKeys.SCHEMA_TYPE),
+                    this.table(), increment);
             try {
                 session.execute(update);
             } catch (SQLException e) {
                 throw new BackendException(
-                          "Failed to update counters with type '%s'", e, type);
+                        "Failed to update counters with type '%s'", e, type);
             }
         }
     }
@@ -274,7 +274,7 @@ public class PostgresqlTables {
 
         protected final String entryId(MysqlBackendEntry entry) {
             return ((MysqlTables.RangeDoubleIndex) this.template)
-                   .entryId(entry);
+                    .entryId(entry);
         }
     }
 

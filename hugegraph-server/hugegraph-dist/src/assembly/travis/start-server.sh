@@ -48,7 +48,7 @@ SERIALIZER=${backend_serializer_map[$BACKEND]}
 sed -i "s/backend=.*/backend=$BACKEND/" $CONF
 sed -i "s/serializer=.*/serializer=$SERIALIZER/" $CONF
 
-# Set PostgreSQL configurations if needed
+# Set PostgresSQL configurations if needed
 if [ "$BACKEND" == "postgresql" ]; then
     sed -i '/org.postgresql.Driver/,+2 s/\#//g' $CONF
 fi
@@ -71,4 +71,5 @@ if [ -n "$JACOCO_PORT" ]; then
     JACOCO_OPTION="-javaagent:${JACOCO_JAR}=includes=*,port=${JACOCO_PORT},destfile=jacoco-it.exec,output=tcpserver"
 fi
 
-echo -e "pa" | $BIN/init-store.sh && $BIN/start-hugegraph.sh -j "$JACOCO_OPTION" -t 60 -v
+echo -e "pa" | $BIN/init-store.sh
+$BIN/start-hugegraph.sh -j "$JACOCO_OPTION" -t 60

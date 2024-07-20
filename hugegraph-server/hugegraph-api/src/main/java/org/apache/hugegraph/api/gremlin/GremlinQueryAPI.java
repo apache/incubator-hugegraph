@@ -24,6 +24,7 @@ import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.exception.HugeGremlinException;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
@@ -36,8 +37,7 @@ import jakarta.ws.rs.core.Response;
 public class GremlinQueryAPI extends API {
 
     private static final Set<String> FORBIDDEN_REQUEST_EXCEPTIONS =
-            ImmutableSet.of("java.lang.SecurityException",
-                            "jakarta.ws.rs.ForbiddenException");
+            ImmutableSet.of("java.lang.SecurityException", "jakarta.ws.rs.ForbiddenException");
     private static final Set<String> BAD_REQUEST_EXCEPTIONS = ImmutableSet.of(
             "java.lang.IllegalArgumentException",
             "java.util.concurrent.TimeoutException",
@@ -55,6 +55,7 @@ public class GremlinQueryAPI extends API {
         if (this.client != null) {
             return this.client;
         }
+
         HugeConfig config = this.configProvider.get();
         String url = config.get(ServerOptions.GREMLIN_SERVER_URL);
         int timeout = config.get(ServerOptions.GREMLIN_SERVER_TIMEOUT) * 1000;
@@ -99,6 +100,7 @@ public class GremlinQueryAPI extends API {
         if (exClass == null) {
             return false;
         }
+
         if (BAD_REQUEST_EXCEPTIONS.contains(exClass)) {
             return true;
         }

@@ -19,7 +19,7 @@ published)
 
 ## Purpose of the PR
 
-- close #xxx  <!-- or use "fix #xxx", "xxx" is the ID-link of related issue, e.g: close #1024 -->
+- close #xxx <!-- or use "fix #xxx", "xxx" is the ID-link of related issue, e.g: close #1024 -->
 
 <!--
 Please explain more context in this section, clarify why the changes are needed. 
@@ -30,7 +30,7 @@ e.g:
 
 ## Main Changes
 
-<!-- Please clarify what changes you are proposing. The purpose of this section is to outline the changes and how this PR fixes the issue. These change logs are helpful for better ant faster reviews.)
+<!-- Please clarify what changes you are proposing. The purpose of this section is to outline the changes and how this PR fixes the issue. These change logs are helpful for better and faster reviews.)
 
 For example:
 
@@ -51,11 +51,12 @@ For example:
 
 <!-- DO NOT REMOVE THIS SECTION. CHECK THE PROPER BOX ONLY. -->
 
-- [ ]  Nope
-- [ ]  Dependencies (add/update license info) <!-- Don't forget to add/update the info in "LICENSE" & "NOTICE" files (both in root & dist module) -->
+- [ ]  Dependencies ([add/update license](https://hugegraph.apache.org/docs/contribution-guidelines/contribute/#321-check-licenses) info & [regenerate_dependencies](../hugegraph-server/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh)) <!-- Don't forget to add/update the info in "LICENSE" & "NOTICE" files (both in root & dist module) -->
 - [ ]  Modify configurations
 - [ ]  The public API
 - [ ]  Other affects (typed here)
+- [ ]  Nope
+
 
 ## Documentation Status
 
