@@ -26,9 +26,7 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
-import java.util.regex.Pattern;
 
-import jakarta.ws.rs.core.MultivaluedMap;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.core.GraphManager;
@@ -42,6 +40,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.Provider;
 
 // TODO: should add test for this class
@@ -55,7 +54,6 @@ public class AccessLogFilter implements ContainerResponseFilter {
     private static final String GRAPHS = "graphs";
     private static final String GREMLIN = "gremlin";
     private static final String CYPHER = "cypher";
-
 
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
@@ -85,20 +83,20 @@ public class AccessLogFilter implements ContainerResponseFilter {
         // Replace variable parts of the path with placeholders
         String requestPath = requestContext.getUriInfo().getPath();
         // get uri params
-        MultivaluedMap<String, String> pathParameters = requestContext.getUriInfo().getPathParameters();
+        MultivaluedMap<String, String> pathParameters = requestContext.getUriInfo()
+                                                                      .getPathParameters();
 
         String newPath = requestPath;
         for (Map.Entry<String, java.util.List<String>> entry : pathParameters.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue().get(0);
-            if(key.equals("graph")){
+            if ("graph".equals(key)) {
                 newPath = newPath.replace(key, value);
             }
             newPath = newPath.replace(value, key);
         }
 
-        LOG.debug("Original Path: " + requestPath + " New Path: " + newPath);
-
+        LOG.trace("Original Path: {} New Path: {}", requestPath, newPath);
         return newPath;
     }
 
@@ -116,22 +114,20 @@ public class AccessLogFilter implements ContainerResponseFilter {
         String method = requestContext.getMethod();
         String path = normalizePath(requestContext);
         String metricsName = join(path, method);
-        int status = responseContext.getStatus();
 
+        int status = responseContext.getStatus();
         if (status != 500 && status != 415) {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
         }
 
         if (statusOk(responseContext.getStatus())) {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_SUCCESS_COUNTER)).inc();
-
         } else {
             //TODO: The return codes for compatibility need to be further detailed.
-            LOG.debug("Failed Status: "+status);
+            LOG.trace("Failed Status: {}", status);
             if (status != 500 && status != 415) {
                 MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
             }
-
         }
 
         Object requestTime = requestContext.getProperty(REQUEST_TIME);
@@ -141,7 +137,8 @@ public class AccessLogFilter implements ContainerResponseFilter {
             long executeTime = now - start;
 
             if (status != 500 && status != 415) {
-                MetricsUtil.registerHistogram(join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
+                MetricsUtil.registerHistogram(join(metricsName,
+                                                   METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
                            .update(executeTime);
             }
 
