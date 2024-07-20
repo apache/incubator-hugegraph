@@ -15,19 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.service;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
-})
-
 @Slf4j
-public class CommonSuiteTest {
+public class SessionTest {
+    @Test
+    public void testQuota() {
+
+    }
 }

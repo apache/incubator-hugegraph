@@ -15,19 +15,33 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.core;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import java.io.File;
+import java.io.IOException;
 
-import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
+import org.junit.BeforeClass;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
-})
 
-@Slf4j
-public class CommonSuiteTest {
+public class BaseCoreTest {
+
+    @BeforeClass
+    public static void setup() throws Exception {
+
+    }
+
+    public static void deleteDirectory(File dir) {
+        try {
+            FileUtils.deleteDirectory(dir);
+        } catch (IOException e) {
+            System.out.printf("Failed to start ....,%s%n", e.getMessage());
+        }
+    }
+
+    @After
+    public void teardown() throws Exception {
+        // pass
+    }
 }

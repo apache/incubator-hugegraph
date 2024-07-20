@@ -15,19 +15,29 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.util;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.junit.Assert;
+import org.junit.Test;
 
-import lombok.extern.slf4j.Slf4j;
+import com.alipay.sofa.jraft.Status;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
-})
+public class FutureClosureTest {
+    @Test
+    public void test() {
+        FutureClosure closure = new FutureClosure();
+        new Thread(() -> {
+            try {
+                Thread.sleep(1000);
+                closure.run(Status.OK());
+            } catch (InterruptedException e) {
+                closure.run(new Status(-1, e.getMessage()));
+            }
 
-@Slf4j
-public class CommonSuiteTest {
+        }).start();
+
+        Assert.assertEquals(closure.get().getCode(), Status.OK().getCode());
+        Assert.assertEquals(closure.get().getCode(), Status.OK().getCode());
+        Assert.assertEquals(closure.get().getCode(), Status.OK().getCode());
+    }
 }

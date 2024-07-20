@@ -15,19 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.core.store.meta;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import static org.junit.Assert.assertArrayEquals;
 
-import lombok.extern.slf4j.Slf4j;
+import org.apache.hugegraph.store.meta.MetadataKeyHelper;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
-})
+public class MetadataKeyHelperTest {
 
-@Slf4j
-public class CommonSuiteTest {
+    @Test
+    public void testKey() {
+        assertArrayEquals("HUGEGRAPH/TASK/".getBytes(), MetadataKeyHelper.getTaskPrefix());
+        assertArrayEquals("HUGEGRAPH/TASK/0/".getBytes(), MetadataKeyHelper.getTaskPrefix(0));
+        assertArrayEquals("HUGEGRAPH/TASK_DONE/0000000000000000".getBytes(),
+                          MetadataKeyHelper.getDoneTaskKey(0));
+    }
 }
