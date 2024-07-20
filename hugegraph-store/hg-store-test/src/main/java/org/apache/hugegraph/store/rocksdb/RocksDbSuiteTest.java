@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.common;
+package org.apache.hugegraph.store.rocksdb;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -24,10 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        ByteBufferAllocatorTest.class,
-        KVByteBufferTest.class
+        RocksDBFactoryTest.class
 })
 
 @Slf4j
-public class CommonSuiteTest {
+public class RocksDbSuiteTest {
 }
