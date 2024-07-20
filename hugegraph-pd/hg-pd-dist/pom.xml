@@ -106,9 +106,11 @@
                                     <contains string="${os.name}" substring="Linux" />
                                     <then>
                                         <echo file="${dist.dir}/dist.sh">
-                                            tar --exclude=${final.name}/logs --exclude=${final.name}/pd_data zcvf \
+                                            tar zcvf \
                                             ${dist.dir}/${final.name}.tar.gz \
+                                            --exclude=${final.name}/{logs,pd_data} \
                                             ${final.name} || exit 1
+
                                             rm -f ${dist.dir}/dist.sh
                                             echo
                                             echo "HugeGraph pd dist tar.gz available at:
