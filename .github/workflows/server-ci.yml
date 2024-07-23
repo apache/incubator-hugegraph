@@ -1,4 +1,4 @@
-name: "server CI"
+name: "Graph Server CI"
 
 on:
   push:
