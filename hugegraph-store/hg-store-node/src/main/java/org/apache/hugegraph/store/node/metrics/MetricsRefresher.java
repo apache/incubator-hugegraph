@@ -17,32 +17,25 @@
 
 package org.apache.hugegraph.store.node.metrics;
 
-import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
-/**
- * 2021/11/24
- */
-@Configuration
-public class MetricsConfig {
+@Component
+public class MetricsRefresher {
+    private static final Logger log = LoggerFactory.getLogger(MetricsRefresher.class);
 
-    @Bean
-    public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
-        return (registry) -> registry.config().commonTags("hg", "store");
+    private final MeterRegistry registry;
+
+    public MetricsRefresher(MeterRegistry registry) {
+        this.registry = registry;
     }
 
-    @Bean
-    public MeterRegistryCustomizer<MeterRegistry> registerMeters() {
-        return (registry) -> {
-            StoreMetrics.init(registry);
-            RocksDBMetrics.init(registry);
-            JRaftMetrics.init(registry, true);
-            ProcfsMetrics.init(registry);
-            GRpcExMetrics.init(registry);
-        };
+    @Scheduled(fixedRate = 30000)
+    public void refreshMetrics() {
+        log.info("Refreshing metrics");
+        JRaftMetrics.init(registry,false);
     }
-
 }
