@@ -25,10 +25,13 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import com.alipay.remoting.util.StringUtils;
 
+import org.springframework.scheduling.annotation.EnableScheduling;
+
 /**
  *
  */
 @SpringBootApplication
+@EnableScheduling
 public class StoreNodeApplication {
 
     //TODO Is this OK?
