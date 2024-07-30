@@ -21,12 +21,57 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-
 import org.apache.hugegraph.concurrent.PausableScheduledThreadPool;
 
+
+
 public final class ExecutorUtil {
+
+    public static ThreadPoolExecutor newDynamicThreadExecutor(String name,
+                                                              int corePoolSize,
+                                                              int maximumPoolSize) {
+
+        long keepAliveTime = 60L;
+        TimeUnit unit = TimeUnit.SECONDS;
+        ThreadFactory factory = new BasicThreadFactory.Builder()
+                .namingPattern(name)
+                .build();
+        CustomBlockingQueue<Runnable> workQueue = new CustomBlockingQueue<>();
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+                corePoolSize,
+                maximumPoolSize,
+                keepAliveTime,
+                unit,
+                workQueue,
+                factory,
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+
+        workQueue.setThreadPoolExecutor(threadPoolExecutor);
+
+        return threadPoolExecutor;
+    }
+
+    static class CustomBlockingQueue<E> extends LinkedBlockingQueue<E> {
+        private ThreadPoolExecutor threadPoolExecutor;
+
+        public void setThreadPoolExecutor(ThreadPoolExecutor threadPoolExecutor) {
+            this.threadPoolExecutor = threadPoolExecutor;
+        }
+
+        @Override
+        public boolean offer(E e) {
+            if (threadPoolExecutor.getPoolSize() < threadPoolExecutor.getMaximumPoolSize()) {
+                return false;
+            }
+            return super.offer(e);
+        }
+    }
 
     public static ExecutorService newFixedThreadPool(String name) {
         return newFixedThreadPool(1, name);

@@ -57,14 +57,21 @@ public class EventHub {
     }
 
     public EventHub(String name) {
-        this(name, 1);
+        this(name, 1, Runtime.getRuntime().availableProcessors() << 2);
     }
 
     public EventHub(String name, int threadSize) {
-        LOG.debug("Create new EventHub {}", name);
+        LOG.debug("Create new EventHub {},threadSize {}", name, threadSize);
         this.name = name;
         this.listeners = new ConcurrentHashMap<>();
         EventHub.init(threadSize);
+    }
+
+    public EventHub(String name, int corePoolSize, int maximumPoolSize) {
+        LOG.debug("Create new EventHub {},corePoolSize {}, maximumPoolSize {}", name, corePoolSize, maximumPoolSize);
+        this.name = name;
+        this.listeners = new ConcurrentHashMap<>();
+        EventHub.init(corePoolSize, maximumPoolSize);
     }
 
     public static synchronized void init(int poolSize) {
@@ -73,6 +80,15 @@ public class EventHub {
         }
         LOG.debug("Init pool(size {}) for EventHub", poolSize);
         executor = ExecutorUtil.newFixedThreadPool(poolSize, EVENT_WORKER);
+    }
+
+    public static synchronized void init(int corePoolSize, int maximumPoolSize) {
+        LOG.debug("Init corePoolSize {}, maximumPoolSize {} for EventHub", corePoolSize, maximumPoolSize);
+        if (executor != null) {
+            LOG.debug("EventHub executor already initialized");
+            return;
+        }
+        executor = ExecutorUtil.newDynamicThreadExecutor(EVENT_WORKER, corePoolSize, maximumPoolSize);
     }
 
     public static synchronized boolean destroy(long timeout)
