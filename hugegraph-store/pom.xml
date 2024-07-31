@@ -238,7 +238,7 @@
                         <version>2.20</version>
                         <executions>
                             <execution>
-                                <id>sit -test</id>
+                                <id>store-rocksdb-test</id>
                                 <goals>
                                     <goal>test</goal>
                                 </goals>

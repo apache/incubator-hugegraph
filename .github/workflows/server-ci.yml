@@ -1,4 +1,4 @@
-name: "hugegraph-server-ci"
+name: "Graph Server CI"
 
 on:
   push:
