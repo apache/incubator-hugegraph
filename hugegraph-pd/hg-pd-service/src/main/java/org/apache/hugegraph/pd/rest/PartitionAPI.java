@@ -236,6 +236,7 @@ public class PartitionAPI extends API {
                         role = shard.getRole();
                         address = pdRestService.getStore(
                                 shard.getStoreId()).getAddress();
+                        partitionId = partition.getId();
                         if (finalShardStats.containsKey(shard.getStoreId())) {
                             state = finalShardStats.get(shard.getStoreId()).getState().toString();
                             progress = finalShardStats.get(shard.getStoreId()).getProgress();

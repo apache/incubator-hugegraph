@@ -1,4 +1,4 @@
-name: "hugegraph-pd-store-ci"
+name: "Graph PD & Store & Hstore CI"
 
 on:
   push:
@@ -109,9 +109,38 @@ jobs:
           cp $HOME/.m2/settings.xml /tmp/settings.xml
           mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
 
+      - name: Package
+        run: |
+          mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
+
+      - name: Prepare env and service
+        run: |
+          $TRAVIS_DIR/start-pd.sh
+          $TRAVIS_DIR/start-store.sh
+
       - name: Run common test
         run: |
           mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test
+
+      - name: Run client test
+        run: |
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-client-test
+
+      - name: Run core test
+        run: |
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-core-test
+
+      - name: Run rocksdb test
+        run: |
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-rocksdb-test 
+
+      - name: Run server test
+        run: |
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-server-test
+
+      - name: Run raft-core test
+        run: |
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-raftcore-test 
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
