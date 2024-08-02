@@ -236,13 +236,11 @@
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-netty</artifactId>
                 <version>${grpc.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-stub</artifactId>
                 <version>${grpc.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.protobuf</groupId>
@@ -273,20 +271,6 @@
     <build>
         <pluginManagement>
             <plugins>
-                <plugin>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.1</version>
-                    <configuration>
-                        <source>${maven.compiler.source}</source>
-                        <target>${maven.compiler.target}</target>
-                        <compilerArguments>
-                            <Xmaxerrs>500</Xmaxerrs>
-                        </compilerArguments>
-                        <compilerArgs>
-                            <arg>-Xlint:unchecked</arg>
-                        </compilerArgs>
-                    </configuration>
-                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>

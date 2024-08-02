@@ -430,6 +430,9 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
 
             ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
+            if (hugeConfig.get(RocksDBOptions.DISABLE_AUTO_COMPACTION)) {
+                cfOptions.setDisableAutoCompactions(true);
+            }
             RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
 
             if (columnFamilyBytes.size() > 0) {
