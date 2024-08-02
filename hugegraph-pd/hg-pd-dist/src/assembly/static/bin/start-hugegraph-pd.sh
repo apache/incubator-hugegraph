@@ -159,8 +159,10 @@ if [ $(ps -ef|grep -v grep| grep java|grep -cE ${CONF}) -ne 0 ]; then
 fi
 echo "Starting HugeGraphPDServer..."
 
+JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
+
 # Turn on security check
-exec ${JAVA} -Dname="HugeGraphPD" ${JAVA_OPTIONS} -jar \
+exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
     -Dspring.config.location=${CONF}/application.yml ${LIB}/hg-pd-service-*.jar >> ${OUTPUT} 2>&1 &
 
 PID="$!"
