@@ -29,6 +29,7 @@
     <artifactId>hugegraph-dist</artifactId>
 
     <properties>
+        <final.destfile>${top.level.dir}/${final.name}.tar.gz</final.destfile>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
@@ -113,6 +114,14 @@
                     <artifactId>jBCrypt</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- declare to avoid java.lang.ClassNotFoundException: io.grpc.stub.AbstractBlockingStub when launching
+             server with IDE -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>${grpc.version}</version>
         </dependency>
     </dependencies>
 
