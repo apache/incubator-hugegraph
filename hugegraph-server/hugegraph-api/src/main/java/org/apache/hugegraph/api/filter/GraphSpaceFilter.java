@@ -17,18 +17,18 @@
 
 package org.apache.hugegraph.api.filter;
 
+import java.io.IOException;
+import java.net.URI;
+
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.ext.Provider;
-
-import org.apache.hugegraph.util.Log;
-import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.net.URI;
 
 @Provider
 @Singleton
