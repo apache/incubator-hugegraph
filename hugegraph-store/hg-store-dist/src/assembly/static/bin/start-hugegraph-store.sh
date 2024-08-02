@@ -37,42 +37,14 @@ OUTPUT=${LOGS}/hugegraph-store-server.log
 GITHUB="https://github.com"
 PID_FILE="$BIN/pid"
 
+. "$BIN"/util.sh
+
 arch=$(uname -m)
 echo "Current arch: $arch"
 
-download_and_verify() {
-    local url=$1
-    local filepath=$2
-    local expected_md5=$3
-
-    if [[ -f $filepath ]]; then
-        echo "File $filepath exists. Verifying MD5 checksum..."
-        actual_md5=$(md5sum $filepath | awk '{ print $1 }')
-        if [[ $actual_md5 != $expected_md5 ]]; then
-            echo "MD5 checksum verification failed for $filepath. Expected: $expected_md5, but got: $actual_md5"
-            echo "Deleting $filepath..."
-            rm -f $filepath
-        else
-            echo "MD5 checksum verification succeeded for $filepath."
-            return 0
-        fi
-    fi
-
-    echo "Downloading $filepath..."
-    curl -L -o $filepath $url
-
-    actual_md5=$(md5sum $filepath | awk '{ print $1 }')
-    if [[ $actual_md5 != $expected_md5 ]]; then
-        echo "MD5 checksum verification failed for $filepath after download. Expected: $expected_md5, but got: $actual_md5"
-        return 1
-    fi
-
-    return 0
-}
-
 if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
     lib_file="$TOP/bin/libjemalloc_aarch64.so"
-    download_url="https://github.com/apache/incubator-hugegraph/raw/master/hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc_aarch64.so"
+    download_url="https://github.com/apache/hugegraph-doc/raw/binary/dist/server/libjemalloc_aarch64.so"
     expected_md5="2a631d2f81837f9d5864586761c5e380"
     if download_and_verify $download_url $lib_file $expected_md5; then
         export LD_PRELOAD=$lib_file
@@ -81,7 +53,7 @@ if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
     fi
 elif [[ $arch == "x86_64" ]]; then
     lib_file="$TOP/bin/libjemalloc.so"
-    download_url="https://github.com/apache/incubator-hugegraph/raw/master/hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc.so"
+    download_url="https://github.com/apache/hugegraph-doc/raw/binary/dist/server/libjemalloc.so"
     expected_md5="fd61765eec3bfea961b646c269f298df"
     if download_and_verify $download_url $lib_file $expected_md5; then
         export LD_PRELOAD=$lib_file
@@ -138,11 +110,6 @@ while getopts "g:j:y:" arg; do
         ?) echo "USAGE: $0 [-g g1] [-j xxx] [-y true|false]" && exit 1 ;;
     esac
 done
-
-
-
-
-. "$BIN"/util.sh
 
 ensure_path_writable "$LOGS"
 ensure_path_writable "$PLUGINS"

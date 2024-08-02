@@ -82,7 +82,7 @@ check_port "$REST_SERVER_URL"
 
 # Note: Only download hugegraph-server.keystore when we config https (check the conf file)
 if [[ $REST_SERVER_URL == https* && ! -e "${CONF}/hugegraph-server.keystore" ]]; then
-    download "${CONF}" "https://github.com/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
+    download "${CONF}" "https://github.com/apache/hugegraph-doc/raw/binary/dist/server/hugegraph-server.keystore"
 fi
 
 if [ ! -d "$LOGS" ]; then
