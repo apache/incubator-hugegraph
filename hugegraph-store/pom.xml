@@ -19,9 +19,7 @@
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
     <modelVersion>4.0.0</modelVersion>
-
     <artifactId>hugegraph-store</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
@@ -77,12 +75,11 @@
                 <artifactId>hg-store-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!--        TODO: uncomment later-->
-            <!--            <dependency>-->
-            <!--                <groupId>org.apache.hugegraph</groupId>-->
-            <!--                <artifactId>hg-store-transfer</artifactId>-->
-            <!--                <version>${project.version}</version>-->
-            <!--            </dependency>-->
+            <dependency>
+                <groupId>org.apache.hugegraph</groupId>
+                <artifactId>hg-store-transfer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-slf4j-impl</artifactId>
@@ -155,56 +152,55 @@
     </build>
 
     <profiles>
-        <!--        TODO: uncomment later-->
         <!-- hugegraph store test profiles -->
-        <!--        <profile>-->
-        <!--            <id>store-client-test</id>-->
-        <!--            <activation>-->
-        <!--                <activeByDefault>true</activeByDefault>-->
-        <!--            </activation>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                        <artifactId>maven-surefire-plugin</artifactId>-->
-        <!--                        <version>2.20</version>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <id>store-client-test</id>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>test</goal>-->
-        <!--                                </goals>-->
-        <!--                                <phase>test</phase>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
-        <!--        <profile>-->
-        <!--            <id>store-core-test</id>-->
-        <!--            <activation>-->
-        <!--                <activeByDefault>true</activeByDefault>-->
-        <!--            </activation>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                        <artifactId>maven-surefire-plugin</artifactId>-->
-        <!--                        <version>2.20</version>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <id>store-core-test</id>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>test</goal>-->
-        <!--                                </goals>-->
-        <!--                                <phase>test</phase>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
+        <profile>
+            <id>store-client-test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.20</version>
+                        <executions>
+                            <execution>
+                                <id>store-client-test</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>store-core-test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.20</version>
+                        <executions>
+                            <execution>
+                                <id>store-core-test</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>store-common-test</id>
             <activation>
@@ -229,77 +225,77 @@
                 </plugins>
             </build>
         </profile>
-        <!--        <profile>-->
-        <!--            <id>store-rocksdb-test</id>-->
-        <!--            <activation>-->
-        <!--                <activeByDefault>true</activeByDefault>-->
-        <!--            </activation>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                        <artifactId>maven-surefire-plugin</artifactId>-->
-        <!--                        <version>2.20</version>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <id>sit -test</id>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>test</goal>-->
-        <!--                                </goals>-->
-        <!--                                <phase>test</phase>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
-        <!--        <profile>-->
-        <!--            <id>store-server-test</id>-->
-        <!--            <activation>-->
-        <!--                <activeByDefault>true</activeByDefault>-->
-        <!--            </activation>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                        <artifactId>maven-surefire-plugin</artifactId>-->
-        <!--                        <version>2.20</version>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <id>store-server-test</id>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>test</goal>-->
-        <!--                                </goals>-->
-        <!--                                <phase>test</phase>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
-        <!--        <profile>-->
-        <!--            <id>store-raftcore-test</id>-->
-        <!--            <activation>-->
-        <!--                <activeByDefault>true</activeByDefault>-->
-        <!--            </activation>-->
-        <!--            <build>-->
-        <!--                <plugins>-->
-        <!--                    <plugin>-->
-        <!--                        <groupId>org.apache.maven.plugins</groupId>-->
-        <!--                        <artifactId>maven-surefire-plugin</artifactId>-->
-        <!--                        <version>2.20</version>-->
-        <!--                        <executions>-->
-        <!--                            <execution>-->
-        <!--                                <id>store-raftcore-test</id>-->
-        <!--                                <goals>-->
-        <!--                                    <goal>test</goal>-->
-        <!--                                </goals>-->
-        <!--                                <phase>test</phase>-->
-        <!--                            </execution>-->
-        <!--                        </executions>-->
-        <!--                    </plugin>-->
-        <!--                </plugins>-->
-        <!--            </build>-->
-        <!--        </profile>-->
+        <profile>
+            <id>store-rocksdb-test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.20</version>
+                        <executions>
+                            <execution>
+                                <id>store-rocksdb-test</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>store-server-test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.20</version>
+                        <executions>
+                            <execution>
+                                <id>store-server-test</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <id>store-raftcore-test</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <version>2.20</version>
+                        <executions>
+                            <execution>
+                                <id>store-raftcore-test</id>
+                                <goals>
+                                    <goal>test</goal>
+                                </goals>
+                                <phase>test</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
