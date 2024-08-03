@@ -6,7 +6,7 @@ Required:
 * Java 11
 * Maven 3.5+
 
-To build without executing tests: `mvn clean package -DskipTests`
+To build without executing tests: `mvn clean package -Dmaven.test.skip=true`
 
 ## Building in IDEA
 

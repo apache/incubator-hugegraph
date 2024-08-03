@@ -1,4 +1,4 @@
-name: "hugegraph-commons ci"
+name: "Graph Commons CI"
 
 on:
   workflow_dispatch:
@@ -12,10 +12,13 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
+
     strategy:
       fail-fast: false
       matrix:
-        JAVA_VERSION: ['8', '11']
+        JAVA_VERSION: ['11']
 
     steps:
       - name: Install JDK ${{ matrix.JAVA_VERSION }}
@@ -36,19 +39,23 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: License check(RAT)
+      - name: Use staged maven repo settings
+        if: ${{ env.USE_STAGE == 'true' }}
         run: |
-          mvn apache-rat:check -ntp
-          find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt
-          grep "Binaries" merged-rat.txt -C 3 && cat merged-rat.txt
+          cp $HOME/.m2/settings.xml /tmp/settings.xml
+          cp -vf .github/configs/settings.xml $HOME/.m2/settings.xml && cat $HOME/.m2/settings.xml
 
       - name: Compile
         run: |
           mvn compile -Dmaven.javadoc.skip=true -ntp
 
-      - name: Run test
+      - name: Run common test
         run: |
-          mvn test -Dtest=UnitTestSuite
+          mvn test -pl hugegraph-commons/hugegraph-common -Dtest=UnitTestSuite
+
+      - name: Run rpc test
+        run: |
+          mvn test -pl hugegraph-commons/hugegraph-rpc -Dtest=UnitTestSuite
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0

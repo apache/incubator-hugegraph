@@ -23,14 +23,14 @@ COPY . /pkg
 WORKDIR /pkg
 ARG MAVEN_ARGS
 
-RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l && rm \
+RUN mvn package $MAVEN_ARGS -e -B -ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true && pwd && ls -l && rm \
     ./hugegraph-server/*.tar.gz && rm ./hugegraph-pd/*.tar.gz && rm ./hugegraph-store/*.tar.gz
 
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13
 FROM openjdk:11-slim
 
-COPY --from=build /pkg/hugegraph-store/apache-hugegraph-incubating-store-*/ /hugegraph-store/
+COPY --from=build /pkg/hugegraph-store/apache-hugegraph-store-incubating-*/ /hugegraph-store/
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
