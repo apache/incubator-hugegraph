@@ -52,10 +52,12 @@ public final class BytesBuffer extends OutputStream {
     public static final int FLOAT_LEN = Float.BYTES;
     public static final int DOUBLE_LEN = Double.BYTES;
     public static final int BLOB_LEN = 4;
+    public static final int BYTES_LEN = 5;
 
     public static final int UINT8_MAX = ((byte) -1) & 0xff;
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
+    public static final int INT32_MAX = Integer.MAX_VALUE;
 
     // NOTE: +1 to let code 0 represent length 1
     public static final int ID_LEN_MASK = 0x7f;
@@ -64,8 +66,11 @@ public final class BytesBuffer extends OutputStream {
 
     public static final byte STRING_ENDING_BYTE = (byte) 0x00;
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
-    public static final int STRING_LEN_MAX = UINT16_MAX;
+
     public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
+    public static final long BYTES_LEN_MAX = INT32_MAX;
+
+    public static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
@@ -288,10 +293,10 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeBytes(byte[] bytes) {
-        E.checkArgument(bytes.length <= UINT16_MAX,
+        E.checkArgument(bytes.length <= BYTES_LEN_MAX,
                         "The max length of bytes is %s, but got %s",
-                        UINT16_MAX, bytes.length);
-        require(SHORT_LEN + bytes.length);
+                        BYTES_LEN_MAX, bytes.length);
+        require(BYTES_LEN + bytes.length);
         this.writeVInt(bytes.length);
         this.write(bytes);
         return this;
