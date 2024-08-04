@@ -67,9 +67,9 @@ public class GraphStoreImpl extends GraphStoreImplBase {
     }
 
     /**
-     * Streaming reply message，每个消息带有seqNo
-     * The client consumes one message for each consumption，应答一个seqNo
-     * The server is based on the clientseqNo决定发送几个数据包
+     * Streaming Reply Message, each message has seqno
+     * The Client Consumes One Message for Each Consumption, answer a seqno
+     * The server is base on the clientseqno decided to send a few packets
      *
      * @param ro
      * @return

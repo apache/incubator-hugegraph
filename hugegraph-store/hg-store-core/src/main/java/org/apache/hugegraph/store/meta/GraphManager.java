@@ -41,7 +41,7 @@ public class GraphManager extends GlobalMetaStore {
 
     /**
      * Modify the picture
-     * No lock here，要求graph是被克隆的，进制修改原始对象
+     * No Lock Here, requires Graph is cloned, and the original object is modified in advance
      *
      * @param graph
      * @return

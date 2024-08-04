@@ -245,7 +245,7 @@ public class DefaultPdProvider implements PdProvider {
     }
 
     /**
-     * start uppartition心跳流式传输
+     * Start Upppartition
      *
      * @return
      */

@@ -44,7 +44,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Batch processinggrpc回调封装类
+ * BATCH ProcessingGRPC callback packaging class
  *
  * @param <V>
  */
@@ -158,7 +158,7 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * waitraft执行结束，返回结果给grpc
+     * Waitract execution is over, the return result is given to GRPC
      */
     public void waitFinish(StreamObserver<V> observer, Function<List<V>, V> ok, long timeout) {
         try {
@@ -186,7 +186,7 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * Select a wrong result from multiple results to return，如果没有错误，返回第一个
+     * SELECT A Wrong Result from Multiple Results to Return, if there is no error, return the first one
      */
     public FeedbackRes selectError(List<FeedbackRes> results) {
         if (!CollectionUtils.isEmpty(results)) {

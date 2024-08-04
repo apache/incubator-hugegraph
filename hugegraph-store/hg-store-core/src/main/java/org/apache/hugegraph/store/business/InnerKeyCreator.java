@@ -62,7 +62,7 @@ public class InnerKeyCreator {
     }
 
     /**
-     * fromkey中解析出keyCode
+     * FROMKEY to understand keycode
      */
     public int parseKeyCode(byte[] innerKey) {
         return Bits.getShort(innerKey, innerKey.length - Short.BYTES);

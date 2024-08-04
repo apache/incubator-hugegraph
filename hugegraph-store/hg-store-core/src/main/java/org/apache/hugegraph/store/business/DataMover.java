@@ -28,7 +28,7 @@ import org.apache.hugegraph.store.cmd.UpdatePartitionResponse;
 import com.alipay.sofa.jraft.Status;
 
 /**
- * Data transfer interface，实现分区分裂和合并，支持跨机器转移数据
+ * Data Transfer Interface to realize partition and mergers, support transit transmission data
  */
 public interface DataMover {
 
@@ -37,8 +37,8 @@ public interface DataMover {
     void setCmdClient(HgCmdClient client);
 
     /**
-     * Copy districtsource内的数据到其他分区targets
-     * A partition，迁移到多个分区
+     * Data in Copy Distribesource to other partitions Targets
+     * A partition, migrate to multiple partitions
      *
      * @param source  source partition
      * @param targets target partitions
@@ -48,7 +48,7 @@ public interface DataMover {
     Status moveData(Metapb.Partition source, List<Metapb.Partition> targets) throws Exception;
 
     /**
-     * Willsource target的数据全部拷贝到target上
+     * All data of Willsource Target is copied to target
      * Move from one partition to another partition
      *
      * @param source source partition

@@ -54,7 +54,7 @@ public class ScanBatchResponseFactory {
     }
 
     /**
-     * Check whetherStream是否活跃，超时的Stream及时关闭
+     * Check whether stream is active.
      */
     public void checkStreamActive() {
         streamObservers.forEach(streamObserver -> {

@@ -38,7 +38,7 @@ public interface SessionOperator {
     ScanIterator scan(String tableName, byte[] keyFrom, byte[] keyTo, int scanType);
 
     /**
-     * Scan allcf指定范围的数据
+     * Data from scan all cf specified range
      */
     ScanIterator scanRaw(byte[] keyFrom, byte[] keyTo, long startSeqNum);
 
@@ -62,7 +62,7 @@ public interface SessionOperator {
     void deleteRange(String table, byte[] keyFrom, byte[] keyTo) throws DBStoreException;
 
     /**
-     * Delete everythingcf指定范围的数据
+     * DELETE Everythingcf Specify Data at the specified range
      */
     void deleteRange(byte[] keyFrom, byte[] keyTo) throws DBStoreException;
 

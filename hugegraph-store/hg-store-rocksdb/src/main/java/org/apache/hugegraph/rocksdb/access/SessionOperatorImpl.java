@@ -219,7 +219,8 @@ public class SessionOperatorImpl implements SessionOperator {
     }
 
     /**
-     * Commit to throw an abnormality, be sure to callrollback，否则会造成cfHandleReadLock未释放
+     * Commit to think an Abnormality, be sure to callRollback, otherwise cfHandleReadLock will
+     * not be released
      */
     @Override
     public Integer commit() throws DBStoreException {
@@ -302,8 +303,8 @@ public class SessionOperatorImpl implements SessionOperator {
     }
 
     /**
-     * Traversing allcf指定范围的数据
-     * TODO: Rocksdb7.x does not support setStartSeqNum，改为使用 Timestamp
+     * TRAVERSING ALLCF Specify Data
+     * TODO: Rocksdb7.x Does Not Support SetstartSeqnum and changed to use Timestamp
      * refer: https://github.com/facebook/rocksdb/wiki/User-defined-Timestamp
      */
     @Override

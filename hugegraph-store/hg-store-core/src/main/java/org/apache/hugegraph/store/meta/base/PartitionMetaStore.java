@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.meta.base;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 
 /**
- * Metadata stored in partitionsdefault cf中
+ * Metadata Stored in PARTITIONSDEFALT CF
  */
 public class PartitionMetaStore extends MetaStoreBase {
 

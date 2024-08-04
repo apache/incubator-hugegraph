@@ -465,7 +465,7 @@ public class HgThread2DB {
     /**
      * Multi -thread query
      *
-     * @param Point     Start Query Point, followed up according to this pointvalue做为下一次的查询条件进行迭代
+     * @param Point Start Query Point, Followed Up According to this PointValue as the next query condition to iterate
      * @param Scancount allows the number of threads to start
      * @throws IOException
      * @throws InterruptedException

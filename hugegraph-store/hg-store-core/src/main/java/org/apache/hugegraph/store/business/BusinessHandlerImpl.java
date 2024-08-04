@@ -232,12 +232,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * according to keyCode 范围返回数据，左闭右开
+     * According to keycode Return the data, open left and right
      *
      * @param graph
      * @param table
-     * @param codeFrom start code，包含该值
-     * @param codeTo   ends code，不包含该值
+     * @param codeFrom Start Code, which contains this value
+     * @param codeTo   Ends Code, does not contain this value
      * @return
      * @throws HgStoreException
      */
@@ -574,8 +574,9 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * Clean up partition data，删除非本分区的数据
-     * Traversal partId 的所有 key，读取 code，if code >= splitKey 生成新的 key，写入 newPartId
+     * Clean Up Partition Data, delete data from non -this partition
+     * All key of traversal partid, read code, if code> = splitkey generates new key, write
+     * newpartid
      */
     private boolean cleanPartition(Partition partition,
                                    Function<Integer, Boolean> belongsFunction) {
@@ -668,7 +669,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * Obtain dbsession，不更新 dbsession 活跃时间
+     * Obtain dbSession, not updated DBSession active time
      */
     @Override
     public RocksDBSession getSession(int partId) throws HgStoreException {
@@ -737,7 +738,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * right rocksdb 进行 compaction
+     * Right Rocksdb for compaction
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId) {
@@ -745,7 +746,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * right rocksdb 进行 compaction
+     * Right Rocksdb for compaction
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId, String tableName) {
@@ -763,7 +764,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * Destroy the map，并删除数据文件
+     * Destroy The Map, and delete the data file
      *
      * @param graphName
      * @param partId

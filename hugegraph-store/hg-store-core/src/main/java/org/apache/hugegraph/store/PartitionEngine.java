@@ -144,7 +144,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 //    }
 
     /**
-     * Record using this bookraft的分区信息
+     * Record USing This Bookral's partition information
      */
 
     public synchronized void loadPartitionFromSnapshot(Partition partition) {
@@ -280,22 +280,22 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * 1. ReceivePD发送的分区迁移指令，向状态机添加迁移任务，状态为新建
-     * 2. Execute the status machine message，添加到任务队列，并执行任务
-     * 3, relatively new and oldpeer，查找出新增和删除的peer
+     * 1. Partition migration instructions sent by ReceivePd, add migration tasks to the status machine, and the state is newly built
+     * 2. Execute the Status Machine Message, add to the task queue, and execute the task
+     * 3, Relatively New and Oldpeer, find the new and deleted Peer
      * 4. If there is a new onepeer
-     * 4.1. For the newly addedpeer，通知peer创建raft状态机
-     * 4.2, tolearner方式加入raft group
-     * 4.3, monitorsnapshot同步事件，重复执行步骤3
+     * 4.1. For the newly addedpeer, notify Peer to create a Raft status machine
+     * 4.2, tolearner to add RAFT Group
+     * 4.3, monitorsnapshot synchronization event, repeat execution step 3
      * 5. No new one is addedpeer
-     * 5.1, removelearner，并等待返回
-     * 5.2, modifylearner为peer，加入raft group
+     * 5.1, Removelearner, and wait to return
+     * 5.2, Modifylearner is Peer, add RAFT Group
      * 6. Existing deletedpeer
-     * 6.1, noticepeer，删除状态机并删除数据
+     * 6.1, noticepeer, delete the status machine and delete data
      *
      * @param peers
      * @param done
-     * @Return true representation complete，false表示未完成
+     * @Return true representation complete, false means unfinished
      */
     public Status changePeers(List<String> peers, final Closure done) {
         if (ListUtils.isEqualList(peers, RaftUtils.getPeerEndpoints(raftNode))) {
@@ -462,7 +462,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * Restartraft引擎
+     * RESTRTRAFT engine
      */
     public void restartRaftNode() {
         shutdown();
@@ -471,7 +471,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * Check whether it is active，如果不活跃，则重启
+     * Check WHETHER it is active, if not active, restart
      */
     public void checkActivity() {
         Utils.runInThread(() -> {
@@ -484,7 +484,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * RAFT Peer is destroyed，删除日志和数据
+     * RAFT Peer is Destroyed, delete logs and data
      */
     public void destroy() {
         shutdown();
@@ -534,7 +534,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * waitLeader被选举
+     * WaitLeader is elected
      *
      * @param timeOut
      * @return
@@ -715,7 +715,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * receivePD发送的leader转移指令
+     * Leader transfer instruction sent by ReceivePd
      *
      * @param graphName
      * @param shard
@@ -730,11 +730,11 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * receivedpd发来的修改副本指令
-     * 1. Compared with new and oldpeer，查找出新增和删除的peer
-     * 2. For the newly addedpeer，以learner方式加入
+     * Revised copy instructions sent by ReceivedPD
+     * 1. Compared with new and oldpeer to find the new and deleted peer
+     * 2. For the newly addedpeer, add it as a Learner manner
      * 3. Surveillance snapshot synchronization event
-     * 4. After the snapshot is synchronized，调用changePeers，修改learner为follower，删除旧的peer
+     * 4. After the snapshot is synchronized, call Changepers, modify the Learner to the follower, delete the old Peer
      */
     public void doChangeShard(final MetaTask.Task task, Closure done) {
         if (!isLeader()) {
@@ -837,10 +837,10 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * receivePD发送的分区之间转移数据
-     * 1. Notify the target machine，创建raft
+     * Transfer data between partitions sent by Receivepd
+     * 1. Notify the Target Machine, create RAFT
      * 2. From the source machine copy data to the target machine
-     * 3. After the migration is successful，通知PD修改分区信息
+     * 3. After the migration is successful, notify the PD to modify the partition information
      * 4. Delete the source partition
      *
      * @return
@@ -965,14 +965,14 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * For the clearance of the entire picture deleted，删除分区， 如果没有其他的图，销毁raft group.
-     * Need to put it to callmove data 之后
+     * For the Cleaarence of the Entire Picture Deleted, delete the partition, if there are no other pictures, destroy RAFT Group.
+     * NEED to put it to callmove data
      *
      * @param graphName   graph name
      * @param partitionId partition id
      * @param Keystart Key Start is used to verify
      * @param Keynd Key END for verification
-     * @param Isleaderleader，避免leader漂移，采取move data时候的leader状态
+     * @param IsleaderLeader, avoid the leader drift, take the leader status when taking the Move Data
      */
     private synchronized void destroyPartitionIfGraphsNull(String graphName, int partitionId,
                                                            long keyStart, long keyEnd,
@@ -1156,8 +1156,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         }
 
         /**
-         * Monitorreplicator状态改变，判断快照是否同步完成
-         * Check whether it existschangeShard任务，如果存在，调用changeShard
+         * MonitorReplicator state change, judge whether the snapshot is completed simultaneously
+         * Check WHETHER It ExistSchangeshard task, if it exists, call Changeshard
          */
         @Override
         public void stateChanged(final PeerId peer, final ReplicatorState newState) {

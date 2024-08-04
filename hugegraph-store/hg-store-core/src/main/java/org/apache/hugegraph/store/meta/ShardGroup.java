@@ -35,12 +35,12 @@ public class ShardGroup {
     private List<Shard> shards = new CopyOnWriteArrayList<>();
     private int id;
     /**
-     * Leader term，leader 切换后递增 = raftNode.leader_term
+     * Leader Term, Leader increases after switching = raftNode.leader_term
      * No practical use
      */
     private long version;
     /**
-     * Shards version number，每次改变后递增
+     * Shards Version Number, increased after each change
      */
     private long confVersion;
 

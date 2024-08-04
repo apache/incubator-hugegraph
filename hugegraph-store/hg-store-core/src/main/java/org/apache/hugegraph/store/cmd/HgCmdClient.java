@@ -128,7 +128,7 @@ public class HgCmdClient {
     }
 
     /**
-     * passraft更新本地分区信息
+     * PassRAFT update local partition information
      *
      * @param request
      * @return
@@ -138,7 +138,7 @@ public class HgCmdClient {
     }
 
     /**
-     * FindLeader，错误重试，处理Leader重定向
+     * FindLeader, make a mistake, handle the leader redirect
      *
      * @param request
      * @return

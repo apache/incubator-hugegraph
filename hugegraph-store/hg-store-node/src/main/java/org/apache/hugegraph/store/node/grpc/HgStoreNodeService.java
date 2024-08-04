@@ -125,9 +125,9 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * Add toraft 任务，转发数据给raft
+     * Add Toraft task, forward data to RAFT
      *
-     * @Return true means that the data has been submitted，false表示未提交，用于单副本入库减少批次拆分
+     * @Return true means that the data has ben submitted, False indicates that it is not submitted and used to reduce batch splitting by single copy.
      */
     public <Req extends com.google.protobuf.GeneratedMessageV3>
     void addRaftTask(byte methodId, String graphName, Integer partitionId, Req req,
@@ -159,7 +159,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * The task from the log，一般是follower 或者 日志回滚的任务
+     * The task from the log, usually the task of rolling from follower or log back
      */
     @Override
     public boolean invoke(int partId, byte[] request, RaftClosure response) throws
@@ -190,7 +190,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * deal withraft传送过来的数据
+     * Data transmitted by deal withraft
      */
     @Override
     public boolean invoke(int partId, byte methodId, Object req, RaftClosure response) throws

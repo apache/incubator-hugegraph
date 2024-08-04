@@ -48,7 +48,7 @@ public class HgStoreNodePartitionerImpl implements HgStoreNodePartitioner,
     }
 
     /**
-     * Query partition information，结果通过HgNodePartitionerBuilder返回
+     * Query Partition Information, the result is returned through HGNODEPARTITITITITINERBUILDER
      */
     @Override
     public int partition(HgNodePartitionerBuilder builder, String graphName,
@@ -141,7 +141,7 @@ public class HgStoreNodePartitionerImpl implements HgStoreNodePartitioner,
     }
 
     /**
-     * Inquirehgstore信息
+     * Inquirehgstore information
      *
      * @return hgstore
      */

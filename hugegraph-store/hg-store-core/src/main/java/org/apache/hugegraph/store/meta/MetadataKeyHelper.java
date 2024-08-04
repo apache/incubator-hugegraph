@@ -61,7 +61,7 @@ public class MetadataKeyHelper {
     }
 
     /**
-     * Query everything in the partitionpartition prefix， 不包含 graph name
+     * Query Everything in the PartitionPartition Prefix, does not include Graph Name
      *
      * @return
      */

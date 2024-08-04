@@ -209,7 +209,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * Add to queue，返回队列是否已满
+     * Add to queue, is it full of returning queue
      *
      * @param data
      * @Return false: The queue is full

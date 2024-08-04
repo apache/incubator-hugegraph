@@ -37,10 +37,10 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Batch query processor，批量查询数据，流式返回数据。
+ * Batch Query Processor, query data in batches, and return data.
  * 1. Server streaming data to the client
- * 2. The client consumes a batch of data per consumption，返回批次号给服务端
- * 3. How much data does the server decide according to the batch number，保证传送数据的不间断，
+ * 2. The Client Consumes A Batch of Data Per Consumption, returns the batch number to the server
+ * 3. How Much Data DOES The Server Decide According to the Batch Number to ensure the continuous transmission data,
  */
 @Slf4j
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
@@ -84,7 +84,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
 
     /**
      * Receive messages sent by the client
-     * Services on the server to process messages，不阻塞网络
+     * Services on the Server to Process Messages, not blocking the network
      *
      * @param request
      */
@@ -255,7 +255,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * Check whether it is active，超过一定时间客户端没有请求数据，认为已经不活跃，关闭连接释放资源
+     * Check WHETHER It is Active, for more than a certain period of time, the client does not have request data, and it is believed that it is not active and close the connection to release the resource
      */
     public void checkActiveTimeout() {
         if ((System.currentTimeMillis() - activeTime) > activeTimeout * 1000L) {

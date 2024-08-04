@@ -38,7 +38,8 @@ import com.alipay.sofa.jraft.util.StorageOptionsFactory;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * use FakePd 和 FakePdOptions，初始化 HgStoreEngine，该类的各项 get 函数可用
+ * Use FakePd and FakePdOptions, initialize HGStorEngine, the various get functions of this class
+ * are available
  */
 @Slf4j
 public class StoreEngineTestBase {
@@ -92,7 +93,8 @@ public class StoreEngineTestBase {
     }
 
     /**
-     * Create 分区为 0 的 partition engine. 该分区 1 个 shard，为 leader, graph name: graph0
+     * Partition Engine with 0 Create partition. This partition is 1 Shard, which is Leader,
+     * Graph Name: Graph0
      *
      * @return
      */

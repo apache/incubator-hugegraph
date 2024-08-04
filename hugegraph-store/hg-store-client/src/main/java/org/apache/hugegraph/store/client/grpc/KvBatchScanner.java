@@ -87,7 +87,7 @@ public class KvBatchScanner implements Closeable {
 
     /**
      * Construct a streaming query iterator
-     * Scanquery for splitting，启动多个流式请求，提升store的并发性
+     * Scanquery for splitting, start multiple streaming requests to enhance the concurrentness of Store
      *
      * @param scanQuery scanQuery
      * @param handler   task handler
@@ -241,7 +241,7 @@ public class KvBatchScanner implements Closeable {
                 maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // A maximum of 1,000 per machine
 
                 /*
-                 * Limit less than10000时启动一个流，节省网络带宽
+                 * Limit less than10000 Start a stream to save network bandwidth
                  */
                 if (scanQuery.getLimit() < maxBatchSize * 30L) {
                     maxTaskSize = 1;
@@ -250,7 +250,7 @@ public class KvBatchScanner implements Closeable {
         }
 
         /**
-         * Disassembling task，任务拆分为多个grpc请求
+         * Dissembling Task, task split into multiple GRPC requests
          */
         public void splitTask() {
             if (this.finished || this.splitting) {

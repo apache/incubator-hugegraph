@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Hgstore unit test
- * 1, testraft多副本入库
+ * 1, testrapt multi -copy into the library
  * 2. Test snapshot synchronization
  * 3. Test copy increase or decrease
  * 4. Test a single -script closure log and enter the warehouse

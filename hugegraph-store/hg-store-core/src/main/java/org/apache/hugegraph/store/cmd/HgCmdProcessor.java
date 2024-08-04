@@ -34,7 +34,7 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Spickness synchronizationrpc处理器，leader批量入库完成后，基于seqnum读取新增的kv,批量发送给follower.
+ * Spickness SynchronizationRPC processor, after the leader is completed in batches, the newly added KV based on seqnum is sent to Follower in batches.
  *
  * @param <T>
  */
