@@ -36,8 +36,8 @@ import org.apache.hugegraph.store.client.util.PropertyUtil;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量查询结果归并，阻塞队列工作模式
- * 对请求任务的拆分,创建多个请求队列
+ * Batch query results are classified，阻塞队列工作模式
+ * Demolition of the request task,创建多个请求队列
  */
 @Slf4j
 public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<HgKvEntry>>,
@@ -125,7 +125,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
     }
 
     /**
-     * 返回值<0表示任务结束
+     * return value<0表示任务结束
      *
      * @param closeable
      * @return
@@ -146,7 +146,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
     }
 
     /**
-     * 组装一个Scanner的多个有序迭代器为一个迭代器
+     * Assemble aScanner的多个有序迭代器为一个迭代器
      */
     static class ScannerDataQueue {
 
@@ -170,7 +170,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
         }
 
         /**
-         * 迭代器是否有效，如果没有数据，等待数据到达
+         * Whether the iterator is valid，如果没有数据，等待数据到达
          *
          * @return
          */
@@ -221,7 +221,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
     }
 
     /**
-     * 对多个Scanner返回结果进行归并排序
+     * MultipleScanner返回结果进行归并排序
      */
     static class SortedScannerMerger extends KvBatchScannerMerger {
 
@@ -286,8 +286,8 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
         }
 
         /**
-         * 从多个Scanner中挑选一个sn最小的迭代器
-         * 如果Scanner没有数据，等待数据到达。
+         * From multipleScanner中挑选一个sn最小的迭代器
+         * ifScanner没有数据，等待数据到达。
          *
          * @return
          */

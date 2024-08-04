@@ -35,7 +35,7 @@ import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Assert;
 
 /**
- * 使用fake-pd，支持raft的单元测试
+ * usefake-pd，支持raft的单元测试
  */
 public class HgSessionManagerOneRaftFakePDTest {
     private static final Map<Integer, Long> leaderMap = new ConcurrentHashMap<>();

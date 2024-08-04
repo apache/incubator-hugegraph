@@ -41,7 +41,7 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
 
 /**
- * Raft 状态机
+ * RAFT status machine
  */
 
 public class HgStoreStateMachine extends StateMachineAdapter {

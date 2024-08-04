@@ -232,12 +232,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 根据 keyCode 范围返回数据，左闭右开
+     * according to keyCode 范围返回数据，左闭右开
      *
      * @param graph
      * @param table
-     * @param codeFrom 起始 code，包含该值
-     * @param codeTo   结束 code，不包含该值
+     * @param codeFrom start code，包含该值
+     * @param codeTo   ends code，不包含该值
      * @return
      * @throws HgStoreException
      */
@@ -435,11 +435,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 清空图数据
+     * Clear map data
      */
     @Override
     public void truncate(String graphName, int partId) throws HgStoreException {
-        // Each partition corresponds to a Rocksdb instance, so the Rocksdb instance name is ROCKSDB + PARTID
+        // Each partition corresponds to a Rocksdb instance, so the Rocksdb instance name is
+        // ROCKSDB + PARTID
         try (RocksDBSession dbSession = getSession(graphName, partId)) {
             dbSession.sessionOp().deleteRange(keyCreator.getStartKey(partId, graphName),
                                               keyCreator.getEndKey(partId, graphName));
@@ -573,8 +574,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 清理分区数据，删除非本分区的数据
-     * 遍历 partId 的所有 key，读取 code，if code >= splitKey 生成新的 key，写入 newPartId
+     * Clean up partition data，删除非本分区的数据
+     * Traversal partId 的所有 key，读取 code，if code >= splitKey 生成新的 key，写入 newPartId
      */
     private boolean cleanPartition(Partition partition,
                                    Function<Integer, Boolean> belongsFunction) {
@@ -667,11 +668,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 获取 dbsession，不更新 dbsession 活跃时间
+     * Obtain dbsession，不更新 dbsession 活跃时间
      */
     @Override
     public RocksDBSession getSession(int partId) throws HgStoreException {
-        // Each partition corresponds to a Rocksdb instance, so the Rocksdb instance name is ROCKSDB + PARTID
+        // Each partition corresponds to a Rocksdb instance, so the Rocksdb instance name is
+        // ROCKSDB + PARTID
         String dbName = getDbName(partId);
         RocksDBSession dbSession = factory.queryGraphDB(dbName);
         if (dbSession == null) {
@@ -735,7 +737,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 对 rocksdb 进行 compaction
+     * right rocksdb 进行 compaction
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId) {
@@ -743,7 +745,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 对 rocksdb 进行 compaction
+     * right rocksdb 进行 compaction
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId, String tableName) {
@@ -761,14 +763,15 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 销毁图，并删除数据文件
+     * Destroy the map，并删除数据文件
      *
      * @param graphName
      * @param partId
      */
     @Override
     public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
-        // Each graph corresponds to a Rocksdb instance, so the Rocksdb instance is named Rocksdb + Partid
+        // Each graph corresponds to a Rocksdb instance, so the Rocksdb instance is named Rocksdb
+        // + Partid
         String dbName = getDbName(partId);
 
         factory.destroyGraphDB(dbName);
@@ -904,7 +907,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
             return new Tx() {
                 @Override
                 public void commit() throws HgStoreException {
-                    op.commit();  // After the abnormality occurs, rollback must be called after the occurrence of abnormalities, otherwise the lock is not released
+                    op.commit();  // After the abnormality occurs, rollback must be called after
+                    // the occurrence of abnormalities, otherwise the lock is not released
                     dbSession.close();
                 }
 

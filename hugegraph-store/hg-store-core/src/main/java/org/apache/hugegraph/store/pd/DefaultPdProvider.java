@@ -245,7 +245,7 @@ public class DefaultPdProvider implements PdProvider {
     }
 
     /**
-     * 启动partition心跳流式传输
+     * start uppartition心跳流式传输
      *
      * @return
      */
@@ -344,7 +344,7 @@ public class DefaultPdProvider implements PdProvider {
     }
 
     /**
-     * 添加服务端消息监听
+     * Add server message monitoring
      *
      * @param listener
      * @return

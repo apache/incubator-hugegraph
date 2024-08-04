@@ -37,10 +37,10 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量查询处理器，批量查询数据，流式返回数据。
- * 1、服务端流式发送数据给客户端
- * 2、客户端每消费一批次数据，返回批次号给服务端
- * 3、服务端根据批次号决定发送多少数据，保证传送数据的不间断，
+ * Batch query processor，批量查询数据，流式返回数据。
+ * 1. Server streaming data to the client
+ * 2. The client consumes a batch of data per consumption，返回批次号给服务端
+ * 3. How much data does the server decide according to the batch number，保证传送数据的不间断，
  */
 @Slf4j
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
@@ -83,8 +83,8 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 接收客户端发送的消息
-     * 服务端另起线程处理消息，不阻塞网络
+     * Receive messages sent by the client
+     * Services on the server to process messages，不阻塞网络
      *
      * @param request
      */
@@ -132,7 +132,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 生成迭代器
+     * Generate iterator
      *
      * @param request
      */
@@ -152,7 +152,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 生成迭代器
+     * Generate iterator
      */
     private void closeQuery() {
         setStateDone();
@@ -178,7 +178,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 发送数据
+     * send data
      */
     private void sendEntries() {
         if (state == State.DONE || iterator == null) {
@@ -255,7 +255,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 检查是否活跃，超过一定时间客户端没有请求数据，认为已经不活跃，关闭连接释放资源
+     * Check whether it is active，超过一定时间客户端没有请求数据，认为已经不活跃，关闭连接释放资源
      */
     public void checkActiveTimeout() {
         if ((System.currentTimeMillis() - activeTime) > activeTimeout * 1000L) {
@@ -265,7 +265,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 任务状态
+     * Task status
      */
     private enum State {
         IDLE,

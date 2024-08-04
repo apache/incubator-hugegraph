@@ -51,8 +51,8 @@ import org.apache.hugegraph.store.client.util.MetricX;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 使用pd，支持raft
- * 读取文件并多线程进行入库
+ * use pd, support raft
+ * Read the file and go into multi threaded warehouse
  */
 @Slf4j
 public class HgThread2DB {
@@ -204,7 +204,7 @@ public class HgThread2DB {
     }
 
     /**
-     * 多线程读取文件入库
+     * Multi -threaded read files to enter the warehouse
      *
      * @throws IOException
      * @throws InterruptedException
@@ -223,7 +223,8 @@ public class HgThread2DB {
 
             String strLine = null;
             String tableName = HgCliUtil.TABLE_NAME;
-            // After accumulating how many rear execution threads are entered into the library, 100,000
+            // After accumulating how many rear execution threads are entered into the library,
+            // 100,000
             int maxlist = 100000;
             List<String> keys = new ArrayList<>(maxlist);
             metrics = MetricX.ofStart();
@@ -232,7 +233,8 @@ public class HgThread2DB {
                     keys.add(strLine);
                     dataCount++;
 
-                    // Read 10,000 pieces of data in the file and enable a thread to enter the warehouse
+                    // Read 10,000 pieces of data in the file and enable a thread to enter the
+                    // warehouse
                     if (dataCount % maxlist == 0) {
                         List<String> finalKeys = keys;
                         Runnable task = () -> {
@@ -310,7 +312,7 @@ public class HgThread2DB {
     }
 
     /**
-     * 多线程读取文件入库
+     * Multi -threaded read files to enter the warehouse
      *
      * @throws IOException
      * @throws InterruptedException
@@ -384,7 +386,8 @@ public class HgThread2DB {
     }
 
     /**
-     * 执行查询，并将查询的结果做为下一次迭代的点放入队列
+     * Execute the query, and put the results of the query as the point of the next iteration
+     * into the queue
      */
     private void queryAnd2Queue() {
         try {
@@ -444,7 +447,8 @@ public class HgThread2DB {
                         }
                     }
                 }
-                // If you do not have enough 10,000 at a time, submit a separate query separately to ensure that all the results can be executed
+                // If you do not have enough 10,000 at a time, submit a separate query separately
+                // to ensure that all the results can be executed
                 if (!newQueryList.isEmpty() && listQueue.size() < 1000) {
                     listQueue.put(newQueryList);
                 }
@@ -459,10 +463,10 @@ public class HgThread2DB {
     }
 
     /**
-     * 多线程查询
+     * Multi -thread query
      *
-     * @param point     起始查询点，后续根据这个点查询到的value做为下一次的查询条件进行迭代
-     * @param scanCount 允许启动的线程数量
+     * @param Point     Start Query Point, followed up according to this pointvalue做为下一次的查询条件进行迭代
+     * @param Scancount allows the number of threads to start
      * @throws IOException
      * @throws InterruptedException
      */

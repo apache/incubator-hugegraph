@@ -47,7 +47,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量流式查询客户端实现类
+ * Batch flow query client implementation class
  * <p>
  * created on 2022/07/23
  *
@@ -86,8 +86,8 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 构建流式查询迭代器
-     * scanQuery进行拆分，启动多个流式请求，提升store的并发性
+     * Construct a streaming query iterator
+     * Scanquery for splitting，启动多个流式请求，提升store的并发性
      *
      * @param scanQuery scanQuery
      * @param handler   task handler
@@ -115,7 +115,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 发送查询请求
+     * Send query request
      *
      * @param query scan query
      */
@@ -133,7 +133,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 发送应答
+     * Send response
      */
     public void sendResponse() {
         try {
@@ -164,7 +164,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 数据接收结束
+     * Data reception is over
      */
     public void dataComplete() {
         close();
@@ -192,7 +192,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 任务拆分器
+     * Task splitter
      */
     static class TaskSplitter {
 
@@ -229,7 +229,7 @@ public class KvBatchScanner implements Closeable {
         }
 
         /**
-         * 评估最大任务数
+         * Evaluate the maximum task number
          */
         private void evaluateMaxTaskSize() {
             if (maxTaskSize == 0) { // Based on the first batch of tasks, get the number of stores, and then calculate the maximum number of tasks
@@ -241,7 +241,7 @@ public class KvBatchScanner implements Closeable {
                 maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // A maximum of 1,000 per machine
 
                 /*
-                 * Limit少于10000时启动一个流，节省网络带宽
+                 * Limit less than10000时启动一个流，节省网络带宽
                  */
                 if (scanQuery.getLimit() < maxBatchSize * 30L) {
                     maxTaskSize = 1;
@@ -250,7 +250,7 @@ public class KvBatchScanner implements Closeable {
         }
 
         /**
-         * 拆分任务，任务拆分为多个grpc请求
+         * Disassembling task，任务拆分为多个grpc请求
          */
         public void splitTask() {
             if (this.finished || this.splitting) {
@@ -292,7 +292,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 查询结果接收器
+     * Query results receiver
      */
     static class KvBatchReceiver implements StreamObserver<KvStream> {
 

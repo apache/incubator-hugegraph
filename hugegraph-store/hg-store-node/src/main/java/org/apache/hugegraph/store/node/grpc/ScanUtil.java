@@ -149,7 +149,7 @@ class ScanUtil {
     }
 
     /**
-     * 支持并行读取的多迭代器
+     * Support parallel reading multi -iterators
      */
     static ScanIterator getParallelIterator(String graph, ScanQueryRequest request,
                                             HgStoreWrapperEx wrapper, ThreadPoolExecutor executor) {

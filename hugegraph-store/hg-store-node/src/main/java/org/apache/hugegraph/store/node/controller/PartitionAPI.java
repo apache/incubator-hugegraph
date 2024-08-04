@@ -142,7 +142,7 @@ public class PartitionAPI {
     }
 
     /**
-     * 打印分区的所有key
+     * All in the printing partitionkey
      */
     @GetMapping(value = "/partition/dump/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> dumpPartition(@PathVariable(value = "id") int id) throws
@@ -171,7 +171,7 @@ public class PartitionAPI {
     }
 
     /**
-     * 打印分区的所有key
+     * All in the printing partitionkey
      */
     @GetMapping(value = "/partition/clean/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public Map<String, Object> cleanPartition(@PathVariable(value = "id") int id) throws

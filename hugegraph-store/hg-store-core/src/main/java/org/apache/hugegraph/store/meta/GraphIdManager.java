@@ -29,7 +29,7 @@ import org.apache.hugegraph.store.util.HgStoreException;
 import com.google.protobuf.Int64Value;
 
 /**
- * GraphId管理器，维护一个自增循环ID，负责管理GraphName和GraphId的映射
+ * Graphid Manager，维护一个自增循环ID，负责管理GraphName和GraphId的映射
  */
 public class GraphIdManager extends PartitionMetaStore {
 
@@ -69,7 +69,7 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 获取一个图的id
+     * Get a pictureid
      */
     public long getGraphId(String graphName) {
         Long l = graphIdCache.get(graphName);
@@ -97,7 +97,7 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 释放一个图id
+     * Release a pictureid
      */
     public long releaseGraphId(String graphName) {
         long gid = getGraphId(graphName);
@@ -112,10 +112,10 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 获取自增循环不重复id, 达到上限后从0开始自增
+     * Get the self -increase cycle and not repeatid, 达到上限后从0开始自增
      *
      * @param key key
-     * @param max id上限，达到该值后，重新从0开始自增
+     * @param max ID upper limit，达到该值后，重新从0开始自增
      * @return id
      */
     protected long getCId(String key, long max) {
@@ -160,7 +160,7 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 返回已使用Cid的key
+     * Back to useCid的key
      */
     private byte[] genCIDSlotKey(String key, long value) {
         byte[] keySlot = MetadataKeyHelper.getCidSlotKeyPrefix(key);
@@ -171,7 +171,7 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 删除一个循环id，释放id值
+     * Delete a cycleid，释放id值
      */
     protected void delCId(String key, long cid) {
         delete(genCIDSlotKey(key, cid));

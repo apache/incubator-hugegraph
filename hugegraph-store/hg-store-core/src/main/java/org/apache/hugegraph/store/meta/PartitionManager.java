@@ -52,7 +52,7 @@ import com.alipay.sofa.jraft.core.ElectionPriority;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Partition对象管理策略，每次修改需要克隆一份，并且版本号递增
+ * Partition object management strategy，每次修改需要克隆一份，并且版本号递增
  */
 @Slf4j
 public class PartitionManager extends GlobalMetaStore {
@@ -116,11 +116,11 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 判断存储路径为分区id或者分区id_开头
+     * Judging the storage path as partitionid或者分区id_开头
      *
      * @param detections  dir list
      * @param partitionId partition id
-     * @param checkLogDir :  是否包含子目录 log ( raft snapshot 和log 分离，需要进一步检查)
+     * @param Checklogdir: Whether it contains a subdirectory log ( raft snapshot 和log 分离，需要进一步检查)
      * @return true if contains partition id, otherwise false
      */
     private Boolean checkPathContains(File[] detections, int partitionId, boolean checkLogDir) {
@@ -145,9 +145,9 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 根据配置文件根目录，循环查找分区的存储路径
-     * 根据约定db数据在dataPath/db/分区id目录，raft数据在dataPath/raft/分区id目录
-     * 检测分区存储文件夹是否存在
+     * According to the configuration file root directory，循环查找分区的存储路径
+     * According to the agreementdb数据在dataPath/db/分区id目录，raft数据在dataPath/raft/分区id目录
+     * Detect whether the storage folder exists
      */
     private Boolean resetPartitionPath(int partitionId) {
         List<String> dataPaths = Arrays.asList(this.options.getDataPath().split(","));
@@ -214,7 +214,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 从本地storage中读取分区
+     * From the local areastorage中读取分区
      */
     private void loadPartitions() {
         byte[] key = MetadataKeyHelper.getPartitionPrefixKey();
@@ -293,8 +293,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 从PD同步分区，并删除本地多余的分区
-     * 同步过程中，新增分区需要保存到本地，已有的分区信息与本地进行合并
+     * fromPD同步分区，并删除本地多余的分区
+     * During the synchronization process，新增分区需要保存到本地，已有的分区信息与本地进行合并
      */
     public void syncPartitionsFromPD(Consumer<Partition> delCallback) throws PDException {
         Lock writeLock = readWriteLock.writeLock();
@@ -377,7 +377,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 增加partition对象
+     * Increasepartition对象
      *
      * @param partition
      * @return
@@ -412,7 +412,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 强制更新 partition，不校验 version
+     * Forced update partition，不校验 version
      *
      * @param partition
      * @return
@@ -429,7 +429,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 查找属于本机的Partiton，优先从本地查找，本地未找到，询问pd。
+     * Find the belonging to this machinePartiton，优先从本地查找，本地未找到，询问pd。
      *
      * @param graph
      * @param partId
@@ -473,7 +473,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 从pd获取拉取分区信息，并和本地的分区信息进行合并。leader和shardList取自本地
+     * frompd获取拉取分区信息，并和本地的分区信息进行合并。leader和shardList取自本地
      */
     public Partition getPartitionFromPD(String graph, int partId) {
         pdProvider.invalidPartitionCache(graph, partId);
@@ -498,8 +498,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 是否是本地的分区
-     * 对于批处理入库，只有leader才属于本地
+     * Whether it is a local partition
+     * For batch processing，只有leader才属于本地
      *
      * @param partition
      * @return
@@ -519,8 +519,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 是否是本地的分区
-     * 对于批处理入库，只有leader才属于本地
+     * Whether it is a local partition
+     * For batch processing，只有leader才属于本地
      *
      * @return
      */
@@ -529,8 +529,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 存储partition信息,同步保存到内存和rocksdb
-     * 不更新key range
+     * Storagepartition信息,同步保存到内存和rocksdb
+     * No updatekey range
      */
 
     private void savePartition(Partition partition, Boolean changeLeader) {
@@ -538,7 +538,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 保存partition 信息
+     * Savepartition 信息
      *
      * @param partition    partition
      * @param changeLeader is change leader
@@ -580,7 +580,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 更新shard group到db, 同时更新shardGroups对象
+     * renewshard group到db, 同时更新shardGroups对象
      *
      * @param shardGroup
      */
@@ -594,8 +594,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 查找 partition id对应的shard group。
-     * 依次从 raft node/local db/ pd 读取。
+     * Find partition id对应的shard group。
+     * raft node/local db/ pd 读取。
      *
      * @param partitionId
      * @return
@@ -647,7 +647,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 删除图数据，删除本地数据，并删除PD上的分区信息
+     * Delete diagram data，删除本地数据，并删除PD上的分区信息
      */
     public Partition deletePartition(String graphName, Integer partId) {
         removePartition(graphName, partId);
@@ -709,7 +709,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 获取图在本机中所有Leader 分区
+     * Get the picture at the owner of this machineLeader 分区
      *
      * @param graph
      * @return
@@ -727,7 +727,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 生成分区peer字符串，包含优先级信息   *
+     * Narmed areapeer字符串，包含优先级信息   *
      *
      * @param shardGroup
      * @return
@@ -759,7 +759,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 是否是本地store
+     * Whether it is localstore
      *
      * @param store
      * @return
@@ -773,7 +773,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 修改分区角色
+     * Modify partition role
      */
     public Partition changeLeader(Partition pt, List<Metapb.Shard> shards, long term) {
         Lock writeLock = readWriteLock.writeLock();
@@ -792,7 +792,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 根据raft peers清单，重建shardList
+     * according toraft peers清单，重建shardList
      */
     public Partition changeShards(Partition pt, List<Metapb.Shard> shards) {
         Lock writeLock = readWriteLock.writeLock();
@@ -811,7 +811,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 拆分partition对象
+     * Splitpartition对象
      */
     public List<Metapb.Partition> updatePartitionToPD(List<Metapb.Partition> partitions) throws
                                                                                          PDException {
@@ -820,7 +820,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 根据raft address查找Store
+     * according toraft address查找Store
      */
     public Store getStoreByRaftEndpoint(ShardGroup group, String endpoint) {
         final Store[] result = {new Store()};
@@ -845,7 +845,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * raft存储路径
+     * RAFT storage path
      *
      * @param groupId
      * @return location/raft/groupId/
@@ -859,7 +859,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * raft snapshot 的路径，要和 db同一个盘上，便于hard link
+     * RAFT SNAPSHOT path，要和 db同一个盘上，便于hard link
      *
      * @param groupId raft group id
      * @return location/snapshot/0000x/
@@ -874,7 +874,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * db存储路径
+     * DB storage path
      *
      * @return location/db
      */
@@ -894,7 +894,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * 修改partion的state状态
+     * Revisepartion的state状态
      */
     public List<Metapb.Partition> changePartitionToOnLine(List<Metapb.Partition> partitions) {
         List<Metapb.Partition> newPartitions = new ArrayList<>();
@@ -909,7 +909,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Partition对象被修改消息
+     * Partition object is modified message
      */
     public interface PartitionChangedListener {
 

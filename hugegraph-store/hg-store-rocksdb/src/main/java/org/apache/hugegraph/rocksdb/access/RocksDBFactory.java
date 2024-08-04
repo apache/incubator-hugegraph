@@ -188,7 +188,7 @@ public final class RocksDBFactory {
     }
 
     /**
-     * 释放rocksdb对象
+     * freedrocksdb对象
      *
      * @param dbName
      * @return
@@ -213,7 +213,7 @@ public final class RocksDBFactory {
     }
 
     /**
-     * 销毁图，并删除数据文件
+     * Destroy the map，并删除数据文件
      *
      * @param dbName
      */

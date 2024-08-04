@@ -87,9 +87,9 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 1、读取StoreId，向pd注册，初次注册由PD生成StoreId，存储到本地
-     * 2、注册成功，启动raft服务
-     * 3、定时发送Store心跳和Partition心跳，与PD保持联系
+     * 1. ReadStoreId，向pd注册，初次注册由PD生成StoreId，存储到本地
+     * 2. Successful registration，启动raft服务
+     * 3. Send regularlyStore心跳和Partition心跳，与PD保持联系
      *
      * @param opts
      * @return
@@ -153,7 +153,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 创建raft rpc server，用于store之间通讯
+     * Createraft rpc server，用于store之间通讯
      */
     private RpcServer createRaftRpcServer(String raftAddr) {
         Endpoint endpoint = JRaftUtils.getEndPoint(raftAddr);
@@ -193,7 +193,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * Store注册状态发生改变
+     * Store registration status changes
      */
     @Override
     public void stateChanged(Store store, Metapb.StoreState oldState, Metapb.StoreState newState) {
@@ -207,8 +207,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 恢复本地的PartitionEngine，恢复PD返回的分区信息
-     * 1、需要检查本次保存的分区，删除作废的分区
+     * Restore localPartitionEngine，恢复PD返回的分区信息
+     * 1. You need to check the partition of this preservation，删除作废的分区
      */
     public void restoreLocalPartitionEngine() {
         try {
@@ -235,9 +235,9 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 收到store raft addr 变更，需要重新创建raft group
+     * receivestore raft addr 变更，需要重新创建raft group
      *
-     * @param storeId 变更的store id
+     * @param Storeid changedstore id
      */
     public void rebuildRaftGroup(long storeId) {
         partitionEngines.forEach((partId, engine) -> {
@@ -266,7 +266,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 创建 raft Node
+     * Create raft Node
      *
      * @param partition
      * @return
@@ -341,10 +341,10 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 创建 raft分组，除了创建本地raft node，还要通知其他peer创建raft node
-     * 1、遍历partition.shards
-     * 2、根据storeId获取Store信息
-     * 3、建立向其他store的raft rpc，发送StartRaft消息
+     * Create raft分组，除了创建本地raft node，还要通知其他peer创建raft node
+     * 1. Travelpartition.shards
+     * 2, according tostoreId获取Store信息
+     * 3. Establish to otherstore的raft rpc，发送StartRaft消息
      *
      * @param partition
      * @return
@@ -406,7 +406,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 停止分区，并销毁数据
+     * Stop the partition，并销毁数据
      */
     public synchronized void destroyPartitionEngine(Integer groupId, List<String> graphNames) {
         log.info("Partition {} start to be destroyed", groupId);
@@ -434,7 +434,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 删除图数据，删除本地数据，并删除PD上的分区信息
+     * Delete diagram data，删除本地数据，并删除PD上的分区信息
      */
     public void deletePartition(Integer groupId, String graphName) {
         log.info("Partition {}-{} deletePartition", graphName, groupId);
@@ -454,7 +454,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 获取所有的leader分区
+     * Get everythingleader分区
      *
      * @return
      */
@@ -469,7 +469,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 获取分区所有活跃的peer
+     * Get all active partitionspeer
      *
      * @return
      */
@@ -486,7 +486,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 获取分区的最后提交的日志id
+     * Get the last submitted log in the partitionid
      *
      * @param groupId
      * @return
@@ -546,14 +546,14 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 添加raft任务
-     * 1、检查partition是否存在
-     * 1.1、如果不存在，则向PD查询分区是否属于本地
-     * 1.1.1 如果分区属于本地，则创建raft分组,并通知其他Store
-     * 1.1.2 如果分区不属于本地，则抛出异常
-     * 1.2 检查Partition是否是leader
-     * 1.2.1 如果是leader，则提交任务
-     * 1.2.2 否则，返回错误
+     * Add toraft任务
+     * 1. Checkpartition是否存在
+     * 1.1. If not exist，则向PD查询分区是否属于本地
+     * 1.1.1 If the partition belongs to the local area，则创建raft分组,并通知其他Store
+     * 1.1.2 If partitions are not local，则抛出异常
+     * 1.2 ExaminationPartition是否是leader
+     * 1.2.1 If yesleader，则提交任务
+     * 1.2.2 Otherwise，返回错误
      *
      * @param partId
      * @param operation
@@ -648,7 +648,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 监听rocksdb事件
+     * Monitorrocksdb事件
      *
      * @return
      */
@@ -673,7 +673,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     class PartitionChangedListener implements PartitionManager.PartitionChangedListener {
 
         /**
-         * Partition对象发生改变，leader通知到其他的follower
+         * Partition object changes，leader通知到其他的follower
          */
         @Override
         public void onChanged(Partition partition) {
@@ -702,7 +702,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         }
 
         /**
-         * Partition对象key范围、状态发生改变，通过主动寻找leader再通知到其他的follower
+         * Partition objectkey范围、状态发生改变，通过主动寻找leader再通知到其他的follower
          */
         @Override
         public UpdatePartitionResponse rangeOrStateChanged(UpdatePartitionRequest request) {

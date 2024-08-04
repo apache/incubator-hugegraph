@@ -51,7 +51,7 @@ import com.alipay.sofa.jraft.util.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
- * PD发给Store的分区指令处理器
+ * PD sent toStore的分区指令处理器
  */
 public class PartitionInstructionProcessor implements PartitionInstructionListener {
 
@@ -131,8 +131,8 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
     }
 
     /**
-     * Leader接收到PD发送的分区分裂任务
-     * 添加到raft任务队列，由raft进行任务分发。
+     * Leader receivesPD发送的分区分裂任务
+     * add toraft任务队列，由raft进行任务分发。
      */
     @Override
     public void onSplitPartition(long taskId, Partition partition, SplitPartition splitPartition,
@@ -168,8 +168,8 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
     }
 
     /**
-     * Leader接收到PD发送的rocksdb compaction任务
-     * 添加到raft任务队列，由raft进行任务分发。
+     * Leader receivesPD发送的rocksdb compaction任务
+     * add toraft任务队列，由raft进行任务分发。
      */
     @Override
     public void onDbCompaction(long taskId, Partition partition, DbCompaction dbCompaction,

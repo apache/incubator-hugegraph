@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 仅用于测试
+ * Only used for testing
  */
 @RestController
 @Slf4j

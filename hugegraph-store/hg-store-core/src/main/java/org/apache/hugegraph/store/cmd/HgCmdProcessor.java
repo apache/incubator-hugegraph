@@ -34,7 +34,7 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 快照同步rpc处理器，leader批量入库完成后，基于seqnum读取新增的kv,批量发送给follower.
+ * Spickness synchronizationrpc处理器，leader批量入库完成后，基于seqnum读取新增的kv,批量发送给follower.
  *
  * @param <T>
  */
@@ -139,7 +139,7 @@ public class HgCmdProcessor<T extends HgCmdBase.BaseRequest> implements RpcProce
     }
 
     /**
-     * raft 通知副本同步执行
+     * RAFT notification copy execution synchronous execution
      *
      * @param request
      * @param response

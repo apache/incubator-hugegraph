@@ -108,7 +108,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 批量插入数据
+     * Batch insert data
      *
      * @param request
      * @return
@@ -118,7 +118,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 清理无效数据
+     * Cleaning invalid data
      *
      * @param request
      * @return
@@ -128,7 +128,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 通过raft更新本地分区信息
+     * passraft更新本地分区信息
      *
      * @param request
      * @return
@@ -138,7 +138,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 查找Leader，错误重试，处理Leader重定向
+     * FindLeader，错误重试，处理Leader重定向
      *
      * @param request
      * @return

@@ -100,7 +100,7 @@ public class HgStoreEngineOptions {
          */
         private final int maxEntriesSize = 256;
         /**
-         * Raft集群发生数据积压后，限速等待时间 单位毫秒
+         * After the data of the raft cluster occurs, after the backlog of data，限速等待时间 单位毫秒
          **/
         private final int overloadRateLimit = 100;
         private final int keepInMemorySegmentCount = 2;

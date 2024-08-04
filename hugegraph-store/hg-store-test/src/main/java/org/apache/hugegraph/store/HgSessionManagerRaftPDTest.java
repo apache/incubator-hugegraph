@@ -52,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 
 
 /**
- * 使用pd，支持raft的单元测试
+ * usepd，支持raft的单元测试
  */
 @Slf4j
 public class HgSessionManagerRaftPDTest {

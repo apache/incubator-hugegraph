@@ -48,7 +48,7 @@ public class HgStoreNodePartitionerImpl implements HgStoreNodePartitioner,
     }
 
     /**
-     * 查询分区信息，结果通过HgNodePartitionerBuilder返回
+     * Query partition information，结果通过HgNodePartitionerBuilder返回
      */
     @Override
     public int partition(HgNodePartitionerBuilder builder, String graphName,
@@ -141,7 +141,7 @@ public class HgStoreNodePartitionerImpl implements HgStoreNodePartitioner,
     }
 
     /**
-     * 查询hgstore信息
+     * Inquirehgstore信息
      *
      * @return hgstore
      */
@@ -157,7 +157,7 @@ public class HgStoreNodePartitionerImpl implements HgStoreNodePartitioner,
     }
 
     /**
-     * 通知更新缓存
+     * Notification to update the cache
      */
     @Override
     public int notice(String graphName, HgStoreNotice storeNotice) {

@@ -71,17 +71,17 @@ public class ScanResponseObserver<T> implements
     private volatile Future<?> readTask;
 
     /*
-     * 2022年11月1日
-     * 1.onNext 需要进行异步处理，以防止grpc的调用阻塞
-     * 2.不要读取迭代器或者发送数据不要产生线程等待
-     * 3.在发送前，尽量准备好要发送的数据
+     * 202211月1日
+     * 1.onnext needs asynchronous treatment，以防止grpc的调用阻塞
+     * 2. Do not read the iterator or send the data. Do not generate a thread waiting
+     * 3. Before sending，尽量准备好要发送的数据
      * */
 
     /*
-     * 2022年11月2日
-     * 1.读取rocksdb迭代器的线程read
-     * 2.进行数据转换并发送到阻塞队列的线程offer
-     * 3.从阻塞队列读取数据，并发送的线程，包括在没有读取到数据的情况下唤醒读取和发送的线程send
+     * 202211月2日
+     * 1. Readrocksdb迭代器的线程read
+     * 2. Perform the data conversion and send it to the thread of the blocking queueoffer
+     * 3. Read data from the blocking queue，并发送的线程，包括在没有读取到数据的情况下唤醒读取和发送的线程send
      * */
 
     public ScanResponseObserver(StreamObserver<ScanResponse> sender,

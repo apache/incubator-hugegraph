@@ -27,11 +27,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * HgStore单元测试
- * 1、测试raft多副本入库
- * 2、测试快照同步
- * 3、测试副本增减
- * 4、测试单幅本关闭日志入库
+ * Hgstore unit test
+ * 1, testraft多副本入库
+ * 2. Test snapshot synchronization
+ * 3. Test copy increase or decrease
+ * 4. Test a single -script closure log and enter the warehouse
  */
 public class HgStoreNodeServiceTest {
 

@@ -186,7 +186,7 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     /**
-     * 获取分区数据存储的位置，如果分布数据不存在，自动创建新的位置
+     * Get the location of partition data storage，如果分布数据不存在，自动创建新的位置
      *
      * @param partitionId
      * @return

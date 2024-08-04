@@ -44,7 +44,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量处理的grpc回调封装类
+ * Batch processinggrpc回调封装类
  *
  * @param <V>
  */
@@ -95,7 +95,7 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * 不使用计数器latch
+     * Do not use a counterlatch
      *
      * @return
      */
@@ -158,7 +158,7 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * 等待raft执行结束，返回结果给grpc
+     * waitraft执行结束，返回结果给grpc
      */
     public void waitFinish(StreamObserver<V> observer, Function<List<V>, V> ok, long timeout) {
         try {
@@ -186,7 +186,7 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * 从多个结果中选择一个错误的结果返回，如果没有错误，返回第一个
+     * Select a wrong result from multiple results to return，如果没有错误，返回第一个
      */
     public FeedbackRes selectError(List<FeedbackRes> results) {
         if (!CollectionUtils.isEmpty(results)) {

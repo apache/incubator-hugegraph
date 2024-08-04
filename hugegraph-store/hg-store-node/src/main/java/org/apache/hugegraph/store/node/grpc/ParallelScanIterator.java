@@ -43,7 +43,7 @@ import com.alipay.sofa.jraft.util.Utils;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 支持平行读取的批量查询迭代器
+ * Support batch query iterators for parallel reading
  */
 @Slf4j
 public class ParallelScanIterator implements ScanIterator {
@@ -159,7 +159,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 创建扫描器
+     * Create a scanner
      */
     private void createScanner() {
         synchronized (scanners) {
@@ -173,7 +173,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 唤醒扫描器
+     * Awakening scanner
      */
     private void wakeUpScanner() {
         synchronized (pauseScanners) {
@@ -187,7 +187,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 休眠扫描器
+     * Dormation Scanner
      *
      * @param scanner
      */
@@ -209,10 +209,10 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 添加到队列，返回队列是否已满
+     * Add to queue，返回队列是否已满
      *
      * @param data
-     * @return false: 队列已满
+     * @Return false: The queue is full
      */
     private boolean putData(List<KV> data) {
         try {
