@@ -221,7 +221,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     /**
-     * Return the point ID of the Id 所属的点 ID
+     * Return the point ID of the Id
      *
      * @param id
      * @return
