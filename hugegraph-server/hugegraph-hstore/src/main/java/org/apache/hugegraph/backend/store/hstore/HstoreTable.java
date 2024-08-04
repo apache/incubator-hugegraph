@@ -204,7 +204,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     /**
-     * Return the point ID belonging to the Id
+     * Return the owner ID of the Id
      *
      * @param id
      * @return
@@ -221,7 +221,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     /**
-     * Return the point ID of the Id
+     * Return the owner ID of the Id
      *
      * @param id
      * @return
