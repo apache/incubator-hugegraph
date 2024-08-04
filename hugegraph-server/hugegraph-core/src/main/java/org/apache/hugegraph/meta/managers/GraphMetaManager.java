@@ -101,7 +101,7 @@ public class GraphMetaManager extends AbstractMetaManager {
     }
 
     /**
-     * 通知 点信息 cache clear
+     * Notice point information cache clear
      *
      * @param graphSpace
      * @param graph
@@ -112,7 +112,7 @@ public class GraphMetaManager extends AbstractMetaManager {
     }
 
     /**
-     * 通知 边信息 cache clear
+     * Notice Edge Information cache clear
      *
      * @param graphSpace
      * @param graph
@@ -249,7 +249,7 @@ public class GraphMetaManager extends AbstractMetaManager {
     }
 
     /**
-     * pd监听 vertex label更新的key
+     * pd listen to vertex label updated key
      *
      * @return
      */
@@ -266,7 +266,7 @@ public class GraphMetaManager extends AbstractMetaManager {
     }
 
     /**
-     * pd监听 edge label更新的key
+     * pd listen edge label updated key
      *
      * @return
      */
