@@ -574,7 +574,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * Clean Up Partition Data, delete data from non -this partition
+     * Clean Up Partition Data, delete data from non-this partition
      * All key of traversal partid, read code, if code> = splitkey generates new key, write
      * newpartid
      */

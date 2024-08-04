@@ -204,7 +204,7 @@ public class HgThread2DB {
     }
 
     /**
-     * Multi -threaded read files to enter the warehouse
+     * Multi-threaded read files to enter the warehouse
      *
      * @throws IOException
      * @throws InterruptedException
@@ -312,7 +312,7 @@ public class HgThread2DB {
     }
 
     /**
-     * Multi -threaded read files to enter the warehouse
+     * Multi-threaded read files to enter the warehouse
      *
      * @throws IOException
      * @throws InterruptedException
@@ -463,7 +463,7 @@ public class HgThread2DB {
     }
 
     /**
-     * Multi -thread query
+     * Multi-thread query
      *
      * @param point     Start Query Point, Followed Up According to this PointValue as the next
      *                  query condition to iterate

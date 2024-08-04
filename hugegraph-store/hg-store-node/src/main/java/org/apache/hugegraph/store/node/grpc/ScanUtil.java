@@ -149,7 +149,7 @@ class ScanUtil {
     }
 
     /**
-     * Support parallel reading multi -iterators
+     * Support parallel reading multi-iterators
      */
     static ScanIterator getParallelIterator(String graph, ScanQueryRequest request,
                                             HgStoreWrapperEx wrapper, ThreadPoolExecutor executor) {
@@ -275,7 +275,7 @@ class ScanUtil {
             return () -> Math.min(perKeyLimit, skipDegree);
         }
 
-        /*----------- new -to add max --------------*/
+        /*----------- new-to add max --------------*/
 
         private void init2(ScanQueryRequest request) {
             List<String> tableList = Arrays.stream(request.getTable().split(","))

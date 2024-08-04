@@ -352,7 +352,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 log.info("Raft {} {} getReplicatorState {}", getGroupId(), peerId, state);
             }
             if (snapshotOk && !conf.listLearners().isEmpty()) {
-                // 4. Delete Learner and re -add it with Peer
+                // 4. Delete Learner and re-add it with Peer
                 FutureClosure closure = new FutureClosure();
                 raftNode.removeLearners(conf.listLearners(), closure);
                 if (closure.get().isOk()) {
@@ -976,12 +976,12 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
      * other pictures, destroy RAFT Group.
      * NEED to put it to callmove data
      *
-     * @param graphName       graph name
-     * @param partitionId     partition id
-     * @param Keystart        Key Start is used to verify
-     * @param Keynd           Key END for verification
-     * @param IsleaderLeader, avoid the leader drift, take the leader status when taking the Move
-     *                       Data
+     * @param graphName   graph name
+     * @param partitionId partition id
+     * @param keyStart    Key Start is used to verify
+     * @param keyEnd      Key END for verification
+     * @param isLeader    avoid the leader drift, take the leader status when taking the Move
+     *                    Data
      */
     private synchronized void destroyPartitionIfGraphsNull(String graphName, int partitionId,
                                                            long keyStart, long keyEnd,

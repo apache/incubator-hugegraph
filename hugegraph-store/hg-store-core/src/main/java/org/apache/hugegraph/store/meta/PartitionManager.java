@@ -121,8 +121,8 @@ public class PartitionManager extends GlobalMetaStore {
      *
      * @param detections   dir list
      * @param partitionId  partition id
-     * @param Checklogdir: WHETHER It Contains A Subdirectory Log (Raft Snapshot and Log
-     *                   separation, you need further inspection)
+     * @param checkLogDir: WHETHER It Contains A Subdirectory Log (Raft Snapshot and Log
+     *                     separation, you need further inspection)
      * @return true if contains partition id, otherwise false
      */
     private Boolean checkPathContains(File[] detections, int partitionId, boolean checkLogDir) {
@@ -580,7 +580,7 @@ public class PartitionManager extends GlobalMetaStore {
         graph.setGraphName(partition.getGraphName());
 
         graphManager.updateGraph(graph);
-        // Update pd cache, post -order optimization, store does not rely on PDClient Cache
+        // Update pd cache, post-order optimization, store does not rely on PDClient Cache
         pdProvider.updatePartitionCache(partition, changeLeader);
 
         partitionChangedListeners.forEach(listener -> {

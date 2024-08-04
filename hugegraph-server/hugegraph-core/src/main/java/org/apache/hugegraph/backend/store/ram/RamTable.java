@@ -245,7 +245,7 @@ public final class RamTable {
             assert this.vertexAdjPosition(owner) <= NULL : owner;
             this.vertexAdjPosition(owner, position);
         }
-        // maybe there is no edges of the next vertex, set -position first
+        // maybe there is no edges of the next vertex, set-position first
         this.vertexAdjPosition(owner + 1, -position);
     }
 

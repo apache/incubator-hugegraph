@@ -37,7 +37,7 @@ public class Bits {
     }
 
     /**
-     * Read the head -up sequenceshort
+     * Read the head-up sequenceshort
      */
     public static int getShort(byte[] buf, int offSet) {
         int x = buf[offSet] & 0xff;

@@ -273,7 +273,7 @@ public class DefaultPdProvider implements PdProvider {
                 if (content.hasInstructionResponse()) {
                     var pdInstruction = content.getInstructionResponse();
                     consumer.accept(0);
-                    // The current link becomes follower, re -linking
+                    // The current link becomes follower, re-linking
                     if (pdInstruction.getInstructionType() ==
                         PdInstructionType.CHANGE_TO_FOLLOWER) {
                         onCompleted();

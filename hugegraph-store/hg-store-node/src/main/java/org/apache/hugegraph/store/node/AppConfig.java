@@ -49,14 +49,14 @@ public class AppConfig {
     @Value("${server.port}")
     private int restPort;
 
-    // Built in PD mode, for single -machine deployment
+    // Built in PD mode, for single-machine deployment
     @Value("${app.data-path: store}")
     private String dataPath;
 
     @Value("${app.raft-path:}")
     private String raftPath;
 
-    // Built in PD mode, for single -machine deployment
+    // Built in PD mode, for single-machine deployment
     @Value("${app.fake-pd: false}")
     private boolean fakePd;
     @Autowired

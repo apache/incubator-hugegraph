@@ -29,7 +29,7 @@ import org.apache.hugegraph.store.util.HgStoreException;
 import com.google.protobuf.Int64Value;
 
 /**
- * Graph id Manager, maintain a self -increasing cycle ID, responsible for managing the mapping
+ * Graph id Manager, maintain a self-increasing cycle ID, responsible for managing the mapping
  * of GraphName and Graph id
  */
 public class GraphIdManager extends PartitionMetaStore {
@@ -113,11 +113,11 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * Get the self -increase cycle and not repeAatid, starting from 0 after reaching the upper
+     * Get the self-increase cycle and not repeAatid, starting from 0 after reaching the upper
      * limit
      *
      * @param key key
-     * @param Max ID Upper Limit, after reaching this value, re -increase from 0
+     * @param max ID Upper Limit, after reaching this value, re-increase from 0
      * @return id
      */
     protected long getCId(String key, long max) {

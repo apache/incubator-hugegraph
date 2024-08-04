@@ -38,7 +38,7 @@ import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Built in PD service, for single -machine deployment or development debugging
+ * Built in PD service, for single-machine deployment or development debugging
  */
 @Slf4j
 public class FakePdServiceProvider implements PdProvider {

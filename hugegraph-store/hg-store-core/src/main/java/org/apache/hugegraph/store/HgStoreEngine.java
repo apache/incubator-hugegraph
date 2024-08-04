@@ -131,7 +131,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                 return getPartitionEngine(ptId).waitForLeader(
                         options.getWaitLeaderTimeout() * 1000);
             } else {
-                // There may be a cross -section migration
+                // There may be a cross-section migration
                 Metapb.Shard shard = pdProvider.getPartitionLeader(graphName, ptId);
                 return JRaftUtils.getEndPoint(
                         pdProvider.getStoreByID(shard.getStoreId()).getRaftAddress());
@@ -236,9 +236,9 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * ReceiveStore Raft Addr change, you need to re -create Raft Group
+     * ReceiveStore Raft Addr change, you need to re-create Raft Group
      *
-     * @param Storeid changedstore id
+     * @param storeId changedstore id
      */
     public void rebuildRaftGroup(long storeId) {
         partitionEngines.forEach((partId, engine) -> {
@@ -338,7 +338,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                 }
             }
         }
-        // Check whether it is active, if not active, re -create
+        // Check whether it is active, if not active, re-create
         engine.checkActivity();
         return engine;
     }
@@ -597,7 +597,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                                                                       leader.toString());
                 if (store.getId() == 0) {
                     // Not found the store information of the leader locally, maybe partition has
-                    // not yet been synchronized and re -obtain it from the Leader.
+                    // not yet been synchronized and re-obtain it from the Leader.
                     Store leaderStore = hgCmdClient.getStoreInfo(leader.toString());
                     store = leaderStore != null ? leaderStore : store;
                     log.error("getStoreByRaftEndpoint error store:{}, shard: {}, leader is {}",

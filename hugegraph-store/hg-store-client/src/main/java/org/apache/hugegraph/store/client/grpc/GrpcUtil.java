@@ -63,7 +63,7 @@ final class GrpcUtil {
         Key.Builder builder = keyBuilder.get();
         if (builder == null) {
             builder = Key.newBuilder();
-            // TODO thread -level variables, find the timing of deletion
+            // TODO thread-level variables, find the timing of deletion
             keyBuilder.set(builder);
         }
         return builder;
@@ -86,7 +86,7 @@ final class GrpcUtil {
         Key.Builder builder = keyBuilder.get();
         if (builder == null) {
             builder = Key.newBuilder();
-            // TODO thread -level variables, find the timing of deletion
+            // TODO thread-level variables, find the timing of deletion
             keyBuilder.set(builder);
         }
         return builder
