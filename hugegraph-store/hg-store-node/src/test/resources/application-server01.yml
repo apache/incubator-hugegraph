@@ -58,7 +58,7 @@ rocksdb:
   write_buffer_size: 2000000
   level0_file_num_compaction_trigger: 2
   bloom_filter_bits_per_key: 10
-#fakePd配置参数
+#Fakepd configuration parameter
 fake-pd:
   # fake-pd模式下，store grpc集群列表
   store-list: 127.0.0.1:8501,127.0.0.1:8502,127.0.0.1:8503

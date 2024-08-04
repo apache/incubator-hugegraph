@@ -42,9 +42,9 @@ public class HgSessionManagerRaftFakePDTest {
     private static final Map<Long, String> storeMap = new ConcurrentHashMap<>();
 
     private static final int partitionCount = 3;
-    // 需要与store的application.yml的fake-pd.partition-count保持一致
+    // Need to keep it consistent with the Fake-PD.PARTITITITION-COUNT of Store's Application.yml
     private static final String[] storeAddress =
-            { // 需要与store的application.yml的fake-pd.store-list保持一致
+            { // Need to be consistent with the Fake-PD.Store-list of Store's Application.yml
               "127.0.0.1:8501", "127.0.0.1:8502", "127.0.0.1:8503"
             };
 

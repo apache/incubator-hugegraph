@@ -56,7 +56,7 @@ public class HgSessionManagerTest {
                                                                                      "unit-test"));
 
     private static final int partitionCount = 10;
-    // 需要与 store 的 application.yml 的 fake-pd.partition-count 保持一致
+    // Need to keep it consistent with the Fake-PD.PARTITITITION-COUNT of Store's Application.yml
 
     //private static String[] storeAddress = {"127.0.0.1:8500"};
     private static final String[] storeAddress =

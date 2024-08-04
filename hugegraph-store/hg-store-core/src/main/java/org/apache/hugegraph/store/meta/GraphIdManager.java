@@ -124,7 +124,7 @@ public class GraphIdManager extends PartitionMetaStore {
             Int64Value value = get(Int64Value.parser(), cidNextKey);
             long current = value != null ? value.getValue() : 0L;
             long last = current == 0 ? max - 1 : current - 1;
-            // 查找一个未使用的cid
+            // Find an unused CID
             List<Int64Value> ids =
                     scan(Int64Value.parser(), genCIDSlotKey(key, current), genCIDSlotKey(key, max));
             for (Int64Value id : ids) {
@@ -151,9 +151,9 @@ public class GraphIdManager extends PartitionMetaStore {
             if (current == last) {
                 return -1;
             }
-            // 保存当前id，标记已被使用
+            // Save the current ID, the mark has been used
             put(genCIDSlotKey(key, current), Int64Value.of(current));
-            // 保存下一次遍历的id
+            // Save the ID you traversed next time
             put(cidNextKey, Int64Value.of(current + 1));
             return current;
         }

@@ -216,14 +216,14 @@ public class HgThread2DB {
         MetricX metrics = null;
         long dataCount = 0;
         if (readfile.exists()) {
-            // 读取文件
+            // Read the file
             InputStreamReader isr = new InputStreamReader(new FileInputStream(readfile),
                                                           StandardCharsets.UTF_8);
             BufferedReader reader = new BufferedReader(isr);
 
             String strLine = null;
             String tableName = HgCliUtil.TABLE_NAME;
-            // 积攒到多少个后执行线程入库,10万
+            // After accumulating how many rear execution threads are entered into the library, 100,000
             int maxlist = 100000;
             List<String> keys = new ArrayList<>(maxlist);
             metrics = MetricX.ofStart();
@@ -232,7 +232,7 @@ public class HgThread2DB {
                     keys.add(strLine);
                     dataCount++;
 
-                    // 读取文件中的10000条数据，启一个线程入库
+                    // Read 10,000 pieces of data in the file and enable a thread to enter the warehouse
                     if (dataCount % maxlist == 0) {
                         List<String> finalKeys = keys;
                         Runnable task = () -> {
@@ -266,7 +266,7 @@ public class HgThread2DB {
 
             isr.close();
             reader.close();
-            // 把剩余的入库
+            // Put the rest of the warehouse
             if (!keys.isEmpty()) {
                 List<String> finalKeys1 = keys;
                 Runnable task = () -> {
@@ -324,7 +324,7 @@ public class HgThread2DB {
 
         String strLine = null;
         String tableName = HgCliUtil.TABLE_NAME;
-        // 积攒到多少个后执行线程入库,10万
+        // After accumulating how many rear execution threads are entered into the library, 100,000
         int maxlist = 100000;
         List<String> keys = new ArrayList<>(maxlist);
         for (int x = 0; x < 10000000; x++) {
@@ -409,7 +409,7 @@ public class HgThread2DB {
                         HgKvEntry entry = iterator.next();
                         String newPoint = HgCliUtil.toStr(entry.value());
 //                        log.info("query_key =" + newPoint);
-                        // 统计查询次数
+                        // Statistical query number
                         if (!newPoint.isEmpty() && hashSet.add(newPoint)) {
                             queryCount.getAndIncrement();
                             totalQueryCount.getAndIncrement();
@@ -432,7 +432,7 @@ public class HgThread2DB {
                                     }
                                 }
                             }
-                            // 达到1万个点后，去查询一次
+                            // After reaching 10,000 points, check it once
                             if (newQueryList.size() > 10000 && listQueue.size() < 10000) {
                                 listQueue.put(newQueryList);
                                 insertQueueCount++;
@@ -444,7 +444,7 @@ public class HgThread2DB {
                         }
                     }
                 }
-                // 一次查询如果不够1万，单独提交一次查询，确保所有的结果都能执行查询
+                // If you do not have enough 10,000 at a time, submit a separate query separately to ensure that all the results can be executed
                 if (!newQueryList.isEmpty() && listQueue.size() < 1000) {
                     listQueue.put(newQueryList);
                 }

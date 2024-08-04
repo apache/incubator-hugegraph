@@ -56,7 +56,7 @@ management:
 rocksdb:
 
 
-#fakePd配置参数
+#Fakepd configuration parameter
 fake-pd:
   # fake-pd模式下，store grpc集群列表
   store-list: 127.0.0.1:8501,127.0.0.1:8502,127.0.0.1:8503

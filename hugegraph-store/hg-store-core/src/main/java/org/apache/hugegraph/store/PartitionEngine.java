@@ -190,7 +190,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         }
         this.stateMachine.addTaskHandler(new TaskHandler());
 
-        // 监听分组leader是否发生改变
+        // Whether the leader of the monitoring group changes
         this.stateMachine.addStateListener(this);
 
         new File(options.getRaftDataPath()).mkdirs();
@@ -202,15 +202,15 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             initConf.parse(peersList);
         }
 
-        // 设置Node参数，包括日志存储路径和状态机实例
+        // Set the node parameter, including the log storage path and status machine instance
         NodeOptions nodeOptions = new NodeOptions();
         nodeOptions.setFsm(stateMachine);
         nodeOptions.setEnableMetrics(true);
-        // 日志路径
+        // Log path
         nodeOptions.setLogUri(options.getRaftDataPath() + "/log");
-        // raft元数据路径
+        // RAFT metadata path
         nodeOptions.setRaftMetaUri(options.getRaftDataPath() + "/meta");
-        // 快照路径
+        // Snapshot path
         nodeOptions.setSnapshotUri(options.getRaftSnapShotPath() + "/snapshot");
         nodeOptions.setSharedTimerPool(true);
         nodeOptions.setSharedElectionTimer(true);
@@ -229,9 +229,9 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 }
             }
         });
-        // 初始集群
+        // Initial cluster
         nodeOptions.setInitialConf(initConf);
-        // 快照时间间隔
+        // Snapshot time interval
         nodeOptions.setSnapshotIntervalSecs(options.getRaftOptions().getSnapshotIntervalSecs());
 
         //nodeOptions.setSnapshotLogIndexMargin(options.getRaftOptions()
@@ -242,7 +242,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         nodeOptions.setRpcInstallSnapshotTimeout(
                 options.getRaftOptions().getRpcInstallSnapshotTimeout());
         nodeOptions.setElectionTimeoutMs(options.getRaftOptions().getElectionTimeoutMs());
-        // 设置raft配置
+        // Set Raft configuration
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
         raftOptions.setDisruptorBufferSize(options.getRaftOptions().getDisruptorBufferSize());
         raftOptions.setMaxEntriesSize(options.getRaftOptions().getMaxEntriesSize());
@@ -253,14 +253,14 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         final PeerId serverId = JRaftUtils.getPeerId(options.getRaftAddress());
 
-        // 构建raft组并启动raft
+        // Construct a Raft group and start RAFT
         this.raftGroupService = new RaftGroupService(raftPrefix + options.getGroupId(),
                                                      serverId, nodeOptions,
                                                      storeEngine.getRaftRpcServer(), true);
         this.raftNode = raftGroupService.start(false);
         this.raftNode.addReplicatorStateListener(new ReplicatorStateListener());
 
-        // 检查pd返回的peers是否和本地一致，如果不一致，重置peerlist
+        // Check whether the Peers returned by the PD is consistent with the local area. If it is not consistent, reset the peerlist
         if (this.raftNode != null) {
             //TODO 检查peer列表，如果peer发生改变，进行重置
             started = true;
@@ -306,14 +306,14 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         List<String> oldPeers = RaftUtils.getAllEndpoints(raftNode);
         log.info("Raft {} changePeers start, old peer is {}, new peer is {}",
                  getGroupId(), oldPeers, peers);
-        // 检查需要新增的peer。
+        // Check the new Peer.
         List<String> addPeers = ListUtils.removeAll(peers, oldPeers);
-        // 需要删除的learner。可能peer发生改变
+        // Learner needs to be deleted.Maybe PEER changes
         List<String> removedPeers = ListUtils.removeAll(RaftUtils.getLearnerEndpoints(raftNode),
                                                         peers);
 
         HgCmdClient rpcClient = storeEngine.getHgCmdClient();
-        // 生成新的Configuration对象
+        // Generate a new configuration object
         Configuration oldConf = getCurrentConf();
         Configuration conf = oldConf.copy();
         if (!addPeers.isEmpty()) {
@@ -327,7 +327,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
             FutureClosure closure = new FutureClosure(addPeers.size());
             addPeers.forEach(peer -> Utils.runInThread(() -> {
-                // 1. 创建新peer的raft对象
+                // 1. Create a new Peer Raft object
                 rpcClient.createRaftNode(peer, partitionManager.getPartitionList(getGroupId()),
                                          conf, status -> {
                             closure.run(status);
@@ -339,7 +339,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             }));
             closure.get();
         } else {
-            // 3. 检查learner是否完成快照同步
+            // 3. Check whether Learner completes the snapshot synchronization
             boolean snapshotOk = true;
             for (PeerId peerId : raftNode.listLearners()) {
                 Replicator.State state = getReplicatorState(peerId);
@@ -350,7 +350,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 log.info("Raft {} {} getReplicatorState {}", getGroupId(), peerId, state);
             }
             if (snapshotOk && !conf.listLearners().isEmpty()) {
-                // 4. 删除learner，以peer重新加入
+                // 4. Delete Learner and re -add it with Peer
                 FutureClosure closure = new FutureClosure();
                 raftNode.removeLearners(conf.listLearners(), closure);
                 if (closure.get().isOk()) {
@@ -360,17 +360,17 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     });
                     result = Status.OK();
                 } else {
-                    // 失败了重试
+                    // Failure to retry
                     result = HgRaftError.TASK_ERROR.toStatus();
                 }
             } else if (snapshotOk) {
-                result = Status.OK();   // 没有learner，说明只做删除操作
+                result = Status.OK();   // Without Learner, it means that only delete operations are done
             }
         }
         if (result.isOk()) {
-            // 同步完成，删除旧peer
+            // Synchronized, delete the old peer
             removedPeers.addAll(ListUtils.removeAll(oldPeers, peers));
-            // 检查leader是否被删除，如果是，先进行leader迁移
+            // Check whether the leader is deleted, if so, first leader migration
             if (removedPeers.contains(
                     this.getRaftNode().getNodeId().getPeerId().getEndpoint().toString())) {
 
@@ -385,7 +385,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
                 var status = this.raftNode.transferLeadershipTo(PeerId.ANY_PEER);
                 log.info("Raft {} transfer leader status : {}", getGroupId(), status);
-                // 需要重新发送指令给新leader
+                // Need to send instructions to the new leader
                 return HgRaftError.TASK_ERROR.toStatus();
             }
         }
@@ -398,19 +398,19 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         }
 
         if (!RaftUtils.configurationEquals(oldConf, conf)) {
-            // 2. 新的peer以learner身份加入
-            // 5. peer切换，增加新的peer，删除旧的peer
+            // 2. New Peer joins as a Learner
+            // 5. PEER switch, add new peer, delete the old peer
             FutureClosure closure = new FutureClosure();
             raftNode.changePeers(conf, closure);
             if (closure.get().isOk()) {
                 if (!removedPeers.isEmpty()) {
                     removedPeers.forEach(peer -> Utils.runInThread(() -> {
-                        // 6. 停止已被删除的peer
+                        // 6. Stop the deleted peer
                         rpcClient.destroyRaftNode(peer,
                                                   partitionManager.getPartitionList(getGroupId()),
                                                   status -> {
                                                       if (!status.isOk()) {
-                                                          // TODO 失败了怎么办？
+                                                          // What should I do if Todo fails?
                                                           log.error("Raft {} destroy node {}" +
                                                                     " error {}",
                                                                     options.getGroupId(), peer,
@@ -420,7 +420,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     }));
                 }
             } else {
-                // 失败了重试
+                // Failure to retry
                 result = HgRaftError.TASK_ERROR.toStatus();
             }
             log.info("Raft {} changePeers result {}, conf is {}",
@@ -563,7 +563,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     if (partitionManager.isLocalPartition(this.options.getGroupId())) {
                         log.error("Raft {} leader not found, try to repair!",
                                   this.options.getGroupId());
-                        // TODO 判断raft是否本机，如果是，尝试修复Leader，包括检查配置是否正确
+                        // TODO judge whether RAFT is the machine, if so, try to repair the leader, including checking whether the configuration is correct
                         storeEngine.createPartitionGroups(
                                 partitionManager.getPartitionList(getGroupId()).get(0));
                     }
@@ -603,7 +603,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     @Override
     public void onLeaderStart(long newTerm) {
         log.info("Raft {} onLeaderStart newTerm is {}", getGroupId(), newTerm);
-        // 更新shard group对象
+        // Update the Shard Group object
         shardGroup.changeLeader(partitionManager.getStore().getId());
 
         onConfigurationCommitted(getCurrentConf());
@@ -632,7 +632,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         try {
             //更新shardlist
             log.info("Raft {} onConfigurationCommitted, conf is {}", getGroupId(), conf.toString());
-            // 根据raft endpoint查找storeId
+            // Find Storeid according to RAFT ENDPOINT
             List<Long> peerIds = new ArrayList<>();
             for (String peer : RaftUtils.getPeerEndpoints(conf)) {
                 Store store = getStoreByEndpoint(peer);
@@ -742,22 +742,22 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         }
 
         log.info("Raft {} doChangeShard task is {}", getGroupId(), task);
-        // 如果相同的分区有相同的任务在执行，忽略任务执行
+        // If the same partition has the same task, it is executed, ignore the task execution
         if (taskManager.partitionTaskRepeat(task.getPartition().getId(),
                                             task.getPartition().getGraphName(),
                                             task.getType().name())) {
             log.error("Raft {} doChangeShard task repeat, type:{}", getGroupId(), task.getType());
             return;
         }
-        // 任务未完成，重复执行
+        // The task is not completed, repeated execution
         if (task.getState().getNumber() < MetaTask.TaskState.Task_Stop_VALUE && isLeader()) {
             Utils.runInThread(() -> {
                 try {
-                    // 不能在状态机中changePeers
+                    // Can't be in the state machine, Changepers
                     List<String> peers =
                             partitionManager.shards2Peers(task.getChangeShard().getShardList());
                     HashSet<String> hashSet = new HashSet<>(peers);
-                    // 任务中有相同的peers，说明任务本身有错误，任务忽略
+                    // There is the same peers in the task, indicating that the task itself is wrong, and the task is ignored
                     if (peers.size() != hashSet.size()) {
                         log.info("Raft {} doChangeShard peer is repeat， peers：{}", getGroupId(),
                                  peers);
@@ -772,7 +772,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     if (result.getCode() != HgRaftError.TASK_CONTINUE.getNumber()) {
                         log.info("Raft {} doChangeShard is finished, status is {}", getGroupId(),
                                  result);
-                        // 任务完成，同步任务状态
+                        // The task is completed, the synchronous task status
                         MetaTask.Task newTask;
                         if (result.isOk()) {
                             newTask = task.toBuilder().setState(MetaTask.TaskState.Task_Success)
@@ -782,7 +782,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                                     "Raft {} doChangeShard is failure, need to retry, status is {}",
                                     getGroupId(), result);
                             try {
-                                // 减少发送次数
+                                // Reduce the number of sending times
                                 Thread.sleep(1000);
                             } catch (Exception e) {
                                 log.error("wait 1s to resend retry task. got error:{}",
@@ -792,7 +792,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                                           .build();
                         }
                         try {
-                            // 等待过程中，可能已经shut down了
+                            // During the waiting process, it may already be down
                             if (isLeader()) {
                                 storeEngine.addRaftTask(newTask.getPartition().getGraphName(),
                                                         newTask.getPartition().getId(),
@@ -815,7 +815,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                                       task.getPartition().getGraphName(),
                                       task.getPartition().getId(), e);
                         }
-                        // db 可能被销毁了，就不要更新了
+                        // DB may be destroyed, don't update it anymore
                         if (this.started) {
                             taskManager.updateTask(newTask);
                         }
@@ -829,7 +829,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 }
             });
         } else {
-            // 返回消息是否被处理
+            // Whether the message is processed
             if (done != null) {
                 done.run(Status.OK());
             }
@@ -877,17 +877,17 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                  task.getType().name(), status);
 
         if (status.isOk()) {
-            // 向PD汇报任务执行结果
+            // Report the results of the task execution result
             partitionManager.reportTask(
                     task.toBuilder().setState(MetaTask.TaskState.Task_Success).build());
-            // 更新本地任务状态
+            // Update local task status
             taskManager.updateTask(
                     task.toBuilder().setState(MetaTask.TaskState.Task_Success).build());
         } else {
             partitionManager.reportTask(task.toBuilder()
                                             .setState(MetaTask.TaskState.Task_Failure)
                                             .setMessage(status.getErrorMsg()).build());
-            // 更新本地任务状态
+            // Update local task status
             taskManager.updateTask(task.toBuilder()
                                        .setState(MetaTask.TaskState.Task_Failure)
                                        .setMessage(status.getErrorMsg()).build());
@@ -915,14 +915,14 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             for (int i = 0; i < newPartitions.size(); i++) {
                 storeEngine.createPartitionGroups(new Partition(newPartitions.get(i)));
             }
-            // 从源机器拷贝数据到目标机器
+            // From the source machine copy data to the target machine
             status = storeEngine.getDataMover().moveData(task.getPartition(), newPartitions);
 
             if (status.isOk()) {
                 var source = Metapb.Partition.newBuilder(targets.get(0))
                                              .setState(Metapb.PartitionState.PState_Normal)
                                              .build();
-                // 更新本地key range，并同步follower
+                // Update the local key range and synchronize the follower
                 partitionManager.updatePartition(source, true);
                 storeEngine.getDataMover().updatePartitionRange(source,
                                                                 (int) source.getStartKey(),
@@ -979,7 +979,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                                                            boolean isLeader) {
         Partition partition = partitionManager.getPartition(graphName, partitionId);
 
-        // key range 校验
+        // Key Range verification
         if (partition != null && partition.getEndKey() == keyEnd &&
             partition.getStartKey() == keyStart) {
             log.info("remove partition id :{}, graph:{}", partition.getId(),
@@ -987,7 +987,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             storeEngine.deletePartition(partitionId, graphName);
         }
 
-        // 没有partition engine的情况
+        // There is no partition engine.
         if (isLeader && partition == null) {
             partitionManager.deletePartition(graphName, partitionId);
         }
@@ -1009,10 +1009,10 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
     public void snapshot() {
         log.info("Raft {} send snapshot command. ", this.getGroupId());
-        // 空指令，占位
+        // Air instructions, occupying positions
         this.addRaftTask(
                 RaftOperation.create(RaftOperation.BLANK_TASK), status -> {
-                    // 生成快照指令
+                    // Generate snapshot instructions
                     this.addRaftTask(
                             RaftOperation.create(RaftOperation.DO_SNAPSHOT), status2 -> {
                             });
@@ -1037,14 +1037,14 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     public void addBlankRaftTask() {
-        // 空指令，占位
+        // Air instructions, occupying positions
         this.addRaftTask(
                 RaftOperation.create(RaftOperation.BLANK_TASK), status -> {
                 });
     }
 
     private void handleCleanOp(CleanDataRequest request) {
-        // 避免清理数据过程中的leader漂移
+        // Avoid the leader drift in the data process
         boolean isLeader = isLeader();
         var partition =
                 partitionManager.getPartition(request.getGraphName(), request.getPartitionId());

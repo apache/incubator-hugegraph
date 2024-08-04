@@ -86,7 +86,7 @@ public class ParallelScanIterator implements ScanIterator {
                     Math.max(1, Math.min(query.getConditionCount() / 16, maxWorkThreads));
         }
         this.maxInQueue = maxWorkThreads * 2;
-        // 边有序需要更大的队列
+        // Edge order requires a larger queue
         queue = new LinkedBlockingQueue<>(maxInQueue * 2);
         createScanner();
     }
@@ -238,7 +238,7 @@ public class ParallelScanIterator implements ScanIterator {
                 queueLock.unlock();
             }
         }
-        // 数据未结束，线程继续执行
+        // The data is not over, and the thread continues to execute
         return hasNext || this.queue.size() < maxInQueue;
     }
 
@@ -305,7 +305,7 @@ public class ParallelScanIterator implements ScanIterator {
         private volatile boolean closed = false;
 
         private ScanIterator getIterator() {
-            // 迭代器没有数据，或该点以达到limit，切换新的迭代器
+            // The iterator has no data, or the point to reach Limit, switch the new iterator
             if (iterator == null || !iterator.hasNext() || counter >= limit) {
                 if (iterator != null) {
                     iterator.close();

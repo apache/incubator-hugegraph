@@ -70,7 +70,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
 
     private final static HgStoreEngine instance = new HgStoreEngine();
     private static ConcurrentHashMap<Integer, Object> engineLocks = new ConcurrentHashMap<>();
-    // 分区raft引擎，key为GraphName_PartitionID
+    // Partition Raft engine, Key is graphname_partitionid
     private final Map<Integer, PartitionEngine> partitionEngines = new ConcurrentHashMap<>();
     private RpcServer rpcServer;
     private HgStoreEngineOptions options;
@@ -118,19 +118,19 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         partitionManager.addPartitionChangedListener(new PartitionChangedListener());
 
         businessHandler = new BusinessHandlerImpl(partitionManager);
-        // 需要businessHandler 初始化后
+        // After the initialization of BusinessHandler
         partitionManager.load();
 
         rpcServer = createRaftRpcServer(opts.getRaftAddress());
 
         hgCmdClient = new HgCmdClient();
         hgCmdClient.init(new RpcOptions(), (graphName, ptId) -> {
-            // 分裂的时候，还未及时的上报pd
+            // When the division is divided, the PD has not been reported in time
             if (getPartitionEngine(ptId) != null) {
                 return getPartitionEngine(ptId).waitForLeader(
                         options.getWaitLeaderTimeout() * 1000);
             } else {
-                // 可能出现跨分区的迁移
+                // There may be a cross -section migration
                 Metapb.Shard shard = pdProvider.getPartitionLeader(graphName, ptId);
                 return JRaftUtils.getEndPoint(
                         pdProvider.getStoreByID(shard.getStoreId()).getRaftAddress());
@@ -199,7 +199,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     public void stateChanged(Store store, Metapb.StoreState oldState, Metapb.StoreState newState) {
         log.info("stateChanged, oldState {}, newState {}", oldState, newState);
         if (newState == Metapb.StoreState.Up) {
-            // 状态变为上线，记录store信息
+            // Status becomes online, record store information
             partitionManager.setStore(store);
             partitionManager.loadPartition();
             restoreLocalPartitionEngine();
@@ -212,7 +212,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
      */
     public void restoreLocalPartitionEngine() {
         try {
-            if (!options.isFakePD()) {  // FakePD模式不需要同步
+            if (!options.isFakePD()) {  // Fakepd mode does not need to be synchronized
                 partitionManager.syncPartitionsFromPD(partition -> {
                     log.warn(
                             "The local partition information is inconsistent with the PD server. " +
@@ -288,7 +288,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         if ((engine = partitionEngines.get(groupId)) == null) {
             engineLocks.computeIfAbsent(groupId, k -> new Object());
             synchronized (engineLocks.get(groupId)) {
-                // 分区分裂时特殊情况(集群中图分区数量不一样)，会导致分裂的分区，可能不在本机器上.
+                // Special circumstances during division (the number of partitions in the cluster is different), which will lead to dividing partitions. It may not be on this machine.
                 if (conf != null) {
                     var list = conf.listPeers();
                     list.addAll(conf.listLearners());
@@ -325,17 +325,17 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                     ptOpts.setRaftDataPath(partitionManager.getRaftDataPath(groupId));
                     ptOpts.setRaftSnapShotPath(partitionManager.getRaftSnapShotPath(groupId));
                     ptOpts.setRaftOptions(options.getRaftOptions());
-                    // raft任务处理器
+                    // RAFT task processor
                     ptOpts.setTaskHandler(options.getTaskHandler());
 
-                    // 分区状态监听
+                    // partition status monitoring
                     engine.addStateListener(this.heartbeatService);
                     engine.init(ptOpts);
                     partitionEngines.put(ptOpts.getGroupId(), engine);
                 }
             }
         }
-        // 检查是否活跃，如果不活跃，则重新创建
+        // Check whether it is active, if not active, re -create
         engine.checkActivity();
         return engine;
     }
@@ -359,13 +359,13 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
 
             var shardGroup = partitionManager.getShardGroup(partition.getId());
             if (shardGroup != null) {
-                // raft不存在，通知follower创建raft
+                // RAFT does not exist, notify Follower to create raft
                 shardGroup.getShards().forEach((shard) -> {
                     Store store = partitionManager.getStore(shard.getStoreId());
                     if (store == null || partitionManager.isLocalStore(store)) {
                         return;
                     }
-                    // 向其他peer发消息，创建raft 分组。此处是异步发送
+                    // Send a message to other Peer and create RAFT grouping.Here is an asynchronous sending
                     hgCmdClient.createRaftNode(store.getRaftAddress(), List.of(partition),
                                                status -> {
                                                    log.info(
@@ -377,7 +377,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                 });
             }
         } else {
-            // raft存在，修改分区列表，通过raft同步给follower
+            // RAFT exists, modify the partition list, and synchronize with RAFT to Follower
             engine = createPartitionEngine(partition);
         }
         return engine;
@@ -391,7 +391,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                 if (store == null) {
                     return;
                 }
-                // 向其他peer发消息，创建raft 分组。此处是异步发送
+                // Send a message to other Peer and create RAFT grouping.Here is an asynchronous sending
                 hgCmdClient.destroyRaftNode(store.getRaftAddress(),
                                             Arrays.asList(new Partition[]{partition}),
                                             status -> {
@@ -416,14 +416,14 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         PartitionEngine ptEngine = partitionEngines.get(groupId);
         graphNames.forEach(graphName -> {
             ptEngine.removePartition(graphName);
-            // 删除数据
+            // delete data
             businessHandler.deletePartition(graphName, groupId);
         });
 
         if (ptEngine.getPartitions().size() == 0) {
             ptEngine.destroy();
             partitionEngines.remove(groupId);
-            // 删除对应的db文件夹
+            // Delete the corresponding DB folder
             businessHandler.destroyGraphDB(graphNames.get(0), groupId);
         } else {
             graphNames.forEach(graphName -> {
@@ -443,7 +443,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         }
         PartitionEngine ptEngine = partitionEngines.get(groupId);
         ptEngine.removePartition(graphName);
-        // 删除数据
+        // delete data
         businessHandler.deletePartition(graphName, groupId);
         //通知PD删除分区数据
         if (ptEngine.isLeader()) {
@@ -569,7 +569,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                     Partition partition = partitionManager.findPartition(graphName, partId);
                     if (partition != null) {
                         engine = this.createPartitionGroups(partition);
-                        // 可能迁移，不应该创建, 放到 synchronize体中，避免后面的
+                        // May migrate, should not be created, put it in the Synchronize body to avoid the later ones
                         if (engine != null) {
                             engine.waitForLeader(options.getWaitLeaderTimeout() * 1000);
                         }
@@ -579,22 +579,22 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         }
 
         if (engine != null) {
-            // 等待Leader
+            // Waiting for leader
             Endpoint leader = engine.waitForLeader(options.getWaitLeaderTimeout() * 1000);
             if (engine.isLeader()) {
                 engine.addRaftTask(operation, closure);
             } else if (leader != null) {
-                // 当前不是leader，返回leader所在的storeId
+                // The current is not a leader, returning the Storeid where the leader is located
                 Store store = partitionManager.getStoreByRaftEndpoint(engine.getShardGroup(),
                                                                       leader.toString());
                 if (store.getId() == 0) {
-                    // 本地未找到Leader的Store信息，可能Partition还未同步过来，重新向Leader获取。
+                    // Not found the store information of the leader locally, maybe partition has not yet been synchronized and re -obtain it from the Leader.
                     Store leaderStore = hgCmdClient.getStoreInfo(leader.toString());
                     store = leaderStore != null ? leaderStore : store;
                     log.error("getStoreByRaftEndpoint error store:{}, shard: {}, leader is {}",
                               store, engine.getShardGroup().toString(), leader);
                 }
-                // Leader 不是本机，通知客户端
+                // Leader is not this machine, notify the client
                 closure.onLeaderChanged(partId, store.getId());
                 closure.run(new Status(HgRaftError.NOT_LEADER.getNumber(),
                                        String.format("Partition %s-%d leader changed to %x",

@@ -60,7 +60,7 @@ rocksdb:
   snapshot_path: ${app.data-path}/snapshot
   bloom_filter_bits_per_key: 10
   compression_per_level: "[none, zstd, zstd, zstd, zstd, zstd, zstd]"
-#fakePd配置参数
+#Fakepd configuration parameter
 fake-pd:
   # fake-pd模式下，store grpc集群列表
   store-list: 127.0.0.1:8500

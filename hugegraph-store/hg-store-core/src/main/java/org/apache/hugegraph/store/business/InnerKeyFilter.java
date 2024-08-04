@@ -80,11 +80,11 @@ public class InnerKeyFilter<T extends BackendColumn> implements ScanIterator {
     public T next() {
         T column = current;
         if (!codeFilter)
-        // 去掉图ID和hash后缀
+        // Remove the ID and Hash suffix
         {
             column.name = Arrays.copyOfRange(column.name, Short.BYTES,
                                              column.name.length - Short.BYTES);
-        } else// 去掉图ID
+        } else// Remove the figure ID
         {
             column.name = Arrays.copyOfRange(column.name, Short.BYTES,
                                              column.name.length);

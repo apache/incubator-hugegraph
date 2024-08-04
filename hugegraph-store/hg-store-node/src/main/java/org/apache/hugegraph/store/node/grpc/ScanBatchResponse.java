@@ -56,18 +56,18 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     private final ThreadPoolExecutor executor;
     private final Object stateLock = new Object();
     private final Lock iteratorLock = new ReentrantLock();
-    // 当前正在遍历的迭代器
+    // The iterators currently traversed
     private ScanIterator iterator;
-    // 下一次发送的序号
+    // The serial number of the next time
     private volatile int seqNo;
-    // Client已消费的序号
+    // CLIENT's serial number that has been consumed
     private volatile int clientSeqNo;
-    // 已经发送的条目数
+    // Number of entries that have been sent
     private volatile long count;
-    // 客户端要求返回的最大条目数
+    // The maximum number of entries required by the client requirement
     private volatile long limit;
     private ScanQueryRequest query;
-    // 上次读取数据时间
+    // Last reading data time
     private long activeTime;
     private volatile State state;
 
@@ -91,12 +91,12 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     @Override
     public void onNext(ScanStreamBatchReq request) {
         switch (request.getQueryCase()) {
-            case QUERY_REQUEST: // 查询条件
+            case QUERY_REQUEST: // Query conditions
                 executor.execute(() -> {
                     startQuery(request.getHeader().getGraph(), request.getQueryRequest());
                 });
                 break;
-            case RECEIPT_REQUEST:   // 消息异步应答
+            case RECEIPT_REQUEST:   // Message response asynchronous
                 this.clientSeqNo = request.getReceiptRequest().getTimes();
                 if (seqNo - clientSeqNo < maxInFlightCount) {
                     synchronized (stateLock) {
@@ -111,7 +111,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
                     }
                 }
                 break;
-            case CANCEL_REQUEST:    // 关闭流
+            case CANCEL_REQUEST:    // Close flowing
                 closeQuery();
                 break;
             default:

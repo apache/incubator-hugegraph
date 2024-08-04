@@ -56,12 +56,12 @@ export FILE_LIMITN=1024
 function check_evn_limit() {
     local limit_check=$(ulimit -n)
     if [ ${limit_check} -lt ${FILE_LIMITN} ]; then
-        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -n 可以打开的最大文件描述符数太少,需要(${FILE_LIMITN})!! \E[0m"
+        echo -e "${BASH_SOURCE[0]##*/}: ${LINENO}:\E [1; 32m ulimit -n to open the maximum file descriptor too small number of descriptors, required (${FILE_LIMITN})!! \E[0m"
         return 1
     fi
     limit_check=$(ulimit -u)
     if [ ${limit_check} -lt ${PROC_LIMITN} ]; then
-        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -u  用户最大可用的进程数太少,需要(${PROC_LIMITN})!! \E[0m"
+        echo -e "${BASH_SOURCE[0]##*/}: ${LINENO}:\E [1; 32m ulimit -u user's maximum available process is too small, required (${PROC_LIMITN}) !! \E[0m"
         return 2
     fi
     return 0

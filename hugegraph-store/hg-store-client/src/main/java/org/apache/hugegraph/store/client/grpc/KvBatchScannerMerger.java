@@ -69,14 +69,14 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
         int waitTime = 0;
         while (current == null) {
             try {
-                // 队列有数据，还有活跃的查询器，任务未分配完
+                // The queue has data, and there is an active query device, and the task is not allocated
                 if (queue.size() != 0 || scanners.size() > 0 || !taskSplitter.isFinished()) {
                     current = queue.poll(1, TimeUnit.SECONDS);  //定期检查client是否被关闭了
                 } else {
                     break;
                 }
                 if (current == null) {
-                    // 超时重试
+                    // Time to try on time
                     sendTimeout();
                     if (++waitTime > maxWaitCount) {
                         log.error(
@@ -225,14 +225,14 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
      */
     static class SortedScannerMerger extends KvBatchScannerMerger {
 
-        // 每一个流对应一个接收队列
+        // Each flow corresponds to a receiving queue
         private final Map<KvBatchScanner, ScannerDataQueue> scannerQueues =
                 new ConcurrentHashMap<>();
 
         public SortedScannerMerger(KvBatchScanner.TaskSplitter splitter) {
             super(splitter);
             queue.add(() -> {
-                // 对store返回结果进行归并排序
+                // Mergly sort the back results of the store return
                 return new HgKvIterator<>() {
                     private ScannerDataQueue iterator;
                     private int currentSN = 0;

@@ -164,7 +164,7 @@ class BatchGrpcClosure<V> {
         try {
             countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
 
-            if (errorStatus.isEmpty()) {  // 没有错误时，合并结果
+            if (errorStatus.isEmpty()) {  // When there is no error, the merger results
                 observer.onNext(ok.apply(results));
             } else {
                 observer.onNext((V) FeedbackRes.newBuilder()

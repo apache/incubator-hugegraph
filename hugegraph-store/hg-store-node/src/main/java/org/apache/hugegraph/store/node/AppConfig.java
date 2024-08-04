@@ -97,7 +97,7 @@ public class AppConfig {
         if (raft.getDisruptorBufferSize() == 0) {
             int size = (int) (totalMemory / 1000 / 1000 / 1000);
             size = (int) Math.pow(2, Math.round(Math.log(size) / Math.log(2))) * 32;
-            raft.setDisruptorBufferSize(size); // 每32M增加一个buffer
+            raft.setDisruptorBufferSize(size); // Add a buffer every 32m
         }
 
         if (!rocksdb.containsKey("write_buffer_size") ||

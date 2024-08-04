@@ -58,18 +58,18 @@ public interface DataMover {
      */
     Status moveData(Metapb.Partition source, Metapb.Partition target) throws Exception;
 
-    // 同步副本之间的分区状态
+    // The partition status between the synchronous copy
     UpdatePartitionResponse updatePartitionState(Metapb.Partition partition,
                                                  Metapb.PartitionState state);
 
-    // 同步副本之间分区的范围
+    // The scope of the partition between the synchronous copy
     UpdatePartitionResponse updatePartitionRange(Metapb.Partition partition, int startKey,
                                                  int endKey);
 
-    // 清理分区partition内的无效数据
+    // Clean up invalid data in partition partition
     void cleanData(Metapb.Partition partition);
 
-    // 写入数据
+    // data input
     void doWriteData(BatchPutRequest request);
 
     void doCleanData(CleanDataRequest request);

@@ -36,36 +36,36 @@ public class HgStoreEngineOptions {
     public static String Raft_Path_Prefix = "raft";
     public static String DB_Path_Prefix = "db";
     public static String Snapshot_Path_Prefix = "snapshot";
-    // store心跳间隔，单位秒
+    // Store heartbeat interval, unit seconds
     private final int storeHBInterval = 30;
-    // 分区心跳间隔，单位秒
+    // Partition heartbeat interval, unit seconds
     private final int partitionHBInterval = 5;
-    // 等待leader超时时间，单位秒
+    // Waiting for the leader timeout time, the unit second
     private final int waitLeaderTimeout = 30;
     private final int raftRpcThreadPoolSize = Utils.cpus() * 6;
-    // 没有PD模式，用于开发调试使用
+    // No PD mode, used to develop debugging and use
     private boolean fakePD = false;
-    // fakePd配置项
+    // Fakepd configuration item
     private FakePdOptions fakePdOptions = new FakePdOptions();
     private RaftOptions raftOptions = new RaftOptions();
-    // pd 服务器地址
+    // pd server address
     private String pdAddress;
-    // 对外服务地址
+    // External service address
     private String grpcAddress;
-    // Raft 对外服务地址
+    // RAFT's external service address
     private String raftAddress;
-    // 存储路径，支持多个位置，逗号分割
+    // Storage path, support multiple positions, comma segmentation
     private String dataPath;
     private String raftPath;
     private Map<String, Object> rocksdbConfig;
-    // 自定义的标签，传给pd
+    // The custom label is passed to PD
     private Map<String, String> labels;
-    // Raft任务处理器
+    // RAFT task processor
     private RaftTaskHandler taskHandler;
 
     private PdProvider pdProvider;
 
-    // 数据迁移服务
+    // Data migration service
     private DataMover dataTransfer;
 
     @Data
@@ -93,7 +93,7 @@ public class HgStoreEngineOptions {
          * Install snapshot RPC request default timeout in milliseconds
          */
         private final int rpcInstallSnapshotTimeout = 60 * 60 * 1000;
-        // 等待leader超时时间，单位秒
+        // Waiting for the leader timeout time, the unit second
         private final int waitLeaderTimeout = 30;
         /**
          * The maximum number of entries in AppendEntriesRequest

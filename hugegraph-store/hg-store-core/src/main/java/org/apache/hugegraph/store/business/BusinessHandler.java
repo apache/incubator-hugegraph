@@ -108,14 +108,14 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     long getLatestSequenceNumber(String graph, int partId);
 
-    // 扫描分区从 seqnum 开始的 kv
+    // KV, the scanning partition starting from SEQNUM
     ScanIterator scanRaw(String graph, int partId, long seqNum) throws HgStoreException;
 
     void ingestSstFile(String graph, int partId, Map<byte[], List<String>> sstFiles) throws
                                                                                      HgStoreException;
 
     //提交分区分裂，删除旧数据
-    // 删除分区数据
+    // Delete partition data
     boolean deletePartition(String graph, int partId);
 
     //清理分区，删除多余的数据

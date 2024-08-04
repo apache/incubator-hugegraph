@@ -140,14 +140,14 @@ public class HgStoreNodeService implements RaftTaskHandler {
         }
         //
         try {
-            // 序列化，
+            // Serialization
             final byte[] buffer = new byte[req.getSerializedSize() + 1];
             final CodedOutputStream output = CodedOutputStream.newInstance(buffer);
             output.write(methodId);
             req.writeTo(output);
             output.checkNoSpaceLeft();
             output.flush();
-            // 传送给raft
+            // Send to RAFT
             storeEngine.addRaftTask(graphName, partitionId,
                                     RaftOperation.create(methodId, buffer, req), closure);
 
@@ -181,7 +181,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                     invoke(partId, methodId, CleanReq.parseFrom(input), response);
                     break;
                 default:
-                    return false; // 未处理
+                    return false; // Uncharged
             }
         } catch (IOException e) {
             throw new HgStoreException(e.getMessage(), e);
@@ -212,7 +212,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 hgStoreSession.doClean(partId, (CleanReq) req, response);
                 break;
             default:
-                return false; // 未处理
+                return false; // Uncharged
         }
         return true;
     }

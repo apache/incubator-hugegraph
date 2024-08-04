@@ -109,7 +109,7 @@ public abstract class HgGrpc {
                                                String des,
                                                Throwable t) {
         if (t != null) {
-            // 为给client返回完整异常信息
+            // Back to complete the complete abnormal information to the client
             des = (des == null ? "" : des + ",") +
                   Throwables.getStackTraceAsString(t);
         }

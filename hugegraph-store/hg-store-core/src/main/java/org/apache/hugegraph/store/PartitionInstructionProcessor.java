@@ -78,7 +78,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
         PartitionEngine engine = storeEngine.getPartitionEngine(partition.getId());
 
         if (engine != null) {
-            // 清理所有的任务，有失败的情况
+            // Clean up all the tasks, there is a failure situation
             engine.getTaskManager()
                   .deleteTask(partition.getId(), MetaTask.TaskType.Change_Shard.name());
         }
@@ -144,7 +144,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
         }
 
         if (engine != null && engine.isLeader()) {
-            // 先应答，避免超时造成pd重复发送
+            // Answer first to avoid repeated pd delivery caused by overtime
             consumer.accept(0);
 
             String graphName = partition.getGraphName();
@@ -210,7 +210,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
         }
 
         if (engine != null && engine.isLeader()) {
-            // 先应答，避免超时造成pd重复发送
+            // Answer first to avoid repeated pd delivery caused by overtime
             consumer.accept(0);
 
             String graphName = partition.getGraphName();
@@ -278,7 +278,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
                     partitionManager.getPartition(partition.getGraphName(), partition.getId());
 
             if (localPartition == null) {
-                // 如果分区数据为空，本地不会存储
+                // If the partition data is empty, the local area will not store
                 localPartition = partitionManager.getPartitionFromPD(partition.getGraphName(),
                                                                      partition.getId());
                 LOG.info("onPartitionKeyRangeChanged, get from pd:{}-{} -> {}",

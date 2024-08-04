@@ -164,7 +164,7 @@ public class HgCmdClient {
                     } else if (HgCmdProcessor.Status.LEADER_REDIRECT == response.getStatus()
                                && response.partitionLeaders != null
                     ) {
-                        // 当返回leader 漂移，并且partitionLeaders 不为空时，需要重新设置leader
+                        // When returning leader drift and partitionleaders are not empty, you need to reset the leader
                     } else {
                         log.error(
                                 "HgCmdClient tryInternalCallSyncWithRpc error msg {} leaders is {}",

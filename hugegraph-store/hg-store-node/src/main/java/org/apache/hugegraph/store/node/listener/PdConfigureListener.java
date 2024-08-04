@@ -103,7 +103,7 @@ public class PdConfigureListener implements
             client.listen(TIMESTAMP_KEY, (Consumer<WatchResponse>) o -> {
                 log.info("receive message to restart :" + o);
                 try {
-                    // 优先更新最新配置文件，以免修改像端口之类的参数导致旧文件被优先加载
+                    // Prefer to update the latest configuration file, so as not to modify parameters such as port ports and cause old files to be loaded first
                     ScanPrefixResponse responseNew = client.scanPrefix(CONFIG_PREFIX);
                     Map<String, String> kvsMapNew = responseNew.getKvsMap();
                     String config = kvsMapNew.get(CONFIG_FIX_PREFIX);

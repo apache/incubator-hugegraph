@@ -59,9 +59,9 @@ public class KvBatchScanner implements Closeable {
 
     static final Supplier<HgKvIterator<HgKvEntry>> NO_DATA = () -> null;
     static int maxTaskSizePerStore = PropertyUtil.getInt("net.kv.scanner.task.size", 8);
-    private final StreamObserver<ScanStreamBatchReq> sender; // 命令发送器
-    private final KvBatchScannerMerger notifier; // 数据通知
-    private final String graphName; // 图名
+    private final StreamObserver<ScanStreamBatchReq> sender; // command sender
+    private final KvBatchScannerMerger notifier; // Data notification
+    private final String graphName; // image name
     private final HgScanQuery scanQuery;
     private final ScanReceiptRequest.Builder responseBuilder = ScanReceiptRequest.newBuilder();
     private final KvBatchReceiver receiver;
@@ -82,7 +82,7 @@ public class KvBatchScanner implements Closeable {
         receiver =
                 new KvBatchReceiver(this, scanQuery.getOrderType() == ScanOrderType.ORDER_STRICT);
         sender = stub.scanBatch2(receiver);
-        sendQuery(this.scanQuery); // 发送查询请求
+        sendQuery(this.scanQuery); // Send query request
     }
 
     /**
@@ -170,12 +170,12 @@ public class KvBatchScanner implements Closeable {
         close();
     }
 
-    // 流被关闭
+    // The flow is closed
     @Override
     public void close() {
         try {
             if (notifier.unregisterScanner(this) < 0) {
-                notifier.dataArrived(this, NO_DATA); // 任务结束，唤醒队列
+                notifier.dataArrived(this, NO_DATA); // The task is over, wake up the queue
             }
         } catch (InterruptedException e) {
             log.error("exception ", e);
@@ -200,9 +200,9 @@ public class KvBatchScanner implements Closeable {
         final BiFunction<HgScanQuery, KvCloseableIterator, Boolean> taskHandler;
         private KvBatchScannerMerger notifier;
         private Iterator<HgOwnerKey> prefixItr;
-        private int maxTaskSize = 0; // 最大并行任务数
+        private int maxTaskSize = 0; // maximize the number of parallel tasks
         private int maxBatchSize = PropertyUtil.getInt("net.kv.scanner.batch.size", 1000);
-        // 每批次最大点数量
+        // The maximum number per batch
         private volatile boolean finished = false;
         private volatile boolean splitting = false;
         private volatile int nextKeySerialNo = 1;
@@ -232,13 +232,13 @@ public class KvBatchScanner implements Closeable {
          * 评估最大任务数
          */
         private void evaluateMaxTaskSize() {
-            if (maxTaskSize == 0) { // 根据第一批次任务，得到store数量，然后计算最大任务数
+            if (maxTaskSize == 0) { // Based on the first batch of tasks, get the number of stores, and then calculate the maximum number of tasks
                 if (scanQuery.getOrderType() == ScanOrderType.ORDER_STRICT) {
-                    maxTaskSize = 1; // 点排序，每台机器一个流, 所有store流结束后才能启动其他流
+                    maxTaskSize = 1; // Sort, one stream of each machine, all other streams can be started after all the streams are over
                 } else {
                     maxTaskSize = this.notifier.getScannerCount() * maxTaskSizePerStore;
                 }
-                maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // 每台机器最多1000条
+                maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // A maximum of 1,000 per machine
 
                 /*
                  * Limit少于10000时启动一个流，节省网络带宽
@@ -271,10 +271,10 @@ public class KvBatchScanner implements Closeable {
                         taskHandler.apply(
                                 HgScanQuery.prefixOf(scanQuery.getTable(), keys,
                                                      scanQuery.getOrderType()), this.notifier);
-                        // 评估最大任务数
+                        // Evaluate the maximum task number
                         evaluateMaxTaskSize();
                         if (this.notifier.getScannerCount() < this.maxTaskSize) {
-                            splitTask(); // 未达到最大任务数，继续拆分
+                            splitTask(); // Do not reach the maximum number of tasks, continue to split
                         }
                     }
                     this.finished = !prefixItr.hasNext();

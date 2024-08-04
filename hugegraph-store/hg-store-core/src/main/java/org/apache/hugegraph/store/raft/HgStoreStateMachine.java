@@ -81,7 +81,7 @@ public class HgStoreStateMachine extends StateMachineAdapter {
             try {
                 for (RaftTaskHandler taskHandler : taskHandlers) {
                     if (done != null) {
-                        // Leader分支，本地调用
+                        // Leader branch, local call
                         if (taskHandler.invoke(groupId, done.op.getOp(), done.op.getReq(),
                                                done.closure)) {
                             done.run(Status.OK());
@@ -107,11 +107,11 @@ public class HgStoreStateMachine extends StateMachineAdapter {
             stateListeners.forEach(listener -> {
                 listener.onDataCommitted(committedIndex);
             });
-            // 清理数据
+            // Clean up data
             if (done != null) {
                 done.clear();
             }
-            // 遍历下一条
+            // Traversing the next
             inter.next();
         }
     }

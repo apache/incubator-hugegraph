@@ -98,7 +98,7 @@ public class PartitionAPI {
                 String graphName = partitionEntry.getKey();
                 Partition pt = partitionEntry.getValue();
                 PartitionInfo partition = new PartitionInfo(pt);
-                // 此处为了打开所有的图，metric只返回已打开的图
+                // In order to open all the pictures here, Metric only returns the open picture
                 businessHandler.getLatestSequenceNumber(graphName, pt.getId());
                 partition.setMetric(
                         businessHandler.getPartitionMetric(graphName, pt.getId(), accurate));

@@ -119,7 +119,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     public static HugeConfig initRocksdb(Map<String, Object> rocksdbConfig,
                                          RocksdbChangedListener listener) {
-        // 注册 rocksdb 配置
+        // Register Rocksdb configuration
         OptionSpace.register("rocksdb", "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
         RocksDBOptions.instance();
         HugeConfig hConfig = new HugeConfig(new MapConfiguration(rocksdbConfig));
@@ -136,7 +136,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             dbName = String.format("%05d", partId);
             dbNames.put(partId, dbName);
         }
-        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 partId
+        // Each partition corresponds to a Rocksdb instance, so the Rocksdb instance name is partid
         return dbName;
     }
 
@@ -439,11 +439,11 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public void truncate(String graphName, int partId) throws HgStoreException {
-        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
+        // Each partition corresponds to a Rocksdb instance, so the Rocksdb instance name is ROCKSDB + PARTID
         try (RocksDBSession dbSession = getSession(graphName, partId)) {
             dbSession.sessionOp().deleteRange(keyCreator.getStartKey(partId, graphName),
                                               keyCreator.getEndKey(partId, graphName));
-            // 释放图 ID
+            // Release the graph ID
             keyCreator.delGraphId(partId, graphName);
         }
     }
@@ -563,7 +563,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                 boolean flag = code >= startKey && code < endKey;
                 return (cleanType == CleanType.CLEAN_TYPE_KEEP_RANGE) == flag;
             });
-            // 可能被 destroy 了
+            // May be dkstroy
             if (HgStoreEngine.getInstance().getPartitionEngine(partId) != null) {
                 taskManager.updateAsyncTaskState(partId, graph, cleanTask.getId(),
                                                  AsyncTaskState.SUCCESS);
@@ -602,7 +602,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                         if (counter == 0) {
                             op.prepare();
                         }
-                        op.delete(table, col.name); // 删除旧数据
+                        op.delete(table, col.name); // Delete the old data
                         if (++counter > batchSize) {
                             op.commit();
                             counter = 0;
@@ -671,7 +671,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public RocksDBSession getSession(int partId) throws HgStoreException {
-        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
+        // Each partition corresponds to a Rocksdb instance, so the Rocksdb instance name is ROCKSDB + PARTID
         String dbName = getDbName(partId);
         RocksDBSession dbSession = factory.queryGraphDB(dbName);
         if (dbSession == null) {
@@ -719,7 +719,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public void deleteTable(String graph, int partId, String table) {
         dropTable(graph, partId, table);
-        // todo 检查表是否为空，为空则真实删除表
+        // Whether the Todo check the table is empty, for the air, the real delete table
 //        try (RocksDBSession session = getOrCreateGraphDB(graph, partId)) {
 //            session.deleteTables(table);
 //        }
@@ -768,7 +768,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
-        // 每个图每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
+        // Each graph corresponds to a Rocksdb instance, so the Rocksdb instance is named Rocksdb + Partid
         String dbName = getDbName(partId);
 
         factory.destroyGraphDB(dbName);
@@ -904,7 +904,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             return new Tx() {
                 @Override
                 public void commit() throws HgStoreException {
-                    op.commit();  // commit发生异常后，必须调用rollback，否则造成锁未释放
+                    op.commit();  // After the abnormality occurs, rollback must be called after the occurrence of abnormalities, otherwise the lock is not released
                     dbSession.close();
                 }
 

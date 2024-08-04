@@ -27,15 +27,15 @@ import lombok.Data;
 @Data
 public class PartitionStats {
 
-    // 分区leader所在shard
+    // partition leader is located
     Metapb.Shard leader;
-    // 分区离线的shard
+    // SHARD of partition offline
     List<Metapb.Shard> offlineShards = new ArrayList<>();
     long committedIndex;
     long leaderTerm;
     long approximateSize;
     long approximateKeys;
-    // 分区ID
+    // partition ID
     private int id;
     private String namespace;
     private String graphName;

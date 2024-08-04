@@ -99,7 +99,7 @@ public class FakePdServiceProvider implements PdProvider {
         log.info("registerStore storeId:{}, storeAddress:{}", store.getId(),
                  store.getStoreAddress());
 
-        // id 不匹配，禁止登录
+        // ID does not match, prohibit login
         if (store.getId() != 0 && store.getId() != makeStoreId(store.getStoreAddress())) {
             throw new PDException(Pdpb.ErrorType.STORE_ID_NOT_EXIST_VALUE,
                                   "Store id does not matched");
@@ -132,7 +132,7 @@ public class FakePdServiceProvider implements PdProvider {
                                          Metapb.ShardRole.Follower) //
                                 .build();
             shards.add(shard);
-            storeIdx = (storeIdx + 1) >= storeList.size() ? 0 : ++storeIdx; // 顺序选择
+            storeIdx = (storeIdx + 1) >= storeList.size() ? 0 : ++storeIdx; // Sequential selection
         }
 
         int partLength = getPartitionLength();

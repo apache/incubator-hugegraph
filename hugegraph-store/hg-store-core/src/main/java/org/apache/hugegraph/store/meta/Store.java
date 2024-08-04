@@ -34,7 +34,7 @@ public class Store {
     private String pdAddress;
     private String raftAddress;
     private String deployPath;
-    private String dataPath; // 数据存储路径
+    private String dataPath; // Data storage path
     private int dataVersion;
     private int partitionCount;
     private int startTime;

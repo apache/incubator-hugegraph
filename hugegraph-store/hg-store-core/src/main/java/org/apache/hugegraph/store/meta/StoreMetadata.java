@@ -54,7 +54,7 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     public Store load() {
-        // 针对多目录存储的情况下，预先创建文件夹，方便pd端统计文件存储
+        // In the case of multiple directory storage, create a folder in advance to facilitate the PD -side statistical file storage
         dataLocations.forEach(path -> {
             String strPath = Paths.get(path).toAbsolutePath().toString();
             File dbFile = new File(strPath);
@@ -197,12 +197,12 @@ public class StoreMetadata extends GlobalMetaStore {
             synchronized (this) {
                 location = getPartitionStore(partitionId);
                 if (location == null) {
-                    // 查找分区数最少的存储
+                    // Find the storage with the least number of partitions
                     location = Metapb.PartitionStore.newBuilder()
                                                     .setPartitionId(partitionId)
                                                     .setStoreLocation(getMinDataLocation())
                                                     .build();
-                    // TODO 选择分区数最小的路径
+                    // TODO selects the minimum number of partitions
                     savePartitionStore(location);
                 }
             }
@@ -216,12 +216,12 @@ public class StoreMetadata extends GlobalMetaStore {
             synchronized (this) {
                 location = getPartitionRaft(partitionId);
                 if (location == null) {
-                    // 查找分区数最少的存储
+                    // Find the storage with the least number of partitions
                     location = Metapb.PartitionRaft.newBuilder()
                                                    .setPartitionId(partitionId)
                                                    .setRaftLocation(getMinRaftLocation())
                                                    .build();
-                    // TODO 选择分区数最小的路径
+                    // TODO selects the minimum number of partitions
                     savePartitionRaft(location);
                 }
             }

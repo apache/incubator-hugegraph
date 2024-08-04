@@ -377,11 +377,11 @@ final class NodeTxExecutor {
                                         if (i + 1 <= NODE_MAX_RETRYING_TIMES) {
                                             try {
                                                 int sleepTime;
-                                                // 前三次每隔一秒做一次尝试
+                                                // Try every three times every second
                                                 if (i < 3) {
                                                     sleepTime = 1;
                                                 } else {
-                                                    // 后面逐次递增
+                                                    // After the increasing one after another
                                                     sleepTime = i - 1;
                                                 }
                                                 log.info("Waiting {} seconds " +
