@@ -82,10 +82,10 @@ enum ScanMethod {
 }
 
 enum ScanOrderType{
-  // 批量接口下，返回顺序的要求
-  ORDER_NONE = 0;             // 允许无序
-  ORDER_WITHIN_VERTEX = 1;    // 一个点内的边不会被打断，单不同点之间为无序
-  ORDER_STRICT = 2;           // 保证原始的输入点顺序
+  // Under the batch interface, the requirements of the return order
+  ORDER_NONE = 0;             // Allow disorderly
+  ORDER_WITHIN_VERTEX = 1;    // The edges within a point will not be interrupted, and the difference between a single point is disorderly
+  ORDER_STRICT = 2;           // Make sure the original input point order
 }
 
 enum OpType {
