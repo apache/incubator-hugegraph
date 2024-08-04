@@ -308,7 +308,7 @@ public class SessionOperatorImpl implements SessionOperator {
      */
     @Override
     public ScanIterator scanRaw(byte[] keyFrom, byte[] keyTo, long startSeqNum) {
-        int kNumInternalBytes = 8;      //internal key 增加的8个字节后缀
+        int kNumInternalBytes = 8;      // 8 byte suffixes added by Internet key
         Snapshot snapshot = rocksdb().getSnapshot();
         Iterator<String> cfIterator = session.getTables().keySet().iterator();
 

@@ -685,7 +685,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                            "failed to create a new graph db: {}", dbName);
             }
         }
-        dbSession.setDisableWAL(true); //raft 模式，关闭 rocksdb 日志
+        dbSession.setDisableWAL(true); // RAFT mode, turn off the Rocksdb log
         return dbSession;
     }
 

@@ -445,7 +445,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         ptEngine.removePartition(graphName);
         // delete data
         businessHandler.deletePartition(graphName, groupId);
-        //通知PD删除分区数据
+        // Inform PD to delete partition data
         if (ptEngine.isLeader()) {
             synchronized (this) {
                 partitionManager.deletePartition(graphName, groupId);

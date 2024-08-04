@@ -221,7 +221,7 @@ public final class RocksDBFactory {
         log.info("destroy {} 's  rocksdb.", dbName);
         RocksDBSession dbSession = dbSessionMap.get(dbName);
         releaseGraphDB(dbName);
-        //增加删除标记
+        // Add deletion tags
         if (dbSession != null) {
             destroyGraphDBs.add(new DBSessionWatcher(dbSession));
             rocksdbChangedListeners.forEach(listener -> {

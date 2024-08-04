@@ -71,7 +71,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
             try {
                 // The queue has data, and there is an active query device, and the task is not allocated
                 if (queue.size() != 0 || scanners.size() > 0 || !taskSplitter.isFinished()) {
-                    current = queue.poll(1, TimeUnit.SECONDS);  //定期检查client是否被关闭了
+                    current = queue.poll(1, TimeUnit.SECONDS);  // Check whether the client is closed regularly
                 } else {
                     break;
                 }
@@ -179,7 +179,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
                 try {
                     int waitTime = 0;
                     Supplier<HgKvIterator<HgKvEntry>> current;
-                    current = queue.poll(1, TimeUnit.SECONDS);  //定期检查client是否被关闭了
+                    current = queue.poll(1, TimeUnit.SECONDS);  // Check whether the client is closed regularly
                     if (current == null) {
                         if (++waitTime > maxWaitCount) {
                             break;

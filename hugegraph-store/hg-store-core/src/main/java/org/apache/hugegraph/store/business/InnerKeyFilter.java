@@ -27,7 +27,7 @@ public class InnerKeyFilter<T extends BackendColumn> implements ScanIterator {
 
     final int codeFrom;
     final int codeTo;
-    //是否进行code过滤，启动该选项，返回key的尾部包含code
+    // Whether Code filtering, start the option, and return the tail of the key to contain CODE
     final boolean codeFilter;
     ScanIterator iterator;
     T current = null;

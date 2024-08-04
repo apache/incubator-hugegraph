@@ -484,7 +484,7 @@ public class PartitionManager extends GlobalMetaStore {
             if (partitions.containsKey(graph)) {
                 Partition local = partitions.get(graph).get(partId);
                 if (local != null) {
-                    //更新本地的key范围，保证pd和本地分区信息的一致性
+                    // Update the local key range to ensure the consistency of PD and local partition information
                     local.setStartKey(partition.getStartKey());
                     local.setEndKey(partition.getEndKey());
                     savePartition(local, true, true);

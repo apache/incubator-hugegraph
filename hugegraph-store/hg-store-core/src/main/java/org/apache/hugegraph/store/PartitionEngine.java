@@ -262,7 +262,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         // Check whether the Peers returned by the PD is consistent with the local area. If it is not consistent, reset the peerlist
         if (this.raftNode != null) {
-            //TODO 检查peer列表，如果peer发生改变，进行重置
+            // Todo check the peer list, if the peer changes, the reset
             started = true;
         }
 
@@ -630,7 +630,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     public void onConfigurationCommitted(Configuration conf) {
 
         try {
-            //更新shardlist
+            // Update Shardlist
             log.info("Raft {} onConfigurationCommitted, conf is {}", getGroupId(), conf.toString());
             // Find Storeid according to RAFT ENDPOINT
             List<Long> peerIds = new ArrayList<>();

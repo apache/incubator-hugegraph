@@ -57,7 +57,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HgThread2DB {
 
-    /*正在进行和在排队的任务的总数*/
+    /* The total number of tasks in line and queuing*/
     private static final AtomicInteger taskTotal = new AtomicInteger(0);
     private static final AtomicInteger queryTaskTotal = new AtomicInteger(0);
     private static final AtomicLong insertDataCount = new AtomicLong();
@@ -378,8 +378,8 @@ public class HgThread2DB {
     }
 
     public String getLong() {
-        //如果需要更长 或者更大冗余空间, 只需要 time * 10^n   即可
-        //当前可保证1毫秒 生成 10000条不重复
+        // If you need to be longer or more redundant space, you only need time * 10^n
+        // Currently guarantee that 1 millisecond generates 100,000 pieces without repeating
         return String.format("%019x", longId.getAndIncrement());
     }
 

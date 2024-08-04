@@ -27,10 +27,10 @@ import java.util.Objects;
 public final class HgNodePartition {
 
     private final Long nodeId;
-    //当前key的hashcode
+    // The current key's hashcode
     private final Integer keyCode;
 
-    //分区的开始结束范围
+    // The end of the start of the partition
     private final Integer startKey;
     private final Integer endKey;
     private int hash = -1;

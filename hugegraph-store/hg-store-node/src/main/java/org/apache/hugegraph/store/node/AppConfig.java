@@ -49,14 +49,14 @@ public class AppConfig {
     @Value("${server.port}")
     private int restPort;
 
-    //内置pd模式，用于单机部署
+    // Built in PD mode, for single -machine deployment
     @Value("${app.data-path: store}")
     private String dataPath;
 
     @Value("${app.raft-path:}")
     private String raftPath;
 
-    //内置pd模式，用于单机部署
+    // Built in PD mode, for single -machine deployment
     @Value("${app.fake-pd: false}")
     private boolean fakePd;
     @Autowired
@@ -209,7 +209,7 @@ public class AppConfig {
         @Value("${fake-pd.store-list:''}")
         private String storeList;
         @Value("${fake-pd.peers-list:''}")
-        private String peersList;   //fakePd模式下，raft集群初始配置
+        private String peersList;   // Fakepd mode, the initial configuration of the Ra
         @Value("${fake-pd.partition-count:3}")
         private int partitionCount;
         @Value("${fake-pd.shard-count:3}")

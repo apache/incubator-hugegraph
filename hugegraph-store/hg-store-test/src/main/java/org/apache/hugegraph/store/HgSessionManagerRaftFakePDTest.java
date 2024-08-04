@@ -217,7 +217,7 @@ public class HgSessionManagerRaftFakePDTest {
 
     // @Test
     //CAUTION: ONLY FOR LONG！
-    //注意：目前只可以对long类型value进行Merge操作。
+    // Note: At present, you can only perform Merge operations on the LONG type Value.
     public void merge() {
         System.out.println("--- test merge (1+1=2)---");
         HgStoreSession session = getStoreSession();

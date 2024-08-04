@@ -38,7 +38,7 @@ public class Store {
     private int dataVersion;
     private int partitionCount;
     private int startTime;
-    private int usedSize;     //rocksdb存储大小
+    private int usedSize;     // Rocksdb storage size
     private int pdHeartbeatInterval;
     private Metapb.StoreState state;
     private Map<String, String> labels;

@@ -43,7 +43,7 @@ public class AppShutdownHook extends Thread {
         doSomethingForShutdown();
 
         try {
-            mainThread.join(); //当收到停止信号时，等待mainThread的执行完成
+            mainThread.join(); // When receiving a stop signal, wait for the execution of Mainthread to complete
         } catch (InterruptedException ignored) {
         }
         System.out.println("Shut down complete.");
