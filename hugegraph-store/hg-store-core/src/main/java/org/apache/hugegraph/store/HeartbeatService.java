@@ -124,7 +124,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     /**
      * There are four types of service status
-     * Be ready，在线、离线、死亡（从集群排除）
+     * Be ready, online, offline, death (excluded from the cluster)
      */
     protected void doStoreHeartbeat() {
         while (!terminated) {

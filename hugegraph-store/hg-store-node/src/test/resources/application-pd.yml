@@ -16,8 +16,7 @@
 #
 
 rocksdb:
-  # rocksdb 使用的总内存大小
-  total_memory_size: 32000000000
+  # ROCKSDB Total memory size  total_memory_size: 32000000000
   max_background_jobs: 8
   max_subcompactions: 4
   target_file_size_multiplier: 4

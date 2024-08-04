@@ -16,11 +16,9 @@
 #
 
 pdserver:
-  # pd服务地址，多个pd地址用逗号分割
-  address: localhost:8686
+  # PD service address, multiple PD addresses are divided in comma  address: localhost:8686
 grpc:
-  # grpc的服务地址
-  host: 127.0.0.1
+  # GRPC's service address  host: 127.0.0.1
   port: 8500
   netty-server:
     max-inbound-message-size: 1000MB
@@ -28,12 +26,11 @@ raft:
   # enable: false
   address: 127.0.0.1:8510
   data-path: ${app.data-path}/raft
-  # 快照生成时间间隔，单位秒
+  # Generation time interval, unit seconds
   snapshotInterval: 30
   max-log-file-size: 60000000
 server:
-  # rest 服务地址
-  port: 8520
+  # REST service address  port: 8520
 
 app:
   data-path: tmp/8500
@@ -62,12 +59,10 @@ rocksdb:
   compression_per_level: "[none, zstd, zstd, zstd, zstd, zstd, zstd]"
 #Fakepd configuration parameter
 fake-pd:
-  # fake-pd模式下，store grpc集群列表
-  store-list: 127.0.0.1:8500
-  # fake-pd模式下，设置raft集群列表
-  peers-list: 127.0.0.1:8510
-  # 分区数量
+  # FAKE-PD mode, Store GRPC cluster list  store-list: 127.0.0.1:8500
+  # FAKE-PD mode, set the RAFT cluster list  peers-list: 127.0.0.1:8510
+  # Number of partitions
   partition-count: 10
-  # 每个分区副本数量
+  # Number of copies per partition
   shard-count: 3
 

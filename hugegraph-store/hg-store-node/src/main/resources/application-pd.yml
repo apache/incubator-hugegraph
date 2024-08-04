@@ -16,8 +16,7 @@
 #
 
 pdserver:
-  # pd服务地址，多个pd地址用逗号分割
-  address: localhost:8686
+  # PD service address, multiple PD addresses are divided in comma  address: localhost:8686
 
 management:
   metrics:
@@ -33,6 +32,5 @@ logging:
   level:
     root: info
 rocksdb:
-  # rocksdb 使用的总内存大小
-  total_memory_size: 32000000000
+  # ROCKSDB Total memory size  total_memory_size: 32000000000
   write_buffer_size: 32000000

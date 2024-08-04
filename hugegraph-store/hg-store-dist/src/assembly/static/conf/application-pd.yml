@@ -26,9 +26,9 @@ management:
         include: "*"
 
 rocksdb:
-  # rocksdb 使用的总内存大小，达到该值强制写盘
+  # ROCKSDB's total memory size, reaches the compulsory writing of this value
   total_memory_size: 32000000000
-  # rocksdb 使用的 memtable 大小
+  # ROCKSDB MEMTable size
   write_buffer_size: 32000000
-  # 对于每个 rocksdb 来说，memtable 个数达到该值进行写盘
+  # For each Rocksdb, the number of Memtable reaches the value
   min_write_buffer_number_to_merge: 16
