@@ -52,7 +52,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * use pd, support raft
- * Read the file and go into multi threaded warehouse
+ * Read the file and go into multi thread warehouse
  */
 @Slf4j
 public class HgThread2DB {
@@ -465,9 +465,9 @@ public class HgThread2DB {
     /**
      * Multi -thread query
      *
-     * @param Point     Start Query Point, Followed Up According to this PointValue as the next
+     * @param point     Start Query Point, Followed Up According to this PointValue as the next
      *                  query condition to iterate
-     * @param Scancount allows the number of threads to start
+     * @param scanCount allows the number of threads to start
      * @throws IOException
      * @throws InterruptedException
      */
