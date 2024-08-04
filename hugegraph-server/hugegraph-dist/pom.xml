@@ -115,6 +115,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- declare to avoid java.lang.ClassNotFoundException: io.grpc.stub.AbstractBlockingStub when launching
+             server with IDE -->
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <version>${grpc.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
