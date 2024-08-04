@@ -98,10 +98,10 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>org.apache.hugegraph</groupId>-->
-        <!--            <artifactId>hg-store-core</artifactId>-->
-        <!--        </dependency>-->
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hg-store-core</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-grpc</artifactId>
@@ -203,12 +203,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>org.apache.hugegraph</groupId>-->
-        <!--            <artifactId>hg-store-node</artifactId>-->
-        <!--            <version>${revision}</version>-->
-        <!--            <scope>compile</scope>-->
-        <!--        </dependency>-->
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hg-store-node</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -217,31 +217,30 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.20</version>
                 <executions>
-                    <!--                    TODO：uncomment later-->
-                    <!--                    <execution>-->
-                    <!--                        <id>store-client-test</id>-->
-                    <!--                        <configuration>-->
-                    <!--                            <testSourceDirectory>${basedir}/src/main/java/-->
-                    <!--                            </testSourceDirectory>-->
-                    <!--                            <testClassesDirectory>${basedir}/target/classes/-->
-                    <!--                            </testClassesDirectory>-->
-                    <!--                            <includes>-->
-                    <!--                                <include>**/ClientSuiteTest.java</include>-->
-                    <!--                            </includes>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
-                    <!--                    <execution>-->
-                    <!--                        <id>store-core-test</id>-->
-                    <!--                        <configuration>-->
-                    <!--                            <testSourceDirectory>${basedir}/src/main/java/-->
-                    <!--                            </testSourceDirectory>-->
-                    <!--                            <testClassesDirectory>${basedir}/target/classes/-->
-                    <!--                            </testClassesDirectory>-->
-                    <!--                            <includes>-->
-                    <!--                                <include>**/CoreSuiteTest.java</include>-->
-                    <!--                            </includes>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
+                    <execution>
+                        <id>store-client-test</id>
+                        <configuration>
+                            <testSourceDirectory>${basedir}/src/main/java/
+                            </testSourceDirectory>
+                            <testClassesDirectory>${basedir}/target/classes/
+                            </testClassesDirectory>
+                            <includes>
+                                <include>**/ClientSuiteTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>store-core-test</id>
+                        <configuration>
+                            <testSourceDirectory>${basedir}/src/main/java/
+                            </testSourceDirectory>
+                            <testClassesDirectory>${basedir}/target/classes/
+                            </testClassesDirectory>
+                            <includes>
+                                <include>**/CoreSuiteTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>store-common-test</id>
                         <configuration>
@@ -254,45 +253,45 @@
                             </includes>
                         </configuration>
                     </execution>
-                    <!--                    <execution>-->
-                    <!--                        <id>store-rocksdb-test</id>-->
-                    <!--                        <configuration>-->
-                    <!--                            <testSourceDirectory>${basedir}/src/main/java/-->
-                    <!--                            </testSourceDirectory>-->
-                    <!--                            <testClassesDirectory>${basedir}/target/classes/-->
-                    <!--                            </testClassesDirectory>-->
-                    <!--                            <includes>-->
-                    <!--                                <include>**/RocksDbSuiteTest.java</include>-->
-                    <!--                            </includes>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
-                    <!--                    <execution>-->
-                    <!--                        <id>store-server-test</id>-->
-                    <!--                        <configuration>-->
-                    <!--                            <testSourceDirectory>${basedir}/src/main/java/-->
-                    <!--                            </testSourceDirectory>-->
-                    <!--                            <testClassesDirectory>${basedir}/target/classes/-->
-                    <!--                            </testClassesDirectory>-->
-                    <!--                            <includes>-->
-                    <!--                                <include>**/ServerSuiteTest.java</include>-->
-                    <!--                            </includes>-->
-                    <!--                            <excludes>-->
-                    <!--                                <exclude>**/node/**/*</exclude>-->
-                    <!--                            </excludes>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
-                    <!--                    <execution>-->
-                    <!--                        <id>store-raftcore-test</id>-->
-                    <!--                        <configuration>-->
-                    <!--                            <testSourceDirectory>${basedir}/src/main/java/-->
-                    <!--                            </testSourceDirectory>-->
-                    <!--                            <testClassesDirectory>${basedir}/target/classes/-->
-                    <!--                            </testClassesDirectory>-->
-                    <!--                            <includes>-->
-                    <!--                                <include>**/RaftSuiteTest.java</include>-->
-                    <!--                            </includes>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
+                    <execution>
+                        <id>store-rocksdb-test</id>
+                        <configuration>
+                            <testSourceDirectory>${basedir}/src/main/java/
+                            </testSourceDirectory>
+                            <testClassesDirectory>${basedir}/target/classes/
+                            </testClassesDirectory>
+                            <includes>
+                                <include>**/RocksDbSuiteTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>store-server-test</id>
+                        <configuration>
+                            <testSourceDirectory>${basedir}/src/main/java/
+                            </testSourceDirectory>
+                            <testClassesDirectory>${basedir}/target/classes/
+                            </testClassesDirectory>
+                            <includes>
+                                <include>**/ServerSuiteTest.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/node/**/*</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>store-raftcore-test</id>
+                        <configuration>
+                            <testSourceDirectory>${basedir}/src/main/java/
+                            </testSourceDirectory>
+                            <testClassesDirectory>${basedir}/target/classes/
+                            </testClassesDirectory>
+                            <includes>
+                                <include>**/RaftSuiteTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
