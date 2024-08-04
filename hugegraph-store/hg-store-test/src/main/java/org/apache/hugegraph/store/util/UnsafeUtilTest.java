@@ -23,15 +23,12 @@ import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 
-import org.apache.hugegraph.store.util.UnsafeUtf8Util;
-import org.apache.hugegraph.store.util.UnsafeUtil;
 import org.junit.Test;
 
 import lombok.Data;
 import sun.misc.Unsafe;
 
 public class UnsafeUtilTest {
-
 
     @Test
     public void testHasUnsafe() {
@@ -159,6 +156,7 @@ public class UnsafeUtilTest {
 
     @Data
     private class TestObject {
+
         private Object o;
         private byte b;
 

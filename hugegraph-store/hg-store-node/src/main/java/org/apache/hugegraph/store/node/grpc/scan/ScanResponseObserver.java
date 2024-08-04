@@ -81,7 +81,8 @@ public class ScanResponseObserver<T> implements
      * 2022 November 2nd
      * 1. ReadRock
      * 2. Perform the data conversion and send it to the thread of the blocking queueoffer
-     * 3. Read Data from the blocking queue, and the threads sent, including wake up the thread send of reading and sent without reading the data
+     * 3. Read Data from the blocking queue, and the threads sent, including wake up the thread
+     * send of reading and sent without reading the data
      * */
 
     public ScanResponseObserver(StreamObserver<ScanResponse> sender,

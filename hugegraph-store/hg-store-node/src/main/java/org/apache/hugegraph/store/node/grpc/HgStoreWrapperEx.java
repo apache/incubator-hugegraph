@@ -113,7 +113,8 @@ public class HgStoreWrapperEx {
 
     public boolean doGraph(int partId, GraphMethod method, String graph) {
         boolean flag = true;
-        if (method == GRAPH_METHOD_DELETE) {// See it to RAFT for execution, there is no handling here
+        if (method ==
+            GRAPH_METHOD_DELETE) {// See it to RAFT for execution, there is no handling here
             flag = true;
         } else {
             throw new UnsupportedOperationException("GraphMethod: " + method.name());

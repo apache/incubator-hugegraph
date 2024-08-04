@@ -40,7 +40,8 @@ import lombok.extern.slf4j.Slf4j;
  * Batch Query Processor, query data in batches, and return data.
  * 1. Server streaming data to the client
  * 2. The Client Consumes A Batch of Data Per Consumption, returns the batch number to the server
- * 3. How Much Data DOES The Server Decide According to the Batch Number to ensure the continuous transmission data,
+ * 3. How Much Data DOES The Server Decide According to the Batch Number to ensure the continuous
+ * transmission data,
  */
 @Slf4j
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
@@ -50,7 +51,8 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     static ByteBufferAllocator alloc =
             new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
     private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);
-    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); // Unit seconds
+    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60);
+    // Unit seconds
     private final StreamObserver<KvStream> sender;
     private final HgStoreWrapperEx wrapper;
     private final ThreadPoolExecutor executor;
@@ -255,7 +257,9 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * Check WHETHER It is Active, for more than a certain period of time, the client does not have request data, and it is believed that it is not active and close the connection to release the resource
+     * Check WHETHER It is Active, for more than a certain period of time, the client does not
+     * have request data, and it is believed that it is not active and close the connection to
+     * release the resource
      */
     public void checkActiveTimeout() {
         if ((System.currentTimeMillis() - activeTime) > activeTimeout * 1000L) {

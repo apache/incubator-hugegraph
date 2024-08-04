@@ -48,6 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class HgSessionManagerTest {
+
     private static final Map<Integer, Long> leaderMap = new ConcurrentHashMap<>();
     private static final Map<Long, String> storeMap = new ConcurrentHashMap<>();
 
@@ -593,7 +594,6 @@ public class HgSessionManagerTest {
             if (count >= max) break;
         }
 
-
         iterator = session.scanIterator(tableName
                 , HgStoreTestUtil.toAllPartitionKey(keyName + "-000")
                 , HgStoreClientConst.EMPTY_OWNER_KEY
@@ -665,7 +665,6 @@ public class HgSessionManagerTest {
         Assert.assertEquals(keyAmt, HgStoreTestUtil.println(iterators));
 
         HgStoreTestUtil.println("-- test scan-batch prefix --");
-
 
         iterators = session.scanBatch(
                 HgScanQuery.prefixOf(tableName, prefixList)
@@ -796,11 +795,9 @@ public class HgSessionManagerTest {
                                HgStoreTestUtil.toStr(session.get(tableName, key)));
         Assert.assertTrue(session.existsTable(tableName));
 
-
         HgStoreTestUtil.println("-- test dropTable --");
         Assert.assertTrue(session.dropTable(tableName));
         Assert.assertFalse(session.existsTable(tableName));
-
 
         HgStoreTestUtil.println("-- test existsTable --");
         Assert.assertFalse(session.existsTable(tableName));
@@ -929,7 +926,6 @@ public class HgSessionManagerTest {
         }
 
         Assert.assertEquals(amount, HgStoreTestUtil.amountOf(session.scanIterator(tableName)));
-
 
     }
 
@@ -1064,7 +1060,6 @@ public class HgSessionManagerTest {
 
         Assert.assertEquals(amount, count);
     }
-
 
     //// @Test
     public void extreme_scan_close() {

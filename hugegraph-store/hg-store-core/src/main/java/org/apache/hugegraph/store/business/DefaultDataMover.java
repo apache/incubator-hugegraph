@@ -77,7 +77,8 @@ public class DefaultDataMover implements DataMover {
         if (response.getStatus().isOK()) {
             status = moveData(source, targets, DefaultDataMover::findPartition);
 
-            // After the data migration is successful, set up a new partition range and online new partition
+            // After the data migration is successful, set up a new partition range and online
+            // new partition
             for (var target : targets) {
                 if (status.isOk()) {
                     if (!(updatePartitionRange(target, (int) target.getStartKey(),

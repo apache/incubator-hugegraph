@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
-import org.apache.hugegraph.rocksdb.access.RocksDBOptions;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.business.BusinessHandlerImpl;
@@ -58,7 +57,6 @@ public class UnitTestBase {
 
         RaftRocksdbOptions.initRocksdbGlobalConfig(configMap);
         BusinessHandlerImpl.initRocksdb(configMap, null);
-
 
     }
 

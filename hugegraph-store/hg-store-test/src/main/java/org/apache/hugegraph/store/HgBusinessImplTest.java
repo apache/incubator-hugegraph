@@ -38,6 +38,7 @@ import org.apache.hugegraph.util.Bytes;
 import org.junit.Assert;
 
 public class HgBusinessImplTest {
+
     static String GRAPH_NAME = "graph_test";
     static String[] GRAPH_TABLE = {"table1", "table2"};
 

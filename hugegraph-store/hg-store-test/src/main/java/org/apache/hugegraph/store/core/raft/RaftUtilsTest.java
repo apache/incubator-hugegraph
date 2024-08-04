@@ -38,6 +38,7 @@ import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.util.Endpoint;
 
 public class RaftUtilsTest {
+
     final String ip = "127.0.0.1";
     final int port = 12456;
     final String dataPath = "tmp/raftUtils";
@@ -100,7 +101,6 @@ public class RaftUtilsTest {
         final Node node = new NodeImpl("unittest", new PeerId(addr, 0));
         assertTrue(node.init(nodeOptions));
         node.isLeader(true);
-
 
         // Run the test
         final List<String> result = RaftUtils.getPeerEndpoints(node);

@@ -33,7 +33,6 @@ import com.alipay.sofa.jraft.core.NodeMetrics;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Snapshot;
-import com.codahale.metrics.Timer;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -214,7 +213,7 @@ public class JRaftMetrics {
 
         String baseName = PREFIX + "." + name.toLowerCase();
 
-        Gauge.builder(baseName + ".count", timer, t->t.getCount())
+        Gauge.builder(baseName + ".count", timer, t -> t.getCount())
              .tags(tags).register(registry);
         Gauge.builder(baseName + ".min", timer, t -> t.getSnapshot().getMin())
              .tags(tags).register(registry);

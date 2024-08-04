@@ -23,6 +23,7 @@ import org.junit.Test;
 import com.alipay.sofa.jraft.Status;
 
 public class FutureClosureTest {
+
     @Test
     public void test() {
         FutureClosure closure = new FutureClosure();

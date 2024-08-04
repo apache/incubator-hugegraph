@@ -186,7 +186,8 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * SELECT A Wrong Result from Multiple Results to Return, if there is no error, return the first one
+     * SELECT A Wrong Result from Multiple Results to Return, if there is no error, return the
+     * first one
      */
     public FeedbackRes selectError(List<FeedbackRes> results) {
         if (!CollectionUtils.isEmpty(results)) {

@@ -43,6 +43,7 @@ import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.MetricX;
 
 public class HgStoreTestUtil {
+
     public static final String GRAPH_NAME = "default/hugegraph/g";
     public static final String GRAPH_NAME2 = "default/hugegraph2/g";
     public static final String TABLE_NAME = "unit-table";

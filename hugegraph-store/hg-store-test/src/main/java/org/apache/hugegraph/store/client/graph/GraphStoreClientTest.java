@@ -155,7 +155,6 @@ public class GraphStoreClientTest {
         }
     }
 
-
     @Test
     public void getDataSingle() {
         CountDownLatch latch = new CountDownLatch(1);

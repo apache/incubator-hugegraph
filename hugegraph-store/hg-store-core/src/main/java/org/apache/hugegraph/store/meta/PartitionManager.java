@@ -52,7 +52,8 @@ import com.alipay.sofa.jraft.core.ElectionPriority;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Partition Object Management Strategy, requires a cloning portion of each modification, and the version number increasing
+ * Partition Object Management Strategy, requires a cloning portion of each modification, and the
+ * version number increasing
  */
 @Slf4j
 public class PartitionManager extends GlobalMetaStore {
@@ -118,9 +119,10 @@ public class PartitionManager extends GlobalMetaStore {
     /**
      * Judging the Storage Path as partitionid or partition ID
      *
-     * @param detections  dir list
-     * @param partitionId partition id
-     * @param Checklogdir: WHETHER It Contains A Subdirectory Log (Raft Snapshot and Log separation, you need further inspection)
+     * @param detections   dir list
+     * @param partitionId  partition id
+     * @param Checklogdir: WHETHER It Contains A Subdirectory Log (Raft Snapshot and Log
+     *                   separation, you need further inspection)
      * @return true if contains partition id, otherwise false
      */
     private Boolean checkPathContains(File[] detections, int partitionId, boolean checkLogDir) {
@@ -145,8 +147,10 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * According to the Configuration File Root Directory, recycles the storage path of partitioning partition
-     * According to the AgreementDB data at DataPath/DB/partition ID directory, Raft data in DataPath/Raft/partition ID directory
+     * According to the Configuration File Root Directory, recycles the storage path of
+     * partitioning partition
+     * According to the AgreementDB data at DataPath/DB/partition ID directory, Raft data in
+     * DataPath/Raft/partition ID directory
      * Detect whether the storage folder exists
      */
     private Boolean resetPartitionPath(int partitionId) {
@@ -269,7 +273,9 @@ public class PartitionManager extends GlobalMetaStore {
                     }
 
                     Partition partition = new Partition(metaPart);
-                    partition.setWorkState(Metapb.PartitionState.PState_Normal);     // Start the restoration working status
+                    partition.setWorkState(
+                            Metapb.PartitionState.PState_Normal);     // Start the restoration
+                    // working status
                     partitions.get(graph).put(partition.getId(), partition);
                     log.info("load partition : {} -{}", partition.getGraphName(),
                              partition.getId());
@@ -429,7 +435,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Find The Belonging to this MachinePartiton, first look for it from the local area, not found locally, and ask the PD.
+     * Find The Belonging to this MachinePartiton, first look for it from the local area, not
+     * found locally, and ask the PD.
      *
      * @param graph
      * @param partId
@@ -473,7 +480,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Frombd obtains the partition information and merge with the local partition information.Leader and Shardlist are taken from local
+     * Frombd obtains the partition information and merge with the local partition information
+     * .Leader and Shardlist are taken from local
      */
     public Partition getPartitionFromPD(String graph, int partId) {
         pdProvider.invalidPartitionCache(graph, partId);
@@ -484,7 +492,8 @@ public class PartitionManager extends GlobalMetaStore {
             if (partitions.containsKey(graph)) {
                 Partition local = partitions.get(graph).get(partId);
                 if (local != null) {
-                    // Update the local key range to ensure the consistency of PD and local partition information
+                    // Update the local key range to ensure the consistency of PD and local
+                    // partition information
                     local.setStartKey(partition.getStartKey());
                     local.setEndKey(partition.getEndKey());
                     savePartition(local, true, true);
@@ -575,7 +584,9 @@ public class PartitionManager extends GlobalMetaStore {
         pdProvider.updatePartitionCache(partition, changeLeader);
 
         partitionChangedListeners.forEach(listener -> {
-            listener.onChanged(partition); // Inform RAFT to synchronize the synchronous partition information synchronization
+            listener.onChanged(
+                    partition); // Inform RAFT to synchronize the synchronous partition
+            // information synchronization
         });
     }
 

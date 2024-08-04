@@ -39,7 +39,6 @@ public class PartitionEngineTest {
         List<String> oldPeers1 = Arrays.asList("1", "2", "3");
         List<String> oldLearner1 = Arrays.asList("4", "5");
 
-
         List<String> oldPeers =
                 oldPeers1.stream().map(peer -> peer).collect(Collectors.toList());
         oldPeers.addAll(
@@ -106,7 +105,6 @@ public class PartitionEngineTest {
 
     }
 
-
     // @Test
     public void testPartition() {
         Partition p = new Partition();
@@ -138,7 +136,6 @@ public class PartitionEngineTest {
                                   .build());
         reqShards.add(Metapb.Shard.newBuilder().setStoreId(1004).setRole(Metapb.ShardRole.Leader)
                                   .build());
-
 
         long leaderStoreId = 0;
         for (Metapb.Shard shard : curShards) {
@@ -213,7 +210,6 @@ public class PartitionEngineTest {
                 }
             }
         }
-
 
     }
 

@@ -87,7 +87,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * 1. ReadStoreid, register to PD, and register for the first time from PD to generate storeid, store to the local area
+     * 1. ReadStoreid, register to PD, and register for the first time from PD to generate
+     * storeid, store to the local area
      * 2. Successful registry, start Raft service
      * 3. Send regularlystore heartbeat and partition heartbeat, keep in touch with PD
      *
@@ -288,7 +289,9 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         if ((engine = partitionEngines.get(groupId)) == null) {
             engineLocks.computeIfAbsent(groupId, k -> new Object());
             synchronized (engineLocks.get(groupId)) {
-                // Special circumstances during division (the number of partitions in the cluster is different), which will lead to dividing partitions. It may not be on this machine.
+                // Special circumstances during division (the number of partitions in the cluster
+                // is different), which will lead to dividing partitions. It may not be on this
+                // machine.
                 if (conf != null) {
                     var list = conf.listPeers();
                     list.addAll(conf.listLearners());
@@ -341,7 +344,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     }
 
     /**
-     * Create Raft group, in addition to creating a local Raft Node, it is also necessary to notify other Peer to create Raft Node
+     * Create Raft group, in addition to creating a local Raft Node, it is also necessary to
+     * notify other Peer to create Raft Node
      * 1. Travelpartition.shards
      * 2, accounting tostoreid to get store information
      * 3. Establish to OtherStore's RAFT RPC, send StartRaft messages
@@ -365,7 +369,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                     if (store == null || partitionManager.isLocalStore(store)) {
                         return;
                     }
-                    // Send a message to other Peer and create RAFT grouping.Here is an asynchronous sending
+                    // Send a message to other Peer and create RAFT grouping.Here is an
+                    // asynchronous sending
                     hgCmdClient.createRaftNode(store.getRaftAddress(), List.of(partition),
                                                status -> {
                                                    log.info(
@@ -391,7 +396,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                 if (store == null) {
                     return;
                 }
-                // Send a message to other Peer and create RAFT grouping.Here is an asynchronous sending
+                // Send a message to other Peer and create RAFT grouping.Here is an asynchronous
+                // sending
                 hgCmdClient.destroyRaftNode(store.getRaftAddress(),
                                             Arrays.asList(new Partition[]{partition}),
                                             status -> {
@@ -549,7 +555,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
      * Add toraft task
      * 1. Checkpartition
      * 1.1. If not exist, check the PD inquiry partition whether it belongs to the local area
-     * 1.1.1 if the partition belongs to the local area, then create Raft packets and notify other Stores
+     * 1.1.1 if the partition belongs to the local area, then create Raft packets and notify
+     * other Stores
      * 1.1.2 if partitions are not local, then abnormal
      * 1.2 ExaminationPartition Is it a leader
      * 1.2.1 If Yesleader, the task is submitted
@@ -569,7 +576,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                     Partition partition = partitionManager.findPartition(graphName, partId);
                     if (partition != null) {
                         engine = this.createPartitionGroups(partition);
-                        // May migrate, should not be created, put it in the Synchronize body to avoid the later ones
+                        // May migrate, should not be created, put it in the Synchronize body to
+                        // avoid the later ones
                         if (engine != null) {
                             engine.waitForLeader(options.getWaitLeaderTimeout() * 1000);
                         }
@@ -588,7 +596,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
                 Store store = partitionManager.getStoreByRaftEndpoint(engine.getShardGroup(),
                                                                       leader.toString());
                 if (store.getId() == 0) {
-                    // Not found the store information of the leader locally, maybe partition has not yet been synchronized and re -obtain it from the Leader.
+                    // Not found the store information of the leader locally, maybe partition has
+                    // not yet been synchronized and re -obtain it from the Leader.
                     Store leaderStore = hgCmdClient.getStoreInfo(leader.toString());
                     store = leaderStore != null ? leaderStore : store;
                     log.error("getStoreByRaftEndpoint error store:{}, shard: {}, leader is {}",
@@ -702,7 +711,8 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         }
 
         /**
-         * Partition objectKey range and status change, by actively looking for leaders and then notifying other Follower
+         * Partition objectKey range and status change, by actively looking for leaders and then
+         * notifying other Follower
          */
         @Override
         public UpdatePartitionResponse rangeOrStateChanged(UpdatePartitionRequest request) {

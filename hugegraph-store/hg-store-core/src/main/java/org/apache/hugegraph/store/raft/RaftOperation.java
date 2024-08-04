@@ -46,8 +46,10 @@ public class RaftOperation {
     public static final byte DB_COMPACTION = 0x67;
     final static byte[] EMPTY_Bytes = new byte[0];
     private static final Logger LOG = LoggerFactory.getLogger(RaftOperation.class);
-    private byte[] values;     // The result of REQ serialization is used to transmit it to other RAFT NODE
-    private Object req;        // Original object, for the treatment of this machine, reduce a back -sequence operation
+    private byte[] values;
+            // The result of REQ serialization is used to transmit it to other RAFT NODE
+    private Object req;
+            // Original object, for the treatment of this machine, reduce a back -sequence operation
     private byte op;         // Operation type
 
     public static RaftOperation create(final byte op) {

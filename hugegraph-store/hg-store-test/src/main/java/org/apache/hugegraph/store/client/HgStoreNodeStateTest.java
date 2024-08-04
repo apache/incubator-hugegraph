@@ -23,6 +23,7 @@ import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Test;
 
 public class HgStoreNodeStateTest {
+
     private static final HgStoreNodeManager NODE_MANAGER = HgStoreNodeManager.getInstance();
     static int nodeNumber = 0;
 
@@ -37,7 +38,6 @@ public class HgStoreNodeStateTest {
                              NODE_MANAGER.getNodeBuilder().setNodeId(nodeId).setAddress(address)
                                          .build());
     }
-
 
     @Test
     public void isNodeHealthy() {

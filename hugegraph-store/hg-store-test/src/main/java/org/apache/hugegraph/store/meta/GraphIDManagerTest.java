@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class GraphIDManagerTest extends UnitTestBase {
+
     @Before
     public void init() {
         String dbPath = "/tmp/junit";

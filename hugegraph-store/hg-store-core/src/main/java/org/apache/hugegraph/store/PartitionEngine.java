@@ -260,7 +260,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         this.raftNode = raftGroupService.start(false);
         this.raftNode.addReplicatorStateListener(new ReplicatorStateListener());
 
-        // Check whether the Peers returned by the PD is consistent with the local area. If it is not consistent, reset the peerlist
+        // Check whether the Peers returned by the PD is consistent with the local area. If it is
+        // not consistent, reset the peerlist
         if (this.raftNode != null) {
             // Todo check the peer list, if the peer changes, the reset
             started = true;
@@ -280,7 +281,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * 1. Partition migration instructions sent by ReceivePd, add migration tasks to the status machine, and the state is newly built
+     * 1. Partition migration instructions sent by ReceivePd, add migration tasks to the status
+     * machine, and the state is newly built
      * 2. Execute the Status Machine Message, add to the task queue, and execute the task
      * 3, Relatively New and Oldpeer, find the new and deleted Peer
      * 4. If there is a new onepeer
@@ -364,7 +366,9 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     result = HgRaftError.TASK_ERROR.toStatus();
                 }
             } else if (snapshotOk) {
-                result = Status.OK();   // Without Learner, it means that only delete operations are done
+                result =
+                        Status.OK();   // Without Learner, it means that only delete operations
+                // are done
             }
         }
         if (result.isOk()) {
@@ -563,7 +567,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     if (partitionManager.isLocalPartition(this.options.getGroupId())) {
                         log.error("Raft {} leader not found, try to repair!",
                                   this.options.getGroupId());
-                        // TODO judge whether RAFT is the machine, if so, try to repair the leader, including checking whether the configuration is correct
+                        // TODO judge whether RAFT is the machine, if so, try to repair the
+                        //  leader, including checking whether the configuration is correct
                         storeEngine.createPartitionGroups(
                                 partitionManager.getPartitionList(getGroupId()).get(0));
                     }
@@ -734,7 +739,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
      * 1. Compared with new and oldpeer to find the new and deleted peer
      * 2. For the newly addedpeer, add it as a Learner manner
      * 3. Surveillance snapshot synchronization event
-     * 4. After the snapshot is synchronized, call Changepers, modify the Learner to the follower, delete the old Peer
+     * 4. After the snapshot is synchronized, call Changepers, modify the Learner to the
+     * follower, delete the old Peer
      */
     public void doChangeShard(final MetaTask.Task task, Closure done) {
         if (!isLeader()) {
@@ -757,7 +763,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     List<String> peers =
                             partitionManager.shards2Peers(task.getChangeShard().getShardList());
                     HashSet<String> hashSet = new HashSet<>(peers);
-                    // There is the same peers in the task, indicating that the task itself is wrong, and the task is ignored
+                    // There is the same peers in the task, indicating that the task itself is
+                    // wrong, and the task is ignored
                     if (peers.size() != hashSet.size()) {
                         log.info("Raft {} doChangeShard peer is repeat， peers：{}", getGroupId(),
                                  peers);
@@ -965,14 +972,16 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * For the Cleaarence of the Entire Picture Deleted, delete the partition, if there are no other pictures, destroy RAFT Group.
+     * For the Cleaarence of the Entire Picture Deleted, delete the partition, if there are no
+     * other pictures, destroy RAFT Group.
      * NEED to put it to callmove data
      *
-     * @param graphName   graph name
-     * @param partitionId partition id
-     * @param Keystart Key Start is used to verify
-     * @param Keynd Key END for verification
-     * @param IsleaderLeader, avoid the leader drift, take the leader status when taking the Move Data
+     * @param graphName       graph name
+     * @param partitionId     partition id
+     * @param Keystart        Key Start is used to verify
+     * @param Keynd           Key END for verification
+     * @param IsleaderLeader, avoid the leader drift, take the leader status when taking the Move
+     *                       Data
      */
     private synchronized void destroyPartitionIfGraphsNull(String graphName, int partitionId,
                                                            long keyStart, long keyEnd,

@@ -31,11 +31,11 @@ import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
 
-
 @Slf4j
 public class HgBusinessImplTest extends StoreEngineTestBase {
 
     public static final String TABLE_NAME = UnitTestBase.DEFAULT_TEST_TABLE;
+
     public BusinessHandler getBusinessHandler() {
         return getStoreEngine().getBusinessHandler();
     }

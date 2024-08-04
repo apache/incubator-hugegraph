@@ -48,7 +48,8 @@ import lombok.extern.slf4j.Slf4j;
 public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, PartitionStateListener {
 
     private static final int MAX_HEARTBEAT_RETRY_COUNT = 5;     // Heartbeat trial number
-    private static final int REGISTER_RETRY_INTERVAL = 1;   // Register the time interval between retry, the unit seconds
+    private static final int REGISTER_RETRY_INTERVAL = 1;
+            // Register the time interval between retry, the unit seconds
     private final HgStoreEngine storeEngine;
     private final List<HgStoreStateListener> stateListeners;
     private final Object partitionThreadLock = new Object();
@@ -123,7 +124,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     /**
      * There are four types of service status
-     Be ready，在线、离线、死亡（从集群排除）
+     * Be ready，在线、离线、死亡（从集群排除）
      */
     protected void doStoreHeartbeat() {
         while (!terminated) {
@@ -170,7 +171,8 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     protected void registerStore() {
         try {
-            // Register the store, register the PD for the first time to generate ID, and automatically assign value to StoreInfo
+            // Register the store, register the PD for the first time to generate ID, and
+            // automatically assign value to StoreInfo
             this.storeInfo.setStoreAddress(IpUtil.getNearestAddress(options.getGrpcAddress()));
             this.storeInfo.setRaftAddress(IpUtil.getNearestAddress(options.getRaftAddress()));
 

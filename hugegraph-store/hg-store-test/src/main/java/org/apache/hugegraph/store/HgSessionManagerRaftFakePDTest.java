@@ -38,6 +38,7 @@ import org.junit.Assert;
  * Usefake-PD, supporting RAFT unit test
  */
 public class HgSessionManagerRaftFakePDTest {
+
     private static final Map<Integer, Long> leaderMap = new ConcurrentHashMap<>();
     private static final Map<Long, String> storeMap = new ConcurrentHashMap<>();
 
@@ -188,7 +189,6 @@ public class HgSessionManagerRaftFakePDTest {
 //            }
 //        }
 //    }
-
 
     // @Test
     public void batchGet() {
@@ -595,7 +595,6 @@ public class HgSessionManagerRaftFakePDTest {
         Assert.assertEquals(1000, count);
     }
 
-
     // @Test
     public void truncate() {
         HgStoreTestUtil.println("--- test truncate ---");
@@ -610,7 +609,6 @@ public class HgSessionManagerRaftFakePDTest {
         String tableName2 = "UNIT_TRUNCATE_2";
         HgStoreTestUtil.batchPut(session, tableName2, keyName, 100);
         Assert.assertEquals(100, HgStoreTestUtil.amountOf(session.scanIterator(tableName2)));
-
 
         session.truncate();
         Assert.assertEquals(0, HgStoreTestUtil.amountOf(session.scanIterator(tableName)));

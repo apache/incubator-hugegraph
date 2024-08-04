@@ -27,9 +27,9 @@ import org.junit.Before;
 
 public class HgStoreClientBase {
 
+    private static final String PD_ADDRESS = "127.0.0.1:8686";
     protected static String GRAPH_NAME = "testGraphName";
     protected static String TABLE_NAME = UnitTestBase.DEFAULT_TEST_TABLE;
-    private static final String PD_ADDRESS = "127.0.0.1:8686";
     protected HgStoreClient storeClient;
     protected PDClient pdClient;
 

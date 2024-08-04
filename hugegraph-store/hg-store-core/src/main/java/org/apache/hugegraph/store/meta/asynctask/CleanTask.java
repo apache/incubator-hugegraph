@@ -53,7 +53,8 @@ public class CleanTask extends AbstractAsyncTask {
                 CleanDataRequest request = (CleanDataRequest) getExtra();
                 var partition = storeEngine.getPartitionManager()
                                            .getPartition(getGraphName(), getPartitionId());
-                // Only allow data outside the district.Tasks such as retracting will cause interference, and cannot delete partitions
+                // Only allow data outside the district.Tasks such as retracting will cause
+                // interference, and cannot delete partitions
                 if (request.getKeyEnd() == partition.getStartKey() &&
                     request.getKeyEnd() == partition.getEndKey() &&
                     request.getCleanType() == CleanType.CLEAN_TYPE_EXCLUDE_RANGE &&

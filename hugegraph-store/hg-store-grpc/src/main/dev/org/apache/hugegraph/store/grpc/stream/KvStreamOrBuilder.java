@@ -23,48 +23,56 @@ package org.apache.hugegraph.store.grpc.stream;
 import java.nio.ByteBuffer;
 
 public interface KvStreamOrBuilder extends
-        // @@protoc_insertion_point(interface_extends:KvStream)
-        com.google.protobuf.MessageOrBuilder {
+                                   // @@protoc_insertion_point(interface_extends:KvStream)
+                                           com.google.protobuf.MessageOrBuilder {
 
-  /**
-   * <pre>
-   *query times.
-   * </pre>
-   *
-   * <code>int32 seq_no = 1;</code>
-   * @return The seqNo.
-   */
-  int getSeqNo();
+    /**
+     * <pre>
+     * query times.
+     * </pre>
+     *
+     * <code>int32 seq_no = 1;</code>
+     *
+     * @return The seqNo.
+     */
+    int getSeqNo();
 
-  /**
-   * <pre>
-   *true=no more data
-   * </pre>
-   *
-   * <code>bool over = 2;</code>
-   * @return The over.
-   */
-  boolean getOver();
+    /**
+     * <pre>
+     * true=no more data
+     * </pre>
+     *
+     * <code>bool over = 2;</code>
+     *
+     * @return The over.
+     */
+    boolean getOver();
 
-  /**
-   * <code>uint32 version = 4;</code>
-   * @return The version.
-   */
-  int getVersion();
+    /**
+     * <code>uint32 version = 4;</code>
+     *
+     * @return The version.
+     */
+    int getVersion();
 
-  /**
-   * <code>bytes stream = 5;</code>
-   * @return The stream.
-   */
-  ByteBuffer getStream();
-  /**
-   * <code>.KvStreamType type = 6;</code>
-   * @return The enum numeric value on the wire for type.
-   */
-  int getTypeValue();
-  /**
-   * <code>.KvStreamType type = 6;</code>
-   * @return The type.
-   */
-  org.apache.hugegraph.store.grpc.stream.KvStreamType getType();
+    /**
+     * <code>bytes stream = 5;</code>
+     *
+     * @return The stream.
+     */
+    ByteBuffer getStream();
+
+    /**
+     * <code>.KvStreamType type = 6;</code>
+     *
+     * @return The enum numeric value on the wire for type.
+     */
+    int getTypeValue();
+
+    /**
+     * <code>.KvStreamType type = 6;</code>
+     *
+     * @return The type.
+     */
+    org.apache.hugegraph.store.grpc.stream.KvStreamType getType();
 }

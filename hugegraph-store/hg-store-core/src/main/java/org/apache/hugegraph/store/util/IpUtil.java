@@ -56,7 +56,7 @@ public class IpUtil {
     }
 
     /**
-     ?
+     * ?
      *
      * @param raftAddress raft addr
      * @return raft addr that have the nearest distance with given param

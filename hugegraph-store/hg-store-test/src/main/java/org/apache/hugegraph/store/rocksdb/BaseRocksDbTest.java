@@ -28,6 +28,7 @@ import org.junit.After;
 import org.junit.BeforeClass;
 
 public class BaseRocksDbTest {
+
     @BeforeClass
     public static void init() {
         OptionSpace.register("org/apache/hugegraph/store/rocksdb",

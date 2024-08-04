@@ -17,18 +17,11 @@
 
 package org.apache.hugegraph.store.client;
 
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.GRAPH_NAME;
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.batchPut;
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.println;
-import static org.apache.hugegraph.store.util.HgStoreTestUtil.toOwnerKey;
-
 import java.util.NoSuchElementException;
 
 import org.apache.hugegraph.store.HgKvEntry;
 import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgStoreSession;
-import org.apache.hugegraph.store.client.HgStoreNode;
-import org.apache.hugegraph.store.client.HgStoreNodeManager;
 import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Assert;
 
@@ -36,6 +29,7 @@ import org.junit.Assert;
  * created on 2021/10/12
  */
 public class HgStoreNodeStreamTest {
+
     private static final HgStoreNodeManager nodeManager = HgStoreNodeManager.getInstance();
     private static HgStoreNode node;
 
@@ -69,7 +63,8 @@ public class HgStoreNodeStreamTest {
 
         HgStoreTestUtil.println("-- test 0 element --");
         iterator =
-                session.scanIterator(tableName, HgStoreTestUtil.toOwnerKey("__SCAN-001"), HgStoreTestUtil.toOwnerKey("__SCAN-100"),
+                session.scanIterator(tableName, HgStoreTestUtil.toOwnerKey("__SCAN-001"),
+                                     HgStoreTestUtil.toOwnerKey("__SCAN-100"),
                                      0);
         Assert.assertFalse(iterator.hasNext());
         try {

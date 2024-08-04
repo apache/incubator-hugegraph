@@ -19,13 +19,12 @@ package org.apache.hugegraph.store.core.store.meta.asynctask;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.hugegraph.store.core.StoreEngineTestBase;
 import org.apache.hugegraph.store.meta.asynctask.AbstractAsyncTask;
 import org.apache.hugegraph.store.meta.asynctask.AsyncTask;
 import org.apache.hugegraph.store.meta.asynctask.AsyncTaskState;
 import org.apache.hugegraph.store.meta.asynctask.CleanTask;
 import org.junit.Test;
-
-import org.apache.hugegraph.store.core.StoreEngineTestBase;
 
 public class CleanTaskTest extends StoreEngineTestBase {
 

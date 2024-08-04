@@ -89,5 +89,4 @@ public class MiscUtilClassTest {
         assertTrue(event.isSignalled());
     }
 
-
 }

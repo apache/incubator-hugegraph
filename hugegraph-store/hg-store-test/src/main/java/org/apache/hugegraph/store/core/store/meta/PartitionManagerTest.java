@@ -102,7 +102,6 @@ public class PartitionManagerTest extends StoreEngineTestBase {
         assertEquals(partition2.getEndKey(), 2000);
     }
 
-
     @Test
     public void testUpdatePartitionRangeOrState() {
         createPartitionEngine(4);

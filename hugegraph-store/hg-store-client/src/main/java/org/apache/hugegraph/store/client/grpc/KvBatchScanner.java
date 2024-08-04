@@ -87,7 +87,8 @@ public class KvBatchScanner implements Closeable {
 
     /**
      * Construct a streaming query iterator
-     * Scanquery for splitting, start multiple streaming requests to enhance the concurrentness of Store
+     * Scanquery for splitting, start multiple streaming requests to enhance the concurrentness
+     * of Store
      *
      * @param scanQuery scanQuery
      * @param handler   task handler
@@ -232,13 +233,18 @@ public class KvBatchScanner implements Closeable {
          * Evaluate the maximum task number
          */
         private void evaluateMaxTaskSize() {
-            if (maxTaskSize == 0) { // Based on the first batch of tasks, get the number of stores, and then calculate the maximum number of tasks
+            if (maxTaskSize ==
+                0) { // Based on the first batch of tasks, get the number of stores, and then
+                // calculate the maximum number of tasks
                 if (scanQuery.getOrderType() == ScanOrderType.ORDER_STRICT) {
-                    maxTaskSize = 1; // Sort, one stream of each machine, all other streams can be started after all the streams are over
+                    maxTaskSize =
+                            1; // Sort, one stream of each machine, all other streams can be
+                    // started after all the streams are over
                 } else {
                     maxTaskSize = this.notifier.getScannerCount() * maxTaskSizePerStore;
                 }
-                maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // A maximum of 1,000 per machine
+                maxBatchSize = this.notifier.getScannerCount() *
+                               maxBatchSize; // A maximum of 1,000 per machine
 
                 /*
                  * Limit less than10000 Start a stream to save network bandwidth
@@ -274,7 +280,8 @@ public class KvBatchScanner implements Closeable {
                         // Evaluate the maximum task number
                         evaluateMaxTaskSize();
                         if (this.notifier.getScannerCount() < this.maxTaskSize) {
-                            splitTask(); // Do not reach the maximum number of tasks, continue to split
+                            splitTask(); // Do not reach the maximum number of tasks, continue to
+                            // split
                         }
                     }
                     this.finished = !prefixItr.hasNext();

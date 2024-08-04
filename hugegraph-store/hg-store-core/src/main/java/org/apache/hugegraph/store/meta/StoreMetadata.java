@@ -54,7 +54,8 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     public Store load() {
-        // In the case of multiple directory storage, create a folder in advance to facilitate the PD -side statistical file storage
+        // In the case of multiple directory storage, create a folder in advance to facilitate
+        // the PD -side statistical file storage
         dataLocations.forEach(path -> {
             String strPath = Paths.get(path).toAbsolutePath().toString();
             File dbFile = new File(strPath);

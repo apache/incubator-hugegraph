@@ -41,7 +41,6 @@ import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
-import com.alipay.sofa.jraft.entity.LeaderChangeContext;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
@@ -182,7 +181,6 @@ public class HgStoreStateMachineTest {
         // Verify the results
         assertEquals(-1L, result);
     }
-
 
     @Test
     public void testOnLeaderStart() {

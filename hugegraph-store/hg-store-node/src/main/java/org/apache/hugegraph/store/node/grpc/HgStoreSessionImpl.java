@@ -228,7 +228,8 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
                         GraphMode graphMode = graphState.getMode();
                         if (graphMode != null &&
                             graphMode.getNumber() == GraphMode.ReadOnly_VALUE) {
-                            // The state is to get the latest diagram status from the PD when reading.
+                            // The state is to get the latest diagram status from the PD when
+                            // reading.
                             Metapb.Graph pdGraph =
                                     pd.getPDClient().getGraph(graph);
                             Metapb.GraphState pdGraphState =
@@ -237,13 +238,15 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
                                 pdGraphState.getMode() != null &&
                                 pdGraphState.getMode().getNumber() ==
                                 GraphMode.ReadOnly_VALUE) {
-                                // Confirm that the current state stored in the PD is also read only, but data is not allowed to insert data
+                                // Confirm that the current state stored in the PD is also read
+                                // only, but data is not allowed to insert data
                                 throw new PDException(-1,
                                                       "the graph space size " +
                                                       "has " +
                                                       "reached the threshold");
                             }
-                            // The PD status is inconsistent with the local cache. The local cache update is the state in the PD
+                            // The PD status is inconsistent with the local cache. The local
+                            // cache update is the state in the PD
                             managerGraph.setProtoObj(pdGraph);
                         }
                     }
@@ -277,7 +280,8 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
                     groups.get(id).add(entry);
                 });
             } else {
-                // Inquire the partition ID according to the keycode query, and group the partition ID
+                // Inquire the partition ID according to the keycode query, and group the
+                // partition ID
                 Integer partitionId =
                         pd.getPartitionByCode(graph, startKey.getCode())
                           .getId();

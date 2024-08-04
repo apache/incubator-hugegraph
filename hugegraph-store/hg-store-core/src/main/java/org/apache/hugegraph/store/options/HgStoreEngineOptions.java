@@ -100,7 +100,8 @@ public class HgStoreEngineOptions {
          */
         private final int maxEntriesSize = 256;
         /**
-         * After the data of the raft cluster occurs, after the backlog of data, speed limit waiting time unit milliseconds in milliseconds in milliseconds
+         * After the data of the raft cluster occurs, after the backlog of data, speed limit
+         * waiting time unit milliseconds in milliseconds in milliseconds
          **/
         private final int overloadRateLimit = 100;
         private final int keepInMemorySegmentCount = 2;

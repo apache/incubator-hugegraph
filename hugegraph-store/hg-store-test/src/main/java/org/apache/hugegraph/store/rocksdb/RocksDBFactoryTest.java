@@ -23,6 +23,7 @@ import org.apache.hugegraph.rocksdb.access.SessionOperator;
 import org.junit.Test;
 
 public class RocksDBFactoryTest extends BaseRocksDbTest {
+
     @Test
     public void testCreateSession() {
         RocksDBFactory factory = RocksDBFactory.getInstance();

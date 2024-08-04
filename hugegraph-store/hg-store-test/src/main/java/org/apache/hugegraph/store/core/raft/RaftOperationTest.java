@@ -17,15 +17,15 @@
 
 package org.apache.hugegraph.store.core.raft;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.raft.RaftOperation;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.protobuf.GeneratedMessageV3;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 public class RaftOperationTest {
 
@@ -35,7 +35,6 @@ public class RaftOperationTest {
     public void setUp() {
         raftOperationUnderTest = new RaftOperation();
     }
-
 
     @Test
     public void testCreate1() {

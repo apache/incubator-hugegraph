@@ -37,7 +37,6 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotReader;
 import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.google.protobuf.Message;
 
-
 public class HgSnapshotHandlerTest extends StoreEngineTestBase {
 
     private static HgSnapshotHandler hgSnapshotHandlerUnderTest;
@@ -166,7 +165,6 @@ public class HgSnapshotHandlerTest extends StoreEngineTestBase {
         // Run the test
         hgSnapshotHandlerUnderTest.onSnapshotLoad(reader, 0L);
     }
-
 
     @Test
     public void testTrimStartPath() {

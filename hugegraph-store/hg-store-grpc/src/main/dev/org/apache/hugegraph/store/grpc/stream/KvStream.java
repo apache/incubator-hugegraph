@@ -24,7 +24,8 @@ import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 
 /**
- * In order to improve performance, reuse memory, and reduce gc recycling, the KvStream.writeTo method needs to be rewritten.
+ * In order to improve performance, reuse memory, and reduce gc recycling, the KvStream.writeTo
+ * method needs to be rewritten.
  */
 public final class KvStream extends
                             com.google.protobuf.GeneratedMessageV3 implements
@@ -32,6 +33,7 @@ public final class KvStream extends
                                                                            // (message_implements
                                                                            // :KvStream)
                                                                            KvStreamOrBuilder {
+
     public static final int SEQ_NO_FIELD_NUMBER = 1;
     public static final int OVER_FIELD_NUMBER = 2;
     public static final int VERSION_FIELD_NUMBER = 4;
@@ -71,6 +73,7 @@ public final class KvStream extends
     private KvStream() {
         stream_ = ByteBuffer.allocate(0);
     }
+
     private KvStream(
             com.google.protobuf.CodedInputStream input,
             com.google.protobuf.ExtensionRegistryLite extensionRegistry)
@@ -479,6 +482,7 @@ public final class KvStream extends
                                       com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
                                                                                               // @@protoc_insertion_point(builder_implements:KvStream)
                                                                                                       KvStreamOrBuilder {
+
         private int seqNo_;
         private boolean over_;
         private int version_;

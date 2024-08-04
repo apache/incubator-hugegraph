@@ -20,17 +20,17 @@ package org.apache.hugegraph.store.util;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.caucho.hessian.io.Hessian2Input;
-import com.caucho.hessian.io.Hessian2Output;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.hugegraph.store.util.CopyOnWriteCache;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.caucho.hessian.io.Hessian2Input;
+import com.caucho.hessian.io.Hessian2Output;
 
 public class CopyOnWriteCacheTest {
 
