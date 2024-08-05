@@ -214,18 +214,36 @@ public class JRaftMetrics {
 
         String baseName = PREFIX + "." + name.toLowerCase();
 
-        Gauge.builder(baseName + ".count", timer, Timer::getCount)
+        Gauge.builder(baseName + ".count", timer, t->t.getCount())
              .tags(tags).register(registry);
-
-        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
-             .tags(tags).tag("rate", "1m").register(registry);
-        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
-             .tags(tags).tag("rate", "5m").register(registry);
-        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
-             .tags(tags).tag("rate", "15m").register(registry);
-        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
-             .tags(tags).tag("rate", "mean").register(registry);
-
+        Gauge.builder(baseName + ".min", timer, t -> t.getSnapshot().getMin())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".max", timer, t -> t.getSnapshot().getMax())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".mean", timer, t -> t.getSnapshot().getMean())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".stddev", timer, t -> t.getSnapshot().getStdDev())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".p50", timer, t -> t.getSnapshot().getMedian())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".p75", timer, t -> t.getSnapshot().get75thPercentile())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".p95", timer, t -> t.getSnapshot().get95thPercentile())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".p98", timer, t -> t.getSnapshot().get98thPercentile())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".p99", timer, t -> t.getSnapshot().get99thPercentile())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".p999", timer, t -> t.getSnapshot().get999thPercentile())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".m1_rate", timer, t -> t.getOneMinuteRate())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".m5_rate", timer, t -> t.getFiveMinuteRate())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".m15_rate", timer, t -> t.getFifteenMinuteRate())
+             .tags(tags).register(registry);
+        Gauge.builder(baseName + ".mean_rate", timer, t -> t.getMeanRate())
+             .tags(tags).register(registry);
     }
 
     private static void registerMeter(String group, String name, com.codahale.metrics.Meter meter) {
