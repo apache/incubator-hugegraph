@@ -67,5 +67,5 @@ partition:
   store-max-shard-count: 1
 
 discovery:
-  #After client registration, no heartbeat longest number, after exceeding, previous registration information will be deleted.
+  # After client registration, no heartbeat longest number, after exceeding, previous registration information will be deleted.
   heartbeat-try-count: 3

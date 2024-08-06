@@ -76,7 +76,7 @@ message Property{
 message Vertex{
   int64 label = 1; // Point type
   Variant id = 2;  // Point ID
-  repeated Property properties = 3; // point properties
+  repeated Property properties = 3; // Point properties
 }
 
 message Edge{
@@ -86,7 +86,7 @@ message Edge{
   Variant source_id = 4;  // Source point ID
   Variant target_id = 5;  // Target point ID
 
-  repeated Property properties = 6; // edge properties
+  repeated Property properties = 6; // Edge properties
 }
 
 message Variant {

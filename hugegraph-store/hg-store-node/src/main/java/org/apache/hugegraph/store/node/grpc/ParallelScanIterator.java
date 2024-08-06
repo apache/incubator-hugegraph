@@ -107,7 +107,7 @@ public class ParallelScanIterator implements ScanIterator {
         while (current == null && tryTimes < waitDataMaxTryTimes) {
             try {
                 if (queue.size() != 0 || !finished) {
-                    current = queue.poll(100, TimeUnit.MILLISECONDS);  //Regularly check if the client has been closed.
+                    current = queue.poll(100, TimeUnit.MILLISECONDS);  // Regularly check if the client has been closed.
                     if (current == null && !finished) {
                         wakeUpScanner();
                     }

@@ -140,14 +140,14 @@ public class HgStoreNodeService implements RaftTaskHandler {
         }
         //
         try {
-            // Serialization, 
+            // Serialization
             final byte[] buffer = new byte[req.getSerializedSize() + 1];
             final CodedOutputStream output = CodedOutputStream.newInstance(buffer);
             output.write(methodId);
             req.writeTo(output);
             output.checkNoSpaceLeft();
             output.flush();
-            // Send to raft */
+            // Send to raft
             storeEngine.addRaftTask(graphName, partitionId,
                                     RaftOperation.create(methodId, buffer, req), closure);
 

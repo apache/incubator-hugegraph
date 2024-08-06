@@ -216,7 +216,7 @@ public class HgSessionManagerRaftFakePDTest {
     }
 
     // @Test
-    //CAUTION: ONLY FOR LONG！
+    // CAUTION: ONLY FOR LONG!
     // Note: Currently, only Merge operations can be performed on long type values.
     public void merge() {
         System.out.println("--- test merge (1+1=2)---");

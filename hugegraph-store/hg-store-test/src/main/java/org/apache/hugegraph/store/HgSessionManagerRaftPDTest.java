@@ -262,7 +262,7 @@ public class HgSessionManagerRaftPDTest {
     }
 
     // @Test
-    //CAUTION: ONLY FOR LONG！
+    // CAUTION: ONLY FOR LONG!
     // Note: Currently, only long type values can be merged.
     public void merge() {
         System.out.println("--- test merge (1+1=2)---");

@@ -88,7 +88,7 @@ public class PartitionEngineTest {
 
         addedNodes.forEach(s -> System.out.print(s + " "));
         System.out.println();
-        // Delete 4,5
+        // Delete 4, 5
         Assert.assertEquals(2, removedNodes.size());
 
         removedNodes.clear();
