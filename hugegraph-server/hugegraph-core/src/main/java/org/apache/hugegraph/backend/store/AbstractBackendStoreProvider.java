@@ -20,6 +20,7 @@ package org.apache.hugegraph.backend.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.raft.StoreSnapshotFile;
@@ -44,6 +45,8 @@ public abstract class AbstractBackendStoreProvider
     private final EventHub storeEventHub = new EventHub("store");
 
     protected Map<String, BackendStore> stores = null;
+    AtomicBoolean schemaCacheClearListened = new AtomicBoolean(false);
+    AtomicBoolean vertexEdgeCacheClearListened = new AtomicBoolean(false);
 
     protected final void notifyAndWaitEvent(String event) {
         Future<?> future = this.storeEventHub.notify(event, this);
@@ -67,7 +70,10 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void listen(EventListener listener) {
-        this.storeEventHub.listen(EventHub.ANY_EVENT, listener);
+        if (schemaCacheClearListened.compareAndSet(false, true) ||
+            vertexEdgeCacheClearListened.compareAndSet(false, true)) {
+            this.storeEventHub.listen(EventHub.ANY_EVENT, listener);
+        }
     }
 
     @Override
