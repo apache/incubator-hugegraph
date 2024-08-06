@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
@@ -59,8 +61,13 @@ import org.apache.hugegraph.util.E;
 
 import com.google.common.collect.ImmutableMap;
 
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
+
 public class MetaManager {
 
+    private static final Logger LOG = Log.logger(MetaManager.class);
+    private static final String SCHEMA_CLEAR_KEY = "SCHEMA_CLEAR_KEY";
     public static final String META_PATH_DELIMITER = "/";
     public static final String META_PATH_JOIN = "-";
 
@@ -130,6 +137,7 @@ public class MetaManager {
     private KafkaMetaManager kafkaMetaManager;
     private SchemaTemplateMetaManager schemaTemplateManager;
     private LockMetaManager lockMetaManager;
+    private ConcurrentHashMap<String, AtomicBoolean> listenerInitialized;
 
     private MetaManager() {
     }
@@ -187,6 +195,7 @@ public class MetaManager {
         this.kafkaMetaManager = new KafkaMetaManager(this.metaDriver, cluster);
         this.schemaTemplateManager = new SchemaTemplateMetaManager(this.metaDriver, cluster);
         this.lockMetaManager = new LockMetaManager(this.metaDriver, cluster);
+        this.listenerInitialized = new ConcurrentHashMap<>();
     }
 
     public <T> void listenGraphSpaceAdd(Consumer<T> consumer) {
@@ -242,7 +251,19 @@ public class MetaManager {
     }
 
     public <T> void listenSchemaCacheClear(Consumer<T> consumer) {
-        this.graphMetaManager.listenSchemaCacheClear(consumer);
+        if (isListenerInitialized(SCHEMA_CLEAR_KEY)) {
+            this.graphMetaManager.listenSchemaCacheClear(consumer);
+            LOG.debug("Schema cache clear listener registered");
+        }
+    }
+
+    public Boolean isListenerInitialized(String listenerName) {
+        listenerInitialized.putIfAbsent(listenerName, new AtomicBoolean(false));
+        AtomicBoolean flag = listenerInitialized.get(listenerName);
+        if (!flag.get()) {
+            return flag.compareAndSet(false, true);
+        }
+        return false;
     }
 
     public <T> void listenGraphCacheClear(Consumer<T> consumer) {

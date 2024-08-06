@@ -66,7 +66,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             attachment = this.idCache.attachment(new SchemaCaches<>(acSize));
         }
         this.arrayCaches = attachment;
-        this.listenChanges();
+//        this.listenChanges();
     }
 
     private static Id generateId(HugeType type, Id id) {
@@ -107,44 +107,11 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
         };
         this.graphParams().loadGraphStore().provider().listen(this.storeEventListener);
 
-        // Listen cache event: "cache"(invalid cache item)
-        this.cacheEventListener = event -> {
-            LOG.debug("Graph {} received schema cache event: {}",
-                      this.graph(), event);
-            Object[] args = event.args();
-            E.checkArgument(args.length > 0 && args[0] instanceof String,
-                            "Expect event action argument");
-            if (Cache.ACTION_INVALID.equals(args[0])) {
-                event.checkArgs(String.class, HugeType.class, Id.class);
-                HugeType type = (HugeType) args[1];
-                Id id = (Id) args[2];
-                this.arrayCaches.remove(type, id);
-
-                id = generateId(type, id);
-                Object value = this.idCache.get(id);
-                if (value != null) {
-                    // Invalidate id cache
-                    this.idCache.invalidate(id);
-
-                    // Invalidate name cache
-                    SchemaElement schema = (SchemaElement) value;
-                    Id prefixedName = generateId(schema.type(),
-                                                 schema.name());
-                    this.nameCache.invalidate(prefixedName);
-                }
-                this.resetCachedAll(type);
-                return true;
-            } else if (Cache.ACTION_CLEAR.equals(args[0])) {
-                event.checkArgs(String.class, HugeType.class);
-                this.clearCache(false);
-                return true;
-            }
-            return false;
-        };
-        EventHub schemaEventHub = this.graphParams().schemaEventHub();
-        if (!schemaEventHub.containsListener(Events.CACHE)) {
-            schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
-        }
+        // Listen cache event: "cache.clear", ...
+        MetaManager.instance().listenSchemaCacheClear((e) -> {
+            this.clearCache(true);
+            LOG.debug("Graph {} Schema cache cleared", this.graph());
+        });
     }
 
     public void clearCache(boolean notify) {
