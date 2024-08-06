@@ -30,6 +30,7 @@ import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.ext.Provider;
 
+/** TODO: Change the adaptor logic to keep compatibility with the non-gs version after we support gs function ↓ */
 @Provider
 @Singleton
 @PreMatching
@@ -45,6 +46,7 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
         URI relativePath = baseUri.relativize(requestUri);
 
         String relativePathStr = relativePath.getPath();
+        // TODO: remember change the logic after we support "GraphSpace"
         if (relativePathStr.startsWith("graphspaces/")) {
             // Step 2: Extract the next substring after "graphspaces/"
             String[] parts = relativePathStr.split("/");
