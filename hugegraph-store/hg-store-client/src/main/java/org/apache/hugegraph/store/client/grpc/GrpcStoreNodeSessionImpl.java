@@ -220,7 +220,10 @@ class GrpcStoreNodeSessionImpl implements HgStoreNodeSession {
     private boolean prepareBatchEntry(OpType opType, String table
             , HgOwnerKey startKey, HgOwnerKey endKey, byte[] value) {
         this.batchEntryBuilder.clear().setOpType(opType);
-        this.batchEntryBuilder.setTable(tables.get(table));
+        Integer tableCode = tables.get(table);
+        if (tableCode != null) {
+            this.batchEntryBuilder.setTable(tableCode);
+        }
         if (startKey != null) {
             this.batchEntryBuilder.setStartKey(toKey(startKey));
         }
