@@ -44,7 +44,7 @@ echo "Current arch: $arch"
 
 if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
     lib_file="$TOP/bin/libjemalloc_aarch64.so"
-    download_url="https://github.com/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc_aarch64.so"
+    download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc_aarch64.so"
     expected_md5="2a631d2f81837f9d5864586761c5e380"
     if download_and_verify $download_url $lib_file $expected_md5; then
         export LD_PRELOAD=$lib_file
@@ -53,7 +53,7 @@ if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
     fi
 elif [[ $arch == "x86_64" ]]; then
     lib_file="$TOP/bin/libjemalloc.so"
-    download_url="https://github.com/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc.so"
+    download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc.so"
     expected_md5="fd61765eec3bfea961b646c269f298df"
     if download_and_verify $download_url $lib_file $expected_md5; then
         export LD_PRELOAD=$lib_file
