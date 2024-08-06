@@ -57,7 +57,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HgThread2DB {
 
-    /*Total number of tasks in progress and in queue*/
+    /* Total number of tasks in progress and in queue */
     private static final AtomicInteger taskTotal = new AtomicInteger(0);
     private static final AtomicInteger queryTaskTotal = new AtomicInteger(0);
     private static final AtomicLong insertDataCount = new AtomicLong();
