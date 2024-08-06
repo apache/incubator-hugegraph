@@ -59,6 +59,7 @@ public final class BytesBuffer extends OutputStream {
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
     public static final int INT32_MAX = Integer.MAX_VALUE;
 
+    // TODO: support user-defined configuration
     // NOTE: +1 to let code 0 represent length 1
     public static final int ID_LEN_MASK = 0x7f;
     public static final int ID_LEN_MAX = 0x7f + 1; // 128
@@ -67,6 +68,7 @@ public final class BytesBuffer extends OutputStream {
     public static final byte STRING_ENDING_BYTE = (byte) 0x00;
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
 
+    // TODO: support user-defined configuration
     public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
     public static final long BYTES_LEN_MAX = INT32_MAX;
 
