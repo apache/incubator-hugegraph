@@ -32,7 +32,7 @@ import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 /**
- * Store、Partition等元数据存储到hgstore-metadata图下
+ * Store, Partition, etc. metadata are stored under the hgstore-metadata graph.
  */
 public abstract class MetaStoreBase implements Closeable {
 
