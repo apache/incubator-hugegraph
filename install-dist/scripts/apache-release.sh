@@ -47,9 +47,7 @@ cd - || exit
 
 # step2: copy the binary file (Optional)
 # Note: it's optional for project to generate binary package (skip this step if not need)
-cp -v ../../hugegraph-server/apache-${REPO}-incubating-server-"${RELEASE_VERSION}".tar.gz \
-  dist/apache-${REPO} || exit
-# TODO: pd & store
+cp -v ../../target/apache-${REPO}-incubating-"${RELEASE_VERSION}".tar.gz dist/apache-${REPO} || exit
 
 # step3: sign + hash
 ##### 3.1 sign in source & binary package

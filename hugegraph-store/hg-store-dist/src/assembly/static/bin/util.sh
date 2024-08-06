@@ -282,6 +282,36 @@ function download() {
     fi
 }
 
+download_and_verify() {
+    local url=$1
+    local filepath=$2
+    local expected_md5=$3
+
+    if [[ -f $filepath ]]; then
+        echo "File $filepath exists. Verifying MD5 checksum..."
+        actual_md5=$(md5sum $filepath | awk '{ print $1 }')
+        if [[ $actual_md5 != $expected_md5 ]]; then
+            echo "MD5 checksum verification failed for $filepath. Expected: $expected_md5, but got: $actual_md5"
+            echo "Deleting $filepath..."
+            rm -f $filepath
+        else
+            echo "MD5 checksum verification succeeded for $filepath."
+            return 0
+        fi
+    fi
+
+    echo "Downloading $filepath..."
+    curl -L -o $filepath $url
+
+    actual_md5=$(md5sum $filepath | awk '{ print $1 }')
+    if [[ $actual_md5 != $expected_md5 ]]; then
+        echo "MD5 checksum verification failed for $filepath after download. Expected: $expected_md5, but got: $actual_md5"
+        return 1
+    fi
+
+    return 0
+}
+
 function ensure_package_exist() {
     local path=$1
     local dir=$2

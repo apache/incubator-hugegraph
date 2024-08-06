@@ -27,4 +27,66 @@
     </parent>
     <!-- TODO: rename to hugegraph-dist later -->
     <artifactId>install-dist</artifactId>
+
+    <properties>
+        <final.name>apache-${release.name}-incubating-${project.version}</final.name>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <!-- TODO: change to assembly plugin in future  -->
+                                <echo file="${project.basedir}/dist.sh">
+                                    root_path=$(cd $(dirname $0)/..; pwd)
+                                    cd $root_path || exit
+
+                                    mkdir -p ${final.name}
+                                    cp -r -v $root_path/hugegraph-pd/apache-hugegraph-pd-incubating-${project.version} ${final.name}/ || exit
+                                    cp -r -v $root_path/hugegraph-store/apache-hugegraph-store-incubating-${project.version} ${final.name}/ || exit
+                                    cp -r -v $root_path/hugegraph-server/apache-hugegraph-server-incubating-${project.version} ${final.name}/ || exit
+                                    cp -r -v $root_path/install-dist/release-docs/* $root_path/DISCLAIMER ${final.name}/ || exit
+
+                                    tar zcvf $root_path/target/${final.name}.tar.gz ./${final.name} || exit 1
+
+                                    md5sum $root_path/target/${final.name}.tar.gz
+                                    echo -n "hugegraph tar.gz available at: "
+                                    echo "$root_path/target/${final.name}.tar.gz"
+                                    rm -f ${project.basedir}/dist.sh
+                                </echo>
+                                <exec executable="${shell-executable}" dir="${project.basedir}" failonerror="true">
+                                    <arg line="./dist.sh"/>
+                                </exec>
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset>
+                            <directory>${project.basedir}/..</directory>
+                            <includes>
+                                <include>${final.name}.tar.gz</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <fileset>
+                            <directory>${project.basedir}/../${final.name}</directory>
+                        </fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

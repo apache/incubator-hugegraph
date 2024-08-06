@@ -37,7 +37,7 @@
 
     <properties>
         <top.level.dir>${project.basedir}/..</top.level.dir>
-        <final.name>apache-${release.name}-incubating-server-${project.version}</final.name>
+        <final.name>apache-${release.name}-server-incubating-${project.version}</final.name>
         <slf4j.version>1.7.5</slf4j.version>
         <log4j.version>1.2.17</log4j.version>
         <log4j2.version>2.17.1</log4j2.version>
@@ -49,7 +49,6 @@
         <jersey.version>3.0.3</jersey.version>
         <metrics.version>4.2.4</metrics.version>
         <javassist.version>3.21.0-GA</javassist.version>
-        <shell-executable>bash</shell-executable>
         <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
         <checkstyle.version>8.45</checkstyle.version>
         <grpc.version>1.47.0</grpc.version>

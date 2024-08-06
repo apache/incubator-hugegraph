@@ -32,6 +32,9 @@
             <includes>
                 <include>*</include>
             </includes>
+            <excludes>
+                <exclude>*.so</exclude>
+            </excludes>
             <fileMode>755</fileMode>
         </fileSet>
         <fileSet>

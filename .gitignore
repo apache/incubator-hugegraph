@@ -57,7 +57,7 @@ build/
 *.pyc
 
 # maven ignore
-apache-hugegraph-incubating-*/
+apache-hugegraph-*/
 output/
 *.war
 *.zip
