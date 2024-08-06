@@ -80,7 +80,7 @@ public class HugeVertexStepByBatch<E extends Element>
     @Override
     public Iterator<?> lastTimeResults() {
         /*
-         * NOTE: fetch page from this iterator， can only get page info of
+         * NOTE: fetch page from this iterator, can only get page info of
          * the lowest level, may lost info of upper levels.
          */
         return this.iterator;

@@ -111,7 +111,7 @@ public final class TaskManager {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         LOG.info("Use {} as the scheduler of graph ({})",
                  graph.schedulerType(), graph.name());
-        // TODO: 如当前服务绑定到指定的非 DEFAULT 图空间，非当前图空间的图不再创建任务调度器 (graph space)
+        // TODO: If the current service is bound to a specified non-DEFAULT graph space, the graph outside of the current graph space will no longer create task schedulers (graph space)
         switch (graph.schedulerType()) {
             case "distributed": {
                 TaskScheduler scheduler =

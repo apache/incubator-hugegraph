@@ -94,7 +94,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                 // LockUtil.lock(this.graph().spaceGraphName(), LockUtil.GRAPH_LOCK);
                 LockUtil.lock("", LockUtil.GRAPH_LOCK);
                 try {
-                    // TODO: 使用超级管理员权限，查询任务
+                    // TODO: Use super administrator privileges to query tasks.
                     // TaskManager.useAdmin();
                     this.cronSchedule();
                 } catch (Throwable t) {
@@ -121,13 +121,13 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     }
 
     public void cronSchedule() {
-        // 执行周期调度任务
+        // Perform periodic scheduling tasks
 
         if (!this.graph.started() || this.graph.closed()) {
             return;
         }
 
-        // 处理 NEW 状态的任务
+        // Handle tasks in NEW status
         Iterator<HugeTask<Object>> news = queryTaskWithoutResultByStatus(
             TaskStatus.NEW);
 
@@ -136,12 +136,12 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             LOG.info("Try to start task({})@({}/{})", newTask.id(),
                      this.graphSpace, this.graphName);
             if (!tryStartHugeTask(newTask)) {
-                // 任务提交失败时，线程池已打满
+                // Task submission failed when the thread pool is full.
                 break;
             }
         }
 
-        // 处理 RUNNING 状态的任务
+        // Handling tasks in RUNNING state
         Iterator<HugeTask<Object>> runnings =
             queryTaskWithoutResultByStatus(TaskStatus.RUNNING);
 
@@ -163,7 +163,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             }
         }
 
-        // 处理 FAILED/HANGING 状态的任务
+        // Handle tasks in FAILED/HANGING state
         Iterator<HugeTask<Object>> faileds =
             queryTaskWithoutResultByStatus(TaskStatus.FAILED);
 
@@ -178,7 +178,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             }
         }
 
-        // 处理 CANCELLING 状态的任务
+        // Handling tasks in CANCELLING state
         Iterator<HugeTask<Object>> cancellings = queryTaskWithoutResultByStatus(
             TaskStatus.CANCELLING);
 
@@ -193,7 +193,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
                 runningTasks.remove(cancellingId);
             } else {
-                // 本地没有执行任务，但是当前任务已经无节点在执行
+                // Local no execution task, but the current task has no nodes executing.
                 if (!isLockedTask(cancellingId.toString())) {
                     updateStatusWithLock(cancellingId, TaskStatus.CANCELLING,
                                          TaskStatus.CANCELLED);
@@ -201,7 +201,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             }
         }
 
-        // 处理 DELETING 状态的任务
+        // Handling tasks in DELETING status
         Iterator<HugeTask<Object>> deletings = queryTaskWithoutResultByStatus(
             TaskStatus.DELETING);
 
@@ -212,12 +212,12 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                 initTaskParams(deleting);
                 deleting.cancel(true);
 
-                // 删除存储信息
+                // Delete storage information
                 deleteFromDB(deletingId);
 
                 runningTasks.remove(deletingId);
             } else {
-                // 本地没有执行任务，但是当前任务已经无节点在执行
+                // Local has no task execution, but the current task has no nodes executing anymore.
                 if (!isLockedTask(deletingId.toString())) {
                     deleteFromDB(deletingId);
                 }
@@ -254,14 +254,14 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         initTaskParams(task);
 
         if (task.ephemeralTask()) {
-            // 处理 ephemeral 任务，不需要调度，直接执行
+            // Handle ephemeral tasks, no scheduling needed, execute directly
             return this.ephemeralTaskExecutor.submit(task);
         }
 
-        // 处理 schema 任务
-        // 处理 gremlin 任务
-        // 处理 olap 计算任务
-        // 添加任务到 DB，当前任务状态为 NEW
+        // Process schema task
+        // Handle gremlin task
+        // Handle OLAP calculation tasks
+        // Add task to DB, current task status is NEW
         // TODO: save server id for task
         this.save(task);
 
@@ -277,8 +277,8 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     }
 
     protected <V> void initTaskParams(HugeTask<V> task) {
-        // 绑定当前任务执行所需的环境变量
-        // 在任务反序列化和执行之前，均需要调用该方法
+        // Bind the environment variables required for the current task execution
+        // Before task deserialization and execution, this method needs to be called.
         task.scheduler(this);
         TaskCallable<V> callable = task.callable();
         callable.task(task);
@@ -291,9 +291,9 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     @Override
     public <V> void cancel(HugeTask<V> task) {
-        // 更新状态为 CANCELLING
+        // Update status to CANCELLING
         if (!task.completed()) {
-            // 任务未完成，才可执行状态未 CANCELLING
+            // Task not completed, can only execute status not CANCELLING
             this.updateStatus(task.id(), null, TaskStatus.CANCELLING);
         } else {
             LOG.info("cancel task({}) error, task has completed", task.id());
@@ -306,7 +306,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     }
 
     protected <V> HugeTask<V> deleteFromDB(Id id) {
-        // 从 DB 中删除 Task，不检查任务状态
+        // Delete Task from DB, without checking task status
         return this.call(() -> {
             Iterator<Vertex> vertices = this.tx().queryTaskInfos(id);
             HugeVertex vertex = (HugeVertex) QueryResults.one(vertices);
@@ -322,7 +322,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     @Override
     public <V> HugeTask<V> delete(Id id, boolean force) {
         if (!force) {
-            // 更改状态为 DELETING，通过自动调度实现删除操作
+            // Change status to DELETING, perform the deletion operation through automatic scheduling.
             this.updateStatus(id, null, TaskStatus.DELETING);
             return null;
         } else {
@@ -404,7 +404,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             if (task.completed()) {
                 // Wait for task result being set after status is completed
                 sleep(intervalMs);
-                // 查询带有结果的任务信息
+                // Query task information with results
                 task = this.task(id);
                 return task;
             }
@@ -473,7 +473,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         initTaskParams(task);
         if (prestatus == null || task.status() == prestatus) {
             task.overwriteStatus(status);
-            // 如果状态更新为 FAILED -> NEW，则增加重试次数
+            // If the status is updated to FAILED -> NEW, then increase the retry count.
             if (prestatus == TaskStatus.FAILED && status == TaskStatus.NEW) {
                 task.retry();
             }
@@ -626,7 +626,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
                     runningTasks.put(task.id(), task);
 
-                    // 任务执行不会抛出异常，HugeTask 在执行过程中，会捕获异常，并存储到 DB 中
+                    // Task execution will not throw exceptions, HugeTask will catch exceptions during execution and store them in the DB.
                     task.run();
                 } catch (Throwable t) {
                     LOG.warn("exception when execute task", t);

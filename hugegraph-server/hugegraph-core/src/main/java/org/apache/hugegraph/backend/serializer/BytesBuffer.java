@@ -795,7 +795,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     /**
-     * 解析 olap id
+     * Analyze olap id
      * @param type
      * @param isOlap
      * @return
@@ -811,7 +811,7 @@ public final class BytesBuffer extends OutputStream {
          * {PropertyKey}{VertexId}
          */
         if (isOlap) {
-            // 先 read olap property id
+            // First read olap property id
             Id pkId = this.readId();
         }
         Id id = this.readId();

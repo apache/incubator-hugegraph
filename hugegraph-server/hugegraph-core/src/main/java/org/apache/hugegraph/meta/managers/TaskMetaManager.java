@@ -47,7 +47,7 @@ public class TaskMetaManager extends AbstractMetaManager {
                                 String taskId) {
 
         String key = taskLockKey(graphSpace, graphName, taskId);
-        // 判断当前任务是否锁定
+        // Check if the current task is locked
         return metaDriver.isLocked(key);
     }
 

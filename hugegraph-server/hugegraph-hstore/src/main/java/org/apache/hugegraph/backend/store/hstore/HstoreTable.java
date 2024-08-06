@@ -190,7 +190,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     public byte[] getInsertOwner(BackendEntry entry) {
-        // 为适应 label 索引散列，不聚焦在一个分区
+        // To adapt label index hashing, do not focus on a single partition
         if (entry.type().isLabelIndex() && (entry.columns().size() == 1)) {
             Iterator<BackendColumn> iterator = entry.columns().iterator();
             while (iterator.hasNext()) {
@@ -204,7 +204,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     /**
-     * 返回 Id 所属的点 ID
+     * Return the owner ID of the Id
      *
      * @param id
      * @return
@@ -221,7 +221,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
     }
 
     /**
-     * 返回 Id 所属的点 ID
+     * Return the owner ID of the Id
      *
      * @param id
      * @return
@@ -425,7 +425,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         // Query by id
         if (query.conditions().isEmpty()) {
             assert !query.ids().isEmpty();
-            // 单个 id 查询 走 get 接口查询
+            // Single id query uses the get interface to query
             if (query.ids().size() == 1) {
                 return this.getById(session, query.ids().iterator().next());
             }
@@ -503,7 +503,7 @@ public class HstoreTable extends BackendTable<Session, BackendEntry> {
         byte[] ownerKeyTo = this.ownerByQueryDelegate.apply(query.resultType(),
                                                             query.prefix());
         byte[] keyFrom = query.start().asBytes();
-        // 前缀分页查询中，start 为最初的位置。因为在不同的分区 都是从 start 位置开始查询
+        // In the prefix pagination query, start is the initial position. Because in different partitions, the query starts from the start position.
         if (query.paging()) {
             keyFrom = query.prefix().asBytes();
         }

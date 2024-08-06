@@ -108,7 +108,7 @@ public class EtcdDistributedLock {
             this.revokeLease(leaseId);
             return lockResult;
         } catch (TimeoutException e) {
-            // 获取锁超时
+            // Acquire lock timeout
             LOG.warn("Thread {} timeout to lock {}",
                      Thread.currentThread().getName(), lockName);
             service.shutdown();

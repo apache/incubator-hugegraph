@@ -174,7 +174,7 @@ public class BinaryBackendEntry implements BackendEntry {
             return false;
         }
         if (!this.id().equals(other.id())) {
-            // 兼容从ap查回的数据, vertex id
+            // Compatible with data retrieved from ap, vertex id
             if (!this.id().origin().equals(other.originId())) {
                 return false;
             }
