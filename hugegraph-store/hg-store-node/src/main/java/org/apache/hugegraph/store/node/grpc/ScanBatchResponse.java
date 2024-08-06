@@ -50,7 +50,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     static ByteBufferAllocator alloc =
             new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
     private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);
-    ：private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); //unit: second
+    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); // unit: second
     private final StreamObserver<KvStream> sender;
     private final HgStoreWrapperEx wrapper;
     private final ThreadPoolExecutor executor;
