@@ -26,9 +26,9 @@ management:
         include: "*"
 
 rocksdb:
-  # rocksdb total memory usage, force write to disk when reaching this value
+  # rocksdb total memory usage, force flush to disk when reaching this value
   total_memory_size: 32000000000
-  # rocksdb used memtable size
+  # memtable size used by rocksdb
   write_buffer_size: 32000000
   # For each rocksdb, the number of memtables reaches this value for writing to disk.
   min_write_buffer_number_to_merge: 16
