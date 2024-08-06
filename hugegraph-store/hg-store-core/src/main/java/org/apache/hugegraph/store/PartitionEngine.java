@@ -759,7 +759,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     HashSet<String> hashSet = new HashSet<>(peers);
                     // Task has the same peers, indicating there is an error in the task itself, task ignored
                     if (peers.size() != hashSet.size()) {
-                        log.info("Raft {} doChangeShard peer is repeat， peers：{}", getGroupId(),
+                        log.info("Raft {} doChangeShard peer is repeat, peers: {}", getGroupId(),
                                  peers);
                     }
                     Status result;
