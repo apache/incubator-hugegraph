@@ -245,7 +245,7 @@ public class DefaultPdProvider implements PdProvider {
     }
 
     /**
-     * Start partition heartbeat streaming传输
+     * Start partition heartbeat streaming transmission
      *
      * @return
      */
