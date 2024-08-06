@@ -27,16 +27,16 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * HgStore单元测试
- * 1、测试raft多副本入库
- * 2、测试快照同步
- * 3、测试副本增减
- * 4、测试单幅本关闭日志入库
+ * HgStore unit testing
+ * 1. Test raft multi-copy storage entry
+ * 2. Test snapshot synchronization
+ * 3, test copy addition and subtraction
+ * 4. Test single frame with log storage turned off
  */
 public class HgStoreNodeServiceTest {
 
     String yml =
-            "rocksdb:\n" + "  # rocksdb 使用的总内存大小\n" + "  total_memory_size: 32000000000\n" +
+            "rocksdb:\n" + "  # Total memory size used by rocksdb\n" + "  total_memory_size: 32000000000\n" +
             "  max_background_jobs: 8\n" + "  max_subcompactions: 4\n" +
             "  target_file_size_multiplier: 4\n" + "  min_write_buffer_number_to_merge: 8\n" +
             "  target_file_size_base: 512000000";

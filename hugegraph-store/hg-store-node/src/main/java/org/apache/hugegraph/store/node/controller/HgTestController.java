@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 仅用于测试
+ * For testing only
  */
 @RestController
 @Slf4j
@@ -75,7 +75,7 @@ public class HgTestController {
             nodeService.getStoreEngine().destroyPartitionEngine(groupId, graphs);
             return "OK";
         } else {
-            return "未找到分区";
+            return "Partition not found";
         }
 
     }

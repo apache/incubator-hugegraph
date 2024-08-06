@@ -93,8 +93,8 @@ public class HgCmdClientTest {
     }
 
     public static Long getId() {
-        // 如果需要更长 或者更大冗余空间，只需要 time * 10^n   即可
-        // 当前可保证 1 毫秒 生成 10000 条不重复
+        // If needed longer or more redundant space, just use time * 10^n
+        // Currently guaranteed to generate 10000 non-duplicate in 1 millisecond
         Long time = Long.valueOf(new SimpleDateFormat("HHmmssSSS").format(new Date())) * 10000 +
                     (long) (Math.random() * 100);
 //        Long time = Long.valueOf(new SimpleDateFormat("MMddhhmmssSSS").format(new Date())
@@ -144,7 +144,7 @@ public class HgCmdClientTest {
         session.createTable(tableName);
         String createGraph = "create_graph";
         HgOwnerKey hgOwnerKey = toOwnerKey(createGraph);
-        // 需要写数据，才会创建图
+        // Need to write data, then the graph will be created.
         session.put(tableName,
                     hgOwnerKey, createGraph.getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(createGraph, toStr(session.get(tableName, hgOwnerKey)));
@@ -215,7 +215,7 @@ public class HgCmdClientTest {
         session.createTable(tableName);
         String createGraph = "create_graph";
         HgOwnerKey hgOwnerKey = toOwnerKey(createGraph);
-        // 需要写数据，才会创建图
+        // Need to write data, then the graph will be created.
         session.put(tableName,
                     hgOwnerKey, createGraph.getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(createGraph, toStr(session.get(tableName, hgOwnerKey)));
@@ -264,7 +264,7 @@ public class HgCmdClientTest {
         session.createTable(tableName);
         String createGraph = "create_graph";
         HgOwnerKey hgOwnerKey = toOwnerKey(createGraph);
-        // 需要写数据，才会创建图
+        // Need to write data, then the graph will be created.
         session.put(tableName,
                     hgOwnerKey, createGraph.getBytes(StandardCharsets.UTF_8));
         Assert.assertEquals(createGraph, toStr(session.get(tableName, hgOwnerKey)));

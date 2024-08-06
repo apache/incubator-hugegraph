@@ -16,7 +16,7 @@
 #
 
 pdserver:
-  # pd 服务地址，多个 pd 地址用逗号分割
+  # PD service address, multiple PD addresses separated by commas
   address: localhost:8686
 
 management:
@@ -30,24 +30,24 @@ management:
         include: "*"
 
 grpc:
-  # grpc 的服务地址
+  # grpc service address
   host: 127.0.0.1
   port: 8500
   netty-server:
     max-inbound-message-size: 1000MB
 raft:
-  # raft 缓存队列大小
+  # raft cache queue size
   disruptorBufferSize: 1024
   address: 127.0.0.1:8510
   max-log-file-size: 600000000000
-  # 快照生成时间间隔，单位秒
+  # Snapshot generation interval, in seconds
   snapshotInterval: 1800
 server:
-  # rest 服务地址
+  # rest service address
   port: 8520
 
 app:
-  # 存储路径，支持多个路径，逗号分割
+  # Storage path, support multiple paths, separated by commas
   data-path: ./storage
   #raft-path: ./storage
 

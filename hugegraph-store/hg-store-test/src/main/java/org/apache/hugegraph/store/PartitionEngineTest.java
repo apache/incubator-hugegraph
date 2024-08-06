@@ -78,7 +78,7 @@ public class PartitionEngineTest {
                                                                          .contains(peer))
                                           .collect(Collectors.toList());
 
-        // 新增 6、7
+        // Add 6, 7
         Assert.assertEquals(2, addedNodes.size());
         addedNodes.clear();
         addedNodes.addAll(Arrays.asList(peers));
@@ -88,7 +88,7 @@ public class PartitionEngineTest {
 
         addedNodes.forEach(s -> System.out.print(s + " "));
         System.out.println();
-        // 删除 4，5
+        // Delete 4, 5
         Assert.assertEquals(2, removedNodes.size());
 
         removedNodes.clear();
@@ -98,7 +98,7 @@ public class PartitionEngineTest {
         Assert.assertEquals(2, removedNodes.size());
         removedNodes.forEach(s -> System.out.print(s + " "));
         System.out.println();
-        // 交集 5
+        // Intersection 5
         Assert.assertEquals(1, mixedPeer.size());
         oldPeers1.removeAll(Arrays.asList(learners));
         Assert.assertEquals(1, oldPeers1.size());

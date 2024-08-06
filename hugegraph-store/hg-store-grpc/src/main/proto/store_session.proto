@@ -122,11 +122,11 @@ message PartitionLeader {
 
 enum PartitionFaultType{
   PARTITION_FAULT_TYPE_UNKNOWN = 0;
-  // 当前不是Leader，返回Leader所在store
+  // Currently not the Leader, return the store where the Leader is located.
   PARTITION_FAULT_TYPE_NOT_LEADER = 1;
-  // 等待Leader超时，可能raft group创建失败
+  // Wait for Leader timeout, possibly raft group creation failed
   PARTITION_FAULT_TYPE_WAIT_LEADER_TIMEOUT = 2;
-  // 分区不属于本机
+  // Partition does not belong to this machine
   PARTITION_FAULT_TYPE_NOT_LOCAL = 3;
 
 }

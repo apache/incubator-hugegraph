@@ -43,7 +43,7 @@ import com.alipay.sofa.jraft.util.Utils;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 支持平行读取的批量查询迭代器
+ * Support parallel read batch query iterator
  */
 @Slf4j
 public class ParallelScanIterator implements ScanIterator {
@@ -86,7 +86,7 @@ public class ParallelScanIterator implements ScanIterator {
                     Math.max(1, Math.min(query.getConditionCount() / 16, maxWorkThreads));
         }
         this.maxInQueue = maxWorkThreads * 2;
-        // 边有序需要更大的队列
+        // Edge sorted requires a larger queue
         queue = new LinkedBlockingQueue<>(maxInQueue * 2);
         createScanner();
     }
@@ -107,7 +107,7 @@ public class ParallelScanIterator implements ScanIterator {
         while (current == null && tryTimes < waitDataMaxTryTimes) {
             try {
                 if (queue.size() != 0 || !finished) {
-                    current = queue.poll(100, TimeUnit.MILLISECONDS);  //定期检查client是否被关闭了
+                    current = queue.poll(100, TimeUnit.MILLISECONDS);  // Regularly check if the client has been closed.
                     if (current == null && !finished) {
                         wakeUpScanner();
                     }
@@ -159,7 +159,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 创建扫描器
+     * Create Scanner
      */
     private void createScanner() {
         synchronized (scanners) {
@@ -173,7 +173,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 唤醒扫描器
+     * Wake up scanner
      */
     private void wakeUpScanner() {
         synchronized (pauseScanners) {
@@ -187,7 +187,7 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 休眠扫描器
+     * Sleep Scanner
      *
      * @param scanner
      */
@@ -209,10 +209,10 @@ public class ParallelScanIterator implements ScanIterator {
     }
 
     /**
-     * 添加到队列，返回队列是否已满
+     * Add to queue, return whether the queue is full
      *
      * @param data
-     * @return false: 队列已满
+     * @return false: Queue is full
      */
     private boolean putData(List<KV> data) {
         try {
@@ -238,7 +238,7 @@ public class ParallelScanIterator implements ScanIterator {
                 queueLock.unlock();
             }
         }
-        // 数据未结束，线程继续执行
+        // Data not ended, thread continues to execute
         return hasNext || this.queue.size() < maxInQueue;
     }
 
@@ -305,7 +305,7 @@ public class ParallelScanIterator implements ScanIterator {
         private volatile boolean closed = false;
 
         private ScanIterator getIterator() {
-            // 迭代器没有数据，或该点以达到limit，切换新的迭代器
+            // Iterator has no data, or the point has reached the limit, switch to a new iterator.
             if (iterator == null || !iterator.hasNext() || counter >= limit) {
                 if (iterator != null) {
                     iterator.close();
@@ -343,7 +343,7 @@ public class ParallelScanIterator implements ScanIterator {
                     if ((entriesSize >= batchSize || bodySize >= maxBodySize) ||
                         (orderEdge && bodySize >= maxBodySize / 2)) {
                         if (orderEdge) {
-                            //边排序，保证一个点的所有边连续，阻止其他点插入
+                            // Sort the edges, ensure all edges of one point are consecutive, prevent other points from inserting.
                             canNext = putData(dataList, iterator != null && iterator.hasNext());
                         } else {
                             canNext = putData(dataList);

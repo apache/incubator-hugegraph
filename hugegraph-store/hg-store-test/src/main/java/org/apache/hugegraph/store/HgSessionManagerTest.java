@@ -56,7 +56,7 @@ public class HgSessionManagerTest {
                                                                                      "unit-test"));
 
     private static final int partitionCount = 10;
-    // 需要与 store 的 application.yml 的 fake-pd.partition-count 保持一致
+    // Need to be consistent with the store's application.yml fake-pd.partition-count
 
     //private static String[] storeAddress = {"127.0.0.1:8500"};
     private static final String[] storeAddress =
@@ -91,7 +91,7 @@ public class HgSessionManagerTest {
                 //log.info("leader-> {}",leaderMap.get(startCode / PARTITION_LENGTH));
                 builder.add(leaderMap.get(startCode / PARTITION_LENGTH), startCode);
             } else {
-                Assert.fail("OwnerKey 转成 HashCode 后已经无序了，按照 OwnerKey 范围查询没意义");
+                Assert.fail("OwnerKey converted to HashCode is already unordered, querying by OwnerKey range is meaningless");
                 builder.add(leaderMap.get(startCode / PARTITION_LENGTH), startCode);
                 builder.add(leaderMap.get(endCode / PARTITION_LENGTH), endCode);
             }
@@ -172,8 +172,8 @@ public class HgSessionManagerTest {
     }
 
     @Test
-    //CAUTION: ONLY FOR LONG！
-    //注意：目前只可以对 long 类型 value 进行 Merge 操作。
+    // CAUTION: ONLY FOR LONG!
+    // Note: Currently, only long type values can be merged.
     public void merge() {
         System.out.println("--- test merge (1+1=2)---");
         HgStoreSession session = getStoreSession();

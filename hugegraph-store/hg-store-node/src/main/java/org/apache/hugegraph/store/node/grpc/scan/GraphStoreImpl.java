@@ -34,7 +34,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * graphpb.proto 实现类
+ * graphpb.proto implementation class
  */
 @Slf4j
 @GRpcService
@@ -67,9 +67,9 @@ public class GraphStoreImpl extends GraphStoreImplBase {
     }
 
     /**
-     * 流式回复消息，每个消息带有seqNo
-     * 客户端每消费一个消息，应答一个seqNo
-     * 服务端根据客户端的seqNo决定发送几个数据包
+     * Streaming reply messages, each message with a seqNo
+     * Client side should respond with a seqNo for each message consumed.
+     * The server decides how many packets to send based on the client's seqNo.
      *
      * @param ro
      * @return

@@ -39,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 //        ZipUtilsTest.class,
 //        MiscUtilClassTest.class,
 //        PartitionInstructionProcessorTest.class,
-//        // 尽量放到最后
+//        // Try to put it last
 //        HgBusinessImplTest.class
 //})
 

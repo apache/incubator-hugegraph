@@ -35,16 +35,16 @@ import org.apache.hugegraph.store.util.HgStoreTestUtil;
 import org.junit.Assert;
 
 /**
- * 使用fake-pd，支持raft的单元测试
+ * Use fake-pd, support unit tests for raft RuntimeMethodHandle.op_Implicit(Microsoft.AspNetCore.Mvc.RazorPages.Infrastructure.PageResult)
  */
 public class HgSessionManagerRaftFakePDTest {
     private static final Map<Integer, Long> leaderMap = new ConcurrentHashMap<>();
     private static final Map<Long, String> storeMap = new ConcurrentHashMap<>();
 
     private static final int partitionCount = 3;
-    // 需要与store的application.yml的fake-pd.partition-count保持一致
+    // Need to be consistent with the fake-pd.partition-count in the store's application.yml
     private static final String[] storeAddress =
-            { // 需要与store的application.yml的fake-pd.store-list保持一致
+            { // Need to be consistent with the store's application.yml fake-pd.store-list
               "127.0.0.1:8501", "127.0.0.1:8502", "127.0.0.1:8503"
             };
 
@@ -72,7 +72,7 @@ public class HgSessionManagerRaftFakePDTest {
                        Arrays.equals(startKey, endKey)) {
                 builder.add(leaderMap.get(startCode % partitionCount), startCode);
             } else {
-                Assert.fail("OwnerKey转成HashCode后已经无序了， 按照OwnerKey范围查询没意义");
+                Assert.fail("OwnerKey converted to HashCode is no longer ordered, querying by OwnerKey range is meaningless");
                 builder.add(leaderMap.get(startCode % partitionCount), startCode);
                 builder.add(leaderMap.get(endCode % partitionCount), endCode);
             }
@@ -216,8 +216,8 @@ public class HgSessionManagerRaftFakePDTest {
     }
 
     // @Test
-    //CAUTION: ONLY FOR LONG！
-    //注意：目前只可以对long类型value进行Merge操作。
+    // CAUTION: ONLY FOR LONG!
+    // Note: Currently, only Merge operations can be performed on long type values.
     public void merge() {
         System.out.println("--- test merge (1+1=2)---");
         HgStoreSession session = getStoreSession();
