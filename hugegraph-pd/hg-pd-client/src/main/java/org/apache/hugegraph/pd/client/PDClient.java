@@ -1019,7 +1019,7 @@ public class PDClient {
 
     /**
      * Working mode
-     * Auto：If the number of partitions on each store reaches the maximum value, you need to
+     * Auto: If the number of partitions on each store reaches the maximum value, you need to
      * specify the store group id. The store group id is 0, which is the default partition
      * splitData(ClusterOp.OperationMode mode, int storeGroupId, List<ClusterOp.SplitDataParam>
      * params)
@@ -1038,9 +1038,9 @@ public class PDClient {
 
     /**
      * Working mode
-     * Auto：If the number of partitions on each store reaches the maximum value, you need to
+     * Auto: If the number of partitions on each store reaches the maximum value, you need to
      * specify the store group id. The store group id is 0, which is the default partition
-     * Expert:Expert Mode，Specifier is required splitParams, limit SplitDataParam in the same
+     * Expert: Expert Mode, Specifier is required splitParams, limit SplitDataParam in the same
      * store group
      *
      * @param mode
@@ -1085,11 +1085,11 @@ public class PDClient {
 
     /**
      * Migrate partitions in manual mode
-     * //Working mode
-     * //  Auto：Automatic transfer to the same number of partitions per Store
-     * //  Expert:Expert Mode，Specifier is required transferParams
+     * // Working mode
+     * //  Auto: Automatic transfer to the same number of partitions per Store
+     * //  Expert: Expert Mode, Specifier is required transferParams
      *
-     * @param params Designation transferParams, expert mode，request source store / target store
+     * @param params Designation transferParams, expert mode, request source store / target store
      *               in the same store group
      * @throws PDException
      */
@@ -1228,7 +1228,7 @@ public class PDClient {
      * Used for the store's shard list rebuild
      *
      * @param groupId shard group id
-     * @param shards  shard list，delete when shards size is 0
+     * @param shards  shard list, delete when shards size is 0
      */
     public void updateShardGroupOp(int groupId, List<Metapb.Shard> shards) throws PDException {
         Pdpb.ChangeShardRequest request = Pdpb.ChangeShardRequest.newBuilder()
