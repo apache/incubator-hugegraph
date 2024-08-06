@@ -303,7 +303,6 @@ public class SessionOperatorImpl implements SessionOperator {
 
     /**
      * Traverse all data in the specified range of cf
-```
      * TODO: rocksdb7.x does not support setStartSeqNum, switch to using Timestamp instead.
      * refer: https://github.com/facebook/rocksdb/wiki/User-defined-Timestamp
      */

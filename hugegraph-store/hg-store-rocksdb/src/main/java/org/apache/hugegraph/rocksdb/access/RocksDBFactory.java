@@ -87,9 +87,7 @@ public final class RocksDBFactory {
                                  watcher.dbSession.getRefCount(),
                                  (System.currentTimeMillis() - watcher.timestamp) / 1000);
                     } else {
-                        // Timeout强制删除 (30min) 
-// Force delete after timeout (30min)
-// Force delete after timeout (30min)
+                        // Force delete after timeout (30min)
                         watcher.dbSession.forceResetRefCount();
                     }
                 }
