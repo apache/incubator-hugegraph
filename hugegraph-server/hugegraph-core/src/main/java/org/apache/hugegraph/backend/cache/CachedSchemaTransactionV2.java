@@ -66,7 +66,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             attachment = this.idCache.attachment(new SchemaCaches<>(acSize));
         }
         this.arrayCaches = attachment;
-//        this.listenChanges();
+        this.listenChanges();
     }
 
     private static Id generateId(HugeType type, Id id) {
