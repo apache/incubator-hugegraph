@@ -719,7 +719,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public void deleteTable(String graph, int partId, String table) {
         dropTable(graph, partId, table);
-        // todo Check if the table is empty, if empty then truly delete the table
+        // TODO: Check if the table is empty, if empty then truly delete the table
 //        try (RocksDBSession session = getOrCreateGraphDB(graph, partId)) {
 //            session.deleteTables(table);
 //        }

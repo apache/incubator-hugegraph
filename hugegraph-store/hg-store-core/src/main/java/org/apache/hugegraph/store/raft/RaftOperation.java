@@ -87,7 +87,7 @@ public class RaftOperation {
     public static RaftOperation create(final byte op,
                                        final com.google.protobuf.GeneratedMessageV3 req) throws
                                                                                          IOException {
-        // Serialization, 
+        // Serialization
         final byte[] buffer = new byte[req.getSerializedSize() + 1];
         final CodedOutputStream output = CodedOutputStream.newInstance(buffer);
         output.write(op);

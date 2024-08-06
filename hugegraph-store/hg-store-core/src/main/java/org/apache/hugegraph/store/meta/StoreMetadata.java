@@ -202,7 +202,7 @@ public class StoreMetadata extends GlobalMetaStore {
                                                     .setPartitionId(partitionId)
                                                     .setStoreLocation(getMinDataLocation())
                                                     .build();
-                    // TODO Select the path with the least number of partitions.
+                    // TODO: Select the path with the least number of partitions.
                     savePartitionStore(location);
                 }
             }
@@ -221,7 +221,7 @@ public class StoreMetadata extends GlobalMetaStore {
                                                    .setPartitionId(partitionId)
                                                    .setRaftLocation(getMinRaftLocation())
                                                    .build();
-                    // TODO Select the path with the fewest partitions.
+                    // TODO: Select the path with the fewest partitions.
                     savePartitionRaft(location);
                 }
             }

@@ -48,7 +48,7 @@ import lombok.extern.slf4j.Slf4j;
 public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, PartitionStateListener {
 
     private static final int MAX_HEARTBEAT_RETRY_COUNT = 5;     // Heartbeat retry count
-    private static final int REGISTER_RETRY_INTERVAL = 1;   //Registration retry interval, in seconds
+    private static final int REGISTER_RETRY_INTERVAL = 1;   // Registration retry interval, in seconds
     private final HgStoreEngine storeEngine;
     private final List<HgStoreStateListener> stateListeners;
     private final Object partitionThreadLock = new Object();

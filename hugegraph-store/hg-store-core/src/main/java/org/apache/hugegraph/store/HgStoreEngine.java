@@ -343,7 +343,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
     /**
      * Create raft group, in addition to creating the local raft node, also need to notify other peers to create raft nodes.
      * 1. Traverse partition.shards
-     Information by storeId
+     * 2. Retrieve Store information based on storeId
      * 3. Establish Raft RPC to other stores, send StartRaft messages.
      *
      * @param partition
@@ -445,7 +445,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
         ptEngine.removePartition(graphName);
         // Delete data
         businessHandler.deletePartition(graphName, groupId);
-        //Notify PD to delete partition data
+        // Notify PD to delete partition data
         if (ptEngine.isLeader()) {
             synchronized (this) {
                 partitionManager.deletePartition(graphName, groupId);

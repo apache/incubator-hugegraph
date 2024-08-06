@@ -114,17 +114,17 @@ public interface BusinessHandler extends DBSessionBuilder {
     void ingestSstFile(String graph, int partId, Map<byte[], List<String>> sstFiles) throws
                                                                                      HgStoreException;
 
-    //Submit partition split, delete old data
+    // Submit partition split, delete old data
     // Delete partition data
     boolean deletePartition(String graph, int partId);
 
-    //Clean up partitions, delete unnecessary data
+    // Clean up partitions, delete unnecessary data
     boolean cleanPartition(String graph, int partId);
 
     boolean cleanPartition(String graph, int partId, long startKey, long endKey,
                            CleanType cleanType);
 
-    // All table names for all specified partition diagrams
+    // All table names for all specified partition graph
     List<String> getTableNames(String graph, int partId);
 
     TxBuilder txBuilder(String graph, int partId);

@@ -262,7 +262,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         // Check if the peers returned by pd are consistent with the local ones, if not, reset the peerlist
         if (this.raftNode != null) {
-            //TODO Check peer list, if peer changes, perform reset
+            // TODO: Check peer list, if peer changes, perform reset
             started = true;
         }
 
@@ -410,7 +410,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                                                   partitionManager.getPartitionList(getGroupId()),
                                                   status -> {
                                                       if (!status.isOk()) {
-                                                          // TODO What if it fails?
+                                                          // TODO: What if it fails?
                                                           log.error("Raft {} destroy node {}" +
                                                                     " error {}",
                                                                     options.getGroupId(), peer,
@@ -563,7 +563,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     if (partitionManager.isLocalPartition(this.options.getGroupId())) {
                         log.error("Raft {} leader not found, try to repair!",
                                   this.options.getGroupId());
-                        // TODO Check if raft is local, if so, try to fix the Leader, including checking if the configuration is correct.
+                        // TODO: Check if raft is local, if so, try to fix the Leader, including checking if the configuration is correct.
                         storeEngine.createPartitionGroups(
                                 partitionManager.getPartitionList(getGroupId()).get(0));
                     }
@@ -630,7 +630,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     public void onConfigurationCommitted(Configuration conf) {
 
         try {
-            //Update shardlist
+            // Update shardlist
             log.info("Raft {} onConfigurationCommitted, conf is {}", getGroupId(), conf.toString());
             // According to raft endpoint find storeId
             List<Long> peerIds = new ArrayList<>();
@@ -987,7 +987,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             storeEngine.deletePartition(partitionId, graphName);
         }
 
-        // without partition engine的情况
+        // No partition engine present
         if (isLeader && partition == null) {
             partitionManager.deletePartition(graphName, partitionId);
         }
