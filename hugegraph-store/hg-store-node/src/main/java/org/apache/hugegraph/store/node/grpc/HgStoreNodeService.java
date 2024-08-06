@@ -125,9 +125,9 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 添加raft 任务，转发数据给raft
+     * Add raft task, forward data to raft
      *
-     * @return true 表示数据已被提交，false表示未提交，用于单副本入库减少批次拆分
+     * @return true indicates the data has been submitted, false indicates it has not been submitted, used for single-copy storage to reduce batch splitting.
      */
     public <Req extends com.google.protobuf.GeneratedMessageV3>
     void addRaftTask(byte methodId, String graphName, Integer partitionId, Req req,
@@ -140,14 +140,14 @@ public class HgStoreNodeService implements RaftTaskHandler {
         }
         //
         try {
-            // 序列化，
+            // Serialization, 
             final byte[] buffer = new byte[req.getSerializedSize() + 1];
             final CodedOutputStream output = CodedOutputStream.newInstance(buffer);
             output.write(methodId);
             req.writeTo(output);
             output.checkNoSpaceLeft();
             output.flush();
-            // 传送给raft
+            // Send to raft */
             storeEngine.addRaftTask(graphName, partitionId,
                                     RaftOperation.create(methodId, buffer, req), closure);
 
@@ -159,7 +159,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 来自日志的任务，一般是follower 或者 日志回滚的任务
+     * Tasks from logs are generally follower tasks or log rollback tasks.
      */
     @Override
     public boolean invoke(int partId, byte[] request, RaftClosure response) throws
@@ -181,7 +181,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                     invoke(partId, methodId, CleanReq.parseFrom(input), response);
                     break;
                 default:
-                    return false; // 未处理
+                    return false; // Unhandled
             }
         } catch (IOException e) {
             throw new HgStoreException(e.getMessage(), e);
@@ -190,7 +190,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 处理raft传送过来的数据
+     * Handle data transmitted from raft
      */
     @Override
     public boolean invoke(int partId, byte methodId, Object req, RaftClosure response) throws
@@ -212,7 +212,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 hgStoreSession.doClean(partId, (CleanReq) req, response);
                 break;
             default:
-                return false; // 未处理
+                return false; // Unhandled
         }
         return true;
     }
