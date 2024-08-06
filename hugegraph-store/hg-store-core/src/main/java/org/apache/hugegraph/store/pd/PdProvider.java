@@ -76,7 +76,7 @@ public interface PdProvider {
     void setGraphManager(GraphManager graphManager);
 
     /**
-     * 删除分区 shard group
+     * Delete partition shard group
      *
      * @param groupId
      */

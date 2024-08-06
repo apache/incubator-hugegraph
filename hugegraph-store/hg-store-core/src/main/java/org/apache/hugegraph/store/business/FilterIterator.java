@@ -72,7 +72,7 @@ public class FilterIterator<T extends BackendColumn> extends
                                                    current.name);
                     entry.columns(Arrays.asList(columns));
                 } else {
-                    // 有可能存在包含多个 column 的情况
+                    // There may be cases that contain multiple columns
                     entry.columns(Arrays.asList(columns));
                     continue;
                 }

@@ -20,34 +20,34 @@ package org.apache.hugegraph.store.meta.asynctask;
 public interface AsyncTask {
 
     /**
-     * 需要检查异步任务时候，检查当前的状态，根据状态去做对应的处理
+     * Need to check the asynchronous task, check the current status, and handle it accordingly based on the status.
      */
     void handleTask();
 
     /**
-     * 任务ID
+     * Task ID
      */
     String getId();
 
     /**
-     * 针对哪个图的
+     * Which graph is it aimed at?
      */
     String getGraphName();
 
     /**
-     * 针对哪个分区的
+     * For which partition
      */
     int getPartitionId();
 
     /**
-     * 用来进行序列化
+     * used for serialization
      *
      * @return
      */
     byte[] toBytes();
 
     /**
-     * 设置执行状态
+     * Set execution status
      *
      * @param newState
      */

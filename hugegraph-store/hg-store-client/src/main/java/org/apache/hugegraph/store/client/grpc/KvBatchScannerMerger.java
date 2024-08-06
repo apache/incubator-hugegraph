@@ -36,8 +36,8 @@ import org.apache.hugegraph.store.client.util.PropertyUtil;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量查询结果归并，阻塞队列工作模式
- * 对请求任务的拆分,创建多个请求队列
+ * Batch query result merging, blocking queue working mode
+ * Splitting of request tasks, creating multiple request queues
  */
 @Slf4j
 public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<HgKvEntry>>,
@@ -69,14 +69,14 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
         int waitTime = 0;
         while (current == null) {
             try {
-                // 队列有数据，还有活跃的查询器，任务未分配完
+                // Queue has data, and there are active queryers, tasks not yet allocated.
                 if (queue.size() != 0 || scanners.size() > 0 || !taskSplitter.isFinished()) {
-                    current = queue.poll(1, TimeUnit.SECONDS);  //定期检查client是否被关闭了
+                    current = queue.poll(1, TimeUnit.SECONDS);  // Regularly check if the client has been closed.
                 } else {
                     break;
                 }
                 if (current == null) {
-                    // 超时重试
+                    // Timeout retry
                     sendTimeout();
                     if (++waitTime > maxWaitCount) {
                         log.error(
@@ -125,7 +125,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
     }
 
     /**
-     * 返回值<0表示任务结束
+     * Return value < 0 indicates the task is finished.
      *
      * @param closeable
      * @return
@@ -146,7 +146,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
     }
 
     /**
-     * 组装一个Scanner的多个有序迭代器为一个迭代器
+     * Assemble multiple ordered iterators of a Scanner into one iterator
      */
     static class ScannerDataQueue {
 
@@ -170,7 +170,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
         }
 
         /**
-         * 迭代器是否有效，如果没有数据，等待数据到达
+         * Whether the iterator is valid, if there is no data, wait for the data to arrive.
          *
          * @return
          */
@@ -179,7 +179,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
                 try {
                     int waitTime = 0;
                     Supplier<HgKvIterator<HgKvEntry>> current;
-                    current = queue.poll(1, TimeUnit.SECONDS);  //定期检查client是否被关闭了
+                    current = queue.poll(1, TimeUnit.SECONDS);  // Regularly check if the client has been closed.
                     if (current == null) {
                         if (++waitTime > maxWaitCount) {
                             break;
@@ -221,18 +221,18 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
     }
 
     /**
-     * 对多个Scanner返回结果进行归并排序
+     * Merge sort for multiple Scanner return results
      */
     static class SortedScannerMerger extends KvBatchScannerMerger {
 
-        // 每一个流对应一个接收队列
+        // Each stream corresponds to a receive queue
         private final Map<KvBatchScanner, ScannerDataQueue> scannerQueues =
                 new ConcurrentHashMap<>();
 
         public SortedScannerMerger(KvBatchScanner.TaskSplitter splitter) {
             super(splitter);
             queue.add(() -> {
-                // 对store返回结果进行归并排序
+                // Perform merge sort on the store's return result
                 return new HgKvIterator<>() {
                     private ScannerDataQueue iterator;
                     private int currentSN = 0;
@@ -286,8 +286,8 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
         }
 
         /**
-         * 从多个Scanner中挑选一个sn最小的迭代器
-         * 如果Scanner没有数据，等待数据到达。
+         * Pick an iterator with the smallest sn from multiple Scanners
+         * If Scanner has no data, wait for the data to arrive.
          *
          * @return
          */

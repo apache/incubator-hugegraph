@@ -22,7 +22,7 @@ import java.nio.ByteBuffer;
 public class Bits {
 
     /**
-     * 大头字节序写入short
+     * Big-endian byte order write short
      */
     public static void putShort(byte[] buf, int offSet, int x) {
         buf[offSet] = (byte) (x >> 8);
@@ -37,7 +37,7 @@ public class Bits {
     }
 
     /**
-     * 大头字节序读取short
+     * Big-endian byte order read short
      */
     public static int getShort(byte[] buf, int offSet) {
         int x = buf[offSet] & 0xff;

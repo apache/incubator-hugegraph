@@ -34,11 +34,11 @@ public class Store {
     private String pdAddress;
     private String raftAddress;
     private String deployPath;
-    private String dataPath; // 数据存储路径
+    private String dataPath; // Data storage path
     private int dataVersion;
     private int partitionCount;
     private int startTime;
-    private int usedSize;     //rocksdb存储大小
+    private int usedSize;     // rocksdb storage size
     private int pdHeartbeatInterval;
     private Metapb.StoreState state;
     private Map<String, String> labels;

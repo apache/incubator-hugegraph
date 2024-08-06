@@ -63,7 +63,7 @@ public class DefaultPdProvider implements PdProvider {
     private PDPulse.Notifier<PartitionHeartbeatRequest.Builder> pdPulse;
     private GraphManager graphManager = null;
     PDClient.PDEventListener listener = new PDClient.PDEventListener() {
-        // 监听pd变更信息的listener
+        // Listening to pd change information listener
         @Override
         public void onStoreChanged(NodeEvent event) {
             if (event.getEventType() == NodeEvent.EventType.NODE_RAFT_CHANGE) {
@@ -245,7 +245,7 @@ public class DefaultPdProvider implements PdProvider {
     }
 
     /**
-     * 启动partition心跳流式传输
+     * Start partition heartbeat streaming transmission
      *
      * @return
      */
@@ -258,12 +258,12 @@ public class DefaultPdProvider implements PdProvider {
             public void onNotice(PulseServerNotice<PulseResponse> response) {
                 PulseResponse content = response.getContent();
 
-                // 消息消费应答，能够正确消费消息，调用accept返回状态码，否则不要调用accept
+                // Message consumption acknowledgment, if the message can be consumed correctly, call accept to return the status code, otherwise do not call accept.
                 Consumer<Integer> consumer = integer -> {
                     LOG.debug("Partition heartbeat accept instruction: {}", content);
                     // LOG.info("accept notice id : {}, ts:{}", response.getNoticeId(), System
                     // .currentTimeMillis());
-                    // http2 并发问题，需要加锁
+                    // http2 concurrency issue, need to lock
                     // synchronized (pdPulse) {
                     response.ack();
                     // }
@@ -272,7 +272,7 @@ public class DefaultPdProvider implements PdProvider {
                 if (content.hasInstructionResponse()) {
                     var pdInstruction = content.getInstructionResponse();
                     consumer.accept(0);
-                    // 当前的链接变成了follower，重新链接
+                    // Current link becomes follower, reconnect
                     if (pdInstruction.getInstructionType() ==
                         PdInstructionType.CHANGE_TO_FOLLOWER) {
                         onCompleted();
@@ -344,7 +344,7 @@ public class DefaultPdProvider implements PdProvider {
     }
 
     /**
-     * 添加服务端消息监听
+     * Add server-side message listening
      *
      * @param listener
      * @return

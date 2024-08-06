@@ -108,7 +108,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 批量插入数据
+     * Batch insert data
      *
      * @param request
      * @return
@@ -118,7 +118,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 清理无效数据
+     * Clean up invalid data
      *
      * @param request
      * @return
@@ -128,7 +128,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 通过raft更新本地分区信息
+     * Through raft to update local partition information
      *
      * @param request
      * @return
@@ -138,7 +138,7 @@ public class HgCmdClient {
     }
 
     /**
-     * 查找Leader，错误重试，处理Leader重定向
+     * Find Leader, retry on error, handle Leader redirection
      *
      * @param request
      * @return
@@ -164,7 +164,7 @@ public class HgCmdClient {
                     } else if (HgCmdProcessor.Status.LEADER_REDIRECT == response.getStatus()
                                && response.partitionLeaders != null
                     ) {
-                        // 当返回leader 漂移，并且partitionLeaders 不为空时，需要重新设置leader
+                        // When returning leader drift, and partitionLeaders is not empty, need to reset the leader.
                     } else {
                         log.error(
                                 "HgCmdClient tryInternalCallSyncWithRpc error msg {} leaders is {}",

@@ -54,7 +54,7 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     public Store load() {
-        // 针对多目录存储的情况下，预先创建文件夹，方便pd端统计文件存储
+        // For the case of multi-directory storage, pre-create folders to facilitate pd-side file storage statistics.
         dataLocations.forEach(path -> {
             String strPath = Paths.get(path).toAbsolutePath().toString();
             File dbFile = new File(strPath);
@@ -186,7 +186,7 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     /**
-     * 获取分区数据存储的位置，如果分布数据不存在，自动创建新的位置
+     * Get the location of the partitioned data storage, if distributed data does not exist, automatically create a new location.
      *
      * @param partitionId
      * @return
@@ -197,12 +197,12 @@ public class StoreMetadata extends GlobalMetaStore {
             synchronized (this) {
                 location = getPartitionStore(partitionId);
                 if (location == null) {
-                    // 查找分区数最少的存储
+                    // Find the storage with the least number of partitions
                     location = Metapb.PartitionStore.newBuilder()
                                                     .setPartitionId(partitionId)
                                                     .setStoreLocation(getMinDataLocation())
                                                     .build();
-                    // TODO 选择分区数最小的路径
+                    // TODO: Select the path with the least number of partitions.
                     savePartitionStore(location);
                 }
             }
@@ -216,12 +216,12 @@ public class StoreMetadata extends GlobalMetaStore {
             synchronized (this) {
                 location = getPartitionRaft(partitionId);
                 if (location == null) {
-                    // 查找分区数最少的存储
+                    // Find the storage with the least number of partitions
                     location = Metapb.PartitionRaft.newBuilder()
                                                    .setPartitionId(partitionId)
                                                    .setRaftLocation(getMinRaftLocation())
                                                    .build();
-                    // TODO 选择分区数最小的路径
+                    // TODO: Select the path with the fewest partitions.
                     savePartitionRaft(location);
                 }
             }

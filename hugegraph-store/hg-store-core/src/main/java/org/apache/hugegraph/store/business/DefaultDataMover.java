@@ -71,13 +71,13 @@ public class DefaultDataMover implements DataMover {
     public Status moveData(Metapb.Partition source, List<Metapb.Partition> targets) throws
                                                                                     Exception {
         Status status = Status.OK();
-        // 开始移动数据之前，先把分区下线
+        // Before starting to move data, take the partition offline first.
         UpdatePartitionResponse response =
                 updatePartitionState(source, Metapb.PartitionState.PState_Offline);
         if (response.getStatus().isOK()) {
             status = moveData(source, targets, DefaultDataMover::findPartition);
 
-            // 数据迁移成功后，设置新分区范围和上线新分区
+            // Data migration successful, set new partition range and launch new partition.
             for (var target : targets) {
                 if (status.isOk()) {
                     if (!(updatePartitionRange(target, (int) target.getStartKey(),
@@ -101,7 +101,7 @@ public class DefaultDataMover implements DataMover {
 
     @Override
     public Status moveData(Metapb.Partition source, Metapb.Partition target) throws Exception {
-        // 只写入 target
+        // only write to target
         return moveData(source, Collections.singletonList(target), (partitions, integer) -> target);
     }
 
@@ -178,7 +178,7 @@ public class DefaultDataMover implements DataMover {
     @Override
     public UpdatePartitionResponse updatePartitionState(Metapb.Partition partition,
                                                         Metapb.PartitionState state) {
-        // 分区分裂时，主动需要查找 leader 进行同步信息
+        // When the partition splits, it actively needs to find the leader to synchronize information.
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setWorkState(state);
         request.setPartitionId(partition.getId());
@@ -189,7 +189,7 @@ public class DefaultDataMover implements DataMover {
     @Override
     public UpdatePartitionResponse updatePartitionRange(Metapb.Partition partition, int startKey,
                                                         int endKey) {
-        // 分区分裂时，主动需要查找 leader 进行同步信息
+        // When the partition splits, it actively needs to find the leader for information synchronization.
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setStartKey(startKey);
         request.setEndKey(endKey);
@@ -228,7 +228,7 @@ public class DefaultDataMover implements DataMover {
 
     @Override
     public void doCleanData(CleanDataRequest request) {
-        // raft 执行真实数据的清理
+        // raft performs real data cleanup
         businessHandler.cleanPartition(request.getGraphName(), request.getPartitionId(),
                                        request.getKeyStart(), request.getKeyEnd(),
                                        request.getCleanType());

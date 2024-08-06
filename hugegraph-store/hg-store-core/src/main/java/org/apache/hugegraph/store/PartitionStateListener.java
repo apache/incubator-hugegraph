@@ -25,10 +25,10 @@ import org.apache.hugegraph.store.meta.PartitionRole;
 
 public interface PartitionStateListener {
 
-    // 分区角色发生改变
+    // Partition role changed
     void partitionRoleChanged(Partition partition, PartitionRole newRole);
 
-    // 分区发生改变
+    // Partition has changed
     void partitionShardChanged(Partition partition, List<Metapb.Shard> oldShards,
                                List<Metapb.Shard> newShards);
 }

@@ -199,7 +199,7 @@ public class GrpcStoreStreamClient extends AbstractGrpcClient {
         return KvBatchScanner5.scan(nodeSession, this.getStub(nodeSession), scanQuery);
     }
 
-    // 返回多个小的迭代器，允许上层并行处理
+    // Return multiple small iterators, allowing upper-level parallel processing
     KvCloseableIterator<HgKvIterator<HgKvEntry>> doBatchScan3(HgStoreNodeSession nodeSession,
                                                               HgScanQuery scanQuery,
                                                               KvCloseableIterator iterator) {

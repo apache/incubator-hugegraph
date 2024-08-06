@@ -27,7 +27,7 @@ public class InnerKeyFilter<T extends BackendColumn> implements ScanIterator {
 
     final int codeFrom;
     final int codeTo;
-    //是否进行code过滤，启动该选项，返回key的尾部包含code
+    // Whether to perform code filtering, enable this option, return the key's tail containing code
     final boolean codeFilter;
     ScanIterator iterator;
     T current = null;
@@ -80,11 +80,11 @@ public class InnerKeyFilter<T extends BackendColumn> implements ScanIterator {
     public T next() {
         T column = current;
         if (!codeFilter)
-        // 去掉图ID和hash后缀
+        // Remove the image ID and hash suffix
         {
             column.name = Arrays.copyOfRange(column.name, Short.BYTES,
                                              column.name.length - Short.BYTES);
-        } else// 去掉图ID
+        } else // Remove graph ID
         {
             column.name = Arrays.copyOfRange(column.name, Short.BYTES,
                                              column.name.length);

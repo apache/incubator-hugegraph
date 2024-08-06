@@ -39,16 +39,16 @@ public class RaftOperation {
     public static final byte SYNC_PARTITION = 0x61;
     public static final byte BLANK_TASK = 0x62;
     public static final byte DO_SNAPSHOT = 0x63;
-    // 集群内部数据迁移操作
+    // Cluster internal data migration operation
     public static final byte IN_WRITE_OP = 0x64;
     public static final byte IN_CLEAN_OP = 0x65;
     public static final byte RAFT_UPDATE_PARTITION = 0x66;
     public static final byte DB_COMPACTION = 0x67;
     final static byte[] EMPTY_Bytes = new byte[0];
     private static final Logger LOG = LoggerFactory.getLogger(RaftOperation.class);
-    private byte[] values;     // req序列化的结果，用于传输给其他raft node
-    private Object req;        // 原始对象，用于本机处理，减少一次反序列化操作
-    private byte op;         // 操作类型
+    private byte[] values;     // req serialized result, used for transmitting to other raft nodes
+    private Object req;        // Original object, used for native processing, reducing one deserialization operation
+    private byte op;         // operation type
 
     public static RaftOperation create(final byte op) {
         try {
@@ -87,7 +87,7 @@ public class RaftOperation {
     public static RaftOperation create(final byte op,
                                        final com.google.protobuf.GeneratedMessageV3 req) throws
                                                                                          IOException {
-        // 序列化，
+        // Serialization
         final byte[] buffer = new byte[req.getSerializedSize() + 1];
         final CodedOutputStream output = CodedOutputStream.newInstance(buffer);
         output.write(op);

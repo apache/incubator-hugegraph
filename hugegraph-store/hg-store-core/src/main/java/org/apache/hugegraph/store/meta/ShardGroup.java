@@ -27,7 +27,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import lombok.Data;
 
 /**
- * 分片副本组
+ * Fragment replica group
  */
 @Data
 public class ShardGroup {
@@ -35,12 +35,12 @@ public class ShardGroup {
     private List<Shard> shards = new CopyOnWriteArrayList<>();
     private int id;
     /**
-     * Leader 任期，leader 切换后递增 = raftNode.leader_term
-     * 无实际用处
+     * Leader term, leader switch increment = raftNode.leader_term
+     * No practical use
      */
     private long version;
     /**
-     * shards 版本号，每次改变后递增
+     * shards version number, incremented after each change
      */
     private long confVersion;
 

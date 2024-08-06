@@ -38,7 +38,7 @@ import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 内置PD服务，用于单机部署或开发调试
+ * Built-in PD service, for standalone deployment or development debugging.
  */
 @Slf4j
 public class FakePdServiceProvider implements PdProvider {
@@ -99,7 +99,7 @@ public class FakePdServiceProvider implements PdProvider {
         log.info("registerStore storeId:{}, storeAddress:{}", store.getId(),
                  store.getStoreAddress());
 
-        // id 不匹配，禁止登录
+        // id does not match, login prohibited
         if (store.getId() != 0 && store.getId() != makeStoreId(store.getStoreAddress())) {
             throw new PDException(Pdpb.ErrorType.STORE_ID_NOT_EXIST_VALUE,
                                   "Store id does not matched");
@@ -132,7 +132,7 @@ public class FakePdServiceProvider implements PdProvider {
                                          Metapb.ShardRole.Follower) //
                                 .build();
             shards.add(shard);
-            storeIdx = (storeIdx + 1) >= storeList.size() ? 0 : ++storeIdx; // 顺序选择
+            storeIdx = (storeIdx + 1) >= storeList.size() ? 0 : ++storeIdx; // Sequential selection
         }
 
         int partLength = getPartitionLength();
