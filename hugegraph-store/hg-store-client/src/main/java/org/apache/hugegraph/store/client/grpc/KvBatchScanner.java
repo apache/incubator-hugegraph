@@ -61,8 +61,7 @@ public class KvBatchScanner implements Closeable {
     static int maxTaskSizePerStore = PropertyUtil.getInt("net.kv.scanner.task.size", 8);
     private final StreamObserver<ScanStreamBatchReq> sender; // command sender
     private final KvBatchScannerMerger notifier; // Data notification
-    名
-private final String graphName; // graph name
+    private final String graphName; // graph name
     private final HgScanQuery scanQuery;
     private final ScanReceiptRequest.Builder responseBuilder = ScanReceiptRequest.newBuilder();
     private final KvBatchReceiver receiver;

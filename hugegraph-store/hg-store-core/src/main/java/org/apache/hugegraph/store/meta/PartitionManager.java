@@ -222,37 +222,6 @@ public class PartitionManager extends GlobalMetaStore {
 
         // Read partition from data path
         // Record which partitions
-
-```python
-// 显示所有分区信息
-diskutil list
-
-// 创建一个新分区
-diskutil partitionDisk disk0 1 GPT HFS+ NewPartition 100%
-
-// 格式化分区
-diskutil eraseVolume HFS+ NewPartition disk0s3
-
-// 列出分区信息
-diskutil info disk0s3
-```
-
-```python
-// Record which partitions
-
-```python
-// Display all partition information
-diskutil list
-
-// Create a new partition
-diskutil partitionDisk disk0 1 GPT HFS+ NewPartition 100%
-
-// Format the partition
-diskutil eraseVolume HFS+ NewPartition disk0s3
-
-// List partition information
-diskutil info disk0s3
-```
         var partIds = new HashSet<Integer>();
         for (String path : this.options.getDataPath().split(",")) {
             File[] dirs = new File(path + "/" + HgStoreEngineOptions.DB_Path_Prefix).listFiles();
