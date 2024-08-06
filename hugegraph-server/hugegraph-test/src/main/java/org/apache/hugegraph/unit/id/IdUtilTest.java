@@ -60,7 +60,7 @@ public class IdUtilTest {
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = IdGenerator.of("123");
-        bytes = ByteBuffer.wrap(genBytes("82313233"));
+        bytes = ByteBuffer.wrap(genBytes("8002313233"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
@@ -71,12 +71,12 @@ public class IdUtilTest {
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("S1>2>3>L4");
-        bytes = ByteBuffer.wrap(genBytes("7e803182080233000804"));
+        bytes = ByteBuffer.wrap(genBytes("7e80003182080233000804"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
         id = EdgeId.parse("S1111>2222>3>L4444");
-        bytes = ByteBuffer.wrap(genBytes("7e8331313131821808ae330018115c"));
+        bytes = ByteBuffer.wrap(genBytes("7e800331313131821808ae330018115c"));
         Assert.assertEquals(bytes, IdUtil.writeBinString(id));
         Assert.assertEquals(id, IdUtil.readBinString(bytes));
 
@@ -153,5 +153,23 @@ public class IdUtilTest {
             bytes[i] = Integer.valueOf(b, 16).byteValue();
         }
         return bytes;
+    }
+
+    /**
+     * Converts a byte array to a hexadecimal string.
+     *
+     * @param bytes the byte array to convert
+     * @return the hexadecimal string representation of the byte array
+     */
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            String hex = Integer.toHexString(0xFF & b);
+            if (hex.length() == 1) {
+                hexString.append('0'); // pad with leading zero if needed
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }

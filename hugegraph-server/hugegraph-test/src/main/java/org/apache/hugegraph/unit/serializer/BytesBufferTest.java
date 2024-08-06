@@ -79,14 +79,14 @@ public class BytesBufferTest extends BaseUnitTest {
     @Test
     public void testStringId() {
         Id id = IdGenerator.of("abc");
-        byte[] bytes = new byte[]{(byte) 0x82, 97, 98, 99};
+        byte[] bytes = new byte[]{(byte) 0x80, 2, 97, 98, 99};
 
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(4)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of("abcd");
-        bytes = new byte[]{(byte) 0x83, 97, 98, 99, 100};
+        bytes = new byte[]{(byte) 0x80, 3, 97, 98, 99, 100};
 
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(5)
                                                    .writeId(id).bytes());
@@ -96,29 +96,31 @@ public class BytesBufferTest extends BaseUnitTest {
     @Test
     public void testStringIdWithBigSize() {
         Id id = IdGenerator.of(genString(127));
-        byte[] bytes = genBytes(128);
-        bytes[0] = (byte) 0xfe;
+        byte[] bytes = genBytes(129);
+        bytes[0] = (byte) 0x80;
+        bytes[1] = (byte) 0x7e;
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(0)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         id = IdGenerator.of(genString(128));
-        bytes = genBytes(129);
-        bytes[0] = (byte) 0xff;
+        bytes = genBytes(130);
+        bytes[0] = (byte) 0x80;
+        bytes[1] = (byte) 0x7f;
         Assert.assertArrayEquals(bytes, BytesBuffer.allocate(0)
                                                    .writeId(id).bytes());
         Assert.assertEquals(id, BytesBuffer.wrap(bytes).readId());
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(129)));
+            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(32769)));
         }, e -> {
-            Assert.assertContains("Id max length is 128, but got 129",
+            Assert.assertContains("Big id max length is 32768, but got 32769",
                                   e.getMessage());
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(130)));
+            BytesBuffer.allocate(0).writeId(IdGenerator.of(genString(32770)));
         }, e -> {
-            Assert.assertContains("Id max length is 128, but got 130",
+            Assert.assertContains("Big id max length is 32768, but got 32770",
                                   e.getMessage());
         });
     }
