@@ -634,7 +634,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeId(Id id) {
-        return this.writeId(id, false);
+        return this.writeId(id, true);
     }
 
     public BytesBuffer writeId(Id id, boolean big) {
@@ -684,7 +684,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public Id readId() {
-        return this.readId(false);
+        return this.readId(true);
     }
 
     public Id readId(boolean big) {
