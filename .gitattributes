@@ -12,4 +12,5 @@ hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc_aarch64.so exp
 .github/ export-ignore
 .idea/ export-ignore
 install-dist/scripts/ export-ignore
+hugegraph-commons/hugegraph-dist/ export-ignore
 docker/ export-ignore
