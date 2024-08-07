@@ -20,35 +20,29 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
-    <artifactId>hugegraph-it</artifactId>
-    <version>${revision}</version>
-    <packaging>pom</packaging>
-
     <parent>
         <groupId>org.apache.hugegraph</groupId>
-        <artifactId>hugegraph</artifactId>
+        <artifactId>hugegraph-it</artifactId>
         <version>${revision}</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <modules>
-        <module>hg-it-minicluster</module>
-        <module>hugegraph-it-dist</module>
-    </modules>
+    <artifactId>hugegraph-it-dist</artifactId>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <final.name>apache-${release.name}-incubating-it-${project.version}</final.name>
+        <dist.dir>${project.parent.basedir}</dist.dir>
+        <shell-executable>bash</shell-executable>
+        <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
+        <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
+        <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
+        <executable.jar.name>hg-it</executable.jar.name>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
-            <version>3.0.2</version>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hg-it-minicluster</artifactId>
+            <version>${revision}</version>
         </dependency>
     </dependencies>
 
