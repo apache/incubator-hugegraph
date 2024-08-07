@@ -116,6 +116,7 @@
         <sun.xml.version>3.0.2</sun.xml.version>
         <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
         <checkstyle.version>8.45</checkstyle.version>
+        <skipCommonsTests>false</skipCommonsTests>
     </properties>
 
     <modules>
@@ -279,6 +280,15 @@
                         </goals>
                     </execution-->
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.20</version>
+                <configuration>
+                    <skipTests>${skipCommonsTests}</skipTests>
+                </configuration>
             </plugin>
         </plugins>
     </build>
