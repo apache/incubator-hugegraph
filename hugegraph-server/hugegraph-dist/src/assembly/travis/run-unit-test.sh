@@ -20,5 +20,5 @@ set -ev
 BACKEND=$1
 
 if [[ "$BACKEND" == "memory" ]]; then
-    mvn test -pl hugegraph-server/hugegraph-test -am -P unit-test
+    mvn test -pl hugegraph-server/hugegraph-test -am -P unit-test -DskipCommonsTests=true
 fi
