@@ -273,6 +273,7 @@
                         <!-- You can exclude further files from processing: -->
                         <exclude>**/*.txt</exclude>
                         <exclude>**/.flattened-pom.xml</exclude>
+                        <exclude>**/apache-hugegraph-*/**/*</exclude>
                     </excludes>
                     <!-- All files are included by default:
                     <includes>
