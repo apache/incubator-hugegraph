@@ -41,7 +41,8 @@ github:
           - Analyze (java)
           - CodeQL
           - check-license
-          - build (memory, 11)
+          - build (memory, 11)  # Server CI
+          - build (11)          # Commons CI
       required_pull_request_reviews:
         dismiss_stale_reviews: true
         require_code_owner_reviews: false
