@@ -470,12 +470,13 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            final int LEN = BytesBuffer.BIG_ID_LEN_MAX;
+            final int LEN = BytesBuffer.ID_LEN_MAX;
             String largeTime = "{large-time}" + new String(new byte[LEN]);
             james.addEdge("write", book, "time", largeTime);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("The max length of edge id is 32768",
+            Assert.assertContains(String.format("The max length of edge id is %s",
+                                                BytesBuffer.ID_LEN_MAX),
                                   e.getMessage());
         });
     }

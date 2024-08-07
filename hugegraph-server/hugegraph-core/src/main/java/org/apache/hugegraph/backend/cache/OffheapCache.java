@@ -162,19 +162,19 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         @Override
         public Id deserialize(ByteBuffer input) {
-            return BytesBuffer.wrap(input).readId(true);
+            return BytesBuffer.wrap(input).readId();
         }
 
         @Override
         public void serialize(Id id, ByteBuffer output) {
-            BytesBuffer.wrap(output).writeId(id, true);
+            BytesBuffer.wrap(output).writeId(id);
         }
 
         @Override
         public int serializedSize(Id id) {
             // NOTE: return size must be == actual bytes to write
             return BytesBuffer.allocate(id.length() + 2)
-                              .writeId(id, true).position();
+                              .writeId(id).position();
         }
     }
 

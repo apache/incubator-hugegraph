@@ -61,9 +61,7 @@ public final class BytesBuffer extends OutputStream {
 
     // TODO: support user-defined configuration
     // NOTE: +1 to let code 0 represent length 1
-    public static final int ID_LEN_MASK = 0x7f;
-    public static final int ID_LEN_MAX = 0x7f + 1; // 128
-    public static final int BIG_ID_LEN_MAX = 0x7fff + 1; // 32768
+    public static final int ID_LEN_MAX = 0x3fff + 1; // 16384
 
     public static final byte STRING_ENDING_BYTE = (byte) 0x00;
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
@@ -636,10 +634,6 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeId(Id id) {
-        return this.writeId(id, true);
-    }
-
-    public BytesBuffer writeId(Id id, boolean big) {
         switch (id.type()) {
             case LONG:
                 // Number Id
@@ -663,20 +657,18 @@ public final class BytesBuffer extends OutputStream {
                 bytes = id.asBytes();
                 int len = bytes.length;
                 E.checkArgument(len > 0, "Can't write empty id");
-                if (!big) {
-                    E.checkArgument(len <= ID_LEN_MAX,
-                                    "Id max length is %s, but got %s {%s}",
-                                    ID_LEN_MAX, len, id);
-                    len -= 1; // mapping [1, 128] to [0, 127]
+                E.checkArgument(len <= ID_LEN_MAX,
+                                "Big id max length is %s, but got %s {%s}",
+                                ID_LEN_MAX, len, id);
+                len -= 1; // mapping [1, 16384] to [0, 16383]
+                if (len <= 0x3f) {
+                    // If length is <= 63, use a single byte with the highest bit set to 1
                     this.writeUInt8(len | 0x80);
                 } else {
-                    E.checkArgument(len <= BIG_ID_LEN_MAX,
-                                    "Big id max length is %s, but got %s {%s}",
-                                    BIG_ID_LEN_MAX, len, id);
-                    len -= 1;
                     int high = len >> 8;
                     int low = len & 0xff;
-                    this.writeUInt8(high | 0x80);
+                    // Write high 8 bits with highest two bits set to 11
+                    this.writeUInt8(high | 0xc0);
                     this.writeUInt8(low);
                 }
                 this.write(bytes);
@@ -686,10 +678,6 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public Id readId() {
-        return this.readId(true);
-    }
-
-    public Id readId(boolean big) {
         byte b = this.read();
         boolean number = (b & 0x80) == 0;
         if (number) {
@@ -705,13 +693,13 @@ public final class BytesBuffer extends OutputStream {
             }
         } else {
             // String Id
-            int len = b & ID_LEN_MASK;
-            if (big) {
+            int len = b & 0x3f; // Take the lowest 6 bits as part of the length
+            if ((b & 0x40) != 0) { // If the 7th bit is set, length information spans 2 bytes
                 int high = len << 8;
                 int low = this.readUInt8();
                 len = high + low;
             }
-            len += 1; // restore [0, 127] to [1, 128]
+            len += 1; // restore [0, 16383] to [1, 16384]
             byte[] id = this.read(len);
             return IdGenerator.of(id, IdType.STRING);
         }
