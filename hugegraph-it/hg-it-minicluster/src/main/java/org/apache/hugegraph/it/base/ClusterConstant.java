@@ -141,7 +141,7 @@ public class ClusterConstant {
         File dir = new File(path);
         if (dir.exists() && dir.isDirectory()) {
             for (File file : dir.listFiles()) {
-                if (file.getName().startsWith(fileName)) {
+                if (file.getName().startsWith(fileName) && !file.getName().endsWith(".gz")) {
                     return path + file.getName();
                 }
             }

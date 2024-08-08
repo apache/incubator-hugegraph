@@ -35,6 +35,7 @@
     <modules>
         <module>hg-it-minicluster</module>
         <module>hg-it-dist</module>
+        <module>hg-it-test</module>
     </modules>
 
     <properties>

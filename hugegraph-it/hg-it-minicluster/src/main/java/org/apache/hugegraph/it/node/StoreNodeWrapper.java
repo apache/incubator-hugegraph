@@ -80,8 +80,8 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
                             "-XX:+ParallelRefProcEnabled",
                             "-XX:+HeapDumpOnOutOfMemoryError",
                             "-XX:HeapDumpPath=" + configPath + "logs",
-                            "-Xlog:gc=info:file=./logs/gc.log:tags,uptime,level:filecount=3," +
-                            "filesize=100m",
+                            //"-Xlog:gc=info:file=./logs/gc.log:tags,uptime,level:filecount=3," +
+                            //"filesize=100m",
                             "-Dspring.config.location=" + configPath + "application.yml",
                             "-jar", storeNodeJarPath));
             FileUtils.write(

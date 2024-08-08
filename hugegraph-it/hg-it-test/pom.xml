@@ -20,44 +20,23 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>hg-it-minicluster</artifactId>
-
     <parent>
         <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph-it</artifactId>
-        <version>${revision}</version>
+        <version>1.5.0</version>
     </parent>
 
+    <artifactId>hg-it-test</artifactId>
 
     <properties>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <log4j2.version>2.17.0</log4j2.version>
     </properties>
-
     <dependencies>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.13.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.12.0</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.9</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hg-pd-core</artifactId>
+            <artifactId>hg-it-minicluster</artifactId>
             <version>${revision}</version>
             <scope>compile</scope>
         </dependency>
