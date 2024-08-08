@@ -138,7 +138,7 @@ public abstract class CacheTest extends BaseUnitTest {
 
     public static class OffheapCacheTest extends CacheTest {
 
-        private static final long ENTRY_SIZE = 200L;
+        private static final long ENTRY_SIZE = 40L;
         private final HugeGraph graph = Mockito.mock(HugeGraph.class);
 
         @Override
@@ -325,7 +325,7 @@ public abstract class CacheTest extends BaseUnitTest {
 
     @Test
     public void testUpdateAndGetWithSameSizeAndCapacity() {
-        int limit = 40;
+        int limit = 1000;
         Cache<Id, Object> cache = newCache(limit);
         Map<Id, Object> map = new LimitMap(limit);
 
@@ -451,7 +451,7 @@ public abstract class CacheTest extends BaseUnitTest {
 
     @Test
     public void testSizeWithReachCapacity() {
-        int limit = 20;
+        int limit = 1000;
         Cache<Id, Object> cache = newCache(limit);
         Map<Id, Object> map = new LimitMap(limit);
 

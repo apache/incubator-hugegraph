@@ -57,12 +57,13 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     public OffheapCache(HugeGraph graph, long capacity, long avgEntryBytes) {
         // NOTE: capacity unit is bytes, the super capacity expect elements size
         super(capacity);
-        long capacityInBytes = capacity * (avgEntryBytes + 64L);
+        int segments = Runtime.getRuntime().availableProcessors() * 2;
+        long capacityInBytes = Math.max(capacity, segments) * (avgEntryBytes + 64L);
         if (capacityInBytes <= 0L) {
             capacityInBytes = 1L;
         }
         this.graph = graph;
-        this.cache = this.builder().capacity(capacityInBytes).build();
+        this.cache = this.builder().capacity(capacityInBytes).segmentCount(segments).build();
         this.serializer = new BinarySerializer();
     }
 
