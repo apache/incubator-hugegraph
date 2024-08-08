@@ -138,7 +138,7 @@ public abstract class CacheTest extends BaseUnitTest {
 
     public static class OffheapCacheTest extends CacheTest {
 
-        private static final long ENTRY_SIZE = 40L;
+        private static final long ENTRY_SIZE = 200L;
         private final HugeGraph graph = Mockito.mock(HugeGraph.class);
 
         @Override
