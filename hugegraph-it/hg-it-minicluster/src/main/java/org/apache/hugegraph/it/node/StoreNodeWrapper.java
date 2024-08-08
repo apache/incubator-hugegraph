@@ -18,6 +18,8 @@
 package org.apache.hugegraph.it.node;
 
 import static org.apache.hugegraph.it.base.ClusterConstant.JAVA_CMD;
+import static org.apache.hugegraph.it.base.ClusterConstant.STORE_JAR_PREFIX;
+import static org.apache.hugegraph.it.base.ClusterConstant.getFileInDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -64,29 +66,12 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
                 LOG.error("Please make sure that the JDK is installed and the version >= 11");
                 return;
             }
-            //String libPath =
-            //        System.getProperty("user.dir")
-            //        + File.separator
-            //        + "hugegraph-pd"
-            //        + File.separator
-            //        + "dist"
-            //        + File.separator;
-            //File directory = new File(workPath);
-            //String osName = System.getProperty("os.name").toLowerCase();
-            String storeNodeJarPath = workPath + "lib" + File.separator;
-            File jarDir = new File(storeNodeJarPath);
-            File[] jarFiles = jarDir.listFiles();
-            for (File jarFile : jarFiles) {
-                if (jarFile.getName().startsWith("hg-store-node")) {
-                    storeNodeJarPath += jarFile.getName();
-                    break;
-                }
-            }
+            String storeNodeJarPath = getFileInDir(workPath, STORE_JAR_PREFIX);
             startCmd.addAll(
                     Arrays.asList(
                             "-Dname=HugeGraphStore" + this.cnt,
                             "-Dlog4j.configurationFile=" + configPath +
-                            "conf/log4j2.xml",
+                            "log4j2.xml",
                             "-Dfastjson.parser.safeMode=true",
                             "-Xms512m",
                             "-Xmx2048m",
@@ -94,11 +79,10 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
                             "-XX:+UseG1GC",
                             "-XX:+ParallelRefProcEnabled",
                             "-XX:+HeapDumpOnOutOfMemoryError",
-                            "-XX:HeapDumpPath=" + workPath + "logs",
+                            "-XX:HeapDumpPath=" + configPath + "logs",
                             "-Xlog:gc=info:file=./logs/gc.log:tags,uptime,level:filecount=3," +
                             "filesize=100m",
-                            "-Dspring.config.location=" + configPath + "conf" + File.separator +
-                            "application.yml",
+                            "-Dspring.config.location=" + configPath + "application.yml",
                             "-jar", storeNodeJarPath));
             FileUtils.write(
                     stdoutFile, String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);

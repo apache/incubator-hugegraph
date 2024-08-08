@@ -76,9 +76,9 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
             }
 
             List<String> classpath = new ArrayList<>();
-            addJarsToClasspath(new File(configPath + LIB_DIR), classpath);
-            addJarsToClasspath(new File(configPath + EXT_DIR), classpath);
-            addJarsToClasspath(new File(configPath + PLUGINS_DIR), classpath);
+            addJarsToClasspath(new File(workPath + LIB_DIR), classpath);
+            addJarsToClasspath(new File(workPath + EXT_DIR), classpath);
+            addJarsToClasspath(new File(workPath + PLUGINS_DIR), classpath);
             String storeClassPath =
                     String.join(":", classpath);
             startCmd.addAll(
@@ -87,8 +87,8 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
                             "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
                             "-cp", storeClassPath,
                             "org.apache.hugegraph.dist.HugeGraphServer",
-                            "conf/gremlin-server.yaml",
-                            "conf/rest-server.properties"));
+                            "./gremlin-server.yaml",
+                            "./rest-server.properties"));
             FileUtils.write(
                     stdoutFile, String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
             ProcessBuilder processBuilder =

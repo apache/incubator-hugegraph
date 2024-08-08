@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.it.node;
 
+import static org.apache.hugegraph.it.base.ClusterConstant.IT_LOG_PATH;
 import static org.apache.hugegraph.it.base.ClusterConstant.TARGET;
 import static org.apache.hugegraph.it.base.ClusterConstant.TEMPLATE_NODE_DIR;
 import static org.apache.hugegraph.it.base.ClusterConstant.USER_DIR;
@@ -35,7 +36,6 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.file.PathUtils;
-import org.apache.hugegraph.it.base.ClusterConstant;
 import org.apache.hugegraph.it.base.HGTestLogger;
 import org.slf4j.Logger;
 
@@ -142,8 +142,7 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
     }
 
     public String getLogPath() {
-        return System.getProperty(USER_DIR) + File.separator + TARGET + File.separator +
-               getID() + File.separator + ClusterConstant.LOG;
+        return IT_LOG_PATH + getID() + "-start.log";
     }
 
     protected boolean isJava11OrHigher() {

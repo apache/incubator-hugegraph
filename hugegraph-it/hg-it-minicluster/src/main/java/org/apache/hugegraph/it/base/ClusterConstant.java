@@ -67,7 +67,7 @@ public class ClusterConstant {
     public static final String PD_WORK_PATH =
             getFileInDir(PD_DIST_PATH, PD_PACKAGE_PREFIX)
             + File.separator
-            + "lib"
+            + LIB_DIR
             + File.separator;
 
     public static final String STORE_DIST_PATH =
@@ -125,6 +125,12 @@ public class ClusterConstant {
             + SIMPLE
             + File.separator
             + "server"
+            + File.separator;
+
+    public static final String IT_LOG_PATH =
+            getFileInDir(IT_DIST_PATH, IT_PACKAGE_PREFIX)
+            + File.separator
+            + LOG
             + File.separator;
 
     private ClusterConstant() {

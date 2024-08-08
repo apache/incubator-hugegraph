@@ -18,6 +18,8 @@
 package org.apache.hugegraph.it.node;
 
 import static org.apache.hugegraph.it.base.ClusterConstant.JAVA_CMD;
+import static org.apache.hugegraph.it.base.ClusterConstant.PD_JAR_PREFIX;
+import static org.apache.hugegraph.it.base.ClusterConstant.getFileInDir;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +29,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.hugegraph.it.base.ClusterConstant;
 import org.apache.hugegraph.pd.config.PDConfig;
 
 public class PDNodeWrapper extends AbstractNodeWrapper {
@@ -102,26 +103,16 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                 LOG.error("Please make sure that the JDK is installed and the version >= 11");
                 return;
             }
-            String pdNodeJarPath = workPath + "lib" + File.separator;
-            File jarDir = new File(pdNodeJarPath);
-            File[] jarFiles = jarDir.listFiles();
-            for (File jarFile : jarFiles) {
-                if (jarFile.getName().startsWith("hg-pd-service")) {
-                    pdNodeJarPath += jarFile.getName();
-                    break;
-                }
-            }
+            String pdNodeJarPath = getFileInDir(workPath, PD_JAR_PREFIX);
             startCmd.addAll(
                     Arrays.asList(
                             "-Dname=HugeGraphPD" + this.cnt,
                             "-Xms512m",
                             "-Xmx4g",
                             "-XX:+HeapDumpOnOutOfMemoryError",
-                            "-XX:HeapDumpPath=" + workPath + "logs",
-                            "-Dlog4j.configurationFile=" + configPath + "conf" + File.separator +
-                            "log4j2.xml",
-                            "-Dspring.config.location=" + configPath + "conf" + File.separator +
-                            "application.yml",
+                            "-XX:HeapDumpPath=" + configPath + "logs",
+                            "-Dlog4j.configurationFile=" + configPath + "log4j2.xml",
+                            "-Dspring.config.location=" + configPath + "application.yml",
                             "-jar", pdNodeJarPath));
             FileUtils.write(
                     stdoutFile, String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
@@ -134,11 +125,6 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
         } catch (IOException ex) {
             throw new AssertionError("Start node failed. " + ex);
         }
-    }
-
-    @Override
-    public String getLogPath() {
-        return this.workPath + ClusterConstant.LOG + File.separator + "pd-start.log";
     }
 
     @Override
