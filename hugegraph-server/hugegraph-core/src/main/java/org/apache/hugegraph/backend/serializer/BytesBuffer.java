@@ -51,8 +51,8 @@ public final class BytesBuffer extends OutputStream {
     public static final int CHAR_LEN = Character.BYTES;
     public static final int FLOAT_LEN = Float.BYTES;
     public static final int DOUBLE_LEN = Double.BYTES;
-    public static final int BLOB_LEN = 4;
-    public static final int BYTES_LEN = 5;
+    public static final int BYTES_LEN = 4;
+    public static final int BLOB_LEN = 5;
 
     public static final int UINT8_MAX = ((byte) -1) & 0xff;
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
@@ -67,8 +67,8 @@ public final class BytesBuffer extends OutputStream {
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
 
     // TODO: support user-defined configuration
+    public static final long BYTES_LEN_MAX = 10 * Bytes.MB;
     public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
-    public static final long BYTES_LEN_MAX = INT32_MAX;
 
     public static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
