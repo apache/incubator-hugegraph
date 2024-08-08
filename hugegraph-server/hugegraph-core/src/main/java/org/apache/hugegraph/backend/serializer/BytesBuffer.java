@@ -60,7 +60,8 @@ public final class BytesBuffer extends OutputStream {
 
     // TODO: support user-defined configuration
     // NOTE: +1 to let code 0 represent length 1
-    public static final int ID_LEN_MAX = 0x3fff + 1; // 16384
+    public static final int ID_LEN_MAX = 0x3fff + 1; // 16KB
+    public static final int EID_LEN_MAX = 0x1ffff + 1; // 128KB
 
     public static final byte STRING_ENDING_BYTE = (byte) 0x00;
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
