@@ -291,7 +291,6 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeBytes(byte[] bytes) {
-        // TODO: update to 10MB..
         E.checkArgument(bytes.length <= BYTES_LEN_MAX, "The max length of bytes is %s, but got %s",
                         BYTES_LEN_MAX, bytes.length);
         require(BYTES_LEN + bytes.length);
@@ -307,7 +306,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeBigBytes(byte[] bytes) {
-        // TODO: note the max blob size should be 128MB(due to MAX_BUFFER_CAPACITY)
+        // TODO: note the max blob size should be 128MB (due to MAX_BUFFER_CAPACITY)
         E.checkArgument(bytes.length <= BLOB_LEN_MAX, "The max length of bytes is %s, but got %s",
                         BLOB_LEN_MAX, bytes.length);
         require(BLOB_LEN + bytes.length);
@@ -621,7 +620,7 @@ public final class BytesBuffer extends OutputStream {
             case UUID:
                 return new UUID(this.readLong(), this.readLong());
             default:
-                // TODO: replace Kryo with Apache Fury
+                // TODO: replace Kryo with Fury (https://github.com/apache/fury)
                 return KryoUtil.fromKryoWithType(this.readBytes());
         }
     }
