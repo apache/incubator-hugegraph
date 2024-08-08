@@ -57,7 +57,6 @@ public final class BytesBuffer extends OutputStream {
     public static final int UINT8_MAX = ((byte) -1) & 0xff;
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
-    public static final int INT32_MAX = Integer.MAX_VALUE;
 
     // TODO: support user-defined configuration
     // NOTE: +1 to let code 0 represent length 1
