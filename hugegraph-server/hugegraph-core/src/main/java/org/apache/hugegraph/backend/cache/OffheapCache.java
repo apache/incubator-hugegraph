@@ -59,7 +59,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     }
 
     public OffheapCache(HugeGraph graph, long capacity, long avgEntryBytes, int segments) {
-        // NOTE: capacity unit is bytes, the super capacity expect elements size
+        // NOTE: capacity unit is bytes, the super capacity expects elements' size
         super(capacity);
         long capacityInBytes = Math.max(capacity, segments) * (avgEntryBytes + 64L);
         if (capacityInBytes <= 0L) {
@@ -232,7 +232,6 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                 }
 
                 BytesBuffer buffer = BytesBuffer.allocate(64 * listSize);
-
                 // May fail to serialize and throw exception here
                 this.serialize(this.value, buffer);
 
@@ -279,8 +278,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
             }
         }
 
-        private void serializeList(BytesBuffer buffer,
-                                   Collection<Object> list) {
+        private void serializeList(BytesBuffer buffer, Collection<Object> list) {
             // Write list
             buffer.writeVInt(list.size());
             for (Object i : list) {
@@ -298,8 +296,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
             return list;
         }
 
-        private void serializeElement(BytesBuffer buffer,
-                                      ValueType type, Object value) {
+        private void serializeElement(BytesBuffer buffer, ValueType type, Object value) {
             E.checkNotNull(value, "serialize value");
             BackendEntry entry;
             if (type == ValueType.VERTEX) {
@@ -335,14 +332,12 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
 
         private HugeException unsupported(ValueType type) {
-            throw new HugeException(
-                    "Unsupported deserialize type: %s", type);
+            throw new HugeException("Unsupported deserialize type: %s", type);
         }
 
         private HugeException unsupported(Object value) {
-            throw new HugeException(
-                    "Unsupported type of serialize value: '%s'(%s)",
-                    value, value.getClass());
+            throw new HugeException("Unsupported type of serialize value: '%s'(%s)",
+                                    value, value.getClass());
         }
     }
 
