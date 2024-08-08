@@ -265,7 +265,7 @@ public final class GraphManager {
         return this.authenticator().authenticate(credentials);
     }
 
-    public void unauthorize(SecurityContext context) {
+    public void unauthorized(SecurityContext context) {
         this.authenticator().unauthorize(context);
     }
 
@@ -515,7 +515,7 @@ public final class GraphManager {
 
     private void addMetrics(HugeConfig config) {
         final MetricManager metric = MetricManager.INSTANCE;
-        // Force to add server reporter
+        // Force to add a server reporter
         ServerReporter reporter = ServerReporter.instance(metric.getRegistry());
         reporter.start(60L, TimeUnit.SECONDS);
 
@@ -610,7 +610,7 @@ public final class GraphManager {
 
         /*
          * Will fill graph instance into HugeFactory.graphs after
-         * GraphFactory.open() succeed, remove it when graph drop
+         * GraphFactory.open() succeed, remove it when the graph drops
          */
         HugeFactory.remove(graph);
     }

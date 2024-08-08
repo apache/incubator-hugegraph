@@ -725,7 +725,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     private void checkPropertySize(int propertyLength, String propertyName) {
-        long propertyLimit = BytesBuffer.STRING_LEN_MAX;
+        long propertyLimit = BytesBuffer.MAX_PROPERTIES;
         HugeGraph graph = this.scheduler().graph();
         if (propertyName.equals(P.INPUT)) {
             propertyLimit = graph.option(CoreOptions.TASK_INPUT_SIZE_LIMIT);

@@ -1312,9 +1312,9 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         private byte[] writeIds(Collection<Id> ids) {
-            E.checkState(ids.size() <= BytesBuffer.UINT16_MAX,
+            E.checkState(ids.size() <= BytesBuffer.MAX_PROPERTIES,
                          "The number of properties of vertex/edge label " +
-                         "can't exceed '%s'", BytesBuffer.UINT16_MAX);
+                         "can't exceed '%s'", BytesBuffer.MAX_PROPERTIES);
             int size = 2;
             for (Id id : ids) {
                 size += (1 + id.length());

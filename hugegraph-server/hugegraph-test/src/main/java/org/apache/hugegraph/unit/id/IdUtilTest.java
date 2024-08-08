@@ -154,4 +154,22 @@ public class IdUtilTest {
         }
         return bytes;
     }
+
+    /**
+     * Converts a byte array to a hexadecimal string.
+     *
+     * @param bytes the byte array to convert
+     * @return the hexadecimal string representation of the byte array
+     */
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            String hex = Integer.toHexString(0xFF & b);
+            if (hex.length() == 1) {
+                hexString.append('0'); // pad with leading zero if needed
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
+    }
 }

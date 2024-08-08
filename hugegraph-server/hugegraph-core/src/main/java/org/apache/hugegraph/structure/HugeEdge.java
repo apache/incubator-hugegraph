@@ -147,9 +147,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
         if (this.fresh()) {
             int len = this.id.length();
-            E.checkArgument(len <= BytesBuffer.BIG_ID_LEN_MAX,
+            E.checkArgument(len <= BytesBuffer.EID_LEN_MAX,
                             "The max length of edge id is %s, but got %s {%s}",
-                            BytesBuffer.BIG_ID_LEN_MAX, len, this.id);
+                            BytesBuffer.EID_LEN_MAX, len, this.id);
         }
     }
 

@@ -55,7 +55,6 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
 
     private static final MutableIntObjectMap<HugeProperty<?>> EMPTY_MAP =
             CollectionFactory.newIntObjectMap();
-    private static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     private final HugeGraph graph;
     private MutableIntObjectMap<HugeProperty<?>> properties;
@@ -279,7 +278,7 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
         PropertyKey pkey = prop.propertyKey();
 
         E.checkArgument(this.properties.containsKey(intFromId(pkey.id())) ||
-                        this.properties.size() < MAX_PROPERTIES,
+                        this.properties.size() < BytesBuffer.MAX_PROPERTIES,
                         "Exceeded the maximum number of properties");
         return this.properties.put(intFromId(pkey.id()), prop);
     }
