@@ -27,7 +27,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>hugegraph-it-dist</artifactId>
+    <artifactId>hg-it-dist</artifactId>
 
     <properties>
         <dist.dir>${project.parent.basedir}</dist.dir>
@@ -37,6 +37,35 @@
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
         <executable.jar.name>hg-it</executable.jar.name>
     </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>2.4</version>
+                <executions>
+                    <execution>
+                        <id>assembly-hugegraph-it</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <attach>false</attach>
+                            <appendAssemblyId>false</appendAssemblyId>
+                            <outputDirectory>${dist.dir}</outputDirectory>
+                            <descriptors>
+                                <descriptor>
+                                    ${assembly.descriptor.dir}/assembly.xml
+                                </descriptor>
+                            </descriptors>
+                            <finalName>${final.name}</finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
     <dependencies>
         <dependency>

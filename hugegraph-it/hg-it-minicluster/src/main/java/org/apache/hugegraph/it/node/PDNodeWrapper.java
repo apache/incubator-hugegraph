@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hugegraph.it.base.ClusterConstant;
 import org.apache.hugegraph.pd.config.PDConfig;
 
 public class PDNodeWrapper extends AbstractNodeWrapper {
@@ -133,6 +134,11 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
         } catch (IOException ex) {
             throw new AssertionError("Start node failed. " + ex);
         }
+    }
+
+    @Override
+    public String getLogPath() {
+        return this.workPath + ClusterConstant.LOG + File.separator + "pd-start.log";
     }
 
     @Override

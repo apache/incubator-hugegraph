@@ -34,7 +34,7 @@
 
     <modules>
         <module>hg-it-minicluster</module>
-        <module>hugegraph-it-dist</module>
+        <module>hg-it-dist</module>
     </modules>
 
     <properties>
