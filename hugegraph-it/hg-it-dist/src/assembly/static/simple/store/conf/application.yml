@@ -1,0 +1,64 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+pdserver:
+  # pd 服务地址，多个 pd 地址用逗号分割
+  address: localhost:8686
+
+management:
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+grpc:
+  # grpc 的服务地址
+  host: 127.0.0.1
+  port: 8500
+  netty-server:
+    max-inbound-message-size: 1000MB
+raft:
+  # raft 缓存队列大小
+  disruptorBufferSize: 1024
+  address: 127.0.0.1:8510
+  max-log-file-size: 600000000000
+  # 快照生成时间间隔，单位秒
+  snapshotInterval: 1800
+server:
+  # rest 服务地址
+  port: 8520
+
+app:
+  # 存储路径，支持多个路径，逗号分割
+  data-path: ./storage
+  #raft-path: ./storage
+
+spring:
+  application:
+    name: store-node-grpc-server
+  profiles:
+    active: default
+    include: pd
+
+logging:
+  config: 'file:./conf/log4j2.xml'
+  level:
+    root: info
