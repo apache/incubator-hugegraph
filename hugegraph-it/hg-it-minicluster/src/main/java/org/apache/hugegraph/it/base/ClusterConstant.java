@@ -64,7 +64,7 @@ public class ClusterConstant {
             + "dist"
             + File.separator;
 
-    public static final String PD_WORK_PATH =
+    public static final String PD_LIB_PATH =
             getFileInDir(PD_DIST_PATH, PD_PACKAGE_PREFIX)
             + File.separator
             + LIB_DIR
@@ -78,7 +78,7 @@ public class ClusterConstant {
             + "dist"
             + File.separator;
 
-    public static final String STORE_WORK_PATH =
+    public static final String STORE_LIB_PATH =
             getFileInDir(STORE_DIST_PATH, STORE_PACKAGE_PREFIX)
             + File.separator
             + "lib"
@@ -90,7 +90,7 @@ public class ClusterConstant {
             + "hugegraph-server"
             + File.separator;
 
-    public static final String SERVER_WORK_PATH =
+    public static final String SERVER_LIB_PATH =
             getFileInDir(SERVER_DIST_PATH, SERVER_PACKAGE_PREFIX)
             + File.separator;
 
@@ -100,36 +100,114 @@ public class ClusterConstant {
             + "hugegraph-it"
             + File.separator;
 
-    public static final String IT_CONFIG_PATH =
+    public static final String IT_PACKAGE_PATH =
             getFileInDir(IT_DIST_PATH, IT_PACKAGE_PREFIX)
-            + File.separator
-            + CONF_DIR
             + File.separator;
 
     public static final String SIMPLE_PD_CONFIG_PATH =
-            IT_CONFIG_PATH
+            IT_PACKAGE_PATH
             + SIMPLE
             + File.separator
             + "pd"
             + File.separator;
 
     public static final String SIMPLE_STORE_CONFIG_PATH =
-            IT_CONFIG_PATH
+            IT_PACKAGE_PATH
             + SIMPLE
             + File.separator
             + "store"
             + File.separator;
 
     public static final String SIMPLE_SERVER_CONFIG_PATH =
-            IT_CONFIG_PATH
+            IT_PACKAGE_PATH
             + SIMPLE
             + File.separator
             + "server"
             + File.separator;
 
-    public static final String IT_LOG_PATH =
-            getFileInDir(IT_DIST_PATH, IT_PACKAGE_PREFIX)
+    public static final String MULTI_PD_A_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
             + File.separator
+            + "pd"
+            + File.separator
+            + "A"
+            + File.separator;
+
+    public static final String MULTI_PD_B_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "pd"
+            + File.separator
+            + "B"
+            + File.separator;
+
+    public static final String MULTI_PD_C_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "pd"
+            + File.separator
+            + "C"
+            + File.separator;
+
+    public static final String MULTI_STORE_A_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "store"
+            + File.separator
+            + "A"
+            + File.separator;
+
+    public static final String MULTI_STORE_B_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "store"
+            + File.separator
+            + "B"
+            + File.separator;
+
+    public static final String MULTI_STORE_C_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "store"
+            + File.separator
+            + "C"
+            + File.separator;
+
+    public static final String MULTI_SERVER_A_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "server"
+            + File.separator
+            + "A"
+            + File.separator;
+
+    public static final String MULTI_SERVER_B_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "server"
+            + File.separator
+            + "B"
+            + File.separator;
+
+    public static final String MULTI_SERVER_C_CONFIG_PATH =
+            IT_PACKAGE_PATH
+            + MULTI
+            + File.separator
+            + "server"
+            + File.separator
+            + "C"
+            + File.separator;
+
+    public static final String IT_LOG_PATH =
+            IT_PACKAGE_PATH
             + LOG
             + File.separator;
 
@@ -147,5 +225,19 @@ public class ClusterConstant {
             }
         }
         return "";
+    }
+
+    public static boolean isJava11OrHigher() {
+        String version = System.getProperty("java.version");
+        if (version.startsWith("1.")) {
+            version = version.substring(2, 3);
+        } else {
+            int dot = version.indexOf(".");
+            if (dot != -1) {
+                version = version.substring(0, dot);
+            }
+        }
+        int versionNumber = Integer.parseInt(version);
+        return versionNumber >= 11;
     }
 }

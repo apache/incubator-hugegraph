@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.hugegraph</groupId>
         <artifactId>hugegraph-it</artifactId>
-        <version>1.5.0</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>hg-it-test</artifactId>

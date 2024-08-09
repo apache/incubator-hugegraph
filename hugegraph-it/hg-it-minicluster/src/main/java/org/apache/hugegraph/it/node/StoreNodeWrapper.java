@@ -17,9 +17,11 @@
 
 package org.apache.hugegraph.it.node;
 
+import static org.apache.hugegraph.it.base.ClusterConstant.CONF_DIR;
 import static org.apache.hugegraph.it.base.ClusterConstant.JAVA_CMD;
 import static org.apache.hugegraph.it.base.ClusterConstant.STORE_JAR_PREFIX;
 import static org.apache.hugegraph.it.base.ClusterConstant.getFileInDir;
+import static org.apache.hugegraph.it.base.ClusterConstant.isJava11OrHigher;
 
 import java.io.File;
 import java.io.IOException;
@@ -42,21 +44,6 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
     }
 
     @Override
-    public void createNodeDir() {
-        super.createNodeDir();
-    }
-
-    @Override
-    public void createLogDir() {
-        super.createLogDir();
-    }
-
-    @Override
-    public void deleteDir() {
-        super.deleteDir();
-    }
-
-    @Override
     public void start() {
         try {
             File stdoutFile = new File(getLogPath());
@@ -70,8 +57,8 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
             startCmd.addAll(
                     Arrays.asList(
                             "-Dname=HugeGraphStore" + this.cnt,
-                            "-Dlog4j.configurationFile=" + configPath +
-                            "log4j2.xml",
+                            "-Dlog4j.configurationFile=" + configPath + CONF_DIR
+                            + File.separator + "log4j2.xml",
                             "-Dfastjson.parser.safeMode=true",
                             "-Xms512m",
                             "-Xmx2048m",
@@ -80,9 +67,8 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
                             "-XX:+ParallelRefProcEnabled",
                             "-XX:+HeapDumpOnOutOfMemoryError",
                             "-XX:HeapDumpPath=" + configPath + "logs",
-                            //"-Xlog:gc=info:file=./logs/gc.log:tags,uptime,level:filecount=3," +
-                            //"filesize=100m",
-                            "-Dspring.config.location=" + configPath + "application.yml",
+                            "-Dspring.config.location=" + configPath + CONF_DIR
+                            + File.separator + "application.yml",
                             "-jar", storeNodeJarPath));
             FileUtils.write(
                     stdoutFile, String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
@@ -95,16 +81,6 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
         } catch (IOException ex) {
             throw new AssertionError("Start node failed. " + ex);
         }
-    }
-
-    @Override
-    public void stop() {
-        super.stop();
-    }
-
-    @Override
-    public boolean isAlive() {
-        return super.isAlive();
     }
 
     @Override

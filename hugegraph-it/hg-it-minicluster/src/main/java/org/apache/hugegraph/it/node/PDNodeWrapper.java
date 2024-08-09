@@ -17,9 +17,11 @@
 
 package org.apache.hugegraph.it.node;
 
+import static org.apache.hugegraph.it.base.ClusterConstant.CONF_DIR;
 import static org.apache.hugegraph.it.base.ClusterConstant.JAVA_CMD;
 import static org.apache.hugegraph.it.base.ClusterConstant.PD_JAR_PREFIX;
 import static org.apache.hugegraph.it.base.ClusterConstant.getFileInDir;
+import static org.apache.hugegraph.it.base.ClusterConstant.isJava11OrHigher;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,65 +31,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.hugegraph.pd.config.PDConfig;
 
 public class PDNodeWrapper extends AbstractNodeWrapper {
-
-    private PDConfig pdConfig;
-
-    public PDNodeWrapper() {
-        pdConfig = new PDConfig();
-    }
 
     public PDNodeWrapper(String host, int grpcPort, int clusterIndex, int cnt) {
         super(host, grpcPort, clusterIndex, cnt);
     }
 
-    @Override
-    public void createNodeDir() {
-        super.createNodeDir();
-    }
-
-    @Override
-    public void createLogDir() {
-        super.createLogDir();
-    }
-
-    @Override
-    public void deleteDir() {
-        super.deleteDir();
-    }
-
-    public void updatePDConfig(PDConfig pdConfig) {
-        this.pdConfig = pdConfig;
-    }
-
-    public void updateServerPost(int serverPort) {
-        this.pdConfig.getRaft().setPort(serverPort);
-    }
-
-    public void updateDataPath(String dataPath) {
-        this.pdConfig.setDataPath(dataPath);
-    }
-
-    public void updatePatrolInterval(int patrolInterval) {
-        this.pdConfig.setPatrolInterval(patrolInterval);
-    }
-
-    public void updateInitialStoreList(String storeList) {
-        this.pdConfig.setInitialStoreList(storeList);
-    }
-
-    public void updateInitialStoreCount(int minStoreCount) {
-        this.pdConfig.setMinStoreCount(minStoreCount);
-    }
-
-    public void updateRaftAddress(String raftAdd) {
-        this.pdConfig.getRaft().setAddress(raftAdd);
-    }
-
-    public void updatePeersList(String peersList) {
-        this.pdConfig.getRaft().setPeersList(peersList);
+    public PDNodeWrapper(int clusterId, int cnt) {
+        this.clusterIndex = clusterId;
+        this.cnt = cnt;
     }
 
     /*
@@ -111,8 +64,10 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                             "-Xmx4g",
                             "-XX:+HeapDumpOnOutOfMemoryError",
                             "-XX:HeapDumpPath=" + configPath + "logs",
-                            "-Dlog4j.configurationFile=" + configPath + "log4j2.xml",
-                            "-Dspring.config.location=" + configPath + "application.yml",
+                            "-Dlog4j.configurationFile=" + configPath + CONF_DIR + File.separator +
+                            "log4j2.xml",
+                            "-Dspring.config.location=" + configPath + CONF_DIR + File.separator +
+                            "application.yml",
                             "-jar", pdNodeJarPath));
             FileUtils.write(
                     stdoutFile, String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
@@ -125,16 +80,6 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
         } catch (IOException ex) {
             throw new AssertionError("Start node failed. " + ex);
         }
-    }
-
-    @Override
-    public void stop() {
-        super.stop();
-    }
-
-    @Override
-    public boolean isAlive() {
-        return super.isAlive();
     }
 
     @Override

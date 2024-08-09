@@ -56,9 +56,9 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.hugegraph</groupId>
-            <artifactId>hg-pd-core</artifactId>
-            <version>${revision}</version>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

@@ -21,6 +21,7 @@ import static org.apache.hugegraph.it.base.ClusterConstant.EXT_DIR;
 import static org.apache.hugegraph.it.base.ClusterConstant.JAVA_CMD;
 import static org.apache.hugegraph.it.base.ClusterConstant.LIB_DIR;
 import static org.apache.hugegraph.it.base.ClusterConstant.PLUGINS_DIR;
+import static org.apache.hugegraph.it.base.ClusterConstant.isJava11OrHigher;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,21 +51,6 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
     }
 
     @Override
-    public void createNodeDir() {
-        super.createNodeDir();
-    }
-
-    @Override
-    public void createLogDir() {
-        super.createLogDir();
-    }
-
-    @Override
-    public void deleteDir() {
-        super.deleteDir();
-    }
-
-    @Override
     public void start() {
         try {
             File stdoutFile = new File(getLogPath());
@@ -87,8 +73,8 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
                             "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
                             "-cp", storeClassPath,
                             "org.apache.hugegraph.dist.HugeGraphServer",
-                            "./gremlin-server.yaml",
-                            "./rest-server.properties"));
+                            "./conf/gremlin-server.yaml",
+                            "./conf/rest-server.properties"));
             FileUtils.write(
                     stdoutFile, String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
             ProcessBuilder processBuilder =
@@ -100,16 +86,6 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
         } catch (IOException ex) {
             throw new AssertionError("Start node failed. " + ex);
         }
-    }
-
-    @Override
-    public void stop() {
-        super.stop();
-    }
-
-    @Override
-    public boolean isAlive() {
-        return super.isAlive();
     }
 
     @Override
