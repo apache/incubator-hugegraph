@@ -34,8 +34,8 @@ github:
   protected_branches:
     master:
       required_status_checks:
-        # strict means "Require branches to be up-to-date before merging". (TODO: turnoff when branch is stable)
-        strict: true
+        # strict means "Require PR to be up-to-date before merging". (enable when branch unstable)
+        strict: false
         # contexts are the names of checks that must pass (now only enable the basic check)
         contexts:
           - Analyze (java)
