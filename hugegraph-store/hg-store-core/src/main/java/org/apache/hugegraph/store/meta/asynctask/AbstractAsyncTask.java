@@ -36,7 +36,7 @@ public abstract class AbstractAsyncTask implements AsyncTask, Serializable {
     private final String graphName;
     private final String type;
     /**
-     * 任务额外需要的参数
+     * Parameters needed for the task additionally
      */
     private final Object extra;
     private AsyncTaskState state;

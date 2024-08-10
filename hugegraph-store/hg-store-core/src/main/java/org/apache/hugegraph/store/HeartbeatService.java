@@ -47,8 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, PartitionStateListener {
 
-    private static final int MAX_HEARTBEAT_RETRY_COUNT = 5;     // 心跳重试次数
-    private static final int REGISTER_RETRY_INTERVAL = 1;   //注册重试时间间隔，单位秒
+    private static final int MAX_HEARTBEAT_RETRY_COUNT = 5;     // Heartbeat retry count
+    private static final int REGISTER_RETRY_INTERVAL = 1;   // Registration retry interval, in seconds
     private final HgStoreEngine storeEngine;
     private final List<HgStoreStateListener> stateListeners;
     private final Object partitionThreadLock = new Object();
@@ -58,10 +58,10 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     private Store storeInfo;
     private Metapb.ClusterStats clusterStats;
     private StoreMetadata storeMetadata;
-    // 心跳失败次数
+    // Heartbeat failure count
     private int heartbeatFailCount = 0;
     private int reportErrCount = 0;
-    // 线程休眠时间
+    // Thread sleep time
     private volatile int timerNextDelay = 1000;
     private boolean terminated = false;
 
@@ -116,14 +116,14 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         this.storeMetadata = storeMetadata;
     }
 
-    // 集群是否准备就绪
+    // Whether the cluster is ready
     public boolean isClusterReady() {
         return clusterStats.getState() == Metapb.ClusterState.Cluster_OK;
     }
 
     /**
-     * 服务状态有四种
-     * 就绪，在线、离线、死亡（从集群排除）
+     * Service status has four types
+     * Ready, Online, Offline, Dead (excluded from the cluster)
      */
     protected void doStoreHeartbeat() {
         while (!terminated) {
@@ -170,7 +170,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     protected void registerStore() {
         try {
-            // 注册 store，初次注册 PD 产生 id，自动给 storeinfo 赋值
+            // Register store, initial registration of PD generates id, automatically assigns value to storeinfo
             this.storeInfo.setStoreAddress(IpUtil.getNearestAddress(options.getGrpcAddress()));
             this.storeInfo.setRaftAddress(IpUtil.getNearestAddress(options.getRaftAddress()));
 
@@ -186,7 +186,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                 }
                 log.info("Register Store id= {} successfully. store = {}, clusterStats {}",
                          storeInfo.getId(), storeInfo, this.clusterStats);
-                // 监听 partition 消息
+                // Listen to partition messages
                 pdProvider.startHeartbeatStream(error -> {
                     onStateChanged(Metapb.StoreState.Offline);
                     timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;
@@ -291,7 +291,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                                                                   .getId())
                                                .setRole(Metapb.ShardRole.Leader)
                                                .build();
-        // 获取各个 shard 信息。
+        // Get information for each shard.
         for (PartitionEngine partition : partitions) {
             Metapb.PartitionStats.Builder stats = Metapb.PartitionStats.newBuilder();
             stats.setId(partition.getGroupId());
@@ -302,10 +302,10 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
             stats.addAllShard(partition.getShardGroup().getMetaPbShard());
 
-            // shard 状态
+            // shard status
             List<Metapb.ShardStats> shardStats = new ArrayList<>();
             Map<Long, PeerId> aliveShards = partition.getAlivePeers();
-            // 统计 shard 状态
+            // Statistics shard status
             partition.getShardGroup().getShards().forEach(shard -> {
                 Metapb.ShardState state = Metapb.ShardState.SState_Normal;
                 if (!aliveShards.containsKey(shard.getStoreId())) {
@@ -322,7 +322,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
             statsList.add(stats.build());
         }
-        // 发送心跳
+        // Send heartbeat
         if (statsList.size() > 0) {
             pdProvider.partitionHeartbeat(statsList);
         }
@@ -359,7 +359,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     @Override
     public void partitionRoleChanged(Partition partition, PartitionRole newRole) {
         if (newRole == PartitionRole.LEADER) {
-            // leader 发生改变，激活心跳
+            // leader changed, activate heartbeat
             synchronized (partitionThreadLock) {
                 partitionThreadLock.notifyAll();
             }
