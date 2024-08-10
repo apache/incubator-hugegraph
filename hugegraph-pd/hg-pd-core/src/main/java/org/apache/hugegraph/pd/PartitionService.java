@@ -145,7 +145,7 @@ public class PartitionService implements RaftStateListener {
                                                                        partition, 0))
                                                                .build();
         log.debug(
-                "{} Partition get code = {}, partition id  = {}, start = {}, end = {}， leader = {}",
+                "{} Partition get code = {}, partition id  = {}, start = {}, end = {}, leader = {}",
                 graphName, (code), partition.getId(), partition.getStartKey(),
                 partition.getEndKey(), partShard.getLeader());
 
@@ -264,7 +264,7 @@ public class PartitionService implements RaftStateListener {
     }
 
     /**
-     * compute graph partition id。partition gap * store group id + offset
+     * compute graph partition id, partition gap * store group id + offset
      *
      * @param graph  graph
      * @param offset offset
@@ -764,7 +764,7 @@ public class PartitionService implements RaftStateListener {
     }
 
     /**
-     * transfer leader to other shard 。
+     * transfer leader to other shard
      * Just transfer a partition
      */
     public void transferLeader(Integer partId, Metapb.Shard shard) {
@@ -862,7 +862,7 @@ public class PartitionService implements RaftStateListener {
 
         var groupSize = partitions.size() / toCount; // merge group size
         // 0~12 to 4 partitions
-        // scheme：0,1,2 => 0, 3,4,5 -> 1, 6,7,8 ->2, 9,10,11 -> 3
+        // scheme: 0,1,2 => 0, 3,4,5 => 1, 6,7,8 => 2, 9,10,11 => 3
         // Ensure the continuity of partitions
         for (int i = 0; i < toCount; i++) {
             var startKey = partitions.get(i * groupSize).getStartKey();
@@ -1010,7 +1010,7 @@ public class PartitionService implements RaftStateListener {
      */
     protected void fireChangeShard(Metapb.Partition partition, List<Metapb.Shard> shards,
                                    ConfChangeType changeType) {
-        log.info("fireChangeShard partition: {}-{}， changeType:{} {}", partition.getGraphName(),
+        log.info("fireChangeShard partition: {}-{}, changeType: {} {}", partition.getGraphName(),
                  partition.getId(), changeType, shards);
         instructionListeners.forEach(cmd -> {
             try {
@@ -1037,7 +1037,7 @@ public class PartitionService implements RaftStateListener {
      * @param partition
      */
     protected void fireSplitPartition(Metapb.Partition partition, SplitPartition splitPartition) {
-        log.info("fireSplitPartition partition: {}-{}， split :{}",
+        log.info("fireSplitPartition partition: {}-{}, split: {}",
                  partition.getGraphName(), partition.getId(), splitPartition);
         instructionListeners.forEach(cmd -> {
             try {
@@ -1052,7 +1052,7 @@ public class PartitionService implements RaftStateListener {
      * Send a Leader Switchover message
      */
     protected void fireTransferLeader(Metapb.Partition partition, TransferLeader transferLeader) {
-        log.info("fireTransferLeader partition: {}-{}， leader :{}",
+        log.info("fireTransferLeader partition: {}-{}, leader: {}",
                  partition.getGraphName(), partition.getId(), transferLeader);
         instructionListeners.forEach(cmd -> {
             try {
@@ -1067,7 +1067,7 @@ public class PartitionService implements RaftStateListener {
      * Send a message to the partition to move data
      *
      * @param partition     Original partition
-     * @param movePartition Target partition，contains key range
+     * @param movePartition Target partition, contains key range
      */
     protected void fireMovePartition(Metapb.Partition partition, MovePartition movePartition) {
         log.info("fireMovePartition partition: {} -> {}",
@@ -1159,8 +1159,8 @@ public class PartitionService implements RaftStateListener {
     /**
      * When all migration subtasks succeed:
      * 1. Send cleanup source partition directives
-     * 2. Set up target online，renewal key range, renewal graph partition count
-     * 3. delete move task，mission ended
+     * 2. Set up target online, renewal key range, renewal graph partition count
+     * 3. delete move task, mission ended
      *
      * @param subTasks     all move sub tasks
      * @param graphName    graph name
@@ -1238,7 +1238,7 @@ public class PartitionService implements RaftStateListener {
             fireCleanPartition(source, cleanPartition);
         }
 
-        // renewal key range, Local updates，client renewal
+        // renewal key range, Local updates, client renewal
         // updatePartition(targetPartitions);
 
         // renewal target Partition status, source may be deleted, so do not process
