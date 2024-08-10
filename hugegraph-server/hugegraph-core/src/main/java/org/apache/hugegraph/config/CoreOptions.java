@@ -521,8 +521,8 @@ public class CoreOptions extends OptionHolder {
 
     /**
      * The schema name rule:
-     * 1、Not allowed end with spaces
-     * 2、Not allowed start with '~'
+     * 1. Not allowed end with spaces
+     * 2. Not allowed start with '~'
      */
     public static final ConfigOption<String> SCHEMA_ILLEGAL_NAME_REGEX =
             new ConfigOption<>(
