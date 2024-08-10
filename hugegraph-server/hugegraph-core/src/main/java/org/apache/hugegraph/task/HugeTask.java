@@ -760,7 +760,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
         assert task != null;
         /*
-         * This can be enabled for debug to expose schema-clear errors early，
+         * This can be enabled for debug to expose schema-clear errors early,
          * but also lead to some negative tests failed,
          */
         boolean debugTest = false;

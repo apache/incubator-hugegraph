@@ -779,6 +779,12 @@ public final class BytesBuffer extends OutputStream {
         return new BinaryId(bytes, id);
     }
 
+    /**
+     * Analyze olap id
+     * @param type
+     * @param isOlap
+     * @return
+     */
     public BinaryId parseOlapId(HugeType type, boolean isOlap) {
         if (type.isIndex()) {
             return this.readIndexId(type);

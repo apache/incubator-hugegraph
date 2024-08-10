@@ -5221,7 +5221,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.scan(String.valueOf(Long.MIN_VALUE),
                        String.valueOf(Long.MAX_VALUE));
         } else {
-            // QUESTION：The query method may not be well adapted
+            // QUESTION: The query method may not be well adapted
             query.scan(BackendTable.ShardSplitter.START,
                        BackendTable.ShardSplitter.END);
         }

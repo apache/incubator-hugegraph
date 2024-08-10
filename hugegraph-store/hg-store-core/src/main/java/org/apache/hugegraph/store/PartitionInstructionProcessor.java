@@ -51,7 +51,7 @@ import com.alipay.sofa.jraft.util.Utils;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
- * PD发给Store的分区指令处理器
+ * PD sends partition instruction processor to Store
  */
 public class PartitionInstructionProcessor implements PartitionInstructionListener {
 
@@ -78,7 +78,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
         PartitionEngine engine = storeEngine.getPartitionEngine(partition.getId());
 
         if (engine != null) {
-            // 清理所有的任务，有失败的情况
+            // Clean up all tasks, with failures occurring.
             engine.getTaskManager()
                   .deleteTask(partition.getId(), MetaTask.TaskType.Change_Shard.name());
         }
@@ -131,8 +131,8 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
     }
 
     /**
-     * Leader接收到PD发送的分区分裂任务
-     * 添加到raft任务队列，由raft进行任务分发。
+     * Leader receives the partition splitting task sent by PD.
+     * Added to the raft task queue, task distribution is handled by raft.
      */
     @Override
     public void onSplitPartition(long taskId, Partition partition, SplitPartition splitPartition,
@@ -144,7 +144,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
         }
 
         if (engine != null && engine.isLeader()) {
-            // 先应答，避免超时造成pd重复发送
+            // Respond first to avoid pd retransmission due to timeout.
             consumer.accept(0);
 
             String graphName = partition.getGraphName();
@@ -168,8 +168,8 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
     }
 
     /**
-     * Leader接收到PD发送的rocksdb compaction任务
-     * 添加到raft任务队列，由raft进行任务分发。
+     * Leader receives the rocksdb compaction task sent by PD
+     * Added to the raft task queue, task distribution is handled by raft.
      */
     @Override
     public void onDbCompaction(long taskId, Partition partition, DbCompaction dbCompaction,
@@ -210,7 +210,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
         }
 
         if (engine != null && engine.isLeader()) {
-            // 先应答，避免超时造成pd重复发送
+            // Respond first to avoid pd retransmission due to timeout.
             consumer.accept(0);
 
             String graphName = partition.getGraphName();
@@ -278,7 +278,7 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
                     partitionManager.getPartition(partition.getGraphName(), partition.getId());
 
             if (localPartition == null) {
-                // 如果分区数据为空，本地不会存储
+                // If the partition data is empty, it will not be stored locally.
                 localPartition = partitionManager.getPartitionFromPD(partition.getGraphName(),
                                                                      partition.getId());
                 LOG.info("onPartitionKeyRangeChanged, get from pd:{}-{} -> {}",

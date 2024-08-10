@@ -38,7 +38,7 @@ public class EdgesQueryIterator implements Iterator<Query> {
         this.sources = sources;
         this.labels = labels;
         this.directions = directions;
-        // Traverse NO_LIMIT 和 Query.NO_LIMIT 不同
+        // Traverse NO_LIMIT and Query.NO_LIMIT are different
         this.limit = limit < 0 ? Query.NO_LIMIT : limit;
     }
 

@@ -51,13 +51,13 @@ import org.apache.hugegraph.store.client.util.MetricX;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 使用pd，支持raft
- * 读取文件并多线程进行入库
+ * Use pd, support raft
+ * Read files and perform multi-threaded storage processing.
  */
 @Slf4j
 public class HgThread2DB {
 
-    /*正在进行和在排队的任务的总数*/
+    /* Total number of tasks in progress and in queue */
     private static final AtomicInteger taskTotal = new AtomicInteger(0);
     private static final AtomicInteger queryTaskTotal = new AtomicInteger(0);
     private static final AtomicLong insertDataCount = new AtomicLong();
@@ -204,7 +204,7 @@ public class HgThread2DB {
     }
 
     /**
-     * 多线程读取文件入库
+     * Multithreaded file reading and storage into database
      *
      * @throws IOException
      * @throws InterruptedException
@@ -216,14 +216,14 @@ public class HgThread2DB {
         MetricX metrics = null;
         long dataCount = 0;
         if (readfile.exists()) {
-            // 读取文件
+            // Read file
             InputStreamReader isr = new InputStreamReader(new FileInputStream(readfile),
                                                           StandardCharsets.UTF_8);
             BufferedReader reader = new BufferedReader(isr);
 
             String strLine = null;
             String tableName = HgCliUtil.TABLE_NAME;
-            // 积攒到多少个后执行线程入库,10万
+            // Accumulate to how many threads before executing thread storage, 100,000
             int maxlist = 100000;
             List<String> keys = new ArrayList<>(maxlist);
             metrics = MetricX.ofStart();
@@ -232,7 +232,7 @@ public class HgThread2DB {
                     keys.add(strLine);
                     dataCount++;
 
-                    // 读取文件中的10000条数据，启一个线程入库
+                    // Read 10000 pieces of data from the file, start a thread for data storage.
                     if (dataCount % maxlist == 0) {
                         List<String> finalKeys = keys;
                         Runnable task = () -> {
@@ -266,7 +266,7 @@ public class HgThread2DB {
 
             isr.close();
             reader.close();
-            // 把剩余的入库
+            // Move the remaining items into storage
             if (!keys.isEmpty()) {
                 List<String> finalKeys1 = keys;
                 Runnable task = () -> {
@@ -299,18 +299,18 @@ public class HgThread2DB {
             threadPool.shutdown();
 
         } else {
-            System.out.println("样本文件不存在：" + filepath);
+            System.out.println("Sample file does not exist: " + filepath);
         }
         metrics.end();
         log.info("*************************************************");
-        log.info("  主进程执行时间:" + metrics.past() / 1000 + "秒，一共执行：" + dataCount + "条");
+        log.info("  Main process execution time: " + metrics.past() / 1000 + " seconds, total executed: " + dataCount + " items");
         log.info("*************************************************");
-        System.out.println("   主进程执行时间    " + metrics.past() / 1000 + "秒");
-        System.out.println("-----主进程执行结束---------");
+        System.out.println("   Main process execution time    " + metrics.past() / 1000 + " seconds");
+        System.out.println("-----Main process execution ends---------");
     }
 
     /**
-     * 多线程读取文件入库
+     * Multithreaded file reading and storage into database
      *
      * @throws IOException
      * @throws InterruptedException
@@ -324,7 +324,7 @@ public class HgThread2DB {
 
         String strLine = null;
         String tableName = HgCliUtil.TABLE_NAME;
-        // 积攒到多少个后执行线程入库,10万
+        // Accumulate to how many to execute thread storage, 100,000
         int maxlist = 100000;
         List<String> keys = new ArrayList<>(maxlist);
         for (int x = 0; x < 10000000; x++) {
@@ -371,20 +371,20 @@ public class HgThread2DB {
 
         metrics.end();
         log.info("*************************************************");
-        log.info("  主进程执行时间:" + metrics.past() / 1000 + "秒，一共执行：" + dataCount + "条");
+        log.info("  Main process execution time: " + metrics.past() / 1000 + " seconds, total executed: " + dataCount + " items");
         log.info("*************************************************");
-        System.out.println("   主进程执行时间    " + metrics.past() / 1000 + "秒");
-        System.out.println("-----主进程执行结束---------");
+        System.out.println("   Main process execution time    " + metrics.past() / 1000 + " seconds");
+        System.out.println("-----Main process ends---------");
     }
 
     public String getLong() {
-        //如果需要更长 或者更大冗余空间, 只需要 time * 10^n   即可
-        //当前可保证1毫秒 生成 10000条不重复
+        // If needed longer or more redundant space, just use time * 10^n
+        //Currently guaranteed to generate 10000 unique items in 1 millisecond.
         return String.format("%019x", longId.getAndIncrement());
     }
 
     /**
-     * 执行查询，并将查询的结果做为下一次迭代的点放入队列
+     * Execute the query, and put the results of the query into the queue as the point for the next iteration.
      */
     private void queryAnd2Queue() {
         try {
@@ -409,7 +409,7 @@ public class HgThread2DB {
                         HgKvEntry entry = iterator.next();
                         String newPoint = HgCliUtil.toStr(entry.value());
 //                        log.info("query_key =" + newPoint);
-                        // 统计查询次数
+                        // Statistical query times
                         if (!newPoint.isEmpty() && hashSet.add(newPoint)) {
                             queryCount.getAndIncrement();
                             totalQueryCount.getAndIncrement();
@@ -432,7 +432,7 @@ public class HgThread2DB {
                                     }
                                 }
                             }
-                            // 达到1万个点后，去查询一次
+                            // After reaching 10,000 points, query once.
                             if (newQueryList.size() > 10000 && listQueue.size() < 10000) {
                                 listQueue.put(newQueryList);
                                 insertQueueCount++;
@@ -444,7 +444,7 @@ public class HgThread2DB {
                         }
                     }
                 }
-                // 一次查询如果不够1万，单独提交一次查询，确保所有的结果都能执行查询
+                // If a query is less than 10,000, submit a separate query to ensure that all results can execute the query.
                 if (!newQueryList.isEmpty() && listQueue.size() < 1000) {
                     listQueue.put(newQueryList);
                 }
@@ -459,10 +459,10 @@ public class HgThread2DB {
     }
 
     /**
-     * 多线程查询
+     * Multithreaded query
      *
-     * @param point     起始查询点，后续根据这个点查询到的value做为下一次的查询条件进行迭代
-     * @param scanCount 允许启动的线程数量
+     * @param point     Starting query point, subsequent queries will use the value obtained from this point as the next query condition for iteration.
+     * @param scanCount The number of threads allowed to start
      * @throws IOException
      * @throws InterruptedException
      */
@@ -559,10 +559,10 @@ public class HgThread2DB {
 
         metrics.end();
         log.info("*************************************************");
-        log.info("  主进程执行时间:" + metrics.past() / 1000 + "秒; 查询：" + totalQueryCount.get()
-                 + "次，qps:" + totalQueryCount.get() * 1000 / metrics.past());
+        log.info("  Main process execution time: " + metrics.past() / 1000 + " seconds; Queries: " + totalQueryCount.get()
+                 + "times, qps:" + totalQueryCount.get() * 1000 / metrics.past());
         log.info("*************************************************");
-        System.out.println("-----主进程执行结束---------");
+        System.out.println("-----Main process ends---------");
     }
 
 }
