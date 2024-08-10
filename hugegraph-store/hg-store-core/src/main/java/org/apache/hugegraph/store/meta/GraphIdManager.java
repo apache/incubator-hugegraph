@@ -29,7 +29,7 @@ import org.apache.hugegraph.store.util.HgStoreException;
 import com.google.protobuf.Int64Value;
 
 /**
- * GraphId管理器，维护一个自增循环ID，负责管理GraphName和GraphId的映射
+ * GraphId Manager, maintains a self-incrementing circular ID, responsible for managing the mapping between GraphName and GraphId.
  */
 public class GraphIdManager extends PartitionMetaStore {
 
@@ -69,7 +69,7 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 获取一个图的id
+     * Get the id of a graph
      */
     public long getGraphId(String graphName) {
         Long l = graphIdCache.get(graphName);
@@ -97,7 +97,7 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 释放一个图id
+     * Release a graph id
      */
     public long releaseGraphId(String graphName) {
         long gid = getGraphId(graphName);
@@ -112,10 +112,10 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 获取自增循环不重复id, 达到上限后从0开始自增
+     * Get auto-increment non-repetitive id, start from 0 after reaching the limit.
      *
      * @param key key
-     * @param max id上限，达到该值后，重新从0开始自增
+     * @param max max id limit, after reaching this value, it will reset to 0 and start incrementing again.
      * @return id
      */
     protected long getCId(String key, long max) {
@@ -124,7 +124,7 @@ public class GraphIdManager extends PartitionMetaStore {
             Int64Value value = get(Int64Value.parser(), cidNextKey);
             long current = value != null ? value.getValue() : 0L;
             long last = current == 0 ? max - 1 : current - 1;
-            // 查找一个未使用的cid
+            // Find an unused cid
             List<Int64Value> ids =
                     scan(Int64Value.parser(), genCIDSlotKey(key, current), genCIDSlotKey(key, max));
             for (Int64Value id : ids) {
@@ -151,16 +151,16 @@ public class GraphIdManager extends PartitionMetaStore {
             if (current == last) {
                 return -1;
             }
-            // 保存当前id，标记已被使用
+            // Save current id, mark as used
             put(genCIDSlotKey(key, current), Int64Value.of(current));
-            // 保存下一次遍历的id
+            // Save the id for the next traversal
             put(cidNextKey, Int64Value.of(current + 1));
             return current;
         }
     }
 
     /**
-     * 返回已使用Cid的key
+     * Return key with used Cid
      */
     private byte[] genCIDSlotKey(String key, long value) {
         byte[] keySlot = MetadataKeyHelper.getCidSlotKeyPrefix(key);
@@ -171,7 +171,7 @@ public class GraphIdManager extends PartitionMetaStore {
     }
 
     /**
-     * 删除一个循环id，释放id值
+     * Delete a loop ID, release the ID value
      */
     protected void delCId(String key, long cid) {
         delete(genCIDSlotKey(key, cid));
