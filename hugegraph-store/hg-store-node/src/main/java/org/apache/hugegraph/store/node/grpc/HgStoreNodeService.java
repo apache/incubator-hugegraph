@@ -126,9 +126,9 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 添加 raft 任务，转发数据给 raft
+     * Add raft task, forward data to raft
      *
-     * @return true 表示数据已被提交，false 表示未提交，用于单副本入库减少批次拆分
+     * @return true means the data has been submitted, false means not submitted, used to reduce batch splitting for single-replica storage
      */
     public <Req extends com.google.protobuf.GeneratedMessageV3>
     void addRaftTask(byte methodId, String graphName, Integer partitionId, Req req,
@@ -141,14 +141,14 @@ public class HgStoreNodeService implements RaftTaskHandler {
         }
         //
         try {
-            // 序列化，
+            // Serialization
             final byte[] buffer = new byte[req.getSerializedSize() + 1];
             final CodedOutputStream output = CodedOutputStream.newInstance(buffer);
             output.write(methodId);
             req.writeTo(output);
             output.checkNoSpaceLeft();
             output.flush();
-            // 传送给 raft
+            //Add raft task
             storeEngine.addRaftTask(graphName, partitionId,
                                     RaftOperation.create(methodId, buffer, req), closure);
 
@@ -160,7 +160,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 来自日志的任务，一般是 follower 或者 日志回滚的任务
+     * Tasks from logs, generally tasks from followers or log rollbacks
      */
     @Override
     public boolean invoke(int partId, byte[] request, RaftClosure response) throws
@@ -191,7 +191,8 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 处理 raft 传送过来的数据
+     * Process the data sent by raft
+     *
      */
     @Override
     public boolean invoke(int partId, byte methodId, Object req, RaftClosure response) throws
