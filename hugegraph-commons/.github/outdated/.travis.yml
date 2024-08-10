@@ -1,0 +1,11 @@
+language: java
+
+jdk:
+  - openjdk8
+
+install: mvn compile -Dmaven.javadoc.skip=true
+
+script: mvn test -Dtest=UnitTestSuite
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)

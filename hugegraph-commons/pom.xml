@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.apache.hugegraph</groupId>
+    <artifactId>hugegraph-commons</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+
+    <name>${project.artifactId}</name>
+    <url>https://github.com/apache/hugegraph-commons</url>
+    <description>
+        hugegraph-commons is a common module for HugeGraph-Common and HugeGraph-Rpc with their
+        peripheral components.
+        It includes rpc frame, locks, configurations, events, iterators, rest and some numeric or
+        collection util classes to simplify the development of HugeGraph and its components.
+    </description>
+
+    <parent>
+        <groupId>org.apache</groupId>
+        <artifactId>apache</artifactId>
+        <version>23</version>
+    </parent>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>Apache Hugegraph(Incubating)</id>
+            <email>dev-subscribe@hugegraph.apache.org</email>
+            <url>https://hugegraph.apache.org/</url>
+        </developer>
+    </developers>
+
+    <mailingLists>
+        <mailingList>
+            <name>Developer List</name>
+            <subscribe>dev-subscribe@hugegraph.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@hugegraph.apache.org</unsubscribe>
+            <post>dev@hugegraph.incubator.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>Commits List</name>
+            <subscribe>commits-subscribe@hugegraph.apache.org</subscribe>
+            <unsubscribe>commits-unsubscribe@hugegraph.apache.org</unsubscribe>
+            <post>commits@hugegraph.apache.org</post>
+        </mailingList>
+        <mailingList>
+            <name>Issues List</name>
+            <subscribe>issues-subscribe@hugegraph.apache.org</subscribe>
+            <unsubscribe>issues-unsubscribe@hugegraph.apache.org</unsubscribe>
+            <post>issues@hugegraph.apache.org</post>
+        </mailingList>
+    </mailingLists>
+
+    <issueManagement>
+        <system>Github Issues</system>
+        <url>https://github.com/apache/hugegraph-commons/issues</url>
+    </issueManagement>
+
+    <scm>
+        <url>https://github.com/apache/hugegraph-commons</url>
+        <connection>scm:git:https://github.com/apache/hugegraph-commons.git</connection>
+        <developerConnection>scm:git:https://github.com/apache/hugegraph-commons.git</developerConnection>
+    </scm>
+
+    <properties>
+        <!-- Note: We need also update the version in CommonVersion.java & RpcVersion.java now -->
+        <revision>1.3.0</revision>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <top.level.dir>${project.basedir}/..</top.level.dir>
+        <compiler.source>1.8</compiler.source>
+        <compiler.target>1.8</compiler.target>
+        <log4j2.version>2.18.0</log4j2.version>
+        <commons.configuration.version>1.10</commons.configuration.version>
+        <commons.configuration2.version>2.8.0</commons.configuration2.version>
+        <commons.beanutils.version>1.9.4</commons.beanutils.version>
+        <commons.collections.version>3.2.2</commons.collections.version>
+        <commons.lang3.version>3.12.0</commons.lang3.version>
+        <commons.io.version>2.7</commons.io.version>
+        <commons.codec.version>1.13</commons.codec.version>
+        <guava.version>30.0-jre</guava.version>
+        <javax.json.version>1.0</javax.json.version>
+        <jsr305.version>3.0.1</jsr305.version>
+        <javassist.version>3.28.0-GA</javassist.version>
+        <jersey.version>3.0.3</jersey.version>
+        <jersey.hk2.version>3.0.3</jersey.hk2.version>
+        <jackson.version>2.14.0-rc1</jackson.version>
+        <junit.version>4.13.1</junit.version>
+        <mockito.version>4.1.0</mockito.version>
+        <jakarta.xml.version>4.0.0-RC2</jakarta.xml.version>
+        <sun.xml.version>3.0.2</sun.xml.version>
+        <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
+        <checkstyle.version>8.45</checkstyle.version>
+    </properties>
+
+    <modules>
+        <module>hugegraph-common</module>
+        <module>hugegraph-rpc</module>
+    </modules>
+
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${compiler.source}</source>
+                    <target>${compiler.target}</target>
+                    <compilerArguments>
+                        <Xmaxerrs>500</Xmaxerrs>
+                    </compilerArguments>
+                    <compilerArgs>
+                        <arg>-Xlint:unchecked</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>${checkstyle.plugin.version}</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>${checkstyle.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <configLocation>style/checkstyle.xml</configLocation>
+                    <encoding>UTF-8</encoding>
+                    <consoleOutput>true</consoleOutput>
+                    <failsOnError>true</failsOnError>
+                    <linkXRef>false</linkXRef>
+                    <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <index>true</index>
+                        <manifest>
+                            <addDefaultImplementationEntries>false</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <!-- Must be on one line, otherwise the automatic
+                                 upgrade script cannot replace the version number -->
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.7</version>
+                <executions>
+                    <execution>
+                        <id>pre-unit-test</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>post-unit-test</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Apache RAT for license check -->
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>**/*.versionsBackup</exclude>
+                        <exclude>**/*.log</exclude>
+                        <exclude>**/*.txt</exclude>
+                        <exclude>**/*.json</exclude>
+                        <exclude>**/*.conf</exclude>
+                        <exclude>dist/**/*</exclude>
+                        <exclude>docs/**/*</exclude>
+                        <exclude>scripts/dev/reviewers</exclude>
+                        <exclude>**/*.md</exclude>
+                        <exclude>**/.flattened-pom.xml</exclude>
+                        <exclude>**/logs/*.log</exclude>
+                        <exclude>**/target/*</exclude>
+                        <exclude>style/*</exclude>
+                        <exclude>ChangeLog</exclude>
+                        <exclude>CONFIG.ini</exclude>
+                        <exclude>GROUPS</exclude>
+                        <exclude>OWNERS</exclude>
+                        <exclude>DISCLAIMER</exclude>
+                        <!-- GitHub -->
+                        <exclude>.github/**/*</exclude>
+                        <!-- Intellij -->
+                        <exclude>**/*.iml</exclude>
+                        <exclude>**/*.iws</exclude>
+                        <exclude>**/*.ipr</exclude>
+                        <exclude>**/META-INF/MANIFEST.MF</exclude>
+                        <!-- Maven -->
+                        <exclude>.repository/**</exclude>
+                    </excludes>
+                    <consoleOutput>true</consoleOutput>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>1.3.0</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>flatten</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution>
+                    <!-- auto delete .flattened-pom.xml after "install" step, it will influence deploy step -->
+                    <!--execution>
+                        <id>remove-flattened-pom</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                    </execution-->
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>apache-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar-no-fork</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <!-- Prevent `gpg` from using pinentry programs -->
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
