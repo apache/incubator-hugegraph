@@ -36,14 +36,33 @@ LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-store-server.log
 GITHUB="https://github.com"
 PID_FILE="$BIN/pid"
-arch=$(arch)
 
-echo "Current arch: ", "${arch}"
-#if [[ $arch =~ "aarch64" ]];then
-#	  export LD_PRELOAD="$TOP/bin/libjemalloc_aarch64.so"
-#else
-export LD_PRELOAD="$TOP/bin/libjemalloc.so"
-#fi
+. "$BIN"/util.sh
+
+arch=$(uname -m)
+echo "Current arch: $arch"
+
+if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
+    lib_file="$TOP/bin/libjemalloc_aarch64.so"
+    download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc_aarch64.so"
+    expected_md5="2a631d2f81837f9d5864586761c5e380"
+    if download_and_verify $download_url $lib_file $expected_md5; then
+        export LD_PRELOAD=$lib_file
+    else
+        echo "Failed to verify or download $lib_file, skip it"
+    fi
+elif [[ $arch == "x86_64" ]]; then
+    lib_file="$TOP/bin/libjemalloc.so"
+    download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc.so"
+    expected_md5="fd61765eec3bfea961b646c269f298df"
+    if download_and_verify $download_url $lib_file $expected_md5; then
+        export LD_PRELOAD=$lib_file
+    else
+        echo "Failed to verify or download $lib_file, skip it"
+    fi
+else
+    echo "Unsupported architecture: $arch"
+fi
 
 ##pd/store max user processes, ulimit -u
 # Reduce the maximum number of processes that can be opened by a normal dev/user
@@ -91,11 +110,6 @@ while getopts "g:j:y:" arg; do
         ?) echo "USAGE: $0 [-g g1] [-j xxx] [-y true|false]" && exit 1 ;;
     esac
 done
-
-
-
-
-. "$BIN"/util.sh
 
 ensure_path_writable "$LOGS"
 ensure_path_writable "$PLUGINS"
@@ -150,7 +164,7 @@ case "$GC_OPTION" in
         exit 1
 esac
 
-JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dfastjson.parser.safeMode=true"
+JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dfastjson.parser.safeMode=true -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
 
 if [ "${OPEN_TELEMETRY}" == "true" ]; then
     OT_JAR="opentelemetry-javaagent.jar"

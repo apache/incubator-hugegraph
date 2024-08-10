@@ -1,4 +1,4 @@
-name: "pd-store-ci"
+name: "Graph PD & Store & Hstore CI"
 
 on:
   push:
