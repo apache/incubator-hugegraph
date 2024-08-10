@@ -89,7 +89,7 @@ public abstract class TaskAndResultScheduler implements TaskScheduler {
             return this.tx().addVertex(vertex);
         });
 
-        // 保存 result 结果
+        // Save result outcome
         if (rawResult != null) {
             HugeTaskResult result =
                 new HugeTaskResult(HugeTaskResult.genId(task.id()));
