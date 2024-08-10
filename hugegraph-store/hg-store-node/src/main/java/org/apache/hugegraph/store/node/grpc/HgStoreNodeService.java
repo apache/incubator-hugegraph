@@ -100,6 +100,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                                                         .isUseRocksDBSegmentLogStorage());
                 setMaxSegmentFileSize(appConfig.getRaft().getMaxSegmentFileSize());
                 setMaxReplicatorInflightMsgs(appConfig.getRaft().getMaxReplicatorInflightMsgs());
+                setMaxEntriesSize(appConfig.getRaft().getMaxEntriesSize());
             }});
             setFakePdOptions(new FakePdOptions() {{
                 setStoreList(appConfig.getFakePdConfig().getStoreList());
@@ -125,9 +126,9 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 添加raft 任务，转发数据给raft
+     * 添加 raft 任务，转发数据给 raft
      *
-     * @return true 表示数据已被提交，false表示未提交，用于单副本入库减少批次拆分
+     * @return true 表示数据已被提交，false 表示未提交，用于单副本入库减少批次拆分
      */
     public <Req extends com.google.protobuf.GeneratedMessageV3>
     void addRaftTask(byte methodId, String graphName, Integer partitionId, Req req,
@@ -147,7 +148,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
             req.writeTo(output);
             output.checkNoSpaceLeft();
             output.flush();
-            // 传送给raft
+            // 传送给 raft
             storeEngine.addRaftTask(graphName, partitionId,
                                     RaftOperation.create(methodId, buffer, req), closure);
 
@@ -159,7 +160,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 来自日志的任务，一般是follower 或者 日志回滚的任务
+     * 来自日志的任务，一般是 follower 或者 日志回滚的任务
      */
     @Override
     public boolean invoke(int partId, byte[] request, RaftClosure response) throws
@@ -190,7 +191,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * 处理raft传送过来的数据
+     * 处理 raft 传送过来的数据
      */
     @Override
     public boolean invoke(int partId, byte methodId, Object req, RaftClosure response) throws
