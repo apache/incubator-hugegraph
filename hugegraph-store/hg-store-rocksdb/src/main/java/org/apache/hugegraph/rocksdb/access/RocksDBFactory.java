@@ -213,7 +213,7 @@ public final class RocksDBFactory {
     }
 
     /**
-     * Destroy the map, and delete the data file.
+     * Destroy the graph, and delete the data file.
      *
      * @param dbName
      */
