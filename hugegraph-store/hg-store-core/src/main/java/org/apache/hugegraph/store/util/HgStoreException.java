@@ -21,7 +21,7 @@ public class HgStoreException extends RuntimeException {
 
     public final static int EC_NOEXCEPT = 0;
     public final static int EC_FAIL = 1000;
-    //存储的数据格式不支持
+    // The data format stored is not supported.
     public final static int EC_DATAFMT_NOT_SUPPORTED = 1001;
     public final static int EC_RKDB_CREATE_FAIL = 1201;
     public final static int EC_RKDB_DOPUT_FAIL = 1202;
