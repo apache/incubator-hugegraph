@@ -148,7 +148,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
             req.writeTo(output);
             output.checkNoSpaceLeft();
             output.flush();
-            //Add raft task
+            // Add raft task
             storeEngine.addRaftTask(graphName, partitionId,
                                     RaftOperation.create(methodId, buffer, req), closure);
 
@@ -192,7 +192,6 @@ public class HgStoreNodeService implements RaftTaskHandler {
 
     /**
      * Process the data sent by raft
-     *
      */
     @Override
     public boolean invoke(int partId, byte methodId, Object req, RaftClosure response) throws
