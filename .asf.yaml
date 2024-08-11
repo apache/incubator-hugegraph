@@ -28,7 +28,8 @@ github:
   del_branch_on_merge: true
   #labels:
   enabled_merge_buttons:
-    merge:  false
+     # TODO: disable it after common merged
+    merge:  true
     rebase: true
     squash: true
   protected_branches:
