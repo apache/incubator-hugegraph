@@ -128,7 +128,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     /**
      * Add raft task, forward data to raft
      *
-     * @return true means the data has been submitted, false means not submitted, used to reduce batch splitting for single-replica storage
+     * @return true indicates the data has been submitted, false indicates it has not been submitted, used for single-copy storage to reduce batch splitting.
      */
     public <Req extends com.google.protobuf.GeneratedMessageV3>
     void addRaftTask(byte methodId, String graphName, Integer partitionId, Req req,
@@ -148,7 +148,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
             req.writeTo(output);
             output.checkNoSpaceLeft();
             output.flush();
-            // Add raft task
+            // Send to raft
             storeEngine.addRaftTask(graphName, partitionId,
                                     RaftOperation.create(methodId, buffer, req), closure);
 
@@ -160,7 +160,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * Tasks from logs, generally tasks from followers or log rollbacks
+     * Tasks from logs are generally follower tasks or log rollback tasks.
      */
     @Override
     public boolean invoke(int partId, byte[] request, RaftClosure response) throws
@@ -191,7 +191,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     }
 
     /**
-     * Process the data sent by raft
+     * Handle data transmitted from raft
      */
     @Override
     public boolean invoke(int partId, byte methodId, Object req, RaftClosure response) throws
