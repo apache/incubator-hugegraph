@@ -198,7 +198,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
     public static void registerGraphSerializers(SimpleModule module) {
         /*
          * Use customized serializer need to be compatible with V1 and V2
-         * Graphson, and seems need to implement edge deserializer，it is
+         * Graphson, and seems need to implement edge deserializer, it is
          * a little complicated.
          */
         module.addSerializer(HugeVertex.class, new HugeVertexSerializer());
