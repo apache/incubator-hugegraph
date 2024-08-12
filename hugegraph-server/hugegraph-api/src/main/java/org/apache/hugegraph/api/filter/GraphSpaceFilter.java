@@ -20,6 +20,8 @@ package org.apache.hugegraph.api.filter;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.hugegraph.util.Log;
@@ -44,12 +46,16 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
     private static final Logger LOG = Log.logger(GraphSpaceFilter.class);
 
     private static final String GRAPHSPACES_PATH = "graphspaces/";
+    private static final String GRAPHSPACES_HEADER = "graphspace";
+    private static final String GRAPHSPACES_ENABLE_FILTER_VALUE = "true";
 
     /**
      * Filters incoming HTTP requests to modify the request URI if it matches certain criteria.
      * <p>
-     * This filter checks if the request URI starts with the {@link #GRAPHSPACES_PATH} path segment. If it does,
-     * the filter removes the {@link #GRAPHSPACES_PATH} segment along with the following segment and then reconstructs
+     * This filter checks if the request URI starts with the {@link #GRAPHSPACES_PATH} path
+     * segment. If it does,
+     * the filter removes the {@link #GRAPHSPACES_PATH} segment along with the following segment
+     * and then reconstructs
      * the remaining URI. The modified URI is set back into the request context. This is useful for
      * supporting legacy paths or adapting to new API structures.
      * </p>
@@ -66,12 +72,24 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
      * context.getUriInfo().getRequestUri();  // returns http://localhost:8080/graphs
      * </pre>
      *
-     * @param context The {@link ContainerRequestContext} which provides access to the request details.
+     * @param context The {@link ContainerRequestContext} which provides access to the request
+     *                details.
      * @throws IOException If an input or output exception occurs.
      */
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        // Step 1: Get relativePath
+        // Step 1: Check if the filter should be applied based on the presence and value of a
+        // specific header
+        if (context.getHeaders()
+                   .computeIfAbsent(GRAPHSPACES_HEADER, (k) -> Collections.emptyList())
+                   .stream()
+                   .filter(Objects::nonNull)
+                   .noneMatch(v -> Objects.equals(GRAPHSPACES_ENABLE_FILTER_VALUE,
+                                                  v.toLowerCase()))) {
+            return;
+        }
+
+        // Step 2: Get relativePath
         URI baseUri = context.getUriInfo().getBaseUri();
         URI requestUri = context.getUriInfo().getRequestUri();
         URI relativePath = baseUri.relativize(requestUri);
@@ -82,7 +100,7 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
             return;
         }
 
-        // Step 2: Extract the next substring after {@link #GRAPHSPACES_PATH}
+        // Step 3: Extract the next substring after {@link #GRAPHSPACES_PATH}
         String[] parts = relativePathStr.split("/");
         if (parts.length <= 1) {
             return;
@@ -97,7 +115,7 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
                                .skip(2) // Skip the first two segments
                                .collect(Collectors.joining("/"));
 
-        // Step 3: Modify RequestUri and log the ignored part
+        // Step 4: Modify RequestUri and log the ignored part
         URI newUri = UriBuilder.fromUri(baseUri)
                                .path(newPath)
                                .build();
