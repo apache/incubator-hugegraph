@@ -80,6 +80,11 @@ REST_SERVER_URL=$(read_property "$CONF/rest-server.properties" "restserver.url")
 check_port "$GREMLIN_SERVER_URL"
 check_port "$REST_SERVER_URL"
 
+# Note: Only download hugegraph-server.keystore when we config https (check the conf file)
+if [[ $REST_SERVER_URL == https* && ! -e "${CONF}/hugegraph-server.keystore" ]]; then
+    download "${CONF}" "https://github.com/apache/hugegraph-doc/raw/binary-1.5/dist/server/hugegraph-server.keystore"
+fi
+
 if [ ! -d "$LOGS" ]; then
     mkdir -p "$LOGS"
 fi

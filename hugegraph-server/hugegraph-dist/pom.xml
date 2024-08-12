@@ -230,45 +230,47 @@
                                 </target>
                             </configuration>
                         </execution>
-                        <execution>
-                            <id>download-keystore</id>
-                            <phase>prepare-package</phase>
-                            <goals>
-                                <goal>run</goal>
-                            </goals>
-                            <configuration>
-                                <target>
-                                    <exec executable="${shell-executable}"
-                                          dir="${project.basedir}"
-                                          failonerror="false">
-                                        <arg line="./download_keystore.sh"/>
-                                    </exec>
-                                </target>
-                            </configuration>
-                        </execution>
-                        <execution>
-                            <id>cp-keystore</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>run</goal>
-                            </goals>
-                            <configuration>
-                                <target>
-                                    <exec executable="cp"
-                                          dir="${project.basedir}"
-                                          failonerror="false">
-                                        <arg value="hugegraph-server.keystore"/>
-                                        <arg value="../${final.name}/conf/hugegraph-server.keystore"/>
-                                    </exec>
-                                    <exec executable="rm"
-                                          dir="${project.basedir}"
-                                          failonerror="false">
-                                        <arg value="-rf"/>
-                                        <arg value="hugegraph-server.keystore"/>
-                                    </exec>
-                                </target>
-                            </configuration>
-                        </execution>
+                        <!-- NOTE: Considering that the hugegraph-server.keystore does not declare a license,
+                        it is not proactively downloaded during the build, only downloaded at runtime. -->
+<!--                        <execution>-->
+<!--                            <id>download-keystore</id>-->
+<!--                            <phase>prepare-package</phase>-->
+<!--                            <goals>-->
+<!--                                <goal>run</goal>-->
+<!--                            </goals>-->
+<!--                            <configuration>-->
+<!--                                <target>-->
+<!--                                    <exec executable="${shell-executable}"-->
+<!--                                          dir="${project.basedir}"-->
+<!--                                          failonerror="false">-->
+<!--                                        <arg line="./download_keystore.sh"/>-->
+<!--                                    </exec>-->
+<!--                                </target>-->
+<!--                            </configuration>-->
+<!--                        </execution>-->
+<!--                        <execution>-->
+<!--                            <id>cp-keystore</id>-->
+<!--                            <phase>package</phase>-->
+<!--                            <goals>-->
+<!--                                <goal>run</goal>-->
+<!--                            </goals>-->
+<!--                            <configuration>-->
+<!--                                <target>-->
+<!--                                    <exec executable="cp"-->
+<!--                                          dir="${project.basedir}"-->
+<!--                                          failonerror="false">-->
+<!--                                        <arg value="hugegraph-server.keystore"/>-->
+<!--                                        <arg value="../${final.name}/conf/ "/>-->
+<!--                                    </exec>-->
+<!--                                    <exec executable="rm"-->
+<!--                                          dir="${project.basedir}"-->
+<!--                                          failonerror="false">-->
+<!--                                        <arg value="-rf"/>-->
+<!--                                        <arg value="hugegraph-server.keystore"/>-->
+<!--                                    </exec>-->
+<!--                                </target>-->
+<!--                            </configuration>-->
+<!--                        </execution>-->
                     </executions>
                 </plugin>
             </plugins>

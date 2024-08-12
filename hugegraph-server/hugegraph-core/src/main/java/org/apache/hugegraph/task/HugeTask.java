@@ -725,7 +725,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     private void checkPropertySize(int propertyLength, String propertyName) {
-        long propertyLimit = BytesBuffer.STRING_LEN_MAX;
+        long propertyLimit = BytesBuffer.MAX_PROPERTIES;
         HugeGraph graph = this.scheduler().graph();
         if (propertyName.equals(P.INPUT)) {
             propertyLimit = graph.option(CoreOptions.TASK_INPUT_SIZE_LIMIT);
@@ -760,7 +760,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
         assert task != null;
         /*
-         * This can be enabled for debug to expose schema-clear errors early，
+         * This can be enabled for debug to expose schema-clear errors early,
          * but also lead to some negative tests failed,
          */
         boolean debugTest = false;

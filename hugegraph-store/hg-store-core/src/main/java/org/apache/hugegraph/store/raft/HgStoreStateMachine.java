@@ -41,7 +41,7 @@ import com.alipay.sofa.jraft.storage.snapshot.SnapshotWriter;
 import com.alipay.sofa.jraft.util.Utils;
 
 /**
- * Raft 状态机
+ * Raft State Machine
  */
 
 public class HgStoreStateMachine extends StateMachineAdapter {
@@ -81,7 +81,7 @@ public class HgStoreStateMachine extends StateMachineAdapter {
             try {
                 for (RaftTaskHandler taskHandler : taskHandlers) {
                     if (done != null) {
-                        // Leader分支，本地调用
+                        // Leader branch, local call
                         if (taskHandler.invoke(groupId, done.op.getOp(), done.op.getReq(),
                                                done.closure)) {
                             done.run(Status.OK());
@@ -107,11 +107,11 @@ public class HgStoreStateMachine extends StateMachineAdapter {
             stateListeners.forEach(listener -> {
                 listener.onDataCommitted(committedIndex);
             });
-            // 清理数据
+            // Clean up data
             if (done != null) {
                 done.clear();
             }
-            // 遍历下一条
+            // Traverse the next item
             inter.next();
         }
     }
