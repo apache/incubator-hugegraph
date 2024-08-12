@@ -114,6 +114,7 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
         // Step 3: Modify RequestUri and log the ignored part
         URI newUri = UriBuilder.fromUri(baseUri)
                                .path(newPath)
+                               .replaceQuery(requestUri.getRawQuery())
                                .build();
         context.setRequestUri(newUri);
 

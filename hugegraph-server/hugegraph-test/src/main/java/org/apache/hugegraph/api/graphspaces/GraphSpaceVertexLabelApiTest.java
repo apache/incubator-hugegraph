@@ -20,10 +20,10 @@ package org.apache.hugegraph.api.graphspaces;
 import java.util.Objects;
 
 import org.apache.hugegraph.api.BaseApiTest;
-import org.apache.hugegraph.api.EdgeApiTest;
+import org.apache.hugegraph.api.VertexLabelApiTest;
 import org.junit.BeforeClass;
 
-public class GraphSpaceEdgeApiTest extends EdgeApiTest {
+public class GraphSpaceVertexLabelApiTest extends VertexLabelApiTest {
 
     @BeforeClass
     public static void init() {

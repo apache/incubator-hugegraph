@@ -17,20 +17,18 @@
 
 package org.apache.hugegraph.api.graphspaces;
 
-import java.util.Objects;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-import org.apache.hugegraph.api.BaseApiTest;
-import org.apache.hugegraph.api.EdgeApiTest;
-import org.junit.BeforeClass;
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        GraphSpacePropertyKeyApiTest.class,
+        GraphSpaceVertexLabelApiTest.class,
+        GraphSpaceEdgeLabelApiTest.class,
+        GraphSpaceIndexLabelApiTest.class,
+        GraphSpaceEdgeApiTest.class,
+        GraphSpaceVertexApiTest.class
+})
+public class GraphSpaceApiTestSuite {
 
-public class GraphSpaceEdgeApiTest extends EdgeApiTest {
-
-    @BeforeClass
-    public static void init() {
-        if (Objects.nonNull(client)) {
-            client.close();
-        }
-        client = new RestClient(String.join("/", BASE_URL, "graphspaces", "DEFAULT"));
-        BaseApiTest.clearData();
-    }
 }
