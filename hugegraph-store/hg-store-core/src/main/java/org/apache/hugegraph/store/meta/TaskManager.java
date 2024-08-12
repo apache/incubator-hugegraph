@@ -86,9 +86,9 @@ public class TaskManager extends PartitionMetaStore {
     }
 
     /*
-     * 判断相同分区下相同任务是否重复
-     * partId 分区id
-     * TaskTypeName 任务类型名称
+     * Determine if the same task under the same partition is repeated
+     * partId partition id
+     * TaskTypeName Task Type Name
      * graphName
      */
     public boolean partitionTaskRepeat(int partId, String graphName, String taskTypeName) {

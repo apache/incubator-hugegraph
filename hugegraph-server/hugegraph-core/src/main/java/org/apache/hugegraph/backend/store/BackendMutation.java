@@ -71,7 +71,7 @@ public class BackendMutation {
     }
 
     /**
-     * The optimized scenes include but are not limited to：
+     * The optimized scenes include but are not limited to:
      * 1.If you want to delete an entry, the other mutations previously
      * can be ignored.
      * 2.As similar to the No.1 item, If you want to insert an entry,

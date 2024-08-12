@@ -47,7 +47,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量流式查询客户端实现类
+ * Batch streaming query client implementation class
  * <p>
  * created on 2022/07/23
  *
@@ -59,9 +59,9 @@ public class KvBatchScanner implements Closeable {
 
     static final Supplier<HgKvIterator<HgKvEntry>> NO_DATA = () -> null;
     static int maxTaskSizePerStore = PropertyUtil.getInt("net.kv.scanner.task.size", 8);
-    private final StreamObserver<ScanStreamBatchReq> sender; // 命令发送器
-    private final KvBatchScannerMerger notifier; // 数据通知
-    private final String graphName; // 图名
+    private final StreamObserver<ScanStreamBatchReq> sender; // command sender
+    private final KvBatchScannerMerger notifier; // Data notification
+    private final String graphName; // graph name
     private final HgScanQuery scanQuery;
     private final ScanReceiptRequest.Builder responseBuilder = ScanReceiptRequest.newBuilder();
     private final KvBatchReceiver receiver;
@@ -82,12 +82,12 @@ public class KvBatchScanner implements Closeable {
         receiver =
                 new KvBatchReceiver(this, scanQuery.getOrderType() == ScanOrderType.ORDER_STRICT);
         sender = stub.scanBatch2(receiver);
-        sendQuery(this.scanQuery); // 发送查询请求
+        sendQuery(this.scanQuery); // Send query request
     }
 
     /**
-     * 构建流式查询迭代器
-     * scanQuery进行拆分，启动多个流式请求，提升store的并发性
+     * Build streaming query iterators
+     * scanQuery is split to launch multiple streaming requests, enhancing the concurrency of the store.
      *
      * @param scanQuery scanQuery
      * @param handler   task handler
@@ -115,7 +115,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 发送查询请求
+     * Send query request
      *
      * @param query scan query
      */
@@ -133,7 +133,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 发送应答
+     * Send response
      */
     public void sendResponse() {
         try {
@@ -164,18 +164,18 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 数据接收结束
+     * Data reception ended
      */
     public void dataComplete() {
         close();
     }
 
-    // 流被关闭
+    // Flow is closed
     @Override
     public void close() {
         try {
             if (notifier.unregisterScanner(this) < 0) {
-                notifier.dataArrived(this, NO_DATA); // 任务结束，唤醒队列
+                notifier.dataArrived(this, NO_DATA); // Task finished, wake up the queue
             }
         } catch (InterruptedException e) {
             log.error("exception ", e);
@@ -192,7 +192,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 任务拆分器
+     * Task Splitter
      */
     static class TaskSplitter {
 
@@ -200,9 +200,9 @@ public class KvBatchScanner implements Closeable {
         final BiFunction<HgScanQuery, KvCloseableIterator, Boolean> taskHandler;
         private KvBatchScannerMerger notifier;
         private Iterator<HgOwnerKey> prefixItr;
-        private int maxTaskSize = 0; // 最大并行任务数
+        private int maxTaskSize = 0; // maximum parallel task count
         private int maxBatchSize = PropertyUtil.getInt("net.kv.scanner.batch.size", 1000);
-        // 每批次最大点数量
+        // Maximum points per batch
         private volatile boolean finished = false;
         private volatile boolean splitting = false;
         private volatile int nextKeySerialNo = 1;
@@ -229,19 +229,19 @@ public class KvBatchScanner implements Closeable {
         }
 
         /**
-         * 评估最大任务数
+         * Evaluate maximum number of tasks
          */
         private void evaluateMaxTaskSize() {
-            if (maxTaskSize == 0) { // 根据第一批次任务，得到store数量，然后计算最大任务数
+            if (maxTaskSize == 0) { // According to the first batch of tasks, get the number of stores, and then calculate the maximum number of tasks
                 if (scanQuery.getOrderType() == ScanOrderType.ORDER_STRICT) {
-                    maxTaskSize = 1; // 点排序，每台机器一个流, 所有store流结束后才能启动其他流
+                    maxTaskSize = 1; // Point sorting, one stream per machine, all store streams must finish before starting other streams.
                 } else {
                     maxTaskSize = this.notifier.getScannerCount() * maxTaskSizePerStore;
                 }
-                maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // 每台机器最多1000条
+                maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // Each machine maximum 1000 items
 
                 /*
-                 * Limit少于10000时启动一个流，节省网络带宽
+                 * Limit fewer than 10000 to start a stream, save network bandwidth.
                  */
                 if (scanQuery.getLimit() < maxBatchSize * 30L) {
                     maxTaskSize = 1;
@@ -250,7 +250,7 @@ public class KvBatchScanner implements Closeable {
         }
 
         /**
-         * 拆分任务，任务拆分为多个grpc请求
+         * Split task, task split into multiple gRPC requests
          */
         public void splitTask() {
             if (this.finished || this.splitting) {
@@ -271,10 +271,10 @@ public class KvBatchScanner implements Closeable {
                         taskHandler.apply(
                                 HgScanQuery.prefixOf(scanQuery.getTable(), keys,
                                                      scanQuery.getOrderType()), this.notifier);
-                        // 评估最大任务数
+                        // Evaluate maximum number of tasks
                         evaluateMaxTaskSize();
                         if (this.notifier.getScannerCount() < this.maxTaskSize) {
-                            splitTask(); // 未达到最大任务数，继续拆分
+                            splitTask(); // Not reached the maximum number of tasks, continue to split
                         }
                     }
                     this.finished = !prefixItr.hasNext();
@@ -292,7 +292,7 @@ public class KvBatchScanner implements Closeable {
     }
 
     /**
-     * 查询结果接收器
+     * Query Result Receiver
      */
     static class KvBatchReceiver implements StreamObserver<KvStream> {
 
