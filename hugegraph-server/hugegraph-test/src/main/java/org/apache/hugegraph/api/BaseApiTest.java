@@ -84,6 +84,7 @@ public class BaseApiTest {
     @AfterClass
     public static void clear() throws Exception {
         client.close();
+        client = null;
     }
 
     @After
