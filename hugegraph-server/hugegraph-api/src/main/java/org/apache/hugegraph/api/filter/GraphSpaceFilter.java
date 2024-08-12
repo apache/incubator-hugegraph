@@ -20,10 +20,10 @@ package org.apache.hugegraph.api.filter;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
@@ -31,6 +31,7 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.ext.Provider;
 
@@ -46,8 +47,9 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
     private static final Logger LOG = Log.logger(GraphSpaceFilter.class);
 
     private static final String GRAPHSPACES_PATH = "graphspaces/";
-    private static final String GRAPHSPACES_HEADER = "graphspace";
-    private static final String GRAPHSPACES_ENABLE_FILTER_VALUE = "true";
+
+    @Context
+    private jakarta.inject.Provider<HugeConfig> configProvider;
 
     /**
      * Filters incoming HTTP requests to modify the request URI if it matches certain criteria.
@@ -78,18 +80,12 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
      */
     @Override
     public void filter(ContainerRequestContext context) throws IOException {
-        // Step 1: Check if the filter should be applied based on the presence and value of a
-        // specific header
-        if (context.getHeaders()
-                   .computeIfAbsent(GRAPHSPACES_HEADER, (k) -> Collections.emptyList())
-                   .stream()
-                   .filter(Objects::nonNull)
-                   .noneMatch(v -> Objects.equals(GRAPHSPACES_ENABLE_FILTER_VALUE,
-                                                  v.toLowerCase()))) {
+        HugeConfig config = configProvider.get();
+        if (!config.get(ServerOptions.REST_SERVER_ENABLE_GRAPHSPACES_FILTER)) {
             return;
         }
 
-        // Step 2: Get relativePath
+        // Step 1: Get relativePath
         URI baseUri = context.getUriInfo().getBaseUri();
         URI requestUri = context.getUriInfo().getRequestUri();
         URI relativePath = baseUri.relativize(requestUri);
@@ -100,7 +96,7 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
             return;
         }
 
-        // Step 3: Extract the next substring after {@link #GRAPHSPACES_PATH}
+        // Step 2: Extract the next substring after {@link #GRAPHSPACES_PATH}
         String[] parts = relativePathStr.split("/");
         if (parts.length <= 1) {
             return;
@@ -115,7 +111,7 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
                                .skip(2) // Skip the first two segments
                                .collect(Collectors.joining("/"));
 
-        // Step 4: Modify RequestUri and log the ignored part
+        // Step 3: Modify RequestUri and log the ignored part
         URI newUri = UriBuilder.fromUri(baseUri)
                                .path(newPath)
                                .build();
