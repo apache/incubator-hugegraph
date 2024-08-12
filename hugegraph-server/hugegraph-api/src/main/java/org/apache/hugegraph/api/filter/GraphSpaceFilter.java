@@ -84,25 +84,28 @@ public class GraphSpaceFilter implements ContainerRequestFilter {
 
         // Step 2: Extract the next substring after {@link #GRAPHSPACES_PATH}
         String[] parts = relativePathStr.split("/");
-        if (parts.length > 2) {
-            String ignoredPart = parts[1];
+        if (parts.length <= 1) {
+            return;
+        }
 
-            // Reconstruct the remaining path
-            String newPath = Arrays.stream(parts)
-                                   .skip(2) // Skip the first two segments
+        String ignoredPart = Arrays.stream(parts)
+                                   .limit(2) // Ignore the first two segments
                                    .collect(Collectors.joining("/"));
 
-            // Step 3: Modify RequestUri and log the ignored part
-            URI newUri = UriBuilder.fromUri(baseUri)
-                                   .path(newPath)
-                                   .build();
+        // Reconstruct the remaining path
+        String newPath = Arrays.stream(parts)
+                               .skip(2) // Skip the first two segments
+                               .collect(Collectors.joining("/"));
 
-            context.setRequestUri(newUri);
+        // Step 3: Modify RequestUri and log the ignored part
+        URI newUri = UriBuilder.fromUri(baseUri)
+                               .path(newPath)
+                               .build();
+        context.setRequestUri(newUri);
 
-            // Log the ignored part
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Ignored graphspaces segment: {}", ignoredPart);
-            }
+        // Log the ignored part
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Ignored graphspaces segment: {}", ignoredPart);
         }
     }
 }
