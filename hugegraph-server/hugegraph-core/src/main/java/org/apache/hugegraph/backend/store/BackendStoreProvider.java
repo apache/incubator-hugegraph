@@ -67,6 +67,12 @@ public interface BackendStoreProvider {
 
     void listen(EventListener listener);
 
+    default void listenSchemaCacheClear(EventListener listener) {
+    }
+
+    default void listenDataCacheClear(EventListener listener) {
+    }
+
     void unlisten(EventListener listener);
 
     EventHub storeEventHub();

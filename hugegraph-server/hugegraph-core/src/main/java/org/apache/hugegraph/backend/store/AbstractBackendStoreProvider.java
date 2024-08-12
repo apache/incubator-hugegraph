@@ -45,8 +45,8 @@ public abstract class AbstractBackendStoreProvider
     private final EventHub storeEventHub = new EventHub("store");
 
     protected Map<String, BackendStore> stores = null;
-    AtomicBoolean schemaCacheClearListened = new AtomicBoolean(false);
-    AtomicBoolean vertexEdgeCacheClearListened = new AtomicBoolean(false);
+    volatile Boolean schemaCacheClearListened = false;
+    volatile Boolean vertexEdgeCacheClearListened = false;
 
     protected final void notifyAndWaitEvent(String event) {
         Future<?> future = this.storeEventHub.notify(event, this);
@@ -70,9 +70,30 @@ public abstract class AbstractBackendStoreProvider
 
     @Override
     public void listen(EventListener listener) {
-        if (schemaCacheClearListened.compareAndSet(false, true) ||
-            vertexEdgeCacheClearListened.compareAndSet(false, true)) {
-            this.storeEventHub.listen(EventHub.ANY_EVENT, listener);
+        this.storeEventHub.listen(EventHub.ANY_EVENT, listener);
+    }
+
+    @Override
+    public void listenSchemaCacheClear(EventListener listener) {
+        if (!schemaCacheClearListened) {
+            synchronized (this) {
+                if (!schemaCacheClearListened) {
+                    listen(listener);
+                    schemaCacheClearListened = true;
+                }
+            }
+        }
+    }
+
+    @Override
+    public void listenDataCacheClear(EventListener listener) {
+        if (!vertexEdgeCacheClearListened) {
+            synchronized (this) {
+                if (!vertexEdgeCacheClearListened) {
+                    listen(listener);
+                    vertexEdgeCacheClearListened = true;
+                }
+            }
         }
     }
 
