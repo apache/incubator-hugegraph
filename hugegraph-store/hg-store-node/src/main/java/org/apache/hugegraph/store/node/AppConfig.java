@@ -184,6 +184,8 @@ public class AppConfig {
         private int maxReplicatorInflightMsgs;
         @Value("${raft.maxEntriesSize:256}")
         private int maxEntriesSize;
+        @Value("${raft.maxBodySize: 512 * 1024}")
+        private int maxBodySize;
 
     }
 
