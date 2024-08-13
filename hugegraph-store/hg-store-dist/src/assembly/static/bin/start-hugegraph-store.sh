@@ -148,7 +148,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
     # Rolling out detailed GC logs
-    JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=./logs/gc.log:tags,uptime,level:filecount=3,filesize=100m "
+    JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=./logs/gc.log:time,uptime,level,tags:filecount=3,filesize=100m"
 fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
