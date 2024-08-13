@@ -47,6 +47,14 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8080"
             );
 
+    public static final ConfigOption<Boolean> REST_SERVER_ENABLE_GRAPHSPACES_FILTER =
+            new ConfigOption<>(
+                    "restserver.enable_graphspaces_filter",
+                    "Whether to enable graphspaces url filter.",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<String> SERVER_ID =
             new ConfigOption<>(
                     "server.id",
