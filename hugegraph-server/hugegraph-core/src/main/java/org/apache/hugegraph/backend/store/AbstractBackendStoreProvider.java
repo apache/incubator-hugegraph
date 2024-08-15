@@ -20,7 +20,6 @@ package org.apache.hugegraph.backend.store;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.raft.StoreSnapshotFile;
