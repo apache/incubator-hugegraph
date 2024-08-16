@@ -100,7 +100,7 @@
         <module>hugegraph-pd</module>
         <module>hugegraph-store</module>
         <module>install-dist</module>
-        <module>hugegraph-it</module>
+        <module>hugegraph-cluster-test</module>
     </modules>
 
     <build>
