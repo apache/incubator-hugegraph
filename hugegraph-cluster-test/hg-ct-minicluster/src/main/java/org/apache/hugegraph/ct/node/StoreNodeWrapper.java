@@ -19,7 +19,9 @@ package org.apache.hugegraph.ct.node;
 
 import static org.apache.hugegraph.ct.base.ClusterConstant.CONF_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.JAVA_CMD;
+import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.STORE_JAR_PREFIX;
+import static org.apache.hugegraph.ct.base.ClusterConstant.STORE_LIB_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.getFileInDir;
 import static org.apache.hugegraph.ct.base.ClusterConstant.isJava11OrHigher;
 
@@ -33,8 +35,13 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
 
     public StoreNodeWrapper(int clusterId, int index) {
         super();
+        this.fileNames = new ArrayList<>(
+                List.of(LOG4J_FILE));
         this.clusterIndex = clusterId;
         this.index = index;
+        this.workPath = STORE_LIB_PATH;
+        createNodeDir();
+        createLogDir();
     }
 
     @Override

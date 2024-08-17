@@ -43,18 +43,22 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                               VERIFY_LICENSE_FILE)
         );
         this.workPath = PD_LIB_PATH;
+        createNodeDir();
+        createLogDir();
     }
 
     public PDNodeWrapper(int clusterIndex, int index) {
         super();
         this.clusterIndex = clusterIndex;
         this.index = index;
-        fileNames = new ArrayList<String>(
+        this.fileNames = new ArrayList<>(
                 Arrays.asList(LOG4J_FILE,
                               LICENSE_FILE,
                               VERIFY_LICENSE_FILE)
         );
         this.workPath = PD_LIB_PATH;
+        createNodeDir();
+        createLogDir();
     }
 
     /*
@@ -78,7 +82,8 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                             "-Xmx4g",
                             "-XX:+HeapDumpOnOutOfMemoryError",
                             "-XX:HeapDumpPath=" + configPath + "logs",
-                            "-Dlog4j.configurationFile=" + configPath + CONF_DIR + File.separator +
+                            "-Dlog4j.configurationFile=" + configPath + File.separator + CONF_DIR +
+                            File.separator +
                             "log4j2.xml",
                             "-Dspring.config.location=" + configPath + CONF_DIR + File.separator +
                             "application.yml",

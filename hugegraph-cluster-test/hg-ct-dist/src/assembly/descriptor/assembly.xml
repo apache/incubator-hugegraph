@@ -24,28 +24,14 @@
     </formats>
 
     <fileSets>
-        <!--        <fileSet>-->
-        <!--            <directory>${assembly.static.dir}/bin</directory>-->
-        <!--            <outputDirectory>bin</outputDirectory>-->
-        <!--            <includes>-->
-        <!--                <include>*</include>-->
-        <!--            </includes>-->
-        <!--            <fileMode>755</fileMode>-->
-        <!--        </fileSet>-->
         <fileSet>
-            <directory>${assembly.static.dir}/simple</directory>
-            <outputDirectory>simple</outputDirectory>
+            <directory>${assembly.static.dir}</directory>
+            <outputDirectory>/</outputDirectory>
             <includes>
                 <include>**/*</include>
             </includes>
         </fileSet>
-        <fileSet>
-            <directory>${assembly.static.dir}/multi</directory>
-            <outputDirectory>multi</outputDirectory>
-            <includes>
-                <include>**/*</include>
-            </includes>
-        </fileSet>
+
     </fileSets>
 
     <dependencySets>

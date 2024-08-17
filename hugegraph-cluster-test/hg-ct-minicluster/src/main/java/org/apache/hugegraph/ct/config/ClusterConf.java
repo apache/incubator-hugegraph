@@ -36,6 +36,9 @@ public class ClusterConf {
         pdConfigs = new ArrayList<>();
         storeConfigs = new ArrayList<>();
         serverConfigs = new ArrayList<>();
+        pdGrpcList = new ArrayList<>();
+        pdRaftList = new ArrayList<>();
+        storeGrpcList = new ArrayList<>();
 
         for (int i = 0; i < pdCnt; i++) {
             PDConfig pdConfig = new PDConfig();
@@ -59,7 +62,7 @@ public class ClusterConf {
 
         for (int i = 0; i < pdCnt; i++) {
             PDConfig pdConfig = pdConfigs.get(i);
-            pdConfig.setRaftPeerList(pdGrpcList);
+            pdConfig.setRaftPeerList(pdRaftList);
             pdConfig.setStoreGrpcList(storeGrpcList);
         }
     }

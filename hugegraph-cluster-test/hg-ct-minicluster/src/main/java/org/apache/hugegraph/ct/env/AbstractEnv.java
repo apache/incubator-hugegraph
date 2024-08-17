@@ -19,7 +19,6 @@ package org.apache.hugegraph.ct.env;
 
 import static org.apache.hugegraph.ct.base.ClusterConstant.CONF_DIR;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,7 +59,6 @@ public abstract class AbstractEnv implements BaseEnv {
             PDConfig pdConfig = clusterConf.getPDConfig(i);
             pdNodeWrappers.add(pdNodeWrapper);
             pdConfig.writeConfig(pdNodeWrapper.getNodePath()
-                                 + File.separator
                                  + CONF_DIR);
         }
 
@@ -69,7 +67,6 @@ public abstract class AbstractEnv implements BaseEnv {
             StoreConfig storeConfig = clusterConf.getStoreConfig(i);
             storeNodeWrappers.add(storeNodeWrapper);
             storeConfig.writeConfig(storeNodeWrapper.getNodePath()
-                                    + File.separator
                                     + CONF_DIR);
         }
 
@@ -84,7 +81,6 @@ public abstract class AbstractEnv implements BaseEnv {
                 serverConfig.setRole("worker");
             }
             serverConfig.writeConfig(serverNodeWrapper.getNodePath()
-                                     + File.separator
                                      + CONF_DIR);
         }
     }

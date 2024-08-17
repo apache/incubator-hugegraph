@@ -17,10 +17,19 @@
 
 package org.apache.hugegraph.ct.node;
 
+import static org.apache.hugegraph.ct.base.ClusterConstant.COMPUTER_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.EXT_DIR;
+import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_DRIVER_SETTING_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_SERVER_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.HUGEGRAPH_PROPERTIES;
+import static org.apache.hugegraph.ct.base.ClusterConstant.HUGEGRAPH_SERVER_KEYSTORE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.JAVA_CMD;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LIB_DIR;
+import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PLUGINS_DIR;
+import static org.apache.hugegraph.ct.base.ClusterConstant.REMOTE_OBJECTS_SETTING_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.REMOTE_SETTING_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_LIB_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.isJava11OrHigher;
 
 import java.io.File;
@@ -32,8 +41,21 @@ import java.util.List;
 public class ServerNodeWrapper extends AbstractNodeWrapper {
 
     public ServerNodeWrapper(int clusterIndex, int index) {
+        super();
         this.clusterIndex = clusterIndex;
         this.index = index;
+        this.fileNames = new ArrayList<>(
+                List.of(LOG4J_FILE,
+                        HUGEGRAPH_PROPERTIES,
+                        HUGEGRAPH_SERVER_KEYSTORE,
+                        COMPUTER_SETTING_FILE,
+                        GREMLIN_SERVER_FILE,
+                        GREMLIN_DRIVER_SETTING_FILE,
+                        REMOTE_SETTING_FILE,
+                        REMOTE_OBJECTS_SETTING_FILE));
+        this.workPath = SERVER_LIB_PATH;
+        createNodeDir();
+        createLogDir();
     }
 
     private static void addJarsToClasspath(File directory, List<String> classpath) {

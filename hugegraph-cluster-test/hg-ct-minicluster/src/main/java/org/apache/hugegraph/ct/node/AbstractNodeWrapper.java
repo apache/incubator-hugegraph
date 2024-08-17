@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -58,8 +57,6 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
         this.clusterIndex = 1;
         fileNames = new ArrayList<>();
         this.configPath = getNodePath();
-        createNodeDir();
-        createLogDir();
     }
 
     /**
@@ -67,30 +64,31 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
      */
     @Override
     public void createNodeDir() {
-        String destDir = getNodePath() + File.separator + CONF_DIR;
+        String destDir = getNodePath() + CONF_DIR + File.separator;
         try {
             try {
-                if (new File(destDir).exists()) {
-                    PathUtils.delete(Paths.get(destDir));
+                if (!new File(destDir).exists()) {
+                    FileUtils.createParentDirectories(new File(destDir));
                 }
             } catch (NoSuchFileException fileException) {
                 //no need to handle
             }
+            Path sourcePath = Paths.get(CT_PACKAGE_PATH);
             // To avoid following symbolic links
-            try (Stream<Path> stream = Files.walk(Paths.get(CT_PACKAGE_PATH))) {
+            try (Stream<Path> stream = Files.walk(sourcePath)) {
                 stream.forEach(
                         source -> {
-                            String fileName = source.getFileName().toString();
+                            Path relativePath = sourcePath.relativize(source);
                             Path destination =
-                                    Paths.get(destDir,
-                                              source.toString()
-                                                    .substring(CT_PACKAGE_PATH.length()));
-                            if (fileNames.contains(fileName)) {
+                                    Paths.get(destDir).resolve(relativePath);
+                            if (fileNames.contains(relativePath.toString())) {
                                 try {
+                                    if (Files.notExists(destination.getParent())) {
+                                        Files.createDirectories(destination.getParent());
+                                    }
                                     Files.copy(source,
                                                destination,
-                                               LinkOption.NOFOLLOW_LINKS,
-                                               StandardCopyOption.COPY_ATTRIBUTES);
+                                               StandardCopyOption.REPLACE_EXISTING);
                                 } catch (IOException ioException) {
                                     LOG.error("Fail to copy files to destination dir", ioException);
                                     throw new RuntimeException(ioException);
@@ -134,11 +132,11 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
      * @return (user.dir).id
      */
     public String getNodePath() {
-        return CT_PACKAGE_PATH + getID();
+        return CT_PACKAGE_PATH + getID() + File.separator;
     }
 
     public String getLogPath() {
-        return getNodePath() + ClusterConstant.LOG + getID() + "-start.log";
+        return getNodePath() + ClusterConstant.LOG + File.separator + getID() + "-start.log";
     }
 
     public void updateWorkPath(String workPath) {
