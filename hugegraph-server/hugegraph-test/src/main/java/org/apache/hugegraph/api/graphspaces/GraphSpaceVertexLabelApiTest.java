@@ -15,41 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.meta.asynctask;
+package org.apache.hugegraph.api.graphspaces;
 
-public interface AsyncTask {
+import java.util.Objects;
 
-    /**
-     * Need to check the asynchronous task, check the current status, and handle it accordingly based on the status.
-     */
-    void handleTask();
+import org.apache.hugegraph.api.BaseApiTest;
+import org.apache.hugegraph.api.VertexLabelApiTest;
+import org.junit.BeforeClass;
 
-    /**
-     * Task ID
-     */
-    String getId();
+public class GraphSpaceVertexLabelApiTest extends VertexLabelApiTest {
 
-    /**
-     * Which graph is it aimed at?
-     */
-    String getGraphName();
-
-    /**
-     * For which partition
-     */
-    int getPartitionId();
-
-    /**
-     * used for serialization
-     *
-     * @return
-     */
-    byte[] toBytes();
-
-    /**
-     * Set execution status
-     *
-     * @param newState
-     */
-    void setState(AsyncTaskState newState);
+    @BeforeClass
+    public static void init() {
+        if (Objects.nonNull(client)) {
+            client.close();
+        }
+        client = new RestClient(String.join("/", BASE_URL, "graphspaces", "DEFAULT"));
+        BaseApiTest.clearData();
+    }
 }

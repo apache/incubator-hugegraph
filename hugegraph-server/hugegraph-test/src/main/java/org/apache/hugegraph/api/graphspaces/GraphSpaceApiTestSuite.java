@@ -15,41 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.meta.asynctask;
+package org.apache.hugegraph.api.graphspaces;
 
-public interface AsyncTask {
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 
-    /**
-     * Need to check the asynchronous task, check the current status, and handle it accordingly based on the status.
-     */
-    void handleTask();
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        GraphSpacePropertyKeyApiTest.class,
+        GraphSpaceVertexLabelApiTest.class,
+        GraphSpaceEdgeLabelApiTest.class,
+        GraphSpaceIndexLabelApiTest.class,
+        GraphSpaceEdgeApiTest.class,
+        GraphSpaceVertexApiTest.class
+})
+public class GraphSpaceApiTestSuite {
 
-    /**
-     * Task ID
-     */
-    String getId();
-
-    /**
-     * Which graph is it aimed at?
-     */
-    String getGraphName();
-
-    /**
-     * For which partition
-     */
-    int getPartitionId();
-
-    /**
-     * used for serialization
-     *
-     * @return
-     */
-    byte[] toBytes();
-
-    /**
-     * Set execution status
-     *
-     * @param newState
-     */
-    void setState(AsyncTaskState newState);
 }

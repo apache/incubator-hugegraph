@@ -75,7 +75,6 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -470,12 +469,13 @@ public class EdgeCoreTest extends BaseCoreTest {
         Vertex book = graph.addVertex(T.label, "book", "name", "Test-Book-1");
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            final int LEN = BytesBuffer.BIG_ID_LEN_MAX;
+            final int LEN = BytesBuffer.EID_LEN_MAX;
             String largeTime = "{large-time}" + new String(new byte[LEN]);
             james.addEdge("write", book, "time", largeTime);
             graph.tx().commit();
         }, e -> {
-            Assert.assertContains("The max length of edge id is 32768",
+            Assert.assertContains(String.format("The max length of edge id is %s",
+                                                BytesBuffer.EID_LEN_MAX),
                                   e.getMessage());
         });
     }
@@ -5221,7 +5221,7 @@ public class EdgeCoreTest extends BaseCoreTest {
             query.scan(String.valueOf(Long.MIN_VALUE),
                        String.valueOf(Long.MAX_VALUE));
         } else {
-            // QUESTION：The query method may not be well adapted
+            // QUESTION: The query method may not be well adapted
             query.scan(BackendTable.ShardSplitter.START,
                        BackendTable.ShardSplitter.END);
         }
