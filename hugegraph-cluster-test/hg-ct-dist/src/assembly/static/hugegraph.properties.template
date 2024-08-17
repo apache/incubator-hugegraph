@@ -42,7 +42,7 @@ serializer=binary
 store=hugegraph
 
 # pd config
-pd.peers=127.0.0.1:8686
+pd.peers=$PD_PEERS_LIST$
 
 # task config
 task.scheduler_type=local

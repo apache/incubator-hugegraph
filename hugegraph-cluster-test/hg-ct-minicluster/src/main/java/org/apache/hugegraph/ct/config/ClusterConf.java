@@ -29,6 +29,7 @@ public class ClusterConf {
     protected List<PDConfig> pdConfigs;
     protected List<StoreConfig> storeConfigs;
     protected List<ServerConfig> serverConfigs;
+    protected List<GraphConfig> graphConfigs;
 
     protected List<String> pdGrpcList, pdRaftList, storeGrpcList;
 
@@ -36,6 +37,7 @@ public class ClusterConf {
         pdConfigs = new ArrayList<>();
         storeConfigs = new ArrayList<>();
         serverConfigs = new ArrayList<>();
+        graphConfigs = new ArrayList<>();
         pdGrpcList = new ArrayList<>();
         pdRaftList = new ArrayList<>();
         storeGrpcList = new ArrayList<>();
@@ -58,6 +60,9 @@ public class ClusterConf {
         for (int i = 0; i < serverCnt; i++) {
             ServerConfig serverConfig = new ServerConfig();
             serverConfigs.add(serverConfig);
+            GraphConfig graphConfig = new GraphConfig();
+            graphConfig.setPDPeersList(pdGrpcList);
+            graphConfigs.add(graphConfig);
         }
 
         for (int i = 0; i < pdCnt; i++) {
@@ -77,5 +82,9 @@ public class ClusterConf {
 
     public ServerConfig getServerConfig(int i) {
         return serverConfigs.get(i);
+    }
+
+    public GraphConfig getGraphConfig(int i) {
+        return graphConfigs.get(i);
     }
 }

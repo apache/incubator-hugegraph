@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.hugegraph.ct.base.HGTestLogger;
 import org.apache.hugegraph.ct.config.ClusterConf;
+import org.apache.hugegraph.ct.config.GraphConfig;
 import org.apache.hugegraph.ct.config.PDConfig;
 import org.apache.hugegraph.ct.config.ServerConfig;
 import org.apache.hugegraph.ct.config.StoreConfig;
@@ -75,6 +76,7 @@ public abstract class AbstractEnv implements BaseEnv {
             serverNodeWrappers.add(serverNodeWrapper);
             ServerConfig serverConfig = clusterConf.getServerConfig(i);
             serverConfig.setServerID(serverNodeWrapper.getID());
+            GraphConfig graphConfig = clusterConf.getGraphConfig(i);
             if (i == 0) {
                 serverConfig.setRole("master");
             } else {
@@ -82,6 +84,8 @@ public abstract class AbstractEnv implements BaseEnv {
             }
             serverConfig.writeConfig(serverNodeWrapper.getNodePath()
                                      + CONF_DIR);
+            graphConfig.writeConfig(serverNodeWrapper.getNodePath()
+                                    + CONF_DIR);
         }
     }
 

@@ -30,15 +30,14 @@ public class ClusterConstant {
     public static final String EXT_DIR = "ext";
     public static final String PLUGINS_DIR = "plugins";
     public static final String BIN_DIR = "bin";
-    public static final String DIST_DIR = "dist";
     public static final String CONF_DIR = "conf";
 
-    public static final String PD_PACKAGE_PREFIX = "hugegraph-pd";
+    public static final String PD_PACKAGE_PREFIX = "apache-hugegraph-pd-incubating";
     public static final String PD_JAR_PREFIX = "hg-pd-service";
-    public static final String STORE_PACKAGE_PREFIX = "hugegraph-store";
+    public static final String STORE_PACKAGE_PREFIX = "apache-hugegraph-store-incubating";
     public static final String STORE_JAR_PREFIX = "hg-store-node";
-    public static final String SERVER_PACKAGE_PREFIX = "apache-hugegraph-incubating";
-    public static final String CT_PACKAGE_PREFIX = "apache-hugegraph-incubating-ct";
+    public static final String SERVER_PACKAGE_PREFIX = "apache-hugegraph-server-incubating";
+    public static final String CT_PACKAGE_PREFIX = "apache-hugegraph-ct-incubating";
 
     public static final String APPLICATION_FILE = "application.yml";
     public static final String SERVER_PROPERTIES = "rest-server.properties";
@@ -49,6 +48,7 @@ public class ClusterConstant {
     public static final String PD_TEMPLATE_FILE = "pd-application.yml.template";
     public static final String STORE_TEMPLATE_FILE = "store-application.yml.template";
     public static final String SERVER_TEMPLATE_FILE = "rest-server.properties.template";
+    public static final String GRAPH_TEMPLATE_FILE = "hugegraph.properties.template";
     public static final String GREMLIN_DRIVER_SETTING_FILE = "gremlin-driver-settings.yaml";
     public static final String GREMLIN_SERVER_FILE = "gremlin-server.yaml";
     public static final String COMPUTER_SETTING_FILE = "computer.yaml";
@@ -67,8 +67,6 @@ public class ClusterConstant {
             System.getProperty(USER_DIR)
             + File.separator
             + "hugegraph-pd"
-            + File.separator
-            + DIST_DIR
             + File.separator;
 
     public static final String PD_LIB_PATH =
@@ -81,8 +79,6 @@ public class ClusterConstant {
             System.getProperty(USER_DIR)
             + File.separator
             + "hugegraph-store"
-            + File.separator
-            + DIST_DIR
             + File.separator;
 
     public static final String STORE_LIB_PATH =
@@ -109,11 +105,6 @@ public class ClusterConstant {
 
     public static final String CT_PACKAGE_PATH =
             getFileInDir(CT_DIST_PATH, CT_PACKAGE_PREFIX)
-            + File.separator;
-
-    public static final String IT_LOG_PATH =
-            CT_PACKAGE_PATH
-            + LOG
             + File.separator;
 
     private ClusterConstant() {

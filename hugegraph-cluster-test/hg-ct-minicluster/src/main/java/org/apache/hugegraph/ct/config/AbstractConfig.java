@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
@@ -52,9 +53,15 @@ public abstract class AbstractConfig {
 
     public void writeConfig(String filePath) {
         updateConfigs();
-        try (FileWriter writer = new FileWriter(filePath
-                                                + File.separator
-                                                + fileName)) {
+        String destPath = filePath + File.separator + fileName;
+        try {
+            if (Files.notExists(Path.of(destPath).getParent())) {
+                Files.createDirectories(Path.of(destPath).getParent());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try (FileWriter writer = new FileWriter(destPath)) {
             writer.write(config);
         } catch (IOException e) {
             e.printStackTrace();

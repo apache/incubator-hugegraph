@@ -21,7 +21,6 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.COMPUTER_SETTING_FILE
 import static org.apache.hugegraph.ct.base.ClusterConstant.EXT_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_DRIVER_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_SERVER_FILE;
-import static org.apache.hugegraph.ct.base.ClusterConstant.HUGEGRAPH_PROPERTIES;
 import static org.apache.hugegraph.ct.base.ClusterConstant.HUGEGRAPH_SERVER_KEYSTORE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.JAVA_CMD;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LIB_DIR;
@@ -46,7 +45,6 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
         this.index = index;
         this.fileNames = new ArrayList<>(
                 List.of(LOG4J_FILE,
-                        HUGEGRAPH_PROPERTIES,
                         HUGEGRAPH_SERVER_KEYSTORE,
                         COMPUTER_SETTING_FILE,
                         GREMLIN_SERVER_FILE,
