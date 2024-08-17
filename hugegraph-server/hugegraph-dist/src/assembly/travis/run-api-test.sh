@@ -23,7 +23,7 @@ REPORT_FILE=$REPORT_DIR/jacoco-api-test-for-raft.xml
 
 TRAVIS_DIR=$(dirname $0)
 VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-SERVER_DIR=hugegraph-server/apache-hugegraph-incubating-server-$VERSION/
+SERVER_DIR=hugegraph-server/apache-hugegraph-server-incubating-$VERSION/
 CONF=$SERVER_DIR/conf/graphs/hugegraph.properties
 REST_SERVER_CONF=$SERVER_DIR/conf/rest-server.properties
 GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
@@ -41,6 +41,7 @@ fi
 # config rest-server
 sed -i 's/#auth.authenticator=/auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
 sed -i 's/#auth.admin_token=/auth.admin_token=pa/' $REST_SERVER_CONF
+sed -i 's/#restserver.enable_graphspaces_filter=false/restserver.enable_graphspaces_filter=true/' $REST_SERVER_CONF
 
 # config hugegraph.properties
 sed -i 's/gremlin.graph=.*/gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy/' $CONF

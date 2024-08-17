@@ -182,6 +182,8 @@ public class AppConfig {
         private int maxSegmentFileSize;
         @Value("${raft.maxReplicatorInflightMsgs:256}")
         private int maxReplicatorInflightMsgs;
+        @Value("${raft.maxEntriesSize:256}")
+        private int maxEntriesSize;
 
     }
 

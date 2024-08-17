@@ -271,7 +271,7 @@ public class MetaManager {
     }
 
     /**
-     * 监听vertex label变化, graph vertex cache clear
+     * Listen for vertex label changes, graph vertex cache clear
      *
      * @param consumer
      * @param <T>
@@ -281,7 +281,7 @@ public class MetaManager {
     }
 
     /**
-     * 监听edge label变化, graph edge cache clear
+     * Listen to edge label changes, graph edge cache clear
      *
      * @param consumer
      * @param <T>
@@ -512,7 +512,7 @@ public class MetaManager {
     }
 
     /**
-     * 通知 需要进行 graph vertex cache clear
+     * Notice Requires graph vertex cache clear
      *
      * @param graphSpace
      * @param graph
@@ -522,7 +522,7 @@ public class MetaManager {
     }
 
     /**
-     * 通知 需要进行 graph edge cache clear
+     * Notice Requires graph edge cache clear
      *
      * @param graphSpace
      * @param graph

@@ -32,7 +32,6 @@
 
     <properties>
         <dist.dir>${project.parent.basedir}</dist.dir>
-        <shell-executable>bash</shell-executable>
         <assembly.dir>${project.basedir}/src/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
@@ -108,11 +107,12 @@
                                         <echo file="${dist.dir}/dist.sh">
                                             tar zcvf \
                                             ${dist.dir}/${final.name}.tar.gz \
+                                            --exclude=${final.name}/{logs,storage} \
                                             ${final.name} || exit 1
 
                                             rm -f ${dist.dir}/dist.sh
                                             echo
-                                            echo "HugeGraph dist tar.gz available at:
+                                            echo "HugeGraph store dist tar.gz available at:
                                             ${dist.dir}/${final.name}.tar.gz"
                                             echo
                                         </echo>

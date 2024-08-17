@@ -43,8 +43,8 @@ public interface HgKvStore {
     boolean put(String table, HgOwnerKey ownerKey, byte[] value);
 
     /**
-     * 该版本被store内部使用。向分区写入数据，
-     * partitionId与key.keyCode必须与pd存储的分区信息保持一致。
+     * This version is used internally by the store. Write data to the partition,
+     * partitionId and key.keyCode must be consistent with the partition information stored in pd.
      */
     boolean directPut(String table, int partitionId, HgOwnerKey key, byte[] value);
 

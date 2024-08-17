@@ -35,12 +35,10 @@ public class PartitionMeta extends MetadataRocksDBStore {
 
     static String CID_GRAPH_ID_KEY = "GraphID";
     static int CID_GRAPH_ID_MAX = 0xFFFE;
-    private final PDConfig pdConfig;
     private final PartitionCache cache;
 
     public PartitionMeta(PDConfig pdConfig) {
         super(pdConfig);
-        this.pdConfig = pdConfig;
         //this.timeout = pdConfig.getEtcd().getTimeout();
         this.cache = new PartitionCache();
     }
