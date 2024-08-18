@@ -91,10 +91,17 @@ public abstract class AbstractEnv implements BaseEnv {
 
     @Override
     public void startCluster() {
-        for (PDNodeWrapper pdNodeWrapper : pdNodeWrappers) {
+        for (int i = 0; i < pdNodeWrappers.size(); i++) {
+            PDNodeWrapper pdNodeWrapper = pdNodeWrappers.get(i);
             pdNodeWrapper.start();
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
-        for (StoreNodeWrapper storeNodeWrapper : storeNodeWrappers) {
+        for (int i = 0; i < storeNodeWrappers.size(); i++) {
+            StoreNodeWrapper storeNodeWrapper = storeNodeWrappers.get(i);
             storeNodeWrapper.start();
         }
         for (ServerNodeWrapper serverNodeWrapper : serverNodeWrappers) {

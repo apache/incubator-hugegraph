@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.apache.tinkerpop.gremlin.server.util.LifeCycleHook
 
-package org.apache.hugegraph;
+// an init script that returns a Map allows explicit setting of global bindings.
+def globals = [:]
 
-import org.apache.hugegraph.ct.env.SimpleEnv;
+// defines a sample LifeCycleHook that prints some output to the Gremlin Server console.
+// note that the name of the key in the "global" map is unimportant.
+globals << [hook: [
+        onStartUp : { ctx ->
+            ctx.logger.info("Executed once at startup of Gremlin Server.")
+        },
+        onShutDown: { ctx ->
+            ctx.logger.info("Executed once at shutdown of Gremlin Server.")
+        }
+] as LifeCycleHook]
 
-public class Main {
-
-    public static void main(String[] args) {
-        SimpleEnv simpleEnv = new SimpleEnv();
-        simpleEnv.init();
-        simpleEnv.startCluster();
-    }
-}
+// define the default TraversalSource to bind queries to - this one will be named "g".

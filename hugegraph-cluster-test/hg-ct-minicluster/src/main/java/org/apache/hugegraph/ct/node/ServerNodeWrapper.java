@@ -18,6 +18,9 @@
 package org.apache.hugegraph.ct.node;
 
 import static org.apache.hugegraph.ct.base.ClusterConstant.COMPUTER_SETTING_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.CONF_DIR;
+import static org.apache.hugegraph.ct.base.ClusterConstant.EMPTY_SAMPLE_GROOVY_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.EXAMPLE_GROOVY_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.EXT_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_DRIVER_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_SERVER_FILE;
@@ -52,7 +55,12 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
                         REMOTE_SETTING_FILE,
                         REMOTE_OBJECTS_SETTING_FILE));
         this.workPath = SERVER_LIB_PATH;
-        createNodeDir();
+        createNodeDir(getNodePath() + CONF_DIR + File.separator);
+        this.fileNames = new ArrayList<>(
+                List.of(EMPTY_SAMPLE_GROOVY_FILE,
+                        EXAMPLE_GROOVY_FILE)
+        );
+        createNodeDir(getNodePath());
         createLogDir();
     }
 

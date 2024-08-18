@@ -40,10 +40,10 @@ public class EnvUtil {
             }
             ports.add(port);
             return port;
-        }catch (IOException e) {
+        } catch (IOException e) {
             LOG.error("fail to get available ports", e);
             return -1;
-        } 
+        }
     }
 
 }

@@ -40,7 +40,7 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
         this.clusterIndex = clusterId;
         this.index = index;
         this.workPath = STORE_LIB_PATH;
-        createNodeDir();
+        createNodeDir(getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
 

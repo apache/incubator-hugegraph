@@ -43,7 +43,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                               VERIFY_LICENSE_FILE)
         );
         this.workPath = PD_LIB_PATH;
-        createNodeDir();
+        createNodeDir(getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
 
@@ -57,7 +57,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                               VERIFY_LICENSE_FILE)
         );
         this.workPath = PD_LIB_PATH;
-        createNodeDir();
+        createNodeDir(getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
 

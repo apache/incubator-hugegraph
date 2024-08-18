@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.ct.node;
 
-import static org.apache.hugegraph.ct.base.ClusterConstant.CONF_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.CT_PACKAGE_PATH;
 
 import java.io.File;
@@ -63,8 +62,7 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
      * Node Dir should be created before changing Config
      */
     @Override
-    public void createNodeDir() {
-        String destDir = getNodePath() + CONF_DIR + File.separator;
+    public void createNodeDir(String destDir) {
         try {
             try {
                 if (!new File(destDir).exists()) {

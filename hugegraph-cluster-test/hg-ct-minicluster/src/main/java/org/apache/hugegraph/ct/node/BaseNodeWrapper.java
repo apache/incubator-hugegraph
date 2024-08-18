@@ -19,7 +19,7 @@ package org.apache.hugegraph.ct.node;
 
 public interface BaseNodeWrapper {
 
-    void createNodeDir();
+    void createNodeDir(String destDir);
 
     void createLogDir();
 

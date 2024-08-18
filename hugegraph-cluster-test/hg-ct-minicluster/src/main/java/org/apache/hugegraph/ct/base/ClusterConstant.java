@@ -42,11 +42,14 @@ public class ClusterConstant {
     public static final String APPLICATION_FILE = "application.yml";
     public static final String SERVER_PROPERTIES = "rest-server.properties";
     public static final String HUGEGRAPH_PROPERTIES = "graphs/hugegraph.properties";
+
     public static final String LOG4J_FILE = "log4j2.xml";
     public static final String VERIFY_LICENSE_FILE = "verify-license.json";
     public static final String LICENSE_FILE = "hugegraph.license";
     public static final String PD_TEMPLATE_FILE = "pd-application.yml.template";
+
     public static final String STORE_TEMPLATE_FILE = "store-application.yml.template";
+
     public static final String SERVER_TEMPLATE_FILE = "rest-server.properties.template";
     public static final String GRAPH_TEMPLATE_FILE = "hugegraph.properties.template";
     public static final String GREMLIN_DRIVER_SETTING_FILE = "gremlin-driver-settings.yaml";
@@ -55,6 +58,8 @@ public class ClusterConstant {
     public static final String HUGEGRAPH_SERVER_KEYSTORE = "hugegraph-server.keystore";
     public static final String REMOTE_SETTING_FILE = "remote.yaml";
     public static final String REMOTE_OBJECTS_SETTING_FILE = "remote-objects.yaml";
+    public static final String EMPTY_SAMPLE_GROOVY_FILE = "scripts/empty-sample.groovy";
+    public static final String EXAMPLE_GROOVY_FILE = "scripts/example.groovy";
 
     public static final String JAVA_CMD =
             System.getProperty("java.home")
