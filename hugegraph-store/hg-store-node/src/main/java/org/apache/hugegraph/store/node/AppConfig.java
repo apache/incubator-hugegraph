@@ -172,11 +172,11 @@ public class AppConfig {
         private int snapshotInterval;
         @Value("${raft.disruptorBufferSize:0}")
         private int disruptorBufferSize;
-        @Value("${raft.max-log-file-size: 50000000000}")
+        @Value("${raft.max-log-file-size:50000000000}")
         private long maxLogFileSize;
-        @Value("${ave-logEntry-size-ratio : 0.95}")
+        @Value("${ave-logEntry-size-ratio:0.95}")
         private double aveLogEntrySizeRation;
-        @Value("${raft.useRocksDBSegmentLogStorage: true}")
+        @Value("${raft.useRocksDBSegmentLogStorage:true}")
         private boolean useRocksDBSegmentLogStorage;
         @Value("${raft.maxSegmentFileSize:67108864}")
         private int maxSegmentFileSize;
@@ -184,7 +184,7 @@ public class AppConfig {
         private int maxReplicatorInflightMsgs;
         @Value("${raft.maxEntriesSize:256}")
         private int maxEntriesSize;
-        @Value("${raft.maxBodySize: 512 * 1024}")
+        @Value("${raft.maxBodySize:524288}")
         private int maxBodySize;
 
     }
