@@ -19,7 +19,10 @@ package org.apache.hugegraph.rest;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Collection;
@@ -408,6 +411,14 @@ public abstract class AbstractRestClient implements RestClient {
             if (this.client.cache() != null) {
                 this.client.cache().close();
             }
+        }
+    }
+
+    public static String encode(String raw) {
+        try {
+            return URLEncoder.encode(raw, StandardCharsets.UTF_8.toString()).replace("+", "%2B");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalArgumentException("Failed to encode string: " + raw, e);
         }
     }
 

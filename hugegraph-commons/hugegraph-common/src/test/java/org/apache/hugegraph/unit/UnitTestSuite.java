@@ -22,6 +22,7 @@ import org.apache.hugegraph.testutil.WhiteboxTest;
 import org.apache.hugegraph.unit.config.HugeConfigTest;
 import org.apache.hugegraph.unit.config.OptionSpaceTest;
 import org.apache.hugegraph.unit.event.EventHubTest;
+import org.apache.hugegraph.unit.rest.AbstractRestClientTest;
 import org.apache.hugegraph.unit.version.VersionTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -83,6 +84,7 @@ import org.apache.hugegraph.unit.util.VersionUtilTest;
     EventHubTest.class,
     PerfUtilTest.class,
     StopwatchTest.class,
+    AbstractRestClientTest.class,
     RestClientTest.class,
     RestResultTest.class,
     VersionTest.class,
