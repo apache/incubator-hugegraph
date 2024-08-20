@@ -275,7 +275,7 @@ public class MysqlSessions extends BackendSessionPool {
     }
 
     private Connection connect(String url) throws SQLException {
-        LOG.info("Connect to the jdbc url: '{}'", url);
+        LOG.debug("Connect to the jdbc url: '{}'", url);
         String driverName = this.config.get(MysqlOptions.JDBC_DRIVER);
         String username = this.config.get(MysqlOptions.JDBC_USERNAME);
         String password = this.config.get(MysqlOptions.JDBC_PASSWORD);
