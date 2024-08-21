@@ -35,7 +35,7 @@ JACOCO_PORT=36320
 RAFT_TOOLS=$RAFT1_DIR/bin/raft-tools.sh
 RAFT_LEADER="127.0.0.1:8091"
 
-mvn package -DskipTests
+mvn package -Dmaven.test.skip=true
 
 # mkdir for each raft-server
 cp -r $SERVER_DIR $RAFT1_DIR
@@ -57,7 +57,7 @@ export HUGEGRAPH_PASSWORD=pa
 $RAFT_TOOLS --set-leader "hugegraph" "$RAFT_LEADER"
 
 # run api-test
-mvn test -pl hugegraph-server/hugegraph-test -am -P api-test,$BACKEND || (cat $RAFT1_DIR/logs/hugegraph-server.log && exit 1)
+mvn test -pl hugegraph-server/hugegraph-test -am -P api-test,$BACKEND -DskipCommonsTests=true || (cat $RAFT1_DIR/logs/hugegraph-server.log && exit 1)
 
 $TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT $REPORT_FILE
 

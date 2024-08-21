@@ -32,7 +32,7 @@ jobs:
 
       - name: mvn install
         run: |
-          mvn install -DskipTests=true -ntp
+          mvn install -Dmaven.test.skip=true -ntp
       - name: generate current dependencies
         run: |
           bash $SCRIPT_DEPENDENCY/regenerate_known_dependencies.sh current-dependencies.txt

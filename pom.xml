@@ -87,7 +87,7 @@
 
     <properties>
         <revision>1.5.0</revision>
-        <hugegraph-commons.version>1.3.0</hugegraph-commons.version>
+        <hugegraph-commons.version>1.5.0</hugegraph-commons.version>
         <release.name>hugegraph</release.name>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
@@ -99,6 +99,7 @@
         <module>hugegraph-server</module>
         <module>hugegraph-pd</module>
         <module>hugegraph-store</module>
+        <module>hugegraph-commons</module>
         <module>install-dist</module>
     </modules>
 
@@ -272,6 +273,7 @@
                         <!-- You can exclude further files from processing: -->
                         <exclude>**/*.txt</exclude>
                         <exclude>**/.flattened-pom.xml</exclude>
+                        <exclude>**/apache-hugegraph-*/**/*</exclude>
                     </excludes>
                     <!-- All files are included by default:
                     <includes>

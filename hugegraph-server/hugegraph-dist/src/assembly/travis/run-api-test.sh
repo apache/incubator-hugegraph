@@ -29,7 +29,7 @@ REST_SERVER_CONF=$SERVER_DIR/conf/rest-server.properties
 GREMLIN_SERVER_CONF=$SERVER_DIR/conf/gremlin-server.yaml
 JACOCO_PORT=36320
 
-mvn package -DskipTests -ntp
+mvn package -Dmaven.test.skip=true -ntp
 
 # add mysql dependency
 wget -P $SERVER_DIR/lib/ https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
@@ -57,7 +57,7 @@ authentication: {
 $TRAVIS_DIR/start-server.sh $SERVER_DIR $BACKEND $JACOCO_PORT || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
 
 # run api-test
-mvn test -pl hugegraph-server/hugegraph-test -am -P api-test,$BACKEND || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
+mvn test -pl hugegraph-server/hugegraph-test -am -P api-test,$BACKEND -DskipCommonsTests=true || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
 
 $TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT $REPORT_FILE
 

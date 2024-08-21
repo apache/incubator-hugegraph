@@ -20,7 +20,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.apache.hugegraph</groupId>
     <artifactId>hugegraph-commons</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
@@ -35,9 +34,10 @@
     </description>
 
     <parent>
-        <groupId>org.apache</groupId>
-        <artifactId>apache</artifactId>
-        <version>23</version>
+        <groupId>org.apache.hugegraph</groupId>
+        <artifactId>hugegraph</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <licenses>
@@ -90,7 +90,7 @@
 
     <properties>
         <!-- Note: We need also update the version in CommonVersion.java & RpcVersion.java now -->
-        <revision>1.3.0</revision>
+        <revision>1.5.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <compiler.source>1.8</compiler.source>
@@ -116,6 +116,7 @@
         <sun.xml.version>3.0.2</sun.xml.version>
         <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
         <checkstyle.version>8.45</checkstyle.version>
+        <skipCommonsTests>false</skipCommonsTests>
     </properties>
 
     <modules>
@@ -279,6 +280,15 @@
                         </goals>
                     </execution-->
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.20</version>
+                <configuration>
+                    <skipTests>${skipCommonsTests}</skipTests>
+                </configuration>
             </plugin>
         </plugins>
     </build>
