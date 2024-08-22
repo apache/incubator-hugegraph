@@ -686,7 +686,7 @@ public class TaskCoreTest extends BaseCoreTest {
     }
 
     private static void sleepAWhile() {
-        sleepAWhile(10000);
+        sleepAWhile(1000);
     }
 
     private static void sleepAWhile(long ms) {
