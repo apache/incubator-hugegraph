@@ -31,6 +31,10 @@ RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && 
 FROM openjdk:11-slim
 
 COPY --from=build /pkg/hugegraph-server/apache-hugegraph-server-incubating-*/ /hugegraph-server/
+# remove hugegraph.properties and rename hstore.properties.template for default hstore backend
+RUN cd /hugegraph-server/conf/graphs \
+    && rm hugegraph.properties && mv hstore.properties.template hugegraph.properties
+
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default

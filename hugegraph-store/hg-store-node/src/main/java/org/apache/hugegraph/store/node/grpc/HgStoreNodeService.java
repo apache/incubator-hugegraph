@@ -101,6 +101,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 setMaxSegmentFileSize(appConfig.getRaft().getMaxSegmentFileSize());
                 setMaxReplicatorInflightMsgs(appConfig.getRaft().getMaxReplicatorInflightMsgs());
                 setMaxEntriesSize(appConfig.getRaft().getMaxEntriesSize());
+                setMaxBodySize(appConfig.getRaft().getMaxBodySize());
             }});
             setFakePdOptions(new FakePdOptions() {{
                 setStoreList(appConfig.getFakePdConfig().getStoreList());

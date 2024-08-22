@@ -15,39 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.api;
+package org.apache.hugegraph.api.graphspaces;
 
-import org.apache.hugegraph.api.graphspaces.GraphSpaceApiTestSuite;
-import org.apache.hugegraph.api.traversers.TraversersApiTestSuite;
-import org.apache.hugegraph.dist.RegisterUtil;
-import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        PropertyKeyApiTest.class,
-        VertexLabelApiTest.class,
-        EdgeLabelApiTest.class,
-        IndexLabelApiTest.class,
-        SchemaApiTest.class,
-        VertexApiTest.class,
-        EdgeApiTest.class,
-        TaskApiTest.class,
-        GremlinApiTest.class,
-        MetricsApiTest.class,
-        UserApiTest.class,
-        LoginApiTest.class,
-        ProjectApiTest.class,
-        TraversersApiTestSuite.class,
-        CypherApiTest.class,
-        ArthasApiTest.class,
-        GraphSpaceApiTestSuite.class
+        GraphSpacePropertyKeyApiTest.class,
+        GraphSpaceVertexLabelApiTest.class,
+        GraphSpaceEdgeLabelApiTest.class,
+        GraphSpaceIndexLabelApiTest.class,
+        GraphSpaceEdgeApiTest.class,
+        GraphSpaceVertexApiTest.class
 })
-public class ApiTestSuite {
+public class GraphSpaceApiTestSuite {
 
-    @BeforeClass
-    public static void initEnv() {
-        RegisterUtil.registerBackends();
-    }
 }
