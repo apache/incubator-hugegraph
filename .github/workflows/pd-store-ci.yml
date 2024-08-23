@@ -1,4 +1,4 @@
-name: "Graph PD & Store & Hstore CI"
+name: "HugeGraph-PD & Store & Hstore CI"
 
 on:
   push:
@@ -14,7 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # TODO: avoid duplicated env setup in pd & store
-      USE_STAGE: 'false' # Whether to include the stage repository.
+      # TODO: reset use stage to false later
+      USE_STAGE: 'true' # Whether to include the stage repository.
       # TODO: remove outdated env
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
@@ -46,11 +47,11 @@ jobs:
 
       - name: Run common test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-common-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-common-test -DskipCommonsTests=true
 
       - name: Run core test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-core-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-core-test -DskipCommonsTests=true
 
       # The above tests do not require starting a PD instance.
 
@@ -64,11 +65,11 @@ jobs:
 
       - name: Run client test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-client-test -DskipCommonsTests=true
 
       - name: Run rest test
         run: |
-          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-rest-test
+          mvn test -pl hugegraph-pd/hg-pd-test -am -P pd-rest-test -DskipCommonsTests=true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
@@ -79,7 +80,7 @@ jobs:
     # TODO: avoid duplicated env setup
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
+      USE_STAGE: 'true' # Whether to include the stage repository.
       # TODO: remove outdated env
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
@@ -120,27 +121,27 @@ jobs:
 
       - name: Run common test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-common-test -DskipCommonsTests=true
 
       - name: Run client test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-client-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-client-test -DskipCommonsTests=true
 
       - name: Run core test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-core-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-core-test -DskipCommonsTests=true
 
       - name: Run rocksdb test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-rocksdb-test 
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-rocksdb-test -DskipCommonsTests=true
 
       - name: Run server test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-server-test
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-server-test -DskipCommonsTests=true
 
       - name: Run raft-core test
         run: |
-          mvn test -pl hugegraph-store/hg-store-test -am -P store-raftcore-test 
+          mvn test -pl hugegraph-store/hg-store-test -am -P store-raftcore-test -DskipCommonsTests=true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
