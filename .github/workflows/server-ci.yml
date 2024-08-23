@@ -9,8 +9,7 @@ on:
   pull_request:
 
 jobs:
-  # TODO: rename to build-server later
-  build:
+  build-server:
     # TODO: we need test & replace it to ubuntu-24.04 or ubuntu-latest
     runs-on: ubuntu-20.04
     env:
