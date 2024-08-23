@@ -358,7 +358,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 if (i == dbCount - 1) {
                     latestDBPath = curDBPath;
                 } else {
-                    // delete old db，在删除队列的文件不要删除
+                    // delete old db, do not delete files in the deletion queue
                     if (!factory.findPathInRemovedList(curDBPath)) {
                         try {
                             FileUtils.deleteDirectory(new File(curDBPath));
@@ -373,7 +373,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             latestDBPath = Paths.get(parentFile.getPath(), defaultName).toString();
         }
         if (factory.findPathInRemovedList(latestDBPath)) {
-            // 已经被删除，创建新的目录
+            // Has been deleted, create a new directory
             latestDBPath =
                     Paths.get(parentFile.getPath(), String.format("%s_%d", defaultName, version))
                          .toString();

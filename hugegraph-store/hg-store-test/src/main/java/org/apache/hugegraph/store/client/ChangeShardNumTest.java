@@ -27,7 +27,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 测试修改副本数
+ * Test modify copy number
  */
 public class ChangeShardNumTest extends HgStoreClientBase {
 

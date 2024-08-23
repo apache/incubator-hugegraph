@@ -16,10 +16,10 @@
 #
 
 pdserver:
-  # pd服务地址，多个pd地址用逗号分割
+  # PD service address, multiple PD addresses separated by commas
   address: localhost:8686
 grpc:
-  # grpc的服务地址
+  # grpc service address
   host: 127.0.0.1
   port: 8501
   netty-server:
@@ -28,11 +28,11 @@ raft:
   # enable: false
   address: 127.0.0.1:8511
   useRocksDBSegmentLogStorage: false
-  # 快照生成时间间隔，单位秒
+  # Snapshot generation interval, in seconds
   snapshotInterval: 300
   disruptorBufferSize: 128
 server:
-  # rest 服务地址
+  # rest service address
   port: 8521
 
 app:
@@ -58,13 +58,13 @@ rocksdb:
   write_buffer_size: 2000000
   level0_file_num_compaction_trigger: 2
   bloom_filter_bits_per_key: 10
-#fakePd配置参数
+# fakePd configuration parameters
 fake-pd:
-  # fake-pd模式下，store grpc集群列表
+  # fake-pd mode, store grpc cluster list
   store-list: 127.0.0.1:8501,127.0.0.1:8502,127.0.0.1:8503
-  # fake-pd模式下，设置raft集群列表
+  # fake-pd mode, set raft cluster list
   peers-list: 127.0.0.1:8511,127.0.0.1:8512,127.0.0.1:8513
-  # 分区数量
+  # Partition Number
   partition-count: 10
-  # 每个分区副本数量
+  # Number of replicas per partition
   shard-count: 3
