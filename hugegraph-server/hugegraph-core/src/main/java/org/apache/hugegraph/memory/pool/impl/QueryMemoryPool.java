@@ -15,8 +15,37 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.reclaimer;
+package org.apache.hugegraph.memory.pool.impl;
 
-public interface IMemoryReclaimer {
+import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 
+public class QueryMemoryPool extends AbstractMemoryPool {
+
+    private final MemoryManager memoryManager;
+
+    public QueryMemoryPool(String poolName, MemoryManager memoryManager) {
+        super(null, poolName);
+        this.memoryManager = memoryManager;
+    }
+
+    @Override
+    public long tryToAcquireMemory(long bytes) {
+        return 0;
+    }
+
+    @Override
+    public boolean tryToDiskSpill() {
+        return false;
+    }
+
+    @Override
+    public long requestMemory(long bytes) {
+        return 0;
+    }
+
+    @Override
+    public long reclaimMemory(long bytes, long maxWaitMs) {
+        return 0;
+    }
 }

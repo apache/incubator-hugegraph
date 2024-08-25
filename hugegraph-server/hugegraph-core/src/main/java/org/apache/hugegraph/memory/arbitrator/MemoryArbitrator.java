@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.reclaimer;
+package org.apache.hugegraph.memory.arbitrator;
 
-public interface IMemoryReclaimer {
+public class MemoryArbitrator implements IMemoryArbitrator {
 
 }

@@ -15,8 +15,16 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.reclaimer;
+package org.apache.hugegraph.memory.allocator;
 
-public interface IMemoryReclaimer {
+// TODO(pjz): implement different memory allocate strategy.
+public interface IMemoryAllocator {
 
+    long tryToAllocateOnHeap(long size);
+
+    long forceAllocateOnHeap(long size);
+
+    long tryToAllocateOffHeap(long size);
+
+    long forceAllocateOffHeap(long size);
 }
