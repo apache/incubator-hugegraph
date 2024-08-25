@@ -115,6 +115,7 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <scope>compile</scope>
+            <optional>true</optional>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.google.protobuf/protobuf-java-util -->
         <dependency>
