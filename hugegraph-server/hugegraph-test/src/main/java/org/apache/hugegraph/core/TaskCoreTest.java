@@ -552,7 +552,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         HugeTask<Object> task = runGremlinJob("Thread.sleep(1000 * 10);");
 
-        sleepAWhile();
+        sleepAWhile(200 * 6);
         task = scheduler.task(task.id());
         scheduler.cancel(task);
 
@@ -686,7 +686,7 @@ public class TaskCoreTest extends BaseCoreTest {
     }
 
     private static void sleepAWhile() {
-        sleepAWhile(1000);
+        sleepAWhile(100);
     }
 
     private static void sleepAWhile(long ms) {
