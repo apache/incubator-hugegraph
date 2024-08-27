@@ -21,6 +21,7 @@ import static org.apache.hugegraph.config.OptionChecker.allowValues;
 import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
 import static org.apache.hugegraph.config.OptionChecker.nonNegativeInt;
 import static org.apache.hugegraph.config.OptionChecker.positiveInt;
+import static org.apache.hugegraph.config.OptionChecker.rangeDouble;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
 public class ServerOptions extends OptionHolder {
@@ -320,5 +321,22 @@ public class ServerOptions extends OptionHolder {
                     "0 means logging slow query is disabled.",
                     nonNegativeInt(),
                     1000L
+            );
+
+    public static final ConfigOption<Double> JVM_MEMORY_MONITOR_THRESHOLD =
+            new ConfigOption<>(
+                    "memory_monitor.threshold",
+                    "Threshold for JVM memory usage monitoring, 1 means disabling the memory " +
+                    "monitoring thread.",
+                    rangeDouble(0.0, 1.0),
+                    0.85
+            );
+
+    public static final ConfigOption<Integer> JVM_MEMORY_MONITOR_PERIOD =
+            new ConfigOption<>(
+                    "memory_monitor.period",
+                    "The period of JVM memory usage monitoring, the unit is milliseconds.",
+                    nonNegativeInt(),
+                    2000
             );
 }
