@@ -58,7 +58,7 @@ authentication: {
 $TRAVIS_DIR/start-server.sh $SERVER_DIR $BACKEND $JACOCO_PORT || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
 
 # run api-test
-mvn test -pl hugegraph-server/hugegraph-test -am -P api-test,$BACKEND -DskipCommonsTests=true || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
+mvn test -pl hugegraph-server/hugegraph-test -am -P api-test,$BACKEND || (cat $SERVER_DIR/logs/hugegraph-server.log && exit 1)
 
 $TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT $REPORT_FILE
 
