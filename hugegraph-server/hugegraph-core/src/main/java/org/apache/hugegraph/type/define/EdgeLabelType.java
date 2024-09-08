@@ -19,14 +19,11 @@ package org.apache.hugegraph.type.define;
 
 public enum EdgeLabelType implements SerialEnum {
 
-
     NORMAL(1, "NORMAL"),
 
     PARENT(2, "PARENT"),
 
     SUB(3, "SUB"),
-
-    GENERAL(4, "GENERAL"),
     ;
 
     static {
@@ -62,9 +59,4 @@ public enum EdgeLabelType implements SerialEnum {
     public boolean sub() {
         return this == SUB;
     }
-
-    public boolean general() {
-        return this == GENERAL;
-    }
-
 }

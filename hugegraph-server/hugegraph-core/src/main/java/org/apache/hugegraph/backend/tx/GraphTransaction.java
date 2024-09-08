@@ -31,6 +31,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Iterators;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
@@ -1044,6 +1046,20 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
+        if (query instanceof ConditionQuery) {
+            ConditionQuery cq = (ConditionQuery) query;
+            Id label = cq.condition(HugeKeys.LABEL);
+            if (label != null &&
+                graph().edgeLabel(label).isFather() &&
+                cq.condition(HugeKeys.SUB_LABEL) == null &&
+                cq.condition(HugeKeys.OWNER_VERTEX) != null &&
+                cq.condition(HugeKeys.DIRECTION) != null &&
+                matchEdgeSortKeys(cq, false, this.graph())) {
+                return parentElQueryWithSortKeys(graph().edgeLabel(label), graph().edgeLabels(),
+                                                 cq);
+            }
+        }
+
         QueryResults<BackendEntry> results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
 
@@ -1066,6 +1082,26 @@ public class GraphTransaction extends IndexableTransaction {
         if (!this.store().features().supportsQuerySortByInputIds()) {
             // There is no id in BackendEntry, so sort after deserialization
             edges = results.keepInputOrderIfNeeded(edges);
+        }
+        return edges;
+    }
+
+    private Iterator<HugeEdge> parentElQueryWithSortKeys(EdgeLabel label,
+                                                         Collection<EdgeLabel> allEls,
+                                                         ConditionQuery cq) {
+        Iterator<HugeEdge> edges = null;
+        int count = 0;
+        for (EdgeLabel el : allEls) {
+            if (el.edgeLabelType().sub() && el.fatherId().equals(label.id())) {
+                ConditionQuery tempQuery = cq.copy();
+                tempQuery.eq(HugeKeys.SUB_LABEL, el.id());
+                count++;
+                if (count == 1) {
+                    edges = this.queryEdgesFromBackend(tempQuery);
+                } else {
+                    edges = Iterators.concat(edges, this.queryEdgesFromBackend(tempQuery));
+                }
+            }
         }
         return edges;
     }
@@ -1522,7 +1558,8 @@ public class GraphTransaction extends IndexableTransaction {
                 query.optimized(OptimizedType.SORT_KEYS);
                 query = query.copy();
                 // Serialize sort-values
-                List<Id> keys = this.graph().edgeLabel(label).sortKeys();
+                EdgeLabel el = this.graph().edgeLabel(label);
+                List<Id> keys = el.sortKeys();
                 List<Condition> conditions = GraphIndexTransaction
                         .constructShardConditions(query, keys, HugeKeys.SORT_VALUES);
                 query.query(conditions);
@@ -1532,6 +1569,9 @@ public class GraphTransaction extends IndexableTransaction {
                  */
                 query.resetUserpropConditions();
 
+                if (query.condition(HugeKeys.SUB_LABEL) == null) {
+                    query.eq(HugeKeys.SUB_LABEL, el.id());
+                }
                 LOG.debug("Query edges by sortKeys: {}", query);
                 return query;
             }
