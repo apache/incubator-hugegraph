@@ -61,17 +61,6 @@
             <version>1.18.24</version>
             <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.freemarker</groupId>
-            <artifactId>freemarker</artifactId>
-            <version>2.3.33</version>
-        </dependency>
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>2.2</version>
-            <scope>compile</scope>
-        </dependency>
     </dependencies>
 
 </project>
