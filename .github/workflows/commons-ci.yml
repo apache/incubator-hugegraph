@@ -1,0 +1,64 @@
+name: "HugeGraph-Commons CI"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - /^release-.*$/
+      - /^test-.*$/
+  pull_request:
+
+jobs:
+  build-commons:
+    runs-on: ubuntu-latest
+    env:
+      # TODO: reset use stage to false later
+      USE_STAGE: 'true' # Whether to include the stage repository.
+
+    strategy:
+      fail-fast: false
+      matrix:
+        JAVA_VERSION: ['11']
+
+    steps:
+      - name: Install JDK ${{ matrix.JAVA_VERSION }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.JAVA_VERSION }}
+          distribution: 'zulu'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+
+      - name: Use staged maven repo settings
+        if: ${{ env.USE_STAGE == 'true' }}
+        run: |
+          cp $HOME/.m2/settings.xml /tmp/settings.xml
+          cp -vf .github/configs/settings.xml $HOME/.m2/settings.xml && cat $HOME/.m2/settings.xml
+
+      - name: Compile
+        run: |
+          mvn compile -Dmaven.javadoc.skip=true -ntp
+
+      - name: Run common test
+        run: |
+          mvn test -pl hugegraph-commons/hugegraph-common -Dtest=UnitTestSuite -DskipCommonsTests=false
+
+      - name: Run rpc test
+        run: |
+          mvn test -pl hugegraph-commons/hugegraph-rpc -Dtest=UnitTestSuite -DskipCommonsTests=false
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3.0.0
+        with:
+          file: target/jacoco.xml

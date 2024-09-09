@@ -1,4 +1,4 @@
-name: "Graph Server CI"
+name: "HugeGraph-Server CI"
 
 on:
   push:
@@ -9,11 +9,12 @@ on:
   pull_request:
 
 jobs:
-  build:
+  build-server:
     # TODO: we need test & replace it to ubuntu-24.04 or ubuntu-latest
     runs-on: ubuntu-20.04
     env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
+      # TODO: reset use stage to false later
+      USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}

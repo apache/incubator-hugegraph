@@ -113,7 +113,7 @@ public class HgStoreWrapperEx {
 
     public boolean doGraph(int partId, GraphMethod method, String graph) {
         boolean flag = true;
-        if (method == GRAPH_METHOD_DELETE) {// 交给 raft 执行，此处不处理
+        if (method == GRAPH_METHOD_DELETE) {// Hand over to raft for execution, no processing here
             flag = true;
         } else {
             throw new UnsupportedOperationException("GraphMethod: " + method.name());
