@@ -23,14 +23,10 @@ import java.io.InputStreamReader;
 
 import org.apache.hugegraph.ct.env.BaseEnv;
 import org.apache.hugegraph.ct.env.SimpleEnv;
-import org.apache.hugegraph.util.Log;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.slf4j.Logger;
 
 public class BaseSimpleTest {
-
-    protected static final Logger LOG = Log.logger(BaseSimpleTest.class);
 
     protected static BaseEnv env;
 
