@@ -43,7 +43,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                               VERIFY_LICENSE_FILE)
         );
         this.workPath = PD_LIB_PATH;
-        this.startLine = "o.a.h.p.s.PDService - PDService init";
+        this.startLine = "Hugegraph-pd started.";
         createNodeDir(getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
@@ -58,7 +58,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                               VERIFY_LICENSE_FILE)
         );
         this.workPath = PD_LIB_PATH;
-        this.startLine = "o.a.h.p.s.PDService - PDService init";
+        this.startLine = "Hugegraph-pd started.";
         createNodeDir(getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
@@ -84,9 +84,9 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                             "-Xmx4g",
                             "-XX:+HeapDumpOnOutOfMemoryError",
                             "-XX:HeapDumpPath=" + configPath + "logs",
-                            "-Dlog4j.configurationFile=" + configPath + File.separator + CONF_DIR +
-                            File.separator +
-                            "log4j2.xml",
+                            "-Dlog4j.configurationFile=" + configPath + File.separator +
+                            CONF_DIR +
+                            File.separator + "log4j2.xml",
                             "-Dspring.config.location=" + configPath + CONF_DIR + File.separator +
                             "application.yml",
                             "-jar", pdNodeJarPath));

@@ -34,11 +34,12 @@ public class EnvUtil {
             ServerSocket socket = new ServerSocket(0);
             int port = socket.getLocalPort();
             while (ports.contains(port)) {
+                socket.close();
                 socket = new ServerSocket(0);
                 port = socket.getLocalPort();
-                socket.close();
             }
             ports.add(port);
+            socket.close();
             return port;
         } catch (IOException e) {
             LOG.error("fail to get available ports", e);

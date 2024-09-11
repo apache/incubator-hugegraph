@@ -25,6 +25,7 @@ public class ClusterConstant {
 
     public static final String USER_DIR = "user.dir";
     public static final String LOG = "logs";
+    public static final String PROJECT_DIR = getProjectDir();
 
     public static final String LIB_DIR = "lib";
     public static final String EXT_DIR = "ext";
@@ -69,7 +70,7 @@ public class ClusterConstant {
             + (SystemUtils.IS_OS_WINDOWS ? "java.exe" : "java");
 
     public static final String PD_DIST_PATH =
-            System.getProperty(USER_DIR)
+            PROJECT_DIR
             + File.separator
             + "hugegraph-pd"
             + File.separator;
@@ -81,7 +82,7 @@ public class ClusterConstant {
             + File.separator;
 
     public static final String STORE_DIST_PATH =
-            System.getProperty(USER_DIR)
+            PROJECT_DIR
             + File.separator
             + "hugegraph-store"
             + File.separator;
@@ -93,7 +94,7 @@ public class ClusterConstant {
             + File.separator;
 
     public static final String SERVER_DIST_PATH =
-            System.getProperty(USER_DIR)
+            PROJECT_DIR
             + File.separator
             + "hugegraph-server"
             + File.separator;
@@ -103,7 +104,7 @@ public class ClusterConstant {
             + File.separator;
 
     public static final String CT_DIST_PATH =
-            System.getProperty(USER_DIR)
+            PROJECT_DIR
             + File.separator
             + "hugegraph-cluster-test"
             + File.separator;
@@ -140,5 +141,14 @@ public class ClusterConstant {
         }
         int versionNumber = Integer.parseInt(version);
         return versionNumber >= 11;
+    }
+
+    public static String getProjectDir() {
+        if (System.getProperty(USER_DIR).endsWith("hugegraph-cluster-test")) {
+            return System.getProperty(USER_DIR) + "/..";
+        } else if (System.getProperty(USER_DIR).endsWith("hugegraph-clustertest-test")) {
+            return System.getProperty(USER_DIR) + "/../..";
+        }
+        return System.getProperty(USER_DIR);
     }
 }

@@ -30,7 +30,7 @@ management:
         include: "*"
 
 logging:
-  config: file:./conf/log4j2.xml
+  config: 'file:./conf/log4j2.xml'
 license:
   verify-path: ./conf/verify-license.json
   license-path: ./conf/hugegraph.license

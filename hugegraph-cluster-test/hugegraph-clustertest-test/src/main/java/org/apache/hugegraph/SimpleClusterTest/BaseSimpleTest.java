@@ -39,8 +39,9 @@ public class BaseSimpleTest {
     }
 
     @AfterClass
-    public static void clearEnv() {
+    public static void clearEnv() throws InterruptedException {
         env.clearCluster();
+        Thread.sleep(2000);
     }
 
     protected String execCurl(String[] cmds) throws IOException {
