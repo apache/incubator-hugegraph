@@ -179,6 +179,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         for (Id id : edge.schemaLabel().indexLabels()) {
             this.updateIndex(id, edge, removed);
         }
+
+        EdgeLabel label = edge.schemaLabel();
+        if (label.hasFather()) {
+            for (Id id : graph().edgeLabel(label.fatherId()).indexLabels()) {
+                this.updateIndex(id, edge, removed);
+            }
+        }
     }
 
     private void updateVertexOlapIndex(HugeVertex vertex, boolean removed) {

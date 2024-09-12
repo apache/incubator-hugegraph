@@ -100,6 +100,15 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
                                     .sortKeys("time")
                                     .create();
 
+        graph().schema().indexLabel("transferByAmount").onE("transfer")
+               .by("amount").secondary().ifNotExist().create();
+        graph().schema().indexLabel("transfer-1ByAmount").onE("transfer-1")
+               .by("amount").secondary().ifNotExist().create();
+        graph().schema().indexLabel("transfer-2ByAmount").onE("transfer-2")
+               .by("amount").secondary().ifNotExist().create();
+        graph().schema().indexLabel("transfer-3ByAmount").onE("transfer-3")
+               .by("amount").secondary().ifNotExist().create();
+
         schema.edgeLabel("know").multiTimes()
               .sourceLabel("person")
               .targetLabel("person")
@@ -107,6 +116,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
               .properties("time")
               .sortKeys("time")
               .create();
+
+        graph().schema().indexLabel("knowByTime").onE("know")
+               .by("time").secondary().ifNotExist().create();
 
         EdgeLabel transfer4 = schema.edgeLabel("转账")
                                     .multiTimes()
@@ -207,11 +219,12 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryParentAndSubEdgesWithHasLabelAndConditions() {
-        //  hasLabel + 条件过滤 类型的查询
+        // hasLabel + 条件过滤 类型的查询
         init10Edges();
 
+        List<Edge> edges;
         // 普通边
-        List<Edge> edges = graph().traversal().E().hasLabel("know")
+        edges = graph().traversal().E().hasLabel("know")
                                   .has("time", "2022-1-1")
                                   .toList();
 

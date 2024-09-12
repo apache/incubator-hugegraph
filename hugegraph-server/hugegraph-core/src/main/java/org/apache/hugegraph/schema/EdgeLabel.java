@@ -175,19 +175,18 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public boolean linkWithVertexLabel(Id label, Directions dir) {
-        if (this.links.size() != 1) {
+        return this.links.stream().anyMatch(pair -> {
+            Id sourceLabel = pair.getLeft();
+            Id targetLabel = pair.getRight();
+            if (dir.equals(Directions.IN)) {
+                return targetLabel.equals(label);
+            } else if (dir.equals(Directions.OUT)) {
+                return sourceLabel.equals(label);
+            } else if (dir.equals(Directions.BOTH)) {
+                return targetLabel.equals(label) || sourceLabel.equals(label);
+            }
             return false;
-        }
-        Id sourceLabel = this.links.iterator().next().getLeft();
-        Id targetLabel = this.links.iterator().next().getRight();
-        if (dir.equals(Directions.IN)) {
-            return targetLabel.equals(label);
-        } else if (dir.equals(Directions.OUT)) {
-            return sourceLabel.equals(label);
-        } else if (dir.equals(Directions.BOTH)) {
-            return targetLabel.equals(label) || sourceLabel.equals(label);
-        }
-        return false;
+        });
     }
 
     public boolean checkLinkEqual(Id sourceLabel, Id targetLabel) {

@@ -331,6 +331,14 @@ public interface HugeGraph extends Graph {
         return ids;
     }
 
+    default EdgeLabel[] mapElName2El(String[] edgeLabels) {
+        EdgeLabel[] els = new EdgeLabel[edgeLabels.length];
+        for (int i = 0; i < edgeLabels.length; i++) {
+            els[i] = this.edgeLabel(edgeLabels[i]);
+        }
+        return els;
+    }
+
     static void registerTraversalStrategies(Class<?> clazz) {
         TraversalStrategies strategies = TraversalStrategies.GlobalCache
                 .getStrategies(Graph.class)

@@ -297,7 +297,6 @@ public class BinarySerializer extends AbstractSerializer {
                                                       sortValues, otherVertexId);
         } else {
             EdgeLabel edgeLabel = graph.edgeLabelOrNone(subLabelId);
-
             edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
                                           sortValues, otherVertexId);
         }
@@ -738,6 +737,9 @@ public class BinarySerializer extends AbstractSerializer {
                 byte t = ((Directions) value).type().code();
                 buffer.write(t);
             } else if (key == HugeKeys.LABEL) {
+                assert value instanceof Id;
+                buffer.writeId((Id) value);
+            } else if (key == HugeKeys.SUB_LABEL) {
                 assert value instanceof Id;
                 buffer.writeId((Id) value);
             } else if (key == HugeKeys.SORT_VALUES) {

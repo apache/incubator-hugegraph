@@ -72,6 +72,7 @@ import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeEdge;
@@ -372,7 +373,7 @@ public class GraphTransaction extends IndexableTransaction {
                 continue;
             }
             // Query all edges of the vertex and remove them
-            Query query = constructEdgesQuery(v.id(), Directions.BOTH);
+            Query query = constructEdgesQuery(v.id(), Directions.BOTH, new Id[0]);
             Iterator<HugeEdge> vedges = this.queryEdgesFromBackend(query);
             try {
                 while (vedges.hasNext()) {
@@ -915,7 +916,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     public Iterator<Edge> queryEdgesByVertex(Id id) {
-        return this.queryEdges(constructEdgesQuery(id, Directions.BOTH));
+        return this.queryEdges(constructEdgesQuery(id, Directions.BOTH, new Id[0]));
     }
 
     public Iterator<Edge> queryEdges(Object... edgeIds) {
@@ -1046,19 +1047,19 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
-        if (query instanceof ConditionQuery) {
-            ConditionQuery cq = (ConditionQuery) query;
-            Id label = cq.condition(HugeKeys.LABEL);
-            if (label != null &&
-                graph().edgeLabel(label).isFather() &&
-                cq.condition(HugeKeys.SUB_LABEL) == null &&
-                cq.condition(HugeKeys.OWNER_VERTEX) != null &&
-                cq.condition(HugeKeys.DIRECTION) != null &&
-                matchEdgeSortKeys(cq, false, this.graph())) {
-                return parentElQueryWithSortKeys(graph().edgeLabel(label), graph().edgeLabels(),
-                                                 cq);
-            }
-        }
+        //if (query instanceof ConditionQuery) {
+        //    ConditionQuery cq = (ConditionQuery) query;
+        //    Id label = cq.condition(HugeKeys.LABEL);
+        //    if (label != null &&
+        //        graph().edgeLabel(label).isFather() &&
+        //        cq.condition(HugeKeys.SUB_LABEL) == null &&
+        //        cq.condition(HugeKeys.OWNER_VERTEX) != null &&
+        //        cq.condition(HugeKeys.DIRECTION) != null &&
+        //        matchEdgeSortKeys(cq, false, this.graph())) {
+        //        return parentElQueryWithSortKeys(graph().edgeLabel(label), graph().edgeLabels(),
+        //                                         cq);
+        //    }
+        //}
 
         QueryResults<BackendEntry> results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
@@ -1274,6 +1275,13 @@ public class GraphTransaction extends IndexableTransaction {
     public static ConditionQuery constructEdgesQuery(Id sourceVertex,
                                                      Directions direction,
                                                      Id... edgeLabels) {
+        return constructEdgesQuery(sourceVertex, direction, List.of(edgeLabels));
+    }
+
+    @Watched
+    public static ConditionQuery constructEdgesQuery(Id sourceVertex,
+                                                     Directions direction,
+                                                     EdgeLabel... edgeLabels) {
         E.checkState(sourceVertex != null,
                      "The edge query must contain source vertex");
         E.checkState(direction != null,
@@ -1296,16 +1304,25 @@ public class GraphTransaction extends IndexableTransaction {
 
         // Edge labels
         if (edgeLabels.length == 1) {
-            query.eq(HugeKeys.LABEL, edgeLabels[0]);
-        } else if (edgeLabels.length > 1) {
-            query.query(Condition.in(HugeKeys.LABEL,
-                                     Arrays.asList(edgeLabels)));
+            EdgeLabel edgeLabel = edgeLabels[0];
+            if (edgeLabel.hasFather()) {
+                query.eq(HugeKeys.LABEL, edgeLabel.fatherId());
+                query.eq(HugeKeys.SUB_LABEL, edgeLabel.id());
+            } else {
+                query.eq(HugeKeys.LABEL, edgeLabel.id());
+            }
+        } else if (edgeLabels.length >= 1) {
+            query.query(
+                    Condition.in(HugeKeys.LABEL,
+                                 Arrays.stream(edgeLabels)
+                                       .map(SchemaElement::id)
+                                       .collect(Collectors.toList())));
         }
 
         return query;
     }
 
-    public static ConditionQuery constructEdgesQuery(Id sourceVertex,
+    private static ConditionQuery constructEdgesQuery(Id sourceVertex,
                                                      Directions direction,
                                                      List<Id> edgeLabels) {
         E.checkState(sourceVertex != null,
@@ -1855,6 +1872,12 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         ConditionQuery cq = (ConditionQuery) query;
+        if (cq.condition(HugeKeys.LABEL) != null && cq.resultType().isEdge()) {
+            // g.E().hasLabel(xxx)
+            // g.E().hasLabel(xxx).has(yyy)
+            return true;
+        }
+
         if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
             if (cq.existLeftIndex(elem.id())) {
                 /*
