@@ -318,10 +318,6 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
         Vertex person2 = list.get(1);
         Vertex person3 = list.get(2);
 
-        List<Edge> edges;
-        edges = graph().traversal().V(person1.id())
-                       .outE("know")
-                       .has("time", "2022-1-1").toList();
         int transferEdges = graph().traversal().V(person2.id())
                                    .outE("transfer")
                                    .has("time", "2022-1-1").toList().size();
@@ -344,11 +340,6 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
         Vertex person2 = list.get(1);
         Vertex person3 = list.get(2);
 
-        List<Edge> edges;
-        edges = graph().traversal().V(person1.id())
-                       .outE("know")
-                       .has("time", "2022-1-1")
-                       .toList();
         int transferEdges = graph().traversal().V(person2.id())
                                    .outE("transfer")
                                    .has("time", "2022-1-1")

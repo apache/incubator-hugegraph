@@ -20,6 +20,7 @@ package org.apache.hugegraph.backend.tx;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -30,6 +31,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.Iterators;
 
@@ -1047,19 +1049,34 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
-        //if (query instanceof ConditionQuery) {
-        //    ConditionQuery cq = (ConditionQuery) query;
-        //    Id label = cq.condition(HugeKeys.LABEL);
-        //    if (label != null &&
-        //        graph().edgeLabel(label).isFather() &&
-        //        cq.condition(HugeKeys.SUB_LABEL) == null &&
-        //        cq.condition(HugeKeys.OWNER_VERTEX) != null &&
-        //        cq.condition(HugeKeys.DIRECTION) != null &&
-        //        matchEdgeSortKeys(cq, false, this.graph())) {
-        //        return parentElQueryWithSortKeys(graph().edgeLabel(label), graph().edgeLabels(),
-        //                                         cq);
-        //    }
-        //}
+        if (query instanceof ConditionQuery) {
+            boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
+            Stream<ConditionQuery> flattenedQueries = ConditionQueryFlatten.flatten((ConditionQuery) query, supportIn).stream();
+
+            Stream<Iterator<HugeEdge>> edgeIterators = flattenedQueries.map(cq -> {
+                Id label = cq.condition(HugeKeys.LABEL);
+                if (label != null &&
+                    graph().edgeLabel(label).isFather() &&
+                    cq.condition(HugeKeys.SUB_LABEL) == null &&
+                    cq.condition(HugeKeys.OWNER_VERTEX) != null &&
+                    cq.condition(HugeKeys.DIRECTION) != null &&
+                    matchEdgeSortKeys(cq, false, this.graph())) {
+                    // g.V("V.id").outE("parentLabel").has("sortKey","value")
+                    return parentElQueryWithSortKeys(
+                            graph().edgeLabel(label), graph().edgeLabels(), cq);
+                } else {
+                    return queryEdgesFromBackendInternal(cq);
+                }
+            });
+
+            return edgeIterators.reduce(Iterators::concat).orElse(Collections.emptyIterator());
+        }
+
+        return queryEdgesFromBackendInternal(query);
+    }
+
+    private Iterator<HugeEdge> queryEdgesFromBackendInternal(Query query) {
+        assert query.resultType().isEdge();
 
         QueryResults<BackendEntry> results = this.query(query);
         Iterator<BackendEntry> entries = results.iterator();
@@ -1090,21 +1107,15 @@ public class GraphTransaction extends IndexableTransaction {
     private Iterator<HugeEdge> parentElQueryWithSortKeys(EdgeLabel label,
                                                          Collection<EdgeLabel> allEls,
                                                          ConditionQuery cq) {
-        Iterator<HugeEdge> edges = null;
-        int count = 0;
-        for (EdgeLabel el : allEls) {
-            if (el.edgeLabelType().sub() && el.fatherId().equals(label.id())) {
-                ConditionQuery tempQuery = cq.copy();
-                tempQuery.eq(HugeKeys.SUB_LABEL, el.id());
-                count++;
-                if (count == 1) {
-                    edges = this.queryEdgesFromBackend(tempQuery);
-                } else {
-                    edges = Iterators.concat(edges, this.queryEdgesFromBackend(tempQuery));
-                }
-            }
-        }
-        return edges;
+        return allEls.stream()
+                     .filter(el -> el.edgeLabelType().sub() && el.fatherId().equals(label.id()))
+                     .map(el -> {
+                         ConditionQuery tempQuery = cq.copy();
+                         tempQuery.eq(HugeKeys.SUB_LABEL, el.id());
+                         return this.queryEdgesFromBackend(tempQuery);
+                     })
+                     .reduce(Iterators::concat)
+                     .orElse(Collections.emptyIterator());
     }
 
     @Watched(prefix = "graph")
