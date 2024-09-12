@@ -49,9 +49,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
     }
 
     public PDNodeWrapper(int clusterIndex, int index) {
-        super();
-        this.clusterIndex = clusterIndex;
-        this.index = index;
+        super(clusterIndex, index);
         this.fileNames = new ArrayList<>(
                 Arrays.asList(LOG4J_FILE,
                               LICENSE_FILE,

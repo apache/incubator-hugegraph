@@ -61,6 +61,18 @@
                             </includes>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>multi-cluster-test</id>
+                        <configuration>
+                            <testSourceDirectory>${basedir}/src/main/java/
+                            </testSourceDirectory>
+                            <testClassesDirectory>${basedir}/target/classes/
+                            </testClassesDirectory>
+                            <includes>
+                                <include>**/MultiClusterSuiteTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

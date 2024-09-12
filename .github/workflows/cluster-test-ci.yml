@@ -43,6 +43,10 @@ jobs:
         run: |
           mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
 
-      - name: Run cluster test
+      - name: Run simple cluster test
         run: |
           mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P simple-cluster-test -DskipCommonsTests=true
+
+      - name: Run multi cluster test
+        run: |
+          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P multi-cluster-test -DskipCommonsTests=true

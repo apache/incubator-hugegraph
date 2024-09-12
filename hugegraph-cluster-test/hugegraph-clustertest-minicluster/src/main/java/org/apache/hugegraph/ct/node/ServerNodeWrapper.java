@@ -43,9 +43,7 @@ import java.util.List;
 public class ServerNodeWrapper extends AbstractNodeWrapper {
 
     public ServerNodeWrapper(int clusterIndex, int index) {
-        super();
-        this.clusterIndex = clusterIndex;
-        this.index = index;
+        super(clusterIndex, index);
         this.fileNames = new ArrayList<>(
                 List.of(LOG4J_FILE,
                         HUGEGRAPH_SERVER_KEYSTORE,

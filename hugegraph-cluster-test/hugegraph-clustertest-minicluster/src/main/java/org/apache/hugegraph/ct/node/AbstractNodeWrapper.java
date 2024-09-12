@@ -62,6 +62,13 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
         this.configPath = getNodePath();
     }
 
+    public AbstractNodeWrapper(int clusterIndex, int index) {
+        this.clusterIndex = clusterIndex;
+        this.index = index;
+        fileNames = new ArrayList<>();
+        this.configPath = getNodePath();
+    }
+
     /**
      * Node Dir should be created before changing Config
      */
