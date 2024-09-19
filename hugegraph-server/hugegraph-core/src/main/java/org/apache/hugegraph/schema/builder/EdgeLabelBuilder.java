@@ -632,6 +632,11 @@ public class EdgeLabelBuilder extends AbstractBuilder
     }
 
     private void checkStableVars() {
+        if (this.sourceLabel != null) {
+            throw new NotAllowException(
+                    "Not allowed to update source label " +
+                    "for edge label '%s', it must be null", this.name);
+        }
         if (this.links != null && !this.links.isEmpty()) {
             throw new NotAllowException(
                     "Not allowed to update source/target label " +

@@ -21,6 +21,8 @@ import java.util.Deque;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedDeque;
 
+import com.google.common.base.Preconditions;
+
 import org.apache.hugegraph.util.E;
 
 public class ExtendableIterator<T> extends WrappedIterator<T> {
@@ -52,6 +54,15 @@ public class ExtendableIterator<T> extends WrappedIterator<T> {
             this.itors.addLast(iter);
         }
         return this;
+    }
+
+    public static <T> ExtendableIterator<T> concat(Iterator<T> lhs, Iterator<T> rhs) {
+        Preconditions.checkNotNull(lhs);
+        Preconditions.checkNotNull(rhs);
+        if (lhs instanceof ExtendableIterator) {
+            return ((ExtendableIterator<T>) lhs).extend(rhs);
+        }
+        return new ExtendableIterator<>(lhs, rhs);
     }
 
     @Override

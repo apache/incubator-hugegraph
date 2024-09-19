@@ -1069,7 +1069,7 @@ public class GraphTransaction extends IndexableTransaction {
                 }
             });
 
-            return edgeIterators.reduce(Iterators::concat).orElse(Collections.emptyIterator());
+            return edgeIterators.reduce(ExtendableIterator::concat).orElse(Collections.emptyIterator());
         }
 
         return queryEdgesFromBackendInternal(query);

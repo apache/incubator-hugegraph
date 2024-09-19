@@ -1184,7 +1184,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         });
 
         Assert.assertThrows(HugeException.class, () -> {
-            schema.edgeLabel("write").targetLabel("person2").eliminate();
+            schema.edgeLabel("write").sourceLabel("person2").targetLabel("person2").eliminate();
         });
 
         Assert.assertThrows(HugeException.class, () -> {
