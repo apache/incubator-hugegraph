@@ -1883,9 +1883,14 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         ConditionQuery cq = (ConditionQuery) query;
-        if (cq.condition(HugeKeys.LABEL) != null && cq.resultType().isEdge()) {
+        if (cq.conditions().size() == 1 && cq.condition(HugeKeys.LABEL) != null && cq.resultType().isEdge()) {
             // g.E().hasLabel(xxx)
+            return true;
+        }
+
+        if (cq.optimized() == OptimizedType.INDEX && cq.condition(HugeKeys.LABEL) != null && cq.resultType().isEdge()) {
             // g.E().hasLabel(xxx).has(yyy)
+            // consider OptimizedType.INDEX_FILTER occurred in org.apache.hugegraph.core.EdgeCoreTest.testQueryCount
             return true;
         }
 
