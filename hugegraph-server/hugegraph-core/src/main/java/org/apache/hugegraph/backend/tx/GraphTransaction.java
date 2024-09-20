@@ -1049,7 +1049,7 @@ public class GraphTransaction extends IndexableTransaction {
     protected Iterator<HugeEdge> queryEdgesFromBackend(Query query) {
         assert query.resultType().isEdge();
 
-        if (query instanceof ConditionQuery) {
+        if (query instanceof ConditionQuery && !query.paging()) {
             boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
             Stream<ConditionQuery> flattenedQueries = ConditionQueryFlatten.flatten((ConditionQuery) query, supportIn).stream();
 
@@ -1883,15 +1883,22 @@ public class GraphTransaction extends IndexableTransaction {
         }
 
         ConditionQuery cq = (ConditionQuery) query;
-        if (cq.conditions().size() == 1 && cq.condition(HugeKeys.LABEL) != null && cq.resultType().isEdge()) {
-            // g.E().hasLabel(xxx)
-            return true;
-        }
-
-        if (cq.optimized() == OptimizedType.INDEX && cq.condition(HugeKeys.LABEL) != null && cq.resultType().isEdge()) {
-            // g.E().hasLabel(xxx).has(yyy)
-            // consider OptimizedType.INDEX_FILTER occurred in org.apache.hugegraph.core.EdgeCoreTest.testQueryCount
-            return true;
+        if (cq.condition(HugeKeys.LABEL) != null && cq.resultType().isEdge()) {
+            if (cq.conditions().size() == 1) {
+                // g.E().hasLabel(xxx)
+                return true;
+            }
+            if (cq.optimized() == OptimizedType.INDEX) {
+                // g.E().hasLabel(xxx).has(yyy)
+                // consider OptimizedType.INDEX_FILTER occurred in org.apache.hugegraph.core.EdgeCoreTest.testQueryCount
+                try {
+                    this.indexTx.asyncRemoveIndexLeft(cq, elem);
+                } catch (Throwable e) {
+                    LOG.warn("Failed to remove left index for query '{}', " +
+                             "element '{}'", cq, elem, e);
+                }
+                return true;
+            }
         }
 
         if (cq.optimized() == OptimizedType.NONE || cq.test(elem)) {
