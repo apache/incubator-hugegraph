@@ -1626,6 +1626,15 @@ public class GraphTransaction extends IndexableTransaction {
              */
             boolean byLabel = (label != null && query.conditionsSize() == 1);
             if (!byLabel || this.store().features().supportsQueryByLabel()) {
+                if (byLabel && query.resultType().isEdge()) {
+                    // for memory backend
+                    EdgeLabel edgeLabel = graph().edgeLabel(label);
+                    if (edgeLabel.hasFather()) {
+                        query.resetConditions();
+                        query.eq(HugeKeys.LABEL, edgeLabel.fatherId());
+                        query.eq(HugeKeys.SUB_LABEL, edgeLabel.id());
+                    }
+                }
                 return query;
             }
         }
