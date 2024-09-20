@@ -144,10 +144,11 @@ public abstract class TableSerializer extends AbstractSerializer {
             row.ttl(edge.ttl());
             row.column(HugeKeys.EXPIRED_TIME, edge.expiredTime());
         }
-        // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
+        // Id: ownerVertex + direction + edge-label + sub-edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, this.writeId(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.directionCode());
         row.column(HugeKeys.LABEL, id.edgeLabelId().asLong());
+        row.column(HugeKeys.SUB_LABEL, id.subLabelId().asLong());
         row.column(HugeKeys.SORT_VALUES, id.sortValues());
         row.column(HugeKeys.OTHER_VERTEX, this.writeId(id.otherVertexId()));
 
@@ -169,6 +170,7 @@ public abstract class TableSerializer extends AbstractSerializer {
         Number dir = row.column(HugeKeys.DIRECTION);
         boolean direction = EdgeId.isOutDirectionFromCode(dir.byteValue());
         Number label = row.column(HugeKeys.LABEL);
+        Number subLabel = row.column(HugeKeys.SUB_LABEL);
         String sortValues = row.column(HugeKeys.SORT_VALUES);
         Object otherVertexId = row.column(HugeKeys.OTHER_VERTEX);
         Number expiredTime = row.column(HugeKeys.EXPIRED_TIME);
@@ -179,10 +181,11 @@ public abstract class TableSerializer extends AbstractSerializer {
         }
 
         EdgeLabel edgeLabel = graph.edgeLabelOrNone(this.toId(label));
+        EdgeLabel subEdgeLabel = graph.edgeLabelOrNone(this.toId(subLabel));
         Id otherId = this.readId(otherVertexId);
 
         // Construct edge
-        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, subEdgeLabel,
                                                sortValues, otherId);
 
         // Parse edge properties
@@ -275,10 +278,11 @@ public abstract class TableSerializer extends AbstractSerializer {
             row.ttl(edge.ttl());
             row.column(HugeKeys.EXPIRED_TIME, edge.expiredTime());
         }
-        // Id: ownerVertex + direction + edge-label + sortValues + otherVertex
+        // Id: ownerVertex + direction + edge-label + sub-edge-label + sortValues + otherVertex
         row.column(HugeKeys.OWNER_VERTEX, this.writeId(id.ownerVertexId()));
         row.column(HugeKeys.DIRECTION, id.directionCode());
         row.column(HugeKeys.LABEL, id.edgeLabelId().asLong());
+        row.column(HugeKeys.SUB_LABEL, id.subLabelId().asLong());
         row.column(HugeKeys.SORT_VALUES, id.sortValues());
         row.column(HugeKeys.OTHER_VERTEX, this.writeId(id.otherVertexId()));
 
