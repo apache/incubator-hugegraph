@@ -360,6 +360,7 @@ public class CassandraTables {
             ImmutableMap<HugeKeys, DataType> ckeys = ImmutableMap.of(
                     HugeKeys.DIRECTION, DataType.tinyint(),
                     HugeKeys.LABEL, TYPE_SL,
+                    HugeKeys.SUB_LABEL, TYPE_SL,
                     HugeKeys.SORT_VALUES, DataType.text(),
                     HugeKeys.OTHER_VERTEX, TYPE_ID
             );
@@ -376,6 +377,8 @@ public class CassandraTables {
              */
             if (this.direction == Directions.OUT) {
                 this.createIndex(session, LABEL_INDEX, HugeKeys.LABEL);
+                this.createIndex(session, LABEL_INDEX, HugeKeys.SUB_LABEL);
+                // TODO: sub label?
             }
         }
 
@@ -431,6 +434,7 @@ public class CassandraTables {
             list.add(IdUtil.writeBinString(edgeId.ownerVertexId()));
             list.add(edgeId.directionCode());
             list.add(edgeId.edgeLabelId().asLong());
+            list.add(edgeId.subLabelId().asLong());
             list.add(edgeId.sortValues());
             list.add(IdUtil.writeBinString(edgeId.otherVertexId()));
             return list;
@@ -470,6 +474,8 @@ public class CassandraTables {
             // Query edges by label index
             Select select = QueryBuilder.select().from(this.labelIndexTable());
             select.where(formatEQ(HugeKeys.LABEL, label.asLong()));
+            select.where(formatEQ(HugeKeys.SUB_LABEL, label.asLong()));
+            // TODO: sub label?
 
             ResultSet rs;
             try {
@@ -512,6 +518,7 @@ public class CassandraTables {
             delete.where(formatEQ(HugeKeys.DIRECTION,
                                   EdgeId.directionToCode(direction)));
             delete.where(formatEQ(HugeKeys.LABEL, label.asLong()));
+            delete.where(formatEQ(HugeKeys.SUB_LABEL, label.asLong()));
             delete.where(formatEQ(HugeKeys.SORT_VALUES, sortValues));
             delete.where(formatEQ(HugeKeys.OTHER_VERTEX, otherVertex));
             return delete;
