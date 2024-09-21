@@ -1058,7 +1058,8 @@ public class GraphTransaction extends IndexableTransaction {
 
             Stream<Iterator<HugeEdge>> edgeIterators = flattenedQueries.map(cq -> {
                 Id label = cq.condition(HugeKeys.LABEL);
-                if (label != null &&
+                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() &&
+                    label != null &&
                     graph().edgeLabel(label).isFather() &&
                     cq.condition(HugeKeys.SUB_LABEL) == null &&
                     cq.condition(HugeKeys.OWNER_VERTEX) != null &&
@@ -1626,7 +1627,7 @@ public class GraphTransaction extends IndexableTransaction {
              */
             boolean byLabel = (label != null && query.conditionsSize() == 1);
             if (!byLabel || this.store().features().supportsQueryByLabel()) {
-                if (byLabel && query.resultType().isEdge()) {
+                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() && byLabel && query.resultType().isEdge()) {
                     // for memory backend
                     EdgeLabel edgeLabel = graph().edgeLabel(label);
                     if (edgeLabel.hasFather()) {
