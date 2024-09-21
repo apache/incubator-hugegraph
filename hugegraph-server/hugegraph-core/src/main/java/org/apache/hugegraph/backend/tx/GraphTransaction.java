@@ -1601,7 +1601,7 @@ public class GraphTransaction extends IndexableTransaction {
                  */
                 query.resetUserpropConditions();
 
-                if (query.condition(HugeKeys.SUB_LABEL) == null) {
+                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() && query.condition(HugeKeys.SUB_LABEL) == null) {
                     query.eq(HugeKeys.SUB_LABEL, el.id());
                 }
                 LOG.debug("Query edges by sortKeys: {}", query);

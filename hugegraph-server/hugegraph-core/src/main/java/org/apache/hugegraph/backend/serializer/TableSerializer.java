@@ -62,7 +62,7 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 
 /**
- * without father and sub label
+ * without father and sub edge label
  */
 public abstract class TableSerializer extends AbstractSerializer {
 

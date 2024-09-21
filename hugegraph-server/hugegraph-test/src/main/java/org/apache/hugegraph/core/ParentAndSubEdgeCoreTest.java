@@ -27,6 +27,7 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -198,6 +199,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryParentAndSubEdgesWithHasLabel() {
+        Assume.assumeTrue("Not support father and sub edge label",
+                          this.storeFeatures().supportsFatherAndSubEdgeLabel());
+
         // 单纯 hasLabel 类型的查询
         init10Edges();
 
@@ -219,6 +223,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryParentAndSubEdgesWithHasLabelAndConditions() {
+        Assume.assumeTrue("Not support father and sub edge label",
+                          this.storeFeatures().supportsFatherAndSubEdgeLabel());
+
         // hasLabel + 条件过滤 类型的查询
         init10Edges();
 
@@ -250,6 +257,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryParentAndSubEdgesWithVertexOut() {
+        Assume.assumeTrue("Not support father and sub edge label",
+                          this.storeFeatures().supportsFatherAndSubEdgeLabel());
+
         // g.V("id").outE("label")
         List<Vertex> list = init10Edges();
         Vertex person1 = list.get(0);
@@ -292,6 +302,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryParentAndSubEdgesWithVertexOutAndConditions() {
+        Assume.assumeTrue("Not support father and sub edge label",
+                          this.storeFeatures().supportsFatherAndSubEdgeLabel());
+
         // g.V("id").outE("label").has("amount",10.00)
         List<Vertex> list = init10Edges();
         Vertex person1 = list.get(0);
@@ -312,6 +325,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryParentAndSubEdgesWithVertexOutAndSortKeys() {
+        Assume.assumeTrue("Not support father and sub edge label",
+                          this.storeFeatures().supportsFatherAndSubEdgeLabel());
+
         // g.V("id").outE("label").has("sortKeys","value")
         List<Vertex> list = init10Edges();
         Vertex person1 = list.get(0);
@@ -334,6 +350,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryParentAndSubEdgesWithVertexOutAndSortKeysAndConditions() {
+        Assume.assumeTrue("Not support father and sub edge label",
+                          this.storeFeatures().supportsFatherAndSubEdgeLabel());
+
         // g.V("id").outE("label").has("sortKeys","value").has(K,V)
         List<Vertex> list = init10Edges();
         Vertex person1 = list.get(0);

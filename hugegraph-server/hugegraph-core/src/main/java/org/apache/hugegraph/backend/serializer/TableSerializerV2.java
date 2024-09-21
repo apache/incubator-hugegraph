@@ -31,7 +31,7 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.define.HugeKeys;
 
 /**
- * with father and sub label
+ * with father and sub edge label
  */
 public abstract class TableSerializerV2 extends TableSerializer {
 
