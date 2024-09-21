@@ -238,7 +238,6 @@ public class ScyllaDBTablesWithMV {
 
         private final String mvLabel2Edge = mvLabelTable(this.table());
 
-        // TODO: sub label?
         private static final String LABEL = CassandraTable.formatKey(HugeKeys.LABEL);
         private final List<String> keys = this.idColumnName().stream()
                                               .filter(k -> k != HugeKeys.LABEL)
