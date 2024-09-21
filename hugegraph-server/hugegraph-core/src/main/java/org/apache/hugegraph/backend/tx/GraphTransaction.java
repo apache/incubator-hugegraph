@@ -1050,10 +1050,9 @@ public class GraphTransaction extends IndexableTransaction {
         assert query.resultType().isEdge();
 
         if (query instanceof ConditionQuery && !query.paging()) {
-            // TODO: support:
-            //   1. paging + multi labels + properties, see org.apache.hugegraph.core.EdgeCoreTest.testQueryInEdgesOfVertexByLabels
-            //   2. paging + parent label
+            // TODO: support: paging + parent label
             boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
+            // consider multi labels + properties, see org.apache.hugegraph.core.EdgeCoreTest.testQueryInEdgesOfVertexByLabels
             Stream<ConditionQuery> flattenedQueries = ConditionQueryFlatten.flatten((ConditionQuery) query, supportIn).stream();
 
             Stream<Iterator<HugeEdge>> edgeIterators = flattenedQueries.map(cq -> {

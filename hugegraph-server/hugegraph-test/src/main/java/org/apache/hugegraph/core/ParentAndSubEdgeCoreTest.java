@@ -123,13 +123,6 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
         graph().schema().indexLabel("knowByTime").onE("know")
                .by("time").secondary().ifNotExist().create();
-
-        EdgeLabel transfer4 = schema.edgeLabel("转账")
-                                    .multiTimes()
-                                    .link("author", "author")
-                                    .properties("time", "amount")
-                                    .sortKeys("time")
-                                    .create();
     }
 
     private List<Vertex> init10Edges() {
@@ -204,18 +197,18 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support father and sub edge label",
                           this.storeFeatures().supportsFatherAndSubEdgeLabel());
 
-        // 单纯 hasLabel 类型的查询
+        // Simple hasLabel Type Query
         init10Edges();
 
-        // 普通边
+        // normal edge
         List<Edge> edges = graph().traversal().E().hasLabel("know").toList();
         Assert.assertEquals(1, edges.size());
 
-        // 父类型的边
+        // father edge
         edges = graph().traversal().E().hasLabel("transfer").toList();
         Assert.assertEquals(10, edges.size());
 
-        // 子类型的边
+        // sub edge
         edges = graph().traversal().E().hasLabel("transfer-1").toList();
         Assert.assertEquals(4, edges.size());
 
@@ -228,24 +221,23 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
         Assume.assumeTrue("Not support father and sub edge label",
                           this.storeFeatures().supportsFatherAndSubEdgeLabel());
 
-        // hasLabel + 条件过滤 类型的查询
+        // hasLabel + Conditional Filtering Type Query
         init10Edges();
 
-        List<Edge> edges;
-        // 普通边
-        edges = graph().traversal().E().hasLabel("know")
+        // normal edge
+        List<Edge> edges = graph().traversal().E().hasLabel("know")
                                   .has("time", "2022-1-1")
                                   .toList();
 
         Assert.assertEquals(1, edges.size());
 
-        // 父类型的边
+        // father edge
         edges = graph().traversal().E().hasLabel("transfer").has("amount",
                                                                  10.00).toList();
 
         Assert.assertEquals(8, edges.size());
 
-        // 子类型的边
+        // sub edge
         edges = graph().traversal().E().hasLabel("transfer-1")
                        .has("amount", 10.00)
                        .toList();

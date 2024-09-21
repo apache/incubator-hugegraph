@@ -172,22 +172,19 @@ public class Example4 {
               .nullableKeys("comment")
               .create();
 
-        // 创建一个父 的edgelabel
-        EdgeLabel elFather = schema.edgeLabel("transfer").asBase()
-//                 .link("author", "person")
-//               .link("author", "company")
-                                   .create();
+        // Create a parent EdgeLabel
+        EdgeLabel elFather = schema.edgeLabel("transfer").asBase().create();
 
-        LOG.info(String.format("已经创建了父类型:%s，他的id是: %s",
+        LOG.info(String.format("Parent type created: %s, its id is: %s",
                                elFather.name(), elFather.id().asString()));
 
-        // 创建两个子类型的edgelabel
+        // Create two child EdgeLabels
         EdgeLabel son1 =
                 schema.edgeLabel("transfer-1").withBase("transfer").multiTimes()
                       .link("author", "person")
                       .properties("time").sortKeys("time").create();
 
-        LOG.info(String.format("已经创建了子类型:%s，他的id是: %s ，其父亲的id为 %s",
+        LOG.info(String.format("Child type created: %s, its id is: %s, its parent id is %s",
                                son1.name(), son1.id().asString(),
                                son1.fatherId().asString()));
 
@@ -196,7 +193,7 @@ public class Example4 {
                       .link("author", "company")
                       .properties("time").sortKeys("time").create();
 
-        LOG.info(String.format("已经创建了子类型:%s，他的id是: %s ，其父亲的id为 %s",
+        LOG.info(String.format("Child type created: %s, its id is: %s, its parent id is %s",
                                son2.name(), son2.id().asString(),
                                son2.fatherId().asString()));
 
@@ -220,7 +217,6 @@ public class Example4 {
     }
 
     public static void loadData(final HugeGraph graph) {
-
         // will auto open tx (would not auto commit)
         graph.addVertex(T.label, "book", "name", "java-3");
 
@@ -312,33 +308,32 @@ public class Example4 {
 
         GraphTraversal<Vertex, Edge> vertexEdgeGraphTraversal =
                 graph.traversal().V("2:11").outE("write");
-        LOG.info("write的边有：" + vertexEdgeGraphTraversal.toList().size());
+        LOG.info("The number of write edges is: " + vertexEdgeGraphTraversal.toList().size());
 
-        // 三种查询
-        // 第一种，查询 人-人转账的边
+        // Three types of queries
+        // First, query edges for person-to-person transfers
         GraphTraversal<Vertex, Edge> transfer1 =
                 graph.traversal().V("2:11").outE("transfer-1")
                      .has("time", "2022-1-2");
         // transfer_1.toList().size();
-        LOG.info("james转向-人的转账边(transfer1)有：" + transfer1.toList().size());
+        LOG.info("The number of person-to-person transfer edges (transfer1) for james is: " + transfer1.toList().size());
 
-        // 第二种，查询 人-公司转账的边
+        // Second, query edges for person-to-company transfers
         GraphTraversal<Vertex, Edge> transfer2 =
                 graph.traversal().V("2:11").outE("transfer-2");
         // transfer_2.toList().size();
-        LOG.info("james转向-公司转账的边(transfer2)有：" + transfer2.toList().size());
+        LOG.info("The number of person-to-company transfer edges (transfer2) for james is: " + transfer2.toList().size());
 
-        // 第三种，查询 转账的边
+        // Third, query transfer edges
         GraphTraversal<Vertex, Edge> transfer =
                 graph.traversal().V("2:11").outE("transfer");
         // transfer.toList().size();
-        LOG.info("转账的边(transfer)有：" + transfer.toList().size());
+        LOG.info("The number of transfer edges (transfer) is: " + transfer.toList().size());
 
         GraphTraversal<Vertex, Edge> writeAndTransfer1 =
                 graph.traversal().V("2:11").outE("write", "transfer-1");
         LOG.info(
-                "混合查询 ：graph.traversal().V(\"2:11\").outE(\"write\", \"transfer-1\") => write的边 和" +
-                " transfer1的边共有："
+                "Mixed query: graph.traversal().V(\"2:11\").outE(\"write\", \"transfer-1\") => The total number of write and transfer1 edges is: "
                 + writeAndTransfer1.toList().size());
 
         GraphTraversal<Vertex, Edge> writeAndTransfer1WithLimit =
@@ -346,21 +341,20 @@ public class Example4 {
                      .outE("write", "transfer-1")
                      .limit(2);
         LOG.info(
-                "限制的混合查询 ：graph.traversal().V(\"2:11\").outE(\"write\", \"transfer-1\").limit(2);" +
-                " => " +
-                "write的边 和 transfer1的边共有："
+                "Limited mixed query: graph.traversal().V(\"2:11\").outE(\"write\", \"transfer-1\").limit(2); => "
+                + "The total number of write and transfer1 edges is: "
                 + writeAndTransfer1WithLimit.toList().size());
 
         GraphTraversal<Vertex, Edge> res = graph.traversal().V("2:11")
                                                 .outE("write", "transfer-1",
                                                       "transfer-2", "transfer");
         LOG.info(
-                "混合查询 ：graph.traversal().V(\"2:11\").outE(\"write\", \"transfer-1\", " +
-                "\"transfer-2\", \"transfer\")总的边有："
+                "Mixed query: graph.traversal().V(\"2:11\").outE(\"write\", \"transfer-1\", "
+                + "\"transfer-2\", \"transfer\") The total number of edges is: "
                 + res.toList().size());
 
-        System.out.println("graph.traversal().E().hasLabel(\"write\").toList" +
-                           "().size():" +
+        System.out.println("graph.traversal().E().hasLabel(\"write\").toList"
+                           + "().size():" +
                            graph.traversal().E().hasLabel("write").toList()
                                 .size());
 
