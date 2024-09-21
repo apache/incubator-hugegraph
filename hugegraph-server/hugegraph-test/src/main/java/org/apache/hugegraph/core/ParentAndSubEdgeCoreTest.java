@@ -35,6 +35,9 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
 
     @Before
     public void initSchema() {
+        Assume.assumeTrue("Not support father and sub edge label",
+                          this.storeFeatures().supportsFatherAndSubEdgeLabel());
+
         SchemaManager schema = graph().schema();
 
         LOG.debug("===============  propertyKey  ================");
@@ -127,7 +130,6 @@ public class ParentAndSubEdgeCoreTest extends BaseCoreTest {
                                     .properties("time", "amount")
                                     .sortKeys("time")
                                     .create();
-
     }
 
     private List<Vertex> init10Edges() {
