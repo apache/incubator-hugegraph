@@ -22,6 +22,8 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_PROPERTIES;
 import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_TEMPLATE_FILE;
 import static org.apache.hugegraph.ct.base.EnvUtil.getAvailablePort;
 
+import java.nio.file.Paths;
+
 import lombok.Getter;
 
 public class ServerConfig extends AbstractConfig {
@@ -32,7 +34,8 @@ public class ServerConfig extends AbstractConfig {
     private String restHost, rpcHost;
 
     public ServerConfig() {
-        readTemplate(CT_PACKAGE_PATH + SERVER_TEMPLATE_FILE);
+        readTemplate(
+                Paths.get(CT_PACKAGE_PATH + SERVER_TEMPLATE_FILE));
         this.fileName = SERVER_PROPERTIES;
         this.restHost = "127.0.0.1";
         this.rpcHost = "127.0.0.1";

@@ -36,14 +36,14 @@ license:
   license-path: ./conf/hugegraph.license
 grpc:
   port: $GRPC_PORT$
-  host: $GRPC_HOST$
+  host: 127.0.0.1
 
 server:
   port : $REST_PORT$
 
 pd:
   # 存储路径
-  data-path: $PD_DATA_PATH$
+  data-path: ./pd_data
   # 自动扩容的检查周期，定时检查每个 store 的分区数量，自动进行分区数量平衡
   patrol-interval: 1800
   # 初始 store 列表，在列表内的 store 自动激活

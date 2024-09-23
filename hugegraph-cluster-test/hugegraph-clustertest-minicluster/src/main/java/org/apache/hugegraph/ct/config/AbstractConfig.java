@@ -36,9 +36,9 @@ public abstract class AbstractConfig {
     protected Map<String, String> properties = new HashMap<>();
     protected String fileName;
 
-    protected void readTemplate(String filePath) {
+    protected void readTemplate(Path filePath) {
         try {
-            this.config = new String(Files.readAllBytes(Paths.get(filePath)));
+            this.config = new String(Files.readAllBytes(filePath));
         } catch (IOException e) {
             LOG.error("failed to get file", e);
         }
@@ -53,15 +53,15 @@ public abstract class AbstractConfig {
 
     public void writeConfig(String filePath) {
         updateConfigs();
-        String destPath = filePath + File.separator + fileName;
+        Path destPath = Paths.get(filePath + File.separator + fileName);
         try {
-            if (Files.notExists(Path.of(destPath).getParent())) {
-                Files.createDirectories(Path.of(destPath).getParent());
+            if (Files.notExists(destPath.getParent())) {
+                Files.createDirectories(destPath.getParent());
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        try (FileWriter writer = new FileWriter(destPath)) {
+        try (FileWriter writer = new FileWriter(String.valueOf(destPath))) {
             writer.write(config);
         } catch (IOException e) {
             e.printStackTrace();

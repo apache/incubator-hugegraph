@@ -40,11 +40,10 @@ public class BaseMultiClusterTest {
 
     @AfterClass
     public static void clearEnv() throws InterruptedException {
-        env.clearCluster();
-        Thread.sleep(2000);
+        env.stopCluster();
     }
 
-    protected String execCurl(String[] cmds) throws IOException {
+    protected String execCmd(String[] cmds) throws IOException {
         ProcessBuilder process = new ProcessBuilder(cmds);
         p = process.start();
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));

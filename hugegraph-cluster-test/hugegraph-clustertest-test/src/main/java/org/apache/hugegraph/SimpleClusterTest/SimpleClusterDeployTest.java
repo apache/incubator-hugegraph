@@ -35,37 +35,35 @@ public class SimpleClusterDeployTest extends BaseSimpleTest {
             for (int i = 0; i < cmds.length; i++) {
                 sb.append(cmds[i] + " ");
             }
-            String responseMsg = execCurl(cmds);
+            String responseMsg = execCmd(cmds);
             Assert.assertEquals(responseMsg, "");
         }
     }
 
     @Test
-    public void testStoreNodesDeployment() throws IOException, InterruptedException {
+    public void testStoreNodesDeployment() throws IOException {
         List<String> addrs = env.getStoreRestAddrs();
         for (String addr : addrs) {
-            String url = addr;
-            String[] cmds = {"curl", url};
-            StringBuffer sb = new StringBuffer();
-            for (int i = 0; i < cmds.length; i++) {
-                sb.append(cmds[i] + " ");
+            String[] cmds = {"curl", addr};
+            StringBuilder sb = new StringBuilder();
+            for (String cmd : cmds) {
+                sb.append(cmd).append(" ");
             }
-            String responseMsg = execCurl(cmds);
+            String responseMsg = execCmd(cmds);
             Assert.assertTrue(responseMsg.startsWith("{"));
         }
     }
 
     @Test
-    public void testServerNodesDeployment() throws IOException, InterruptedException {
+    public void testServerNodesDeployment() throws IOException {
         List<String> addrs = env.getServerRestAddrs();
         for (String addr : addrs) {
-            String url = addr;
-            String[] cmds = {"curl", url};
+            String[] cmds = {"curl", addr};
             StringBuffer sb = new StringBuffer();
-            for (int i = 0; i < cmds.length; i++) {
-                sb.append(cmds[i] + " ");
+            for (String cmd : cmds) {
+                sb.append(cmd).append(" ");
             }
-            String responseMsg = execCurl(cmds);
+            String responseMsg = execCmd(cmds);
             Assert.assertTrue(responseMsg.startsWith("{"));
         }
     }

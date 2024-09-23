@@ -124,7 +124,7 @@ public abstract class AbstractEnv implements BaseEnv {
         }
     }
 
-    public void clearCluster() {
+    public void stopCluster() {
         for (ServerNodeWrapper serverNodeWrapper : serverNodeWrappers) {
             serverNodeWrapper.stop();
         }

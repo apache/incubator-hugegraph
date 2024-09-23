@@ -22,6 +22,7 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.CT_PACKAGE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_TEMPLATE_FILE;
 import static org.apache.hugegraph.ct.base.EnvUtil.getAvailablePort;
 
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,39 +32,22 @@ public class PDConfig extends AbstractConfig {
 
     @Getter
     private final int raftPort, grpcPort, restPort;
-    @Getter
-    private String grpcHost, dataPath, raftHost;
 
     public PDConfig() {
-        readTemplate(CT_PACKAGE_PATH + PD_TEMPLATE_FILE);
+        readTemplate(
+                Paths.get(CT_PACKAGE_PATH + PD_TEMPLATE_FILE));
         this.fileName = APPLICATION_FILE;
-        this.grpcHost = "127.0.0.1";
-        this.raftHost = "127.0.0.1";
-        this.dataPath = "./pd_data";
         this.raftPort = getAvailablePort();
         this.grpcPort = getAvailablePort();
         this.restPort = getAvailablePort();
-        properties.put("GRPC_HOST", grpcHost);
         properties.put("GRPC_PORT", String.valueOf(grpcPort));
         properties.put("REST_PORT", String.valueOf(restPort));
-        properties.put("PD_DATA_PATH", dataPath);
-        properties.put("RAFT_ADDRESS", raftHost + ":"
+        properties.put("RAFT_ADDRESS", "127.0.0.1:"
                                        + raftPort);
     }
 
-    public void setGrpcHost(String grpcHost) {
-        this.grpcHost = grpcHost;
-        setProperty("GRPC_HOST", grpcHost);
-    }
-
-    public void setDataPath(String dataPath) {
-        this.dataPath = dataPath;
-        setProperty("PD_DATA_PATH", dataPath);
-    }
-
     public void setRaftHost(String raftHost) {
-        this.raftHost = raftHost;
-        setProperty("RAFT_ADDRESS", raftHost + ":" + raftPort);
+        setProperty("RAFT_ADDRESS", "127.0.0.1:" + raftPort);
     }
 
     public void setRaftPeerList(List<String> raftPeerList) {
@@ -83,10 +67,10 @@ public class PDConfig extends AbstractConfig {
     }
 
     public String getRaftAddress() {
-        return raftHost + ":" + raftPort;
+        return "127.0.0.1:" + raftPort;
     }
 
     public String getGrpcAddress() {
-        return grpcHost + ":" + grpcPort;
+        return "127.0.0.1:" + grpcPort;
     }
 }

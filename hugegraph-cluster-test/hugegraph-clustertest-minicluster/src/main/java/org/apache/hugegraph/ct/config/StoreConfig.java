@@ -22,6 +22,7 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.CT_PACKAGE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.STORE_TEMPLATE_FILE;
 import static org.apache.hugegraph.ct.base.EnvUtil.getAvailablePort;
 
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,7 +36,8 @@ public class StoreConfig extends AbstractConfig {
     private String grpcHost, dataPath, raftHost;
 
     public StoreConfig() {
-        readTemplate(CT_PACKAGE_PATH + STORE_TEMPLATE_FILE);
+        readTemplate(
+                Paths.get(CT_PACKAGE_PATH + STORE_TEMPLATE_FILE));
         this.fileName = APPLICATION_FILE;
         this.grpcHost = "127.0.0.1";
         this.raftHost = "127.0.0.1";

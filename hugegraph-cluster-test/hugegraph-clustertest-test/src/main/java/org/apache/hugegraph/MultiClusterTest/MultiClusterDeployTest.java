@@ -35,7 +35,7 @@ public class MultiClusterDeployTest extends BaseMultiClusterTest {
             for (int i = 0; i < cmds.length; i++) {
                 sb.append(cmds[i] + " ");
             }
-            String responseMsg = execCurl(cmds);
+            String responseMsg = execCmd(cmds);
             Assert.assertEquals(responseMsg, "");
         }
     }
@@ -50,7 +50,7 @@ public class MultiClusterDeployTest extends BaseMultiClusterTest {
             for (int i = 0; i < cmds.length; i++) {
                 sb.append(cmds[i] + " ");
             }
-            String responseMsg = execCurl(cmds);
+            String responseMsg = execCmd(cmds);
             Assert.assertTrue(responseMsg.startsWith("{"));
         }
     }
@@ -65,7 +65,7 @@ public class MultiClusterDeployTest extends BaseMultiClusterTest {
             for (int i = 0; i < cmds.length; i++) {
                 sb.append(cmds[i] + " ");
             }
-            String responseMsg = execCurl(cmds);
+            String responseMsg = execCmd(cmds);
             Assert.assertTrue(responseMsg.startsWith("{"));
         }
     }

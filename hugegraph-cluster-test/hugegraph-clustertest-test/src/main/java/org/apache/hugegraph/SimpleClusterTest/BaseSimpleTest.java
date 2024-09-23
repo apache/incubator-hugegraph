@@ -29,7 +29,6 @@ import org.junit.BeforeClass;
 public class BaseSimpleTest {
 
     protected static BaseEnv env;
-
     protected static Process p;
 
     @BeforeClass
@@ -40,11 +39,11 @@ public class BaseSimpleTest {
 
     @AfterClass
     public static void clearEnv() throws InterruptedException {
-        env.clearCluster();
+        env.stopCluster();
         Thread.sleep(2000);
     }
 
-    protected String execCurl(String[] cmds) throws IOException {
+    protected String execCmd(String[] cmds) throws IOException {
         ProcessBuilder process = new ProcessBuilder(cmds);
         p = process.start();
         BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
@@ -57,4 +56,5 @@ public class BaseSimpleTest {
         p.destroy();
         return builder.toString();
     }
+
 }
