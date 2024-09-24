@@ -185,7 +185,7 @@ public class EdgeLabelAPI extends API {
         public long id;
         @JsonProperty("name")
         public String name;
-        @JsonProperty("edge_label_type")
+        @JsonProperty("edgelabel_type")
         public EdgeLabelType edgeLabelType;
         @JsonProperty("parent_label")
         public String fatherLabel;
