@@ -240,8 +240,8 @@ public class HgSessionManagerRaftPDTest extends HgStoreClientBase {
     }
 
     //     @Test
-    // CAUTION: ONLY FOR LONG！
-    // 注意：目前只可以对 long 类型 value 进行 Merge 操作。
+    // CAUTION: ONLY FOR LONG!
+    // Note: Currently, only long type values can be merged.
     public void merge() {
         System.out.println("--- test merge (1+1=2)---");
         HgStoreSession session = getStoreSession();

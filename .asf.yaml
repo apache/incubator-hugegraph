@@ -28,8 +28,7 @@ github:
   del_branch_on_merge: true
   #labels:
   enabled_merge_buttons:
-     # TODO: disable it after common merged
-    merge:  true
+    merge:  false
     rebase: true
     squash: true
   protected_branches:
@@ -42,7 +41,8 @@ github:
           - Analyze (java)
           - CodeQL
           - check-license
-          - build (memory, 11)
+          - build-server (memory, 11)
+          - build-commons (11)
       required_pull_request_reviews:
         dismiss_stale_reviews: true
         require_code_owner_reviews: false

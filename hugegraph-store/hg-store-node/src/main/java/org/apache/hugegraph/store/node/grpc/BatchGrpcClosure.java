@@ -44,7 +44,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量处理的grpc回调封装类
+ * Batch processing grpc callback wrapper class
  *
  * @param <V>
  */
@@ -95,7 +95,7 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * 不使用计数器latch
+     * Not using counter latch
      *
      * @return
      */
@@ -158,13 +158,13 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * 等待raft执行结束，返回结果给grpc
+     * Wait for the raft execution to complete, return the result to grpc
      */
     public void waitFinish(StreamObserver<V> observer, Function<List<V>, V> ok, long timeout) {
         try {
             countDownLatch.await(timeout, TimeUnit.MILLISECONDS);
 
-            if (errorStatus.isEmpty()) {  // 没有错误时，合并结果
+            if (errorStatus.isEmpty()) {  // No error, merge results
                 observer.onNext(ok.apply(results));
             } else {
                 observer.onNext((V) FeedbackRes.newBuilder()
@@ -186,7 +186,7 @@ class BatchGrpcClosure<V> {
     }
 
     /**
-     * 从多个结果中选择一个错误的结果返回，如果没有错误，返回第一个
+     * Select one incorrect result from multiple results, if there are no errors, return the first one.
      */
     public FeedbackRes selectError(List<FeedbackRes> results) {
         if (!CollectionUtils.isEmpty(results)) {

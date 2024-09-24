@@ -101,6 +101,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 setMaxSegmentFileSize(appConfig.getRaft().getMaxSegmentFileSize());
                 setMaxReplicatorInflightMsgs(appConfig.getRaft().getMaxReplicatorInflightMsgs());
                 setMaxEntriesSize(appConfig.getRaft().getMaxEntriesSize());
+                setMaxBodySize(appConfig.getRaft().getMaxBodySize());
             }});
             setFakePdOptions(new FakePdOptions() {{
                 setStoreList(appConfig.getFakePdConfig().getStoreList());
@@ -182,7 +183,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                     invoke(partId, methodId, CleanReq.parseFrom(input), response);
                     break;
                 default:
-                    return false; // 未处理
+                    return false; // Unhandled
             }
         } catch (IOException e) {
             throw new HgStoreException(e.getMessage(), e);
@@ -213,7 +214,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 hgStoreSession.doClean(partId, (CleanReq) req, response);
                 break;
             default:
-                return false; // 未处理
+                return false; // Unhandled
         }
         return true;
     }

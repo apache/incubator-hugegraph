@@ -249,6 +249,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         raftOptions.setMaxReplicatorInflightMsgs(
                 options.getRaftOptions().getMaxReplicatorInflightMsgs());
         raftOptions.setMaxByteCountPerRpc(1024 * 1024);
+        raftOptions.setMaxBodySize(options.getRaftOptions().getMaxBodySize());
         nodeOptions.setEnableMetrics(true);
 
         final PeerId serverId = JRaftUtils.getPeerId(options.getRaftAddress());
