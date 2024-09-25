@@ -102,7 +102,7 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
             ProcessBuilder processBuilder = runCmd(startCmd, stdoutFile);
             this.instance = processBuilder.start();
         } catch (IOException ex) {
-            throw new AssertionError("Start node failed. " + ex);
+            throw new AssertionError("Started server node failed. " + ex);
         }
     }
 

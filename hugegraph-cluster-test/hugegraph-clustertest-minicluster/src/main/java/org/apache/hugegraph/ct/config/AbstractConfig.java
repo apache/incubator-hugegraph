@@ -47,24 +47,24 @@ public abstract class AbstractConfig {
     protected void updateConfigs() {
         for (Map.Entry<String, String> entry : properties.entrySet()) {
             String placeholder = "$" + entry.getKey() + "$";
-            config = config.replace(placeholder, entry.getValue());
+            this.config = this.config.replace(placeholder, entry.getValue());
         }
     }
 
     public void writeConfig(String filePath) {
         updateConfigs();
-        Path destPath = Paths.get(filePath + File.separator + fileName);
+        Path destPath = Paths.get(filePath + File.separator + this.fileName);
         try {
             if (Files.notExists(destPath.getParent())) {
                 Files.createDirectories(destPath.getParent());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Failed to create dir", e);
         }
         try (FileWriter writer = new FileWriter(String.valueOf(destPath))) {
-            writer.write(config);
+            writer.write(this.config);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error("Failed to write in file", e);
         }
     }
 
@@ -80,5 +80,3 @@ public abstract class AbstractConfig {
         }
     }
 }
-
-

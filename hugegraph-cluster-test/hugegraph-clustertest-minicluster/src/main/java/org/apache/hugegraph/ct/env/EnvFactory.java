@@ -30,7 +30,7 @@ public class EnvFactory {
         if (env == null) {
             EnvType envType = EnvType.getSystemEnvType();
             switch (envType) {
-                case Simple:
+                case SingleNode:
                     env = new SimpleEnv();
                     break;
                 case MultiNode:

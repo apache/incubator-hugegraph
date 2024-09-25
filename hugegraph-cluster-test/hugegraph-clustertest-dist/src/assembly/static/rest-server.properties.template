@@ -48,7 +48,7 @@ arthas.disabled_commands=jad
 #auth.user_tokens=[]
 
 # rpc server configs for multi graph-servers or raft-servers
-rpc.server_host=$RPC_HOST$
+rpc.server_host=127.0.0.1
 rpc.server_port=$RPC_PORT$
 #rpc.server_timeout=30
 

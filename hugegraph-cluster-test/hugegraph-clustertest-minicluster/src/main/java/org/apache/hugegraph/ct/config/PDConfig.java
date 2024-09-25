@@ -31,7 +31,11 @@ import lombok.Getter;
 public class PDConfig extends AbstractConfig {
 
     @Getter
-    private final int raftPort, grpcPort, restPort;
+    private final int raftPort;
+    @Getter
+    private final int grpcPort;
+    @Getter
+    private final int restPort;
 
     public PDConfig() {
         readTemplate(
@@ -40,14 +44,9 @@ public class PDConfig extends AbstractConfig {
         this.raftPort = getAvailablePort();
         this.grpcPort = getAvailablePort();
         this.restPort = getAvailablePort();
-        properties.put("GRPC_PORT", String.valueOf(grpcPort));
-        properties.put("REST_PORT", String.valueOf(restPort));
-        properties.put("RAFT_ADDRESS", "127.0.0.1:"
-                                       + raftPort);
-    }
-
-    public void setRaftHost(String raftHost) {
-        setProperty("RAFT_ADDRESS", "127.0.0.1:" + raftPort);
+        properties.put("GRPC_PORT", String.valueOf(this.grpcPort));
+        properties.put("REST_PORT", String.valueOf(this.restPort));
+        properties.put("RAFT_ADDRESS", "127.0.0.1:" + this.raftPort);
     }
 
     public void setRaftPeerList(List<String> raftPeerList) {
@@ -67,10 +66,10 @@ public class PDConfig extends AbstractConfig {
     }
 
     public String getRaftAddress() {
-        return "127.0.0.1:" + raftPort;
+        return "127.0.0.1:" + this.raftPort;
     }
 
     public String getGrpcAddress() {
-        return "127.0.0.1:" + grpcPort;
+        return "127.0.0.1:" + this.grpcPort;
     }
 }

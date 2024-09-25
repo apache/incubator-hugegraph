@@ -28,7 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -38,6 +37,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.file.PathUtils;
 import org.apache.hugegraph.ct.base.ClusterConstant;
+import org.apache.hugegraph.ct.base.EnvUtil;
 import org.apache.hugegraph.ct.base.HGTestLogger;
 import org.slf4j.Logger;
 
@@ -45,7 +45,7 @@ import lombok.Getter;
 
 public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
 
-    protected static final Logger LOG = HGTestLogger.LOG;
+    protected final Logger LOG = HGTestLogger.LOG;
     protected int clusterIndex;
     @Getter
     protected String workPath;
@@ -79,30 +79,18 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
                     FileUtils.createParentDirectories(new File(destDir));
                 }
             } catch (NoSuchFileException fileException) {
+                //Ignored
             }
             Path sourcePath = Paths.get(CT_PACKAGE_PATH);
             // To avoid following symbolic links
             try (Stream<Path> stream = Files.walk(sourcePath)) {
-                stream.forEach(
-                        source -> {
-                            Path relativePath = sourcePath.relativize(source);
-                            Path destination =
-                                    Paths.get(destDir).resolve(relativePath);
-                            if (fileNames.contains(relativePath.toString())) {
-                                try {
-                                    if (Files.notExists(destination.getParent())) {
-                                        Files.createDirectories(destination.getParent());
-                                    }
-                                    Files.copy(source,
-                                               destination,
-                                               StandardCopyOption.REPLACE_EXISTING);
-                                } catch (IOException ioException) {
-                                    LOG.error("Fail to copy files to destination dir", ioException);
-                                    throw new RuntimeException(ioException);
-                                }
-                            }
-                        }
-                );
+                stream.forEach(source -> {
+                    Path relativePath = sourcePath.relativize(source);
+                    Path destination = Paths.get(destDir).resolve(relativePath);
+                    if (fileNames.contains(relativePath.toString())) {
+                        EnvUtil.copyFileToDestination(source, destination);
+                    }
+                });
             }
         } catch (IOException ioException) {
             LOG.error("Got error copying files to node destination dir", ioException);
@@ -199,4 +187,5 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
         processBuilder.directory(new File(configPath));
         return processBuilder;
     }
+
 }

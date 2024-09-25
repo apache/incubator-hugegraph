@@ -18,11 +18,12 @@
 package org.apache.hugegraph.ct.base;
 
 public enum EnvType {
-    Simple,
+
+    SingleNode,
     MultiNode;
 
     public static EnvType getSystemEnvType() {
-        String envType = System.getProperty("TestEnv", Simple.name());
+        String envType = System.getProperty("test_env", SingleNode.toString());
         return EnvType.valueOf(envType);
     }
 }

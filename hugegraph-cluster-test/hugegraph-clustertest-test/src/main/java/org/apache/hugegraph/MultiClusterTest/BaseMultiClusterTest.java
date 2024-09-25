@@ -29,7 +29,6 @@ import org.junit.BeforeClass;
 public class BaseMultiClusterTest {
 
     protected static BaseEnv env;
-
     protected static Process p;
 
     @BeforeClass
@@ -51,7 +50,7 @@ public class BaseMultiClusterTest {
         String line;
         while ((line = reader.readLine()) != null) {
             builder.append(line);
-            builder.append(System.getProperty("line.separator"));
+            builder.append(System.lineSeparator());
         }
         p.destroy();
         return builder.toString();

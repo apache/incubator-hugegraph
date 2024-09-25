@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hugegraph.ct.base.HGTestLogger;
-import org.apache.hugegraph.ct.config.ClusterConf;
+import org.apache.hugegraph.ct.config.ClusterConfig;
 import org.apache.hugegraph.ct.config.GraphConfig;
 import org.apache.hugegraph.ct.config.PDConfig;
 import org.apache.hugegraph.ct.config.ServerConfig;
@@ -40,7 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractEnv implements BaseEnv {
 
     private static final Logger LOG = HGTestLogger.LOG;
-    protected ClusterConf clusterConf;
+    protected ClusterConfig clusterConfig;
     protected List<PDNodeWrapper> pdNodeWrappers;
     protected List<ServerNodeWrapper> serverNodeWrappers;
     protected List<StoreNodeWrapper> storeNodeWrappers;
@@ -54,10 +54,10 @@ public abstract class AbstractEnv implements BaseEnv {
     }
 
     protected void init(int pdCnt, int storeCnt, int serverCnt) {
-        this.clusterConf = new ClusterConf(pdCnt, storeCnt, serverCnt);
+        this.clusterConfig = new ClusterConfig(pdCnt, storeCnt, serverCnt);
         for (int i = 0; i < pdCnt; i++) {
             PDNodeWrapper pdNodeWrapper = new PDNodeWrapper(cluster_id, i);
-            PDConfig pdConfig = clusterConf.getPDConfig(i);
+            PDConfig pdConfig = clusterConfig.getPDConfig(i);
             pdNodeWrappers.add(pdNodeWrapper);
             pdConfig.writeConfig(pdNodeWrapper.getNodePath()
                                  + CONF_DIR);
@@ -65,7 +65,7 @@ public abstract class AbstractEnv implements BaseEnv {
 
         for (int i = 0; i < storeCnt; i++) {
             StoreNodeWrapper storeNodeWrapper = new StoreNodeWrapper(cluster_id, i);
-            StoreConfig storeConfig = clusterConf.getStoreConfig(i);
+            StoreConfig storeConfig = clusterConfig.getStoreConfig(i);
             storeNodeWrappers.add(storeNodeWrapper);
             storeConfig.writeConfig(storeNodeWrapper.getNodePath()
                                     + CONF_DIR);
@@ -74,9 +74,9 @@ public abstract class AbstractEnv implements BaseEnv {
         for (int i = 0; i < serverCnt; i++) {
             ServerNodeWrapper serverNodeWrapper = new ServerNodeWrapper(cluster_id, i);
             serverNodeWrappers.add(serverNodeWrapper);
-            ServerConfig serverConfig = clusterConf.getServerConfig(i);
+            ServerConfig serverConfig = clusterConfig.getServerConfig(i);
             serverConfig.setServerID(serverNodeWrapper.getID());
-            GraphConfig graphConfig = clusterConf.getGraphConfig(i);
+            GraphConfig graphConfig = clusterConfig.getGraphConfig(i);
             if (i == 0) {
                 serverConfig.setRole("master");
             } else {
@@ -136,20 +136,28 @@ public abstract class AbstractEnv implements BaseEnv {
         }
     }
 
-    public ClusterConf getConf() {
-        return this.clusterConf;
+    public ClusterConfig getConf() {
+        return this.clusterConfig;
     }
 
     public List<String> getPDRestAddrs() {
-        return clusterConf.getPDRestAddrs();
+        return clusterConfig.getPDRestAddrs();
+    }
+
+    public List<String> getPDGrpcAddrs() {
+        return clusterConfig.getPDGrpcAddrs();
     }
 
     public List<String> getStoreRestAddrs() {
-        return clusterConf.getStoreRestAddrs();
+        return clusterConfig.getStoreRestAddrs();
+    }
+
+    public List<String> getStoreGrpcAddrs() {
+        return clusterConfig.getStoreGrpcAddrs();
     }
 
     public List<String> getServerRestAddrs() {
-        return clusterConf.getServerRestAddrs();
+        return clusterConfig.getServerRestAddrs();
     }
 
     public List<String> getPDNodeDir() {

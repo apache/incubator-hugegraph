@@ -31,41 +31,22 @@ import lombok.Getter;
 public class StoreConfig extends AbstractConfig {
 
     @Getter
-    private int raftPort, grpcPort, restPort;
+    private int raftPort;
     @Getter
-    private String grpcHost, dataPath, raftHost;
+    private int grpcPort;
+    @Getter
+    private int restPort;
 
     public StoreConfig() {
         readTemplate(
                 Paths.get(CT_PACKAGE_PATH + STORE_TEMPLATE_FILE));
         this.fileName = APPLICATION_FILE;
-        this.grpcHost = "127.0.0.1";
-        this.raftHost = "127.0.0.1";
-        this.dataPath = "./storage";
         this.raftPort = getAvailablePort();
         this.grpcPort = getAvailablePort();
         this.restPort = getAvailablePort();
-        properties.put("GRPC_HOST", grpcHost);
-        properties.put("GRPC_PORT", String.valueOf(grpcPort));
-        properties.put("REST_PORT", String.valueOf(restPort));
-        properties.put("STORE_DATA_PATH", dataPath);
-        properties.put("RAFT_ADDRESS", raftHost + ":"
-                                       + raftPort);
-    }
-
-    public void setGrpcHost(String grpcHost) {
-        this.grpcHost = grpcHost;
-        setProperty("GRPC_HOST", grpcHost);
-    }
-
-    public void setDataPath(String dataPath) {
-        this.dataPath = dataPath;
-        setProperty("PD_DATA_PATH", dataPath);
-    }
-
-    public void setRaftHost(String raftHost) {
-        this.raftHost = raftHost;
-        setProperty("RAFT_ADDRESS", raftHost + ":" + raftPort);
+        properties.put("GRPC_PORT", String.valueOf(this.grpcPort));
+        properties.put("REST_PORT", String.valueOf(this.restPort));
+        properties.put("RAFT_ADDRESS", "127.0.0.1:" + this.raftPort);
     }
 
     public void setPDServerList(List<String> pdServerList) {
@@ -75,6 +56,6 @@ public class StoreConfig extends AbstractConfig {
     }
 
     public String getGrpcAddress() {
-        return grpcHost + ":" + grpcPort;
+        return "127.0.0.1:" + this.grpcPort;
     }
 }

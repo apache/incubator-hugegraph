@@ -29,26 +29,17 @@ import lombok.Getter;
 public class ServerConfig extends AbstractConfig {
 
     @Getter
-    private int rpcPort, restPort;
+    private int rpcPort;
     @Getter
-    private String restHost, rpcHost;
+    private int restPort;
 
     public ServerConfig() {
-        readTemplate(
-                Paths.get(CT_PACKAGE_PATH + SERVER_TEMPLATE_FILE));
+        readTemplate(Paths.get(CT_PACKAGE_PATH + SERVER_TEMPLATE_FILE));
         this.fileName = SERVER_PROPERTIES;
-        this.restHost = "127.0.0.1";
-        this.rpcHost = "127.0.0.1";
         this.rpcPort = getAvailablePort();
         this.restPort = getAvailablePort();
-        properties.put("REST_SERVER_ADDRESS", restHost + ":" + restPort);
-        properties.put("RPC_PORT", String.valueOf(rpcPort));
-        properties.put("RPC_HOST", rpcHost);
-    }
-
-    public void setRestHost(String restHost) {
-        this.restHost = restHost;
-        setProperty("REST_SERVER_ADDRESS", restHost + ":" + restPort);
+        properties.put("REST_SERVER_ADDRESS", "127.0.0.1:" + this.restPort);
+        properties.put("RPC_PORT", String.valueOf(this.rpcPort));
     }
 
     public void setServerID(String serverID) {

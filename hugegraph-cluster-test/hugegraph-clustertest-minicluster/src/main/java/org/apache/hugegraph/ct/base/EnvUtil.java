@@ -19,32 +19,49 @@ package org.apache.hugegraph.ct.base;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.slf4j.Logger;
 
 public class EnvUtil {
 
     private static final Logger LOG = HGTestLogger.LOG;
-    private static final List<Integer> ports = new ArrayList<>();
+    private static final Set<Integer> ports = new HashSet<>();
 
     public static int getAvailablePort() {
         try {
-            ServerSocket socket = new ServerSocket(0);
-            int port = socket.getLocalPort();
-            while (ports.contains(port)) {
-                socket.close();
-                socket = new ServerSocket(0);
+            int port = -1;
+            while (port < 0 || ports.contains(port)) {
+                ServerSocket socket = new ServerSocket(0);
                 port = socket.getLocalPort();
+                socket.close();
             }
             ports.add(port);
-            socket.close();
             return port;
         } catch (IOException e) {
-            LOG.error("fail to get available ports", e);
+            LOG.error("Failed to get available ports", e);
             return -1;
         }
     }
 
+    public static void copyFileToDestination(Path source, Path destination) {
+        try {
+            ensureParentDirectoryExists(destination);
+            Files.copy(source, destination, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ioException) {
+            LOG.error("Failed to copy files to destination dir", ioException);
+            throw new RuntimeException(ioException);
+        }
+    }
+
+    private static void ensureParentDirectoryExists(Path destination) throws IOException {
+        Path parentDir = destination.getParent();
+        if (parentDir != null && Files.notExists(parentDir)) {
+            Files.createDirectories(parentDir);
+        }
+    }
 }

@@ -23,6 +23,8 @@ import java.io.InputStreamReader;
 
 import org.apache.hugegraph.ct.env.BaseEnv;
 import org.apache.hugegraph.ct.env.SimpleEnv;
+import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.pd.client.PDClient;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
@@ -30,6 +32,8 @@ public class BaseSimpleTest {
 
     protected static BaseEnv env;
     protected static Process p;
+    protected static PDClient pdClient;
+    protected static HugeClient hugeClient;
 
     @BeforeClass
     public static void initEnv() throws InterruptedException {

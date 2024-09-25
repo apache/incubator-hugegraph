@@ -31,7 +31,7 @@ management:
 
 grpc:
   # grpc 的服务地址
-  host: $GRPC_HOST$
+  host: 127.0.0.1
   port: $GRPC_PORT$
   netty-server:
     max-inbound-message-size: 1000MB
@@ -48,8 +48,8 @@ server:
 
 app:
   # 存储路径，支持多个路径，逗号分割
-  data-path: $STORE_DATA_PATH$
-  #raft-path: $STORE_DATA_PATH$
+  data-path: ./storage
+  #raft-path: ./storage
 
 spring:
   application:

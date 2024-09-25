@@ -19,7 +19,7 @@ package org.apache.hugegraph.ct.env;
 
 import java.util.List;
 
-import org.apache.hugegraph.ct.config.ClusterConf;
+import org.apache.hugegraph.ct.config.ClusterConfig;
 
 public interface BaseEnv {
 
@@ -29,11 +29,13 @@ public interface BaseEnv {
     /* clear the cluster env and all config*/
     void stopCluster();
 
-    ClusterConf getConf();
+    ClusterConfig getConf();
 
     void init();
 
     List<String> getPDRestAddrs();
+
+    List<String> getPDGrpcAddrs();
 
     List<String> getStoreRestAddrs();
 

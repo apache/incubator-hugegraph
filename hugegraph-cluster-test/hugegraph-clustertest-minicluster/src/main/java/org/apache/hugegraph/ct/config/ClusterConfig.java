@@ -23,7 +23,7 @@ import java.util.List;
 import org.apache.hugegraph.ct.base.HGTestLogger;
 import org.slf4j.Logger;
 
-public class ClusterConf {
+public class ClusterConfig {
 
     protected static final Logger LOG = HGTestLogger.LOG;
     protected List<PDConfig> pdConfigs;
@@ -33,7 +33,7 @@ public class ClusterConf {
 
     protected List<String> pdGrpcList, pdRaftList, storeGrpcList;
 
-    public ClusterConf(int pdCnt, int storeCnt, int serverCnt) {
+    public ClusterConfig(int pdCnt, int storeCnt, int serverCnt) {
         pdConfigs = new ArrayList<>();
         storeConfigs = new ArrayList<>();
         serverConfigs = new ArrayList<>();
@@ -96,11 +96,28 @@ public class ClusterConf {
         return addrs;
     }
 
+    public List<String> getPDGrpcAddrs() {
+        List<String> addrs = new ArrayList<>();
+        for (PDConfig pdConfig : pdConfigs) {
+            addrs.add(pdConfig.getGrpcAddress());
+        }
+        return addrs;
+    }
+
     public List<String> getStoreRestAddrs() {
         List<String> addrs = new ArrayList<>();
         for (StoreConfig storeConfig : storeConfigs) {
             addrs.add("127.0.0.1" + ":" +
                       storeConfig.getRestPort());
+        }
+        return addrs;
+    }
+
+    public List<String> getStoreGrpcAddrs() {
+        List<String> addrs = new ArrayList<>();
+        for (StoreConfig storeConfig : storeConfigs) {
+            addrs.add("127.0.0.1" + ":" +
+                      storeConfig.getGrpcPort());
         }
         return addrs;
     }

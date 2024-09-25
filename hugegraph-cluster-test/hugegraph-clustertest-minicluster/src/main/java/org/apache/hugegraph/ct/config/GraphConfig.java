@@ -37,5 +37,4 @@ public class GraphConfig extends AbstractConfig {
         String pdPeers = pdPeersList.stream().collect(Collectors.joining(","));
         setProperty("PD_PEERS_LIST", pdPeers);
     }
-
 }
