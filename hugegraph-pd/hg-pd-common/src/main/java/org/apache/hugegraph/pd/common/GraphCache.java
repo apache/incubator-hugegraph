@@ -22,6 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import com.google.common.collect.Range;
+
 import org.apache.hugegraph.pd.grpc.Metapb.Graph;
 import org.apache.hugegraph.pd.grpc.Metapb.Partition;
 
@@ -39,7 +41,7 @@ public class GraphCache {
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private Map<Integer, AtomicBoolean> state = new ConcurrentHashMap<>();
     private Map<Integer, Partition> partitions = new ConcurrentHashMap<>();
-    private RangeMap<Long, Integer> range = TreeRangeMap.create();
+    private RangeMap<Long, Integer> range = new SynchronizedRangeMap<Long, Integer>().rangeMap;
 
     public GraphCache(Graph graph) {
         this.graph = graph;
@@ -59,4 +61,56 @@ public class GraphCache {
     public Partition removePartition(Integer id) {
         return partitions.remove(id);
     }
+
+    public class SynchronizedRangeMap<K extends Comparable<K>, V> {
+
+        private final RangeMap<K, V> rangeMap = TreeRangeMap.create();
+        private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+
+        public void put(Range<K> range, V value) {
+            lock.writeLock().lock();
+            try {
+                rangeMap.put(range, value);
+            } finally {
+                lock.writeLock().unlock();
+            }
+        }
+
+        public V get(K key) {
+            lock.readLock().lock();
+            try {
+                return rangeMap.get(key);
+            } finally {
+                lock.readLock().unlock();
+            }
+        }
+
+        public void remove(Range<K> range) {
+            lock.writeLock().lock();
+            try {
+                rangeMap.remove(range);
+            } finally {
+                lock.writeLock().unlock();
+            }
+        }
+
+        public Map.Entry<Range<K>, V> getEntry(K key) {
+            lock.readLock().lock();
+            try {
+                return rangeMap.getEntry(key);
+            } finally {
+                lock.readLock().unlock();
+            }
+        }
+
+        public void clear() {
+            lock.writeLock().lock();
+            try {
+                rangeMap.clear();
+            } finally {
+                lock.writeLock().unlock();
+            }
+        }
+    }
+
 }
