@@ -28,6 +28,11 @@ import org.apache.hugegraph.pd.client.PDClient;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+/**
+ * Simple Test generate the cluster env with 1 pd node + 1 store node + 1 server node.
+ * All nodes are deployed in ports generated randomly, the application of nodes are stored
+ * in /apache-hugegraph-ct-incubating-1.5.0, you can visit each node with rest api.
+ */
 public class BaseSimpleTest {
 
     protected static BaseEnv env;

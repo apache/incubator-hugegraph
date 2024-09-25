@@ -26,6 +26,12 @@ import org.apache.hugegraph.ct.env.MultiNodeEnv;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
+/**
+ * MultiNode Test generate the cluster env with 3 pd node + 3 store node + 3 server node.
+ * Or you can set different num of nodes by using env = new MultiNodeEnv(pdNum, storeNum, serverNum)
+ * All nodes are deployed in ports generated randomly, the application of nodes are stored
+ * in /apache-hugegraph-ct-incubating-1.5.0, you can visit each node with rest api.
+ */
 public class BaseMultiClusterTest {
 
     protected static BaseEnv env;

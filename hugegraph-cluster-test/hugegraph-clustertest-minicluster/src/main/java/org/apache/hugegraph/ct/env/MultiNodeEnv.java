@@ -25,6 +25,7 @@ public class MultiNodeEnv extends AbstractEnv {
     }
 
     public MultiNodeEnv(int pdNum, int storeNum, int serverNum) {
+        super();
         super.init(pdNum, storeNum, serverNum);
     }
 
