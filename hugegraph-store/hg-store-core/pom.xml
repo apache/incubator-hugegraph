@@ -34,8 +34,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -56,7 +54,6 @@
                     <groupId>org.rocksdb</groupId>
                     <artifactId>rocksdbjni</artifactId>
                 </exclusion>
-
             </exclusions>
         </dependency>
 
