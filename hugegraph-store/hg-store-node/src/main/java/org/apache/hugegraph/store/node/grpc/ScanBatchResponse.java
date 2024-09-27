@@ -37,10 +37,10 @@ import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 批量查询处理器，批量查询数据，流式返回数据。
- * 1、服务端流式发送数据给客户端
- * 2、客户端每消费一批次数据，返回批次号给服务端
- * 3、服务端根据批次号决定发送多少数据，保证传送数据的不间断，
+ * Batch query processor, batch query data, stream back data.
+ * 1. Server-side streaming data to the client
+ * 2. The client returns the batch number to the server after consuming each batch of data.
+ * 3. The server decides how much data to send based on the batch number, ensuring the uninterrupted transmission of data,
  */
 @Slf4j
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
@@ -50,24 +50,24 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     static ByteBufferAllocator alloc =
             new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
     private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);
-    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); //单位秒
+    private final int activeTimeout = PropertyUtil.getInt("app.scan.stream.timeout", 60); // unit: second
     private final StreamObserver<KvStream> sender;
     private final HgStoreWrapperEx wrapper;
     private final ThreadPoolExecutor executor;
     private final Object stateLock = new Object();
     private final Lock iteratorLock = new ReentrantLock();
-    // 当前正在遍历的迭代器
+    // Currently traversing iterator
     private ScanIterator iterator;
-    // 下一次发送的序号
+    // Next send sequence number
     private volatile int seqNo;
-    // Client已消费的序号
+    // Client consumed sequence number
     private volatile int clientSeqNo;
-    // 已经发送的条目数
+    // Number of entries sent
     private volatile long count;
-    // 客户端要求返回的最大条目数
+    // Client requests the maximum number of entries to return
     private volatile long limit;
     private ScanQueryRequest query;
-    // 上次读取数据时间
+    // Last read data time
     private long activeTime;
     private volatile State state;
 
@@ -83,20 +83,20 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 接收客户端发送的消息
-     * 服务端另起线程处理消息，不阻塞网络
+     * Receive messages sent by the client
+     * Server starts a new thread to process messages, does not block the network.
      *
      * @param request
      */
     @Override
     public void onNext(ScanStreamBatchReq request) {
         switch (request.getQueryCase()) {
-            case QUERY_REQUEST: // 查询条件
+            case QUERY_REQUEST: // query conditions
                 executor.execute(() -> {
                     startQuery(request.getHeader().getGraph(), request.getQueryRequest());
                 });
                 break;
-            case RECEIPT_REQUEST:   // 消息异步应答
+            case RECEIPT_REQUEST:   // Message asynchronous response
                 this.clientSeqNo = request.getReceiptRequest().getTimes();
                 if (seqNo - clientSeqNo < maxInFlightCount) {
                     synchronized (stateLock) {
@@ -111,7 +111,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
                     }
                 }
                 break;
-            case CANCEL_REQUEST:    // 关闭流
+            case CANCEL_REQUEST: // close stream
                 closeQuery();
                 break;
             default:
@@ -132,7 +132,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 生成迭代器
+     * Generate iterator
      *
      * @param request
      */
@@ -152,7 +152,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 生成迭代器
+     * Generate iterator
      */
     private void closeQuery() {
         setStateDone();
@@ -178,7 +178,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 发送数据
+     * Send data
      */
     private void sendEntries() {
         if (state == State.DONE || iterator == null) {
@@ -255,7 +255,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 检查是否活跃，超过一定时间客户端没有请求数据，认为已经不活跃，关闭连接释放资源
+     * Check for activity, if the client does not request data for a certain period of time, it is considered inactive, close the connection to release resources.
      */
     public void checkActiveTimeout() {
         if ((System.currentTimeMillis() - activeTime) > activeTimeout * 1000L) {
@@ -265,7 +265,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
     }
 
     /**
-     * 任务状态
+     * Task Status
      */
     private enum State {
         IDLE,

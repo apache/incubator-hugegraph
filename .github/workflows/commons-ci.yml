@@ -52,11 +52,11 @@ jobs:
 
       - name: Run common test
         run: |
-          mvn test -pl hugegraph-commons/hugegraph-common -Dtest=UnitTestSuite
+          mvn test -pl hugegraph-commons/hugegraph-common -Dtest=UnitTestSuite -DskipCommonsTests=false
 
       - name: Run rpc test
         run: |
-          mvn test -pl hugegraph-commons/hugegraph-rpc -Dtest=UnitTestSuite
+          mvn test -pl hugegraph-commons/hugegraph-rpc -Dtest=UnitTestSuite -DskipCommonsTests=false
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
