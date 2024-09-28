@@ -331,7 +331,6 @@ log4j-slf4j-impl-2.17.0.jar
 log4j-slf4j-impl-2.17.1.jar
 log4j-slf4j-impl-2.18.0.jar
 logging-interceptor-4.10.0.jar
-lombok-1.18.30.jar
 lookout-api-1.4.1.jar
 lucene-analyzers-common-8.11.2.jar
 lucene-analyzers-smartcn-8.11.2.jar
