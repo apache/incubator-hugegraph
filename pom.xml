@@ -88,10 +88,11 @@
     <properties>
         <revision>1.5.0</revision>
         <hugegraph-commons.version>1.5.0</hugegraph-commons.version>
+        <lombok.version>1.18.30</lombok.version>
         <release.name>hugegraph</release.name>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <shell-executable>bash</shell-executable>
     </properties>
 
@@ -102,6 +103,18 @@
         <module>hugegraph-commons</module>
         <module>install-dist</module>
     </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
+                <optional>true</optional>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <pluginManagement>
