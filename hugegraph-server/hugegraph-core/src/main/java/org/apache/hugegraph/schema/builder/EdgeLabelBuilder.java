@@ -31,7 +31,6 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotFoundException;
@@ -57,6 +56,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
     private EdgeLabelType edgeLabelType;
     private String fatherLabel;
     private String sourceLabel;
+    private String targetLabel;
     private Frequency frequency;
     private Set<String> properties;
     private List<String> sortKeys;
@@ -425,7 +425,12 @@ public class EdgeLabelBuilder extends AbstractBuilder
         E.checkArgument(this.links.isEmpty(),
                         "Not allowed add source label to an edge label which " +
                         "already has links");
-        this.sourceLabel = label;
+        if (this.targetLabel != null) {
+            this.links.add(Pair.of(label, this.targetLabel));
+            this.targetLabel = null;
+        } else {
+            this.sourceLabel = label;
+        }
         return this;
     }
 
@@ -434,11 +439,12 @@ public class EdgeLabelBuilder extends AbstractBuilder
         E.checkArgument(this.links.isEmpty(),
                         "Not allowed add source label to an edge label which " +
                         "already has links");
-        E.checkArgument(this.sourceLabel != null,
-                        "Not allowed add target label to an edge label which " +
-                        "not has source label yet");
-        this.links.add(Pair.of(this.sourceLabel, label));
-        this.sourceLabel = null;
+        if (this.sourceLabel != null) {
+            this.links.add(Pair.of(this.sourceLabel, label));
+            this.sourceLabel = null;
+        } else {
+            this.targetLabel = label;
+        }
         return this;
     }
 
@@ -635,6 +641,11 @@ public class EdgeLabelBuilder extends AbstractBuilder
         if (this.sourceLabel != null) {
             throw new NotAllowException(
                     "Not allowed to update source label " +
+                    "for edge label '%s', it must be null", this.name);
+        }
+        if (this.targetLabel != null) {
+            throw new NotAllowException(
+                    "Not allowed to update target label " +
                     "for edge label '%s', it must be null", this.name);
         }
         if (this.links != null && !this.links.isEmpty()) {

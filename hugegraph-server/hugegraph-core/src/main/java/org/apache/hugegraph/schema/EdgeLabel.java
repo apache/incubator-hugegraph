@@ -47,6 +47,7 @@ public class EdgeLabel extends SchemaLabel {
 
     private Set<Pair<Id, Id>> links = new HashSet<>();
     private Id sourceLabel = NONE_ID;
+    private Id targetLabel = NONE_ID;
     private Frequency frequency;
     private List<Id> sortKeys;
 
@@ -136,7 +137,12 @@ public class EdgeLabel extends SchemaLabel {
         E.checkArgument(this.links.isEmpty(),
                         "Not allowed add source label to an edge label which " +
                         "already has links");
-        this.sourceLabel = id;
+        if (this.targetLabel != NONE_ID) {
+            this.links.add(Pair.of(id, this.targetLabel));
+            this.targetLabel = NONE_ID;
+        } else {
+            this.sourceLabel = id;
+        }
     }
 
     public String targetLabelName() {
@@ -158,11 +164,12 @@ public class EdgeLabel extends SchemaLabel {
         E.checkArgument(this.links.isEmpty(),
                         "Not allowed add source label to an edge label which " +
                         "already has links");
-        E.checkArgument(this.sourceLabel != NONE_ID,
-                        "Not allowed add target label to an edge label which " +
-                        "not has source label yet");
-        this.links.add(Pair.of(this.sourceLabel, id));
-        this.sourceLabel = NONE_ID;
+        if (this.sourceLabel != NONE_ID) {
+            this.links.add(Pair.of(this.sourceLabel, id));
+            this.sourceLabel = NONE_ID;
+        } else {
+            this.targetLabel = id;
+        }
     }
 
     public boolean linkWithLabel(Id id) {
