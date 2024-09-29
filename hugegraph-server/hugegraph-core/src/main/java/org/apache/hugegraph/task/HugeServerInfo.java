@@ -114,6 +114,10 @@ public class HugeServerInfo {
         this.updated = true;
     }
 
+    public long expireTime() {
+        return this.updateTime.getTime() + EXPIRED_INTERVAL;
+    }
+
     public Date updateTime() {
         return this.updateTime;
     }

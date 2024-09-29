@@ -107,6 +107,19 @@ public class ServerInfoManager {
 
         Id serverId = nodeInfo.nodeId();
         HugeServerInfo existed = this.serverInfo(serverId);
+        if (existed != null && existed.alive()) {
+            final long now = DateUtil.now().getTime();
+            if (existed.expireTime() > now + 30 * 1000) {
+                LOG.info("The node time maybe skew very much: {}", existed);
+                throw new HugeException("The server with name '%s' maybe skew very much", serverId);
+            }
+            try {
+                Thread.sleep(existed.expireTime() - now + 1);
+            } catch (InterruptedException e) {
+               throw new HugeException("Interrupted when waiting for server " +
+                                       "info expired", e);
+            }
+        }
         E.checkArgument(existed == null || !existed.alive(),
                         "The server with name '%s' already in cluster",
                         serverId);
