@@ -675,11 +675,13 @@ public class BinarySerializer extends AbstractSerializer {
             direction = Directions.OUT;
         }
         Id label = cq.condition(HugeKeys.LABEL);
+        Id subLabel = cq.condition(HugeKeys.SUB_LABEL);
 
         BytesBuffer start = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         writePartitionedId(HugeType.EDGE, vertex, start);
         start.write(direction.type().code());
         start.writeId(label);
+        start.writeId(subLabel);
 
         BytesBuffer end = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         end.copyFrom(start);
