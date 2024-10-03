@@ -730,8 +730,6 @@ public class BinarySerializer extends AbstractSerializer {
                 if (key == HugeKeys.DIRECTION) {
                     // Direction is null, set to OUT
                     value = Directions.OUT;
-                } else if (key == HugeKeys.SUB_LABEL) {
-                    value = cq.condition(HugeKeys.LABEL);
                 } else {
                     break;
                 }
