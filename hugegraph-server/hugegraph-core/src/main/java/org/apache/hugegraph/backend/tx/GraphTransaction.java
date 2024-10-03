@@ -1465,7 +1465,7 @@ public class GraphTransaction extends IndexableTransaction {
         for (HugeKeys key : EdgeId.KEYS) {
             Object value = query.condition(key);
             if (value == null) {
-                break;
+                continue;
             }
             matched++;
         }
