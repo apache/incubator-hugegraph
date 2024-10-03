@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -1465,7 +1466,7 @@ public class GraphTransaction extends IndexableTransaction {
         for (HugeKeys key : EdgeId.KEYS) {
             Object value = query.condition(key);
             if (value == null) {
-                continue;
+                break;
             }
             matched++;
         }
@@ -1617,6 +1618,19 @@ public class GraphTransaction extends IndexableTransaction {
             if (query.resultType().isVertex()) {
                 verifyVerticesConditionQuery(query);
             } else if (query.resultType().isEdge()) {
+                // fix org.apache.hugegraph.api.traverser.EdgeExistenceAPITest#testEdgeExistenceGet
+                // add sub label if only the sub label is missing
+                ConditionQuery finalQuery = query;
+                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() &&
+                    query.condition(HugeKeys.SUB_LABEL) == null &&
+                    Arrays.stream(EdgeId.KEYS)
+                          .filter(key -> !Objects.equals(key, HugeKeys.SUB_LABEL))
+                          .allMatch(key -> finalQuery.condition(key) != null)) {
+                    EdgeLabel el = this.graph().edgeLabel(label);
+                    if (!el.isFather()) {
+                        query.eq(HugeKeys.SUB_LABEL, el.id());
+                    }
+                }
                 verifyEdgesConditionQuery(query);
             }
             /*
