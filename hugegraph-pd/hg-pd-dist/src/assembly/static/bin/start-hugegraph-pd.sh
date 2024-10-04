@@ -101,14 +101,13 @@ fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
 case "$GC_OPTION" in
-    g1)
+    "")
         echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
                       -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
-    "") ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION'" >> ${OUTPUT}
         exit 1
 esac
 
