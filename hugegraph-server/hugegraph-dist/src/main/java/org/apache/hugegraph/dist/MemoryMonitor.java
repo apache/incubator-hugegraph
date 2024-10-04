@@ -19,12 +19,12 @@ package org.apache.hugegraph.dist;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.util.ExecutorUtil;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
@@ -34,19 +34,19 @@ public class MemoryMonitor {
 
     private static final Logger LOG = Log.logger(MemoryMonitor.class);
     private final double MEMORY_MONITOR_THRESHOLD;
-    private final int MEMORY_MONITOR_PERIOD;
+    private final int MEMORY_MONITOR_DETECT_PERIOD;
     private final ScheduledExecutorService scheduler;
 
     public MemoryMonitor(String restServerConf) {
         HugeConfig restServerConfig = new HugeConfig(restServerConf);
         MEMORY_MONITOR_THRESHOLD =
                 restServerConfig.get(ServerOptions.JVM_MEMORY_MONITOR_THRESHOLD);
-        MEMORY_MONITOR_PERIOD =
-                restServerConfig.get(ServerOptions.JVM_MEMORY_MONITOR_PERIOD);
-        scheduler = Executors.newScheduledThreadPool(1);
+        MEMORY_MONITOR_DETECT_PERIOD =
+                restServerConfig.get(ServerOptions.JVM_MEMORY_MONITOR_DETECT_PERIOD);
+        this.scheduler = ExecutorUtil.newScheduledThreadPool("memory-monitor-thread-%d");
     }
 
-    private void manageMemory() {
+    private void runMemoryDetect() {
         double memoryUsagePercentage = getMemoryUsagePercentage();
 
         if (memoryUsagePercentage > MEMORY_MONITOR_THRESHOLD) {
@@ -57,14 +57,9 @@ public class MemoryMonitor {
 
             double doubleCheckUsage = getMemoryUsagePercentage();
             if (doubleCheckUsage > MEMORY_MONITOR_THRESHOLD) {
-                Thread targetThread = getHighestMemoryThread();
-                if (targetThread != null) {
-                    LOG.info("JVM memory usage is '{}', exceeding the threshold of '{}'.",
-                             doubleCheckUsage, MEMORY_MONITOR_THRESHOLD);
-                    targetThread.interrupt();
-                    LOG.info("Send interrupt to '{}' thread",
-                             targetThread.getName());
-                }
+                LOG.info("JVM memory usage is '{}', exceeding the threshold of '{}'.",
+                         doubleCheckUsage, MEMORY_MONITOR_THRESHOLD);
+                interruptHighestMemoryThread();
             }
         }
     }
@@ -81,7 +76,9 @@ public class MemoryMonitor {
 
         ThreadMXBean threadMXBean = (ThreadMXBean) ManagementFactory.getThreadMXBean();
 
-        for (Thread thread : Thread.getAllStackTraces().keySet()) {
+        Thread[] threads = new Thread[Thread.activeCount()];
+        Thread.enumerate(threads);
+        for (Thread thread : threads) {
             if (thread.getState() != Thread.State.RUNNABLE ||
                 thread.getName() == null ||
                 !thread.getName().startsWith("grizzly-http-server-")) {
@@ -95,25 +92,33 @@ public class MemoryMonitor {
                 highestThread = thread;
             }
         }
-
         return highestThread;
+    }
+
+    private void interruptHighestMemoryThread() {
+        Thread targetThread = getHighestMemoryThread();
+        if (targetThread != null) {
+            targetThread.interrupt();
+            LOG.info("Send interrupt to '{}' thread",
+                     targetThread.getName());
+        }
     }
 
     public void start() {
         if (MEMORY_MONITOR_THRESHOLD >= 1.0) {
+            LOG.info("Invalid parameter, MEMORY_MONITOR_THRESHOLD should less than 1.0.");
             return;
         }
-        Runnable task = this::manageMemory;
-        scheduler.scheduleAtFixedRate(task, 0, MEMORY_MONITOR_PERIOD,
-                                      TimeUnit.MILLISECONDS);
-        LOG.info("Memory monitoring task started.");
+        this.scheduler.scheduleAtFixedRate(this::runMemoryDetect, 0, MEMORY_MONITOR_DETECT_PERIOD,
+                                           TimeUnit.MILLISECONDS);
+        LOG.info("Memory monitoring started.");
     }
 
     public void stop() {
         if (MEMORY_MONITOR_THRESHOLD >= 1.0) {
             return;
         }
-        scheduler.shutdownNow();
-        LOG.info("Memory monitoring task ended.");
+        this.scheduler.shutdownNow();
+        LOG.info("Memory monitoring stoped.");
     }
 }

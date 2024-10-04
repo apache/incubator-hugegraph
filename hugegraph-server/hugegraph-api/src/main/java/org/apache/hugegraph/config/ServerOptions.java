@@ -327,15 +327,16 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "memory_monitor.threshold",
                     "Threshold for JVM memory usage monitoring, 1 means disabling the memory " +
-                    "monitoring thread.",
+                    "monitoring task.",
                     rangeDouble(0.0, 1.0),
                     0.85
             );
 
-    public static final ConfigOption<Integer> JVM_MEMORY_MONITOR_PERIOD =
+    public static final ConfigOption<Integer> JVM_MEMORY_MONITOR_DETECT_PERIOD =
             new ConfigOption<>(
                     "memory_monitor.period",
-                    "The period of JVM memory usage monitoring, the unit is milliseconds.",
+                    "The period in ms of JVM memory usage monitoring, in each period we will " +
+                    "detect the jvm memory usage and take corresponding actions.",
                     nonNegativeInt(),
                     2000
             );
