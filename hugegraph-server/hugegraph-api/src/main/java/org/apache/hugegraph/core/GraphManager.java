@@ -401,17 +401,17 @@ public final class GraphManager {
     }
 
     private void transferRoleWorkerConfig(HugeConfig config) {
-        config.addProperty(RoleElectionOptions.NODE_EXTERNAL_URL.name(),
+        config.setProperty(RoleElectionOptions.NODE_EXTERNAL_URL.name(),
                            this.conf.get(ServerOptions.REST_SERVER_URL));
-        config.addProperty(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND.name(),
+        config.setProperty(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND.name(),
                            this.conf.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
-        config.addProperty(RoleElectionOptions.EXCEEDS_FAIL_COUNT.name(),
+        config.setProperty(RoleElectionOptions.EXCEEDS_FAIL_COUNT.name(),
                            this.conf.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT));
-        config.addProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
+        config.setProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
                            this.conf.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
-        config.addProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND.name(),
+        config.setProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND.name(),
                            this.conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND));
-        config.addProperty(RoleElectionOptions.MASTER_DEAD_TIMES.name(),
+        config.setProperty(RoleElectionOptions.MASTER_DEAD_TIMES.name(),
                            this.conf.get(RoleElectionOptions.MASTER_DEAD_TIMES));
     }
 

@@ -124,6 +124,8 @@
         <module>hugegraph-rpc</module>
     </modules>
 
+    <dependencyManagement />
+
     <build>
         <plugins>
             <plugin>
