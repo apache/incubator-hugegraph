@@ -45,7 +45,7 @@ import lombok.Getter;
 
 public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
 
-    protected final Logger LOG = HGTestLogger.LOG;
+    protected final Logger LOG = HGTestLogger.NodeLOG;
     protected int clusterIndex;
     @Getter
     protected String workPath;

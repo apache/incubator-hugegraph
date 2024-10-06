@@ -31,7 +31,7 @@ import org.slf4j.Logger;
 
 public abstract class AbstractConfig {
 
-    protected static final Logger LOG = HGTestLogger.LOG;
+    protected static final Logger LOG = HGTestLogger.ConfigLOG;
     protected String config;
     protected Map<String, String> properties = new HashMap<>();
     protected String fileName;

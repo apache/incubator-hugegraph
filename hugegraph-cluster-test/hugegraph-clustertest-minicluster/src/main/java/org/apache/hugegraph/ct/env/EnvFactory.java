@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 
 public class EnvFactory {
 
-    private static final Logger LOG = HGTestLogger.LOG;
+    private static final Logger LOG = HGTestLogger.EnvLOG;
     private static BaseEnv env;
 
     public static BaseEnv getEnv() {

@@ -39,7 +39,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class AbstractEnv implements BaseEnv {
 
-    private static final Logger LOG = HGTestLogger.LOG;
+    private static final Logger LOG = HGTestLogger.EnvLOG;
     protected ClusterConfig clusterConfig;
     protected List<PDNodeWrapper> pdNodeWrappers;
     protected List<ServerNodeWrapper> serverNodeWrappers;
