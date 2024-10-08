@@ -23,7 +23,6 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.LICENSE_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_JAR_PREFIX;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_LIB_PATH;
-import static org.apache.hugegraph.ct.base.ClusterConstant.VERIFY_LICENSE_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.getFileInDir;
 import static org.apache.hugegraph.ct.base.ClusterConstant.isJava11OrHigher;
 
@@ -37,11 +36,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
 
     public PDNodeWrapper() {
         super();
-        fileNames = new ArrayList<String>(
-                Arrays.asList(LOG4J_FILE,
-                              LICENSE_FILE,
-                              VERIFY_LICENSE_FILE)
-        );
+        fileNames = new ArrayList<>(Arrays.asList(LOG4J_FILE, LICENSE_FILE));
         this.workPath = PD_LIB_PATH;
         this.startLine = "Hugegraph-pd started.";
         createNodeDir(getNodePath() + CONF_DIR + File.separator);
@@ -50,11 +45,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
 
     public PDNodeWrapper(int clusterIndex, int index) {
         super(clusterIndex, index);
-        this.fileNames = new ArrayList<>(
-                Arrays.asList(LOG4J_FILE,
-                              LICENSE_FILE,
-                              VERIFY_LICENSE_FILE)
-        );
+        this.fileNames = new ArrayList<>(Arrays.asList(LOG4J_FILE, LICENSE_FILE));
         this.workPath = PD_LIB_PATH;
         this.startLine = "Hugegraph-pd started.";
         createNodeDir(getNodePath() + CONF_DIR + File.separator);

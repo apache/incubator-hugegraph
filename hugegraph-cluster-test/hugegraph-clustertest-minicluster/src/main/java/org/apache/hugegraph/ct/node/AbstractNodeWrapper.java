@@ -148,7 +148,7 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
     @Override
     public boolean isStarted() {
         try (Scanner sc = new Scanner(new FileReader(getLogPath()))) {
-            while (sc.hasNextLine()) {  //按行读取字符串
+            while (sc.hasNextLine()) {
                 String line = sc.nextLine();
                 if (line.contains(startLine)) return true;
             }

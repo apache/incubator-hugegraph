@@ -80,10 +80,8 @@ public abstract class AbstractEnv implements BaseEnv {
             } else {
                 serverConfig.setRole("worker");
             }
-            serverConfig.writeConfig(serverNodeWrapper.getNodePath()
-                                     + CONF_DIR);
-            graphConfig.writeConfig(serverNodeWrapper.getNodePath()
-                                    + CONF_DIR);
+            serverConfig.writeConfig(serverNodeWrapper.getNodePath() + CONF_DIR);
+            graphConfig.writeConfig(serverNodeWrapper.getNodePath() + CONF_DIR);
         }
     }
 

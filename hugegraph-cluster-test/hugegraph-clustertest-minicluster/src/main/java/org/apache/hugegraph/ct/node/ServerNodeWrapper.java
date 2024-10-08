@@ -54,10 +54,7 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
                         REMOTE_OBJECTS_SETTING_FILE));
         this.workPath = SERVER_LIB_PATH;
         createNodeDir(getNodePath() + CONF_DIR + File.separator);
-        this.fileNames = new ArrayList<>(
-                List.of(EMPTY_SAMPLE_GROOVY_FILE,
-                        EXAMPLE_GROOVY_FILE)
-        );
+        this.fileNames = new ArrayList<>(List.of(EMPTY_SAMPLE_GROOVY_FILE, EXAMPLE_GROOVY_FILE));
         this.startLine = "INFO: [HttpServer] Started.";
         createNodeDir(getNodePath());
         createLogDir();

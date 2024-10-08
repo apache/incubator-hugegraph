@@ -38,8 +38,7 @@ public class PDConfig extends AbstractConfig {
     private final int restPort;
 
     public PDConfig() {
-        readTemplate(
-                Paths.get(CT_PACKAGE_PATH + PD_TEMPLATE_FILE));
+        readTemplate(Paths.get(CT_PACKAGE_PATH + PD_TEMPLATE_FILE));
         this.fileName = APPLICATION_FILE;
         this.raftPort = getAvailablePort();
         this.grpcPort = getAvailablePort();
