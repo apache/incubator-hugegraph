@@ -20,7 +20,6 @@ package org.apache.hugegraph.task;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -47,14 +46,13 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 public class HugeServerInfo {
 
     // Unit millisecond
-    private static final long EXPIRED_INTERVAL =
-            TaskManager.SCHEDULE_PERIOD * 10;
+    private static final long EXPIRED_INTERVAL = TaskManager.SCHEDULE_PERIOD * 10;
 
-    private Id id;
     private NodeRole role;
+    private Date updateTime;
     private int maxLoad;
     private int load;
-    private Date updateTime;
+    private final Id id;
 
     private transient boolean updated = false;
 
@@ -204,8 +202,7 @@ public class HugeServerInfo {
 
     public static HugeServerInfo fromVertex(Vertex vertex) {
         HugeServerInfo serverInfo = new HugeServerInfo((Id) vertex.id());
-        for (Iterator<VertexProperty<Object>> iter = vertex.properties();
-             iter.hasNext(); ) {
+        for (var iter = vertex.properties(); iter.hasNext(); ) {
             VertexProperty<Object> prop = iter.next();
             serverInfo.property(prop.key(), prop.value());
         }
@@ -250,7 +247,7 @@ public class HugeServerInfo {
 
         public static final String SERVER = P.SERVER;
 
-        protected final HugeGraphParams graph;
+        private final HugeGraphParams graph;
 
         public Schema(HugeGraphParams graph) {
             this.graph = graph;
@@ -268,8 +265,7 @@ public class HugeServerInfo {
             VertexLabel label = graph.schema().vertexLabel(SERVER)
                                      .properties(properties)
                                      .useCustomizeStringId()
-                                     .nullableKeys(P.ROLE, P.MAX_LOAD,
-                                                   P.LOAD, P.UPDATE_TIME)
+                                     .nullableKeys(P.ROLE, P.MAX_LOAD, P.LOAD, P.UPDATE_TIME)
                                      .enableLabelIndex(true)
                                      .build();
             this.graph.schemaTransaction().addVertexLabel(label);
@@ -277,7 +273,6 @@ public class HugeServerInfo {
 
         private String[] initProperties() {
             List<String> props = new ArrayList<>();
-
             props.add(createPropertyKey(P.ROLE, DataType.BYTE));
             props.add(createPropertyKey(P.MAX_LOAD, DataType.INT));
             props.add(createPropertyKey(P.LOAD, DataType.INT));
@@ -287,8 +282,7 @@ public class HugeServerInfo {
         }
 
         public boolean existVertexLabel(String label) {
-            return this.graph.schemaTransaction()
-                             .getVertexLabel(label) != null;
+            return this.graph.schemaTransaction().getVertexLabel(label) != null;
         }
 
         @SuppressWarnings("unused")
@@ -300,8 +294,7 @@ public class HugeServerInfo {
             return this.createPropertyKey(name, dataType, Cardinality.SINGLE);
         }
 
-        private String createPropertyKey(String name, DataType dataType,
-                                         Cardinality cardinality) {
+        private String createPropertyKey(String name, DataType dataType, Cardinality cardinality) {
             SchemaManager schema = this.graph.graph().schema();
             PropertyKey propertyKey = schema.propertyKey(name)
                                             .dataType(dataType)

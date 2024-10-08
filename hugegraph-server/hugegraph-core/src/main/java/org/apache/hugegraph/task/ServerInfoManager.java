@@ -67,8 +67,7 @@ public class ServerInfoManager {
     private volatile boolean onlySingleNode;
     private volatile boolean closed;
 
-    public ServerInfoManager(HugeGraphParams graph,
-                             ExecutorService dbExecutor) {
+    public ServerInfoManager(HugeGraphParams graph, ExecutorService dbExecutor) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(dbExecutor, "db executor");
 
@@ -116,13 +115,11 @@ public class ServerInfoManager {
             try {
                 Thread.sleep(existed.expireTime() - now + 1);
             } catch (InterruptedException e) {
-               throw new HugeException("Interrupted when waiting for server " +
-                                       "info expired", e);
+               throw new HugeException("Interrupted when waiting for server info expired", e);
             }
         }
         E.checkArgument(existed == null || !existed.alive(),
-                        "The server with name '%s' already in cluster",
-                        serverId);
+                        "The server with name '%s' already in cluster", serverId);
 
         if (nodeInfo.nodeRole().master()) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
@@ -198,13 +195,12 @@ public class ServerInfoManager {
         /* ServerInfo is missing */
         if (this.selfNodeId() == null) {
             // Ignore if ServerInfo is not initialized
-            LOG.info("ServerInfo is missing: {}, may not be initialized yet");
+            LOG.info("ServerInfo is missing: {}, may not be initialized yet", this.selfNodeId());
             return;
         }
         if (this.selfIsMaster()) {
-            // On master node, just wait for ServerInfo re-init
-            LOG.warn("ServerInfo is missing: {}, may be cleared before",
-                     this.selfNodeId());
+            // On the master node, just wait for ServerInfo re-init
+            LOG.warn("ServerInfo is missing: {}, may be cleared before", this.selfNodeId());
             return;
         }
         /*
@@ -245,12 +241,10 @@ public class ServerInfoManager {
             if (!server.alive()) {
                 continue;
             }
-
             if (server.role().master()) {
                 master = server;
                 continue;
             }
-
             hasWorkerNode = true;
             if (!server.suitableFor(task, now)) {
                 continue;
@@ -267,13 +261,12 @@ public class ServerInfoManager {
             this.onlySingleNode = singleNode;
         }
 
-        // Only schedule to master if there is no workers and master is suitable
+        // Only schedule to master if there are no workers and master are suitable
         if (!hasWorkerNode) {
             if (master != null && master.suitableFor(task, now)) {
                 serverWithMinLoad = master;
             }
         }
-
         return serverWithMinLoad;
     }
 
@@ -299,8 +292,7 @@ public class ServerInfoManager {
                 throw new HugeException("Schema is missing for %s '%s'",
                                         HugeServerInfo.P.SERVER, serverInfo);
             }
-            HugeVertex vertex = this.tx().constructVertex(false,
-                                                          serverInfo.asArray());
+            HugeVertex vertex = this.tx().constructVertex(false, serverInfo.asArray());
             // Add or update server info in backend store
             vertex = this.tx().addVertex(vertex);
             return vertex.id();
@@ -314,8 +306,7 @@ public class ServerInfoManager {
             }
             HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
             if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
-                throw new HugeException("Schema is missing for %s",
-                                        HugeServerInfo.P.SERVER);
+                throw new HugeException("Schema is missing for %s", HugeServerInfo.P.SERVER);
             }
             // Save server info in batch
             GraphTransaction tx = this.tx();
