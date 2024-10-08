@@ -63,6 +63,7 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
                 LOG.error("Please make sure that the JDK is installed and the version >= 11");
                 return;
             }
+
             String storeNodeJarPath = getFileInDir(workPath, STORE_JAR_PREFIX);
             startCmd.addAll(
                     Arrays.asList(

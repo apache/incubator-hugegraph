@@ -59,16 +59,14 @@ public abstract class AbstractEnv implements BaseEnv {
             PDNodeWrapper pdNodeWrapper = new PDNodeWrapper(cluster_id, i);
             PDConfig pdConfig = clusterConfig.getPDConfig(i);
             pdNodeWrappers.add(pdNodeWrapper);
-            pdConfig.writeConfig(pdNodeWrapper.getNodePath()
-                                 + CONF_DIR);
+            pdConfig.writeConfig(pdNodeWrapper.getNodePath() + CONF_DIR);
         }
 
         for (int i = 0; i < storeCnt; i++) {
             StoreNodeWrapper storeNodeWrapper = new StoreNodeWrapper(cluster_id, i);
             StoreConfig storeConfig = clusterConfig.getStoreConfig(i);
             storeNodeWrappers.add(storeNodeWrapper);
-            storeConfig.writeConfig(storeNodeWrapper.getNodePath()
-                                    + CONF_DIR);
+            storeConfig.writeConfig(storeNodeWrapper.getNodePath() + CONF_DIR);
         }
 
         for (int i = 0; i < serverCnt; i++) {

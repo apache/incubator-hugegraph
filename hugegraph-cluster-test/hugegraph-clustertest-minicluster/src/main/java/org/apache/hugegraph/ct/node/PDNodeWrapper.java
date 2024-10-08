@@ -74,6 +74,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                 LOG.error("Please make sure that the JDK is installed and the version >= 11");
                 return;
             }
+
             String pdNodeJarPath = getFileInDir(workPath, PD_JAR_PREFIX);
             startCmd.addAll(
                     Arrays.asList(

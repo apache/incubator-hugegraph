@@ -89,8 +89,7 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
             addJarsToClasspath(new File(workPath + LIB_DIR), classpath);
             addJarsToClasspath(new File(workPath + EXT_DIR), classpath);
             addJarsToClasspath(new File(workPath + PLUGINS_DIR), classpath);
-            String storeClassPath =
-                    String.join(":", classpath);
+            String storeClassPath = String.join(":", classpath);
             startCmd.addAll(
                     Arrays.asList(
                             "-Dname=HugeGraphServer" + this.index,

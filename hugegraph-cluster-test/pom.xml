@@ -54,6 +54,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <!-- TODO: we should refactor/use junit 5+ later -->
             <version>4.13.2</version>
         </dependency>
     </dependencies>
