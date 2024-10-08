@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.memory.allocator;
 
+import java.nio.ByteBuffer;
+
 // TODO(pjz): implement different memory allocate strategy.
 public interface IMemoryAllocator {
 
@@ -24,7 +26,7 @@ public interface IMemoryAllocator {
 
     long forceAllocateOnHeap(long size);
 
-    long tryToAllocateOffHeap(long size);
+    ByteBuffer tryToAllocateOffHeap(long size);
 
-    long forceAllocateOffHeap(long size);
+    ByteBuffer forceAllocateOffHeap(long size);
 }

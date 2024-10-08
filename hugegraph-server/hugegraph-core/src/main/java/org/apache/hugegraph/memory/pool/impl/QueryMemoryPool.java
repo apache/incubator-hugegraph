@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.memory.pool.impl;
 
+import java.nio.ByteBuffer;
+
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 
@@ -27,11 +29,6 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     public QueryMemoryPool(String poolName, MemoryManager memoryManager) {
         super(null, poolName);
         this.memoryManager = memoryManager;
-    }
-
-    @Override
-    public long tryToAcquireMemory(long bytes) {
-        return 0;
     }
 
     @Override

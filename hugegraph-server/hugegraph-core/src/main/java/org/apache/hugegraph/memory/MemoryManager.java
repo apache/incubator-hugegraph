@@ -21,8 +21,6 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.hugegraph.memory.allocator.AbstractAllocator;
-import org.apache.hugegraph.memory.allocator.IMemoryAllocator;
 import org.apache.hugegraph.memory.arbitrator.IMemoryArbitrator;
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitrator;
 import org.apache.hugegraph.memory.pool.IMemoryPool;
@@ -36,24 +34,11 @@ public class MemoryManager {
     private final AtomicLong currentMemoryCapacityInBytes = new AtomicLong(1000_000_000);
     private final Set<IMemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
     private final IMemoryArbitrator memoryArbitrator;
-    // TODO: implement different allocate strategy.
-    private final IMemoryAllocator memoryAllocator;
     // TODO: integrated with mingzhen's monitor thread
     // private final Runnable queryGCThread;
 
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitrator();
-        this.memoryAllocator = new AbstractAllocator() {
-            @Override
-            public long tryToAllocateOffHeap(long size) {
-                return 0;
-            }
-
-            @Override
-            public long forceAllocateOffHeap(long size) {
-                return 0;
-            }
-        };
     }
 
     public IMemoryPool addQueryMemoryPool() {

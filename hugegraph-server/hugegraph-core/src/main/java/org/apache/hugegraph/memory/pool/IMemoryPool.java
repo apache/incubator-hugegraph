@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.memory.pool;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
@@ -27,7 +28,7 @@ public interface IMemoryPool {
 
     long tryToReclaimLocalMemory(long neededBytes);
 
-    long tryToAcquireMemory(long bytes);
+    ByteBuffer tryToAcquireMemory(long bytes);
 
     void releaseSelf();
 

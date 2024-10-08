@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.memory.pool;
 
+import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -27,7 +28,7 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
     private final Set<IMemoryPool> children =
             new TreeSet<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
     private IMemoryPool parent;
-    private MemoryPoolStats stats;
+    protected MemoryPoolStats stats;
 
     public AbstractMemoryPool(IMemoryPool parent, String memoryPoolName) {
         this.parent = parent;
@@ -70,6 +71,14 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
             this.parent = null;
             this.children.clear();
         }
+    }
+
+    @Override
+    public ByteBuffer tryToAcquireMemory(long bytes) {
+        // default implement
+        // just record how much memory is used(update stats)
+
+        return null;
     }
 
     @Override

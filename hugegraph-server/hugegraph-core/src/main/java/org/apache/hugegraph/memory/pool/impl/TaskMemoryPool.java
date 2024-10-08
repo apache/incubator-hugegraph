@@ -17,6 +17,27 @@
 
 package org.apache.hugegraph.memory.pool.impl;
 
-public class TaskMemoryPool {
+import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
+import org.apache.hugegraph.memory.pool.IMemoryPool;
 
+public class TaskMemoryPool extends AbstractMemoryPool {
+
+    public TaskMemoryPool(IMemoryPool parent, String poolName) {
+        super(parent, poolName);
+    }
+
+    @Override
+    public boolean tryToDiskSpill() {
+        return false;
+    }
+
+    @Override
+    public long requestMemory(long bytes) {
+        return 0;
+    }
+
+    @Override
+    public long reclaimMemory(long bytes, long maxWaitMs) {
+        return 0;
+    }
 }
