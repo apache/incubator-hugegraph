@@ -15,38 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.pool;
+package org.apache.hugegraph.memory.consumer;
 
-import java.nio.ByteBuffer;
-import java.util.Set;
+// TODO(pjz): integrated it with HG objects such as edges and vertex.
+public interface MemoryConsumer {
 
-import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
-
-public interface IMemoryPool {
-
-    MemoryPoolStats getSnapShot();
-
-    long tryToReclaimLocalMemory(long neededBytes);
-
-    ByteBuffer tryToAcquireMemory(long bytes);
-
-    void releaseSelf();
-
-    boolean tryToDiskSpill();
-
-    long getAllocatedBytes();
-
-    long getUsedBytes();
-
-    long getFreeBytes();
-
-    long getMaxCapacityBytes();
-
-    String getName();
-
-    IMemoryPool getParentPool();
-
-    Set<IMemoryPool> getChildrenPools();
-
-    long requestMemory(long bytes);
 }

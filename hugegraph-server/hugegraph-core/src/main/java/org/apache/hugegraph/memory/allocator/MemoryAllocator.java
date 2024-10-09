@@ -15,8 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.reclaimer;
+package org.apache.hugegraph.memory.allocator;
 
-public interface IMemoryReclaimer {
+import java.nio.ByteBuffer;
 
+// TODO(pjz): implement different memory allocate strategy.
+public interface MemoryAllocator {
+
+    long tryToAllocateOnHeap(long size);
+
+    long forceAllocateOnHeap(long size);
+
+    ByteBuffer tryToAllocateOffHeap(long size);
+
+    ByteBuffer forceAllocateOffHeap(long size);
 }

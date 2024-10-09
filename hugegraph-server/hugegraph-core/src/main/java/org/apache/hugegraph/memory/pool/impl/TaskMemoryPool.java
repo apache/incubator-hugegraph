@@ -18,11 +18,11 @@
 package org.apache.hugegraph.memory.pool.impl;
 
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
-import org.apache.hugegraph.memory.pool.IMemoryPool;
+import org.apache.hugegraph.memory.pool.MemoryPool;
 
 public class TaskMemoryPool extends AbstractMemoryPool {
 
-    public TaskMemoryPool(IMemoryPool parent, String poolName) {
+    public TaskMemoryPool(MemoryPool parent, String poolName) {
         super(parent, poolName);
         // TODO: this.stats.setMaxCapacity();
     }

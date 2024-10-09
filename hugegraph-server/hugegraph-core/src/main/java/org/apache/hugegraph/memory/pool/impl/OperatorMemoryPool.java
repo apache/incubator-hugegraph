@@ -19,9 +19,9 @@ package org.apache.hugegraph.memory.pool.impl;
 
 import java.nio.ByteBuffer;
 
-import org.apache.hugegraph.memory.allocator.IMemoryAllocator;
+import org.apache.hugegraph.memory.allocator.MemoryAllocator;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
-import org.apache.hugegraph.memory.pool.IMemoryPool;
+import org.apache.hugegraph.memory.pool.MemoryPool;
 
 public class OperatorMemoryPool extends AbstractMemoryPool {
 
@@ -29,10 +29,10 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     private static final long ALIGNMENT = 8;
     private static final long MB = 1 << 20;
     // TODO: implement different allocate strategy & make it configurable.
-    private final IMemoryAllocator memoryAllocator;
+    private final MemoryAllocator memoryAllocator;
 
-    public OperatorMemoryPool(IMemoryPool parent, String poolName,
-                              IMemoryAllocator memoryAllocator) {
+    public OperatorMemoryPool(MemoryPool parent, String poolName,
+                              MemoryAllocator memoryAllocator) {
         super(parent, poolName);
         this.memoryAllocator = memoryAllocator;
         // TODO: this.stats.setMaxCapacity();

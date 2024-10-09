@@ -23,14 +23,14 @@ import java.util.TreeSet;
 
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
 
-public abstract class AbstractMemoryPool implements IMemoryPool {
+public abstract class AbstractMemoryPool implements MemoryPool {
 
-    private final Set<IMemoryPool> children =
+    private final Set<MemoryPool> children =
             new TreeSet<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
-    private IMemoryPool parent;
+    private MemoryPool parent;
     protected MemoryPoolStats stats;
 
-    public AbstractMemoryPool(IMemoryPool parent, String memoryPoolName) {
+    public AbstractMemoryPool(MemoryPool parent, String memoryPoolName) {
         this.parent = parent;
         this.stats = new MemoryPoolStats(memoryPoolName);
     }
@@ -40,7 +40,7 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
         long totalReclaimedBytes = 0;
         long currentNeededBytes = neededBytes;
         try {
-            for (IMemoryPool child : this.children) {
+            for (MemoryPool child : this.children) {
                 long reclaimedMemory = child.tryToReclaimLocalMemory(currentNeededBytes);
                 if (reclaimedMemory > 0) {
                     currentNeededBytes -= reclaimedMemory;
@@ -62,7 +62,7 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
     @Override
     public void releaseSelf() {
         try {
-            for (IMemoryPool child : this.children) {
+            for (MemoryPool child : this.children) {
                 child.releaseSelf();
             }
         } finally {
@@ -107,7 +107,7 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
     }
 
     @Override
-    public IMemoryPool getParentPool() {
+    public MemoryPool getParentPool() {
         return parent;
     }
 
@@ -117,7 +117,7 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
     }
 
     @Override
-    public Set<IMemoryPool> getChildrenPools() {
+    public Set<MemoryPool> getChildrenPools() {
         return children;
     }
 

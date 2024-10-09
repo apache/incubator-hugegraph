@@ -17,36 +17,15 @@
 
 package org.apache.hugegraph.memory.arbitrator;
 
-import org.apache.hugegraph.memory.pool.IMemoryPool;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.hugegraph.memory.pool.MemoryPool;
 
-public class MemoryArbitrator implements IMemoryArbitrator {
+public interface MemoryArbitrator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MemoryArbitrator.class);
+    long MAX_WAIT_TIME_FOR_LOCAL_RECLAIM = 1000;
 
-    @Override
-    public long reclaimLocally(IMemoryPool queryPool, long neededBytes) {
-        long startTime = System.currentTimeMillis();
-        long res = queryPool.tryToReclaimLocalMemory(neededBytes);
-        LOGGER.info("[{}] reclaim local memory: {} bytes, took {} ms",
-                    Thread.currentThread().getName(),
-                    res,
-                    System.currentTimeMillis() - startTime);
-        return res;
-    }
+    long MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM = 5000;
 
-    @Override
-    public long reclaimGlobally(IMemoryPool queryPool, long neededBytes) {
-        long startTime = System.currentTimeMillis();
-        // TODO
-        // 1. select the query task that uses the most memory
-        // 2. suspend that task
-        // 3. apply disk spill to that task
-        LOGGER.info("[{}] reclaim global memory: {} bytes, took {} ms",
-                    Thread.currentThread().getName(),
-                    0,
-                    System.currentTimeMillis() - startTime);
-        return 0;
-    }
+    long reclaimLocally(MemoryPool queryPool, long neededBytes);
+
+    long reclaimGlobally(MemoryPool queryPool, long neededBytes);
 }

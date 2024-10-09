@@ -26,9 +26,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.hugegraph.memory.arbitrator.IMemoryArbitrator;
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitrator;
-import org.apache.hugegraph.memory.pool.IMemoryPool;
+import org.apache.hugegraph.memory.arbitrator.MemoryArbitratorImpl;
+import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.pool.impl.QueryMemoryPool;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.slf4j.Logger;
@@ -43,41 +43,41 @@ public class MemoryManager {
     private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
     // TODO: read it from conf, current 1G
     private final AtomicLong currentMemoryCapacityInBytes = new AtomicLong(1000_000_000);
-    private final Set<IMemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
-    private final IMemoryArbitrator memoryArbitrator;
+    private final Set<MemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
+    private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
     // TODO: integrated with mingzhen's monitor thread
     // private final Runnable queryGCThread;
 
     private MemoryManager() {
-        this.memoryArbitrator = new MemoryArbitrator();
+        this.memoryArbitrator = new MemoryArbitratorImpl();
         this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
                                                                  ARBITRATE_MEMORY_POOL_NAME);
     }
 
-    public IMemoryPool addQueryMemoryPool() {
+    public MemoryPool addQueryMemoryPool() {
         int count = queryMemoryPools.size();
         String poolName =
                 QUERY_MEMORY_POOL_NAME_PREFIX + DELIMINATOR + count + DELIMINATOR +
                 System.currentTimeMillis();
-        IMemoryPool queryPool = new QueryMemoryPool(poolName, this);
+        MemoryPool queryPool = new QueryMemoryPool(poolName, this);
         queryMemoryPools.add(queryPool);
         return queryPool;
     }
 
-    public void gcQueryMemoryPool(IMemoryPool pool) {
+    public void gcQueryMemoryPool(MemoryPool pool) {
         queryMemoryPools.remove(pool);
         long reclaimedMemory = pool.getAllocatedBytes();
         pool.releaseSelf();
         currentMemoryCapacityInBytes.addAndGet(reclaimedMemory);
     }
 
-    public long triggerLocalArbitration(IMemoryPool targetPool, long neededBytes) {
+    public long triggerLocalArbitration(MemoryPool targetPool, long neededBytes) {
         Future<Long> future =
                 arbitrateExecutor.submit(
                         () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes));
         try {
-            return future.get(IMemoryArbitrator.MAX_WAIT_TIME_FOR_LOCAL_RECLAIM,
+            return future.get(MemoryArbitrator.MAX_WAIT_TIME_FOR_LOCAL_RECLAIM,
                               TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             LOGGER.warn("MemoryManager: arbitration locally for {} timed out", targetPool, e);
@@ -89,12 +89,12 @@ public class MemoryManager {
         return 0;
     }
 
-    public long triggerGlobalArbitration(IMemoryPool requestPool, long neededBytes) {
+    public long triggerGlobalArbitration(MemoryPool requestPool, long neededBytes) {
         Future<Long> future =
                 arbitrateExecutor.submit(
                         () -> memoryArbitrator.reclaimGlobally(requestPool, neededBytes));
         try {
-            return future.get(IMemoryArbitrator.MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM,
+            return future.get(MemoryArbitrator.MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM,
                               TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
             LOGGER.warn("MemoryManager: arbitration globally for {} timed out", requestPool, e);

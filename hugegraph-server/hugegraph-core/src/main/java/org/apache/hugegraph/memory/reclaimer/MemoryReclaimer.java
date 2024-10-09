@@ -15,17 +15,8 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.arbitrator;
+package org.apache.hugegraph.memory.reclaimer;
 
-import org.apache.hugegraph.memory.pool.IMemoryPool;
+public interface MemoryReclaimer {
 
-public interface IMemoryArbitrator {
-
-    long MAX_WAIT_TIME_FOR_LOCAL_RECLAIM = 1000;
-
-    long MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM = 5000;
-
-    long reclaimLocally(IMemoryPool queryPool, long neededBytes);
-
-    long reclaimGlobally(IMemoryPool queryPool, long neededBytes);
 }

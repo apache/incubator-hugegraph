@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.memory.allocator;
 
-public abstract class AbstractAllocator implements IMemoryAllocator {
+public abstract class AbstractAllocator implements MemoryAllocator {
 
     @Override
     public long tryToAllocateOnHeap(long size) {
