@@ -20,12 +20,15 @@ package org.apache.hugegraph.io;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
+
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.HugeKeys;
 
 public class GraphSONSchemaSerializer {
@@ -64,25 +67,43 @@ public class GraphSONSchemaSerializer {
         Map<HugeKeys, Object> map = new LinkedHashMap<>();
         map.put(HugeKeys.ID, edgeLabel.id().asLong());
         map.put(HugeKeys.NAME, edgeLabel.name());
-        map.put(HugeKeys.SOURCE_LABEL, edgeLabel.sourceLabelName());
-        map.put(HugeKeys.TARGET_LABEL, edgeLabel.targetLabelName());
-        map.put(HugeKeys.FREQUENCY, edgeLabel.frequency());
-        map.put(HugeKeys.SORT_KEYS,
-                graph.mapPkId2Name(edgeLabel.sortKeys()));
-        map.put(HugeKeys.NULLABLE_KEYS,
-                graph.mapPkId2Name(edgeLabel.nullableKeys()));
-        map.put(HugeKeys.INDEX_LABELS,
-                graph.mapIlId2Name(edgeLabel.indexLabels()));
-        map.put(HugeKeys.PROPERTIES,
-                graph.mapPkId2Name(edgeLabel.properties()));
-        map.put(HugeKeys.STATUS, edgeLabel.status());
-        map.put(HugeKeys.TTL, edgeLabel.ttl());
-        String ttlStartTimeName = edgeLabel.ttlStartTimeName();
-        if (ttlStartTimeName != null) {
-            map.put(HugeKeys.TTL_START_TIME, ttlStartTimeName);
+        if (edgeLabel.isFather()) {
+            map.put(HugeKeys.EDGELABEL_TYPE, EdgeLabelType.PARENT);
+            if (edgeLabel.links().size() > 0) {
+                map.put(HugeKeys.LINKS,
+                        graph.mapPairId2Name(edgeLabel.links()));
+            }
+        } else if (edgeLabel.hasFather()) {
+            map.put(HugeKeys.EDGELABEL_TYPE, EdgeLabelType.SUB);
+            map.put(HugeKeys.PARENT_LABEL,
+                    graph.mapElId2Name(ImmutableList.of(edgeLabel.fatherId()))
+                         .get(0));
+        } else {
+            map.put(HugeKeys.EDGELABEL_TYPE, edgeLabel.edgeLabelType());
         }
-        map.put(HugeKeys.ENABLE_LABEL_INDEX, edgeLabel.enableLabelIndex());
-        map.put(HugeKeys.USER_DATA, edgeLabel.userdata());
+
+        if (!edgeLabel.isFather()) {
+            map.put(HugeKeys.LINKS,
+                    graph.mapPairId2Name(edgeLabel.links()));
+            map.put(HugeKeys.FREQUENCY, edgeLabel.frequency());
+            map.put(HugeKeys.SORT_KEYS,
+                    graph.mapPkId2Name(edgeLabel.sortKeys()));
+            map.put(HugeKeys.NULLABLE_KEYS,
+                    graph.mapPkId2Name(edgeLabel.nullableKeys()));
+            map.put(HugeKeys.INDEX_LABELS,
+                    graph.mapIlId2Name(edgeLabel.indexLabels()));
+            map.put(HugeKeys.PROPERTIES,
+                    graph.mapPkId2Name(edgeLabel.properties()));
+            map.put(HugeKeys.STATUS, edgeLabel.status());
+            map.put(HugeKeys.TTL, edgeLabel.ttl());
+            String ttlStartTimeName = edgeLabel.ttlStartTimeName();
+            if (ttlStartTimeName != null) {
+                map.put(HugeKeys.TTL_START_TIME, ttlStartTimeName);
+            }
+            map.put(HugeKeys.ENABLE_LABEL_INDEX, edgeLabel.enableLabelIndex());
+            map.put(HugeKeys.USER_DATA, edgeLabel.userdata());
+        }
+
         return map;
     }
 

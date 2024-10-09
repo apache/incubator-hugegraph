@@ -223,11 +223,12 @@ public class TextSerializer extends AbstractSerializer {
 
         HugeGraph graph = vertex.graph();
         boolean direction = colParts[0].equals(EDGE_OUT_TYPE);
-        String sortValues = readEdgeName(colParts[2]);
+        String sortValues = readEdgeName(colParts[3]);
         EdgeLabel edgeLabel = graph.edgeLabelOrNone(readId(colParts[1]));
-        Id otherVertexId = readEntryId(colParts[3]);
+        EdgeLabel subEdgeLabel = graph.edgeLabelOrNone(readId(colParts[2]));
+        Id otherVertexId = readEntryId(colParts[4]);
         // Construct edge
-        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, subEdgeLabel,
                                                sortValues, otherVertexId);
 
         String[] valParts = colValue.split(VALUE_SPLITOR);
@@ -772,6 +773,7 @@ public class TextSerializer extends AbstractSerializer {
         // Edge name: type + edge-label-name + sortKeys + targetVertex
         list.add(writeType(edgeId.direction().type()));
         list.add(writeId(edgeId.edgeLabelId()));
+        list.add(writeId(edgeId.subLabelId()));
         list.add(writeEdgeName(edgeId.sortValues()));
         list.add(writeEntryId(edgeId.otherVertexId()));
 

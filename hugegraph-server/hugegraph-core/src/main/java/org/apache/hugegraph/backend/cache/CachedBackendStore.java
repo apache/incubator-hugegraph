@@ -18,8 +18,13 @@
 package org.apache.hugegraph.backend.cache;
 
 import java.util.Iterator;
+import java.util.List;
+import java.util.function.Function;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendFeatures;
@@ -28,6 +33,8 @@ import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.SystemSchemaStore;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.iterator.ExtendableIterator;
+import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.StringEncoding;
 
@@ -175,6 +182,29 @@ public class CachedBackendStore implements BackendStore {
             }
             return rs;
         }
+    }
+
+    @Override
+    public Iterator<Iterator<BackendEntry>> query(Iterator<Query> queries,
+                                                  Function<Query, Query> queryWriter,
+                                                  HugeGraph hugeGraph) {
+        return new MapperIterator<>(queries, query -> {
+            assert query instanceof ConditionQuery;
+            List<ConditionQuery> flattenQueryList =
+                    ConditionQueryFlatten.flatten((ConditionQuery) query);
+
+            if (flattenQueryList.size() > 1) {
+                ExtendableIterator<BackendEntry> itExtend
+                        = new ExtendableIterator<>();
+                flattenQueryList.forEach(cq -> {
+                    Query cQuery = queryWriter.apply(cq);
+                    itExtend.extend(this.query(cQuery));
+                });
+                return itExtend;
+            } else {
+                return this.query(queryWriter.apply(query));
+            }
+        });
     }
 
     @Override

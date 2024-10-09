@@ -48,6 +48,8 @@ public enum HugeKeys {
     SORT_KEYS(84, "sort_keys"),
     TTL(85, "ttl"),
     TTL_START_TIME(86, "ttl_start_time"),
+    EDGELABEL_TYPE(87, "edgelabel_type"),
+    PARENT_LABEL(89, "parent_label"),
 
     /* Column names of schema type (PropertyKey) */
     DATA_TYPE(120, "data_type"),
@@ -77,6 +79,7 @@ public enum HugeKeys {
     SORT_VALUES(206, "sort_values"),
     PRIMARY_VALUES(207, "primary_values"),
     EXPIRED_TIME(208, "expired_time"),
+    SUB_LABEL(211, "sub_label"),
 
     PROPERTY_TYPE(249, "property_type"),
     AGGREGATE_PROPERTIES(250, "aggregate_properties");

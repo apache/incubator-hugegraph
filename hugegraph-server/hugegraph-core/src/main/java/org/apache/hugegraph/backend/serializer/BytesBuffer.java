@@ -697,11 +697,12 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeEdgeId(Id id) {
-        // owner-vertex + dir + edge-label + sort-values + other-vertex
+        // owner-vertex + dir + edge-label + sub-edge-label + sort-values + other-vertex
         EdgeId edge = (EdgeId) id;
         this.writeId(edge.ownerVertexId());
         this.write(edge.directionCode());
         this.writeId(edge.edgeLabelId());
+        this.writeId(edge.subLabelId());
         this.writeStringWithEnding(edge.sortValues());
         this.writeId(edge.otherVertexId());
         return this;
@@ -709,7 +710,7 @@ public final class BytesBuffer extends OutputStream {
 
     public Id readEdgeId() {
         return new EdgeId(this.readId(), EdgeId.directionFromCode(this.read()),
-                          this.readId(), this.readStringWithEnding(),
+                          this.readId(), this.readId(), this.readStringWithEnding(),
                           this.readId());
     }
 

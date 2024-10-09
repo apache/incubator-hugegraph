@@ -31,7 +31,13 @@ public interface BackendFeatures {
         return false;
     }
 
-    default boolean supportsTaskAndServerVertex() { return false; }
+    default boolean supportsTaskAndServerVertex() {
+        return false;
+    }
+
+    default boolean supportsFatherAndSubEdgeLabel() {
+        return true;
+    }
 
     boolean supportsScanToken();
 

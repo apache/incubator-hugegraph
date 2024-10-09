@@ -288,19 +288,18 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
          */
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         EdgeLabel schema = this.getEdgeLabel(id);
-        // TODO: uncomment later - sub edge labels
-        //if (schema.edgeLabelType().parent()) {
-        //    List<EdgeLabel> edgeLabels = this.getEdgeLabels();
-        //    for (EdgeLabel edgeLabel : edgeLabels) {
-        //        if (edgeLabel.edgeLabelType().sub() &&
-        //            edgeLabel.fatherId() == id) {
-        //            throw new NotAllowException(
-        //                    "Not allowed to remove a parent edge label: '%s' " +
-        //                    "because the sub edge label '%s' is still existing",
-        //                    schema.name(), edgeLabel.name());
-        //        }
-        //    }
-        //}
+        if (schema.edgeLabelType().parent()) {
+            List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+            for (EdgeLabel edgeLabel : edgeLabels) {
+                if (edgeLabel.edgeLabelType().sub() &&
+                    edgeLabel.fatherId() == id) {
+                    throw new NotAllowException(
+                            "Not allowed to remove a parent edge label: '%s' " +
+                            "because the sub edge label '%s' is still existing",
+                            schema.name(), edgeLabel.name());
+                }
+            }
+        }
         SchemaJob job = new EdgeLabelRemoveJob();
         return asyncRun(this.graph(), schema, job);
     }
