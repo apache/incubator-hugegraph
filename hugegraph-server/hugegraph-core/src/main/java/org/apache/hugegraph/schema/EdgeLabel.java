@@ -250,8 +250,10 @@ public class EdgeLabel extends SchemaLabel {
 
         Builder link(String sourceLabel, String targetLabel);
 
+        @Deprecated
         Builder sourceLabel(String label);
 
+        @Deprecated
         Builder targetLabel(String label);
 
         Builder singleTime();
