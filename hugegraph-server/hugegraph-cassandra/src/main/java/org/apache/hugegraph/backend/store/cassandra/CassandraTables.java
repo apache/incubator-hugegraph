@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.EdgeId;
@@ -50,6 +52,8 @@ import com.datastax.driver.core.querybuilder.Update;
 import com.datastax.driver.core.querybuilder.Using;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import org.apache.hugegraph.util.HashUtil;
 
 public class CassandraTables {
 
@@ -400,7 +404,9 @@ public class CassandraTables {
 
         @Override
         protected List<HugeKeys> idColumnName() {
-            return Arrays.asList(EdgeId.KEYS);
+            return Arrays.stream(EdgeId.KEYS)
+                         .filter(key -> !Objects.equals(key, HugeKeys.SUB_LABEL))
+                         .collect(Collectors.toList());
         }
 
         @Override

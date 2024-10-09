@@ -67,6 +67,7 @@ import org.apache.hugegraph.iterator.Metadatable;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.system.DeleteExpiredJob;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaLabel;
@@ -147,6 +148,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
         } else {
             this.doAppend(this.serializer.writeIndex(index));
         }
+
+        if (element instanceof HugeEdge && ((EdgeLabel) label).hasFather()) {
+            HugeIndex fatherIndex = new HugeIndex(this.graph(), IndexLabel.label(element.type()));
+            fatherIndex.fieldValues(((EdgeLabel) label).fatherId());
+            fatherIndex.elementIds(element.id(), element.expiredTime());
+            if (removed) {
+                this.doEliminate(this.serializer.writeIndex(fatherIndex));
+            } else {
+                this.doAppend(this.serializer.writeIndex(fatherIndex));
+            }
+        }
     }
 
     @Watched(prefix = "index")
@@ -166,6 +178,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Update index of an edge
         for (Id id : edge.schemaLabel().indexLabels()) {
             this.updateIndex(id, edge, removed);
+        }
+
+        EdgeLabel label = edge.schemaLabel();
+        if (label.hasFather()) {
+            for (Id id : graph().edgeLabel(label.fatherId()).indexLabels()) {
+                this.updateIndex(id, edge, removed);
+            }
         }
     }
 

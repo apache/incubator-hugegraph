@@ -27,7 +27,7 @@ import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.serializer.TableBackendEntry;
-import org.apache.hugegraph.backend.serializer.TableSerializer;
+import org.apache.hugegraph.backend.serializer.TableSerializerV2;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.schema.SchemaElement;
@@ -39,7 +39,7 @@ import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.JsonUtil;
 
-public class MysqlSerializer extends TableSerializer {
+public class MysqlSerializer extends TableSerializerV2 {
 
     public MysqlSerializer(HugeConfig config) {
         super(config);
