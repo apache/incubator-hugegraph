@@ -49,6 +49,4 @@ public interface IMemoryPool {
     Set<IMemoryPool> getChildrenPools();
 
     long requestMemory(long bytes);
-
-    long reclaimMemory(long bytes, long maxWaitMs);
 }

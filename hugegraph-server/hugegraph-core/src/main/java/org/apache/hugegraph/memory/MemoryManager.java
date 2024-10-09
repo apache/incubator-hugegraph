@@ -19,26 +19,40 @@ package org.apache.hugegraph.memory;
 
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hugegraph.memory.arbitrator.IMemoryArbitrator;
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitrator;
 import org.apache.hugegraph.memory.pool.IMemoryPool;
 import org.apache.hugegraph.memory.pool.impl.QueryMemoryPool;
+import org.apache.hugegraph.util.ExecutorUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MemoryManager {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MemoryManager.class);
     private static final String QUERY_MEMORY_POOL_NAME_PREFIX = "QueryMemoryPool";
+    private static final String ARBITRATE_MEMORY_POOL_NAME = "ArbitrateMemoryPool";
     private static final String DELIMINATOR = "_";
+    private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
     // TODO: read it from conf, current 1G
     private final AtomicLong currentMemoryCapacityInBytes = new AtomicLong(1000_000_000);
     private final Set<IMemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
     private final IMemoryArbitrator memoryArbitrator;
+    private final ExecutorService arbitrateExecutor;
     // TODO: integrated with mingzhen's monitor thread
     // private final Runnable queryGCThread;
 
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitrator();
+        this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
+                                                                 ARBITRATE_MEMORY_POOL_NAME);
     }
 
     public IMemoryPool addQueryMemoryPool() {
@@ -56,6 +70,39 @@ public class MemoryManager {
         long reclaimedMemory = pool.getAllocatedBytes();
         pool.releaseSelf();
         currentMemoryCapacityInBytes.addAndGet(reclaimedMemory);
+    }
+
+    public long triggerLocalArbitration(IMemoryPool targetPool, long neededBytes) {
+        Future<Long> future =
+                arbitrateExecutor.submit(
+                        () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes));
+        try {
+            return future.get(IMemoryArbitrator.MAX_WAIT_TIME_FOR_LOCAL_RECLAIM,
+                              TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            LOGGER.warn("MemoryManager: arbitration locally for {} timed out", targetPool, e);
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.error("MemoryManager: arbitration locally for {} interrupted or failed",
+                         targetPool,
+                         e);
+        }
+        return 0;
+    }
+
+    public long triggerGlobalArbitration(IMemoryPool requestPool, long neededBytes) {
+        Future<Long> future =
+                arbitrateExecutor.submit(
+                        () -> memoryArbitrator.reclaimGlobally(requestPool, neededBytes));
+        try {
+            return future.get(IMemoryArbitrator.MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM,
+                              TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            LOGGER.warn("MemoryManager: arbitration globally for {} timed out", requestPool, e);
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.error("MemoryManager: arbitration globally for {} interrupted or failed",
+                         requestPool, e);
+        }
+        return 0;
     }
 
     private static class MemoryManagerHolder {

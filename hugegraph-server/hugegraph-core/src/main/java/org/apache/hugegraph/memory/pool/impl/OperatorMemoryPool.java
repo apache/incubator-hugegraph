@@ -35,18 +35,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
                               IMemoryAllocator memoryAllocator) {
         super(parent, poolName);
         this.memoryAllocator = memoryAllocator;
-    }
-
-    /**
-     * Operator need `size` bytes, operator pool will try to reserve some memory for it
-     */
-    @Override
-    public ByteBuffer tryToAcquireMemory(long size) {
-        // TODO: 1. update statistic
-
-        // 2. allocate memory, currently use off-heap mode.
-        // if you use on-heap mode, we only track memory usage here.
-        return memoryAllocator.tryToAllocateOffHeap(size);
+        // TODO: this.stats.setMaxCapacity();
     }
 
     @Override
@@ -55,21 +44,52 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
+    public long tryToReclaimLocalMemory(long neededBytes) {
+        // 1. try to reclaim self free memory
+        long reclaimableBytes = getFreeBytes();
+        // try its best to reclaim memory
+        if (reclaimableBytes <= neededBytes) {
+            // 2. update stats
+            stats.setAllocatedBytes(stats.getUsedBytes());
+            stats.setReservedBytes(stats.getUsedBytes());
+            return reclaimableBytes;
+        }
+        stats.setAllocatedBytes(stats.getAllocatedBytes() - neededBytes);
+        stats.setReservedBytes(stats.getReservedBytes() - neededBytes);
+        return neededBytes;
+    }
+
+    /**
+     * Operator need `size` bytes, operator pool will try to reserve some memory for it
+     */
+    @Override
+    public ByteBuffer tryToAcquireMemory(long size) {
+        // 1. update statistic
+        super.tryToAcquireMemory(size);
+        // 2. allocate memory, currently use off-heap mode.
+        // if you use on-heap mode, we only track memory usage here.
+        return memoryAllocator.tryToAllocateOffHeap(size);
+    }
+
+    @Override
     public long requestMemory(long size) {
+        // TODO: check max capacity
         // 1. align size
         long alignedSize = sizeAlign(size);
         // 2. reserve(round)
-        long neededMemorySize = calculateTrueRequestingMemory(alignedSize);
+        long neededMemorySize = calculateReserveMemoryDelta(alignedSize);
         if (neededMemorySize <= 0) {
             return 0;
         }
         // 3. call father
         long fatherRes = getParentPool().requestMemory(neededMemorySize);
-        // if allocation failed.
         if (fatherRes < 0) {
             // TODO: new OOM exception
             throw new OutOfMemoryError();
         }
+        // 4. update stats
+        stats.setReservedBytes(stats.getReservedBytes() + neededMemorySize);
+        stats.setAllocatedBytes(stats.getAllocatedBytes() + neededMemorySize);
         return fatherRes;
     }
 
@@ -81,7 +101,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     /**
      * This method should be synchronized.
      */
-    private synchronized long calculateTrueRequestingMemory(long size) {
+    private synchronized long calculateReserveMemoryDelta(long size) {
         // 1. check whether you need to acquire memory or not
         long neededSize = size - (getFreeBytes());
         // 2. if not needed, return 0
@@ -108,10 +128,5 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
 
     private long roundUp(long size, long factor) {
         return (size + factor - 1) / factor * factor;
-    }
-
-    @Override
-    public long reclaimMemory(long bytes, long maxWaitMs) {
-        return 0;
     }
 }

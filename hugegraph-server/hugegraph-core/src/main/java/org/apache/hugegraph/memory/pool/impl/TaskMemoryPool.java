@@ -24,6 +24,7 @@ public class TaskMemoryPool extends AbstractMemoryPool {
 
     public TaskMemoryPool(IMemoryPool parent, String poolName) {
         super(parent, poolName);
+        // TODO: this.stats.setMaxCapacity();
     }
 
     @Override
@@ -33,11 +34,12 @@ public class TaskMemoryPool extends AbstractMemoryPool {
 
     @Override
     public long requestMemory(long bytes) {
-        return 0;
-    }
-
-    @Override
-    public long reclaimMemory(long bytes, long maxWaitMs) {
-        return 0;
+        // TODO: check max capacity
+        long parentRes = getParentPool().requestMemory(bytes);
+        if (parentRes > 0) {
+            stats.setReservedBytes(stats.getReservedBytes() + parentRes);
+            stats.setAllocatedBytes(stats.getAllocatedBytes() + parentRes);
+        }
+        return parentRes;
     }
 }

@@ -36,7 +36,7 @@ public class MemoryPoolStats {
 
     @Override
     public String toString() {
-        return String.format("IMemoryPool-%s: {maxCapacity[%d], usedBytes[%d], reservedBytes[%d]," +
+        return String.format("MemoryPool-%s: {maxCapacity[%d], usedBytes[%d], reservedBytes[%d]," +
                              "cumulativeBytes[%d], allocatedBytes[%d], numShrinks[%d], " +
                              "numExpands[%d], numAborts[%d]}.", memoryPoolName, maxCapacity,
                              usedBytes,

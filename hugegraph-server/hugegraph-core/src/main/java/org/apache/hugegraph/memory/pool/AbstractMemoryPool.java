@@ -75,9 +75,9 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
 
     @Override
     public ByteBuffer tryToAcquireMemory(long bytes) {
-        // default implement
         // just record how much memory is used(update stats)
-
+        stats.setUsedBytes(stats.getUsedBytes() + bytes);
+        stats.setCumulativeBytes(stats.getCumulativeBytes() + bytes);
         return null;
     }
 
@@ -119,5 +119,10 @@ public abstract class AbstractMemoryPool implements IMemoryPool {
     @Override
     public Set<IMemoryPool> getChildrenPools() {
         return children;
+    }
+
+    @Override
+    public String toString() {
+        return getSnapShot().toString();
     }
 }
