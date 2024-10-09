@@ -106,8 +106,15 @@ case "$GC_OPTION" in
         JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
                       -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
+    zgc|ZGC)
+        echo "Using ZGC as the default garbage collector (Only support Java 11+)"
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
+                                      -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
+                                      -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
+                                      -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
+        ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION'" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> ${OUTPUT}
         exit 1
 esac
 

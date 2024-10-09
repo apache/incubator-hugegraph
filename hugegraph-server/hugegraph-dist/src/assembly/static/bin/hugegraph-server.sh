@@ -135,7 +135,7 @@ case "$GC_OPTION" in
                                       -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
         ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', only support 'ZGC' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> ${OUTPUT}
         exit 1
 esac
 
