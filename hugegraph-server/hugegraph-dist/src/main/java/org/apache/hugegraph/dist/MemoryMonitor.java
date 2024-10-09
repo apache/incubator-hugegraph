@@ -50,14 +50,14 @@ public class MemoryMonitor {
         double memoryUsagePercentage = getMemoryUsagePercentage();
 
         if (memoryUsagePercentage > MEMORY_MONITOR_THRESHOLD) {
-            LOG.info("JVM memory usage is '{}', exceeding the threshold of '{}'.",
+            LOG.warn("JVM memory usage is '{}', exceeding the threshold of '{}'.",
                      memoryUsagePercentage, MEMORY_MONITOR_THRESHOLD);
             System.gc();
-            LOG.info("Trigger System.gc()");
+            LOG.warn("Trigger System.gc()");
 
             double doubleCheckUsage = getMemoryUsagePercentage();
             if (doubleCheckUsage > MEMORY_MONITOR_THRESHOLD) {
-                LOG.info("JVM memory usage is '{}', exceeding the threshold of '{}'.",
+                LOG.warn("JVM memory usage is '{}', exceeding the threshold of '{}'.",
                          doubleCheckUsage, MEMORY_MONITOR_THRESHOLD);
                 interruptHighestMemoryThread();
             }
@@ -99,7 +99,7 @@ public class MemoryMonitor {
         Thread targetThread = getHighestMemoryThread();
         if (targetThread != null) {
             targetThread.interrupt();
-            LOG.info("Send interrupt to '{}' thread",
+            LOG.warn("Send interrupt to '{}' thread",
                      targetThread.getName());
         }
     }
