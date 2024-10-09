@@ -22,10 +22,6 @@ import java.nio.ByteBuffer;
 // TODO(pjz): implement different memory allocate strategy.
 public interface MemoryAllocator {
 
-    long tryToAllocateOnHeap(long size);
-
-    long forceAllocateOnHeap(long size);
-
     ByteBuffer tryToAllocateOffHeap(long size);
 
     ByteBuffer forceAllocateOffHeap(long size);
