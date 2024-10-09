@@ -46,11 +46,11 @@ public class MemoryPoolStats {
     }
 
     public String getMemoryPoolName() {
-        return memoryPoolName;
+        return this.memoryPoolName;
     }
 
     public long getUsedBytes() {
-        return usedBytes;
+        return this.usedBytes;
     }
 
     public void setUsedBytes(long usedBytes) {
@@ -58,7 +58,7 @@ public class MemoryPoolStats {
     }
 
     public long getReservedBytes() {
-        return reservedBytes;
+        return this.reservedBytes;
     }
 
     public void setReservedBytes(long reservedBytes) {
@@ -66,7 +66,7 @@ public class MemoryPoolStats {
     }
 
     public long getCumulativeBytes() {
-        return cumulativeBytes;
+        return this.cumulativeBytes;
     }
 
     public void setCumulativeBytes(long cumulativeBytes) {
@@ -74,7 +74,7 @@ public class MemoryPoolStats {
     }
 
     public long getAllocatedBytes() {
-        return allocatedBytes;
+        return this.allocatedBytes;
     }
 
     public void setAllocatedBytes(long allocatedBytes) {
@@ -82,7 +82,7 @@ public class MemoryPoolStats {
     }
 
     public long getNumShrinks() {
-        return numShrinks;
+        return this.numShrinks;
     }
 
     public void setNumShrinks(long numShrinks) {
@@ -90,7 +90,7 @@ public class MemoryPoolStats {
     }
 
     public long getNumExpands() {
-        return numExpands;
+        return this.numExpands;
     }
 
     public void setNumExpands(long numExpands) {
@@ -98,7 +98,7 @@ public class MemoryPoolStats {
     }
 
     public long getNumAborts() {
-        return numAborts;
+        return this.numAborts;
     }
 
     public void setNumAborts(long numAborts) {
@@ -106,7 +106,7 @@ public class MemoryPoolStats {
     }
 
     public long getMaxCapacity() {
-        return maxCapacity;
+        return this.maxCapacity;
     }
 
     public void setMaxCapacity(long maxCapacity) {
