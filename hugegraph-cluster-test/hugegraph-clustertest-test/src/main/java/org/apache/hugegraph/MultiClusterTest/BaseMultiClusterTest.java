@@ -38,13 +38,13 @@ public class BaseMultiClusterTest {
     protected static Process p;
 
     @BeforeClass
-    public static void initEnv() throws InterruptedException {
+    public static void initEnv() {
         env = new MultiNodeEnv();
         env.startCluster();
     }
 
     @AfterClass
-    public static void clearEnv() throws InterruptedException {
+    public static void clearEnv() {
         env.stopCluster();
     }
 

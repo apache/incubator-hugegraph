@@ -18,6 +18,7 @@
 package org.apache.hugegraph.ct.base;
 
 import java.io.File;
+import java.util.Objects;
 
 import org.apache.commons.lang3.SystemUtils;
 
@@ -62,56 +63,34 @@ public class ClusterConstant {
     public static final String EMPTY_SAMPLE_GROOVY_FILE = "scripts/empty-sample.groovy";
     public static final String EXAMPLE_GROOVY_FILE = "scripts/example.groovy";
 
-    public static final String JAVA_CMD =
-            System.getProperty("java.home")
-            + File.separator
-            + BIN_DIR
-            + File.separator
-            + (SystemUtils.IS_OS_WINDOWS ? "java.exe" : "java");
+    public static final String JAVA_CMD = System.getProperty("java.home") +
+                                          File.separator + BIN_DIR + File.separator +
+                                          (SystemUtils.IS_OS_WINDOWS ? "java.exe" : "java");
 
-    public static final String PD_DIST_PATH =
-            PROJECT_DIR
-            + File.separator
-            + "hugegraph-pd"
-            + File.separator;
+    public static final String PD_DIST_PATH = PROJECT_DIR + File.separator +
+                                              "hugegraph-pd" + File.separator;
 
-    public static final String PD_LIB_PATH =
-            getFileInDir(PD_DIST_PATH, PD_PACKAGE_PREFIX)
-            + File.separator
-            + LIB_DIR
-            + File.separator;
+    public static final String PD_LIB_PATH = getFileInDir(PD_DIST_PATH, PD_PACKAGE_PREFIX) +
+                                             File.separator + LIB_DIR + File.separator;
 
-    public static final String STORE_DIST_PATH =
-            PROJECT_DIR
-            + File.separator
-            + "hugegraph-store"
-            + File.separator;
+    public static final String STORE_DIST_PATH = PROJECT_DIR + File.separator + "hugegraph-store" +
+                                                 File.separator;
 
-    public static final String STORE_LIB_PATH =
-            getFileInDir(STORE_DIST_PATH, STORE_PACKAGE_PREFIX)
-            + File.separator
-            + LIB_DIR
-            + File.separator;
+    public static final String STORE_LIB_PATH = getFileInDir(STORE_DIST_PATH, STORE_PACKAGE_PREFIX)
+                                                + File.separator + LIB_DIR + File.separator;
 
-    public static final String SERVER_DIST_PATH =
-            PROJECT_DIR
-            + File.separator
-            + "hugegraph-server"
-            + File.separator;
+    public static final String SERVER_DIST_PATH = PROJECT_DIR + File.separator +
+                                                  "hugegraph-server" + File.separator;
 
-    public static final String SERVER_LIB_PATH =
-            getFileInDir(SERVER_DIST_PATH, SERVER_PACKAGE_PREFIX)
-            + File.separator;
+    public static final String SERVER_LIB_PATH = getFileInDir(SERVER_DIST_PATH,
+                                                              SERVER_PACKAGE_PREFIX) +
+                                                 File.separator;
 
-    public static final String CT_DIST_PATH =
-            PROJECT_DIR
-            + File.separator
-            + "hugegraph-cluster-test"
-            + File.separator;
+    public static final String CT_DIST_PATH = PROJECT_DIR + File.separator +
+                                              "hugegraph-cluster-test" + File.separator;
 
-    public static final String CT_PACKAGE_PATH =
-            getFileInDir(CT_DIST_PATH, CT_PACKAGE_PREFIX)
-            + File.separator;
+    public static final String CT_PACKAGE_PATH = getFileInDir(CT_DIST_PATH, CT_PACKAGE_PREFIX) +
+                                                 File.separator;
 
     private ClusterConstant() {
         throw new IllegalStateException("Utility class");
@@ -120,7 +99,7 @@ public class ClusterConstant {
     public static String getFileInDir(String path, String fileName) {
         File dir = new File(path);
         if (dir.exists() && dir.isDirectory()) {
-            for (File file : dir.listFiles()) {
+            for (File file : Objects.requireNonNull(dir.listFiles())) {
                 if (file.getName().startsWith(fileName) && !file.getName().endsWith(".gz")) {
                     return path + file.getName();
                 }

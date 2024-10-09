@@ -24,17 +24,14 @@ import static org.apache.hugegraph.ct.base.EnvUtil.getAvailablePort;
 
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import lombok.Getter;
 
+@Getter
 public class PDConfig extends AbstractConfig {
 
-    @Getter
     private final int raftPort;
-    @Getter
     private final int grpcPort;
-    @Getter
     private final int restPort;
 
     public PDConfig() {
@@ -49,8 +46,7 @@ public class PDConfig extends AbstractConfig {
     }
 
     public void setRaftPeerList(List<String> raftPeerList) {
-        String raftPeers = raftPeerList.stream()
-                                       .collect(Collectors.joining(","));
+        String raftPeers = String.join(",", raftPeerList);
         setProperty("RAFT_PEERS_LIST", raftPeers);
     }
 
@@ -59,8 +55,7 @@ public class PDConfig extends AbstractConfig {
     }
 
     public void setStoreGrpcList(List<String> storeGrpcList) {
-        String storeGrpcLists = storeGrpcList.stream()
-                                             .collect(Collectors.joining(","));
+        String storeGrpcLists = String.join(",", storeGrpcList);
         setProperty("STORE_GRPC_LIST", storeGrpcLists);
     }
 

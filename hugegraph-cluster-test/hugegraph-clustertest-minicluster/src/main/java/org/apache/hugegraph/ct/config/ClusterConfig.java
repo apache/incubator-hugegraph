@@ -107,8 +107,7 @@ public class ClusterConfig {
     public List<String> getStoreRestAddrs() {
         List<String> addrs = new ArrayList<>();
         for (StoreConfig storeConfig : storeConfigs) {
-            addrs.add("127.0.0.1" + ":" +
-                      storeConfig.getRestPort());
+            addrs.add("127.0.0.1" + ":" + storeConfig.getRestPort());
         }
         return addrs;
     }
@@ -116,8 +115,7 @@ public class ClusterConfig {
     public List<String> getStoreGrpcAddrs() {
         List<String> addrs = new ArrayList<>();
         for (StoreConfig storeConfig : storeConfigs) {
-            addrs.add("127.0.0.1" + ":" +
-                      storeConfig.getGrpcPort());
+            addrs.add("127.0.0.1" + ":" + storeConfig.getGrpcPort());
         }
         return addrs;
     }
@@ -125,8 +123,7 @@ public class ClusterConfig {
     public List<String> getServerRestAddrs() {
         List<String> addrs = new ArrayList<>();
         for (ServerConfig serverConfig : serverConfigs) {
-            addrs.add("127.0.0.1" + ":" +
-                      serverConfig.getRestPort());
+            addrs.add("127.0.0.1" + ":" + serverConfig.getRestPort());
         }
         return addrs;
     }

@@ -30,7 +30,7 @@ import org.junit.BeforeClass;
 
 /**
  * Simple Test generate the cluster env with 1 pd node + 1 store node + 1 server node.
- * All nodes are deployed in ports generated randomly, the application of nodes are stored
+ * All nodes are deployed in ports generated randomly; The application of nodes is stored
  * in /apache-hugegraph-ct-incubating-1.5.0, you can visit each node with rest api.
  */
 public class BaseSimpleTest {
@@ -41,7 +41,7 @@ public class BaseSimpleTest {
     protected static HugeClient hugeClient;
 
     @BeforeClass
-    public static void initEnv() throws InterruptedException {
+    public static void initEnv() {
         env = new SimpleEnv();
         env.startCluster();
     }
@@ -60,7 +60,7 @@ public class BaseSimpleTest {
         String line;
         while ((line = reader.readLine()) != null) {
             builder.append(line);
-            builder.append(System.getProperty("line.separator"));
+            builder.append(System.lineSeparator());
         }
         p.destroy();
         return builder.toString();

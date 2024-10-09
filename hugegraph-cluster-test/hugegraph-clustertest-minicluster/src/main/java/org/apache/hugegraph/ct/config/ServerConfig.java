@@ -26,12 +26,11 @@ import java.nio.file.Paths;
 
 import lombok.Getter;
 
+@Getter
 public class ServerConfig extends AbstractConfig {
 
-    @Getter
-    private int rpcPort;
-    @Getter
-    private int restPort;
+    private final int rpcPort;
+    private final int restPort;
 
     public ServerConfig() {
         readTemplate(Paths.get(CT_PACKAGE_PATH + SERVER_TEMPLATE_FILE));

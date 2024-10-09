@@ -40,7 +40,7 @@ import org.junit.Test;
 public class SimpleClusterDeployTest extends BaseSimpleTest {
 
     @Test
-    public void testPDNodesDeployment() throws IOException {
+    public void testPDNodesDeployment() {
         try{
             List<String> addrs = env.getPDGrpcAddrs();
             for (String addr : addrs) {
@@ -59,6 +59,7 @@ public class SimpleClusterDeployTest extends BaseSimpleTest {
         List<String> addrs = env.getStoreRestAddrs();
         for (String addr : addrs) {
             String[] cmds = {"curl", addr};
+            // TODO: what's the purpose of this?
             StringBuilder sb = new StringBuilder();
             for (String cmd : cmds) {
                 sb.append(cmd).append(" ");
@@ -69,7 +70,7 @@ public class SimpleClusterDeployTest extends BaseSimpleTest {
     }
 
     @Test
-    public void testServerNodesDeployment() throws IOException {
+    public void testServerNodesDeployment() {
         List<String> addrs = env.getServerRestAddrs();
         for (String addr : addrs) {
             hugeClient = HugeClient.builder("http://" + addr, "hugegraph")

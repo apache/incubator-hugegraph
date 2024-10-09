@@ -46,6 +46,7 @@ import lombok.Getter;
 public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
 
     protected final Logger LOG = HGTestLogger.NodeLOG;
+
     protected int clusterIndex;
     @Getter
     protected String workPath;
@@ -152,7 +153,7 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
                 String line = sc.nextLine();
                 if (line.contains(startLine)) return true;
             }
-        } catch (FileNotFoundException e) {
+        } catch (FileNotFoundException ignored) {
         }
         return false;
     }
@@ -178,12 +179,11 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
     }
 
     protected ProcessBuilder runCmd(List<String> startCmd, File stdoutFile) throws IOException {
-        FileUtils.write(
-                stdoutFile, String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
-        ProcessBuilder processBuilder =
-                new ProcessBuilder(startCmd)
-                        .redirectOutput(ProcessBuilder.Redirect.appendTo(stdoutFile))
-                        .redirectError(ProcessBuilder.Redirect.appendTo(stdoutFile));
+        FileUtils.write(stdoutFile,
+                        String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
+        ProcessBuilder processBuilder = new ProcessBuilder(startCmd)
+                .redirectOutput(ProcessBuilder.Redirect.appendTo(stdoutFile))
+                .redirectError(ProcessBuilder.Redirect.appendTo(stdoutFile));
         processBuilder.directory(new File(configPath));
         return processBuilder;
     }

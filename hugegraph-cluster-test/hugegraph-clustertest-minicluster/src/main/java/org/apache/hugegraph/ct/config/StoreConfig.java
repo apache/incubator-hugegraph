@@ -24,18 +24,15 @@ import static org.apache.hugegraph.ct.base.EnvUtil.getAvailablePort;
 
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import lombok.Getter;
 
+@Getter
 public class StoreConfig extends AbstractConfig {
 
-    @Getter
-    private int raftPort;
-    @Getter
-    private int grpcPort;
-    @Getter
-    private int restPort;
+    private final int raftPort;
+    private final int grpcPort;
+    private final int restPort;
 
     public StoreConfig() {
         readTemplate(
@@ -50,8 +47,7 @@ public class StoreConfig extends AbstractConfig {
     }
 
     public void setPDServerList(List<String> pdServerList) {
-        String pdServers = pdServerList.stream()
-                                       .collect(Collectors.joining(","));
+        String pdServers = String.join(",", pdServerList);
         setProperty("PD_SERVER_ADDRESS", pdServers);
     }
 

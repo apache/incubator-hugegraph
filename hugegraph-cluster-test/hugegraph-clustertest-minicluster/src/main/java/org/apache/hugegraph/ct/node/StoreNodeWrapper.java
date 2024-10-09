@@ -63,22 +63,21 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
             }
 
             String storeNodeJarPath = getFileInDir(workPath, STORE_JAR_PREFIX);
-            startCmd.addAll(
-                    Arrays.asList(
-                            "-Dname=HugeGraphStore" + this.index,
-                            "-Dlog4j.configurationFile=" + configPath + CONF_DIR
-                            + File.separator + "log4j2.xml",
-                            "-Dfastjson.parser.safeMode=true",
-                            "-Xms512m",
-                            "-Xmx2048m",
-                            "-XX:MetaspaceSize=256M",
-                            "-XX:+UseG1GC",
-                            "-XX:+ParallelRefProcEnabled",
-                            "-XX:+HeapDumpOnOutOfMemoryError",
-                            "-XX:HeapDumpPath=" + configPath + "logs",
-                            "-Dspring.config.location=" + configPath + CONF_DIR
-                            + File.separator + "application.yml",
-                            "-jar", storeNodeJarPath));
+            startCmd.addAll(Arrays.asList(
+                    "-Dname=HugeGraphStore" + this.index,
+                    "-Dlog4j.configurationFile=" + configPath + CONF_DIR
+                    + File.separator + "log4j2.xml",
+                    "-Dfastjson.parser.safeMode=true",
+                    "-Xms512m",
+                    "-Xmx2048m",
+                    "-XX:MetaspaceSize=256M",
+                    "-XX:+UseG1GC",
+                    "-XX:+ParallelRefProcEnabled",
+                    "-XX:+HeapDumpOnOutOfMemoryError",
+                    "-XX:HeapDumpPath=" + configPath + "logs",
+                    "-Dspring.config.location=" + configPath + CONF_DIR
+                    + File.separator + "application.yml",
+                    "-jar", storeNodeJarPath));
             ProcessBuilder processBuilder = runCmd(startCmd, stdoutFile);
             this.instance = processBuilder.start();
         } catch (IOException ex) {

@@ -58,11 +58,11 @@ public class MultiClusterDeployTest extends BaseMultiClusterTest {
     public void testStoreNodesDeployment() throws IOException {
         List<String> addrs = env.getStoreRestAddrs();
         for (String addr : addrs) {
-            String url = addr;
-            String[] cmds = {"curl", url};
-            StringBuffer sb = new StringBuffer();
-            for (int i = 0; i < cmds.length; i++) {
-                sb.append(cmds[i] + " ");
+            String[] cmds = {"curl", addr};
+            // TODO: why not use the sb param?
+            StringBuilder sb = new StringBuilder();
+            for (String cmd : cmds) {
+                sb.append(cmd).append(" ");
             }
             String responseMsg = execCmd(cmds);
             Assert.assertTrue(responseMsg.startsWith("{"));

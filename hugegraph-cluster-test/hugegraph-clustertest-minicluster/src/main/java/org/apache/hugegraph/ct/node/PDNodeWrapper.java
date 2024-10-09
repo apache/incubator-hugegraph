@@ -67,19 +67,18 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
             }
 
             String pdNodeJarPath = getFileInDir(workPath, PD_JAR_PREFIX);
-            startCmd.addAll(
-                    Arrays.asList(
-                            "-Dname=HugeGraphPD" + this.index,
-                            "-Xms512m",
-                            "-Xmx4g",
-                            "-XX:+HeapDumpOnOutOfMemoryError",
-                            "-XX:HeapDumpPath=" + configPath + "logs",
-                            "-Dlog4j.configurationFile=" + configPath + File.separator +
-                            CONF_DIR +
-                            File.separator + "log4j2.xml",
-                            "-Dspring.config.location=" + configPath + CONF_DIR + File.separator +
-                            "application.yml",
-                            "-jar", pdNodeJarPath));
+            startCmd.addAll(Arrays.asList(
+                    "-Dname=HugeGraphPD" + this.index,
+                    "-Xms512m",
+                    "-Xmx4g",
+                    "-XX:+HeapDumpOnOutOfMemoryError",
+                    "-XX:HeapDumpPath=" + configPath + "logs",
+                    "-Dlog4j.configurationFile=" + configPath + File.separator +
+                    CONF_DIR +
+                    File.separator + "log4j2.xml",
+                    "-Dspring.config.location=" + configPath + CONF_DIR + File.separator +
+                    "application.yml",
+                    "-jar", pdNodeJarPath));
             ProcessBuilder processBuilder = runCmd(startCmd, stdoutFile);
             this.instance = processBuilder.start();
         } catch (IOException ex) {

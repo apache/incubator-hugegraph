@@ -40,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractEnv implements BaseEnv {
 
     private static final Logger LOG = HGTestLogger.EnvLOG;
+
     protected ClusterConfig clusterConfig;
     protected List<PDNodeWrapper> pdNodeWrappers;
     protected List<ServerNodeWrapper> serverNodeWrappers;
@@ -86,8 +87,7 @@ public abstract class AbstractEnv implements BaseEnv {
     }
 
     public void startCluster() {
-        for (int i = 0; i < pdNodeWrappers.size(); i++) {
-            PDNodeWrapper pdNodeWrapper = pdNodeWrappers.get(i);
+        for (PDNodeWrapper pdNodeWrapper : pdNodeWrappers) {
             pdNodeWrapper.start();
             while (!pdNodeWrapper.isStarted()) {
                 try {
@@ -97,8 +97,7 @@ public abstract class AbstractEnv implements BaseEnv {
                 }
             }
         }
-        for (int i = 0; i < storeNodeWrappers.size(); i++) {
-            StoreNodeWrapper storeNodeWrapper = storeNodeWrappers.get(i);
+        for (StoreNodeWrapper storeNodeWrapper : storeNodeWrappers) {
             storeNodeWrapper.start();
             while (!storeNodeWrapper.isStarted()) {
                 try {

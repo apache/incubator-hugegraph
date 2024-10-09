@@ -44,14 +44,10 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
 
     public ServerNodeWrapper(int clusterIndex, int index) {
         super(clusterIndex, index);
-        this.fileNames = new ArrayList<>(
-                List.of(LOG4J_FILE,
-                        HUGEGRAPH_SERVER_KEYSTORE,
-                        COMPUTER_SETTING_FILE,
-                        GREMLIN_SERVER_FILE,
-                        GREMLIN_DRIVER_SETTING_FILE,
-                        REMOTE_SETTING_FILE,
-                        REMOTE_OBJECTS_SETTING_FILE));
+        this.fileNames = new ArrayList<>(List.of(LOG4J_FILE, HUGEGRAPH_SERVER_KEYSTORE,
+                                                 COMPUTER_SETTING_FILE, GREMLIN_SERVER_FILE,
+                                                 GREMLIN_DRIVER_SETTING_FILE, REMOTE_SETTING_FILE,
+                                                 REMOTE_OBJECTS_SETTING_FILE));
         this.workPath = SERVER_LIB_PATH;
         createNodeDir(getNodePath() + CONF_DIR + File.separator);
         this.fileNames = new ArrayList<>(List.of(EMPTY_SAMPLE_GROOVY_FILE, EXAMPLE_GROOVY_FILE));
@@ -87,14 +83,14 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
             addJarsToClasspath(new File(workPath + EXT_DIR), classpath);
             addJarsToClasspath(new File(workPath + PLUGINS_DIR), classpath);
             String storeClassPath = String.join(":", classpath);
-            startCmd.addAll(
-                    Arrays.asList(
-                            "-Dname=HugeGraphServer" + this.index,
-                            "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
-                            "-cp", storeClassPath,
-                            "org.apache.hugegraph.dist.HugeGraphServer",
-                            "./conf/gremlin-server.yaml",
-                            "./conf/rest-server.properties"));
+
+            startCmd.addAll(Arrays.asList(
+                    "-Dname=HugeGraphServer" + this.index,
+                    "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                    "-cp", storeClassPath,
+                    "org.apache.hugegraph.dist.HugeGraphServer",
+                    "./conf/gremlin-server.yaml",
+                    "./conf/rest-server.properties"));
             ProcessBuilder processBuilder = runCmd(startCmd, stdoutFile);
             this.instance = processBuilder.start();
         } catch (IOException ex) {
