@@ -37,7 +37,7 @@ public class EnvFactory {
                     env = new MultiNodeEnv();
                     break;
                 default:
-                    LOG.error("No such env type :{}", envType);
+                    LOG.error("No such env type: {}", envType);
             }
         }
         return env;

@@ -80,7 +80,7 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
                     FileUtils.createParentDirectories(new File(destDir));
                 }
             } catch (NoSuchFileException fileException) {
-                //Ignored
+                // Ignored
             }
             Path sourcePath = Paths.get(CT_PACKAGE_PATH);
             // To avoid following symbolic links
