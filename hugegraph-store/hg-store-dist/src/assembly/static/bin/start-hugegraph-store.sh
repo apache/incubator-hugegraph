@@ -144,7 +144,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
              >> ${OUTPUT}
         exit 1
     fi
-     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MetaspaceSize=256M  -XX:+UseG1GC  -XX:+ParallelRefProcEnabled -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
+     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
     # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
     # Rolling out detailed GC logs
@@ -153,14 +153,20 @@ fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
 case "$GC_OPTION" in
-    g1)
+    "")
         echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
                       -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
-    "") ;;
+    zgc|ZGC)
+        echo "Using ZGC as the default garbage collector (Only support Java 11+)"
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
+                                      -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
+                                      -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
+                                      -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
+        ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> ${OUTPUT}
         exit 1
 esac
 
