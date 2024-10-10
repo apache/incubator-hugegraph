@@ -80,7 +80,7 @@ public class HugeGraphServer {
             System.setSecurityManager(securityManager);
         }
 
-        // Start Memory Monitor Task
+        // Start (In-Heap) Memory Monitor
         this.memoryMonitor = new MemoryMonitor(restServerConf);
         this.memoryMonitor.start();
     }
