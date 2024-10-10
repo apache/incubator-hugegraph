@@ -25,8 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class HGTestLogger {
 
-    public static Logger UtilLOG = LoggerFactory.getLogger(HGTestLogger.class);
-    public static Logger EnvLOG = LoggerFactory.getLogger(HGTestLogger.class);
-    public static Logger ConfigLOG = LoggerFactory.getLogger(HGTestLogger.class);
-    public static Logger NodeLOG = LoggerFactory.getLogger(HGTestLogger.class);
+    public static Logger UTIL_LOG = LoggerFactory.getLogger(HGTestLogger.class);
+    public static Logger ENV_LOG = LoggerFactory.getLogger(HGTestLogger.class);
+    public static Logger CONFIG_LOG = LoggerFactory.getLogger(HGTestLogger.class);
+    public static Logger NODE_LOG = LoggerFactory.getLogger(HGTestLogger.class);
 }

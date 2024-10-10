@@ -50,6 +50,12 @@
             <artifactId>hg-pd-client</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

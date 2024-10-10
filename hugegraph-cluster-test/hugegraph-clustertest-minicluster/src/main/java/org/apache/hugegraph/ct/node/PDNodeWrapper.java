@@ -23,11 +23,13 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.LICENSE_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_JAR_PREFIX;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_LIB_PATH;
+import static org.apache.hugegraph.ct.base.ClusterConstant.PD_TEMPLATE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.getFileInDir;
 import static org.apache.hugegraph.ct.base.ClusterConstant.isJava11OrHigher;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,19 +38,19 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
 
     public PDNodeWrapper() {
         super();
-        fileNames = new ArrayList<>(Arrays.asList(LOG4J_FILE, LICENSE_FILE));
+        fileNames = new ArrayList<>(Arrays.asList(LOG4J_FILE));
         this.workPath = PD_LIB_PATH;
         this.startLine = "Hugegraph-pd started.";
-        createNodeDir(getNodePath() + CONF_DIR + File.separator);
+        createNodeDir(Paths.get(PD_TEMPLATE_PATH), getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
 
     public PDNodeWrapper(int clusterIndex, int index) {
         super(clusterIndex, index);
-        this.fileNames = new ArrayList<>(Arrays.asList(LOG4J_FILE, LICENSE_FILE));
+        this.fileNames = new ArrayList<>(Arrays.asList(LOG4J_FILE));
         this.workPath = PD_LIB_PATH;
         this.startLine = "Hugegraph-pd started.";
-        createNodeDir(getNodePath() + CONF_DIR + File.separator);
+        createNodeDir(Paths.get(PD_TEMPLATE_PATH), getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
 
@@ -74,8 +76,7 @@ public class PDNodeWrapper extends AbstractNodeWrapper {
                     "-XX:+HeapDumpOnOutOfMemoryError",
                     "-XX:HeapDumpPath=" + configPath + "logs",
                     "-Dlog4j.configurationFile=" + configPath + File.separator +
-                    CONF_DIR +
-                    File.separator + "log4j2.xml",
+                    CONF_DIR + File.separator + "log4j2.xml",
                     "-Dspring.config.location=" + configPath + CONF_DIR + File.separator +
                     "application.yml",
                     "-jar", pdNodeJarPath));

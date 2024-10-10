@@ -22,11 +22,13 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.JAVA_CMD;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.STORE_JAR_PREFIX;
 import static org.apache.hugegraph.ct.base.ClusterConstant.STORE_LIB_PATH;
+import static org.apache.hugegraph.ct.base.ClusterConstant.STORE_TEMPLATE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.getFileInDir;
 import static org.apache.hugegraph.ct.base.ClusterConstant.isJava11OrHigher;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,7 +40,7 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
         this.fileNames = new ArrayList<>(List.of(LOG4J_FILE));
         this.workPath = STORE_LIB_PATH;
         this.startLine = "o.a.h.s.n.StoreNodeApplication - Starting StoreNodeApplication";
-        createNodeDir(getNodePath() + CONF_DIR + File.separator);
+        createNodeDir(Paths.get(STORE_TEMPLATE_PATH), getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
 
@@ -47,7 +49,7 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
         this.fileNames = new ArrayList<>(List.of(LOG4J_FILE));
         this.workPath = STORE_LIB_PATH;
         this.startLine = "o.a.h.s.n.StoreNodeApplication - Starting StoreNodeApplication";
-        createNodeDir(getNodePath() + CONF_DIR + File.separator);
+        createNodeDir(Paths.get(STORE_TEMPLATE_PATH), getNodePath() + CONF_DIR + File.separator);
         createLogDir();
     }
 

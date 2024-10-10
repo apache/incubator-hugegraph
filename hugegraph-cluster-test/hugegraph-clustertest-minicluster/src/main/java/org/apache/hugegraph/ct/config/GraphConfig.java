@@ -20,6 +20,7 @@ package org.apache.hugegraph.ct.config;
 import static org.apache.hugegraph.ct.base.ClusterConstant.CT_PACKAGE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.GRAPH_TEMPLATE_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.HUGEGRAPH_PROPERTIES;
+import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_TEMPLATE_PATH;
 
 import java.nio.file.Paths;
 import java.util.List;
@@ -27,7 +28,7 @@ import java.util.List;
 public class GraphConfig extends AbstractConfig {
 
     public GraphConfig() {
-        readTemplate(Paths.get(CT_PACKAGE_PATH + GRAPH_TEMPLATE_FILE));
+        readTemplate(Paths.get(SERVER_TEMPLATE_PATH + GRAPH_TEMPLATE_FILE));
         this.fileName = HUGEGRAPH_PROPERTIES;
     }
 

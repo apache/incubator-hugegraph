@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 
 public class ClusterConfig {
 
-    protected static final Logger LOG = HGTestLogger.ConfigLOG;
+    protected static final Logger LOG = HGTestLogger.CONFIG_LOG;
     protected List<PDConfig> pdConfigs;
     protected List<StoreConfig> storeConfigs;
     protected List<ServerConfig> serverConfigs;

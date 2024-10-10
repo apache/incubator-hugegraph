@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 
 public class EnvUtil {
 
-    private static final Logger LOG = HGTestLogger.UtilLOG;
+    private static final Logger LOG = HGTestLogger.UTIL_LOG;
     private static final Set<Integer> ports = new HashSet<>();
 
     public static int getAvailablePort() {

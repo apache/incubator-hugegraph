@@ -32,10 +32,12 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.PLUGINS_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.REMOTE_OBJECTS_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.REMOTE_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_LIB_PATH;
+import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_TEMPLATE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.isJava11OrHigher;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -49,10 +51,10 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
                                                  GREMLIN_DRIVER_SETTING_FILE, REMOTE_SETTING_FILE,
                                                  REMOTE_OBJECTS_SETTING_FILE));
         this.workPath = SERVER_LIB_PATH;
-        createNodeDir(getNodePath() + CONF_DIR + File.separator);
+        createNodeDir(Paths.get(SERVER_TEMPLATE_PATH), getNodePath() + CONF_DIR + File.separator);
         this.fileNames = new ArrayList<>(List.of(EMPTY_SAMPLE_GROOVY_FILE, EXAMPLE_GROOVY_FILE));
         this.startLine = "INFO: [HttpServer] Started.";
-        createNodeDir(getNodePath());
+        createNodeDir(Paths.get(SERVER_TEMPLATE_PATH), getNodePath());
         createLogDir();
     }
 

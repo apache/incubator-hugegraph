@@ -45,7 +45,7 @@ import lombok.Getter;
 
 public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
 
-    protected final Logger LOG = HGTestLogger.NodeLOG;
+    protected final Logger LOG = HGTestLogger.NODE_LOG;
 
     protected int clusterIndex;
     @Getter
@@ -73,7 +73,7 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
     /**
      * Node Dir should be created before changing Config
      */
-    public void createNodeDir(String destDir) {
+    public void createNodeDir(Path sourcePath, String destDir) {
         try {
             try {
                 if (!new File(destDir).exists()) {
@@ -82,7 +82,6 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
             } catch (NoSuchFileException fileException) {
                 // Ignored
             }
-            Path sourcePath = Paths.get(CT_PACKAGE_PATH);
             // To avoid following symbolic links
             try (Stream<Path> stream = Files.walk(sourcePath)) {
                 stream.forEach(source -> {
@@ -180,7 +179,8 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
 
     protected ProcessBuilder runCmd(List<String> startCmd, File stdoutFile) throws IOException {
         FileUtils.write(stdoutFile,
-                        String.join(" ", startCmd) + "\n\n", StandardCharsets.UTF_8, true);
+                        String.join(" ", startCmd) + System.lineSeparator() + System.lineSeparator(),
+                        StandardCharsets.UTF_8, true);
         ProcessBuilder processBuilder = new ProcessBuilder(startCmd)
                 .redirectOutput(ProcessBuilder.Redirect.appendTo(stdoutFile))
                 .redirectError(ProcessBuilder.Redirect.appendTo(stdoutFile));

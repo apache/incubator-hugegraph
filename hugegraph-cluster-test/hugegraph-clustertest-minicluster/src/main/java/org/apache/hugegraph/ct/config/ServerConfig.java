@@ -18,8 +18,10 @@
 package org.apache.hugegraph.ct.config;
 
 import static org.apache.hugegraph.ct.base.ClusterConstant.CT_PACKAGE_PATH;
+import static org.apache.hugegraph.ct.base.ClusterConstant.LOCALHOST;
 import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_PROPERTIES;
 import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_TEMPLATE_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_TEMPLATE_PATH;
 import static org.apache.hugegraph.ct.base.EnvUtil.getAvailablePort;
 
 import java.nio.file.Paths;
@@ -33,11 +35,11 @@ public class ServerConfig extends AbstractConfig {
     private final int restPort;
 
     public ServerConfig() {
-        readTemplate(Paths.get(CT_PACKAGE_PATH + SERVER_TEMPLATE_FILE));
+        readTemplate(Paths.get(SERVER_TEMPLATE_PATH + SERVER_TEMPLATE_FILE));
         this.fileName = SERVER_PROPERTIES;
         this.rpcPort = getAvailablePort();
         this.restPort = getAvailablePort();
-        properties.put("REST_SERVER_ADDRESS", "127.0.0.1:" + this.restPort);
+        properties.put("REST_SERVER_ADDRESS", LOCALHOST + ":" + this.restPort);
         properties.put("RPC_PORT", String.valueOf(this.rpcPort));
     }
 
