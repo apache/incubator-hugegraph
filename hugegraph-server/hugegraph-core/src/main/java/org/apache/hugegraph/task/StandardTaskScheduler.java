@@ -120,7 +120,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 if (this.taskTx == null) {
                     BackendStore store = this.graph.loadSystemStore();
                     TaskTransaction tx = new TaskTransaction(this.graph, store);
-                    assert this.taskTx == null; // may be reentrant?
+                    assert this.taskTx == null; // maybe reentrant?
                     this.taskTx = tx;
                 }
             }
@@ -196,7 +196,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         if (this.serverManager().onlySingleNode() && !task.computer()) {
             /*
-             * Speed up for single node, submit task immediately,
+             * Speed up for single node, submit the task immediately,
              * this code can be removed without affecting code logic
              */
             task.status(TaskStatus.QUEUED);
@@ -205,7 +205,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             return this.submitTask(task);
         } else {
             /*
-             * Just set SCHEDULING status and save task,
+             * Just set the SCHEDULING status and save the task,
              * it will be scheduled by periodic scheduler worker
              */
             task.status(TaskStatus.SCHEDULING);
@@ -276,11 +276,11 @@ public class StandardTaskScheduler implements TaskScheduler {
             assert this.serverManager().selfIsMaster();
             if (!task.server().equals(this.serverManager().selfNodeId())) {
                 /*
-                 * Remove task from memory if it's running on worker node,
-                 * but keep task in memory if it's running on master node.
-                 * cancel-scheduling will read task from backend store, if
+                 * Remove the task from memory if it's running on worker node,
+                 * but keep the task in memory if it's running on master node.
+                 * Cancel-scheduling will read the task from backend store, if
                  * removed this instance from memory, there will be two task
-                 * instances with same id, and can't cancel the real task that
+                 * instances with the same id, and can't cancel the real task that
                  * is running but removed from memory.
                  */
                 this.remove(task);
@@ -301,12 +301,10 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     protected synchronized void scheduleTasksOnMaster() {
         // Master server schedule all scheduling tasks to suitable worker nodes
-        Collection<HugeServerInfo> serverInfos = this.serverManager()
-                                                     .allServerInfos();
+        Collection<HugeServerInfo> serverInfos = this.serverManager().allServerInfos();
         String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
-            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULING,
-                                                          PAGE_SIZE, page);
+            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULING, PAGE_SIZE, page);
             while (tasks.hasNext()) {
                 HugeTask<?> task = tasks.next();
                 if (task.server() != null) {
@@ -318,12 +316,10 @@ public class StandardTaskScheduler implements TaskScheduler {
                     return;
                 }
 
-                HugeServerInfo server = this.serverManager().pickWorkerNode(
-                        serverInfos, task);
+                HugeServerInfo server = this.serverManager().pickWorkerNode(serverInfos, task);
                 if (server == null) {
                     LOG.info("The master can't find suitable servers to " +
-                             "execute task '{}', wait for next schedule",
-                             task.id());
+                             "execute task '{}', wait for next schedule", task.id());
                     continue;
                 }
 
@@ -336,8 +332,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 // Update server load in memory, it will be saved at the ending
                 server.increaseLoad(task.load());
 
-                LOG.info("Scheduled task '{}' to server '{}'",
-                         task.id(), server.id());
+                LOG.info("Scheduled task '{}' to server '{}'", task.id(), server.id());
             }
             if (page != null) {
                 page = PageInfo.pageInfo(tasks);
@@ -351,8 +346,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     protected void executeTasksOnWorker(Id server) {
         String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
-            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULED,
-                                                          PAGE_SIZE, page);
+            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULED, PAGE_SIZE, page);
             while (tasks.hasNext()) {
                 HugeTask<?> task = tasks.next();
                 this.initTaskCallable(task);
@@ -381,8 +375,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     protected void cancelTasksOnWorker(Id server) {
         String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
         do {
-            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.CANCELLING,
-                                                          PAGE_SIZE, page);
+            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.CANCELLING, PAGE_SIZE, page);
             while (tasks.hasNext()) {
                 HugeTask<?> task = tasks.next();
                 Id taskServer = task.server();
@@ -557,10 +550,10 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         HugeTask<?> task = this.task(id);
         /*
-         * The following is out of date when task running on worker node:
+         * The following is out of date when the task running on worker node:
          * HugeTask<?> task = this.tasks.get(id);
          * Tasks are removed from memory after completed at most time,
-         * but there is a tiny gap between tasks are completed and
+         * but there is a tiny gap between tasks is completed and
          * removed from memory.
          * We assume tasks only in memory may be incomplete status,
          * in fact, it is also possible to appear on the backend tasks
@@ -621,7 +614,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 throw e;
             }
             if (task.completed()) {
-                // Wait for task result being set after status is completed
+                // Wait for the task result being set after the status is completed
                 sleep(intervalMs);
                 return task;
             }

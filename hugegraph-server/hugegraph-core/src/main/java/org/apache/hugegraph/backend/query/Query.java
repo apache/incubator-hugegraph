@@ -139,6 +139,10 @@ public class Query implements Cloneable {
         return this.originQuery;
     }
 
+    public void setOriginQuery(Query query) {
+        this.originQuery = query;
+    }
+
     public Query rootOriginQuery() {
         Query root = this;
         while (root.originQuery != null) {

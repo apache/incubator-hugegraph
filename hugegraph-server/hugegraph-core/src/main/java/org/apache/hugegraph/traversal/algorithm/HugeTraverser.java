@@ -479,7 +479,7 @@ public class HugeTraverser {
     public Iterator<Edge> edgesOfVertex(Id source, Steps steps) {
         List<Id> edgeLabels = steps.edgeLabels();
         ConditionQuery cq = GraphTransaction.constructEdgesQuery(
-                source, steps.direction(), edgeLabels);
+                source, steps.direction(), edgeLabels.toArray(new Id[0]));
         cq.capacity(Query.NO_CAPACITY);
         if (steps.limit() != NO_LIMIT) {
             cq.limit(steps.limit());
