@@ -31,11 +31,6 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public boolean tryToDiskSpill() {
-        return false;
-    }
-
-    @Override
     public long requestMemory(long bytes) {
         // 1. check whether self capacity is enough
         if (getMaxCapacityBytes() - stats.getAllocatedBytes() < bytes) {
@@ -46,6 +41,7 @@ public class QueryMemoryPool extends AbstractMemoryPool {
                 // here we don't update capacity, because memory is reclaimed from queryPool itself.
                 stats.setReservedBytes(stats.getReservedBytes() + bytes);
                 stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
+                stats.setNumExpands(stats.getNumExpands() + 1);
                 return bytes;
             } else {
                 // 4. if still not enough, try to reclaim globally
@@ -59,6 +55,7 @@ public class QueryMemoryPool extends AbstractMemoryPool {
                     stats.setMaxCapacity(stats.getMaxCapacity() + globalReclaimedBytes);
                     stats.setReservedBytes(stats.getReservedBytes() + bytes);
                     stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
+                    stats.setNumExpands(stats.getNumExpands() + 1);
                     return bytes;
                 }
             }

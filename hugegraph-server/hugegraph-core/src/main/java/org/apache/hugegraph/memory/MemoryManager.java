@@ -30,6 +30,7 @@ import org.apache.hugegraph.memory.arbitrator.MemoryArbitrator;
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitratorImpl;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.pool.impl.QueryMemoryPool;
+import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,7 +43,9 @@ public class MemoryManager {
     private static final String DELIMINATOR = "_";
     private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
     // TODO: read it from conf, current 1G
-    private final AtomicLong currentMemoryCapacityInBytes = new AtomicLong(1000_000_000);
+    public static final long MAX_MEMORY_CAPACITY_IN_BYTES = Bytes.GB;
+    private final AtomicLong currentMemoryCapacityInBytes =
+            new AtomicLong(MAX_MEMORY_CAPACITY_IN_BYTES);
     private final Set<MemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
@@ -54,7 +57,7 @@ public class MemoryManager {
         this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
                                                                  ARBITRATE_MEMORY_POOL_NAME);
     }
-
+    
     public MemoryPool addQueryMemoryPool() {
         int count = queryMemoryPools.size();
         String poolName =

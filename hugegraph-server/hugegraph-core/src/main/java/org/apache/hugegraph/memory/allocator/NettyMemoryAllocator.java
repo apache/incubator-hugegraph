@@ -15,26 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.pool.impl;
+package org.apache.hugegraph.memory.allocator;
 
-import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
-import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.apache.hugegraph.memory.MemoryManager;
 
-public class TaskMemoryPool extends AbstractMemoryPool {
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.PooledByteBufAllocator;
 
-    public TaskMemoryPool(MemoryPool parent, String poolName) {
-        super(parent, poolName);
-        // TODO: this.stats.setMaxCapacity();
+/**
+ * This class makes fully use of Netty's efficient memory management strategy.
+ */
+public class NettyMemoryAllocator implements MemoryAllocator {
+
+    private final PooledByteBufAllocator offHeapAllocator = PooledByteBufAllocator.DEFAULT;
+
+    @Override
+    public ByteBuf forceAllocateOffHeap(long size) {
+        return offHeapAllocator.directBuffer((int) size);
     }
 
     @Override
-    public long requestMemory(long bytes) {
-        // TODO: check max capacity
-        long parentRes = getParentPool().requestMemory(bytes);
-        if (parentRes > 0) {
-            stats.setReservedBytes(stats.getReservedBytes() + parentRes);
-            stats.setAllocatedBytes(stats.getAllocatedBytes() + parentRes);
+    public ByteBuf tryToAllocateOffHeap(long size) {
+        if (offHeapAllocator.metric().usedDirectMemory() + size <
+            MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES) {
+            return offHeapAllocator.directBuffer((int) size);
         }
-        return parentRes;
+        return null;
     }
 }

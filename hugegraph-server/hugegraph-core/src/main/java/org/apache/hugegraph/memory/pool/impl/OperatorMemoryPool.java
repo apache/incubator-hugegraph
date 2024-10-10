@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.memory.pool.impl;
 
-import java.nio.ByteBuffer;
-
 import org.apache.hugegraph.memory.allocator.MemoryAllocator;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
@@ -44,6 +42,12 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
+    public void releaseSelf() {
+        super.releaseSelf();
+        // TODO: release memory consumer, release byte buffer.
+    }
+
+    @Override
     public long tryToReclaimLocalMemory(long neededBytes) {
         // 1. try to reclaim self free memory
         long reclaimableBytes = getFreeBytes();
@@ -63,7 +67,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
      * Operator need `size` bytes, operator pool will try to reserve some memory for it
      */
     @Override
-    public ByteBuffer tryToAcquireMemory(long size) {
+    public Object tryToAcquireMemory(long size) {
         // 1. update statistic
         super.tryToAcquireMemory(size);
         // 2. allocate memory, currently use off-heap mode.
@@ -85,11 +89,13 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
         long fatherRes = getParentPool().requestMemory(neededMemorySize);
         if (fatherRes < 0) {
             // TODO: new OOM exception
+            stats.setNumAborts(stats.getNumAborts() + 1);
             throw new OutOfMemoryError();
         }
         // 4. update stats
         stats.setReservedBytes(stats.getReservedBytes() + neededMemorySize);
         stats.setAllocatedBytes(stats.getAllocatedBytes() + neededMemorySize);
+        stats.setNumExpands(stats.getNumExpands() + 1);
         return fatherRes;
     }
 

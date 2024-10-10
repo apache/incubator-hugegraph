@@ -28,11 +28,13 @@ public interface MemoryPool {
 
     long tryToReclaimLocalMemory(long neededBytes);
 
-    ByteBuffer tryToAcquireMemory(long bytes);
+    Object tryToAcquireMemory(long bytes);
 
     void releaseSelf();
 
-    boolean tryToDiskSpill();
+    void gcChildPool(MemoryPool child);
+
+    boolean tryToDiskSpill() throws Exception;
 
     long getAllocatedBytes();
 

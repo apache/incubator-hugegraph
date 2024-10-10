@@ -22,9 +22,12 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractMemoryPool implements MemoryPool {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMemoryPool.class);
     private final Set<MemoryPool> children =
             new TreeSet<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
     private MemoryPool parent;
@@ -60,6 +63,33 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     @Override
+    public boolean tryToDiskSpill() {
+        // 1. for every child, invoke disk spill
+        boolean res = true;
+        try {
+            for (MemoryPool child : this.children) {
+                res &= child.tryToDiskSpill();
+            }
+            return res;
+        } catch (Exception e) {
+            LOGGER.error("Failed to try to disk spill", e);
+            return false;
+        }
+        // TODO: for upper caller, if spill failed, apply rollback
+    }
+
+    /**
+     * called when one task is successfully executed and exited.
+     */
+    @Override
+    public void gcChildPool(MemoryPool child) {
+        // 1. reclaim child's memory and update stats
+        stats.setReservedBytes(stats.getReservedBytes() - child.getSnapShot().getReservedBytes());
+        // 2. release child
+        child.releaseSelf();
+    }
+
+    @Override
     public void releaseSelf() {
         try {
             for (MemoryPool child : this.children) {
@@ -74,7 +104,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     @Override
-    public ByteBuffer tryToAcquireMemory(long bytes) {
+    public Object tryToAcquireMemory(long bytes) {
         // just record how much memory is used(update stats)
         stats.setUsedBytes(stats.getUsedBytes() + bytes);
         stats.setCumulativeBytes(stats.getCumulativeBytes() + bytes);
