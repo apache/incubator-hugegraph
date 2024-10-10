@@ -54,6 +54,7 @@ import org.apache.hugegraph.pd.grpc.Pdpb.CacheResponse;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetGraphRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseResponse;
+import org.apache.hugegraph.pd.grpc.pulse.BulkloadInfo;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
 import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
 import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
@@ -250,6 +251,11 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                                                 PartitionKeyRange partitionKeyRange)
                     throws PDException {
                 PDPulseSubject.notifyClient(getBuilder(partition).setKeyRange(partitionKeyRange));
+            }
+
+            @Override
+            public void bulkloadPartition(Metapb.Partition partition, BulkloadInfo BulkloadInfo) throws PDException {
+                PDPulseSubject.notifyClient(getBuilder(partition).setBulkloadInfo(BulkloadInfo));
             }
         });
 
@@ -878,12 +884,21 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
                 long storeId = query.getStoreId();
                 if (query.hasStoreId() && query.getStoreId() != 0) {
                     try {
-                        storeNodeService.getShardGroup(partition.getId()).getShardsList()
-                                        .forEach(shard -> {
-                                            if (shard.getStoreId() == storeId) {
-                                                result.add(partition);
-                                            }
-                                        });
+                        if(query.hasIsLeader() && query.getIsLeader() == 1){
+                            storeNodeService.getShardGroup(partition.getId()).getShardsList()
+                                            .forEach(shard -> {
+                                                if (shard.getStoreId() == storeId && shard.getRole()==Metapb.ShardRole.Leader) {
+                                                    result.add(partition);
+                                                }
+                                            });
+                        }else{
+                            storeNodeService.getShardGroup(partition.getId()).getShardsList()
+                                            .forEach(shard -> {
+                                                if (shard.getStoreId() == storeId) {
+                                                    result.add(partition);
+                                                }
+                                            });
+                        }
                     } catch (PDException e) {
                         log.error("query partitions error, req:{}, error:{}", request,
                                   e.getMessage());

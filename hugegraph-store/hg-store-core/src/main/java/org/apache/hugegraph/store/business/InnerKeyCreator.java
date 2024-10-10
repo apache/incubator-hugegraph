@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.store.business;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,6 +48,19 @@ public class InnerKeyCreator {
         } catch (Exception e) {
             throw new HgStoreException(HgStoreException.EC_RKDB_PD_FAIL, e.getMessage());
         }
+    }
+
+    public Map<Long, Map<String,Long>> getGraphIds() {
+
+        Map<Long, Map<String, Long>> graphIds = new HashMap<>();
+        for (Map.Entry<Integer, GraphIdManager> entry : graphIdCache.entrySet()) {
+            Integer partId = entry.getKey();
+            GraphIdManager graphIdManager = entry.getValue();
+            Map<String, Long> idCache = graphIdManager.getGraphIdCache();
+            graphIds.put(partId.longValue(), idCache);
+
+        }
+        return   graphIds;
     }
 
     public void delGraphId(Integer partId, String graphName) {

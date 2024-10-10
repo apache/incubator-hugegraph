@@ -37,6 +37,9 @@ public class AppConfig {
     @Value("${pdserver.address}")
     private String pdServerAddress;
 
+    @Value("${pe.auto-init-pe}")
+    private boolean autoInitPe;
+
     @Value("${grpc.host}")
     private String host;
 

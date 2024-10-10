@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +37,7 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.pulse.BulkloadInfo;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
 import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
 import org.apache.hugegraph.pd.grpc.pulse.CleanType;
@@ -63,6 +66,7 @@ public class PartitionService implements RaftStateListener {
     private final PDConfig pdConfig;
     // Partition command listening
     private final List<PartitionInstructionListener> instructionListeners;
+    private final ConcurrentHashMap<Integer, StatusInfo> statusMap = new ConcurrentHashMap<>();
 
     // Partition status listeners
     private final List<PartitionStatusListener> statusListeners;
@@ -264,6 +268,54 @@ public class PartitionService implements RaftStateListener {
     }
 
     /**
+     * 创建所有的分区，用于初始化,这个方法需要在集群，pd+store都准备好了才可以执行
+     *
+     * @throws PDException
+     */
+    public synchronized void newAllPartitions(String graphName) throws PDException {
+        if (partitionMeta.getGraphPartitionCount(graphName) == 0) {
+            // 从分区元数据中获取或创建指定名称的图，第一次的时候创建Metapb.Graph 并会存入到partitionMeta中，graph
+            // 对象中持有partitionTotalcount参数
+            Metapb.Graph graph = partitionMeta.getAndCreateGraph(graphName);
+            // 计算每个分区的keyRange，
+            int partitionSize = PartitionUtils.MAX_VALUE / pdConfig.getPartition().getTotalCount();
+            // 如果最大值不能被分区数量整除，增加分区大小以确保所有值都能被覆盖
+            if (PartitionUtils.MAX_VALUE % pdConfig.getPartition().getTotalCount() != 0) {
+                partitionSize++;
+            }
+
+            for (int partitionId = 0; partitionId < pdConfig.getPartition().getTotalCount();
+                 partitionId++) {
+                // 计算分区的起始和结束key
+                long startKey = (long) partitionSize * partitionId;
+                long endKey = (long) partitionSize * (partitionId + 1);
+                // 检查是否已经存在该分区ID
+                Metapb.Partition partition = partitionMeta.getPartitionById(graphName, partitionId);
+                // 如果分区不存在，则创建并分配shards
+                if (partition == null) {
+                    storeService.allocShards(partitionId);
+
+                    // 创建一个新的分区并设置初始属性
+                    partition = Metapb.Partition.newBuilder()
+                                                .setId(partitionId)
+                                                .setVersion(0)
+                                                .setState(Metapb.PartitionState.PState_Normal)
+                                                .setStartKey(startKey)
+                                                .setEndKey(endKey)
+                                                .setGraphName(graphName)
+                                                .build();
+
+                    // 更新分区元数据
+                    partitionMeta.updatePartition(partition);
+                    // 记录新分区的创建
+                    log.info("Create newPartition {},graphName = {}", partition, graphName);
+                }
+            }
+        }
+
+    }
+
+    /**
      * compute graph partition id, partition gap * store group id + offset
      *
      * @param graph  graph
@@ -421,7 +473,15 @@ public class PartitionService implements RaftStateListener {
     public synchronized Metapb.Graph updateGraph(Metapb.Graph graph) throws PDException {
         Metapb.Graph lastGraph = partitionMeta.getAndCreateGraph(graph.getGraphName());
         log.info("updateGraph graph: {}, last: {}", graph, lastGraph);
+        if (lastGraph.getGraphName().equals(graph.getGraphName()) &&
+            lastGraph.getPartitionCount() == graph.getPartitionCount() &&
+            lastGraph.getStateValue() == graph.getStateValue()) {  // 说明新旧图谱一样，无须更新？
+            log.info("no need to  updateGraph graph: {}, last: {}, two graph is equals", graph,
+                     lastGraph);
+            return lastGraph;
+        }
 
+        newAllPartitions(graph.getGraphName());
         int partCount =
                 (graph.getGraphName().endsWith("/s") || graph.getGraphName().endsWith("/m")) ?
                 1 : pdConfig.getPartition().getTotalCount();
@@ -761,6 +821,59 @@ public class PartitionService implements RaftStateListener {
                                           task.getSplitPartition());
             }
         }
+    }
+
+    public MetaTask.TaskState getBulkloadStatus(String graphName) throws PDException {
+        var taskInfoMeta = storeService.getTaskInfoMeta();
+        List<MetaTask.Task> tasks = taskInfoMeta.scanBulkloadTask(graphName);
+        for (MetaTask.Task task : tasks) {
+            MetaTask.TaskState state = task.getState();
+            if (state != MetaTask.TaskState.Task_Success) {
+                return state;
+
+            }
+        }
+        return MetaTask.TaskState.Task_Success;
+    }
+
+    public synchronized void bulkloadPartitions(String graphName, String tableName,
+                                                Map<Integer, String> parseHdfsPathMap) throws
+                                                                                       PDException {
+        var taskInfoMeta = storeService.getTaskInfoMeta();
+
+        parseHdfsPathMap.entrySet().forEach(
+                entry -> {
+                    try {
+                        Metapb.Partition partition = getPartitionById(graphName,
+                                                                      entry.getKey());
+                        BulkloadInfo bulkloadInfo =
+                                BulkloadInfo.newBuilder().setHdfsPath(entry.getValue())
+                                            .setTableName(tableName).build();
+                        log.info("Bulkload partition {} with hdfs path {},", partition,
+                                 bulkloadInfo);
+                        fireBulkloadPartition(partition, bulkloadInfo);  // 会通知所有的store对吧？
+                        // 记录事务
+                        var task = MetaTask.Task.newBuilder().setPartition(partition)
+                                                .setBulkloadInfo(bulkloadInfo)
+                                                .build();
+                        taskInfoMeta.addBulkloadTask(entry.getKey(), task.getPartition());
+                    } catch (PDException e) {
+                        log.error("Bulkload partition {} exception {}", entry.getKey(), e);
+                    }
+                });
+
+    }
+
+    protected void fireBulkloadPartition(Metapb.Partition partition, BulkloadInfo bulkloadInfo) {
+        log.info("fireBulkloadPartition partition: {}-{}， BulkloadInfo :{}",
+                 partition.getGraphName(), partition.getId(), bulkloadInfo);
+        instructionListeners.forEach(cmd -> {
+            try {
+                cmd.bulkloadPartition(partition, bulkloadInfo);
+            } catch (Exception e) {
+                log.error("fireBulkloadPartition", e);
+            }
+        });
     }
 
     /**
@@ -1154,6 +1267,121 @@ public class PartitionService implements RaftStateListener {
                 }
             }
         }
+    }
+
+    public void updateStatus(Integer id, MetaTask.TaskState state) {
+        // 使用 compute 方法更新 statusMap 中对应 id 的状态信息
+        statusMap.compute(id, (key, statusInfo) -> {
+            // 如果 statusInfo 为空，则初始化一个新的 StatusInfo 对象
+            if (statusInfo == null) {
+                // 初始化 statusInfo
+                statusInfo = new StatusInfo();
+            }
+
+            // 判断状态是否为任务成功
+            if (state == MetaTask.TaskState.Task_Success) {
+                // 增加成功次数
+                int count = statusInfo.successCount.incrementAndGet();
+                // 如果成功次数大于等于3次，则将状态更新为任务成功
+                if (count >= 3) {
+                    statusInfo.state = MetaTask.TaskState.Task_Success;
+                }
+            }
+            // 判断状态是否为任务失败
+            else if (state == MetaTask.TaskState.Task_Failure) {
+                // 将状态更新为任务失败
+                statusInfo.state = MetaTask.TaskState.Task_Failure;
+            }
+
+            // 返回更新后的 statusInfo
+            return statusInfo;
+        });
+    }
+
+    /**
+     * 同步处理批量加载任务
+     *
+     * @param task 分区的元任务信息
+     * @throws PDException 异常情况
+     */
+    public synchronized void handleBulkloadTask(MetaTask.Task task) throws PDException {
+        // 记录处理批量加载任务的日志，包括图名、分区ID和任务信息
+        log.info("handle report bulkload task, graph:{}, pid : {}, task: {}",
+                 task.getPartition().getGraphName(), task.getPartition().getId(), task);
+
+        // 获取任务信息的元数据
+        var taskInfoMeta = storeService.getTaskInfoMeta();
+        // 获取任务所属的分区信息
+        var partition = task.getPartition();
+        // 从元数据中获取对应分区的批量加载任务信息
+        MetaTask.Task pdMetaTask =
+                taskInfoMeta.getBulkloadTask(partition.getGraphName(), partition.getId());
+
+        // 获取任务的状态
+        MetaTask.TaskState state = task.getState();
+
+        // 记录任务状态更新的日志
+        log.info("report bulkload task, graph:{}, pid : {}, state: {}",
+                 task.getPartition().getGraphName(),
+                 task.getPartition().getId(),
+                 task.getState());
+
+        // 更新分区的任务状态
+        updateStatus(partition.getId(), state);
+
+        // 如果分区任务已经被处理过（非准备状态），则更新任务状态到元数据
+        if (statusMap.get(partition.getId()).state != null &&
+            statusMap.get(partition.getId()).state != MetaTask.TaskState.Task_Ready) {
+            var newTask =
+                    pdMetaTask.toBuilder().setState(statusMap.get(partition.getId()).state).build();
+
+            taskInfoMeta.updateBulkloadTask(newTask);
+            log.info("taskInfoMeta update bulkload task, graph:{}, newTask: {}",
+                     partition.getGraphName(), newTask);
+
+            // 获取所有子任务
+            List<MetaTask.Task> subTasks = taskInfoMeta.scanBulkloadTask(partition.getGraphName());
+            log.info("scan bulkload task, graph:{}, subTasks: {}", partition.getGraphName(),
+                     subTasks);
+
+            // 检查所有子任务是否都已完成（成功或失败）
+            var finished = subTasks.stream().peek(t -> log.info("task:{}", t)).allMatch(t ->
+
+                                                                                                t.getState() ==
+                                                                                                MetaTask.TaskState.Task_Success ||
+                                                                                                t.getState() ==
+                                                                                                MetaTask.TaskState.Task_Failure
+
+            );
+            log.info("finished: {}", finished);
+            // 如果所有子任务都已完成
+            if (finished) {
+                // 检查所有子任务是否都成功
+                var allSuccess = subTasks.stream().allMatch(
+                        t -> t.getState() == MetaTask.TaskState.Task_Success);
+
+                // 如果所有子任务都成功
+                if (allSuccess) {
+                    log.info("graph:{} bulkload task all success!", partition.getGraphName());
+                    // 处理所有子任务完成的情况
+                    handleBulkloadTaskAllFinished(partition.getGraphName(), taskInfoMeta);
+                } else {
+                    log.info("graph:{} bulkload task failed!", partition.getGraphName());
+                    // 处理子任务失败的情况
+                    handleBulkloadTaskAllFinished(partition.getGraphName(), taskInfoMeta);
+                }
+                log.info("clear bulkload task status record, graph:{}, statusMap: {}",
+                         partition.getGraphName(), statusMap);
+                statusMap.clear();
+            }
+
+        }
+    }
+
+    private void handleBulkloadTaskAllFinished(String graphName,
+                                               TaskInfoMeta taskInfoMeta) throws PDException {
+        // 事务完成
+        taskInfoMeta.removeMoveTaskPrefix(graphName);
     }
 
     /**
@@ -1554,5 +1782,19 @@ public class PartitionService implements RaftStateListener {
 
     public void updateShardGroupCache(Metapb.ShardGroup group) {
         partitionMeta.getPartitionCache().updateShardGroup(group);
+    }
+
+    private static class StatusInfo {
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        MetaTask.TaskState state = MetaTask.TaskState.Task_Ready;
+
+        @Override
+        public String toString() {
+            return "StatusInfo{" +
+                   "successCount=" + successCount +
+                   ", state=" + state +
+                   '}';
+        }
     }
 }

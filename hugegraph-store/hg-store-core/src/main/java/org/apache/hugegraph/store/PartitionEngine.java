@@ -22,6 +22,7 @@ import static org.apache.hugegraph.pd.grpc.MetaTask.TaskType.Clean_Partition;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ import org.apache.hugegraph.store.raft.RaftTaskHandler;
 import org.apache.hugegraph.store.raft.util.RaftUtils;
 import org.apache.hugegraph.store.snapshot.HgSnapshotHandler;
 import org.apache.hugegraph.store.util.FutureClosure;
+import org.apache.hugegraph.store.util.HdfsUtils;
 import org.apache.hugegraph.store.util.HgRaftError;
 import org.apache.hugegraph.store.util.HgStoreException;
 import org.apache.hugegraph.store.util.Lifecycle;
@@ -870,6 +872,9 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             case Move_Partition:
                 status = handleMoveTask(task);
                 break;
+            case Ingest_SSTFile:
+                // 处理分区迁移任务
+                status = ingestSSTFileTask(task);
             default:
                 break;
         }
@@ -896,6 +901,36 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         return status;
     }
+
+    public Status ingestSSTFileTask(MetaTask.Task task) {
+        // 获取任务所属的分区信息
+        Metapb.Partition partition = task.getPartition();
+        // 获取SST文件在HDFS的路径
+        String hdfsPath = task.getBulkloadInfo().getHdfsPath();
+        // 将表名称转为字节数组，用于后续操作
+        byte[] tableName = task.getBulkloadInfo().getTableName().getBytes(StandardCharsets.UTF_8);
+        // 本地用于存储从HDFS下载的SST文件的路径
+        String localBulkloadPath = "/data2/bulkload/";
+        // 提取HDFS的URI和具体的文件路径
+        HdfsUtils.HDFSUriPath hdfsUriPath = HdfsUtils.extractHdfsUriAndPath(hdfsPath);
+        // 获取处理后的HDFS目标路径
+        String hdfsTargetPath = hdfsUriPath.getHdfsPath();
+        try (HdfsUtils hdfsUtils = new HdfsUtils(hdfsUriPath.getHdfsUri())) {
+            // 下载SST文件，限制下载速度为1MB/s
+            String downloadSstFilePath = hdfsUtils.downloadFile(hdfsTargetPath, localBulkloadPath, 1000);
+            // 调用存储引擎的业务处理方法，导入下载的SST文件
+            storeEngine.getBusinessHandler()
+                       .ingestSstFile("", partition.getId(),
+                                      Collections.singletonMap(tableName,
+                                                               Collections.singletonList(downloadSstFilePath)));
+        } catch (IOException e) {
+            // 如果发生IO异常，抛出运行时异常
+            throw new RuntimeException(e);
+        }
+        // 返回任务执行状态OK
+        return Status.OK();
+    }
+
 
     /**
      * Corresponding to the divisional splitting task

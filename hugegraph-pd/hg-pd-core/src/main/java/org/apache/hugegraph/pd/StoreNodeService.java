@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Metapb.GraphMode;
 import org.apache.hugegraph.pd.grpc.Metapb.GraphModeReason;
@@ -123,6 +124,127 @@ public class StoreNodeService {
 
             }
         });
+    }
+
+    public synchronized List<Metapb.Shard> allocShards(int partId) throws PDException {
+        // 多图共用raft分组，因此分配shard只依赖partitionId.
+        // 图根据数据大小可以设置分区的数量，但总数不能超过raft分组数量, 如果是一个split_partition新增的groupid 怎么办？
+        if (storeInfoMeta.getShardGroup(partId) == null) {
+            // 获取活跃的store key
+            List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
+
+            // 如果没有在线的store，抛出异常
+            if (stores.size() == 0) {
+                throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
+                                      "There is no any online store");
+            }
+
+            // 如果活跃的store数量小于最小store数量要求，抛出异常
+            if (stores.size() < pdConfig.getMinStoreCount()) {
+                throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
+                                      "The number of active stores is less then " +
+                                      pdConfig.getMinStoreCount());
+            }
+
+            // 计算shard的数量，取store数量和配置的shard数量的较小值
+            int shardCount = pdConfig.getPartition().getShardCount();
+            shardCount = Math.min(shardCount, stores.size());
+            // 两个shard无法选出leader，且shard数量不能为0
+            if (shardCount == 2 || shardCount < 1) {
+                shardCount = 1;
+            }
+            // 一次创建完所有的ShardGroup，保证初始的groupID有序，方便人工阅读
+            allocShards();
+        }
+        // 返回分配后的shard列表
+        return storeInfoMeta.getShardGroup(partId).getShardsList();
+    }
+
+    public synchronized void allocShards() throws PDException {
+        // 多图共用raft分组，因此分配shard只依赖partitionId.
+        // 图根据数据大小可以设置分区的数量，但总数不能超过raft分组数量
+        if (storeInfoMeta.getShardGroupCount() ==
+            0) {// 通过查询存储在rocksdb中的shardGroup数量来判断是否已经给所有partId分配了shard
+            // 就是判断是否已经给partId分配了shard
+            // 获取活跃的store key
+            List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
+
+            // 如果没有在线的store，抛出异常
+            if (stores.size() == 0) {
+                throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
+                                      "There is no any online store");
+            }
+
+            // 如果活跃的store数量小于最小store数量要求，抛出异常
+            if (stores.size() < pdConfig.getMinStoreCount()) {
+                throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
+                                      "The number of active stores is less then " +
+                                      pdConfig.getMinStoreCount());
+            }
+
+            // 计算shard的数量，取store数量和配置的shard数量的较小值
+            int shardCount = pdConfig.getPartition().getShardCount();
+            shardCount = Math.min(shardCount, stores.size());
+            // 两个shard无法选出leader，且shard数量不能为0
+            if (shardCount == 2 || shardCount < 1) {
+                shardCount = 1;
+            }
+
+            // 一次创建完所有的ShardGroup，保证初始的groupID有序，方便人工阅读
+            for (int groupId = 0; groupId < pdConfig.getConfigService().getPartitionCount();
+                 groupId++) {
+                // store分配规则，简化为取模
+                int storeIdx = groupId % stores.size();
+                List<Metapb.Shard> shards = new ArrayList<>();
+                for (int i = 0; i < shardCount; i++) {
+                    // 构建shard，设置storeID和角色（Leader或Follower）,初始化默认第一个作为leader ，其余是follower
+                    Metapb.Shard shard = Metapb.Shard.newBuilder()
+                                                     .setStoreId(stores.get(storeIdx).getId())
+                                                     .setRole(i == 0 ? Metapb.ShardRole.Leader :
+                                                              Metapb.ShardRole.Follower)
+                                                     .build();
+                    shards.add(shard);
+                    // 顺序选择下一个store，如果到达末尾则循环回第一个store
+                    storeIdx = (storeIdx + 1) >= stores.size() ? 0 : ++storeIdx;
+                }
+
+                // 构建ShardGroup并更新元数据
+                Metapb.ShardGroup group = Metapb.ShardGroup.newBuilder()
+                                                           .setId(groupId)
+                                                           .setState(
+                                                                   Metapb.PartitionState.PState_Normal)
+                                                           .addAllShards(shards)
+                                                           .build();
+                storeInfoMeta.updateShardGroup(group);
+                partitionService.updateShardGroupCache(group);
+                onShardGroupStatusChanged(group, group);
+                log.info("alloc shard group: id {}", groupId);
+            }
+        }
+
+    }
+
+    public int bulkloadPartitions(String graphName, String tableName,
+                                  Map<Integer, String> parseHdfsPathMap) throws
+                                                                         PDException {
+        partitionService.bulkloadPartitions(graphName, tableName, parseHdfsPathMap);
+        while (true) {
+
+            if (partitionService.getBulkloadStatus(graphName)
+                                .equals(MetaTask.TaskState.Task_Success)) {
+                return 0;
+            } else if (partitionService.getBulkloadStatus(graphName)
+                                       .equals(MetaTask.TaskState.Task_Failure)) {
+                return -1;
+
+            } else {
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     /**

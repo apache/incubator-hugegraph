@@ -703,6 +703,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     @Override
+    public Map<Long, Map<String, Long>> getGraphIds() {
+        return keyCreator.getGraphIds();
+
+    }
+
+    @Override
     public boolean existsTable(String graph, int partId, String table) {
         try (RocksDBSession session = getSession(graph, partId)) {
             return session.tableIsExist(table);

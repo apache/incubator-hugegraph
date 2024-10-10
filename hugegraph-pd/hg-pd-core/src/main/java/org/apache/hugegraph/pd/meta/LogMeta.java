@@ -25,7 +25,6 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 
 public class LogMeta extends MetadataRocksDBStore {
 
-
     public LogMeta(PDConfig pdConfig) {
         super(pdConfig);
     }

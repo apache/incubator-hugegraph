@@ -19,6 +19,7 @@ package org.apache.hugegraph.pd;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.BulkloadInfo;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
 import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
 import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
@@ -49,5 +50,8 @@ public interface PartitionInstructionListener {
 
     void changePartitionKeyRange(Metapb.Partition partition,
                                  PartitionKeyRange partitionKeyRange) throws PDException;
+
+    void bulkloadPartition(Metapb.Partition partition,
+                           BulkloadInfo BulkloadInfo) throws PDException;
 
 }

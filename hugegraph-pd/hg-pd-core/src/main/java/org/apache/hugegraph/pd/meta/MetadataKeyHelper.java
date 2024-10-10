@@ -19,9 +19,12 @@ package org.apache.hugegraph.pd.meta;
 
 import java.nio.charset.Charset;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.pd.grpc.Metapb;
 
+@Slf4j
 public class MetadataKeyHelper {
 
     public static final char DELIMITER = '/';
@@ -41,6 +44,7 @@ public class MetadataKeyHelper {
     private static final String TASK_SPLIT = "TASK_SPLIT";
     private static final String TASK_MOVE = "TASK_MOVE";
     private static final String LOG_RECORD = "LOG_RECORD";
+    private static final String TASK_BULKLOAD = "TASK_BULKLOAD";
 
     private static final String QUEUE = "QUEUE";
 
@@ -240,6 +244,15 @@ public class MetadataKeyHelper {
         return builder.toString().getBytes(Charset.defaultCharset());
     }
 
+    public static byte[] getBulkloadTaskKey(String graphName, int groupId) {
+        // TASK_BULKLOAD/{GraphName}/{partitionID}
+        StringBuilder builder = StringBuilderHelper.get()
+                                                   .append(TASK_BULKLOAD).append(DELIMITER)
+                                                   .append(graphName).append(DELIMITER)
+                                                   .append(groupId);
+        return builder.toString().getBytes(Charset.defaultCharset());
+    }
+
     public static byte[] getSplitTaskPrefix(String graphName) {
         // TASK_SPLIT/{GraphName}/
         StringBuilder builder = StringBuilderHelper.get()
@@ -252,6 +265,14 @@ public class MetadataKeyHelper {
         // TASK_SPLIT/{GraphName}/
         StringBuilder builder = StringBuilderHelper.get()
                                                    .append(TASK_SPLIT).append(DELIMITER);
+        return builder.toString().getBytes(Charset.defaultCharset());
+    }
+
+    public static byte[] getBulkloadTaskPrefix(String graphName) {
+        // TASK_SPLIT/{GraphName}/
+        StringBuilder builder = StringBuilderHelper.get()
+                                                   .append(TASK_BULKLOAD).append(DELIMITER)
+                                                   .append(graphName);
         return builder.toString().getBytes(Charset.defaultCharset());
     }
 

@@ -221,7 +221,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         }
     }
 
-    protected void storeHeartbeat() {
+    protected void storeHeartbeat() throws PDException {
         if (log.isDebugEnabled()) {
             log.debug("storeHeartbeat ... ");
         }
@@ -248,6 +248,35 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         }
 
         if (clusterStats.getState() == Metapb.ClusterState.Cluster_OK) {
+            log.info(" hstore heartbeatservice The cluster is normal, {}", clusterStats);
+
+            // 在这里增加创建partitionEngine的逻辑？增加一个配置来控制是否开启自动初始化partition？
+            if(  options.isAutoInitPe() ) {
+                // 请求pd ，获取当前store的partition信息,并且要求是该store持有的leader partition，创建partitionEngine
+                List<Partition> leaderPartitions = pdProvider.getLeaderPartitionsByStore(storeInfo.getId());
+                log.info("storeid:{}, leader partitions: {}", storeInfo.getId(),leaderPartitions);
+                leaderPartitions.forEach(partition -> {
+                    PartitionEngine engine = storeEngine.getPartitionEngine(partition.getGraphName(), partition.getId());
+                    try {
+                        if (engine == null) {
+                            log.info("createPartitionGroups for {}", partition);
+                            Partition targetPartition = storeEngine.getPartitionManager().findPartition(partition.getGraphName(), partition.getId());
+                            if (targetPartition != null) {
+                                engine = storeEngine.createPartitionGroups(partition);
+                                // 可能迁移，不应该创建, 放到 synchronize体中，避免后面的
+                                if (engine != null) {
+                                    engine.waitForLeader(options.getWaitLeaderTimeout() * 1000);
+                                }
+                            }else {
+                                log.warn("partition {} not found in partitionManager", partition);
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        log.error("createPartitionGroups failed", e);
+                    }
+                });
+            }
             timerNextDelay = options.getStoreHBInterval() * 1000;
         } else {
             timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;

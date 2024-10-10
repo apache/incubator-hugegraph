@@ -18,6 +18,7 @@
 package org.apache.hugegraph.store.meta;
 
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,6 +69,9 @@ public class GraphIdManager extends PartitionMetaStore {
         this.partitionId = partitionId;
     }
 
+    public Map<String, Long> getGraphIdCache() {
+        return new HashMap<>(graphIdCache);
+    }
     /**
      * Get the id of a graph
      */
