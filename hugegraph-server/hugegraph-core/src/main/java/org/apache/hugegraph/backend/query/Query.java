@@ -139,6 +139,10 @@ public class Query implements Cloneable {
         return this.originQuery;
     }
 
+    public void setOriginQuery(Query query) {
+        this.originQuery = query;
+    }
+
     public Query rootOriginQuery() {
         Query root = this;
         while (root.originQuery != null) {
@@ -617,10 +621,10 @@ public class Query implements Cloneable {
     }
 
     public enum OrderType {
-        // 批量接口下，返回顺序的要求
-        ORDER_NONE,    // 允许无序
-        ORDER_WITHIN_VERTEX,   // 一个点内的边不会被打断，单不同点之间为无序
-        ORDER_STRICT      // 保证原始的输入点顺序
+        // Under batch interface, the requirement for return order
+        ORDER_NONE,           // Allow unordered
+        ORDER_WITHIN_VERTEX,  // Edges within a vertex will not be broken, but there is no order between different vertices.
+        ORDER_STRICT          // Ensure the original input point order
     }
 
     public enum Order {

@@ -51,21 +51,26 @@ public final class BytesBuffer extends OutputStream {
     public static final int CHAR_LEN = Character.BYTES;
     public static final int FLOAT_LEN = Float.BYTES;
     public static final int DOUBLE_LEN = Double.BYTES;
-    public static final int BLOB_LEN = 4;
+    public static final int BYTES_LEN = 4;
+    public static final int BLOB_LEN = 5;
 
     public static final int UINT8_MAX = ((byte) -1) & 0xff;
     public static final int UINT16_MAX = ((short) -1) & 0xffff;
     public static final long UINT32_MAX = (-1) & 0xffffffffL;
 
+    // TODO: support user-defined configuration
     // NOTE: +1 to let code 0 represent length 1
-    public static final int ID_LEN_MASK = 0x7f;
-    public static final int ID_LEN_MAX = 0x7f + 1; // 128
-    public static final int BIG_ID_LEN_MAX = 0x7fff + 1; // 32768
+    public static final int ID_LEN_MAX = 0x3fff + 1; // 16KB
+    public static final int EID_LEN_MAX = 64 * 1024;
 
     public static final byte STRING_ENDING_BYTE = (byte) 0x00;
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
-    public static final int STRING_LEN_MAX = UINT16_MAX;
+
+    // TODO: support user-defined configuration
+    public static final long BYTES_LEN_MAX = 10 * Bytes.MB;
     public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
+
+    public static final int MAX_PROPERTIES = BytesBuffer.UINT16_MAX;
 
     // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
@@ -87,8 +92,7 @@ public final class BytesBuffer extends OutputStream {
 
     public BytesBuffer(int capacity) {
         E.checkArgument(capacity <= MAX_BUFFER_CAPACITY,
-                        "Capacity exceeds max buffer capacity: %s",
-                        MAX_BUFFER_CAPACITY);
+                        "Capacity exceeds max buffer capacity: %s", MAX_BUFFER_CAPACITY);
         this.buffer = ByteBuffer.allocate(capacity);
         this.resize = true;
     }
@@ -167,8 +171,7 @@ public final class BytesBuffer extends OutputStream {
         // Extra capacity as buffer
         int newCapacity = size + this.buffer.limit() + DEFAULT_CAPACITY;
         E.checkArgument(newCapacity <= MAX_BUFFER_CAPACITY,
-                        "Capacity exceeds max buffer capacity: %s",
-                        MAX_BUFFER_CAPACITY);
+                        "Capacity exceeds max buffer capacity: %s", MAX_BUFFER_CAPACITY);
         ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
         this.buffer.flip();
         newBuffer.put(this.buffer);
@@ -288,10 +291,9 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeBytes(byte[] bytes) {
-        E.checkArgument(bytes.length <= UINT16_MAX,
-                        "The max length of bytes is %s, but got %s",
-                        UINT16_MAX, bytes.length);
-        require(SHORT_LEN + bytes.length);
+        E.checkArgument(bytes.length <= BYTES_LEN_MAX, "The max length of bytes is %s, but got %s",
+                        BYTES_LEN_MAX, bytes.length);
+        require(BYTES_LEN + bytes.length);
         this.writeVInt(bytes.length);
         this.write(bytes);
         return this;
@@ -304,8 +306,8 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public BytesBuffer writeBigBytes(byte[] bytes) {
-        E.checkArgument(bytes.length <= BLOB_LEN_MAX,
-                        "The max length of bytes is %s, but got %s",
+        // TODO: note the max blob size should be 128MB (due to MAX_BUFFER_CAPACITY)
+        E.checkArgument(bytes.length <= BLOB_LEN_MAX, "The max length of bytes is %s, but got %s",
                         BLOB_LEN_MAX, bytes.length);
         require(BLOB_LEN + bytes.length);
         this.writeVInt(bytes.length);
@@ -346,9 +348,7 @@ public final class BytesBuffer extends OutputStream {
             assert !Bytes.contains(bytes, STRING_ENDING_BYTE_FF) :
                     "Invalid UTF8 bytes: " + value;
             if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
-                E.checkArgument(false,
-                                "Can't contains byte '0x00' in string: '%s'",
-                                value);
+                E.checkArgument(false, "Can't contains byte '0x00' in string: '%s'", value);
             }
             this.write(bytes);
         }
@@ -430,8 +430,7 @@ public final class BytesBuffer extends OutputStream {
 
     public int readVInt() {
         byte leading = this.read();
-        E.checkArgument(leading != 0x80,
-                        "Unexpected varint with leading byte '0x%s'",
+        E.checkArgument(leading != 0x80, "Unexpected varint with leading byte '0x%s'",
                         Bytes.toHex(leading));
         int value = leading & 0x7f;
         if (leading >= 0) {
@@ -450,8 +449,7 @@ public final class BytesBuffer extends OutputStream {
             }
         }
 
-        E.checkArgument(i < 5,
-                        "Unexpected varint %s with too many bytes(%s)",
+        E.checkArgument(i < 5, "Unexpected varint %s with too many bytes(%s)",
                         value, i + 1);
         E.checkArgument(i < 4 || (leading & 0x70) == 0,
                         "Unexpected varint %s with leading byte '0x%s'",
@@ -494,8 +492,7 @@ public final class BytesBuffer extends OutputStream {
 
     public long readVLong() {
         byte leading = this.read();
-        E.checkArgument(leading != 0x80,
-                        "Unexpected varlong with leading byte '0x%s'",
+        E.checkArgument(leading != 0x80, "Unexpected varlong with leading byte '0x%s'",
                         Bytes.toHex(leading));
         long value = leading & 0x7fL;
         if (leading >= 0) {
@@ -514,8 +511,7 @@ public final class BytesBuffer extends OutputStream {
             }
         }
 
-        E.checkArgument(i < 10,
-                        "Unexpected varlong %s with too many bytes(%s)",
+        E.checkArgument(i < 10, "Unexpected varlong %s with too many bytes(%s)",
                         value, i + 1);
         E.checkArgument(i < 9 || (leading & 0x7e) == 0,
                         "Unexpected varlong %s with leading byte '0x%s'",
@@ -581,8 +577,7 @@ public final class BytesBuffer extends OutputStream {
                 this.writeString((String) value);
                 break;
             case BLOB:
-                byte[] bytes = value instanceof byte[] ?
-                               (byte[]) value : ((Blob) value).bytes();
+                byte[] bytes = value instanceof byte[] ? (byte[]) value : ((Blob) value).bytes();
                 this.writeBigBytes(bytes);
                 break;
             case UUID:
@@ -592,6 +587,7 @@ public final class BytesBuffer extends OutputStream {
                 this.writeLong(uuid.getLeastSignificantBits());
                 break;
             default:
+                // TODO: replace Kryo with Fury (https://github.com/apache/fury)
                 this.writeBytes(KryoUtil.toKryoWithType(value));
                 break;
         }
@@ -624,15 +620,12 @@ public final class BytesBuffer extends OutputStream {
             case UUID:
                 return new UUID(this.readLong(), this.readLong());
             default:
+                // TODO: replace Kryo with Fury (https://github.com/apache/fury)
                 return KryoUtil.fromKryoWithType(this.readBytes());
         }
     }
 
     public BytesBuffer writeId(Id id) {
-        return this.writeId(id, false);
-    }
-
-    public BytesBuffer writeId(Id id, boolean big) {
         switch (id.type()) {
             case LONG:
                 // Number Id
@@ -640,36 +633,33 @@ public final class BytesBuffer extends OutputStream {
                 this.writeNumber(value);
                 break;
             case UUID:
-                // UUID Id
+                // UUID ID
                 byte[] bytes = id.asBytes();
                 assert bytes.length == Id.UUID_LENGTH;
                 this.writeUInt8(0x7f); // 0b01111111 means UUID
                 this.write(bytes);
                 break;
             case EDGE:
-                // Edge Id
+                // Edge ID
                 this.writeUInt8(0x7e); // 0b01111110 means EdgeId
                 this.writeEdgeId(id);
                 break;
             default:
-                // String Id
+                // String Id (VertexID)
                 bytes = id.asBytes();
                 int len = bytes.length;
                 E.checkArgument(len > 0, "Can't write empty id");
-                if (!big) {
-                    E.checkArgument(len <= ID_LEN_MAX,
-                                    "Id max length is %s, but got %s {%s}",
-                                    ID_LEN_MAX, len, id);
-                    len -= 1; // mapping [1, 128] to [0, 127]
+                E.checkArgument(len <= ID_LEN_MAX, "Big id max length is %s, but got %s {%s}",
+                                ID_LEN_MAX, len, id);
+                len -= 1; // mapping [1, 16384] to [0, 16383]
+                if (len <= 0x3f) {
+                    // If length is <= 63, use a single byte with the highest bit set to 1
                     this.writeUInt8(len | 0x80);
                 } else {
-                    E.checkArgument(len <= BIG_ID_LEN_MAX,
-                                    "Big id max length is %s, but got %s {%s}",
-                                    BIG_ID_LEN_MAX, len, id);
-                    len -= 1;
                     int high = len >> 8;
                     int low = len & 0xff;
-                    this.writeUInt8(high | 0x80);
+                    // Write high 8 bits with highest two bits set to 11
+                    this.writeUInt8(high | 0xc0);
                     this.writeUInt8(low);
                 }
                 this.write(bytes);
@@ -679,10 +669,6 @@ public final class BytesBuffer extends OutputStream {
     }
 
     public Id readId() {
-        return this.readId(false);
-    }
-
-    public Id readId(boolean big) {
         byte b = this.read();
         boolean number = (b & 0x80) == 0;
         if (number) {
@@ -698,24 +684,25 @@ public final class BytesBuffer extends OutputStream {
             }
         } else {
             // String Id
-            int len = b & ID_LEN_MASK;
-            if (big) {
+            int len = b & 0x3f; // Take the lowest 6 bits as part of the length
+            if ((b & 0x40) != 0) { // If the 7th bit is set, length information spans 2 bytes
                 int high = len << 8;
                 int low = this.readUInt8();
                 len = high + low;
             }
-            len += 1; // restore [0, 127] to [1, 128]
+            len += 1; // restore [0, 16383] to [1, 16384]
             byte[] id = this.read(len);
             return IdGenerator.of(id, IdType.STRING);
         }
     }
 
     public BytesBuffer writeEdgeId(Id id) {
-        // owner-vertex + dir + edge-label + sort-values + other-vertex
+        // owner-vertex + dir + edge-label + sub-edge-label + sort-values + other-vertex
         EdgeId edge = (EdgeId) id;
         this.writeId(edge.ownerVertexId());
         this.write(edge.directionCode());
         this.writeId(edge.edgeLabelId());
+        this.writeId(edge.subLabelId());
         this.writeStringWithEnding(edge.sortValues());
         this.writeId(edge.otherVertexId());
         return this;
@@ -723,7 +710,7 @@ public final class BytesBuffer extends OutputStream {
 
     public Id readEdgeId() {
         return new EdgeId(this.readId(), EdgeId.directionFromCode(this.read()),
-                          this.readId(), this.readStringWithEnding(),
+                          this.readId(), this.readId(), this.readStringWithEnding(),
                           this.readId());
     }
 
@@ -739,12 +726,11 @@ public final class BytesBuffer extends OutputStream {
         this.write(bytes);
         if (type.isStringIndex()) {
             if (Bytes.contains(bytes, STRING_ENDING_BYTE)) {
-                // Not allow STRING_ENDING_BYTE exist in string index id
+                // Not allow STRING_ENDING_BYTE to exist in string index id
                 E.checkArgument(false,
                                 "The %s type index id can't contains " +
-                                "byte '0x%s', but got: 0x%s", type,
-                                Bytes.toHex(STRING_ENDING_BYTE),
-                                Bytes.toHex(bytes));
+                                "byte '0x%s', but got: 0x%s",
+                                type, Bytes.toHex(STRING_ENDING_BYTE), Bytes.toHex(bytes));
             }
             if (withEnding) {
                 this.writeStringWithEnding("");
@@ -795,7 +781,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     /**
-     * 解析 olap id
+     * Analyze olap id
      * @param type
      * @param isOlap
      * @return
@@ -806,12 +792,9 @@ public final class BytesBuffer extends OutputStream {
         }
         // Parse id from bytes
         int start = this.buffer.position();
-        /**
-         * OLAP
-         * {PropertyKey}{VertexId}
-         */
+         // OLAP {PropertyKey}{VertexId}
         if (isOlap) {
-            // 先 read olap property id
+            // Read olap property id first
             Id pkId = this.readId();
         }
         Id id = this.readId();
@@ -890,8 +873,7 @@ public final class BytesBuffer extends OutputStream {
     }
 
     private long readNumber(byte b) {
-        E.checkArgument((b & 0x80) == 0,
-                        "Not a number type with prefix byte '0x%s'",
+        E.checkArgument((b & 0x80) == 0, "Not a number type with prefix byte '0x%s'",
                         Bytes.toHex(b));
         // Parse the kind from byte 0kkksxxx
         int kind = b >>> 4;
@@ -948,8 +930,7 @@ public final class BytesBuffer extends OutputStream {
                 break;
             }
         }
-        E.checkArgument(foundEnding, "Not found ending '0x%s'",
-                        Bytes.toHex(STRING_ENDING_BYTE));
+        E.checkArgument(foundEnding, "Not found ending '0x%s'", Bytes.toHex(STRING_ENDING_BYTE));
         int end = this.buffer.position() - 1;
         int len = end - start;
         if (len <= 0) {

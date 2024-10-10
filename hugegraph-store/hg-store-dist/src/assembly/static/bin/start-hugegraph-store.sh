@@ -36,14 +36,33 @@ LOGS="$TOP/logs"
 OUTPUT=${LOGS}/hugegraph-store-server.log
 GITHUB="https://github.com"
 PID_FILE="$BIN/pid"
-arch=$(arch)
 
-echo "Current arch: ", "${arch}"
-#if [[ $arch =~ "aarch64" ]];then
-#	  export LD_PRELOAD="$TOP/bin/libjemalloc_aarch64.so"
-#else
-export LD_PRELOAD="$TOP/bin/libjemalloc.so"
-#fi
+. "$BIN"/util.sh
+
+arch=$(uname -m)
+echo "Current arch: $arch"
+
+if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
+    lib_file="$TOP/bin/libjemalloc_aarch64.so"
+    download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc_aarch64.so"
+    expected_md5="2a631d2f81837f9d5864586761c5e380"
+    if download_and_verify $download_url $lib_file $expected_md5; then
+        export LD_PRELOAD=$lib_file
+    else
+        echo "Failed to verify or download $lib_file, skip it"
+    fi
+elif [[ $arch == "x86_64" ]]; then
+    lib_file="$TOP/bin/libjemalloc.so"
+    download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc.so"
+    expected_md5="fd61765eec3bfea961b646c269f298df"
+    if download_and_verify $download_url $lib_file $expected_md5; then
+        export LD_PRELOAD=$lib_file
+    else
+        echo "Failed to verify or download $lib_file, skip it"
+    fi
+else
+    echo "Unsupported architecture: $arch"
+fi
 
 ##pd/store max user processes, ulimit -u
 # Reduce the maximum number of processes that can be opened by a normal dev/user
@@ -55,13 +74,13 @@ export FILE_LIMITN=1024
 
 function check_evn_limit() {
     local limit_check=$(ulimit -n)
-    if [ ${limit_check} -lt ${FILE_LIMITN} ]; then
-        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -n 可以打开的最大文件描述符数太少,需要(${FILE_LIMITN})!! \E[0m"
+    if [[ ${limit_check} != "unlimited" && ${limit_check} -lt ${FILE_LIMITN} ]]; then
+        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -n can open too few maximum file descriptors, need (${FILE_LIMITN})!! \E[0m"
         return 1
     fi
     limit_check=$(ulimit -u)
-    if [ ${limit_check} -lt ${PROC_LIMITN} ]; then
-        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -u  用户最大可用的进程数太少,需要(${PROC_LIMITN})!! \E[0m"
+    if [[ ${limit_check} != "unlimited" && ${limit_check} -lt ${PROC_LIMITN} ]]; then
+        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -u too few available processes for the user, need (${PROC_LIMITN})!! \E[0m"
         return 2
     fi
     return 0
@@ -91,11 +110,6 @@ while getopts "g:j:y:" arg; do
         ?) echo "USAGE: $0 [-g g1] [-j xxx] [-y true|false]" && exit 1 ;;
     esac
 done
-
-
-
-
-. "$BIN"/util.sh
 
 ensure_path_writable "$LOGS"
 ensure_path_writable "$PLUGINS"
@@ -134,7 +148,7 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
     # Rolling out detailed GC logs
-    JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=./logs/gc.log:tags,uptime,level:filecount=3,filesize=100m "
+    JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=./logs/gc.log:time,uptime,level,tags:filecount=3,filesize=100m"
 fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
@@ -150,7 +164,7 @@ case "$GC_OPTION" in
         exit 1
 esac
 
-JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dfastjson.parser.safeMode=true"
+JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dfastjson.parser.safeMode=true -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
 
 if [ "${OPEN_TELEMETRY}" == "true" ]; then
     OT_JAR="opentelemetry-javaagent.jar"

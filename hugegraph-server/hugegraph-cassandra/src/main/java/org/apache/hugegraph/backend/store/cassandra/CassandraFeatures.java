@@ -22,6 +22,11 @@ import org.apache.hugegraph.backend.store.BackendFeatures;
 public class CassandraFeatures implements BackendFeatures {
 
     @Override
+    public boolean supportsFatherAndSubEdgeLabel() {
+        return false;
+    }
+
+    @Override
     public boolean supportsScanToken() {
         return true;
     }

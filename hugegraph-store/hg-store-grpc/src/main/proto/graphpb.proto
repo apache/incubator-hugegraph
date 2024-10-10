@@ -30,20 +30,20 @@ message ScanPartitionRequest{
     SCAN_VERTEX = 1;
     SCAN_EDGE = 2;
   }
-  // 请求参数
+  // Request parameters
   message Request{
     ScanType scan_type = 1;
     string graph_name = 2;
     uint32 partition_id = 3;
     uint32 start_code = 4;
     uint32 end_code = 5;
-    // 过滤条件
+    // Filter conditions
     string condition = 6;
     string table = 7;
     int64 limit = 8;
     int32 boundary = 9;
     bytes position = 10;
-    // 返回条件
+    // Return condition
     repeated int64 properties = 11;
   }
 
@@ -54,14 +54,14 @@ message ScanPartitionRequest{
   RequestHeader header = 1;
   oneof request {
     Request scan_request = 2;
-    // 每消费一个数据包，通知服务端一次，返回消息序号
+    // Each time a data packet is consumed, notify the server once, return the message sequence number
     Reply reply_request = 4;
   }
 }
 
 message ScanResponse{
   ResponseHeader header = 1;
-  // 消息序号
+  // Message Sequence Number
   int32     seq_no = 2;
   repeated  Vertex vertex = 3;
   repeated  Edge edge = 4;
@@ -74,19 +74,19 @@ message Property{
 }
 
 message Vertex{
-  int64 label = 1; // 点类型
-  Variant id = 2;  // 点ID
-  repeated Property properties = 3; //点属性
+  int64 label = 1; // Point type
+  Variant id = 2;  // Point ID
+  repeated Property properties = 3; // Point properties
 }
 
 message Edge{
-  int64 label = 1;        // 边类型
+  int64 label = 1;        // Edge type
   int64 sourceLabel = 2;
   int64 targetLabel = 3;
-  Variant source_id = 4;  // 源点ID
-  Variant target_id = 5;  // 目标点ID
+  Variant source_id = 4;  // Source point ID
+  Variant target_id = 5;  // Target point ID
 
-  repeated Property properties = 6; //边属性
+  repeated Property properties = 6; // Edge properties
 }
 
 message Variant {
@@ -116,7 +116,7 @@ enum VariantType {
 
 
 message RequestHeader {
-  // 发送者 ID.
+  // Sender ID.
   uint64 sender_id = 2;
 }
 

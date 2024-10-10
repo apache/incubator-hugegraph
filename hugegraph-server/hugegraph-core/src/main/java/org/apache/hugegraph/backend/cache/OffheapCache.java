@@ -55,14 +55,18 @@ public class OffheapCache extends AbstractCache<Id, Object> {
     private final AbstractSerializer serializer;
 
     public OffheapCache(HugeGraph graph, long capacity, long avgEntryBytes) {
-        // NOTE: capacity unit is bytes, the super capacity expect elements size
+        this(graph, capacity, avgEntryBytes, Runtime.getRuntime().availableProcessors() * 2);
+    }
+
+    public OffheapCache(HugeGraph graph, long capacity, long avgEntryBytes, int segments) {
+        // NOTE: capacity unit is bytes, the super capacity expects elements' size
         super(capacity);
-        long capacityInBytes = capacity * (avgEntryBytes + 64L);
+        long capacityInBytes = Math.max(capacity, segments) * (avgEntryBytes + 64L);
         if (capacityInBytes <= 0L) {
             capacityInBytes = 1L;
         }
         this.graph = graph;
-        this.cache = this.builder().capacity(capacityInBytes).build();
+        this.cache = this.builder().capacity(capacityInBytes).segmentCount(segments).build();
         this.serializer = new BinarySerializer();
     }
 
@@ -162,19 +166,18 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
         @Override
         public Id deserialize(ByteBuffer input) {
-            return BytesBuffer.wrap(input).readId(true);
+            return BytesBuffer.wrap(input).readId();
         }
 
         @Override
         public void serialize(Id id, ByteBuffer output) {
-            BytesBuffer.wrap(output).writeId(id, true);
+            BytesBuffer.wrap(output).writeId(id);
         }
 
         @Override
         public int serializedSize(Id id) {
             // NOTE: return size must be == actual bytes to write
-            return BytesBuffer.allocate(id.length() + 2)
-                              .writeId(id, true).position();
+            return BytesBuffer.allocate(id.length() + 2).writeId(id).position();
         }
     }
 
@@ -229,7 +232,6 @@ public class OffheapCache extends AbstractCache<Id, Object> {
                 }
 
                 BytesBuffer buffer = BytesBuffer.allocate(64 * listSize);
-
                 // May fail to serialize and throw exception here
                 this.serialize(this.value, buffer);
 
@@ -276,8 +278,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
             }
         }
 
-        private void serializeList(BytesBuffer buffer,
-                                   Collection<Object> list) {
+        private void serializeList(BytesBuffer buffer, Collection<Object> list) {
             // Write list
             buffer.writeVInt(list.size());
             for (Object i : list) {
@@ -295,8 +296,7 @@ public class OffheapCache extends AbstractCache<Id, Object> {
             return list;
         }
 
-        private void serializeElement(BytesBuffer buffer,
-                                      ValueType type, Object value) {
+        private void serializeElement(BytesBuffer buffer, ValueType type, Object value) {
             E.checkNotNull(value, "serialize value");
             BackendEntry entry;
             if (type == ValueType.VERTEX) {
@@ -332,14 +332,12 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         }
 
         private HugeException unsupported(ValueType type) {
-            throw new HugeException(
-                    "Unsupported deserialize type: %s", type);
+            throw new HugeException("Unsupported deserialize type: %s", type);
         }
 
         private HugeException unsupported(Object value) {
-            throw new HugeException(
-                    "Unsupported type of serialize value: '%s'(%s)",
-                    value, value.getClass());
+            throw new HugeException("Unsupported type of serialize value: '%s'(%s)",
+                                    value, value.getClass());
         }
     }
 

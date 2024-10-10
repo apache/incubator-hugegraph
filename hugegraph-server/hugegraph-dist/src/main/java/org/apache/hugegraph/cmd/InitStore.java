@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.commons.collections.map.MultiValueMap;
 import org.apache.hugegraph.HugeFactory;
@@ -77,7 +78,13 @@ public class InitStore {
         List<HugeGraph> graphs = new ArrayList<>(graph2ConfigPaths.size());
         try {
             for (Map.Entry<String, String> entry : graph2ConfigPaths.entrySet()) {
-                graphs.add(initGraph(entry.getValue()));
+                String configPath = entry.getValue();
+                HugeConfig config = new HugeConfig(configPath);
+                if (Objects.equals(config.get(CoreOptions.BACKEND), "hstore")) {
+                    // skip initializing hstore backend
+                    continue;
+                }
+                graphs.add(initGraph(configPath));
             }
             StandardAuthenticator.initAdminUserIfNeeded(restConf);
         } finally {

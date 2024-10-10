@@ -303,6 +303,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkArgument(label != null && !label.isEmpty(),
                         "Edge label can't be null or empty");
         EdgeLabel edgeLabel = this.graph().edgeLabel(label);
+        E.checkArgument(!edgeLabel.isFather(), "Adding an edge of parent type " +
+                                               "is not allowed");
         // Check link
         E.checkArgument(edgeLabel.checkLinkEqual(this.schemaLabel().id(),
                                                  vertex.schemaLabel().id()),

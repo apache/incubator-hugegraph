@@ -36,36 +36,36 @@ public class HgStoreEngineOptions {
     public static String Raft_Path_Prefix = "raft";
     public static String DB_Path_Prefix = "db";
     public static String Snapshot_Path_Prefix = "snapshot";
-    // store心跳间隔，单位秒
+    // store heartbeat interval, unit: seconds
     private final int storeHBInterval = 30;
-    // 分区心跳间隔，单位秒
+    // Partition heartbeat interval, unit: seconds
     private final int partitionHBInterval = 5;
-    // 等待leader超时时间，单位秒
+    // Waiting for leader timeout, in seconds
     private final int waitLeaderTimeout = 30;
     private final int raftRpcThreadPoolSize = Utils.cpus() * 6;
-    // 没有PD模式，用于开发调试使用
+    // No PD mode, for development and debugging use only
     private boolean fakePD = false;
-    // fakePd配置项
+    // fakePd configuration items
     private FakePdOptions fakePdOptions = new FakePdOptions();
     private RaftOptions raftOptions = new RaftOptions();
-    // pd 服务器地址
+    // pd server address
     private String pdAddress;
-    // 对外服务地址
+    // External service address
     private String grpcAddress;
-    // Raft 对外服务地址
+    // Raft external service address
     private String raftAddress;
-    // 存储路径，支持多个位置，逗号分割
+    // Storage path, support multiple locations, separated by commas
     private String dataPath;
     private String raftPath;
     private Map<String, Object> rocksdbConfig;
-    // 自定义的标签，传给pd
+    // Custom tags, pass to pd
     private Map<String, String> labels;
-    // Raft任务处理器
+    // Raft task processor
     private RaftTaskHandler taskHandler;
 
     private PdProvider pdProvider;
 
-    // 数据迁移服务
+    // Data Migration Service
     private DataMover dataTransfer;
 
     @Data
@@ -93,14 +93,18 @@ public class HgStoreEngineOptions {
          * Install snapshot RPC request default timeout in milliseconds
          */
         private final int rpcInstallSnapshotTimeout = 60 * 60 * 1000;
-        // 等待leader超时时间，单位秒
+        // Wait for leader timeout, in seconds
         private final int waitLeaderTimeout = 30;
         /**
          * The maximum number of entries in AppendEntriesRequest
          */
-        private final int maxEntriesSize = 256;
+        private int maxEntriesSize = 256;
         /**
-         * Raft集群发生数据积压后，限速等待时间 单位毫秒
+         * The maximum byte size of AppendEntriesRequest
+         */
+        private int maxBodySize = 512 * 1024;
+        /**
+         * Raft cluster data backlog occurs, rate limiting wait time in milliseconds.
          **/
         private final int overloadRateLimit = 100;
         private final int keepInMemorySegmentCount = 2;

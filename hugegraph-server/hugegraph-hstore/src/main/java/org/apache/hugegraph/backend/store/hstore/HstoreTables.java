@@ -49,7 +49,7 @@ public class HstoreTables {
     }
 
     /**
-     * task信息存储表
+     * task information storage table
      */
     public static class TaskInfo extends HstoreTable {
 
@@ -131,7 +131,7 @@ public class HstoreTables {
         }
 
         /**
-         * 主要用于 range类型的index处理
+         * Mainly used for range-type index processing
          *
          * @param session
          * @param query
@@ -199,7 +199,7 @@ public class HstoreTables {
         public static final String TABLE = HugeTableType.OLAP_TABLE.string();
 
         public OlapTable(String database) {
-            // 由原先多个ap_{pk_id} 合并成一个ap表
+            // Originally multiple ap_{pk_id} merged into one ap table
             super(database, TABLE);
         }
 

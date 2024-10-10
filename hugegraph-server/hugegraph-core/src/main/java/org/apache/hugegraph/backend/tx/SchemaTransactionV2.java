@@ -94,7 +94,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     }
 
     /**
-     * 异步任务系列
+     * Asynchronous Task Series
      */
     private static Id asyncRun(HugeGraph graph, SchemaElement schema,
                                SchemaJob job) {
@@ -288,19 +288,18 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
          */
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
         EdgeLabel schema = this.getEdgeLabel(id);
-        // TODO: uncomment later - sub edge labels
-        //if (schema.edgeLabelType().parent()) {
-        //    List<EdgeLabel> edgeLabels = this.getEdgeLabels();
-        //    for (EdgeLabel edgeLabel : edgeLabels) {
-        //        if (edgeLabel.edgeLabelType().sub() &&
-        //            edgeLabel.fatherId() == id) {
-        //            throw new NotAllowException(
-        //                    "Not allowed to remove a parent edge label: '%s' " +
-        //                    "because the sub edge label '%s' is still existing",
-        //                    schema.name(), edgeLabel.name());
-        //        }
-        //    }
-        //}
+        if (schema.edgeLabelType().parent()) {
+            List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+            for (EdgeLabel edgeLabel : edgeLabels) {
+                if (edgeLabel.edgeLabelType().sub() &&
+                    edgeLabel.fatherId() == id) {
+                    throw new NotAllowException(
+                            "Not allowed to remove a parent edge label: '%s' " +
+                            "because the sub edge label '%s' is still existing",
+                            schema.name(), edgeLabel.name());
+                }
+            }
+        }
         SchemaJob job = new EdgeLabelRemoveJob();
         return asyncRun(this.graph(), schema, job);
     }
@@ -354,7 +353,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         return asyncRun(this.graph(), schema, job);
     }
 
-    // 通用性 的schema处理函数
+    // Generality of schema processing functions
     @Watched(prefix = "schema")
     public void updateSchemaStatus(SchemaElement schema, SchemaStatus status) {
         if (!this.existsSchemaId(schema.type(), schema.id())) {
@@ -429,7 +428,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
                 // NOTE: Do schema update in the lock block
                 updateCallback.accept(schema);
             }
-            // 调对应的方法
+            // Call the corresponding method
             switch (schema.type()) {
                 case PROPERTY_KEY:
                     this.schemaMetaManager.addPropertyKey(this.graphSpace,
@@ -440,14 +439,14 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
                     this.schemaMetaManager.addVertexLabel(this.graphSpace,
                                                           this.graph,
                                                           (VertexLabel) schema);
-                    // 点的label发生变化, 清空对应图的点缓存信息
+                    // Point's label changes, clear the corresponding graph's point cache information
                     MetaManager.instance().notifyGraphVertexCacheClear(this.graphSpace, this.graph);
                     break;
                 case EDGE_LABEL:
                     this.schemaMetaManager.addEdgeLabel(this.graphSpace,
                                                         this.graph,
                                                         (EdgeLabel) schema);
-                    // 边的label发生变化, 清空对应图的边缓存信息
+                    // Side label changes, clear the corresponding edge cache information of the graph.
                     MetaManager.instance().notifyGraphEdgeCacheClear(this.graphSpace, this.graph);
                     break;
                 case INDEX_LABEL:
@@ -575,7 +574,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         }
     }
 
-    // olap 相关的方法
+    // OLAP related methods
     public void createIndexLabelForOlapPk(PropertyKey propertyKey) {
         WriteType writeType = propertyKey.writeType();
         if (writeType == WriteType.OLTP ||
@@ -627,8 +626,8 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         return asyncRun(this.graph(), propertyKey, job);
     }
 
-    // -- store 相关的方法，分为两类：1、olaptable相关  2、id生成策略
-    // - 1、olaptable相关
+    // -- store related methods, divided into two categories: 1. olap table related 2. ID generation strategy
+    // - 1. olap table related
     public void createOlapPk(Id id) {
         this.graphParams().loadGraphStore().createOlapTable(id);
     }
@@ -645,7 +644,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         }
     }
 
-    // - 2、id生成策略
+    // - 2. ID generation strategy
     @Watched(prefix = "schema")
     public Id getNextId(HugeType type) {
         LOG.debug("SchemaTransaction get next id for {}", type);
@@ -698,7 +697,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         this.setNextIdLowest(type, id.asLong());
     }
 
-    // 功能型函数
+    // Functional functions
     public void checkSchemaName(String name) {
         String illegalReg = this.graphParams().configuration()
                                 .get(CoreOptions.SCHEMA_ILLEGAL_NAME_REGEX);
@@ -729,12 +728,12 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         return this.graphParams().mode();
     }
 
-    // 获取字段的方法
+    // Get field method
     public HugeGraph graph() {
         return this.graphParams.graph();
     }
 
-    // 重建索引
+    // Rebuild index
     @Watched(prefix = "schema")
     public Id rebuildIndex(SchemaElement schema) {
         return this.rebuildIndex(schema, ImmutableSet.of());
@@ -749,7 +748,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     }
 
     /**
-     * 清除所有的schema信息
+     * Clear all schema information
      */
     public void clear() {
         this.schemaMetaManager.clearAllSchema(this.graphSpace, graph);
