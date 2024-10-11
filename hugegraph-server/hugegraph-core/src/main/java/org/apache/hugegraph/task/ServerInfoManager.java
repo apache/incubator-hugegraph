@@ -173,8 +173,11 @@ public class ServerInfoManager {
     }
 
     public boolean selfIsMaster() {
-        //return this.selfNodeRole() != null && this.selfNodeRole().master();
-        return true;
+        boolean isMaster=this.selfNodeRole() != null && this.selfNodeRole().master();
+        boolean isSingleComputer=isStandAloneComputer();
+
+        return isMaster||isSingleComputer;
+        //return true;
     }
 
     public boolean selfIsComputer() {
@@ -182,8 +185,7 @@ public class ServerInfoManager {
     }
 
     public boolean isStandAloneComputer(){
-        //return this.onlySingleNode() && this.selfIsComputer();
-        return true;
+        return this.onlySingleNode() && this.selfIsComputer();
     }
 
     public boolean onlySingleNode() {
@@ -236,6 +238,32 @@ public class ServerInfoManager {
 
     protected boolean graphIsReady() {
         return !this.closed && this.graph.started() && this.graph.initialized();
+    }
+
+    protected synchronized void updateIsSingleNode(){
+        Collection<HugeServerInfo> servers=this.allServerInfos();
+        boolean hasWorkerNode = false;
+        long now = DateUtil.now().getTime();
+        int computerNodeCount=0;
+
+        // Iterate servers to find suitable one
+        for (HugeServerInfo server : servers) {
+            if (!server.alive()) {
+                continue;
+            }
+            if (server.role().master()) {
+                continue;
+            }else if (server.role().computer()){
+                computerNodeCount++;
+            }
+            hasWorkerNode = true;
+        }
+
+        boolean singleNode = !hasWorkerNode||computerNodeCount==1;
+        if (singleNode != this.onlySingleNode) {
+            LOG.info("Switch only_single_node 02 to {}", singleNode);
+            this.onlySingleNode = singleNode;
+        }
     }
 
     protected synchronized HugeServerInfo pickWorkerNode(Collection<HugeServerInfo> servers,

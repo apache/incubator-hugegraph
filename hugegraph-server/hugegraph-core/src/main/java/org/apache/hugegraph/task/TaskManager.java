@@ -439,6 +439,7 @@ public final class TaskManager {
                 // Update server heartbeat
                 serverManager.heartbeat();
 
+                serverManager.updateIsSingleNode();
                 /*
                  * Master will schedule tasks to suitable servers.
                  * Note a Worker may become to a Master, so elected-Master also needs to
