@@ -720,6 +720,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     private void checkOnMasterNode(String op) {
+        LOG.info("[test]checkOnMasterNode {}", this.serverManager().onlySingleNode());
         if (!this.serverManager().selfIsMaster()) {
             throw new HugeException("Can't %s task on non-master server", op);
         }

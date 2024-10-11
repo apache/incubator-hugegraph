@@ -48,7 +48,8 @@ public enum NodeRole implements SerialEnum {
     }
 
     public boolean master() {
-        return this == MASTER;
+        // return this == MASTER;
+        return true;
     }
 
     public boolean worker() {
@@ -56,6 +57,7 @@ public enum NodeRole implements SerialEnum {
     }
 
     public boolean computer() {
-        return this == COMPUTER;
+       // return this == COMPUTER;
+        return false;
     }
 }

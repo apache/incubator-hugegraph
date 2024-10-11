@@ -173,7 +173,17 @@ public class ServerInfoManager {
     }
 
     public boolean selfIsMaster() {
-        return this.selfNodeRole() != null && this.selfNodeRole().master();
+        //return this.selfNodeRole() != null && this.selfNodeRole().master();
+        return true;
+    }
+
+    public boolean selfIsComputer() {
+        return this.selfNodeRole() != null && this.selfNodeRole().computer();
+    }
+
+    public boolean isStandAloneComputer(){
+        //return this.onlySingleNode() && this.selfIsComputer();
+        return true;
     }
 
     public boolean onlySingleNode() {
