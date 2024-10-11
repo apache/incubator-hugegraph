@@ -178,6 +178,11 @@ public class FakePdServiceProvider implements PdProvider {
     }
 
     @Override
+    public List<Partition> getLeaderPartitionsByStore(long storeId) throws PDException {
+        return List.of();
+    }
+
+    @Override
     public void updatePartitionCache(Partition partition, Boolean changeLeader) {
 
     }

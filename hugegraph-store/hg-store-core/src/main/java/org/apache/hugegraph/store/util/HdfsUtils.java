@@ -32,6 +32,13 @@ import org.apache.hadoop.conf.Configuration;
 
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
+
 @Slf4j
 public class HdfsUtils implements AutoCloseable {
 
@@ -144,7 +151,8 @@ public class HdfsUtils implements AutoCloseable {
         int maxRetries = 3;
         for (int retry = 0; retry < maxRetries; retry++) {
             try {
-                RemoteIterator<LocatedFileStatus> fileStatusListIterator = fileSystem.listFiles(path, true);
+                RemoteIterator<LocatedFileStatus>
+                        fileStatusListIterator = fileSystem.listFiles(path, true);
                 while (fileStatusListIterator.hasNext()) {
                     LocatedFileStatus fileStatus = fileStatusListIterator.next();
                     Path filePath = fileStatus.getPath();
