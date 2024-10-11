@@ -447,7 +447,7 @@ public final class TaskManager {
                  * However, when enableRoleElected=false, a Master is only set by the
                  * config assignment, assigned-Master always stays the same state.
                  */
-                if (serverManager.selfIsMaster()) {
+                if (serverManager.selfIsMasterOrSingleComputer()) {
                     standardTaskScheduler.scheduleTasksOnMaster();
                     if (!this.enableRoleElected && !serverManager.onlySingleNode()) {
                         // assigned-Master + non-single-node don't need to execute tasks

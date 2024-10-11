@@ -56,6 +56,6 @@ public enum NodeRole implements SerialEnum {
     }
 
     public boolean computer() {
-       return this == COMPUTER;
+        return this == COMPUTER;
     }
 }

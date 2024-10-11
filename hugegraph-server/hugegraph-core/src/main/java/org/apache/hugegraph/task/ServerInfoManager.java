@@ -172,12 +172,10 @@ public class ServerInfoManager {
         return this.globalNodeInfo.nodeRole();
     }
 
-    public boolean selfIsMaster() {
+    public boolean selfIsMasterOrSingleComputer() {
         boolean isMaster=this.selfNodeRole() != null && this.selfNodeRole().master();
         boolean isSingleComputer=isStandAloneComputer();
-
         return isMaster||isSingleComputer;
-        //return true;
     }
 
     public boolean selfIsComputer() {
@@ -210,7 +208,7 @@ public class ServerInfoManager {
             LOG.info("ServerInfo is missing: {}, may not be initialized yet", this.selfNodeId());
             return;
         }
-        if (this.selfIsMaster()) {
+        if (this.selfIsMasterOrSingleComputer()) {
             // On the master node, just wait for ServerInfo re-init
             LOG.warn("ServerInfo is missing: {}, may be cleared before", this.selfNodeId());
             return;
