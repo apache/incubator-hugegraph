@@ -40,6 +40,7 @@
             <version>${revision}</version>
             <scope>compile</scope>
         </dependency>
+        <!-- TODO: avoid depending on toolchain -->
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-client</artifactId>

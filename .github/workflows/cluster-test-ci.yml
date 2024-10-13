@@ -12,7 +12,7 @@ jobs:
   cluster-test:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
+      USE_STAGE: 'true' # Whether to include the stage repository.
 
     steps:
       - name: Install JDK 11
