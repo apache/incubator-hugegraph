@@ -28,9 +28,6 @@ public class ClusterConstant {
 
     public static final String LOG = "logs";
     public static final String PROJECT_DIR = getProjectDir();
-    public static final String PD = "pd";
-    public static final String STORE = "store";
-    public static final String SERVER = "server";
     public static final String LIB_DIR = "lib";
     public static final String EXT_DIR = "ext";
     public static final String PLUGINS_DIR = "plugins";
@@ -52,7 +49,6 @@ public class ClusterConstant {
     public static final String GRAPH_TEMPLATE_FILE = "hugegraph.properties.template";
     public static final String GREMLIN_DRIVER_SETTING_FILE = "gremlin-driver-settings.yaml";
     public static final String GREMLIN_SERVER_FILE = "gremlin-server.yaml";
-    public static final String COMPUTER_SETTING_FILE = "computer.yaml";
     public static final String REMOTE_SETTING_FILE = "remote.yaml";
     public static final String REMOTE_OBJECTS_SETTING_FILE = "remote-objects.yaml";
     public static final String EMPTY_SAMPLE_GROOVY_FILE = "scripts/empty-sample.groovy";
@@ -83,9 +79,11 @@ public class ClusterConstant {
     public static final String SERVER_LIB_PATH =
             getFileInDir(SERVER_DIST_PATH, SERVER_PACKAGE_PREFIX) +
             File.separator;
-    public static final String SERVER_TEMPLATE_PATH =
+    public static final String SERVER_PACKAGE_PATH =
             getFileInDir(SERVER_DIST_PATH, SERVER_PACKAGE_PREFIX) +
-            File.separator + CONF_DIR + File.separator;
+            File.separator;
+    public static final String SERVER_TEMPLATE_PATH =
+            SERVER_PACKAGE_PATH + CONF_DIR + File.separator;
     public static final String CT_DIST_PATH =
             PROJECT_DIR + File.separator + "hugegraph-cluster-test" + File.separator;
     public static final String CT_PACKAGE_PATH =

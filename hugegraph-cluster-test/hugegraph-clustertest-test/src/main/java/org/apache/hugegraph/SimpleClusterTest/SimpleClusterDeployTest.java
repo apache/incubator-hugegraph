@@ -29,11 +29,11 @@ import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.structure.constant.T;
-import org.apache.hugegraph.structure.graph.Vertex;
-import org.apache.hugegraph.structure.gremlin.ResultSet;
-import org.apache.hugegraph.structure.gremlin.Result;
-import org.apache.hugegraph.structure.graph.Path;
 import org.apache.hugegraph.structure.graph.Edge;
+import org.apache.hugegraph.structure.graph.Path;
+import org.apache.hugegraph.structure.graph.Vertex;
+import org.apache.hugegraph.structure.gremlin.Result;
+import org.apache.hugegraph.structure.gremlin.ResultSet;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -41,7 +41,7 @@ public class SimpleClusterDeployTest extends BaseSimpleTest {
 
     @Test
     public void testPDNodesDeployment() {
-        try{
+        try {
             List<String> addrs = env.getPDGrpcAddrs();
             for (String addr : addrs) {
                 PDConfig pdConfig = PDConfig.of(addr);
@@ -49,7 +49,7 @@ public class SimpleClusterDeployTest extends BaseSimpleTest {
                 pdClient.dbCompaction();
             }
             assert true;
-        }catch (PDException pdException){
+        } catch (PDException pdException) {
             assert false;
         }
     }
@@ -73,8 +73,7 @@ public class SimpleClusterDeployTest extends BaseSimpleTest {
     public void testServerNodesDeployment() {
         List<String> addrs = env.getServerRestAddrs();
         for (String addr : addrs) {
-            hugeClient = HugeClient.builder("http://" + addr, "hugegraph")
-                                    .build();
+            hugeClient = HugeClient.builder("http://" + addr, "hugegraph").build();
             SchemaManager schema = hugeClient.schema();
 
             schema.propertyKey("name").asText().ifNotExist().create();
