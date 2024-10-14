@@ -19,7 +19,6 @@ package org.apache.hugegraph.ct.node;
 
 import static org.apache.hugegraph.ct.base.ClusterConstant.CONF_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.JAVA_CMD;
-import static org.apache.hugegraph.ct.base.ClusterConstant.LICENSE_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_JAR_PREFIX;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_LIB_PATH;

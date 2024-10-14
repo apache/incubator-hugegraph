@@ -18,10 +18,9 @@
 package org.apache.hugegraph.ct.config;
 
 import static org.apache.hugegraph.ct.base.ClusterConstant.APPLICATION_FILE;
-import static org.apache.hugegraph.ct.base.ClusterConstant.CT_PACKAGE_PATH;
+import static org.apache.hugegraph.ct.base.ClusterConstant.CONFIG_FILE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LOCALHOST;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PD_TEMPLATE_FILE;
-import static org.apache.hugegraph.ct.base.ClusterConstant.PD_TEMPLATE_PATH;
 import static org.apache.hugegraph.ct.base.EnvUtil.getAvailablePort;
 
 import java.nio.file.Paths;
@@ -37,7 +36,7 @@ public class PDConfig extends AbstractConfig {
     private final int restPort;
 
     public PDConfig() {
-        readTemplate(Paths.get(PD_TEMPLATE_PATH + PD_TEMPLATE_FILE));
+        readTemplate(Paths.get(CONFIG_FILE_PATH + PD_TEMPLATE_FILE));
         this.fileName = APPLICATION_FILE;
         this.raftPort = getAvailablePort();
         this.grpcPort = getAvailablePort();

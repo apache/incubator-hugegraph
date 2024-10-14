@@ -31,76 +31,66 @@ public class ClusterConstant {
     public static final String PD = "pd";
     public static final String STORE = "store";
     public static final String SERVER = "server";
-
     public static final String LIB_DIR = "lib";
     public static final String EXT_DIR = "ext";
     public static final String PLUGINS_DIR = "plugins";
     public static final String BIN_DIR = "bin";
     public static final String CONF_DIR = "conf";
-
     public static final String PD_PACKAGE_PREFIX = "apache-hugegraph-pd-incubating";
     public static final String PD_JAR_PREFIX = "hg-pd-service";
     public static final String STORE_PACKAGE_PREFIX = "apache-hugegraph-store-incubating";
     public static final String STORE_JAR_PREFIX = "hg-store-node";
     public static final String SERVER_PACKAGE_PREFIX = "apache-hugegraph-server-incubating";
     public static final String CT_PACKAGE_PREFIX = "apache-hugegraph-ct-incubating";
-
     public static final String APPLICATION_FILE = "application.yml";
     public static final String SERVER_PROPERTIES = "rest-server.properties";
     public static final String HUGEGRAPH_PROPERTIES = "graphs/hugegraph.properties";
-
     public static final String LOG4J_FILE = "log4j2.xml";
-    public static final String LICENSE_FILE = "hugegraph.license";
     public static final String PD_TEMPLATE_FILE = "pd-application.yml.template";
-
     public static final String STORE_TEMPLATE_FILE = "store-application.yml.template";
     public static final String SERVER_TEMPLATE_FILE = "rest-server.properties.template";
     public static final String GRAPH_TEMPLATE_FILE = "hugegraph.properties.template";
     public static final String GREMLIN_DRIVER_SETTING_FILE = "gremlin-driver-settings.yaml";
     public static final String GREMLIN_SERVER_FILE = "gremlin-server.yaml";
     public static final String COMPUTER_SETTING_FILE = "computer.yaml";
-    public static final String HUGEGRAPH_SERVER_KEYSTORE = "hugegraph-server.keystore";
     public static final String REMOTE_SETTING_FILE = "remote.yaml";
     public static final String REMOTE_OBJECTS_SETTING_FILE = "remote-objects.yaml";
     public static final String EMPTY_SAMPLE_GROOVY_FILE = "scripts/empty-sample.groovy";
     public static final String EXAMPLE_GROOVY_FILE = "scripts/example.groovy";
-
     public static final String LOCALHOST = "127.0.0.1";
 
-    public static final String JAVA_CMD = System.getProperty("java.home") +
-                                          File.separator + BIN_DIR + File.separator +
-                                          (SystemUtils.IS_OS_WINDOWS ? "java.exe" : "java");
-
-    public static final String PD_DIST_PATH = PROJECT_DIR + File.separator +
-                                              "hugegraph-pd" + File.separator;
-
-    public static final String PD_LIB_PATH = getFileInDir(PD_DIST_PATH, PD_PACKAGE_PREFIX) +
-                                             File.separator + LIB_DIR + File.separator;
-
-    public static final String STORE_DIST_PATH = PROJECT_DIR + File.separator + "hugegraph-store" +
-                                                 File.separator;
-
-    public static final String STORE_LIB_PATH = getFileInDir(STORE_DIST_PATH, STORE_PACKAGE_PREFIX)
-                                                + File.separator + LIB_DIR + File.separator;
-
-    public static final String SERVER_DIST_PATH = PROJECT_DIR + File.separator +
-                                                  "hugegraph-server" + File.separator;
-
-    public static final String SERVER_LIB_PATH = getFileInDir(SERVER_DIST_PATH,
-                                                              SERVER_PACKAGE_PREFIX) +
-                                                 File.separator;
-
-    public static final String CT_DIST_PATH = PROJECT_DIR + File.separator +
-                                              "hugegraph-cluster-test" + File.separator;
-
-    public static final String CT_PACKAGE_PATH = getFileInDir(CT_DIST_PATH, CT_PACKAGE_PREFIX) +
-                                                 File.separator;
-
-    public static final String PD_TEMPLATE_PATH = CT_PACKAGE_PATH + PD + File.separator;
-
-    public static final String STORE_TEMPLATE_PATH = CT_PACKAGE_PATH + STORE + File.separator;
-
-    public static final String SERVER_TEMPLATE_PATH = CT_PACKAGE_PATH + SERVER + File.separator;
+    public static final String JAVA_CMD =
+            System.getProperty("java.home") + File.separator + BIN_DIR + File.separator +
+            (SystemUtils.IS_OS_WINDOWS ? "java.exe" : "java");
+    public static final String PD_DIST_PATH =
+            PROJECT_DIR + File.separator + "hugegraph-pd" + File.separator;
+    public static final String PD_LIB_PATH =
+            getFileInDir(PD_DIST_PATH, PD_PACKAGE_PREFIX) + File.separator + LIB_DIR +
+            File.separator;
+    public static final String PD_TEMPLATE_PATH =
+            getFileInDir(PD_DIST_PATH, PD_PACKAGE_PREFIX) + File.separator + CONF_DIR +
+            File.separator;
+    public static final String STORE_DIST_PATH =
+            PROJECT_DIR + File.separator + "hugegraph-store" + File.separator;
+    public static final String STORE_LIB_PATH =
+            getFileInDir(STORE_DIST_PATH, STORE_PACKAGE_PREFIX) + File.separator + LIB_DIR +
+            File.separator;
+    public static final String STORE_TEMPLATE_PATH =
+            getFileInDir(STORE_DIST_PATH, STORE_PACKAGE_PREFIX) + File.separator + CONF_DIR +
+            File.separator;
+    public static final String SERVER_DIST_PATH =
+            PROJECT_DIR + File.separator + "hugegraph-server" + File.separator;
+    public static final String SERVER_LIB_PATH =
+            getFileInDir(SERVER_DIST_PATH, SERVER_PACKAGE_PREFIX) +
+            File.separator;
+    public static final String SERVER_TEMPLATE_PATH =
+            getFileInDir(SERVER_DIST_PATH, SERVER_PACKAGE_PREFIX) +
+            File.separator + CONF_DIR + File.separator;
+    public static final String CT_DIST_PATH =
+            PROJECT_DIR + File.separator + "hugegraph-cluster-test" + File.separator;
+    public static final String CT_PACKAGE_PATH =
+            getFileInDir(CT_DIST_PATH, CT_PACKAGE_PREFIX) + File.separator;
+    public static final String CONFIG_FILE_PATH = CT_PACKAGE_PATH + CONF_DIR + File.separator;
 
     private ClusterConstant() {
         throw new IllegalStateException("Utility class");
@@ -133,15 +123,15 @@ public class ClusterConstant {
     }
 
     public static String getProjectDir() {
-        String userDir = System.getProperty("user.dir"); // 获取当前工作目录
-        Path path = Paths.get(userDir); // 将路径字符串转换为 Path 对象
+        String userDir = System.getProperty("user.dir"); // get current dir
+        Path path = Paths.get(userDir);
 
         if (userDir.endsWith("hugegraph-cluster-test")) {
-            return path.getParent().toString(); // 返回上一级目录
+            return path.getParent().toString();
         } else if (userDir.endsWith("hugegraph-clustertest-test")) {
-            return path.getParent().getParent().toString(); // 返回上两级目录
+            return path.getParent().getParent().toString();
         }
 
-        return userDir; // 如果不匹配则返回当前目录
+        return userDir; // Return current dir if not matched
     }
 }
