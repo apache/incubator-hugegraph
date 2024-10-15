@@ -47,7 +47,7 @@ public class MemoryMonitor {
     }
 
     private void runMemoryDetect() {
-        double memoryUsagePercentage = getMemoryUsagePercentage();
+        double memoryUsagePercentage = getMemoryUsageRatio();
 
         if (memoryUsagePercentage > MEMORY_MONITOR_THRESHOLD) {
             LOG.warn("JVM memory usage is '{}', exceeding the threshold of '{}'.",
@@ -55,7 +55,7 @@ public class MemoryMonitor {
             System.gc();
             LOG.warn("Trigger System.gc()");
 
-            double doubleCheckUsage = getMemoryUsagePercentage();
+            double doubleCheckUsage = getMemoryUsageRatio();
             if (doubleCheckUsage > MEMORY_MONITOR_THRESHOLD) {
                 LOG.warn("JVM memory usage is '{}', exceeding the threshold of '{}'.",
                          doubleCheckUsage, MEMORY_MONITOR_THRESHOLD);
@@ -64,9 +64,8 @@ public class MemoryMonitor {
         }
     }
 
-    private double getMemoryUsagePercentage() {
-        MemoryUsage heapMemoryUsage =
-                ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
+    private double getMemoryUsageRatio() {
+        MemoryUsage heapMemoryUsage = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
         return (double) heapMemoryUsage.getUsed() / heapMemoryUsage.getMax();
     }
 
@@ -79,14 +78,12 @@ public class MemoryMonitor {
         Thread[] threads = new Thread[Thread.activeCount()];
         Thread.enumerate(threads);
         for (Thread thread : threads) {
-            if (thread.getState() != Thread.State.RUNNABLE ||
-                thread.getName() == null ||
+            if (thread.getState() != Thread.State.RUNNABLE || thread.getName() == null ||
                 !thread.getName().startsWith("grizzly-http-server-")) {
                 continue;
             }
 
-            long threadMemory =
-                    threadMXBean.getThreadAllocatedBytes(thread.getId());
+            long threadMemory = threadMXBean.getThreadAllocatedBytes(thread.getId());
             if (threadMemory > highestMemory) {
                 highestMemory = threadMemory;
                 highestThread = thread;
@@ -99,14 +96,13 @@ public class MemoryMonitor {
         Thread targetThread = getHighestMemoryThread();
         if (targetThread != null) {
             targetThread.interrupt();
-            LOG.warn("Send interrupt to '{}' thread",
-                     targetThread.getName());
+            LOG.warn("Send interrupt to '{}' thread", targetThread.getName());
         }
     }
 
     public void start() {
         if (MEMORY_MONITOR_THRESHOLD >= 1.0) {
-            LOG.info("Invalid parameter, MEMORY_MONITOR_THRESHOLD should less than 1.0.");
+            LOG.info("Invalid parameter, MEMORY_MONITOR_THRESHOLD should ≤ 1.0.");
             return;
         }
         this.scheduler.scheduleAtFixedRate(this::runMemoryDetect, 0, MEMORY_MONITOR_DETECT_PERIOD,
@@ -119,6 +115,6 @@ public class MemoryMonitor {
             return;
         }
         this.scheduler.shutdownNow();
-        LOG.info("Memory monitoring stoped.");
+        LOG.info("Memory monitoring stopped.");
     }
 }
