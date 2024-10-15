@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -150,6 +151,13 @@ public class RaftBackendStore implements BackendStore {
     public Iterator<BackendEntry> query(Query query) {
         return (Iterator<BackendEntry>)
                 this.queryByRaft(query, o -> this.store.query(query));
+    }
+
+    @Override
+    public Iterator<Iterator<BackendEntry>> query(Iterator<Query> queries,
+                                                  Function<Query, Query> queryWriter,
+                                                  HugeGraph hugeGraph) {
+        throw new UnsupportedOperationException("unimplemented for RaftBackendStore");
     }
 
     @Override

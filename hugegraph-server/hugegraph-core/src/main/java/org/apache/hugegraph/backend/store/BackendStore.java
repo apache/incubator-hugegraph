@@ -19,7 +19,9 @@ package org.apache.hugegraph.backend.store;
 
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Function;
 
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.query.Query;
@@ -69,6 +71,11 @@ public interface BackendStore {
 
     // Query data
     Iterator<BackendEntry> query(Query query);
+
+    // TODO: unused now
+    Iterator<Iterator<BackendEntry>> query(Iterator<Query> queries,
+                                           Function<Query, Query> queryWriter,
+                                           HugeGraph hugeGraph);
 
     Number queryNumber(Query query);
 

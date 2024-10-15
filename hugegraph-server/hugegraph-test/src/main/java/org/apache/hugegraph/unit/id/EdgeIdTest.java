@@ -46,12 +46,15 @@ public class EdgeIdTest extends BaseUnitTest {
     @Test
     public void testEdgeIdEqual() {
         EdgeId edgeId1 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"));
         EdgeId edgeId2 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"));
         EdgeId edgeId3 = new EdgeId(IdGenerator.of("1:josh"), Directions.IN,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:marko"));
         Assert.assertTrue(edgeId1.equals(edgeId2));
@@ -63,12 +66,15 @@ public class EdgeIdTest extends BaseUnitTest {
     @Test
     public void testEdgeIdEqualWithDirection() {
         EdgeId edgeId1 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"), true);
         EdgeId edgeId2 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"), true);
         EdgeId edgeId3 = new EdgeId(IdGenerator.of("1:josh"), Directions.IN,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:marko"), true);
         Assert.assertTrue(edgeId1.equals(edgeId2));
@@ -80,17 +86,20 @@ public class EdgeIdTest extends BaseUnitTest {
     @Test
     public void testCollectionContainsEdgeId() {
         EdgeId edgeId1 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"));
         Set<Id> edgeIds = ImmutableSet.of(edgeId1);
         Assert.assertTrue(edgeIds.contains(edgeId1));
 
         EdgeId edgeId2 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"));
         Assert.assertTrue(edgeIds.contains(edgeId2));
 
         EdgeId edgeId3 = new EdgeId(IdGenerator.of("1:josh"), Directions.IN,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:marko"));
         Assert.assertTrue(edgeIds.contains(edgeId3));
@@ -99,17 +108,20 @@ public class EdgeIdTest extends BaseUnitTest {
     @Test
     public void testCollectionContainsEdgeIdWithDirection() {
         EdgeId edgeId1 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"), true);
         Set<Id> edgeIds = ImmutableSet.of(edgeId1);
         Assert.assertTrue(edgeIds.contains(edgeId1));
 
         EdgeId edgeId2 = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:josh"), true);
         Assert.assertTrue(edgeIds.contains(edgeId2));
 
         EdgeId edgeId3 = new EdgeId(IdGenerator.of("1:josh"), Directions.IN,
+                                    IdGenerator.of(1),
                                     IdGenerator.of(1), "",
                                     IdGenerator.of("1:marko"), true);
         Assert.assertFalse(edgeIds.contains(edgeId3));
