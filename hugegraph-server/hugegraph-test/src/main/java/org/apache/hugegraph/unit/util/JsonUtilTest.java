@@ -177,6 +177,8 @@ public class JsonUtilTest extends BaseUnitTest {
         String json = JsonUtil.toJson(el);
         Assert.assertEquals("{\"id\":1,\"name\":\"knows\"," +
                             "\"edgelabel_type\":\"NORMAL\"," +
+                            "\"source_label\":\"person\"," +
+                            "\"target_label\":\"person\"," +
                             "\"links\":[{\"name\":\"name\"}]," +
                             "\"frequency\":\"SINGLE\",\"sort_keys\":[]," +
                             "\"nullable_keys\":[],\"index_labels\":[]," +
