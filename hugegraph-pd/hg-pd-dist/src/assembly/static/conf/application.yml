@@ -32,9 +32,6 @@ management:
 logging:
   config: 'file:./conf/log4j2.xml'
 # TODO: handle the license file later (PDConfig)
-license:
-  verify-path: ./conf/verify-license.json
-  license-path: ./conf/hugegraph.license
 grpc:
   port: 8686
   # The service address of grpc needs to be changed to the actual local IPv4 address when deploying.
