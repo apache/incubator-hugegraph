@@ -99,6 +99,7 @@ message PartitionHeartbeatResponse {
 message BulkloadInfo {
   string hdfsPath = 1;
   string table_name=3;
+  int32  maxDownloadRate = 4;
 }
 
 message PartitionHolder {

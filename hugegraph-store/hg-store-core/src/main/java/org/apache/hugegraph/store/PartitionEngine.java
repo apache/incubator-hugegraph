@@ -903,31 +903,22 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     public Status ingestSSTFileTask(MetaTask.Task task) {
-        // 获取任务所属的分区信息
         Metapb.Partition partition = task.getPartition();
-        // 获取SST文件在HDFS的路径
         String hdfsPath = task.getBulkloadInfo().getHdfsPath();
-        // 将表名称转为字节数组，用于后续操作
         byte[] tableName = task.getBulkloadInfo().getTableName().getBytes(StandardCharsets.UTF_8);
-        // 本地用于存储从HDFS下载的SST文件的路径
-        String localBulkloadPath = "/data2/bulkload/";
-        // 提取HDFS的URI和具体的文件路径
+        String localBulkloadPath = options.getBulkloadDir();
         HdfsUtils.HDFSUriPath hdfsUriPath = HdfsUtils.extractHdfsUriAndPath(hdfsPath);
-        // 获取处理后的HDFS目标路径
         String hdfsTargetPath = hdfsUriPath.getHdfsPath();
         try (HdfsUtils hdfsUtils = new HdfsUtils(hdfsUriPath.getHdfsUri())) {
-            // 下载SST文件，限制下载速度为1MB/s
-            String downloadSstFilePath = hdfsUtils.downloadFile(hdfsTargetPath, localBulkloadPath, 1000);
-            // 调用存储引擎的业务处理方法，导入下载的SST文件
+            String downloadSstFilePath = hdfsUtils.downloadFile(hdfsTargetPath, localBulkloadPath
+                    , task.getBulkloadInfo().getMaxDownloadRate());
             storeEngine.getBusinessHandler()
                        .ingestSstFile("", partition.getId(),
                                       Collections.singletonMap(tableName,
                                                                Collections.singletonList(downloadSstFilePath)));
         } catch (IOException e) {
-            // 如果发生IO异常，抛出运行时异常
             throw new RuntimeException(e);
         }
-        // 返回任务执行状态OK
         return Status.OK();
     }
 

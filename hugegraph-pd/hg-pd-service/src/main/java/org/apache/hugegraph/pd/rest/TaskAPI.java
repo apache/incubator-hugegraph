@@ -124,8 +124,9 @@ public class TaskAPI extends API {
         Map<String,String> resMap = new HashMap<>();
         try (HdfsUtils hdfsUtils = new HdfsUtils(request.getHdfsPath())) {
             parseHdfsPathMap = hdfsUtils.parseHdfsPath(request.getHdfsPath());
-            log.info("hdfspath解析后的map,parseHdfsPathMap:{}", parseHdfsPathMap);
-            boolean result = pdRestService.bulkload(request.getGraphName(), request.getTableName(), parseHdfsPathMap);
+            boolean result = pdRestService.bulkload(request.getGraphName(),
+                                                    request.getTableName(), parseHdfsPathMap,
+                                                    request.getMaxDownloadRate());
             resMap.put("status", result?"success":"failed");
         } catch (Exception e) {
             log.info("bulkload failed,error:{}", toJSON(e));

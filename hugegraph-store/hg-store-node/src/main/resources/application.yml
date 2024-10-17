@@ -41,6 +41,7 @@ server:
 app:
   # Storage path, support multiple paths, separated by commas
   data-path: ./storage
+  bulkload-dir: /bulkload/
 
 spring:
   profiles:

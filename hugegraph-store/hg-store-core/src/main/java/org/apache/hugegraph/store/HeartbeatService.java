@@ -248,18 +248,14 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         }
 
         if (clusterStats.getState() == Metapb.ClusterState.Cluster_OK) {
-            log.info(" hstore heartbeatservice The cluster is normal, {}", clusterStats);
 
-            // 在这里增加创建partitionEngine的逻辑？增加一个配置来控制是否开启自动初始化partition？
             if(  options.isAutoInitPe() ) {
-                // 请求pd ，获取当前store的partition信息,并且要求是该store持有的leader partition，创建partitionEngine
                 List<Partition> leaderPartitions = pdProvider.getLeaderPartitionsByStore(storeInfo.getId());
-                log.info("storeid:{}, leader partitions: {}", storeInfo.getId(),leaderPartitions);
                 leaderPartitions.forEach(partition -> {
                     PartitionEngine engine = storeEngine.getPartitionEngine(partition.getGraphName(), partition.getId());
                     try {
                         if (engine == null) {
-                            log.info("createPartitionGroups for {}", partition);
+                            log.debug("createPartitionGroups for {}", partition);
                             Partition targetPartition = storeEngine.getPartitionManager().findPartition(partition.getGraphName(), partition.getId());
                             if (targetPartition != null) {
                                 engine = storeEngine.createPartitionGroups(partition);
@@ -312,6 +308,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         }
 
         List<PartitionEngine> partitions = storeEngine.getLeaderPartition();
+        Map<Long, Map<String, Long>> partGraphIds = storeEngine.getBusinessHandler().getGraphIds();
         final List<Metapb.PartitionStats> statsList = new ArrayList<>(partitions.size());
 
         Metapb.Shard localLeader = Metapb.Shard.newBuilder()
@@ -328,7 +325,15 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             stats.setLeaderTerm(partition.getLeaderTerm());
             stats.setConfVer(partition.getShardGroup().getConfVersion());
             stats.setLeader(localLeader);
-
+            Metapb.GraphIdMap.Builder builder = Metapb.GraphIdMap.newBuilder();
+            partGraphIds.forEach((k, v) -> {
+                if (k == (long)partition.getGroupId()) {
+                    v.forEach((k1, v1) -> {
+                        builder.putGraphidMap(k1, v1);
+                    });
+                }
+            });
+            stats.putGraphIds(partition.getGroupId(), builder.build());
             stats.addAllShard(partition.getShardGroup().getMetaPbShard());
 
             // shard status

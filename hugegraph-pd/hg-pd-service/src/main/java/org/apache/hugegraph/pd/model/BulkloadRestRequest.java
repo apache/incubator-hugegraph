@@ -25,5 +25,6 @@ public class BulkloadRestRequest {
     String graphName;
     String tableName;
     String hdfsPath;
+    Integer maxDownloadRate;
 
 }

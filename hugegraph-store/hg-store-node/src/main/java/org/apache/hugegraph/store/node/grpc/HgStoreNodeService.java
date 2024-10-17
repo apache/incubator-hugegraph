@@ -89,6 +89,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
             setGrpcAddress(appConfig.getStoreServerAddress());
             setLabels(appConfig.getLabelConfig().getLabel());
             setAutoInitPe(appConfig.isAutoInitPe()); // 默认允许自动初始化该store所有node?
+            setBulkloadDir(appConfig.getBulkloadDir());
             setRaftOptions(new RaftOptions() {{
                 setMetrics(appConfig.getRaft().isMetrics());
                 setRpcDefaultTimeout(appConfig.getRaft().getRpcTimeOut());

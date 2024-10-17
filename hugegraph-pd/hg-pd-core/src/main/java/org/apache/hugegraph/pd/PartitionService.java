@@ -837,7 +837,8 @@ public class PartitionService implements RaftStateListener {
     }
 
     public synchronized void bulkloadPartitions(String graphName, String tableName,
-                                                Map<Integer, String> parseHdfsPathMap) throws
+                                                Map<Integer, String> parseHdfsPathMap,
+                                                Integer maxDownloadRate) throws
                                                                                        PDException {
         var taskInfoMeta = storeService.getTaskInfoMeta();
 
@@ -848,7 +849,7 @@ public class PartitionService implements RaftStateListener {
                                                                       entry.getKey());
                         BulkloadInfo bulkloadInfo =
                                 BulkloadInfo.newBuilder().setHdfsPath(entry.getValue())
-                                            .setTableName(tableName).build();
+                                            .setTableName(tableName).setMaxDownloadRate(maxDownloadRate).build();
                         log.info("Bulkload partition {} with hdfs path {},", partition,
                                  bulkloadInfo);
                         fireBulkloadPartition(partition, bulkloadInfo);  // 会通知所有的store对吧？
@@ -1270,66 +1271,42 @@ public class PartitionService implements RaftStateListener {
     }
 
     public void updateStatus(Integer id, MetaTask.TaskState state) {
-        // 使用 compute 方法更新 statusMap 中对应 id 的状态信息
         statusMap.compute(id, (key, statusInfo) -> {
-            // 如果 statusInfo 为空，则初始化一个新的 StatusInfo 对象
             if (statusInfo == null) {
-                // 初始化 statusInfo
                 statusInfo = new StatusInfo();
             }
-
-            // 判断状态是否为任务成功
             if (state == MetaTask.TaskState.Task_Success) {
-                // 增加成功次数
                 int count = statusInfo.successCount.incrementAndGet();
-                // 如果成功次数大于等于3次，则将状态更新为任务成功
                 if (count >= 3) {
                     statusInfo.state = MetaTask.TaskState.Task_Success;
                 }
             }
-            // 判断状态是否为任务失败
             else if (state == MetaTask.TaskState.Task_Failure) {
-                // 将状态更新为任务失败
                 statusInfo.state = MetaTask.TaskState.Task_Failure;
             }
-
-            // 返回更新后的 statusInfo
             return statusInfo;
         });
     }
 
-    /**
-     * 同步处理批量加载任务
-     *
-     * @param task 分区的元任务信息
-     * @throws PDException 异常情况
-     */
+
     public synchronized void handleBulkloadTask(MetaTask.Task task) throws PDException {
-        // 记录处理批量加载任务的日志，包括图名、分区ID和任务信息
         log.info("handle report bulkload task, graph:{}, pid : {}, task: {}",
                  task.getPartition().getGraphName(), task.getPartition().getId(), task);
 
-        // 获取任务信息的元数据
         var taskInfoMeta = storeService.getTaskInfoMeta();
-        // 获取任务所属的分区信息
         var partition = task.getPartition();
-        // 从元数据中获取对应分区的批量加载任务信息
         MetaTask.Task pdMetaTask =
                 taskInfoMeta.getBulkloadTask(partition.getGraphName(), partition.getId());
 
-        // 获取任务的状态
         MetaTask.TaskState state = task.getState();
 
-        // 记录任务状态更新的日志
         log.info("report bulkload task, graph:{}, pid : {}, state: {}",
                  task.getPartition().getGraphName(),
                  task.getPartition().getId(),
                  task.getState());
 
-        // 更新分区的任务状态
         updateStatus(partition.getId(), state);
 
-        // 如果分区任务已经被处理过（非准备状态），则更新任务状态到元数据
         if (statusMap.get(partition.getId()).state != null &&
             statusMap.get(partition.getId()).state != MetaTask.TaskState.Task_Ready) {
             var newTask =
@@ -1339,12 +1316,10 @@ public class PartitionService implements RaftStateListener {
             log.info("taskInfoMeta update bulkload task, graph:{}, newTask: {}",
                      partition.getGraphName(), newTask);
 
-            // 获取所有子任务
             List<MetaTask.Task> subTasks = taskInfoMeta.scanBulkloadTask(partition.getGraphName());
             log.info("scan bulkload task, graph:{}, subTasks: {}", partition.getGraphName(),
                      subTasks);
 
-            // 检查所有子任务是否都已完成（成功或失败）
             var finished = subTasks.stream().peek(t -> log.info("task:{}", t)).allMatch(t ->
 
                                                                                                 t.getState() ==
@@ -1354,20 +1329,15 @@ public class PartitionService implements RaftStateListener {
 
             );
             log.info("finished: {}", finished);
-            // 如果所有子任务都已完成
             if (finished) {
-                // 检查所有子任务是否都成功
                 var allSuccess = subTasks.stream().allMatch(
                         t -> t.getState() == MetaTask.TaskState.Task_Success);
 
-                // 如果所有子任务都成功
                 if (allSuccess) {
                     log.info("graph:{} bulkload task all success!", partition.getGraphName());
-                    // 处理所有子任务完成的情况
                     handleBulkloadTaskAllFinished(partition.getGraphName(), taskInfoMeta);
                 } else {
                     log.info("graph:{} bulkload task failed!", partition.getGraphName());
-                    // 处理子任务失败的情况
                     handleBulkloadTaskAllFinished(partition.getGraphName(), taskInfoMeta);
                 }
                 log.info("clear bulkload task status record, graph:{}, statusMap: {}",
@@ -1380,7 +1350,6 @@ public class PartitionService implements RaftStateListener {
 
     private void handleBulkloadTaskAllFinished(String graphName,
                                                TaskInfoMeta taskInfoMeta) throws PDException {
-        // 事务完成
         taskInfoMeta.removeMoveTaskPrefix(graphName);
     }
 

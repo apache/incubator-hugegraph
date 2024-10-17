@@ -269,7 +269,8 @@ public class PDRestService implements InitializingBean {
         return storeNodeService.getShardList(partitionId);
     }
 
-    public boolean bulkload(String graphName, String tableName, Map<Integer, String> parseHdfsPathMap) throws PDException {
-        return   storeNodeService.bulkloadPartitions(graphName, tableName, parseHdfsPathMap) >= 0 ? true : false;
+    public boolean bulkload(String graphName, String tableName,
+                            Map<Integer, String> parseHdfsPathMap,Integer maxDownloadRate) throws PDException {
+        return   storeNodeService.bulkloadPartitions(graphName, tableName, parseHdfsPathMap,maxDownloadRate) >= 0 ? true : false;
     }
 }

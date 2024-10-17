@@ -70,6 +70,8 @@ public class HgStoreEngineOptions {
 
     private boolean autoInitPe;
 
+    private String bulkloadDir;
+
 
     @Data
     public static class FakePdOptions {
