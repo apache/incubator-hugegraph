@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd.rest;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,14 +32,19 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.model.TimeRangeRequest;
+import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.util.DateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -46,6 +52,9 @@ import com.google.protobuf.util.JsonFormat;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @RestController
 @Slf4j
@@ -55,6 +64,12 @@ public class PartitionAPI extends API {
     public static final String DEFAULT_DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
     @Autowired
     PDRestService pdRestService;
+
+    @Autowired
+    private RestTemplate restTemplate;
+    public boolean isLeader() {
+        return RaftEngine.getInstance().isLeader();
+    }
 
     @GetMapping(value = "/highLevelPartitions", produces = MediaType.APPLICATION_JSON_VALUE)
     public RestApiResponse getHighLevelPartitions() {
@@ -268,6 +283,61 @@ public class PartitionAPI extends API {
             return new RestApiResponse(null, e.getErrorCode(), e.getMessage());
         }
     }
+
+    @GetMapping(value = "/partitionsAndGraphId", produces = MediaType.APPLICATION_JSON_VALUE)
+    public Map<Long, Long> getPartitionsAndGraphId(@RequestParam String graphName) {
+        log.info("getPartGraphId: " + graphName);
+        if (isLeader()) {
+            return getPartGraphId(graphName);
+        } else {
+            String leaderAddress = RaftEngine.getInstance().getLeader().getIp();
+            String url = "http://" + leaderAddress+":8620" + "/v1/partitionsAndGraphId" ;
+            String urlWithParams = UriComponentsBuilder.fromHttpUrl(url).queryParam("graphName", graphName).toUriString();
+            ResponseEntity<HashMap<Long, Long>> responseEntity = restTemplate.exchange(
+                    urlWithParams,
+                    HttpMethod.GET,
+                    null,
+                    new ParameterizedTypeReference<HashMap<Long, Long>>() {}
+            );
+            return responseEntity.getBody();
+        }
+
+
+
+
+
+
+    }
+
+    private Map<Long, Long> getPartGraphId(String graphName) {
+
+        try {
+            Map<String, Map<Long, Long>> partGraphIdMap = new HashMap<>();
+            for (Metapb.Partition partition : pdRestService.getPartitions(graphName + "/g")) {
+                Metapb.PartitionStats partitionStats = pdRestService.getPartitionStats(graphName + "/g", partition.getId());
+                if (partitionStats == null) {
+                    return Collections.emptyMap();
+                }
+                // partId-->Map<graphName, graphId>
+                Map<Long, Metapb.GraphIdMap> graphIdsMap = partitionStats.getGraphIdsMap();
+                log.info("graphIdsMap: " + graphIdsMap);
+                graphIdsMap.forEach((key, value) -> {  // key: partId, value: GraphIdMap
+                    value.getGraphidMap().forEach((k, v) -> {  // k: graphName, v: graphId
+                        if ((graphName + "/g").equals(k)) {
+                            partGraphIdMap.computeIfAbsent(graphName, kk -> new HashMap<>())
+                                          .put(key, v);
+                        }
+                    });
+                });
+            }
+            log.info("partGraphIdMap: " + partGraphIdMap);
+            return partGraphIdMap.get(graphName);
+        } catch (PDException e) {
+            log.error("PD exception: " + e);
+            return Collections.emptyMap();
+        }
+    }
+
 
     @GetMapping(value = "/partitionsAndStats", produces = MediaType.APPLICATION_JSON_VALUE)
     public String getPartitionsAndStats() {

@@ -22,6 +22,7 @@ import static org.apache.hugegraph.pd.grpc.MetaTask.TaskType.Clean_Partition;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ import org.apache.hugegraph.store.raft.RaftTaskHandler;
 import org.apache.hugegraph.store.raft.util.RaftUtils;
 import org.apache.hugegraph.store.snapshot.HgSnapshotHandler;
 import org.apache.hugegraph.store.util.FutureClosure;
+import org.apache.hugegraph.store.util.HdfsUtils;
 import org.apache.hugegraph.store.util.HgRaftError;
 import org.apache.hugegraph.store.util.HgStoreException;
 import org.apache.hugegraph.store.util.Lifecycle;
@@ -870,6 +872,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             case Move_Partition:
                 status = handleMoveTask(task);
                 break;
+            case Ingest_SSTFile:
+                status = ingestSSTFileTask(task);
             default:
                 break;
         }
@@ -896,6 +900,27 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         return status;
     }
+
+    public Status ingestSSTFileTask(MetaTask.Task task) {
+        Metapb.Partition partition = task.getPartition();
+        String hdfsPath = task.getBulkloadInfo().getHdfsPath();
+        byte[] tableName = task.getBulkloadInfo().getTableName().getBytes(StandardCharsets.UTF_8);
+        String localBulkloadPath = options.getBulkloadDir();
+        HdfsUtils.HDFSUriPath hdfsUriPath = HdfsUtils.extractHdfsUriAndPath(hdfsPath);
+        String hdfsTargetPath = hdfsUriPath.getHdfsPath();
+        try (HdfsUtils hdfsUtils = new HdfsUtils(hdfsUriPath.getHdfsUri())) {
+            String downloadSstFilePath = hdfsUtils.downloadFile(hdfsTargetPath, localBulkloadPath
+                    , task.getBulkloadInfo().getMaxDownloadRate());
+            storeEngine.getBusinessHandler()
+                       .ingestSstFile("", partition.getId(),
+                                      Collections.singletonMap(tableName,
+                                                               Collections.singletonList(downloadSstFilePath)));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return Status.OK();
+    }
+
 
     /**
      * Corresponding to the divisional splitting task

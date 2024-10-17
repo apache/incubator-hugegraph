@@ -280,4 +280,9 @@ public class PartitionMeta extends MetadataRocksDBStore {
     public PartitionCache getPartitionCache() {
         return cache;
     }
+
+    public int getGraphPartitionCount(String graphName) throws PDException {
+        byte[] hugeGraphPartitionPrefix = MetadataKeyHelper.getPartitionPrefix(graphName);
+        return scanPrefix(Metapb.Partition.parser(), hugeGraphPartitionPrefix).size();
+    }
 }
