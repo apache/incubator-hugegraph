@@ -272,29 +272,15 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
 
     @Override
     public void onPartitionBulkload(long taskId, Partition partition, BulkloadInfo bulkloadInfo, Consumer<Integer> consumer)  {
-
-        // 获取分区引擎
         PartitionEngine engine = storeEngine.getPartitionEngine(partition.getId());
-
-        // 预先检查任务ID
         if (preCheckTaskId(taskId, partition.getId())) {
             return;
         }
-        // 在storeEngine还是partitionEngine设计一个记录bulkload状态的任务，后续可以写入rocksdb中，
         if (engine != null ) {
             log.info("onPartitionBulkload,taskId:{},partiiton: {},bulkloadInfo:{}",taskId,partition, bulkloadInfo);
-            // 先应答，避免超时造成pd重复发送
             consumer.accept(0);
-            /*
-            1、考虑文件有效性，md5 校验？
-            2、考虑进度返回pd?
-             */
-
-            // 获取图名和分区ID
             String graphName = partition.getGraphName();
             int partitionId = partition.getId();
-
-            // 创建MetaTask.Task对象，并设置相关信息
             MetaTask.Task task = MetaTask.Task.newBuilder()
                                               .setId(taskId)
                                               .setPartition(partition.getProtoObj())
@@ -304,14 +290,10 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
                                               .build();
 
             try {
-                // 提交任务到线程池执行
                 threadPool.submit(() -> {
-                    // 调用分区引擎的ingestSSTFileTask方法执行任务
-                    log.info("提交任务到线程池,task:{}",task);
                     engine.moveData(task);
                 });
             } catch (Exception e) {
-                // 如果执行任务时出现异常，则记录日志
                 LOG.error("Partition {}-{} ingestSSTFileTask exception {}",
                           graphName, partitionId, e);
             }

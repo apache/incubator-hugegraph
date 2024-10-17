@@ -873,7 +873,6 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 status = handleMoveTask(task);
                 break;
             case Ingest_SSTFile:
-                // 处理分区迁移任务
                 status = ingestSSTFileTask(task);
             default:
                 break;

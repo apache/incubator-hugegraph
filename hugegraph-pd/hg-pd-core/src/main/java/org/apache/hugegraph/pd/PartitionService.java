@@ -267,35 +267,22 @@ public class PartitionService implements RaftStateListener {
         return partition;
     }
 
-    /**
-     * 创建所有的分区，用于初始化,这个方法需要在集群，pd+store都准备好了才可以执行
-     *
-     * @throws PDException
-     */
+
     public synchronized void newAllPartitions(String graphName) throws PDException {
         if (partitionMeta.getGraphPartitionCount(graphName) == 0) {
-            // 从分区元数据中获取或创建指定名称的图，第一次的时候创建Metapb.Graph 并会存入到partitionMeta中，graph
-            // 对象中持有partitionTotalcount参数
             Metapb.Graph graph = partitionMeta.getAndCreateGraph(graphName);
-            // 计算每个分区的keyRange，
             int partitionSize = PartitionUtils.MAX_VALUE / pdConfig.getPartition().getTotalCount();
-            // 如果最大值不能被分区数量整除，增加分区大小以确保所有值都能被覆盖
             if (PartitionUtils.MAX_VALUE % pdConfig.getPartition().getTotalCount() != 0) {
                 partitionSize++;
             }
 
             for (int partitionId = 0; partitionId < pdConfig.getPartition().getTotalCount();
                  partitionId++) {
-                // 计算分区的起始和结束key
                 long startKey = (long) partitionSize * partitionId;
                 long endKey = (long) partitionSize * (partitionId + 1);
-                // 检查是否已经存在该分区ID
                 Metapb.Partition partition = partitionMeta.getPartitionById(graphName, partitionId);
-                // 如果分区不存在，则创建并分配shards
                 if (partition == null) {
                     storeService.allocShards(partitionId);
-
-                    // 创建一个新的分区并设置初始属性
                     partition = Metapb.Partition.newBuilder()
                                                 .setId(partitionId)
                                                 .setVersion(0)
@@ -305,9 +292,7 @@ public class PartitionService implements RaftStateListener {
                                                 .setGraphName(graphName)
                                                 .build();
 
-                    // 更新分区元数据
                     partitionMeta.updatePartition(partition);
-                    // 记录新分区的创建
                     log.info("Create newPartition {},graphName = {}", partition, graphName);
                 }
             }
@@ -475,7 +460,7 @@ public class PartitionService implements RaftStateListener {
         log.info("updateGraph graph: {}, last: {}", graph, lastGraph);
         if (lastGraph.getGraphName().equals(graph.getGraphName()) &&
             lastGraph.getPartitionCount() == graph.getPartitionCount() &&
-            lastGraph.getStateValue() == graph.getStateValue()) {  // 说明新旧图谱一样，无须更新？
+            lastGraph.getStateValue() == graph.getStateValue()) {
             log.info("no need to  updateGraph graph: {}, last: {}, two graph is equals", graph,
                      lastGraph);
             return lastGraph;
@@ -852,8 +837,7 @@ public class PartitionService implements RaftStateListener {
                                             .setTableName(tableName).setMaxDownloadRate(maxDownloadRate).build();
                         log.info("Bulkload partition {} with hdfs path {},", partition,
                                  bulkloadInfo);
-                        fireBulkloadPartition(partition, bulkloadInfo);  // 会通知所有的store对吧？
-                        // 记录事务
+                        fireBulkloadPartition(partition, bulkloadInfo);
                         var task = MetaTask.Task.newBuilder().setPartition(partition)
                                                 .setBulkloadInfo(bulkloadInfo)
                                                 .build();

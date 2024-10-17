@@ -108,10 +108,8 @@ public class TaskAPI extends API {
     @PostMapping(value = "/bulkload")
     public Map<String,String> bulkload(@RequestBody BulkloadRestRequest request) throws PDException {
         if (isLeader()) {
-            // 当前节点是Leader，处理请求
             return handleBulkload(request);
         } else {
-            // 当前节点不是Leader，转发请求到Leader
             String leaderAddress = RaftEngine.getInstance().getLeader().getIp();
             String url = "http://" + leaderAddress+":8620" + "/v1/task/bulkload";
             ResponseEntity<Map> mapResponseEntity = restTemplate.postForEntity(url, request, Map.class);
