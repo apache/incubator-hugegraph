@@ -301,12 +301,6 @@ public class PartitionAPI extends API {
             );
             return responseEntity.getBody();
         }
-
-
-
-
-
-
     }
 
     private Map<Long, Long> getPartGraphId(String graphName) {

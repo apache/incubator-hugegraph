@@ -43,13 +43,17 @@ import org.apache.hadoop.fs.RemoteIterator;
 public class HdfsUtils implements AutoCloseable {
 
     private final FileSystem fileSystem;
+    int lastLoggedProgress = 0;
 
     public HdfsUtils(String hdfsUri) throws IOException {
         Configuration conf = new Configuration();
         conf.set("fs.defaultFS", hdfsUri);
-        conf.setBoolean("fs.hdfs.impl.disable.cache", true); // 禁用 FileSystem 缓存
+        conf.setBoolean("fs.hdfs.impl.disable.cache", true); // disable FileSystem cache
         fileSystem = FileSystem.get(conf);
     }
+
+
+
 
     public Map<Integer, String> parseHdfsPath(String hdfsPath) throws IOException {
         Path path = new Path(hdfsPath);
@@ -57,11 +61,9 @@ public class HdfsUtils implements AutoCloseable {
         Map<Integer, String> resultMap = new ConcurrentHashMap<>();
         FileStatus[] fileStatuses = fileSystem.listStatus(path);
 
-        // 正则表达式匹配文件名中的特定部分
         String regex = ".*(\\d{5})\\.sst";
         Pattern pattern = Pattern.compile(regex);
 
-        // 使用并行流处理文件
         Arrays.stream(fileStatuses).parallel().forEach(fileStatus -> {
             if (fileStatus.isFile()) {
                 String filePath = fileStatus.getPath().toString();
@@ -76,7 +78,7 @@ public class HdfsUtils implements AutoCloseable {
         return resultMap;
     }
 
-    public String downloadFile(String hdfsPath, String localPath, int rateLimitKbps) throws IOException {
+    public  String  downloadFile(String hdfsPath, String localPath, int rateLimitKbps) throws IOException {
         Path path = new Path(hdfsPath);
         if (!fileSystem.exists(path)) {
             throw new IOException("File does not exist: " + hdfsPath);
@@ -85,32 +87,34 @@ public class HdfsUtils implements AutoCloseable {
             throw new IOException("Path is a directory: " + hdfsPath);
         }
 
-        // 提取文件名并拼接到localPath上
         String fileName = path.getName();
         File localFile = new File(localPath, fileName);
+        if(localFile.exists()){
+            localFile.delete();
+        }
         if (!localFile.getParentFile().exists()) {
             localFile.getParentFile().mkdirs();
         }
 
-        // 获取文件总大小
         FileStatus fileStatus = fileSystem.getFileStatus(path);
         long totalSize = fileStatus.getLen();
-
+        log.info("start Downloading file: {}, size: {} bytes", fileName, totalSize);
         int maxRetries = 3;
         for (int retry = 0; retry < maxRetries; retry++) {
             try (FSDataInputStream in = fileSystem.open(path);
                  FileOutputStream out = new FileOutputStream(localFile)) {
-                copyBytesWithRateLimit(in, out, 4096, rateLimitKbps, totalSize);
+                copyBytesWithRateLimit(in, out, 4096, rateLimitKbps,totalSize,fileName);
                 return localFile.getAbsolutePath();
             } catch (IOException e) {
-                log.error("Download failed, retrying... (Attempt {}/{})", retry + 1, maxRetries, e);
-                // 清空之前的下载
+                log.error("Download {} failed, retrying... (Attempt {}/{})",hdfsPath, retry + 1, maxRetries, e);
                 if (localFile.exists()) {
                     localFile.delete();
                 }
             }
         }
-        throw new IOException("Failed to download file after " + maxRetries + " attempts.");
+        throw new IOException("Failed to download "+hdfsPath+" file after " + maxRetries + " attempts.");
+
+
     }
 
     public void downloadDirectory(String hdfsPath, String localPath, int rateLimitKbps) throws IOException {
@@ -142,20 +146,21 @@ public class HdfsUtils implements AutoCloseable {
                     long totalSize = fileStatus.getLen();
                     try (FSDataInputStream in = fileSystem.open(filePath);
                          FileOutputStream out = new FileOutputStream(localFile)) {
-                        copyBytesWithRateLimit(in, out, 4096, rateLimitKbps, totalSize);
+                        copyBytesWithRateLimit(in, out, 4096, rateLimitKbps,totalSize,filePath.getName());
                     }
                 }
                 return;
             } catch (IOException e) {
                 log.error("Download failed, retrying... (Attempt {}/{})", retry + 1, maxRetries, e);
-                // 清空之前的下载
                 if (localDir.exists()) {
                     deleteDirectory(localDir);
                 }
+                throw new IOException("Failed to download directory after " + maxRetries + " attempts.");
             }
         }
-        throw new IOException("Failed to download directory after " + maxRetries + " attempts.");
+
     }
+
 
     private void deleteDirectory(File directory) {
         if (directory.isDirectory()) {
@@ -169,22 +174,26 @@ public class HdfsUtils implements AutoCloseable {
         directory.delete();
     }
 
-    private void copyBytesWithRateLimit(FSDataInputStream in, FileOutputStream out, int bufferSize, int rateLimitKbps, long totalSize) throws IOException {
+    private void copyBytesWithRateLimit(FSDataInputStream in, FileOutputStream out, int bufferSize, int rateLimitKbps,long totalSize,String fileName) throws IOException {
         byte[] buffer = new byte[bufferSize];
         int bytesRead;
         long startTime = System.currentTimeMillis();
         long bytesReadInSecond = 0;
         long totalBytesRead = 0;
 
+
         while ((bytesRead = in.read(buffer)) > 0) {
             out.write(buffer, 0, bytesRead);
             bytesReadInSecond += bytesRead;
             totalBytesRead += bytesRead;
 
-            // 计算并显示进度
             double progress = (double) totalBytesRead / totalSize * 100;
-            log.info("Download progress: %.2f%%%n", progress);
-            // 如果读取的字节数超过了限速值，进行延迟
+            int currentProgress = (int) progress;
+
+            if (currentProgress / 10 > lastLoggedProgress / 10) {
+                log.info("fileName: {} , Download progress: {}%", fileName, String.format("%.2f", progress));
+                lastLoggedProgress = currentProgress;
+            }
             if (bytesReadInSecond >= rateLimitKbps * 1024) {
                 long elapsedTime = System.currentTimeMillis() - startTime;
                 if (elapsedTime < 1000) {
@@ -201,13 +210,13 @@ public class HdfsUtils implements AutoCloseable {
         }
     }
 
+
     @Override
     public void close() throws IOException {
         fileSystem.close();
     }
 
     public static HDFSUriPath extractHdfsUriAndPath(String hdfsPath) {
-        // 正则表达式匹配HDFS URI和路径
         String regex = "^(hdfs://[^/]+)(/.*)?$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(hdfsPath);
@@ -236,20 +245,7 @@ public class HdfsUtils implements AutoCloseable {
         }
     }
 
-    public static void main(String[] args) {
-        // 正则表达式匹配文件名中的特定部分
-        String regex = ".*r-(\\d+)\\.sst";
-        Pattern pattern = Pattern.compile(regex);
-        String filePath = "hdfs://txy-hn1-bigdata-hdp11-nn-prd-02.myhll.cn:8020/user/hdfs/hg-1_5/gen-sstfile/1726305291103/part-r-0000.sst";
-        Matcher matcher = pattern.matcher(filePath);
-        if (matcher.find()) {
-            String key = matcher.group(1);
-            System.out.println("Key: " + key);
-            int i = Integer.parseInt(key);
 
-            System.out.println("Key: " + i);
-        }
-    }
 
     public static class HDFSUriPath {
         private final String hdfsUri;
@@ -267,5 +263,7 @@ public class HdfsUtils implements AutoCloseable {
         public String getHdfsPath() {
             return hdfsPath;
         }
+
     }
+
 }
