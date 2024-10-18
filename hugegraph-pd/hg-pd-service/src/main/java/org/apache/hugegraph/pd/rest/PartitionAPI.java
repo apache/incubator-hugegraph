@@ -36,8 +36,7 @@ import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.util.DateUtil;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -285,21 +284,15 @@ public class PartitionAPI extends API {
     }
 
     @GetMapping(value = "/partitionsAndGraphId", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<Long, Long> getPartitionsAndGraphId(@RequestParam String graphName) {
+    public ResponseEntity<?> getPartitionsAndGraphId(@RequestParam String graphName) {
         log.info("getPartGraphId: " + graphName);
         if (isLeader()) {
-            return getPartGraphId(graphName);
+            Map<Long, Long> result = getPartGraphId(graphName);
+            return ResponseEntity.ok(result);
         } else {
-            String leaderAddress = RaftEngine.getInstance().getLeader().getIp();
-            String url = "http://" + leaderAddress+":8620" + "/v1/partitionsAndGraphId" ;
-            String urlWithParams = UriComponentsBuilder.fromHttpUrl(url).queryParam("graphName", graphName).toUriString();
-            ResponseEntity<HashMap<Long, Long>> responseEntity = restTemplate.exchange(
-                    urlWithParams,
-                    HttpMethod.GET,
-                    null,
-                    new ParameterizedTypeReference<HashMap<Long, Long>>() {}
-            );
-            return responseEntity.getBody();
+            String message = "This node is not the leader. Please contact the leader at: " + RaftEngine.getInstance().getLeader().getIp();
+            log.warn("This node is not the leader. Please contact the leader at: {}",message);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.singletonMap("error", message));
         }
     }
 
