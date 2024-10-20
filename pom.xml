@@ -94,6 +94,7 @@
         <maven.compiler.target>11</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <shell-executable>bash</shell-executable>
+        <toolchain.vision>1.5.0</toolchain.vision>
     </properties>
 
     <modules>
@@ -102,6 +103,7 @@
         <module>hugegraph-store</module>
         <module>hugegraph-commons</module>
         <module>install-dist</module>
+        <module>hugegraph-cluster-test</module>
     </modules>
 
     <dependencyManagement>
