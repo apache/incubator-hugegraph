@@ -26,11 +26,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotFoundException;
@@ -40,6 +40,7 @@ import org.apache.hugegraph.schema.Userdata;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
+import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
@@ -51,6 +52,9 @@ public class EdgeLabelBuilder extends AbstractBuilder
 
     private Id id;
     private String name;
+    private Set<Pair<String, String>> links;
+    private EdgeLabelType edgeLabelType;
+    private String fatherLabel;
     private String sourceLabel;
     private String targetLabel;
     private Frequency frequency;
@@ -69,8 +73,9 @@ public class EdgeLabelBuilder extends AbstractBuilder
         E.checkNotNull(name, "name");
         this.id = null;
         this.name = name;
-        this.sourceLabel = null;
-        this.targetLabel = null;
+        this.links = new HashSet<>();
+        this.edgeLabelType = EdgeLabelType.NORMAL;
+        this.fatherLabel = null;
         this.frequency = Frequency.DEFAULT;
         this.properties = new HashSet<>();
         this.sortKeys = new ArrayList<>();
@@ -89,8 +94,11 @@ public class EdgeLabelBuilder extends AbstractBuilder
         HugeGraph origin = copy.graph();
         this.id = null;
         this.name = copy.name();
-        this.sourceLabel = copy.sourceLabelName();
-        this.targetLabel = copy.targetLabelName();
+        this.links = mapPairId2Name(origin, copy.links());
+        this.edgeLabelType = copy.edgeLabelType();
+        if (copy.edgeLabelType().sub()) {
+            this.fatherLabel = mapElId2Name(origin, copy.fatherId());
+        }
         this.frequency = copy.frequency();
         this.properties = mapPkId2Name(origin, copy.properties());
         this.sortKeys = mapPkId2Name(origin, copy.sortKeys());
@@ -108,8 +116,10 @@ public class EdgeLabelBuilder extends AbstractBuilder
                                        this.id, this.name);
         HugeGraph graph = this.graph();
         EdgeLabel edgeLabel = new EdgeLabel(graph, id, this.name);
-        edgeLabel.sourceLabel(graph.vertexLabel(this.sourceLabel).id());
-        edgeLabel.targetLabel(graph.vertexLabel(this.targetLabel).id());
+        for (Pair<String, String> link : this.links) {
+            edgeLabel.links(Pair.of(graph.vertexLabel(link.getLeft()).id(),
+                                    graph.vertexLabel(link.getRight()).id()));
+        }
         edgeLabel.frequency(this.frequency == Frequency.DEFAULT ?
                             Frequency.SINGLE : this.frequency);
         edgeLabel.ttl(this.ttl);
@@ -132,7 +142,50 @@ public class EdgeLabelBuilder extends AbstractBuilder
             edgeLabel.nullableKey(propertyKey.id());
         }
         edgeLabel.userdata(this.userdata);
+        if (this.edgeLabelType.sub()) {
+            edgeLabel.edgeLabelType(EdgeLabelType.SUB);
+            EdgeLabel fatherEl = graph.edgeLabel(this.fatherLabel);
+            edgeLabel.fatherId(fatherEl.id());
+            registerInfoToFatherEl(fatherEl, edgeLabel);
+        } else {
+            edgeLabel.edgeLabelType(this.edgeLabelType);
+        }
         return edgeLabel;
+    }
+
+    private void registerInfoToFatherEl(EdgeLabel fatherEl, EdgeLabel subEl) {
+        HugeGraph graph = this.graph();
+        // When the new edge label is a subtype, register the links information
+        // of the sub edgelabel to the parent edge Label
+        for (Pair<String, String> link : this.links) {
+            fatherEl.links(Pair.of(this.graph().vertexLabel(link.getLeft()).id(),
+                                   graph.vertexLabel(link.getRight()).id()));
+        }
+
+        List<Id> fatherSortKeys = fatherEl.sortKeys();
+        List<Id> subSortKeys = subEl.sortKeys();
+        if (fatherSortKeys == null || fatherSortKeys.size() == 0) {
+            for (Id sortKey : subSortKeys) {
+                fatherEl.sortKeys(sortKey);
+            }
+        } else {
+            E.checkArgument(fatherSortKeys.size() == subSortKeys.size(),
+                            "The sortKeys of each sub edgelabel need to be " +
+                            "consistent. " + "Currently, the sortKeys of already exist edgelabel " +
+                            "are " + "'%s', " + "and the sortKeys of newly added " +
+                            "sub edgelabel are '%s'",
+                            fatherSortKeys, subSortKeys);
+            for (int i = 0; i < fatherSortKeys.size(); i++) {
+                E.checkArgument(fatherSortKeys.get(i).equals(subSortKeys.get(i)),
+                                "The sortKeys of each sub edgelabel need to be " +
+                                "consistent. " +
+                                "Currently, the sortKeys of already exist edgelabel " +
+                                "are " + "'%s', " + "and the sortKeys of newly added " +
+                                "sub edgelabel are '%s'",
+                                fatherSortKeys, subSortKeys);
+            }
+        }
+        this.graph().updateEdgeLabel(fatherEl);
     }
 
     @Override
@@ -177,14 +230,12 @@ public class EdgeLabelBuilder extends AbstractBuilder
      */
     private boolean hasSameProperties(EdgeLabel existedEdgeLabel) {
         HugeGraph graph = this.graph();
-        Id sourceId = graph.vertexLabel(this.sourceLabel).id();
-        if (!existedEdgeLabel.sourceLabel().equals(sourceId)) {
-            return false;
-        }
-
-        Id targetId = graph.vertexLabel(this.targetLabel).id();
-        if (!existedEdgeLabel.targetLabel().equals(targetId)) {
-            return false;
+        for (Pair<Id, Id> link : existedEdgeLabel.links()) {
+            String sourceName = graph.vertexLabel(link.getLeft()).name();
+            String targetName = graph.vertexLabel(link.getRight()).name();
+            if (!this.links.contains(Pair.of(sourceName, targetName))) {
+                return false;
+            }
         }
 
         if ((this.frequency == Frequency.DEFAULT &&
@@ -303,6 +354,28 @@ public class EdgeLabelBuilder extends AbstractBuilder
     }
 
     @Override
+    public EdgeLabel.Builder asBase() {
+        this.edgeLabelType = EdgeLabelType.PARENT;
+        return this;
+    }
+
+    @Override
+    public EdgeLabel.Builder withBase(String fatherLabel) {
+        // Check if fatherLabel is reasonable (if it exists or not)
+        E.checkArgumentNotNull(fatherLabel, "When creating a subtype edgeLabel, " +
+                                            "the edgeLabel name of the parent type edgeLabel must" +
+                                            " be entered");
+        EdgeLabel edgeLabel = this.edgeLabelOrNull(fatherLabel);
+        if (edgeLabel == null) {
+            throw new NotFoundException("Can't create subtype edge label '%s' " +
+                                        "since it's parent edge label doesn't exist", this.name);
+        }
+        this.edgeLabelType = EdgeLabelType.SUB;
+        this.fatherLabel = fatherLabel;
+        return this;
+    }
+
+    @Override
     public EdgeLabelBuilder id(long id) {
         E.checkArgument(id != 0L, "Not allowed to assign 0 as edge label id");
         this.id = IdGenerator.of(id);
@@ -340,20 +413,38 @@ public class EdgeLabelBuilder extends AbstractBuilder
 
     @Override
     public EdgeLabelBuilder link(String sourceLabel, String targetLabel) {
-        this.sourceLabel(sourceLabel);
-        this.targetLabel(targetLabel);
+        if (this.links == null) {
+            this.links = new HashSet<>();
+        }
+        this.links.add(Pair.of(sourceLabel, targetLabel));
         return this;
     }
 
     @Override
     public EdgeLabelBuilder sourceLabel(String label) {
-        this.sourceLabel = label;
+        E.checkArgument(this.links.isEmpty(),
+                        "Not allowed add source label to an edge label which " +
+                        "already has links");
+        if (this.targetLabel != null) {
+            this.links.add(Pair.of(label, this.targetLabel));
+            this.targetLabel = null;
+        } else {
+            this.sourceLabel = label;
+        }
         return this;
     }
 
     @Override
     public EdgeLabelBuilder targetLabel(String label) {
-        this.targetLabel = label;
+        E.checkArgument(this.links.isEmpty(),
+                        "Not allowed add source label to an edge label which " +
+                        "already has links");
+        if (this.sourceLabel != null) {
+            this.links.add(Pair.of(this.sourceLabel, label));
+            this.sourceLabel = null;
+        } else {
+            this.targetLabel = label;
+        }
         return this;
     }
 
@@ -518,19 +609,32 @@ public class EdgeLabelBuilder extends AbstractBuilder
     }
 
     private void checkRelation() {
-        String srcLabel = this.sourceLabel;
-        String tgtLabel = this.targetLabel;
-
-        E.checkArgument(srcLabel != null && tgtLabel != null,
-                        "Must set source and target label " +
-                        "for edge label '%s'", this.name);
-
-        E.checkArgumentNotNull(this.vertexLabelOrNull(srcLabel),
-                               "Undefined source vertex label '%s' " +
-                               "in edge label '%s'", srcLabel, this.name);
-        E.checkArgumentNotNull(this.vertexLabelOrNull(tgtLabel),
-                               "Undefined target vertex label '%s' " +
-                               "in edge label '%s'", tgtLabel, this.name);
+        if (this.edgeLabelType.parent()) {
+            E.checkArgument(this.links.isEmpty(),
+                            "The links of the parent edge label must be empty");
+        } else {
+            E.checkArgument(!this.links.isEmpty(),
+                            "The links of standard and subtype edge label " +
+                            "can't be empty");
+            E.checkArgument(this.links.size() == 1,
+                            "The links size of standard and subtype edge " +
+                            "label must be 1");
+            for (Pair<String, String> link : this.links) {
+                String srcLabel = link.getLeft();
+                String tgtLabel = link.getRight();
+                E.checkArgument(srcLabel != null && tgtLabel != null,
+                                "Must set source and target label " +
+                                "for edge label '%s'", this.name);
+                E.checkArgumentNotNull(this.vertexLabelOrNull(srcLabel),
+                                       "Undefined source vertex label '%s' " +
+                                       "in edge label '%s'", srcLabel,
+                                       this.name);
+                E.checkArgumentNotNull(this.vertexLabelOrNull(tgtLabel),
+                                       "Undefined target vertex label '%s' " +
+                                       "in edge label '%s'", tgtLabel,
+                                       this.name);
+            }
+        }
     }
 
     private void checkStableVars() {
@@ -542,6 +646,11 @@ public class EdgeLabelBuilder extends AbstractBuilder
         if (this.targetLabel != null) {
             throw new NotAllowException(
                     "Not allowed to update target label " +
+                    "for edge label '%s', it must be null", this.name);
+        }
+        if (this.links != null && !this.links.isEmpty()) {
+            throw new NotAllowException(
+                    "Not allowed to update source/target label " +
                     "for edge label '%s', it must be null", this.name);
         }
         if (this.frequency != Frequency.DEFAULT) {
@@ -569,15 +678,17 @@ public class EdgeLabelBuilder extends AbstractBuilder
                             "Can't set ttl start time if ttl is not set");
             return;
         }
-        VertexLabel source = this.graph().vertexLabel(this.sourceLabel);
-        VertexLabel target = this.graph().vertexLabel(this.targetLabel);
-        E.checkArgument((source.ttl() == 0L || this.ttl <= source.ttl()) &&
-                        (target.ttl() == 0L || this.ttl <= target.ttl()),
-                        "The ttl(%s) of edge label '%s' should less than " +
-                        "ttl(%s) of source label '%s' and ttl(%s) of target " +
-                        "label '%s'", this.ttl, this.name,
-                        source.ttl(), this.sourceLabel,
-                        target.ttl(), this.targetLabel);
+        for (Pair<String, String> link : this.links) {
+            VertexLabel source = this.graph().vertexLabel(link.getLeft());
+            VertexLabel target = this.graph().vertexLabel(link.getRight());
+            E.checkArgument((source.ttl() == 0L || this.ttl <= source.ttl()) &&
+                            (target.ttl() == 0L || this.ttl <= target.ttl()),
+                            "The ttl(%s) of edge label '%s' should less than " +
+                            "ttl(%s) of source label '%s' and ttl(%s) of target " +
+                            "label '%s'", this.ttl, this.name,
+                            source.ttl(), link.getLeft(),
+                            target.ttl(), link.getRight());
+        }
         if (this.ttlStartTime == null) {
             return;
         }
@@ -623,5 +734,14 @@ public class EdgeLabelBuilder extends AbstractBuilder
 
     private static List<String> mapPkId2Name(HugeGraph graph, List<Id> ids) {
         return graph.mapPkId2Name(ids);
+    }
+
+    private static String mapElId2Name(HugeGraph graph, Id fatherId) {
+        return graph.mapElId2Name(ImmutableList.of(fatherId)).get(0);
+    }
+
+    private static Set<Pair<String, String>> mapPairId2Name(HugeGraph graph,
+                                                            Set<Pair<Id, Id>> pairs) {
+        return graph.mapPairId2Name(pairs);
     }
 }

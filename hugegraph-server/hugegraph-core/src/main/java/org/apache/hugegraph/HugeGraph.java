@@ -19,9 +19,12 @@ package org.apache.hugegraph;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
@@ -300,9 +303,23 @@ public interface HugeGraph extends Graph {
         Id[] ids = new Id[edgeLabels.length];
         for (int i = 0; i < edgeLabels.length; i++) {
             EdgeLabel edgeLabel = this.edgeLabel(edgeLabels[i]);
-            ids[i] = edgeLabel.id();
+            if (edgeLabel.hasFather()) {
+                ids[i] = edgeLabel.fatherId();
+            } else {
+                ids[i] = edgeLabel.id();
+            }
         }
         return ids;
+    }
+
+    default Set<Pair<String, String>> mapPairId2Name(
+            Set<Pair<Id, Id>> pairs) {
+        Set<Pair<String, String>> results = new HashSet<>(pairs.size());
+        for (Pair<Id, Id> pair : pairs) {
+            results.add(Pair.of(this.vertexLabel(pair.getLeft()).name(),
+                                this.vertexLabel(pair.getRight()).name()));
+        }
+        return results;
     }
 
     default Id[] mapVlName2Id(String[] vertexLabels) {
@@ -312,6 +329,14 @@ public interface HugeGraph extends Graph {
             ids[i] = vertexLabel.id();
         }
         return ids;
+    }
+
+    default EdgeLabel[] mapElName2El(String[] edgeLabels) {
+        EdgeLabel[] els = new EdgeLabel[edgeLabels.length];
+        for (int i = 0; i < edgeLabels.length; i++) {
+            els[i] = this.edgeLabel(edgeLabels[i]);
+        }
+        return els;
     }
 
     static void registerTraversalStrategies(Class<?> clazz) {

@@ -426,7 +426,15 @@ public class EdgeAPI extends BatchAPI {
 
     private Id getEdgeId(HugeGraph g, JsonEdge newEdge) {
         String sortKeys = "";
-        Id labelId = g.edgeLabel(newEdge.label).id();
+        EdgeLabel edgeLabel = g.edgeLabel(newEdge.label);
+        E.checkArgument(!edgeLabel.edgeLabelType().parent(),
+                        "The label of the created/updated edge is not allowed" +
+                        " to be the parent type");
+        Id labelId = edgeLabel.id();
+        Id subLabelId = edgeLabel.id();
+        if (edgeLabel.edgeLabelType().sub()) {
+            labelId = edgeLabel.fatherId();
+        }
         List<Id> sortKeyIds = g.edgeLabel(labelId).sortKeys();
         if (!sortKeyIds.isEmpty()) {
             List<Object> sortKeyValues = new ArrayList<>(sortKeyIds.size());
@@ -442,7 +450,7 @@ public class EdgeAPI extends BatchAPI {
             sortKeys = ConditionQuery.concatValues(sortKeyValues);
         }
         EdgeId edgeId = new EdgeId(HugeVertex.getIdValue(newEdge.source),
-                                   Directions.OUT, labelId, sortKeys,
+                                   Directions.OUT, labelId, subLabelId, sortKeys,
                                    HugeVertex.getIdValue(newEdge.target));
         if (newEdge.id != null) {
             E.checkArgument(edgeId.asString().equals(newEdge.id),

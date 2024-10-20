@@ -17,8 +17,24 @@
 
 package org.apache.hugegraph.backend.store;
 
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.backend.query.Condition;
+import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
+import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.exception.ConnectionException;
+import org.apache.hugegraph.iterator.ExtendableIterator;
+import org.apache.hugegraph.iterator.FlatMapperIterator;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.type.define.HugeKeys;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Function;
 
 public abstract class AbstractBackendStore<Session extends BackendSession>
         implements BackendStore {
@@ -34,6 +50,57 @@ public abstract class AbstractBackendStore<Session extends BackendSession>
 
     protected MetaDispatcher<Session> metaDispatcher() {
         return this.dispatcher;
+    }
+
+    protected List<HugeType> getHugeTypes(Query sampleQuery) {
+        Set<HugeType> typeSet = new HashSet<>();
+        for (Condition c : sampleQuery.conditions()) {
+            if (c.isRelation() && c.isSysprop()) {
+                Condition.SyspropRelation sr = (Condition.SyspropRelation) c;
+                if (sr.relation() == Condition.RelationType.EQ) {
+                    if (sr.key().equals(HugeKeys.DIRECTION)) {
+                        typeSet.add(((Directions) sr.value()).type());
+                    }
+                }
+            } else if (c.type() == Condition.ConditionType.OR && c.isSysprop()) {
+                for (Condition.Relation r : c.relations()) {
+                    if (r.relation() == Condition.RelationType.EQ) {
+                        if (r.key().equals(HugeKeys.DIRECTION)) {
+                            typeSet.add(((Directions) r.value()).type());
+                        }
+                    }
+                }
+            }
+        }
+        return new ArrayList<>(typeSet);
+    }
+
+    @Override
+    public Iterator<Iterator<BackendEntry>> query(Iterator<Query> queries,
+                                                  Function<Query, Query> queryWriter,
+                                                  HugeGraph hugeGraph) {
+        List<Iterator<BackendEntry>> result = new ArrayList<>();
+
+        FlatMapperIterator<Query, BackendEntry> it =
+                new FlatMapperIterator<>(queries, query -> {
+                    assert query instanceof ConditionQuery;
+                    List<ConditionQuery> flattenQueryList =
+                            ConditionQueryFlatten.flatten((ConditionQuery) query);
+
+                    if (flattenQueryList.size() > 1) {
+                        ExtendableIterator<BackendEntry> itExtend
+                                = new ExtendableIterator<>();
+                        flattenQueryList.forEach(cq -> {
+                            Query cQuery = queryWriter.apply(cq);
+                            itExtend.extend(this.query(cQuery));
+                        });
+                        return itExtend;
+                    } else {
+                        return this.query(queryWriter.apply(query));
+                    }
+                });
+        result.add(it);
+        return result.iterator();
     }
 
     public void registerMetaHandler(String name, MetaHandler<Session> handler) {

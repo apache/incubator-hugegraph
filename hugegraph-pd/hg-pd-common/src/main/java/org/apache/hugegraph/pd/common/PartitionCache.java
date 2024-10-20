@@ -85,7 +85,7 @@ public class PartitionCache {
 
     public void lockGraph(String graphName) {
         var lock = getOrCreateGraphLock(graphName);
-        while (lock.compareAndSet(false, true)) {
+        while (!lock.compareAndSet(false, true)) {
             Thread.onSpinWait();
         }
     }
