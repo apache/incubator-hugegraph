@@ -17,17 +17,27 @@
 
 package org.apache.hugegraph.memory.arbitrator;
 
+import java.util.Queue;
+
+import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO: consider concurrency
 public class MemoryArbitratorImpl implements MemoryArbitrator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MemoryArbitratorImpl.class);
+    private final MemoryManager memoryManager;
+
+    public MemoryArbitratorImpl(MemoryManager memoryManager) {
+        this.memoryManager = memoryManager;
+    }
 
     @Override
     public long reclaimLocally(MemoryPool queryPool, long neededBytes) {
         long startTime = System.currentTimeMillis();
+        // TODO：suspend that task
         long res = queryPool.tryToReclaimLocalMemory(neededBytes);
         LOGGER.info("[{}] reclaim local memory: {} bytes, took {} ms",
                     Thread.currentThread().getName(),
@@ -39,14 +49,28 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
     @Override
     public long reclaimGlobally(MemoryPool queryPool, long neededBytes) {
         long startTime = System.currentTimeMillis();
-        // TODO
-        // 1. select the query task that uses the most memory
-        // 2. suspend that task
-        // 3. apply disk spill to that task
+        long totalReclaimedBytes = 0;
+        long currentNeededBytes = neededBytes;
+        Queue<MemoryPool> currentMemoryPool = memoryManager.getCurrentQueryMemoryPools();
+        while (!currentMemoryPool.isEmpty()) {
+            MemoryPool memoryPool = currentMemoryPool.poll();
+            if (memoryPool.equals(queryPool)) {
+                continue;
+            }
+            LOGGER.info("Global reclaim triggerred by {} select {} to reclaim", queryPool,
+                        memoryPool);
+            // TODO：suspend that task
+            long res = memoryPool.tryToReclaimLocalMemory(currentNeededBytes);
+            totalReclaimedBytes += res;
+            currentNeededBytes -= res;
+            if (currentNeededBytes <= 0) {
+                break;
+            }
+        }
         LOGGER.info("[{}] reclaim global memory: {} bytes, took {} ms",
                     Thread.currentThread().getName(),
-                    0,
+                    totalReclaimedBytes,
                     System.currentTimeMillis() - startTime);
-        return 0;
+        return totalReclaimedBytes;
     }
 }

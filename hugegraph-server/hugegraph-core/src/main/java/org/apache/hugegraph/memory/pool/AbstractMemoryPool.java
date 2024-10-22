@@ -18,8 +18,8 @@
 package org.apache.hugegraph.memory.pool;
 
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractMemoryPool implements MemoryPool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMemoryPool.class);
-    private final Set<MemoryPool> children =
-            new TreeSet<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
+    private final Queue<MemoryPool> children =
+            new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
     protected final MemoryManager memoryManager;
     protected MemoryPool parent;
     protected MemoryPoolStats stats;
@@ -146,11 +146,6 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     @Override
     public String getName() {
         return stats.getMemoryPoolName();
-    }
-
-    @Override
-    public Set<MemoryPool> getChildrenPools() {
-        return children;
     }
 
     @Override

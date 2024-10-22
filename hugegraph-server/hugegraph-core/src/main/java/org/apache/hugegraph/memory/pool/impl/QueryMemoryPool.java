@@ -66,19 +66,19 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     private long requestMemoryThroughArbitration(long bytes) {
         LOGGER.info("[{}] try to request memory from manager through arbitration: size={}", this,
                     bytes);
+        stats.setNumExpands(stats.getNumExpands() + 1);
         long reclaimedBytes = memoryManager.triggerLocalArbitration(this, bytes);
         // 1. if arbitrate successes, update stats and return success
         if (reclaimedBytes - bytes >= 0) {
             // here we don't update capacity & reserved & allocated, because memory is
             // reclaimed from queryPool itself.
-            stats.setNumExpands(stats.getNumExpands() + 1);
             memoryManager.consumeAvailableMemory(bytes);
             return bytes;
         } else {
             // 2. if still not enough, try to reclaim globally
+            long globalArbitrationNeededBytes = bytes - reclaimedBytes;
             long globalReclaimedBytes = memoryManager.triggerGlobalArbitration(this,
-                                                                               bytes -
-                                                                               reclaimedBytes);
+                                                                               globalArbitrationNeededBytes);
             reclaimedBytes += globalReclaimedBytes;
             // 3. if memory is enough, update stats and return success
             if (reclaimedBytes - bytes >= 0) {

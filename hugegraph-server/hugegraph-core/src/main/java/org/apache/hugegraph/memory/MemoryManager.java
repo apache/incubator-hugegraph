@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.memory;
 
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -48,14 +48,13 @@ public class MemoryManager {
             new AtomicLong(MAX_MEMORY_CAPACITY_IN_BYTES);
     private final AtomicLong currentOffHeapAllocatedMemory = new AtomicLong(0);
     private final AtomicLong currentOnHeapAllocatedMemory = new AtomicLong(0);
-    private final Set<MemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
+    private final Queue<MemoryPool> queryMemoryPools =
+            new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
-    // TODO: integrated with mingzhen's monitor thread
-    // private final Runnable queryGCThread;
 
     private MemoryManager() {
-        this.memoryArbitrator = new MemoryArbitratorImpl();
+        this.memoryArbitrator = new MemoryArbitratorImpl(this);
         this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
                                                                  ARBITRATE_MEMORY_POOL_NAME);
     }
@@ -127,6 +126,10 @@ public class MemoryManager {
                     "requestSize={}, afterThisExpandingRemainingCapacity={}", size,
                     currentAvailableMemoryInBytes.get());
         return size;
+    }
+
+    public Queue<MemoryPool> getCurrentQueryMemoryPools() {
+        return new PriorityQueue<>(queryMemoryPools);
     }
 
     public void consumeAvailableMemory(long size) {

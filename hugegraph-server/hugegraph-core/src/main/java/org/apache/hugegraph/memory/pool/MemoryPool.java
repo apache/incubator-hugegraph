@@ -45,7 +45,5 @@ public interface MemoryPool {
 
     MemoryPool getParentPool();
 
-    Set<MemoryPool> getChildrenPools();
-
     long requestMemory(long bytes);
 }
