@@ -22,73 +22,62 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongUnaryOperator;
 
-// TODO: refer license later, 88% match, maybe refer to metrics-jvm-extras (0.1.0) APL2.0
-public class ProcfsSmaps extends ProcfsEntry {
+public class SystemMemoryStats extends ProcfsRecord {
 
-    private static final int KILOBYTE = 1024;
-    private final Map<KEY, AtomicLong> values = new HashMap<>();
+    private static final int KB = 1024;
+    private final Map<MetricKey, AtomicLong> metrics = new HashMap<>();
 
-    public ProcfsSmaps() {
+    public SystemMemoryStats() {
         super(ProcfsReader.getInstance("smaps"));
     }
 
-    /* default */ ProcfsSmaps(ProcfsReader reader) {
+    /* default */ SystemMemoryStats(ProcfsReader reader) {
         super(reader);
     }
 
-    private static long parseKiloBytes(String line) {
+    private static long parseKilobytes(String line) {
         Objects.requireNonNull(line);
-
         return Long.parseLong(line.split("\\s+")[1]);
     }
 
     @Override
-    protected void reset() {
-        EnumSet.allOf(KEY.class).forEach(key -> values.put(key, new AtomicLong(-1)));
+    protected void clear() {
+        EnumSet.allOf(MetricKey.class).forEach(key -> metrics.put(key, new AtomicLong(-1)));
     }
 
     @Override
-    protected void handle(Collection<String> lines) {
+    protected void process(Collection<String> lines) {
         Objects.requireNonNull(lines);
 
         for (final String line : lines) {
             if (line.startsWith("Size:")) {
-                inc(KEY.VSS, parseKiloBytes(line) * KILOBYTE);
+                increment(MetricKey.VSS, parseKilobytes(line) * KB);
             } else if (line.startsWith("Rss:")) {
-                inc(KEY.RSS, parseKiloBytes(line) * KILOBYTE);
+                increment(MetricKey.RSS, parseKilobytes(line) * KB);
             } else if (line.startsWith("Pss:")) {
-                inc(KEY.PSS, parseKiloBytes(line) * KILOBYTE);
+                increment(MetricKey.PSS, parseKilobytes(line) * KB);
             } else if (line.startsWith("Swap:")) {
-                inc(KEY.SWAP, parseKiloBytes(line) * KILOBYTE);
+                increment(MetricKey.SWAP, parseKilobytes(line) * KB);
             } else if (line.startsWith("SwapPss:")) {
-                inc(KEY.SWAPPSS, parseKiloBytes(line) * KILOBYTE);
+                increment(MetricKey.SWAPPSS, parseKilobytes(line) * KB);
             }
         }
     }
 
-    public Long get(KEY key) {
+    public Long getMetric(MetricKey key) {
         Objects.requireNonNull(key);
-
-        collect();
-        return Long.valueOf(values.get(key).longValue());
+        clear();
+        return metrics.get(key).longValue();
     }
 
-    private void inc(KEY key, long increment) {
+    private void increment(MetricKey key, long increment) {
         Objects.requireNonNull(key);
-
-        values.get(key).getAndUpdate(new LongUnaryOperator() {
-
-            @Override
-            public long applyAsLong(long currentValue) {
-                return currentValue + increment + (currentValue == -1 ? 1 : 0);
-            }
-
-        });
+        metrics.get(key).getAndUpdate(currentValue -> currentValue + increment +
+                                                      (currentValue == -1 ? 1 : 0));
     }
 
-    public enum KEY {
+    public enum MetricKey {
         /**
          * Virtual set size
          */
@@ -110,5 +99,4 @@ public class ProcfsSmaps extends ProcfsEntry {
          */
         SWAPPSS
     }
-
 }
