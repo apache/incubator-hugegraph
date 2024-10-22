@@ -36,6 +36,6 @@ public class MetricsRefresher {
     @Scheduled(fixedRate = 30000)
     public void refreshMetrics() {
         log.info("Refreshing metrics");
-        JRaftMetrics.init(registry,false);
+        JRaftMetrics.init(registry, false);
     }
 }
