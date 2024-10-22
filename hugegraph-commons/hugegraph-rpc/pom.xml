@@ -48,17 +48,17 @@
             <artifactId>disruptor</artifactId>
             <version>3.3.7</version>
         </dependency>
-        <dependency>
-            <groupId>com.alipay.sofa</groupId>
-            <artifactId>bolt</artifactId>
-            <version>1.6.2</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.alipay.sofa</groupId>-->
+<!--            <artifactId>bolt</artifactId>-->
+<!--            <version>1.6.2</version>-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>org.slf4j</groupId>-->
+<!--                    <artifactId>slf4j-api</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.alipay.sofa</groupId>
             <artifactId>sofa-rpc-all</artifactId>
@@ -100,14 +100,10 @@
                     <groupId>io.grpc</groupId>
                     <artifactId>grpc-core</artifactId>
                 </exclusion>
-<!--                <exclusion>-->
-<!--                    <groupId>io.grpc</groupId>-->
-<!--                    <artifactId>grpc-all</artifactId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>bolt</artifactId>-->
-<!--                    <groupId>com.alipay.sofa</groupId>-->
-<!--                </exclusion>-->
+                <exclusion>
+                    <groupId>io.grpc</groupId>
+                    <artifactId>grpc-all</artifactId>
+                </exclusion>
 <!--                <exclusion>-->
 <!--                    <artifactId>jackson-annotations</artifactId>-->
 <!--                    <groupId>com.fasterxml.jackson.core</groupId>-->
@@ -142,6 +138,10 @@
                 <exclusion>
                     <artifactId>jackson-core</artifactId>
                     <groupId>com.fasterxml.jackson.core</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>guava</artifactId>
+                    <groupId>com.google.guava</groupId>
                 </exclusion>
             </exclusions>
         </dependency>

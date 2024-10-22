@@ -19,6 +19,12 @@ package org.apache.hugegraph.rpc;
 
 import java.util.Map;
 
+import org.apache.commons.collections.MapUtils;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.RpcOptions;
+import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.remoting.RemotingServer;
@@ -27,12 +33,6 @@ import com.alipay.sofa.rpc.config.ProviderConfig;
 import com.alipay.sofa.rpc.config.ServerConfig;
 import com.alipay.sofa.rpc.server.Server;
 import com.alipay.sofa.rpc.server.bolt.BoltServer;
-import org.apache.hugegraph.config.RpcOptions;
-import org.apache.commons.collections.MapUtils;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.testutil.Whitebox;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
 
 public class RpcServer {
 
@@ -87,8 +87,7 @@ public class RpcServer {
              * TODO: remove this code after adding Server.port() interface:
              *       https://github.com/sofastack/sofa-rpc/issues/1022
              */
-            RemotingServer rs = Whitebox.getInternalState(server,
-                                                          "remotingServer");
+            RemotingServer rs = Whitebox.getInternalState(server, "remotingServer");
             return rs.port();
         }
         // When using random port 0, the returned port is not the actual port
