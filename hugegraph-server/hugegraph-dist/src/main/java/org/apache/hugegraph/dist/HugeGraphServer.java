@@ -24,7 +24,6 @@ import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.event.EventHub;
-import org.apache.hugegraph.memory.util.MemoryMonitor;
 import org.apache.hugegraph.server.RestServer;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.Log;

@@ -51,7 +51,8 @@ public class MemoryManager {
     private final Set<MemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
-    private final MemoryMonitor memoryMonitor;
+    // TODO: integrated with mingzhen's monitor thread
+    // private final Runnable queryGCThread;
 
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitratorImpl();

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.util;
+package org.apache.hugegraph.dist;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
