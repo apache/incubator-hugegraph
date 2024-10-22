@@ -27,7 +27,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-//TODO: refer license later, 74% match, maybe refer to kafka (0.8.1)
+import org.jetbrains.annotations.NotNull;
+
 public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
 
     ScheduledExecutorService scheduledExecutor;
@@ -36,9 +37,8 @@ public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
     public CopyOnWriteCache(long effectiveTime) {
         this.map = Collections.emptyMap();
         scheduledExecutor = Executors.newScheduledThreadPool(1);
-        scheduledExecutor.scheduleWithFixedDelay(() -> {
-            this.clear();
-        }, effectiveTime, effectiveTime, TimeUnit.MILLISECONDS);
+        scheduledExecutor.scheduleWithFixedDelay(this::clear, effectiveTime, effectiveTime,
+                                                 TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -51,6 +51,7 @@ public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
         return map.containsValue(v);
     }
 
+    @NotNull
     @Override
     public Set<Entry<K, V>> entrySet() {
         return map.entrySet();
@@ -66,6 +67,7 @@ public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
         return map.isEmpty();
     }
 
+    @NotNull
     @Override
     public Set<K> keySet() {
         return map.keySet();
@@ -76,6 +78,7 @@ public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
         return map.size();
     }
 
+    @NotNull
     @Override
     public Collection<V> values() {
         return map.values();
@@ -95,7 +98,7 @@ public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
     }
 
     @Override
-    public synchronized void putAll(Map<? extends K, ? extends V> entries) {
+    public synchronized void putAll(@NotNull Map<? extends K, ? extends V> entries) {
         Map<K, V> copy = new HashMap<>(this.map);
         copy.putAll(entries);
         this.map = Collections.unmodifiableMap(copy);
@@ -129,7 +132,7 @@ public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
     }
 
     @Override
-    public synchronized boolean replace(K k, V original, V replacement) {
+    public synchronized boolean replace(@NotNull K k, @NotNull V original, @NotNull V replacement) {
         if (containsKey(k) && get(k).equals(original)) {
             put(k, replacement);
             return true;

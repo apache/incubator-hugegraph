@@ -19,10 +19,8 @@ package org.apache.hugegraph.store.node.util;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
-/**
- * TODO: refer license later, 78% match, maybe refer to google? ensure it later
- */
 public class Base58 {
 
     public static final char[] ALPHABET =
@@ -30,9 +28,7 @@ public class Base58 {
     private static final int[] INDEXES = new int[128];
 
     static {
-        for (int i = 0; i < INDEXES.length; i++) {
-            INDEXES[i] = -1;
-        }
+        Arrays.fill(INDEXES, -1);
         for (int i = 0; i < ALPHABET.length; i++) {
             INDEXES[ALPHABET[i]] = i;
         }
@@ -68,7 +64,7 @@ public class Base58 {
         while (j < temp.length && temp[j] == ALPHABET[0]) {
             ++j;
         }
-        // Add as many leading '1' as there were leading zeros.
+        // Add as much leading '1' as there were leading zeros.
         while (--zeroCount >= 0) {
             temp[--j] = (byte) ALPHABET[0];
         }
@@ -78,7 +74,7 @@ public class Base58 {
     }
 
     public static byte[] decode(String input) throws IllegalArgumentException {
-        if (input.length() == 0) {
+        if (input.isEmpty()) {
             return new byte[0];
         }
         byte[] input58 = new byte[input.length()];
@@ -87,7 +83,7 @@ public class Base58 {
             char c = input.charAt(i);
 
             int digit58 = -1;
-            if (c >= 0 && c < 128) {
+            if (c < 128) {
                 digit58 = INDEXES[c];
             }
             if (digit58 < 0) {
@@ -114,7 +110,7 @@ public class Base58 {
 
             temp[--j] = mod;
         }
-        // Do no add extra leading zeroes, move j to first non null byte.
+        // Do no add extra leading zeroes, move j to first non-null byte.
         while (j < temp.length && temp[j] == 0) {
             ++j;
         }

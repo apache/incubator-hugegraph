@@ -20,12 +20,6 @@ package org.apache.hugegraph.store.term;
 import java.io.Serializable;
 import java.util.Objects;
 
-/**
- * Copy from javafx.util:Pair
- * TODO: refer license later, ?% match, maybe refer to avafx.util:Pair
- * <p>
- * created on 2021/10/15
- */
 public class HgPair<K, V> implements Serializable {
 
     /**

@@ -20,9 +20,6 @@ package org.apache.hugegraph.store.node.metrics;
 import org.rocksdb.HistogramType;
 import org.rocksdb.TickerType;
 
-/**
- * TODO: refer license later, 80% match, maybe refer to pantheon, This file need refactor!
- */
 public final class RocksDBMetricsConst {
 
     public static final String PREFIX = "rocks.stats";

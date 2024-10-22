@@ -19,11 +19,9 @@ package org.apache.hugegraph.store.util;
 
 import java.lang.reflect.Field;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-/**
- * TODO: refer license later, 76% match, maybe refer to jraft-core (1.2.6)
- */
 @Slf4j
 public class UnsafeUtil {
 
@@ -54,15 +52,22 @@ public class UnsafeUtil {
     }
 
     public static void putByte(final byte[] target, final long index, final byte value) {
+        assert UNSAFE_ACCESSOR != null;
         UNSAFE_ACCESSOR.putByte(target, BYTE_ARRAY_BASE_OFFSET + index, value);
     }
 
     public static byte getByte(final byte[] target, final long index) {
+        assert UNSAFE_ACCESSOR != null;
         return UNSAFE_ACCESSOR.getByte(target, BYTE_ARRAY_BASE_OFFSET + index);
     }
 
     public static int arrayBaseOffset(final Class<?> clazz) {
-        return hasUnsafe() ? UNSAFE_ACCESSOR.arrayBaseOffset(clazz) : -1;
+        if (hasUnsafe()) {
+            assert UNSAFE_ACCESSOR != null;
+            return UNSAFE_ACCESSOR.arrayBaseOffset(clazz);
+        } else {
+            return -1;
+        }
     }
 
     public static String moveToString(final char[] chars) {
@@ -73,6 +78,7 @@ public class UnsafeUtil {
         }
         final String str;
         try {
+            assert UNSAFE_ACCESSOR != null;
             str = (String) UNSAFE_ACCESSOR.allocateInstance(String.class);
         } catch (final InstantiationException e) {
             // This should never happen, but return a copy as a fallback just in case.
@@ -83,7 +89,12 @@ public class UnsafeUtil {
     }
 
     public static long objectFieldOffset(final Field field) {
-        return field == null || hasUnsafe() ? UNSAFE_ACCESSOR.objectFieldOffset(field) : -1;
+        if (field == null || hasUnsafe()) {
+            assert UNSAFE_ACCESSOR != null;
+            return UNSAFE_ACCESSOR.objectFieldOffset(field);
+        } else {
+            return -1;
+        }
     }
 
     private static Field stringValueField() {
@@ -110,19 +121,17 @@ public class UnsafeUtil {
         return hasUnsafe() ? new UnsafeAccessor(UNSAFE) : null;
     }
 
+    @Getter
     public static class UnsafeAccessor {
 
+        /**
+         * -- GETTER --
+         * Returns the instance.
+         */
         private final sun.misc.Unsafe unsafe;
 
         public UnsafeAccessor(Object unsafe) {
             this.unsafe = (sun.misc.Unsafe) unsafe;
-        }
-
-        /**
-         * Returns the {@link sun.misc.Unsafe}'s instance.
-         */
-        public sun.misc.Unsafe getUnsafe() {
-            return unsafe;
         }
 
         public byte getByte(final Object target, final long offset) {
