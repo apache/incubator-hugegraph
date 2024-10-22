@@ -49,14 +49,14 @@ public class AppConfig {
     @Value("${server.port}")
     private int restPort;
 
-    //内置pd模式，用于单机部署
+    // Built-in pd mode, for standalone deployment
     @Value("${app.data-path: store}")
     private String dataPath;
 
     @Value("${app.raft-path:}")
     private String raftPath;
 
-    //内置pd模式，用于单机部署
+    // Built-in pd mode, for standalone deployment
     @Value("${app.fake-pd: false}")
     private boolean fakePd;
     @Autowired
@@ -97,7 +97,7 @@ public class AppConfig {
         if (raft.getDisruptorBufferSize() == 0) {
             int size = (int) (totalMemory / 1000 / 1000 / 1000);
             size = (int) Math.pow(2, Math.round(Math.log(size) / Math.log(2))) * 32;
-            raft.setDisruptorBufferSize(size); // 每32M增加一个buffer
+            raft.setDisruptorBufferSize(size); // Increase one buffer every 32M
         }
 
         if (!rocksdb.containsKey("write_buffer_size") ||
@@ -172,16 +172,20 @@ public class AppConfig {
         private int snapshotInterval;
         @Value("${raft.disruptorBufferSize:0}")
         private int disruptorBufferSize;
-        @Value("${raft.max-log-file-size: 50000000000}")
+        @Value("${raft.max-log-file-size:50000000000}")
         private long maxLogFileSize;
-        @Value("${ave-logEntry-size-ratio : 0.95}")
+        @Value("${ave-logEntry-size-ratio:0.95}")
         private double aveLogEntrySizeRation;
-        @Value("${raft.useRocksDBSegmentLogStorage: true}")
+        @Value("${raft.useRocksDBSegmentLogStorage:true}")
         private boolean useRocksDBSegmentLogStorage;
         @Value("${raft.maxSegmentFileSize:67108864}")
         private int maxSegmentFileSize;
         @Value("${raft.maxReplicatorInflightMsgs:256}")
         private int maxReplicatorInflightMsgs;
+        @Value("${raft.maxEntriesSize:256}")
+        private int maxEntriesSize;
+        @Value("${raft.maxBodySize:524288}")
+        private int maxBodySize;
 
     }
 
@@ -209,7 +213,7 @@ public class AppConfig {
         @Value("${fake-pd.store-list:''}")
         private String storeList;
         @Value("${fake-pd.peers-list:''}")
-        private String peersList;   //fakePd模式下，raft集群初始配置
+        private String peersList;   // fakePd mode, raft cluster initial configuration
         @Value("${fake-pd.partition-count:3}")
         private int partitionCount;
         @Value("${fake-pd.shard-count:3}")

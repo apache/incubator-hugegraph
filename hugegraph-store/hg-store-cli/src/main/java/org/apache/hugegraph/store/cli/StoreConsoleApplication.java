@@ -52,7 +52,7 @@ public class StoreConsoleApplication implements CommandLineRunner {
     @Override
     public void run(String... args) throws IOException, InterruptedException, PDException {
         if (args.length <= 0) {
-            log.warn("参数类型 cmd[-load, -query, -scan]");
+            log.warn("Parameter type cmd[-load, -query, -scan]");
         } else {
             switch (args[0]) {
                 case "-load":
@@ -80,7 +80,7 @@ public class StoreConsoleApplication implements CommandLineRunner {
                     break;
                 case "-scan":
                     if (args.length < 4) {
-                        log.warn("参数类型 -scan pd graphName tableName");
+                        log.warn("Parameter type -scan pd graphName tableName");
                     } else {
                         doScan(args[1], args[2], args[3]);
                     }
@@ -94,7 +94,7 @@ public class StoreConsoleApplication implements CommandLineRunner {
                     scanner.getDataSingle();
                     break;
                 default:
-                    log.warn("参数类型错误，未执行任何程序");
+                    log.warn("Parameter type error, no program executed");
             }
         }
     }

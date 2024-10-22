@@ -575,7 +575,7 @@ public class StoreNodeService {
     }
 
     /**
-     * According to the number of partitions，distribute group shard
+     * According to the number of partitions, distribute group shard
      *
      * @param groups list of (partition id, count)
      * @return total groups

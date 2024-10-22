@@ -39,7 +39,7 @@ public class StoreNodeApplication {
     }
 
     public static void start() {
-        // 设置solt用到的日志位置
+        // Set the log location for the slot usage
         String logPath = System.getProperty("logging.path");
         if (StringUtils.isBlank(logPath)) {
             System.setProperty("logging.path", "logs");

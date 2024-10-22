@@ -74,13 +74,13 @@ export FILE_LIMITN=1024
 
 function check_evn_limit() {
     local limit_check=$(ulimit -n)
-    if [ ${limit_check} -lt ${FILE_LIMITN} ]; then
-        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -n 可以打开的最大文件描述符数太少,需要(${FILE_LIMITN})!! \E[0m"
+    if [[ ${limit_check} != "unlimited" && ${limit_check} -lt ${FILE_LIMITN} ]]; then
+        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -n can open too few maximum file descriptors, need (${FILE_LIMITN})!! \E[0m"
         return 1
     fi
     limit_check=$(ulimit -u)
-    if [ ${limit_check} -lt ${PROC_LIMITN} ]; then
-        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -u  用户最大可用的进程数太少,需要(${PROC_LIMITN})!! \E[0m"
+    if [[ ${limit_check} != "unlimited" && ${limit_check} -lt ${PROC_LIMITN} ]]; then
+        echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -u too few available processes for the user, need (${PROC_LIMITN})!! \E[0m"
         return 2
     fi
     return 0
@@ -144,23 +144,29 @@ if [ "$JAVA_OPTIONS" = "" ]; then
              >> ${OUTPUT}
         exit 1
     fi
-     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MetaspaceSize=256M  -XX:+UseG1GC  -XX:+ParallelRefProcEnabled -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
+     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
     # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
     # Rolling out detailed GC logs
-    JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=./logs/gc.log:tags,uptime,level:filecount=3,filesize=100m "
+    JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=./logs/gc.log:time,uptime,level,tags:filecount=3,filesize=100m"
 fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
 case "$GC_OPTION" in
-    g1)
+    "")
         echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
                       -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
-    "") ;;
+    zgc|ZGC)
+        echo "Using ZGC as the default garbage collector (Only support Java 11+)"
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
+                                      -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
+                                      -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
+                                      -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
+        ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> ${OUTPUT}
         exit 1
 esac
 

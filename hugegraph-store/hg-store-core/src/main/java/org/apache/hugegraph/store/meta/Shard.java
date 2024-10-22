@@ -22,7 +22,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import lombok.Data;
 
 /**
- * 一个分片
+ * A shard
  */
 @Data
 public class Shard {
