@@ -29,10 +29,10 @@ public class SystemMemoryStats extends ProcfsRecord {
     private final Map<MetricKey, AtomicLong> metrics = new HashMap<>();
 
     public SystemMemoryStats() {
-        super(ProcfsReader.getInstance("smaps"));
+        super(ProcFileHandler.getInstance("smaps"));
     }
 
-    /* default */ SystemMemoryStats(ProcfsReader reader) {
+    /* default */ SystemMemoryStats(ProcFileHandler reader) {
         super(reader);
     }
 

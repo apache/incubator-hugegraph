@@ -16,7 +16,7 @@
  */
 package org.apache.hugegraph.store.node.metrics;
 
-import static org.apache.hugegraph.store.node.metrics.ProcfsReader.ReadResult;
+import static org.apache.hugegraph.store.node.metrics.ProcFileHandler.ReadResult;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -31,26 +31,27 @@ abstract class ProcfsRecord {
 
     private final Object syncLock = new Object();
 
-    private final ProcfsReader fileReader;
+    private final ProcFileHandler fileReader;
 
     private long lastProcessedTime = -1;
 
-    protected ProcfsRecord(ProcfsReader fileReader) {
+    protected ProcfsRecord(ProcFileHandler fileReader) {
         this.fileReader = Objects.requireNonNull(fileReader);
     }
 
     protected final void gatherData() {
         synchronized (syncLock) {
             try {
-                final ReadResult readResult = fileReader.read();
-                if (readResult != null && (lastProcessedTime == -1 || lastProcessedTime != readResult.getReadTime())) {
+                final ReadResult readResult = fileReader.readFile();
+                if (readResult != null &&
+                    (lastProcessedTime == -1 || lastProcessedTime != readResult.getReadTime())) {
                     clear();
                     process(readResult.getLines());
                     lastProcessedTime = readResult.getReadTime();
                 }
             } catch (IOException e) {
                 clear();
-                logger.warn("Failed reading '" + fileReader.getEntryPath() + "'!", e);
+                logger.warn("Failed reading '" + fileReader.getFilePath() + "'!", e);
             }
         }
     }

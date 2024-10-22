@@ -20,11 +20,6 @@ package org.apache.hugegraph.store.node.metrics;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-/**
- * 2022/3/1
- *
- * @version 0.1.0
- */
 public class ProcfsMetrics {
 
     public final static String PREFIX = "process_memory";
@@ -47,19 +42,20 @@ public class ProcfsMetrics {
     }
 
     private static void registerProcessGauge() {
-        Gauge.builder(PREFIX + ".rss.bytes", () -> smaps.getMetric(SystemMemoryStats.KEY.RSS))
-             .register(registry);
+        Gauge.builder(PREFIX + ".rss.bytes",
+                      () -> smaps.getMetric(SystemMemoryStats.MetricKey.RSS)).register(registry);
 
-        Gauge.builder(PREFIX + ".pss.bytes", () -> smaps.getMetric(SystemMemoryStats.KEY.PSS))
-             .register(registry);
+        Gauge.builder(PREFIX + ".pss.bytes",
+                      () -> smaps.getMetric(SystemMemoryStats.MetricKey.PSS)).register(registry);
 
-        Gauge.builder(PREFIX + ".vss.bytes", () -> smaps.getMetric(SystemMemoryStats.KEY.VSS))
-             .register(registry);
+        Gauge.builder(PREFIX + ".vss.bytes",
+                      () -> smaps.getMetric(SystemMemoryStats.MetricKey.VSS)).register(registry);
 
-        Gauge.builder(PREFIX + ".swap.bytes", () -> smaps.getMetric(SystemMemoryStats.KEY.SWAP))
-             .register(registry);
+        Gauge.builder(PREFIX + ".swap.bytes",
+                      () -> smaps.getMetric(SystemMemoryStats.MetricKey.SWAP)).register(registry);
 
-        Gauge.builder(PREFIX + ".swappss.bytes", () -> smaps.getMetric(SystemMemoryStats.KEY.SWAPPSS))
+        Gauge.builder(PREFIX + ".swappss.bytes",
+                      () -> smaps.getMetric(SystemMemoryStats.MetricKey.SWAPPSS))
              .register(registry);
     }
 
