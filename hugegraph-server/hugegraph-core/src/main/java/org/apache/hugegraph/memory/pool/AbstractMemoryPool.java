@@ -17,10 +17,11 @@
 
 package org.apache.hugegraph.memory.pool;
 
-import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +31,20 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMemoryPool.class);
     private final Set<MemoryPool> children =
             new TreeSet<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
-    private MemoryPool parent;
+    protected final MemoryManager memoryManager;
+    protected MemoryPool parent;
     protected MemoryPoolStats stats;
 
-    public AbstractMemoryPool(MemoryPool parent, String memoryPoolName) {
+    public AbstractMemoryPool(MemoryPool parent, String memoryPoolName,
+                              MemoryManager memoryManager) {
         this.parent = parent;
         this.stats = new MemoryPoolStats(memoryPoolName);
+        this.memoryManager = memoryManager;
     }
 
     @Override
     public long tryToReclaimLocalMemory(long neededBytes) {
+        LOGGER.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
         long totalReclaimedBytes = 0;
         long currentNeededBytes = neededBytes;
         try {
@@ -54,6 +59,10 @@ public abstract class AbstractMemoryPool implements MemoryPool {
                     }
                 }
             }
+            LOGGER.info("[{}] has finished to reclaim memory: totalReclaimedBytes={}, " +
+                        "neededBytes={}",
+                        this,
+                        totalReclaimedBytes, neededBytes);
             return totalReclaimedBytes;
         } finally {
             this.stats.setNumShrinks(this.stats.getNumShrinks() + 1);
@@ -63,38 +72,31 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     @Override
-    public boolean tryToDiskSpill() {
-        // 1. for every child, invoke disk spill
-        boolean res = true;
-        try {
-            for (MemoryPool child : this.children) {
-                res &= child.tryToDiskSpill();
-            }
-            return res;
-        } catch (Exception e) {
-            LOGGER.error("Failed to try to disk spill", e);
-            return false;
+    public void gcChildPool(MemoryPool child, boolean force) {
+        if (force) {
+            child.releaseSelf();
         }
-        // TODO: for upper caller, if spill failed, apply rollback
+        // reclaim child's memory and update stats
+        stats.setAllocatedBytes(
+                stats.getAllocatedBytes() - child.getAllocatedBytes());
+        stats.setUsedBytes(stats.getUsedBytes() - child.getUsedBytes());
+        this.children.remove(child);
+        memoryManager.consumeAvailableMemory(-child.getAllocatedBytes());
     }
 
     /**
-     * called when one task is successfully executed and exited.
+     * called when one layer pool is successfully executed and exited.
      */
     @Override
-    public void gcChildPool(MemoryPool child) {
-        // 1. reclaim child's memory and update stats
-        stats.setReservedBytes(stats.getReservedBytes() - child.getSnapShot().getReservedBytes());
-        // 2. release child
-        child.releaseSelf();
-    }
-
-    @Override
     public void releaseSelf() {
+        LOGGER.info("[{}] starts to releaseSelf", this);
         try {
+            // update father
+            Optional.ofNullable(parent).ifPresent(parent -> parent.gcChildPool(this, false));
             for (MemoryPool child : this.children) {
-                child.releaseSelf();
+                gcChildPool(child, true);
             }
+            LOGGER.info("[{}] finishes to releaseSelf", this);
         } finally {
             // Make these objs be GCed by JVM quickly.
             this.stats = null;

@@ -17,22 +17,20 @@
 
 package org.apache.hugegraph.memory.pool.impl;
 
+import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 
 public class TaskMemoryPool extends AbstractMemoryPool {
 
-    public TaskMemoryPool(MemoryPool parent, String poolName) {
-        super(parent, poolName);
-        // TODO: this.stats.setMaxCapacity();
+    public TaskMemoryPool(MemoryPool parent, String poolName, MemoryManager memoryManager) {
+        super(parent, poolName, memoryManager);
     }
 
     @Override
     public long requestMemory(long bytes) {
-        // TODO: check max capacity
         long parentRes = getParentPool().requestMemory(bytes);
         if (parentRes > 0) {
-            stats.setReservedBytes(stats.getReservedBytes() + parentRes);
             stats.setAllocatedBytes(stats.getAllocatedBytes() + parentRes);
         }
         return parentRes;

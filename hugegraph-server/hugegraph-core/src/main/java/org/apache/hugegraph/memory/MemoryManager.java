@@ -44,8 +44,10 @@ public class MemoryManager {
     private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
     // TODO: read it from conf, current 1G
     public static final long MAX_MEMORY_CAPACITY_IN_BYTES = Bytes.GB;
-    private final AtomicLong currentMemoryCapacityInBytes =
+    private final AtomicLong currentAvailableMemoryInBytes =
             new AtomicLong(MAX_MEMORY_CAPACITY_IN_BYTES);
+    private final AtomicLong currentOffHeapAllocatedMemory = new AtomicLong(0);
+    private final AtomicLong currentOnHeapAllocatedMemory = new AtomicLong(0);
     private final Set<MemoryPool> queryMemoryPools = new CopyOnWriteArraySet<>();
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
@@ -57,7 +59,7 @@ public class MemoryManager {
         this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
                                                                  ARBITRATE_MEMORY_POOL_NAME);
     }
-    
+
     public MemoryPool addQueryMemoryPool() {
         int count = queryMemoryPools.size();
         String poolName =
@@ -65,6 +67,7 @@ public class MemoryManager {
                 System.currentTimeMillis();
         MemoryPool queryPool = new QueryMemoryPool(poolName, this);
         queryMemoryPools.add(queryPool);
+        LOGGER.info("Manager added query memory pool {}", queryPool);
         return queryPool;
     }
 
@@ -72,10 +75,12 @@ public class MemoryManager {
         queryMemoryPools.remove(pool);
         long reclaimedMemory = pool.getAllocatedBytes();
         pool.releaseSelf();
-        currentMemoryCapacityInBytes.addAndGet(reclaimedMemory);
+        currentAvailableMemoryInBytes.addAndGet(reclaimedMemory);
+        LOGGER.info("Manager gc query memory pool {}", pool);
     }
 
     public long triggerLocalArbitration(MemoryPool targetPool, long neededBytes) {
+        LOGGER.info("LocalArbitration triggered by {}: needed bytes={}", targetPool, neededBytes);
         Future<Long> future =
                 arbitrateExecutor.submit(
                         () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes));
@@ -93,6 +98,7 @@ public class MemoryManager {
     }
 
     public long triggerGlobalArbitration(MemoryPool requestPool, long neededBytes) {
+        LOGGER.info("GlobalArbitration triggered by {}: needed bytes={}", requestPool, neededBytes);
         Future<Long> future =
                 arbitrateExecutor.submit(
                         () -> memoryArbitrator.reclaimGlobally(requestPool, neededBytes));
@@ -106,6 +112,33 @@ public class MemoryManager {
                          requestPool, e);
         }
         return 0;
+    }
+
+    public synchronized long handleRequestFromQueryPool(long size) {
+        // 1. check whole memory capacity.
+        if (currentAvailableMemoryInBytes.get() < size) {
+            LOGGER.info("There isn't enough memory for query pool to expand itself: " +
+                        "requestSize={}, remainingCapacity={}", size,
+                        currentAvailableMemoryInBytes.get());
+            return -1;
+        }
+        currentAvailableMemoryInBytes.addAndGet(-size);
+        LOGGER.info("Expand query pool successfully: " +
+                    "requestSize={}, afterThisExpandingRemainingCapacity={}", size,
+                    currentAvailableMemoryInBytes.get());
+        return size;
+    }
+
+    public void consumeAvailableMemory(long size) {
+        currentAvailableMemoryInBytes.addAndGet(-size);
+    }
+
+    public AtomicLong getCurrentOnHeapAllocatedMemory() {
+        return currentOnHeapAllocatedMemory;
+    }
+
+    public AtomicLong getCurrentOffHeapAllocatedMemory() {
+        return currentOffHeapAllocatedMemory;
     }
 
     private static class MemoryManagerHolder {

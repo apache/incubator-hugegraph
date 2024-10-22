@@ -17,10 +17,11 @@
 
 package org.apache.hugegraph.memory.allocator;
 
-// TODO(pjz): implement different memory allocate strategy.
 public interface MemoryAllocator {
 
-    Object tryToAllocateOffHeap(long size);
+    Object tryToAllocate(long size);
 
-    Object forceAllocateOffHeap(long size);
+    Object forceAllocate(long size);
+
+    void releaseMemory(long size);
 }

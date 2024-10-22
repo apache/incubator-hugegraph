@@ -17,49 +17,56 @@
 
 package org.apache.hugegraph.memory.pool.impl;
 
+import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.allocator.MemoryAllocator;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.apache.hugegraph.memory.util.MemoryManageUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OperatorMemoryPool extends AbstractMemoryPool {
 
-    // TODO: configurable
-    private static final long ALIGNMENT = 8;
-    private static final long MB = 1 << 20;
-    // TODO: implement different allocate strategy & make it configurable.
+    private static final Logger LOGGER = LoggerFactory.getLogger(OperatorMemoryPool.class);
     private final MemoryAllocator memoryAllocator;
 
     public OperatorMemoryPool(MemoryPool parent, String poolName,
-                              MemoryAllocator memoryAllocator) {
-        super(parent, poolName);
+                              MemoryAllocator memoryAllocator, MemoryManager memoryManager) {
+        super(parent, poolName, memoryManager);
         this.memoryAllocator = memoryAllocator;
-        // TODO: this.stats.setMaxCapacity();
-    }
-
-    @Override
-    public boolean tryToDiskSpill() {
-        return false;
     }
 
     @Override
     public void releaseSelf() {
         super.releaseSelf();
+        memoryAllocator.releaseMemory(getAllocatedBytes());
         // TODO: release memory consumer, release byte buffer.
     }
 
     @Override
     public long tryToReclaimLocalMemory(long neededBytes) {
+        LOGGER.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
         // 1. try to reclaim self free memory
         long reclaimableBytes = getFreeBytes();
         // try its best to reclaim memory
         if (reclaimableBytes <= neededBytes) {
             // 2. update stats
             stats.setAllocatedBytes(stats.getUsedBytes());
-            stats.setReservedBytes(stats.getUsedBytes());
+            LOGGER.info("[{}] has tried its best to reclaim memory: " +
+                        "reclaimedBytes={}," +
+                        " " +
+                        "neededBytes={}",
+                        this,
+                        reclaimableBytes, neededBytes);
             return reclaimableBytes;
         }
         stats.setAllocatedBytes(stats.getAllocatedBytes() - neededBytes);
-        stats.setReservedBytes(stats.getReservedBytes() - neededBytes);
+        LOGGER.info("[{}] has reclaim enough memory: " +
+                    "reclaimedBytes={}," +
+                    " " +
+                    "neededBytes={}",
+                    this,
+                    neededBytes, neededBytes);
         return neededBytes;
     }
 
@@ -68,18 +75,18 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
      */
     @Override
     public Object tryToAcquireMemory(long size) {
+        LOGGER.info("[{}] tryToAcquireMemory: size={}", this, size);
         // 1. update statistic
         super.tryToAcquireMemory(size);
         // 2. allocate memory, currently use off-heap mode.
-        // if you use on-heap mode, we only track memory usage here.
-        return memoryAllocator.tryToAllocateOffHeap(size);
+        return memoryAllocator.tryToAllocate(size);
     }
 
     @Override
     public long requestMemory(long size) {
-        // TODO: check max capacity
+        LOGGER.info("[{}] requestMemory: request size={}", this, size);
         // 1. align size
-        long alignedSize = sizeAlign(size);
+        long alignedSize = MemoryManageUtils.sizeAlign(size);
         // 2. reserve(round)
         long neededMemorySize = calculateReserveMemoryDelta(alignedSize);
         if (neededMemorySize <= 0) {
@@ -88,20 +95,16 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
         // 3. call father
         long fatherRes = getParentPool().requestMemory(neededMemorySize);
         if (fatherRes < 0) {
+            LOGGER.error("[{}] requestMemory failed because of OOM, request size={}", this, size);
             // TODO: new OOM exception
             stats.setNumAborts(stats.getNumAborts() + 1);
             throw new OutOfMemoryError();
         }
         // 4. update stats
-        stats.setReservedBytes(stats.getReservedBytes() + neededMemorySize);
         stats.setAllocatedBytes(stats.getAllocatedBytes() + neededMemorySize);
         stats.setNumExpands(stats.getNumExpands() + 1);
+        LOGGER.info("[{}] requestMemory success: requestedMemorySize={}", this, fatherRes);
         return fatherRes;
-    }
-
-    private long sizeAlign(long size) {
-        long reminder = size % ALIGNMENT;
-        return reminder == 0 ? size : size + ALIGNMENT - reminder;
     }
 
     /**
@@ -115,24 +118,6 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             return 0;
         }
         // 3. if needed, calculate rounded size and return it
-        return roundDelta(stats.getReservedBytes(), neededSize);
-    }
-
-    private long roundDelta(long reservedSize, long delta) {
-        return quantizedSize(reservedSize + delta) - reservedSize;
-    }
-
-    private long quantizedSize(long size) {
-        if (size < 16 * MB) {
-            return roundUp(size, MB);
-        }
-        if (size < 64 * MB) {
-            return roundUp(size, 4 * MB);
-        }
-        return roundUp(size, 8 * MB);
-    }
-
-    private long roundUp(long size, long factor) {
-        return (size + factor - 1) / factor * factor;
+        return MemoryManageUtils.roundDelta(getAllocatedBytes(), neededSize);
     }
 }

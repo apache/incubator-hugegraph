@@ -22,7 +22,6 @@ public class MemoryPoolStats {
     private final String memoryPoolName;
     private long maxCapacity;
     private long usedBytes;
-    private long reservedBytes;
     private long cumulativeBytes;
     private long allocatedBytes;
 
@@ -36,11 +35,10 @@ public class MemoryPoolStats {
 
     @Override
     public String toString() {
-        return String.format("MemoryPool-%s: {maxCapacity[%d], usedBytes[%d], reservedBytes[%d]," +
+        return String.format("MemoryPool-%s: {maxCapacity[%d], usedBytes[%d]," +
                              "cumulativeBytes[%d], allocatedBytes[%d], numShrinks[%d], " +
                              "numExpands[%d], numAborts[%d]}.", memoryPoolName, maxCapacity,
                              usedBytes,
-                             reservedBytes,
                              cumulativeBytes, allocatedBytes, numShrinks, numExpands,
                              numAborts);
     }
@@ -55,14 +53,6 @@ public class MemoryPoolStats {
 
     public void setUsedBytes(long usedBytes) {
         this.usedBytes = usedBytes;
-    }
-
-    public long getReservedBytes() {
-        return this.reservedBytes;
-    }
-
-    public void setReservedBytes(long reservedBytes) {
-        this.reservedBytes = reservedBytes;
     }
 
     public long getCumulativeBytes() {

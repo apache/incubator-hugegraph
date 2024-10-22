@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.memory.pool;
 
-import java.nio.ByteBuffer;
 import java.util.Set;
 
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
@@ -32,9 +31,7 @@ public interface MemoryPool {
 
     void releaseSelf();
 
-    void gcChildPool(MemoryPool child);
-
-    boolean tryToDiskSpill() throws Exception;
+    void gcChildPool(MemoryPool child, boolean force);
 
     long getAllocatedBytes();
 

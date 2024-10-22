@@ -18,39 +18,37 @@
 package org.apache.hugegraph.memory.allocator;
 
 import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.util.Bytes;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.PooledByteBufAllocator;
+public class OnHeapMemoryStrategy implements MemoryAllocator {
 
-/**
- * This class makes fully use of Netty's efficient memory management strategy.
- */
-public class NettyMemoryAllocator implements MemoryAllocator {
-
-    private final PooledByteBufAllocator offHeapAllocator = PooledByteBufAllocator.DEFAULT;
     private final MemoryManager memoryManager;
 
-    public NettyMemoryAllocator(MemoryManager memoryManager) {
+    public OnHeapMemoryStrategy(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
     }
 
     @Override
-    public ByteBuf forceAllocate(long size) {
-        return offHeapAllocator.directBuffer((int) size);
-    }
-
-    @Override
-    public ByteBuf tryToAllocate(long size) {
+    public Object tryToAllocate(long size) {
         if (memoryManager.getCurrentOnHeapAllocatedMemory().get() +
             memoryManager.getCurrentOffHeapAllocatedMemory().get() + size <
             MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES) {
-            return offHeapAllocator.directBuffer((int) size);
+            int sizeOfByte = (int) (size / Bytes.BASE);
+            memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(sizeOfByte);
+            return new byte[sizeOfByte];
         }
         return null;
     }
 
     @Override
+    public Object forceAllocate(long size) {
+        int sizeOfByte = (int) (size / Bytes.BASE);
+        memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(sizeOfByte);
+        return new byte[sizeOfByte];
+    }
+
+    @Override
     public void releaseMemory(long size) {
-        memoryManager.getCurrentOffHeapAllocatedMemory().addAndGet(-size);
+        memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(-size);
     }
 }
