@@ -55,6 +55,7 @@ public class RpcServer {
             this.serverConfig.setProtocol(config.get(RpcOptions.RPC_PROTOCOL))
                              .setHost(host).setPort(port)
                              .setAdaptivePort(adaptivePort)
+                             .setSerialization(config.get(RpcOptions.RPC_SERIALIZATION))
                              .setDaemon(false);
         } else {
             this.serverConfig = null;

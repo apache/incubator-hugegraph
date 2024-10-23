@@ -71,14 +71,13 @@ jobs:
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
 
-# TODO: enable unit test and core test later (skip it now)
-#      - name: Run unit test
-#        run: |
-#          $TRAVIS_DIR/run-unit-test.sh $BACKEND
-#
-#      - name: Run core test
-#        run: |
-#          $TRAVIS_DIR/run-core-test.sh $BACKEND
+      - name: Run unit test
+        run: |
+          $TRAVIS_DIR/run-unit-test.sh $BACKEND
+
+      - name: Run core test
+        run: |
+          $TRAVIS_DIR/run-core-test.sh $BACKEND
 
       - name: Run api test
         run: |

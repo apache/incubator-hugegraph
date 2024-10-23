@@ -48,21 +48,22 @@
             <artifactId>disruptor</artifactId>
             <version>3.3.7</version>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>com.alipay.sofa</groupId>-->
-<!--            <artifactId>bolt</artifactId>-->
-<!--            <version>1.6.2</version>-->
-<!--            <exclusions>-->
-<!--                <exclusion>-->
-<!--                    <groupId>org.slf4j</groupId>-->
-<!--                    <artifactId>slf4j-api</artifactId>-->
-<!--                </exclusion>-->
-<!--            </exclusions>-->
-<!--        </dependency>-->
+        <dependency>
+            <groupId>com.alipay.sofa</groupId>
+            <artifactId>bolt</artifactId>
+            <version>1.6.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>com.alipay.sofa</groupId>
             <artifactId>sofa-rpc-all</artifactId>
-            <version>5.12.0</version>
+            <!--  Fixme/TODO: upgrade to version > 5.12 to avoid potential SEC risk -->
+            <version>5.7.6</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.jboss.resteasy</groupId>
@@ -100,50 +101,12 @@
                     <groupId>io.grpc</groupId>
                     <artifactId>grpc-core</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>io.grpc</groupId>
-                    <artifactId>grpc-all</artifactId>
-                </exclusion>
-<!--                <exclusion>-->
-<!--                    <artifactId>jackson-annotations</artifactId>-->
-<!--                    <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>jackson-core</artifactId>-->
-<!--                    <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>jackson-databind</artifactId>-->
-<!--                    <groupId>com.fasterxml.jackson.core</groupId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>netty-all</artifactId>-->
-<!--                    <groupId>io.netty</groupId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>commons-lang3</artifactId>-->
-<!--                    <groupId>org.apache.commons</groupId>-->
-<!--                </exclusion>-->
-<!--                <exclusion>-->
-<!--                    <artifactId>protobuf-java</artifactId>-->
-<!--                    <groupId>com.google.protobuf</groupId>-->
-<!--                </exclusion>-->
             </exclusions>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
-            <artifactId>grpc-all</artifactId>
-            <version>1.39.0</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jackson-core</artifactId>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>guava</artifactId>
-                    <groupId>com.google.guava</groupId>
-                </exclusion>
-            </exclusions>
+            <artifactId>grpc-core</artifactId>
+            <version>1.28.1</version>
         </dependency>
     </dependencies>
 
