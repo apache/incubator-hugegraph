@@ -40,6 +40,8 @@ public final class RocksDBMetricsConst {
     public static final String LABEL_99 = "0.99";
 
     /**
+     * Tickers - RocksDB equivalent of counters
+     * <p>
      * Array of TickerType representing various RocksDB counters.
      * Tickers track the number of times a particular event has occurred (e.g., cache hits).
      * Useful for monitoring and debugging purposes, giving insights into database performance.
@@ -139,6 +141,8 @@ public final class RocksDBMetricsConst {
     };
 
     /**
+     * Histograms - treated as prometheus summaries
+     * <p>
      * Array of HistogramType representing various RocksDB histograms.
      * Histograms track the distribution of certain metrics (e.g., latencies).
      * Useful for performance analysis by providing quantiles and averages.
