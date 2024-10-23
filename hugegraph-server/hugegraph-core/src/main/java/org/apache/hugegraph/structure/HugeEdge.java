@@ -59,10 +59,6 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     private HugeVertex targetVertex;
     private boolean isOutEdge;
 
-    public HugeEdge() {
-        this.label = null;
-    }
-
     public HugeEdge(HugeVertex owner, Id id, EdgeLabel label,
                     HugeVertex other) {
         this(owner.graph(), id, label);
