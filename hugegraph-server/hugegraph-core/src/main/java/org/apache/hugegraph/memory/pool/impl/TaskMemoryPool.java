@@ -20,19 +20,38 @@ package org.apache.hugegraph.memory.pool.impl;
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.apache.hugegraph.memory.util.QueryOutOfMemoryException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskMemoryPool extends AbstractMemoryPool {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TaskMemoryPool.class);
 
     public TaskMemoryPool(MemoryPool parent, String poolName, MemoryManager memoryManager) {
         super(parent, poolName, memoryManager);
     }
 
     @Override
-    public long requestMemory(long bytes) {
-        long parentRes = getParentPool().requestMemory(bytes);
-        if (parentRes > 0) {
-            stats.setAllocatedBytes(stats.getAllocatedBytes() + parentRes);
+    public long requestMemoryInternal(long bytes) throws QueryOutOfMemoryException {
+        if (isClosed) {
+            LOGGER.warn("[{}] is already closed, will abort this request", this);
+            return 0;
         }
-        return parentRes;
+        try {
+            if (isBeingArbitrated.get()) {
+                condition.await();
+            }
+            long parentRes = getParentPool().requestMemoryInternal(bytes);
+            if (parentRes > 0) {
+                stats.setAllocatedBytes(stats.getAllocatedBytes() + parentRes);
+            }
+            return parentRes;
+        } catch (InterruptedException e) {
+            LOGGER.error("Failed to release self because ", e);
+            Thread.currentThread().interrupt();
+            return 0;
+        }
+
     }
 }

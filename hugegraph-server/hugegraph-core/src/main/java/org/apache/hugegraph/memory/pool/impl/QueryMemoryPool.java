@@ -20,38 +20,55 @@ package org.apache.hugegraph.memory.pool.impl;
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.util.MemoryManageUtils;
+import org.apache.hugegraph.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryMemoryPool extends AbstractMemoryPool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryMemoryPool.class);
+    // TODO: read from conf
+    private static final long QUERY_POOL_MAX_CAPACITY = Bytes.MB * 100;
 
     public QueryMemoryPool(String poolName, MemoryManager memoryManager) {
         super(null, poolName, memoryManager);
-        // TODO: this.stats.setMaxCapacity(); read from conf
+        this.stats.setMaxCapacity(QUERY_POOL_MAX_CAPACITY);
     }
 
     @Override
-    public long requestMemory(long bytes) {
-        // 1. check whether self capacity is enough
-        if (getMaxCapacityBytes() - stats.getAllocatedBytes() < bytes) {
-            // 2.1 if not, first try to acquire memory from manager
-            long managerReturnedMemoryInBytes = tryToExpandSelfCapacity(bytes);
-            if (managerReturnedMemoryInBytes > 0) {
-                stats.setMaxCapacity(getMaxCapacityBytes() + managerReturnedMemoryInBytes);
+    public long requestMemoryInternal(long bytes) {
+        if (isClosed) {
+            LOGGER.warn("[{}] is already closed, will abort this request", this);
+            return 0;
+        }
+        try {
+            if (isBeingArbitrated.get()) {
+                condition.await();
+            }
+            // 1. check whether self capacity is enough
+            if (getMaxCapacityBytes() - stats.getAllocatedBytes() < bytes) {
+                // 2.1 if not, first try to acquire memory from manager
+                long managerReturnedMemoryInBytes = tryToExpandSelfCapacity(bytes);
+                if (managerReturnedMemoryInBytes > 0) {
+                    stats.setMaxCapacity(getMaxCapacityBytes() + managerReturnedMemoryInBytes);
+                    stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
+                    stats.setNumExpands(stats.getNumExpands() + 1);
+                    memoryManager.consumeAvailableMemory(bytes);
+                    return bytes;
+                }
+                // 2.2 if requiring memory from manager failed, call manager to invoke arbitrate
+                // locally
+                return requestMemoryThroughArbitration(bytes);
+            } else {
+                // 3. if capacity is enough, return success
                 stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
-                stats.setNumExpands(stats.getNumExpands() + 1);
                 memoryManager.consumeAvailableMemory(bytes);
                 return bytes;
             }
-            // 2.2 if requiring memory from manager failed, call manager to invoke arbitrate locally
-            return requestMemoryThroughArbitration(bytes);
-        } else {
-            // 3. if capacity is enough, return success
-            stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
-            memoryManager.consumeAvailableMemory(bytes);
-            return bytes;
+        } catch (InterruptedException e) {
+            LOGGER.error("Failed to release self because ", e);
+            Thread.currentThread().interrupt();
+            return 0;
         }
     }
 

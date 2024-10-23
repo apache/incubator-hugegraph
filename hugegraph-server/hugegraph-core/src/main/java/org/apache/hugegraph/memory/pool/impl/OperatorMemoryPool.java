@@ -22,6 +22,7 @@ import org.apache.hugegraph.memory.allocator.MemoryAllocator;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.util.MemoryManageUtils;
+import org.apache.hugegraph.memory.util.QueryOutOfMemoryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,74 +38,128 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public void releaseSelf() {
-        super.releaseSelf();
+    public synchronized void releaseSelf(String reason) {
         memoryAllocator.releaseMemory(getAllocatedBytes());
+        super.releaseSelf(reason);
         // TODO: release memory consumer, release byte buffer.
     }
 
     @Override
     public long tryToReclaimLocalMemory(long neededBytes) {
+        if (isClosed) {
+            LOGGER.warn("[{}] is already closed, will abort this reclaim", this);
+            return 0;
+        }
         LOGGER.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
-        // 1. try to reclaim self free memory
-        long reclaimableBytes = getFreeBytes();
-        // try its best to reclaim memory
-        if (reclaimableBytes <= neededBytes) {
-            // 2. update stats
-            stats.setAllocatedBytes(stats.getUsedBytes());
-            LOGGER.info("[{}] has tried its best to reclaim memory: " +
+        try {
+            this.arbitrationLock.lock();
+            this.isBeingArbitrated.set(true);
+            // 1. try to reclaim self free memory
+            long reclaimableBytes = getFreeBytes();
+            // try its best to reclaim memory
+            if (reclaimableBytes <= neededBytes) {
+                // 2. update stats
+                stats.setAllocatedBytes(stats.getUsedBytes());
+                LOGGER.info("[{}] has tried its best to reclaim memory: " +
+                            "reclaimedBytes={}," +
+                            " " +
+                            "neededBytes={}",
+                            this,
+                            reclaimableBytes, neededBytes);
+                return reclaimableBytes;
+            }
+            stats.setAllocatedBytes(stats.getAllocatedBytes() - neededBytes);
+            LOGGER.info("[{}] has reclaim enough memory: " +
                         "reclaimedBytes={}," +
                         " " +
                         "neededBytes={}",
                         this,
-                        reclaimableBytes, neededBytes);
-            return reclaimableBytes;
+                        neededBytes, neededBytes);
+
+            return neededBytes;
+        } finally {
+            this.isBeingArbitrated.set(false);
+            this.arbitrationLock.unlock();
+            this.condition.signalAll();
         }
-        stats.setAllocatedBytes(stats.getAllocatedBytes() - neededBytes);
-        LOGGER.info("[{}] has reclaim enough memory: " +
-                    "reclaimedBytes={}," +
-                    " " +
-                    "neededBytes={}",
-                    this,
-                    neededBytes, neededBytes);
-        return neededBytes;
+    }
+
+    /**
+     * called by user
+     */
+    @Override
+    public Object requireMemory(long bytes) {
+        try {
+            // use lock to ensure the atomicity of the two-step operation
+            this.arbitrationLock.lock();
+            long realBytes = requestMemoryInternal(bytes);
+            return tryToAcquireMemoryInternal(realBytes);
+        } catch (QueryOutOfMemoryException e) {
+            // Abort this query
+            LOGGER.warn("[{}] detected an OOM exception when request memory, will ABORT this " +
+                        "query and release corresponding memory...",
+                        this);
+            findRootQueryPool().releaseSelf(String.format(e.getMessage()));
+            return null;
+        } finally {
+            this.arbitrationLock.unlock();
+        }
     }
 
     /**
      * Operator need `size` bytes, operator pool will try to reserve some memory for it
      */
     @Override
-    public Object tryToAcquireMemory(long size) {
+    public Object tryToAcquireMemoryInternal(long size) {
+        if (isClosed) {
+            LOGGER.warn("[{}] is already closed, will abort this allocate", this);
+            return 0;
+        }
         LOGGER.info("[{}] tryToAcquireMemory: size={}", this, size);
         // 1. update statistic
-        super.tryToAcquireMemory(size);
+        super.tryToAcquireMemoryInternal(size);
         // 2. allocate memory, currently use off-heap mode.
         return memoryAllocator.tryToAllocate(size);
     }
 
     @Override
-    public long requestMemory(long size) {
-        LOGGER.info("[{}] requestMemory: request size={}", this, size);
-        // 1. align size
-        long alignedSize = MemoryManageUtils.sizeAlign(size);
-        // 2. reserve(round)
-        long neededMemorySize = calculateReserveMemoryDelta(alignedSize);
-        if (neededMemorySize <= 0) {
+    public long requestMemoryInternal(long size) throws QueryOutOfMemoryException {
+        if (isClosed) {
+            LOGGER.warn("[{}] is already closed, will abort this request", this);
             return 0;
         }
-        // 3. call father
-        long fatherRes = getParentPool().requestMemory(neededMemorySize);
-        if (fatherRes < 0) {
-            LOGGER.error("[{}] requestMemory failed because of OOM, request size={}", this, size);
-            // TODO: new OOM exception
-            stats.setNumAborts(stats.getNumAborts() + 1);
-            throw new OutOfMemoryError();
+        try {
+            if (isBeingArbitrated.get()) {
+                condition.await();
+            }
+            LOGGER.info("[{}] requestMemory: request size={}", this, size);
+            // 1. align size
+            long alignedSize = MemoryManageUtils.sizeAlign(size);
+            // 2. reserve(round)
+            long neededMemorySize = calculateReserveMemoryDelta(alignedSize);
+            if (neededMemorySize <= 0) {
+                return 0;
+            }
+            // 3. call father
+            long fatherRes = getParentPool().requestMemoryInternal(neededMemorySize);
+            if (fatherRes < 0) {
+                LOGGER.error("[{}] requestMemory failed because of OOM, request size={}", this,
+                             size);
+                stats.setNumAborts(stats.getNumAborts() + 1);
+                throw new QueryOutOfMemoryException(String.format("%s requestMemory failed " +
+                                                                  "because of OOM, request " +
+                                                                  "size=%s", this, size));
+            }
+            // 4. update stats
+            stats.setAllocatedBytes(stats.getAllocatedBytes() + neededMemorySize);
+            stats.setNumExpands(stats.getNumExpands() + 1);
+            LOGGER.info("[{}] requestMemory success: requestedMemorySize={}", this, fatherRes);
+            return fatherRes;
+        } catch (InterruptedException e) {
+            LOGGER.error("Failed to release self because ", e);
+            Thread.currentThread().interrupt();
+            return 0;
         }
-        // 4. update stats
-        stats.setAllocatedBytes(stats.getAllocatedBytes() + neededMemorySize);
-        stats.setNumExpands(stats.getNumExpands() + 1);
-        LOGGER.info("[{}] requestMemory success: requestedMemorySize={}", this, fatherRes);
-        return fatherRes;
     }
 
     /**

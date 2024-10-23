@@ -71,11 +71,11 @@ public class MemoryManager {
     }
 
     public void gcQueryMemoryPool(MemoryPool pool) {
+        LOGGER.info("Manager gc query memory pool {}", pool);
         queryMemoryPools.remove(pool);
         long reclaimedMemory = pool.getAllocatedBytes();
-        pool.releaseSelf();
+        pool.releaseSelf(String.format("GC query memory pool %s", pool));
         currentAvailableMemoryInBytes.addAndGet(reclaimedMemory);
-        LOGGER.info("Manager gc query memory pool {}", pool);
     }
 
     public long triggerLocalArbitration(MemoryPool targetPool, long neededBytes) {

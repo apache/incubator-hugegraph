@@ -37,7 +37,6 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
     @Override
     public long reclaimLocally(MemoryPool queryPool, long neededBytes) {
         long startTime = System.currentTimeMillis();
-        // TODO：suspend that task
         long res = queryPool.tryToReclaimLocalMemory(neededBytes);
         LOGGER.info("[{}] reclaim local memory: {} bytes, took {} ms",
                     Thread.currentThread().getName(),
@@ -59,7 +58,6 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
             }
             LOGGER.info("Global reclaim triggerred by {} select {} to reclaim", queryPool,
                         memoryPool);
-            // TODO：suspend that task
             long res = memoryPool.tryToReclaimLocalMemory(currentNeededBytes);
             totalReclaimedBytes += res;
             currentNeededBytes -= res;

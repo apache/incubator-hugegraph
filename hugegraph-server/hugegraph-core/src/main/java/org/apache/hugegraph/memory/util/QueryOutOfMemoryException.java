@@ -14,39 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.hugegraph.memory.util;
 
-package org.apache.hugegraph.memory.pool;
+public class QueryOutOfMemoryException extends Exception {
 
-import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
-import org.apache.hugegraph.memory.util.QueryOutOfMemoryException;
+    public QueryOutOfMemoryException(String message) {
+        super(message);
+    }
 
-public interface MemoryPool {
+    public QueryOutOfMemoryException(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-    MemoryPoolStats getSnapShot();
+    public QueryOutOfMemoryException(Exception e) {
+        super(e);
+    }
 
-    long tryToReclaimLocalMemory(long neededBytes);
-
-    Object requireMemory(long bytes);
-
-    long requestMemoryInternal(long bytes) throws QueryOutOfMemoryException;
-
-    Object tryToAcquireMemoryInternal(long bytes);
-
-    void releaseSelf(String reason);
-
-    void gcChildPool(MemoryPool child, boolean force);
-
-    long getAllocatedBytes();
-
-    long getUsedBytes();
-
-    long getFreeBytes();
-
-    long getMaxCapacityBytes();
-
-    String getName();
-
-    MemoryPool getParentPool();
-
-    MemoryPool findRootQueryPool();
 }
