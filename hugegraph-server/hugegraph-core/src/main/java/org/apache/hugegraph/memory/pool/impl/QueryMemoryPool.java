@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class QueryMemoryPool extends AbstractMemoryPool {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(QueryMemoryPool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(QueryMemoryPool.class);
     // TODO: read from conf
     private static final long QUERY_POOL_MAX_CAPACITY = Bytes.MB * 100;
 
@@ -37,23 +37,23 @@ public class QueryMemoryPool extends AbstractMemoryPool {
 
     @Override
     public long requestMemoryInternal(long bytes) {
-        if (isClosed) {
-            LOGGER.warn("[{}] is already closed, will abort this request", this);
+        if (this.isClosed) {
+            LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;
         }
         try {
-            if (isBeingArbitrated.get()) {
-                condition.await();
+            if (this.isBeingArbitrated.get()) {
+                this.condition.await();
             }
             // 1. check whether self capacity is enough
             if (getMaxCapacityBytes() - stats.getAllocatedBytes() < bytes) {
                 // 2.1 if not, first try to acquire memory from manager
                 long managerReturnedMemoryInBytes = tryToExpandSelfCapacity(bytes);
                 if (managerReturnedMemoryInBytes > 0) {
-                    stats.setMaxCapacity(getMaxCapacityBytes() + managerReturnedMemoryInBytes);
-                    stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
-                    stats.setNumExpands(stats.getNumExpands() + 1);
-                    memoryManager.consumeAvailableMemory(bytes);
+                    this.stats.setMaxCapacity(getMaxCapacityBytes() + managerReturnedMemoryInBytes);
+                    this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + bytes);
+                    this.stats.setNumExpands(this.stats.getNumExpands() + 1);
+                    this.memoryManager.consumeAvailableMemory(bytes);
                     return bytes;
                 }
                 // 2.2 if requiring memory from manager failed, call manager to invoke arbitrate
@@ -61,49 +61,49 @@ public class QueryMemoryPool extends AbstractMemoryPool {
                 return requestMemoryThroughArbitration(bytes);
             } else {
                 // 3. if capacity is enough, return success
-                stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
-                memoryManager.consumeAvailableMemory(bytes);
+                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + bytes);
+                this.memoryManager.consumeAvailableMemory(bytes);
                 return bytes;
             }
         } catch (InterruptedException e) {
-            LOGGER.error("Failed to release self because ", e);
+            LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();
             return 0;
         }
     }
 
     private long tryToExpandSelfCapacity(long size) {
-        LOGGER.info("[{}] try to expand its capacity: size={}", this, size);
+        LOG.info("[{}] try to expand its capacity: size={}", this, size);
         long alignedSize = MemoryManageUtils.sizeAlign(size);
         long realNeededSize =
                 MemoryManageUtils.roundDelta(getAllocatedBytes(), alignedSize);
-        return memoryManager.handleRequestFromQueryPool(realNeededSize);
+        return this.memoryManager.handleRequestFromQueryPool(realNeededSize);
     }
 
     private long requestMemoryThroughArbitration(long bytes) {
-        LOGGER.info("[{}] try to request memory from manager through arbitration: size={}", this,
-                    bytes);
-        stats.setNumExpands(stats.getNumExpands() + 1);
-        long reclaimedBytes = memoryManager.triggerLocalArbitration(this, bytes);
+        LOG.info("[{}] try to request memory from manager through arbitration: size={}", this,
+                 bytes);
+        this.stats.setNumExpands(this.stats.getNumExpands() + 1);
+        long reclaimedBytes = this.memoryManager.triggerLocalArbitration(this, bytes);
         // 1. if arbitrate successes, update stats and return success
         if (reclaimedBytes - bytes >= 0) {
             // here we don't update capacity & reserved & allocated, because memory is
             // reclaimed from queryPool itself.
-            memoryManager.consumeAvailableMemory(bytes);
+            this.memoryManager.consumeAvailableMemory(bytes);
             return bytes;
         } else {
             // 2. if still not enough, try to reclaim globally
             long globalArbitrationNeededBytes = bytes - reclaimedBytes;
-            long globalReclaimedBytes = memoryManager.triggerGlobalArbitration(this,
-                                                                               globalArbitrationNeededBytes);
+            long globalReclaimedBytes = this.memoryManager.triggerGlobalArbitration(this,
+                                                                                    globalArbitrationNeededBytes);
             reclaimedBytes += globalReclaimedBytes;
             // 3. if memory is enough, update stats and return success
             if (reclaimedBytes - bytes >= 0) {
                 // add capacity
-                stats.setMaxCapacity(stats.getMaxCapacity() + globalReclaimedBytes);
-                stats.setAllocatedBytes(stats.getAllocatedBytes() + bytes);
-                stats.setNumExpands(stats.getNumExpands() + 1);
-                memoryManager.consumeAvailableMemory(bytes);
+                this.stats.setMaxCapacity(this.stats.getMaxCapacity() + globalReclaimedBytes);
+                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + bytes);
+                this.stats.setNumExpands(this.stats.getNumExpands() + 1);
+                this.memoryManager.consumeAvailableMemory(bytes);
                 return bytes;
             }
         }

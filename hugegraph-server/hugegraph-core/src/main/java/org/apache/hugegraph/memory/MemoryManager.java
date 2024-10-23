@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 
 public class MemoryManager {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MemoryManager.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);
     private static final String QUERY_MEMORY_POOL_NAME_PREFIX = "QueryMemoryPool";
     private static final String ARBITRATE_MEMORY_POOL_NAME = "ArbitrateMemoryPool";
     private static final String DELIMINATOR = "_";
@@ -66,12 +66,12 @@ public class MemoryManager {
                 System.currentTimeMillis();
         MemoryPool queryPool = new QueryMemoryPool(poolName, this);
         queryMemoryPools.add(queryPool);
-        LOGGER.info("Manager added query memory pool {}", queryPool);
+        LOG.info("Manager added query memory pool {}", queryPool);
         return queryPool;
     }
 
     public void gcQueryMemoryPool(MemoryPool pool) {
-        LOGGER.info("Manager gc query memory pool {}", pool);
+        LOG.info("Manager gc query memory pool {}", pool);
         queryMemoryPools.remove(pool);
         long reclaimedMemory = pool.getAllocatedBytes();
         pool.releaseSelf(String.format("GC query memory pool %s", pool));
@@ -79,7 +79,7 @@ public class MemoryManager {
     }
 
     public long triggerLocalArbitration(MemoryPool targetPool, long neededBytes) {
-        LOGGER.info("LocalArbitration triggered by {}: needed bytes={}", targetPool, neededBytes);
+        LOG.info("LocalArbitration triggered by {}: needed bytes={}", targetPool, neededBytes);
         Future<Long> future =
                 arbitrateExecutor.submit(
                         () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes));
@@ -87,17 +87,17 @@ public class MemoryManager {
             return future.get(MemoryArbitrator.MAX_WAIT_TIME_FOR_LOCAL_RECLAIM,
                               TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-            LOGGER.warn("MemoryManager: arbitration locally for {} timed out", targetPool, e);
+            LOG.warn("MemoryManager: arbitration locally for {} timed out", targetPool, e);
         } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("MemoryManager: arbitration locally for {} interrupted or failed",
-                         targetPool,
-                         e);
+            LOG.error("MemoryManager: arbitration locally for {} interrupted or failed",
+                      targetPool,
+                      e);
         }
         return 0;
     }
 
     public long triggerGlobalArbitration(MemoryPool requestPool, long neededBytes) {
-        LOGGER.info("GlobalArbitration triggered by {}: needed bytes={}", requestPool, neededBytes);
+        LOG.info("GlobalArbitration triggered by {}: needed bytes={}", requestPool, neededBytes);
         Future<Long> future =
                 arbitrateExecutor.submit(
                         () -> memoryArbitrator.reclaimGlobally(requestPool, neededBytes));
@@ -105,10 +105,10 @@ public class MemoryManager {
             return future.get(MemoryArbitrator.MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM,
                               TimeUnit.MILLISECONDS);
         } catch (TimeoutException e) {
-            LOGGER.warn("MemoryManager: arbitration globally for {} timed out", requestPool, e);
+            LOG.warn("MemoryManager: arbitration globally for {} timed out", requestPool, e);
         } catch (InterruptedException | ExecutionException e) {
-            LOGGER.error("MemoryManager: arbitration globally for {} interrupted or failed",
-                         requestPool, e);
+            LOG.error("MemoryManager: arbitration globally for {} interrupted or failed",
+                      requestPool, e);
         }
         return 0;
     }
@@ -116,15 +116,15 @@ public class MemoryManager {
     public synchronized long handleRequestFromQueryPool(long size) {
         // 1. check whole memory capacity.
         if (currentAvailableMemoryInBytes.get() < size) {
-            LOGGER.info("There isn't enough memory for query pool to expand itself: " +
-                        "requestSize={}, remainingCapacity={}", size,
-                        currentAvailableMemoryInBytes.get());
+            LOG.info("There isn't enough memory for query pool to expand itself: " +
+                     "requestSize={}, remainingCapacity={}", size,
+                     currentAvailableMemoryInBytes.get());
             return -1;
         }
         currentAvailableMemoryInBytes.addAndGet(-size);
-        LOGGER.info("Expand query pool successfully: " +
-                    "requestSize={}, afterThisExpandingRemainingCapacity={}", size,
-                    currentAvailableMemoryInBytes.get());
+        LOG.info("Expand query pool successfully: " +
+                 "requestSize={}, afterThisExpandingRemainingCapacity={}", size,
+                 currentAvailableMemoryInBytes.get());
         return size;
     }
 

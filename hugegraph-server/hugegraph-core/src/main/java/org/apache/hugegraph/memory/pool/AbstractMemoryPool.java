@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractMemoryPool implements MemoryPool {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractMemoryPool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractMemoryPool.class);
     private final Queue<MemoryPool> children =
             new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
     protected final MemoryManager memoryManager;
@@ -52,10 +52,10 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     @Override
     public long tryToReclaimLocalMemory(long neededBytes) {
         if (isClosed) {
-            LOGGER.warn("[{}] is already closed, will abort this reclaim", this);
+            LOG.warn("[{}] is already closed, will abort this reclaim", this);
             return 0;
         }
-        LOGGER.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
+        LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
         long totalReclaimedBytes = 0;
         long currentNeededBytes = neededBytes;
         try {
@@ -72,10 +72,10 @@ public abstract class AbstractMemoryPool implements MemoryPool {
                     }
                 }
             }
-            LOGGER.info("[{}] has finished to reclaim memory: totalReclaimedBytes={}, " +
-                        "neededBytes={}",
-                        this,
-                        totalReclaimedBytes, neededBytes);
+            LOG.info("[{}] has finished to reclaim memory: totalReclaimedBytes={}, " +
+                     "neededBytes={}",
+                     this,
+                     totalReclaimedBytes, neededBytes);
             return totalReclaimedBytes;
         } finally {
             this.stats.setNumShrinks(this.stats.getNumShrinks() + 1);
@@ -93,19 +93,19 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     @Override
     public synchronized void releaseSelf(String reason) {
         try {
-            if (isBeingArbitrated.get()) {
-                condition.await();
+            if (this.isBeingArbitrated.get()) {
+                this.condition.await();
             }
-            LOGGER.info("[{}] starts to releaseSelf because of {}", this, reason);
+            LOG.info("[{}] starts to releaseSelf because of {}", this, reason);
             this.isClosed = true;
             // update father
-            Optional.ofNullable(parent).ifPresent(parent -> parent.gcChildPool(this, false));
+            Optional.ofNullable(this.parent).ifPresent(parent -> parent.gcChildPool(this, false));
             for (MemoryPool child : this.children) {
                 gcChildPool(child, true);
             }
-            LOGGER.info("[{}] finishes to releaseSelf", this);
+            LOG.info("[{}] finishes to releaseSelf", this);
         } catch (InterruptedException e) {
-            LOGGER.error("Failed to release self because ", e);
+            LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();
         } finally {
             // Make these objs be GCed by JVM quickly.
@@ -120,9 +120,9 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             child.releaseSelf(String.format("[%s] releaseChildPool", this));
         }
         // reclaim child's memory and update stats
-        stats.setAllocatedBytes(
+        this.stats.setAllocatedBytes(
                 stats.getAllocatedBytes() - child.getAllocatedBytes());
-        stats.setUsedBytes(stats.getUsedBytes() - child.getUsedBytes());
+        this.stats.setUsedBytes(this.stats.getUsedBytes() - child.getUsedBytes());
         memoryManager.consumeAvailableMemory(-child.getAllocatedBytes());
         this.children.remove(child);
     }
@@ -130,12 +130,12 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     @Override
     public Object tryToAcquireMemoryInternal(long bytes) {
         if (isClosed) {
-            LOGGER.warn("[{}] is already closed, will abort this allocate", this);
+            LOG.warn("[{}] is already closed, will abort this allocate", this);
             return 0;
         }
         // just record how much memory is used(update stats)
-        stats.setUsedBytes(stats.getUsedBytes() + bytes);
-        stats.setCumulativeBytes(stats.getCumulativeBytes() + bytes);
+        this.stats.setUsedBytes(this.stats.getUsedBytes() + bytes);
+        this.stats.setCumulativeBytes(this.stats.getCumulativeBytes() + bytes);
         return null;
     }
 
@@ -146,38 +146,38 @@ public abstract class AbstractMemoryPool implements MemoryPool {
 
     @Override
     public long getMaxCapacityBytes() {
-        return Optional.of(stats).map(MemoryPoolStats::getMaxCapacity).orElse(0L);
+        return Optional.of(this.stats).map(MemoryPoolStats::getMaxCapacity).orElse(0L);
     }
 
     @Override
     public long getUsedBytes() {
-        return Optional.of(stats).map(MemoryPoolStats::getUsedBytes).orElse(0L);
+        return Optional.of(this.stats).map(MemoryPoolStats::getUsedBytes).orElse(0L);
     }
 
     @Override
     public long getFreeBytes() {
-        return Optional.of(stats)
+        return Optional.of(this.stats)
                        .map(stats -> stats.getAllocatedBytes() - stats.getUsedBytes()).orElse(0L);
     }
 
     @Override
     public long getAllocatedBytes() {
-        return Optional.of(stats).map(MemoryPoolStats::getAllocatedBytes).orElse(0L);
+        return Optional.of(this.stats).map(MemoryPoolStats::getAllocatedBytes).orElse(0L);
     }
 
     @Override
     public MemoryPoolStats getSnapShot() {
-        return stats;
+        return this.stats;
     }
 
     @Override
     public MemoryPool getParentPool() {
-        return parent;
+        return this.parent;
     }
 
     @Override
     public String getName() {
-        return stats.getMemoryPoolName();
+        return this.stats.getMemoryPoolName();
     }
 
     @Override
@@ -187,7 +187,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
 
     @Override
     public MemoryPool findRootQueryPool() {
-        if (parent == null) {
+        if (this.parent == null) {
             return this;
         }
         return getParentPool().findRootQueryPool();

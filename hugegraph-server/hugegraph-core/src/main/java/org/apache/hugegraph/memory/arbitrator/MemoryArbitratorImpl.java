@@ -24,10 +24,9 @@ import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO: consider concurrency
 public class MemoryArbitratorImpl implements MemoryArbitrator {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(MemoryArbitratorImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MemoryArbitratorImpl.class);
     private final MemoryManager memoryManager;
 
     public MemoryArbitratorImpl(MemoryManager memoryManager) {
@@ -38,10 +37,10 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
     public long reclaimLocally(MemoryPool queryPool, long neededBytes) {
         long startTime = System.currentTimeMillis();
         long res = queryPool.tryToReclaimLocalMemory(neededBytes);
-        LOGGER.info("[{}] reclaim local memory: {} bytes, took {} ms",
-                    Thread.currentThread().getName(),
-                    res,
-                    System.currentTimeMillis() - startTime);
+        LOG.info("[{}] reclaim local memory: {} bytes, took {} ms",
+                 Thread.currentThread().getName(),
+                 res,
+                 System.currentTimeMillis() - startTime);
         return res;
     }
 
@@ -50,14 +49,14 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
         long startTime = System.currentTimeMillis();
         long totalReclaimedBytes = 0;
         long currentNeededBytes = neededBytes;
-        Queue<MemoryPool> currentMemoryPool = memoryManager.getCurrentQueryMemoryPools();
+        Queue<MemoryPool> currentMemoryPool = this.memoryManager.getCurrentQueryMemoryPools();
         while (!currentMemoryPool.isEmpty()) {
             MemoryPool memoryPool = currentMemoryPool.poll();
             if (memoryPool.equals(queryPool)) {
                 continue;
             }
-            LOGGER.info("Global reclaim triggerred by {} select {} to reclaim", queryPool,
-                        memoryPool);
+            LOG.info("Global reclaim triggerred by {} select {} to reclaim", queryPool,
+                     memoryPool);
             long res = memoryPool.tryToReclaimLocalMemory(currentNeededBytes);
             totalReclaimedBytes += res;
             currentNeededBytes -= res;
@@ -65,10 +64,10 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
                 break;
             }
         }
-        LOGGER.info("[{}] reclaim global memory: {} bytes, took {} ms",
-                    Thread.currentThread().getName(),
-                    totalReclaimedBytes,
-                    System.currentTimeMillis() - startTime);
+        LOG.info("[{}] reclaim global memory: {} bytes, took {} ms",
+                 Thread.currentThread().getName(),
+                 totalReclaimedBytes,
+                 System.currentTimeMillis() - startTime);
         return totalReclaimedBytes;
     }
 }

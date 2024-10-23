@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class TaskMemoryPool extends AbstractMemoryPool {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TaskMemoryPool.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TaskMemoryPool.class);
 
     public TaskMemoryPool(MemoryPool parent, String poolName, MemoryManager memoryManager) {
         super(parent, poolName, memoryManager);
@@ -34,21 +34,21 @@ public class TaskMemoryPool extends AbstractMemoryPool {
 
     @Override
     public long requestMemoryInternal(long bytes) throws QueryOutOfMemoryException {
-        if (isClosed) {
-            LOGGER.warn("[{}] is already closed, will abort this request", this);
+        if (this.isClosed) {
+            LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;
         }
         try {
-            if (isBeingArbitrated.get()) {
-                condition.await();
+            if (this.isBeingArbitrated.get()) {
+                this.condition.await();
             }
             long parentRes = getParentPool().requestMemoryInternal(bytes);
             if (parentRes > 0) {
-                stats.setAllocatedBytes(stats.getAllocatedBytes() + parentRes);
+                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + parentRes);
             }
             return parentRes;
         } catch (InterruptedException e) {
-            LOGGER.error("Failed to release self because ", e);
+            LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();
             return 0;
         }
