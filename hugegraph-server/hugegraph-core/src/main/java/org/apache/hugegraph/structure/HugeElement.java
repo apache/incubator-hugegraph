@@ -66,6 +66,11 @@ public abstract class HugeElement implements Element, GraphType, Idfiable, Compa
     private boolean propLoaded;
     private boolean defaultValueUpdated;
 
+    public HugeElement() {
+        // empty constructor
+        this.graph = null;
+    }
+
     public HugeElement(final HugeGraph graph) {
         E.checkArgument(graph != null, "HugeElement graph can't be null");
         this.graph = graph;

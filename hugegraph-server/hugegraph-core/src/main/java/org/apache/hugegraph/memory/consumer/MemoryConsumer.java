@@ -17,7 +17,10 @@
 
 package org.apache.hugegraph.memory.consumer;
 
-// TODO(pjz): integrated it with HG objects such as edges and vertex.
+import org.apache.fury.format.row.binary.BinaryRow;
+
 public interface MemoryConsumer {
+
+    //<T> BinaryRow deserializeToFury(Class<T> beanClass, Object value);
 
 }
