@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.variables.CheckList;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.AuthManager;
@@ -53,6 +54,10 @@ import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardRoleListener;
 import org.apache.hugegraph.metrics.MetricsUtil;
 import org.apache.hugegraph.metrics.ServerReporter;
+import org.apache.hugegraph.pd.client.KvClient;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
 import org.apache.hugegraph.rpc.RpcClientProvider;
 import org.apache.hugegraph.rpc.RpcConsumerConfig;
 import org.apache.hugegraph.rpc.RpcProviderConfig;
@@ -66,12 +71,14 @@ import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
+import org.junit.Before;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.rpc.config.ServerConfig;
@@ -93,6 +100,15 @@ public final class GraphManager {
 
     private final HugeConfig conf;
     private final EventHub eventHub;
+
+    private final String preFix = "graph_creat_tx";
+
+    private KvClient<WatchResponse> client;
+
+    @Before
+    public void setUp() {
+        this.client = new KvClient<>(PDConfig.of("localhost:8686"));
+    }
 
     public GraphManager(HugeConfig conf, EventHub hub) {
         this.graphsDir = conf.get(ServerOptions.GRAPHS);
@@ -172,6 +188,8 @@ public final class GraphManager {
     }
 
     public HugeGraph createGraph(String name, String configText) {
+
+
         E.checkArgument(this.conf.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
                         "Not allowed to create graph '%s' dynamically, " +
                         "please set `enable_dynamic_create_drop` to true.",
@@ -181,9 +199,34 @@ public final class GraphManager {
         E.checkArgument(!this.graphs().contains(name),
                         "The graph name '%s' has existed", name);
 
+        CheckList checkList = new CheckList(name, configText);
+
+
         PropertiesConfiguration propConfig = ConfigUtil.buildConfig(configText);
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(config);
+        
+        checkList.setConfig(config);
+        checkList.setStage("config");
+
+        String json = JsonUtil.toJson(checkList);
+
+        try {
+            client.put(preFix + name, json);
+        }
+
+        catch (PDException e) {
+            throw new RuntimeException(e);
+        }
+
+        checkList.setStage("finish");
+        try {
+            client.put(preFix + name, json);
+        }
+
+        catch (PDException e) {
+            throw new RuntimeException(e);
+        }
 
         return this.createGraph(config, name);
     }
@@ -581,7 +624,7 @@ public final class GraphManager {
         }
     }
 
-    private HugeGraph createGraph(HugeConfig config, String name) {
+    private HugeGraph createGraph(HugeConfig config, String name){
         HugeGraph graph = null;
         try {
             // Create graph instance

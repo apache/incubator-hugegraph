@@ -32,6 +32,7 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
 import org.apache.hugegraph.schema.EdgeLabel;
