@@ -18,10 +18,13 @@
 package org.apache.hugegraph.unit.util;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -82,10 +85,11 @@ public class JsonUtilTest extends BaseUnitTest {
     @Test
     public void testSerializeEdgeId() {
         Id id = new EdgeId(IdGenerator.of("1:marko"), Directions.OUT,
+                           IdGenerator.of(1),
                            IdGenerator.of(1), "",
                            IdGenerator.of("1:josh"));
         String json = JsonUtil.toJson(id);
-        Assert.assertEquals("\"S1:marko>1>>S1:josh\"", json);
+        Assert.assertEquals("\"S1:marko>1>1>>S1:josh\"", json);
     }
 
     @Test
@@ -167,11 +171,13 @@ public class JsonUtilTest extends BaseUnitTest {
         Mockito.when(fakeObject.graph().vertexLabel(vl.id())).thenReturn(vl);
         Mockito.when(fakeObject.graph().mapPkId2Name(el.properties()))
                .thenReturn(Arrays.asList(date.name(), weight.name()));
+        Mockito.when(fakeObject.graph().mapPairId2Name(el.links()))
+               .thenReturn(Collections.singleton(Pair.of(name.name(), name.name())));
 
         String json = JsonUtil.toJson(el);
         Assert.assertEquals("{\"id\":1,\"name\":\"knows\"," +
-                            "\"source_label\":\"person\"," +
-                            "\"target_label\":\"person\"," +
+                            "\"edgelabel_type\":\"NORMAL\"," +
+                            "\"links\":[{\"name\":\"name\"}]," +
                             "\"frequency\":\"SINGLE\",\"sort_keys\":[]," +
                             "\"nullable_keys\":[],\"index_labels\":[]," +
                             "\"properties\":[\"date\",\"weight\"]," +
@@ -277,7 +283,7 @@ public class JsonUtilTest extends BaseUnitTest {
         HugeVertex target = new HugeVertex(fakeObject.graph(),
                                            IdGenerator.of(987654), vl);
 
-        Id id = EdgeId.parse("L123456>1>>L987654");
+        Id id = EdgeId.parse("L123456>1>1>>L987654");
         HugeEdge edge = new HugeEdge(fakeObject.graph(), id, el);
         Whitebox.setInternalState(edge, "sourceVertex", source);
         Whitebox.setInternalState(edge, "targetVertex", target);
@@ -291,7 +297,7 @@ public class JsonUtilTest extends BaseUnitTest {
         Whitebox.setInternalState(edge, "properties", properties);
 
         String json = JsonUtil.toJson(edge);
-        Assert.assertEquals("{\"id\":\"L123456>1>>L987654\"," +
+        Assert.assertEquals("{\"id\":\"L123456>1>1>>L987654\"," +
                             "\"label\":\"knows\",\"type\":\"edge\"," +
                             "\"outV\":123456,\"outVLabel\":\"person\"," +
                             "\"inV\":987654,\"inVLabel\":\"person\"," +

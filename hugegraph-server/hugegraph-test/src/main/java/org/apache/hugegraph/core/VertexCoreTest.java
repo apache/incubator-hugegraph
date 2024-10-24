@@ -44,6 +44,7 @@ import org.apache.hugegraph.backend.page.PageInfo;
 import org.apache.hugegraph.backend.query.Condition;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.store.BackendTable;
 import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
@@ -1039,10 +1040,10 @@ public class VertexCoreTest extends BaseCoreTest {
                             "name", "marko", "age", 18, "city", "Beijing");
         });
 
-        // Expect id length <= 128
+        // Expect id length <= BytesBuffer.ID_LEN_MAX
         Assert.assertThrows(IllegalArgumentException.class, () -> {
-            String largeId = new String(new byte[128]) + ".";
-            assert largeId.length() == 129;
+            String largeId = new String(new byte[BytesBuffer.ID_LEN_MAX]) + ".";
+            assert largeId.length() == BytesBuffer.ID_LEN_MAX + 1;
             graph.addVertex(T.label, "programmer", T.id, largeId,
                             "name", "marko", "age", 18, "city", "Beijing");
         });

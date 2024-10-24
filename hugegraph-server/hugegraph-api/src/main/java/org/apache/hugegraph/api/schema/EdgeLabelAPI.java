@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hugegraph.HugeGraph;
@@ -32,6 +33,7 @@ import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.Userdata;
+import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.util.E;
@@ -183,10 +185,16 @@ public class EdgeLabelAPI extends API {
         public long id;
         @JsonProperty("name")
         public String name;
+        @JsonProperty("edgelabel_type")
+        public EdgeLabelType edgeLabelType;
+        @JsonProperty("parent_label")
+        public String fatherLabel;
         @JsonProperty("source_label")
         public String sourceLabel;
         @JsonProperty("target_label")
         public String targetLabel;
+        @JsonProperty("links")
+        public Set<Map<String, String>> links;
         @JsonProperty("frequency")
         public Frequency frequency;
         @JsonProperty("properties")
@@ -223,11 +231,32 @@ public class EdgeLabelAPI extends API {
                                 g, g.mode());
                 builder.id(this.id);
             }
+            if (this.edgeLabelType == null) {
+                this.edgeLabelType = EdgeLabelType.NORMAL;
+            } else if (this.edgeLabelType.parent()) {
+                builder.asBase();
+            } else if (this.edgeLabelType.sub()) {
+                builder.withBase(this.fatherLabel);
+            } else {
+                E.checkArgument(this.edgeLabelType.normal(),
+                                "Please enter a valid edge_label_type value " +
+                                "in [NORMAL, PARENT, SUB]");
+            }
             if (this.sourceLabel != null) {
                 builder.sourceLabel(this.sourceLabel);
             }
             if (this.targetLabel != null) {
                 builder.targetLabel(this.targetLabel);
+            }
+            if (this.links != null && !this.links.isEmpty()) {
+                for (Map<String, String> map : this.links) {
+                    E.checkArgument(map.size() == 1,
+                                    "The map size must be 1, due to it is a " +
+                                    "pair");
+                    Map.Entry<String, String> entry =
+                            map.entrySet().iterator().next();
+                    builder.link(entry.getKey(), entry.getValue());
+                }
             }
             if (this.frequency != null) {
                 builder.frequency(this.frequency);

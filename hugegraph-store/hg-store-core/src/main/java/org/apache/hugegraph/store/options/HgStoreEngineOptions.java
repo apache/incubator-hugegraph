@@ -98,7 +98,11 @@ public class HgStoreEngineOptions {
         /**
          * The maximum number of entries in AppendEntriesRequest
          */
-        private final int maxEntriesSize = 256;
+        private int maxEntriesSize = 256;
+        /**
+         * The maximum byte size of AppendEntriesRequest
+         */
+        private int maxBodySize = 512 * 1024;
         /**
          * Raft cluster data backlog occurs, rate limiting wait time in milliseconds.
          **/

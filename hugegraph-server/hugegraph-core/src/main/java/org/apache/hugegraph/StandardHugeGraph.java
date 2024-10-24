@@ -316,8 +316,7 @@ public class StandardHugeGraph implements HugeGraph {
                                                    conf.get(
                                                            RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
         ClusterRoleStore roleStore = new StandardClusterRoleStore(this.params);
-        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleConfig,
-                                                                             roleStore);
+        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleConfig, roleStore);
     }
 
     @Override
@@ -1007,7 +1006,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.initBackend();
         this.serverStarted(nodeInfo);
 
-        // Write config to disk file
+        // Write config to the disk file
         String confPath = ConfigUtil.writeToFile(configPath, this.name(),
                                                  this.configuration());
         this.configuration.file(confPath);
@@ -1349,7 +1348,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     private class TinkerPopTransaction extends AbstractThreadLocalTransaction {
 
-        // Times opened from upper layer
+        // Times opened from the upper layer
         private final AtomicInteger refs;
         // Flag opened of each thread
         private final ThreadLocal<Boolean> opened;

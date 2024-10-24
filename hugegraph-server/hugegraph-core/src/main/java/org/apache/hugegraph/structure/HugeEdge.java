@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.EdgeId;
@@ -141,15 +142,24 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Watched(prefix = "edge")
     public void assignId() {
         // Generate an id and assign
-        this.id = new EdgeId(this.ownerVertex(), this.direction(),
-                             this.schemaLabel().id(), this.name(),
-                             this.otherVertex());
+        if (this.schemaLabel().hasFather()) {
+            this.id = new EdgeId(this.ownerVertex(), this.direction(),
+                                 this.schemaLabel().fatherId(),
+                                 this.schemaLabel().id(),
+                                 this.name(),
+                                 this.otherVertex());
+        } else {
+            this.id = new EdgeId(this.ownerVertex(), this.direction(),
+                                 this.schemaLabel().id(),
+                                 this.schemaLabel().id(),
+                                 this.name(), this.otherVertex());
+        }
 
         if (this.fresh()) {
             int len = this.id.length();
-            E.checkArgument(len <= BytesBuffer.BIG_ID_LEN_MAX,
+            E.checkArgument(len <= BytesBuffer.EID_LEN_MAX,
                             "The max length of edge id is %s, but got %s {%s}",
-                            BytesBuffer.BIG_ID_LEN_MAX, len, this.id);
+                            BytesBuffer.EID_LEN_MAX, len, this.id);
         }
     }
 
@@ -315,9 +325,15 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
             case OWNER_VERTEX:
                 return this.ownerVertex().id();
             case LABEL:
-                return this.schemaLabel().id();
+                if (this.schemaLabel().hasFather()) {
+                    return this.schemaLabel().fatherId();
+                } else {
+                    return this.schemaLabel().id();
+                }
             case DIRECTION:
                 return this.direction();
+            case SUB_LABEL:
+                return this.schemaLabel().id();
             case OTHER_VERTEX:
                 return this.otherVertex().id();
             case SORT_VALUES:
@@ -363,11 +379,15 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
 
     public void vertices(HugeVertex owner, HugeVertex other) {
         Id ownerLabel = owner.schemaLabel().id();
-        if (ownerLabel.equals(this.label.sourceLabel())) {
-            this.vertices(true, owner, other);
-        } else {
-            assert ownerLabel.equals(this.label.targetLabel());
-            this.vertices(false, owner, other);
+        Id otherLabel = other.schemaLabel().id();
+        for (Pair<Id, Id> link : this.label.links()) {
+            if (ownerLabel.equals(link.getLeft()) &&
+                otherLabel.equals(link.getRight())) {
+                this.vertices(true, owner, other);
+            } else if (ownerLabel.equals(link.getRight()) &&
+                       otherLabel.equals(link.getLeft())) {
+                this.vertices(false, owner, other);
+            }
         }
     }
 

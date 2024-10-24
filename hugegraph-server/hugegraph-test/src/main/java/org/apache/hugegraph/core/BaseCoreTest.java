@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.core;
 
+import java.util.List;
 import java.util.Random;
 
 import org.apache.hugegraph.HugeGraph;
@@ -25,6 +26,7 @@ import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.testutil.Whitebox;
@@ -137,7 +139,21 @@ public class BaseCoreTest {
             schema.indexLabel(elem.name()).remove();
         });
 
-        schema.getEdgeLabels().forEach(elem -> {
+        final List<EdgeLabel> edgeLabels = schema.getEdgeLabels();
+        // remove father edge label after sub edge label
+        edgeLabels.sort((lhs, rhs) -> {
+            if (lhs.isFather() && rhs.isFather()) {
+                return 0;
+            }
+            if (lhs.isFather()) {
+                return 1;
+            }
+            if (rhs.isFather()) {
+                return -1;
+            }
+            return 0;
+        });
+        edgeLabels.forEach(elem -> {
             schema.edgeLabel(elem.name()).remove();
         });
 
