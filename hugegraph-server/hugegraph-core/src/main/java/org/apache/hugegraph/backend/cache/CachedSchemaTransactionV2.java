@@ -105,7 +105,8 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             }
             return false;
         };
-        this.graphParams().loadGraphStore().provider().listen(this.storeEventListener);
+        this.graphParams().loadGraphStore().provider()
+            .listenSchemaCacheClear(this.storeEventListener);
 
         // Listen cache event: "cache"(invalid cache item)
         this.cacheEventListener = event -> {
