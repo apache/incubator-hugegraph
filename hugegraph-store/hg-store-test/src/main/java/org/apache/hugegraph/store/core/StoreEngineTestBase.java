@@ -38,7 +38,7 @@ import com.alipay.sofa.jraft.util.StorageOptionsFactory;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Use FakePd and FakePdOptions to initialize HgStoreEngine, the get functions of this class are available.
+ * Use FakePd and FakePdOptions to initialize HgStoreEngine, the getMetric functions of this class are available.
  */
 @Slf4j
 public class StoreEngineTestBase {
