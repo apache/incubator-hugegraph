@@ -104,8 +104,7 @@ public class RpcOptions extends OptionHolder {
     public static final ConfigOption<Integer> RPC_CLIENT_READ_TIMEOUT =
             new ConfigOption<>(
                     "rpc.client_read_timeout",
-                    "The timeout(in seconds) of rpc client read from rpc " +
-                    "server.",
+                    "The timeout(in seconds) of rpc client read from RPC server.",
                     rangeInt(1, Integer.MAX_VALUE),
                     40
             );
@@ -121,7 +120,7 @@ public class RpcOptions extends OptionHolder {
     public static final ConfigOption<String> RPC_CLIENT_LOAD_BALANCER =
             new ConfigOption<>(
                     "rpc.client_load_balancer",
-                    "The rpc client uses a load-balancing algorithm to " +
+                    "The RPC client uses a load-balancing algorithm to " +
                     "access multiple rpc servers in one cluster. Default " +
                     "value is 'consistentHash', means forwarding by request " +
                     "parameters.",
@@ -133,16 +132,26 @@ public class RpcOptions extends OptionHolder {
     public static final ConfigOption<String> RPC_PROTOCOL =
             new ConfigOption<>(
                     "rpc.protocol",
-                    "Rpc communication protocol, client and server need to " +
+                    "RPC communication protocol, client and server need to " +
                     "be specified the same value.",
                     allowValues("bolt", "rest", "dubbo", "h2c", "http"),
                     "bolt"
             );
 
+    public static final ConfigOption<String> RPC_SERIALIZATION =
+            new ConfigOption<>(
+                    "rpc.serialization",
+                    "RPC serialization type, client and server must set the same value." +
+                    "Note: If you choose 'protobuf', you need to add the relative IDL file. " +
+                    "(Could refer PD/Store *.proto)",
+                    allowValues("hessian2", "protobuf"),
+                    "hessian2"
+            );
+
     public static final ConfigOption<Integer> RPC_CONFIG_ORDER =
             new ConfigOption<>(
                     "rpc.config_order",
-                    "Sofa rpc configuration file loading order, the larger " +
+                    "Sofa-RPC configuration file loading order, the larger " +
                     "the more later loading.",
                     rangeInt(1, Integer.MAX_VALUE),
                     999
@@ -151,7 +160,7 @@ public class RpcOptions extends OptionHolder {
     public static final ConfigOption<String> RPC_LOGGER_IMPL =
             new ConfigOption<>(
                     "rpc.logger_impl",
-                    "Sofa rpc log implementation class.",
+                    "Sofa-RPC log implementation class.",
                     disallowEmpty(),
                     "com.alipay.sofa.rpc.log.SLF4JLoggerImpl"
             );

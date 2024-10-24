@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.backend.serializer;
 
+import static org.apache.hugegraph.schema.SchemaElement.UNDEF;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -73,8 +75,6 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-
-import static org.apache.hugegraph.schema.SchemaElement.UNDEF;
 
 public class BinarySerializer extends AbstractSerializer {
 
@@ -932,10 +932,10 @@ public class BinarySerializer extends AbstractSerializer {
         BytesBuffer buffer = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         buffer.write(parsedEntry.id().asBytes());
         buffer.write(bytes);
-        parsedEntry = new BinaryBackendEntry(originEntry.type(), new BinaryId(buffer.bytes(),
-                                                                              BytesBuffer.wrap(
-                                                                                                 buffer.bytes())
-                                                                                         .readEdgeId()));
+        parsedEntry = new BinaryBackendEntry(originEntry.type(),
+                                             new BinaryId(buffer.bytes(),
+                                                          BytesBuffer.wrap(buffer.bytes())
+                                                                     .readEdgeId()));
 
         for (BackendColumn col : originEntry.columns()) {
             parsedEntry.column(buffer.bytes(), col.value);

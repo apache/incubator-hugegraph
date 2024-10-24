@@ -21,7 +21,6 @@ import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.LockUtil;

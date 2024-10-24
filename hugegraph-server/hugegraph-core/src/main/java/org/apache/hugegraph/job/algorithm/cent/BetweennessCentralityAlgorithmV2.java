@@ -26,7 +26,6 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.job.UserJob;
 import org.apache.hugegraph.job.algorithm.BfsTraverser;
-import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.type.define.Directions;

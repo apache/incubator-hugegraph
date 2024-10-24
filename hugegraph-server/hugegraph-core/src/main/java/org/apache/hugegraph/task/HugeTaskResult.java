@@ -21,13 +21,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.type.define.Cardinality;
-import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;

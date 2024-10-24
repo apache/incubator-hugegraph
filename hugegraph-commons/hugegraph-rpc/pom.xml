@@ -62,6 +62,7 @@
         <dependency>
             <groupId>com.alipay.sofa</groupId>
             <artifactId>sofa-rpc-all</artifactId>
+            <!--  Fixme/TODO: upgrade to version > 5.12 to avoid potential SEC risk -->
             <version>5.7.6</version>
             <exclusions>
                 <exclusion>

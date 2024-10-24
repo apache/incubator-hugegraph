@@ -89,7 +89,7 @@ public final class GraphManager {
     private final RpcClientProvider rpcClient;
 
     private RoleElectionStateMachine roleStateMachine;
-    private GlobalMasterInfo globalNodeRoleInfo;
+    private final GlobalMasterInfo globalNodeRoleInfo;
 
     private final HugeConfig conf;
     private final EventHub eventHub;
