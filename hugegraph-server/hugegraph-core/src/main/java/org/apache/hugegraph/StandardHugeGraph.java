@@ -71,6 +71,10 @@ import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
 import org.apache.hugegraph.meta.MetaManager;
+import org.apache.hugegraph.pd.client.KvClient;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.kv.KResponse;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -97,8 +101,10 @@ import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.LockUtil;
 import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.variables.CheckList;
 import org.apache.hugegraph.variables.HugeVariables;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -179,6 +185,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final RamTable ramtable;
 
     private final String schedulerType;
+
+    private KvClient<WatchResponse> client;
 
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
@@ -1003,14 +1011,32 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void create(String configPath, GlobalMasterInfo nodeInfo) {
-        this.initBackend();
-        this.serverStarted(nodeInfo);
+    public void create(String configPath, GlobalMasterInfo nodeInfo){
+        //CheckList checkList = new CheckList();
+        KResponse result = null;
+        try {
+            result = client.get(this.name);
+            String json = result.getValue();
+            CheckList checkList = JsonUtil.fromJson(json, CheckList.class);
 
-        // Write config to disk file
-        String confPath = ConfigUtil.writeToFile(configPath, this.name(),
-                                                 this.configuration());
-        this.configuration.file(confPath);
+            this.initBackend();
+            checkList.setInitBackended(true);
+            checkList.setStage("initBackend");
+            client.put(name, JsonUtil.toJson(checkList));
+            this.serverStarted(nodeInfo);
+            checkList.setServerStarted(true);
+            checkList.setStage("setServerStarted");
+            client.put(name, JsonUtil.toJson(checkList));
+
+
+            // Write config to disk file
+            String confPath = ConfigUtil.writeToFile(configPath, this.name(),
+                                                     this.configuration());
+            this.configuration.file(confPath);
+        } catch (Exception e) {
+
+        }
+
     }
 
     @Override
