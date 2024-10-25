@@ -17,7 +17,31 @@
 
 package org.apache.hugegraph.memory.consumer;
 
-// TODO(pjz): integrated it with HG objects such as edges and vertex.
+import org.apache.hugegraph.memory.pool.MemoryPool;
+
+/**
+ * This interface is used by immutable, memory-heavy objects which will be stored in off heap.
+ */
 public interface MemoryConsumer {
 
+    /**
+     * This method will read Off heap ByteBuf storing binary data of self.
+     *
+     * @return self value
+     */
+    Object zeroCopyReadFromByteBuf();
+
+    /**
+     * Serialize to DataOutputStream in stack first, then request an off heap ByteBuf from
+     * OperatorMemoryPool based on size of DataOutputStream. Finally, serializing it to ByteBuf.
+     */
+    void serializeSelfToByteBuf();
+
+    /**
+     * Called after serializingSelfToByteBuf, pointing all self's on heap vars to null, in order
+     * to let GC release all its on heap memory.
+     */
+    void releaseOriginalOnHeapVars();
+
+    MemoryPool getOperatorMemoryPool();
 }

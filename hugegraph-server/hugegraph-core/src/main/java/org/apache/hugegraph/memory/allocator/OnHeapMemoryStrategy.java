@@ -29,7 +29,7 @@ public class OnHeapMemoryStrategy implements MemoryAllocator {
     }
 
     @Override
-    public Object tryToAllocate(long size) {
+    public byte[] tryToAllocate(long size) {
         if (memoryManager.getCurrentOnHeapAllocatedMemory().get() +
             memoryManager.getCurrentOffHeapAllocatedMemory().get() + size <
             MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES) {
@@ -41,7 +41,7 @@ public class OnHeapMemoryStrategy implements MemoryAllocator {
     }
 
     @Override
-    public Object forceAllocate(long size) {
+    public byte[] forceAllocate(long size) {
         int sizeOfByte = (int) (size / Bytes.BASE);
         memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(sizeOfByte);
         return new byte[sizeOfByte];
