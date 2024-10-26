@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.memory.pool;
 
+import org.apache.hugegraph.memory.consumer.MemoryConsumer;
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
 import org.apache.hugegraph.memory.util.QueryOutOfMemoryException;
 
@@ -49,4 +50,6 @@ public interface MemoryPool {
     MemoryPool getParentPool();
 
     MemoryPool findRootQueryPool();
+
+    void bindMemoryConsumer(MemoryConsumer memoryConsumer);
 }

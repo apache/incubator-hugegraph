@@ -20,6 +20,8 @@ package org.apache.hugegraph.memory.consumer.impl.id;
 import static org.apache.hugegraph.backend.id.IdGenerator.compareType;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.hugegraph.backend.id.Id;
@@ -85,6 +87,11 @@ public class UuidIdOffHeap extends IdGenerator.UuidId implements MemoryConsumer 
     @Override
     public MemoryPool getOperatorMemoryPool() {
         return memoryPool;
+    }
+
+    @Override
+    public List<ByteBuf> getAllOffHeapByteBuf() {
+        return Collections.singletonList(idOffHeap);
     }
 
     @Override

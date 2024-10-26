@@ -17,6 +17,9 @@
 
 package org.apache.hugegraph.memory.consumer.impl.id;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.memory.consumer.MemoryConsumer;
@@ -57,6 +60,11 @@ public class BinaryIdOffHeap extends BinaryBackendEntry.BinaryId implements Memo
     @Override
     public MemoryPool getOperatorMemoryPool() {
         return this.memoryPool;
+    }
+
+    @Override
+    public List<ByteBuf> getAllOffHeapByteBuf() {
+        return Collections.singletonList(bytesOffHeap);
     }
 
     @Override

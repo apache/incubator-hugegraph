@@ -48,7 +48,12 @@ public class OnHeapMemoryStrategy implements MemoryAllocator {
     }
 
     @Override
-    public void releaseMemory(long size) {
+    public void returnMemoryToManager(long size) {
         memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(-size);
+    }
+
+    @Override
+    public void releaseMemoryBlock(Object memoryBlock) {
+        memoryBlock = null;
     }
 }

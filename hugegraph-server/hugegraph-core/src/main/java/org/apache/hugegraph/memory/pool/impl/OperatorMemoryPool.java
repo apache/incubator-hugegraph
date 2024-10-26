@@ -17,8 +17,12 @@
 
 package org.apache.hugegraph.memory.pool.impl;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.allocator.MemoryAllocator;
+import org.apache.hugegraph.memory.consumer.MemoryConsumer;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.util.MemoryManageUtils;
@@ -30,16 +34,27 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
 
     private static final Logger LOG = LoggerFactory.getLogger(OperatorMemoryPool.class);
     private final MemoryAllocator memoryAllocator;
+    private final Set<MemoryConsumer> memoryConsumers;
 
     public OperatorMemoryPool(MemoryPool parent, String poolName,
                               MemoryAllocator memoryAllocator, MemoryManager memoryManager) {
         super(parent, poolName, memoryManager);
         this.memoryAllocator = memoryAllocator;
+        this.memoryConsumers = new HashSet<>();
+    }
+
+    @Override
+    public void bindMemoryConsumer(MemoryConsumer memoryConsumer) {
+        this.memoryConsumers.add(memoryConsumer);
     }
 
     @Override
     public synchronized void releaseSelf(String reason) {
-        this.memoryAllocator.releaseMemory(getAllocatedBytes());
+        this.memoryAllocator.returnMemoryToManager(getAllocatedBytes());
+        this.memoryConsumers.forEach(memoryConsumer -> {
+            memoryConsumer.getAllOffHeapByteBuf().forEach(memoryAllocator::releaseMemoryBlock);
+        });
+        this.memoryConsumers.clear();
         super.releaseSelf(reason);
         // TODO: release memory consumer, release byte buffer.
     }

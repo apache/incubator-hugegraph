@@ -18,6 +18,7 @@
 package org.apache.hugegraph.memory.consumer.impl.id;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.hugegraph.backend.id.EdgeId;
@@ -28,6 +29,8 @@ import org.apache.hugegraph.memory.consumer.MemoryConsumer;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.define.Directions;
+
+import com.google.common.collect.Lists;
 
 import io.netty.buffer.ByteBuf;
 
@@ -138,6 +141,11 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
     @Override
     public MemoryPool getOperatorMemoryPool() {
         return memoryPool;
+    }
+
+    @Override
+    public List<ByteBuf> getAllOffHeapByteBuf() {
+        return Lists.newArrayList(this.sortValuesOffHeap, this.cacheOffHeap);
     }
 
     @Override

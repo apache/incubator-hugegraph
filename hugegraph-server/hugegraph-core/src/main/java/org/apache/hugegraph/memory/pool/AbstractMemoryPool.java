@@ -25,6 +25,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.consumer.MemoryConsumer;
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,6 +138,11 @@ public abstract class AbstractMemoryPool implements MemoryPool {
         this.stats.setUsedBytes(this.stats.getUsedBytes() + bytes);
         this.stats.setCumulativeBytes(this.stats.getCumulativeBytes() + bytes);
         return null;
+    }
+
+    @Override
+    public void bindMemoryConsumer(MemoryConsumer memoryConsumer) {
+        // default do nothing
     }
 
     @Override

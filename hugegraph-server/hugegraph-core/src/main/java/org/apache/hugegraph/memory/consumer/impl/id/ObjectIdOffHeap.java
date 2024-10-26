@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.memory.consumer.impl.id;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 import org.apache.hugegraph.backend.id.IdGenerator;
@@ -61,6 +63,11 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsu
     @Override
     public MemoryPool getOperatorMemoryPool() {
         return memoryPool;
+    }
+
+    @Override
+    public List<ByteBuf> getAllOffHeapByteBuf() {
+        return Collections.singletonList(objectOffHeap);
     }
 
     @Override

@@ -17,7 +17,11 @@
 
 package org.apache.hugegraph.memory.consumer;
 
+import java.util.List;
+
 import org.apache.hugegraph.memory.pool.MemoryPool;
+
+import io.netty.buffer.ByteBuf;
 
 /**
  * This interface is used by immutable, memory-heavy objects which will be stored in off heap.
@@ -44,4 +48,6 @@ public interface MemoryConsumer {
     void releaseOriginalOnHeapVars();
 
     MemoryPool getOperatorMemoryPool();
+
+    List<ByteBuf> getAllOffHeapByteBuf();
 }

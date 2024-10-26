@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.memory.consumer.impl.property;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.apache.hugegraph.memory.consumer.MemoryConsumer;
@@ -66,6 +68,11 @@ public class HugeEdgePropertyOffHeap<V> extends HugeEdgeProperty<V> implements M
     @Override
     public MemoryPool getOperatorMemoryPool() {
         return memoryPool;
+    }
+
+    @Override
+    public List<ByteBuf> getAllOffHeapByteBuf() {
+        return Collections.singletonList(valueOffHeap);
     }
 
     @Override

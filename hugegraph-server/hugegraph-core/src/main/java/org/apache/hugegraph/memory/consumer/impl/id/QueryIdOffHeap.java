@@ -18,6 +18,8 @@
 package org.apache.hugegraph.memory.consumer.impl.id;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 
 import org.apache.hugegraph.backend.cache.CachedBackendStore;
 import org.apache.hugegraph.backend.id.Id;
@@ -67,6 +69,11 @@ public class QueryIdOffHeap extends CachedBackendStore.QueryId implements Memory
     @Override
     public MemoryPool getOperatorMemoryPool() {
         return memoryPool;
+    }
+
+    @Override
+    public List<ByteBuf> getAllOffHeapByteBuf() {
+        return Collections.singletonList(queryOffHeap);
     }
 
     @Override

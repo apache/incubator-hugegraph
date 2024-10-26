@@ -23,5 +23,7 @@ public interface MemoryAllocator {
 
     Object forceAllocate(long size);
 
-    void releaseMemory(long size);
+    void returnMemoryToManager(long size);
+
+    void releaseMemoryBlock(Object memoryBlock);
 }

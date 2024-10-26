@@ -21,6 +21,7 @@ import org.apache.hugegraph.memory.MemoryManager;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.util.ReferenceCountUtil;
 
 /**
  * This class makes fully use of Netty's efficient memory management strategy.
@@ -50,7 +51,24 @@ public class NettyMemoryAllocator implements MemoryAllocator {
     }
 
     @Override
-    public void releaseMemory(long size) {
+    public void returnMemoryToManager(long size) {
         memoryManager.getCurrentOffHeapAllocatedMemory().addAndGet(-size);
+    }
+
+    @Override
+    public void releaseMemoryBlock(Object memoryBlock) {
+        if (!(memoryBlock instanceof ByteBuf)) {
+            throw new IllegalArgumentException("memoryBlock must be ByteBuf");
+        }
+        ByteBuf buf = (ByteBuf) memoryBlock;
+        ReferenceCountUtil.safeRelease(buf, ReferenceCountUtil.refCnt(buf));
+    }
+
+    public static void main(String[] args) {
+        MemoryAllocator netty = new NettyMemoryAllocator(null);
+        ByteBuf buf = (ByteBuf) netty.forceAllocate(1024);
+        System.out.println(ReferenceCountUtil.refCnt(buf));
+        netty.releaseMemoryBlock(buf);
+        System.out.println(ReferenceCountUtil.refCnt(buf));
     }
 }
