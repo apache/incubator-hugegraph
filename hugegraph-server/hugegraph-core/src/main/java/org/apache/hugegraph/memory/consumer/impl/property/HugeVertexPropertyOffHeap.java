@@ -15,25 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.memory.consumer.impl.id;
+package org.apache.hugegraph.memory.consumer.impl.property;
 
-import java.util.Objects;
+import java.util.NoSuchElementException;
 
-import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.memory.consumer.MemoryConsumer;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.util.FurySerializationUtils;
+import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.HugeVertexProperty;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 
-public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsumer {
+public class HugeVertexPropertyOffHeap<V> extends HugeVertexProperty<V> implements MemoryConsumer {
 
     private final MemoryPool memoryPool;
-    private ByteBuf objectOffHeap;
+    private ByteBuf valueOffHeap;
 
-    public ObjectIdOffHeap(Object object, MemoryPool memoryPool) {
-        super(object);
+    public HugeVertexPropertyOffHeap(MemoryPool memoryPool, HugeElement owner, PropertyKey key,
+                                     V value) {
+        super(owner, key, value);
         this.memoryPool = memoryPool;
         serializeSelfToByteBuf();
         releaseOriginalOnHeapVars();
@@ -41,21 +44,22 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsu
 
     @Override
     public Object zeroCopyReadFromByteBuf() {
-        return new IdGenerator.ObjectId(FurySerializationUtils.FURY.deserialize(
-                ByteBufUtil.getBytes(this.objectOffHeap)));
+        return new HugeVertexProperty<>(this.owner, this.pkey,
+                                        FurySerializationUtils.FURY.deserialize(
+                                                ByteBufUtil.getBytes(this.valueOffHeap)));
     }
 
     @Override
     public void serializeSelfToByteBuf() {
-        byte[] bytes = FurySerializationUtils.FURY.serialize(object);
-        this.objectOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
-        this.objectOffHeap.markReaderIndex();
-        this.objectOffHeap.writeBytes(bytes);
+        byte[] bytes = FurySerializationUtils.FURY.serialize(this.value);
+        this.valueOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
+        this.valueOffHeap.markReaderIndex();
+        this.valueOffHeap.writeBytes(bytes);
     }
 
     @Override
     public void releaseOriginalOnHeapVars() {
-        this.object = null;
+        this.value = null;
     }
 
     @Override
@@ -64,28 +68,18 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsu
     }
 
     @Override
-    public Object asObject() {
-        return FurySerializationUtils.FURY.deserialize(ByteBufUtil.getBytes(objectOffHeap));
+    public Object serialValue(boolean encodeNumber) {
+        return this.pkey.serialValue(this.value(), encodeNumber);
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(objectOffHeap);
+    public boolean isPresent() {
+        return this.value() != null;
     }
 
     @Override
-    public boolean equals(Object other) {
-        if (!(other instanceof ObjectIdOffHeap)) {
-            return false;
-        }
-        return this.objectOffHeap.equals(((ObjectIdOffHeap) other).objectOffHeap);
-    }
-
-    @Override
-    public String toString() {
-        return super.toString();
+    public V value() throws NoSuchElementException {
+        return (V) FurySerializationUtils.FURY.deserialize(
+                ByteBufUtil.getBytes(this.valueOffHeap));
     }
 }
-
-
-
