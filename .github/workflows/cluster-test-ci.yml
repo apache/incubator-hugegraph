@@ -1,0 +1,52 @@
+name: "Cluster Test CI"
+
+on:
+  push:
+    branches:
+      - master
+      - 'release-*'
+      - 'test-*'
+  pull_request:
+
+jobs:
+  cluster-test:
+    runs-on: ubuntu-latest
+    env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
+
+    steps:
+      - name: Install JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'zulu'
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 5
+
+      - name: use staged maven repo settings
+        if: ${{ env.USE_STAGE == 'true' }}
+        run: |
+          cp $HOME/.m2/settings.xml /tmp/settings.xml
+          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
+
+      - name: Package
+        run: |
+          mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
+
+      - name: Run simple cluster test
+        run: |
+          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P simple-cluster-test -DskipCommonsTests=true
+
+      - name: Run multi cluster test
+        run: |
+          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P multi-cluster-test -DskipCommonsTests=true

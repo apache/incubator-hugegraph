@@ -156,7 +156,7 @@ public final class FakeObjects {
         target.addProperty(age, 20);
         target.addProperty(city, "Shanghai");
 
-        Id id = EdgeId.parse("L123456>1>>L987654");
+        Id id = EdgeId.parse("L123456>1>1>>L987654");
         HugeEdge edge = new HugeEdge(this.graph(), id, el);
 
         Whitebox.setInternalState(edge, "sourceVertex", source);
@@ -199,7 +199,7 @@ public final class FakeObjects {
         target.addProperty(age, 20);
         target.addProperty(city, "Shanghai");
 
-        Id id = EdgeId.parse("L123456>1>>L987654");
+        Id id = EdgeId.parse("L123456>1>1>>L987654");
         HugeEdge edge = new HugeEdge(this.graph(), id, el);
 
         Whitebox.setInternalState(edge, "sourceVertex", source);

@@ -348,13 +348,13 @@ public class TaskCoreTest extends BaseCoreTest {
         String expected = String.format("[{\"labels\":[[],[],[]],\"objects\":[" +
                                         "{\"id\":1,\"label\":\"char\",\"type\":\"vertex\"," +
                                         "\"properties\":{\"name\":\"A\"}}," +
-                                        "{\"id\":\"L1>%s>>L2\",\"label\":\"next\"," +
+                                        "{\"id\":\"L1>%s>%s>>L2\",\"label\":\"next\"," +
                                         "\"type\":\"edge\",\"outV\":1," +
                                         "\"outVLabel\":\"char\",\"inV\":2,\"" +
                                         "inVLabel\":\"char\",\"properties\":{\"name\":\"ab\"}}," +
                                         "{\"id\":2,\"label\":\"char\",\"type\":\"vertex\"," +
                                         "\"properties\":{\"name\":\"B\"}}" +
-                                        "]}]", edgeLabelId);
+                                        "]}]", edgeLabelId, edgeLabelId);
         Assert.assertEquals(expected, task.result());
 
         script = "g.V(1).out().out().path()";
@@ -384,14 +384,14 @@ public class TaskCoreTest extends BaseCoreTest {
         expected = String.format("[[{\"key\":{\"id\":1,\"label\":\"char\",\"type\":\"vertex\"," +
                                  "\"properties\":{\"name\":\"A\"}}," +
                                  "\"value\":[" +
-                                 "{\"key\":{\"id\":\"L1>%s>>L2\",\"label\":\"next\"," +
+                                 "{\"key\":{\"id\":\"L1>%s>%s>>L2\",\"label\":\"next\"," +
                                  "\"type\":\"edge\",\"outV\":1," +
                                  "\"outVLabel\":\"char\",\"inV\":2,\"inVLabel\":\"char\"," +
                                  "\"properties\":{\"name\":\"ab\"}}," +
                                  "\"value\":[{\"key\":{\"id\":2,\"label\":\"char\"," +
                                  "\"type\":\"vertex\"," +
                                  "\"properties\":{\"name\":\"B\"}},\"value\":[]}]}]}]]",
-                                 edgeLabelId);
+                                 edgeLabelId, edgeLabelId);
         Assert.assertEquals(expected, task.result());
 
         script = "g.V(1).out().out().tree()";
@@ -552,7 +552,7 @@ public class TaskCoreTest extends BaseCoreTest {
 
         HugeTask<Object> task = runGremlinJob("Thread.sleep(1000 * 10);");
 
-        sleepAWhile();
+        sleepAWhile(200 * 6);
         task = scheduler.task(task.id());
         scheduler.cancel(task);
 

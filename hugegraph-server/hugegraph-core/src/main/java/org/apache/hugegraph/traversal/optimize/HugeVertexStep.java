@@ -29,6 +29,7 @@ import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.process.traversal.Traverser;
@@ -132,16 +133,15 @@ public class HugeVertexStep<E extends Element>
 
         Id vertex = (Id) traverser.get().id();
         Directions direction = Directions.convert(this.getDirection());
-        Id[] edgeLabels = graph.mapElName2Id(this.getEdgeLabels());
+        EdgeLabel[] els = graph.mapElName2El(this.getEdgeLabels());
 
         LOG.debug("HugeVertexStep.edges(): vertex={}, direction={}, " +
                   "edgeLabels={}, has={}",
-                  vertex, direction, edgeLabels, this.hasContainers);
+                  vertex, direction, els, this.hasContainers);
 
-        ConditionQuery query = GraphTransaction.constructEdgesQuery(
-                vertex, direction, edgeLabels);
+        ConditionQuery query = GraphTransaction.constructEdgesQuery(vertex, direction, els);
         // Query by sort-keys
-        if (withEdgeCond && edgeLabels.length == 1) {
+        if (withEdgeCond && els.length == 1) {
             TraversalUtil.fillConditionQuery(query, this.hasContainers, graph);
             if (!GraphTransaction.matchPartialEdgeSortKeys(query, graph)) {
                 // Can't query by sysprop and by index (HugeGraph-749)

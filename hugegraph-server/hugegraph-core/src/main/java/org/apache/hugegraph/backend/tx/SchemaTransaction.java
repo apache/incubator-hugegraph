@@ -247,9 +247,21 @@ public class SchemaTransaction extends IndexableTransaction implements ISchemaTr
     @Watched(prefix = "schema")
     public Id removeEdgeLabel(Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
-        SchemaJob callable = new EdgeLabelRemoveJob();
         EdgeLabel schema = this.getEdgeLabel(id);
-        return asyncRun(this.graph(), schema, callable);
+        if (schema.edgeLabelType().parent()) {
+            List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+            for (EdgeLabel edgeLabel : edgeLabels) {
+                if (edgeLabel.edgeLabelType().sub() &&
+                    edgeLabel.fatherId() == id) {
+                    throw new NotAllowException(
+                            "Not allowed to remove a parent edge label: '%s' " +
+                            "because the sub edge label '%s' is still existing",
+                            schema.name(), edgeLabel.name());
+                }
+            }
+        }
+        SchemaJob job = new EdgeLabelRemoveJob();
+        return asyncRun(this.graph(), schema, job);
     }
 
     @Watched(prefix = "schema")
