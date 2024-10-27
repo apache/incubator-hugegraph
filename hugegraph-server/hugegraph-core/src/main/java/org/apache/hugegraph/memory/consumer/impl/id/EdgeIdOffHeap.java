@@ -144,7 +144,7 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Lists.newArrayList(this.sortValuesOffHeap, this.cacheOffHeap);
     }
 

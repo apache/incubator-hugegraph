@@ -71,7 +71,7 @@ public class HugeEdgePropertyOffHeap<V> extends HugeEdgeProperty<V> implements M
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(valueOffHeap);
     }
 

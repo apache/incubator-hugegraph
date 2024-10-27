@@ -90,7 +90,7 @@ public class UuidIdOffHeap extends IdGenerator.UuidId implements MemoryConsumer 
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(idOffHeap);
     }
 

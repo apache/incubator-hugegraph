@@ -72,7 +72,7 @@ public class QueryIdOffHeap extends CachedBackendStore.QueryId implements Memory
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(queryOffHeap);
     }
 

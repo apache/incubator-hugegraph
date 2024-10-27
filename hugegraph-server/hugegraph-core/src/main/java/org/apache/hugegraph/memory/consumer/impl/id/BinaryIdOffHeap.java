@@ -63,7 +63,7 @@ public class BinaryIdOffHeap extends BinaryBackendEntry.BinaryId implements Memo
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(bytesOffHeap);
     }
 

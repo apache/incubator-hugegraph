@@ -37,14 +37,16 @@ public class NettyMemoryAllocator implements MemoryAllocator {
 
     @Override
     public ByteBuf forceAllocate(long size) {
+        memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().addAndGet(size);
         return offHeapAllocator.directBuffer((int) size);
     }
 
     @Override
     public ByteBuf tryToAllocate(long size) {
-        if (memoryManager.getCurrentOnHeapAllocatedMemory().get() +
-            memoryManager.getCurrentOffHeapAllocatedMemory().get() + size <
+        if (memoryManager.getCurrentOnHeapAllocatedMemoryInBytes().get() +
+            memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get() + size <
             MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES) {
+            memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().addAndGet(size);
             return offHeapAllocator.directBuffer((int) size);
         }
         return null;
@@ -52,7 +54,7 @@ public class NettyMemoryAllocator implements MemoryAllocator {
 
     @Override
     public void returnMemoryToManager(long size) {
-        memoryManager.getCurrentOffHeapAllocatedMemory().addAndGet(-size);
+        memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().addAndGet(-size);
     }
 
     @Override
@@ -61,14 +63,6 @@ public class NettyMemoryAllocator implements MemoryAllocator {
             throw new IllegalArgumentException("memoryBlock must be ByteBuf");
         }
         ByteBuf buf = (ByteBuf) memoryBlock;
-        ReferenceCountUtil.safeRelease(buf, ReferenceCountUtil.refCnt(buf));
-    }
-
-    public static void main(String[] args) {
-        MemoryAllocator netty = new NettyMemoryAllocator(null);
-        ByteBuf buf = (ByteBuf) netty.forceAllocate(1024);
-        System.out.println(ReferenceCountUtil.refCnt(buf));
-        netty.releaseMemoryBlock(buf);
-        System.out.println(ReferenceCountUtil.refCnt(buf));
+        ReferenceCountUtil.safeRelease(buf);
     }
 }

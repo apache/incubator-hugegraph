@@ -52,7 +52,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     public synchronized void releaseSelf(String reason) {
         this.memoryAllocator.returnMemoryToManager(getAllocatedBytes());
         this.memoryConsumers.forEach(memoryConsumer -> {
-            memoryConsumer.getAllOffHeapByteBuf().forEach(memoryAllocator::releaseMemoryBlock);
+            memoryConsumer.getAllMemoryBlock().forEach(memoryAllocator::releaseMemoryBlock);
         });
         this.memoryConsumers.clear();
         super.releaseSelf(reason);

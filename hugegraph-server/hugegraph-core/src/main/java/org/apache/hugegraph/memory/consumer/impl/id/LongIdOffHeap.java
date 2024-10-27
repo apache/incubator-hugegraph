@@ -78,7 +78,7 @@ public class LongIdOffHeap extends IdGenerator.LongId implements MemoryConsumer 
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(idOffHeap);
     }
 

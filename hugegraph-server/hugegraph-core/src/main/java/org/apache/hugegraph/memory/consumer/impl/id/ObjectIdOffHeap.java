@@ -66,7 +66,7 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsu
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(objectOffHeap);
     }
 

@@ -70,7 +70,7 @@ public class HugeVertexPropertyOffHeap<V> extends HugeVertexProperty<V> implemen
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(valueOffHeap);
     }
 

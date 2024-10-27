@@ -49,5 +49,5 @@ public interface MemoryConsumer {
 
     MemoryPool getOperatorMemoryPool();
 
-    List<ByteBuf> getAllOffHeapByteBuf();
+    List<ByteBuf> getAllMemoryBlock();
 }

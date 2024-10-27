@@ -17,8 +17,9 @@
 
 package org.apache.hugegraph.memory.allocator;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.hugegraph.memory.MemoryManager;
-import org.apache.hugegraph.util.Bytes;
 
 public class OnHeapMemoryStrategy implements MemoryAllocator {
 
@@ -29,31 +30,31 @@ public class OnHeapMemoryStrategy implements MemoryAllocator {
     }
 
     @Override
-    public byte[] tryToAllocate(long size) {
-        if (memoryManager.getCurrentOnHeapAllocatedMemory().get() +
-            memoryManager.getCurrentOffHeapAllocatedMemory().get() + size <
+    public AtomicReference<byte[]> tryToAllocate(long size) {
+        if (memoryManager.getCurrentOnHeapAllocatedMemoryInBytes().get() +
+            memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get() + size <
             MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES) {
-            int sizeOfByte = (int) (size / Bytes.BASE);
-            memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(sizeOfByte);
-            return new byte[sizeOfByte];
+            memoryManager.getCurrentOnHeapAllocatedMemoryInBytes().addAndGet(size);
+            byte[] memoryBlock = new byte[(int) size];
+            return new AtomicReference<>(memoryBlock);
         }
         return null;
     }
 
     @Override
-    public byte[] forceAllocate(long size) {
-        int sizeOfByte = (int) (size / Bytes.BASE);
-        memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(sizeOfByte);
-        return new byte[sizeOfByte];
+    public AtomicReference<byte[]> forceAllocate(long size) {
+        memoryManager.getCurrentOnHeapAllocatedMemoryInBytes().addAndGet(size);
+        byte[] memoryBlock = new byte[(int) size];
+        return new AtomicReference<>(memoryBlock);
     }
 
     @Override
     public void returnMemoryToManager(long size) {
-        memoryManager.getCurrentOnHeapAllocatedMemory().addAndGet(-size);
+        memoryManager.getCurrentOnHeapAllocatedMemoryInBytes().addAndGet(-size);
     }
 
     @Override
     public void releaseMemoryBlock(Object memoryBlock) {
-        memoryBlock = null;
+        ((AtomicReference<byte[]>) memoryBlock).set(null);
     }
 }

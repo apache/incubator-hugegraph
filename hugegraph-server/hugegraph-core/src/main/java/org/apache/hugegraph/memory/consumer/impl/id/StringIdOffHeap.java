@@ -78,7 +78,7 @@ public class StringIdOffHeap extends IdGenerator.StringId implements MemoryConsu
     }
 
     @Override
-    public List<ByteBuf> getAllOffHeapByteBuf() {
+    public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(idOffHeap);
     }
 

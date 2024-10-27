@@ -46,8 +46,8 @@ public class MemoryManager {
     public static final long MAX_MEMORY_CAPACITY_IN_BYTES = Bytes.GB;
     private final AtomicLong currentAvailableMemoryInBytes =
             new AtomicLong(MAX_MEMORY_CAPACITY_IN_BYTES);
-    private final AtomicLong currentOffHeapAllocatedMemory = new AtomicLong(0);
-    private final AtomicLong currentOnHeapAllocatedMemory = new AtomicLong(0);
+    private final AtomicLong currentOffHeapAllocatedMemoryInBytes = new AtomicLong(0);
+    private final AtomicLong currentOnHeapAllocatedMemoryInBytes = new AtomicLong(0);
     private final Queue<MemoryPool> queryMemoryPools =
             new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
     private final MemoryArbitrator memoryArbitrator;
@@ -136,12 +136,12 @@ public class MemoryManager {
         currentAvailableMemoryInBytes.addAndGet(-size);
     }
 
-    public AtomicLong getCurrentOnHeapAllocatedMemory() {
-        return currentOnHeapAllocatedMemory;
+    public AtomicLong getCurrentOnHeapAllocatedMemoryInBytes() {
+        return currentOnHeapAllocatedMemoryInBytes;
     }
 
-    public AtomicLong getCurrentOffHeapAllocatedMemory() {
-        return currentOffHeapAllocatedMemory;
+    public AtomicLong getCurrentOffHeapAllocatedMemoryInBytes() {
+        return currentOffHeapAllocatedMemoryInBytes;
     }
 
     private static class MemoryManagerHolder {
