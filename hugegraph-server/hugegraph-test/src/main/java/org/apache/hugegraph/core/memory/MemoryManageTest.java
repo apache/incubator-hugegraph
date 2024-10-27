@@ -53,7 +53,7 @@ public class MemoryManageTest {
     protected static MemoryManager memoryManager;
     protected static MemoryPool query1MemoryPool;
     protected static MemoryPool query1Task1MemoryPool;
-    protected static String QUERY1_TASK1_THREAD_NAME = "QUERY1-THREAD-1";
+    protected static String QUERY1_TASK1_THREAD_NAME = "main";
     protected static MemoryPool query1Task2MemoryPool;
     protected static String QUERY1_TASK2_THREAD_NAME = "QUERY1-THREAD-2";
     protected static MemoryPool query1Task1Operator1MemoryPool;
@@ -149,7 +149,9 @@ public class MemoryManageTest {
         ByteBuf memoryBlock = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
         Assert.assertNotNull(memoryBlock);
         Assert.assertEquals(requireBytes, memoryBlock.capacity());
-        query1Task1MemoryPool.releaseSelf("Test release by hand", false);
+        memoryManager.getCorrespondingTaskMemoryPool(QUERY1_TASK1_THREAD_NAME)
+                     .releaseSelf("Test release by hand", false);
+        Assert.assertNull(memoryManager.getCorrespondingTaskMemoryPool(QUERY1_TASK1_THREAD_NAME));
         Assert.assertEquals(1, query1MemoryPool.getChildrenCount());
         Assert.assertEquals(0, query1MemoryPool.getAllocatedBytes());
         Assert.assertEquals(0, query1MemoryPool.getUsedBytes());
