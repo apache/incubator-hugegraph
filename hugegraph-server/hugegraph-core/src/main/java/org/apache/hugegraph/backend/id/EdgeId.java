@@ -28,8 +28,13 @@ import org.apache.hugegraph.util.StringEncoding;
 
 /**
  * Class used to format and parse id of edge, the edge id consists of:
- * { source-vertex-id + edge-label + edge-name + target-vertex-id }
- * NOTE: if we use `entry.type()` which is IN or OUT as a part of id,
+ * EdgeId = { source-vertex-id > direction > parentEdgeLabelId > subEdgeLabelId
+ * > sortKeys > target-vertex-id }
+ * NOTE:
+ * <p>1. for edges with edgeLabelType = NORMAL: edgeLabelId = parentEdgeLabelId = subEdgeLabelId;
+ *       for edges with edgeLabelType = PARENT: edgeLabelId = subEdgeLabelId, parentEdgeLabelId =
+ *       edgeLabelId.fatherId
+ * <p>2.if we use `entry.type()` which is IN or OUT as a part of id,
  * an edge's id will be different due to different directions (belongs
  * to 2 owner vertex)
  */
@@ -39,6 +44,7 @@ public class EdgeId implements Id {
             HugeKeys.OWNER_VERTEX,
             HugeKeys.DIRECTION,
             HugeKeys.LABEL,
+            HugeKeys.SUB_LABEL,
             HugeKeys.SORT_VALUES,
             HugeKeys.OTHER_VERTEX
     };
@@ -46,6 +52,7 @@ public class EdgeId implements Id {
     private final Id ownerVertexId;
     private final Directions direction;
     private final Id edgeLabelId;
+    private final Id subLabelId;
     private final String sortValues;
     private final Id otherVertexId;
 
@@ -53,22 +60,23 @@ public class EdgeId implements Id {
     private String cache;
 
     public EdgeId(HugeVertex ownerVertex, Directions direction,
-                  Id edgeLabelId, String sortValues, HugeVertex otherVertex) {
-        this(ownerVertex.id(), direction, edgeLabelId,
+                  Id edgeLabelId, Id subLabelId, String sortValues, HugeVertex otherVertex) {
+        this(ownerVertex.id(), direction, edgeLabelId, subLabelId,
              sortValues, otherVertex.id());
     }
 
-    public EdgeId(Id ownerVertexId, Directions direction, Id edgeLabelId,
+    public EdgeId(Id ownerVertexId, Directions direction, Id edgeLabelId, Id subLabelId,
                   String sortValues, Id otherVertexId) {
-        this(ownerVertexId, direction, edgeLabelId,
+        this(ownerVertexId, direction, edgeLabelId, subLabelId,
              sortValues, otherVertexId, false);
     }
 
-    public EdgeId(Id ownerVertexId, Directions direction, Id edgeLabelId,
+    public EdgeId(Id ownerVertexId, Directions direction, Id edgeLabelId, Id subLabelId,
                   String sortValues, Id otherVertexId, boolean directed) {
         this.ownerVertexId = ownerVertexId;
         this.direction = direction;
         this.edgeLabelId = edgeLabelId;
+        this.subLabelId = subLabelId;
         this.sortValues = sortValues;
         this.otherVertexId = otherVertexId;
         this.directed = directed;
@@ -78,12 +86,12 @@ public class EdgeId implements Id {
     @Watched
     public EdgeId switchDirection() {
         Directions direction = this.direction.opposite();
-        return new EdgeId(this.otherVertexId, direction, this.edgeLabelId,
+        return new EdgeId(this.otherVertexId, direction, this.edgeLabelId, this.subLabelId,
                           this.sortValues, this.ownerVertexId, this.directed);
     }
 
     public EdgeId directed(boolean directed) {
-        return new EdgeId(this.ownerVertexId, this.direction, this.edgeLabelId,
+        return new EdgeId(this.ownerVertexId, this.direction, this.edgeLabelId, this.subLabelId,
                           this.sortValues, this.otherVertexId, directed);
     }
 
@@ -105,6 +113,10 @@ public class EdgeId implements Id {
 
     public Id edgeLabelId() {
         return this.edgeLabelId;
+    }
+
+    public Id subLabelId() {
+        return this.subLabelId;
     }
 
     public Directions direction() {
@@ -138,12 +150,14 @@ public class EdgeId implements Id {
                     IdUtil.writeString(this.ownerVertexId),
                     this.direction.type().string(),
                     IdUtil.writeLong(this.edgeLabelId),
+                    IdUtil.writeLong(this.subLabelId),
                     this.sortValues,
                     IdUtil.writeString(this.otherVertexId));
         } else {
             this.cache = SplicingIdGenerator.concat(
                     IdUtil.writeString(this.sourceVertexId()),
                     IdUtil.writeLong(this.edgeLabelId),
+                    IdUtil.writeLong(this.subLabelId),
                     this.sortValues,
                     IdUtil.writeString(this.targetVertexId()));
         }
@@ -181,11 +195,13 @@ public class EdgeId implements Id {
             return this.ownerVertexId.hashCode() ^
                    this.direction.hashCode() ^
                    this.edgeLabelId.hashCode() ^
+                   this.subLabelId.hashCode() ^
                    this.sortValues.hashCode() ^
                    this.otherVertexId.hashCode();
         } else {
             return this.sourceVertexId().hashCode() ^
                    this.edgeLabelId.hashCode() ^
+                   this.subLabelId.hashCode() ^
                    this.sortValues.hashCode() ^
                    this.targetVertexId().hashCode();
         }
@@ -201,11 +217,13 @@ public class EdgeId implements Id {
             return this.ownerVertexId.equals(other.ownerVertexId) &&
                    this.direction == other.direction &&
                    this.edgeLabelId.equals(other.edgeLabelId) &&
+                   this.subLabelId.equals(other.subLabelId) &&
                    this.sortValues.equals(other.sortValues) &&
                    this.otherVertexId.equals(other.otherVertexId);
         } else {
             return this.sourceVertexId().equals(other.sourceVertexId()) &&
                    this.edgeLabelId.equals(other.edgeLabelId) &&
+                   this.subLabelId.equals(other.subLabelId) &&
                    this.sortValues.equals(other.sortValues) &&
                    this.targetVertexId().equals(other.targetVertexId());
         }
@@ -235,31 +253,33 @@ public class EdgeId implements Id {
     public static EdgeId parse(String id, boolean returnNullIfError)
             throws NotFoundException {
         String[] idParts = SplicingIdGenerator.split(id);
-        if (!(idParts.length == 4 || idParts.length == 5)) {
+        if (!(idParts.length == 5 || idParts.length == 6)) {
             if (returnNullIfError) {
                 return null;
             }
-            throw new NotFoundException("Edge id must be formatted as 4~5 " +
+            throw new NotFoundException("Edge id must be formatted as 5~6 " +
                                         "parts, but got %s parts: '%s'",
                                         idParts.length, id);
         }
         try {
-            if (idParts.length == 4) {
+            if (idParts.length == 5) {
                 Id ownerVertexId = IdUtil.readString(idParts[0]);
                 Id edgeLabelId = IdUtil.readLong(idParts[1]);
-                String sortValues = idParts[2];
-                Id otherVertexId = IdUtil.readString(idParts[3]);
-                return new EdgeId(ownerVertexId, Directions.OUT, edgeLabelId,
+                Id subLabelId = IdUtil.readLong(idParts[2]);
+                String sortValues = idParts[3];
+                Id otherVertexId = IdUtil.readString(idParts[4]);
+                return new EdgeId(ownerVertexId, Directions.OUT, edgeLabelId, subLabelId,
                                   sortValues, otherVertexId);
             } else {
-                assert idParts.length == 5;
+                assert idParts.length == 6;
                 Id ownerVertexId = IdUtil.readString(idParts[0]);
                 HugeType direction = HugeType.fromString(idParts[1]);
                 Id edgeLabelId = IdUtil.readLong(idParts[2]);
-                String sortValues = idParts[3];
-                Id otherVertexId = IdUtil.readString(idParts[4]);
+                Id subLabelId = IdUtil.readLong(idParts[3]);
+                String sortValues = idParts[4];
+                Id otherVertexId = IdUtil.readString(idParts[5]);
                 return new EdgeId(ownerVertexId, Directions.convert(direction),
-                                  edgeLabelId, sortValues, otherVertexId);
+                                  edgeLabelId, subLabelId, sortValues, otherVertexId);
             }
         } catch (Throwable e) {
             if (returnNullIfError) {
@@ -272,12 +292,13 @@ public class EdgeId implements Id {
 
     public static Id parseStoredString(String id) {
         String[] idParts = split(id);
-        E.checkArgument(idParts.length == 4, "Invalid id format: %s", id);
+        E.checkArgument(idParts.length == 5, "Invalid id format: %s", id);
         Id ownerVertexId = IdUtil.readStoredString(idParts[0]);
         Id edgeLabelId = IdGenerator.ofStoredString(idParts[1], IdType.LONG);
-        String sortValues = idParts[2];
-        Id otherVertexId = IdUtil.readStoredString(idParts[3]);
-        return new EdgeId(ownerVertexId, Directions.OUT, edgeLabelId,
+        Id subLabelId = IdGenerator.ofStoredString(idParts[2], IdType.LONG);
+        String sortValues = idParts[3];
+        Id otherVertexId = IdUtil.readStoredString(idParts[4]);
+        return new EdgeId(ownerVertexId, Directions.OUT, edgeLabelId, subLabelId,
                           sortValues, otherVertexId);
     }
 
@@ -286,6 +307,7 @@ public class EdgeId implements Id {
         return SplicingIdGenerator.concat(
                 IdUtil.writeStoredString(eid.sourceVertexId()),
                 IdGenerator.asStoredString(eid.edgeLabelId()),
+                IdGenerator.asStoredString(eid.subLabelId()),
                 eid.sortValues(),
                 IdUtil.writeStoredString(eid.targetVertexId()));
     }

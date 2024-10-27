@@ -19,7 +19,7 @@ published)
 
 ## Purpose of the PR
 
-- close #xxx  <!-- or use "fix #xxx", "xxx" is the ID-link of related issue, e.g: close #1024 -->
+- close #xxx <!-- or use "fix #xxx", "xxx" is the ID-link of related issue, e.g: close #1024 -->
 
 <!--
 Please explain more context in this section, clarify why the changes are needed. 
@@ -30,7 +30,7 @@ e.g:
 
 ## Main Changes
 
-<!-- Please clarify what changes you are proposing. The purpose of this section is to outline the changes and how this PR fixes the issue. These change logs are helpful for better ant faster reviews.)
+<!-- Please clarify what changes you are proposing. The purpose of this section is to outline the changes and how this PR fixes the issue. These change logs are helpful for better and faster reviews.)
 
 For example:
 

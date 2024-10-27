@@ -29,11 +29,6 @@
     </parent>
     <artifactId>hg-pd-common</artifactId>
 
-    <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
@@ -43,7 +38,6 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.24</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

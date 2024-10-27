@@ -68,7 +68,7 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 
 import com.google.common.collect.ImmutableSet;
 
-public class SchemaTransaction extends IndexableTransaction {
+public class SchemaTransaction extends IndexableTransaction implements ISchemaTransaction {
 
     private final SchemaIndexTransaction indexTx;
     private final SystemSchemaStore systemSchemaStore;
@@ -247,9 +247,21 @@ public class SchemaTransaction extends IndexableTransaction {
     @Watched(prefix = "schema")
     public Id removeEdgeLabel(Id id) {
         LOG.debug("SchemaTransaction remove edge label '{}'", id);
-        SchemaJob callable = new EdgeLabelRemoveJob();
         EdgeLabel schema = this.getEdgeLabel(id);
-        return asyncRun(this.graph(), schema, callable);
+        if (schema.edgeLabelType().parent()) {
+            List<EdgeLabel> edgeLabels = this.getEdgeLabels();
+            for (EdgeLabel edgeLabel : edgeLabels) {
+                if (edgeLabel.edgeLabelType().sub() &&
+                    edgeLabel.fatherId() == id) {
+                    throw new NotAllowException(
+                            "Not allowed to remove a parent edge label: '%s' " +
+                            "because the sub edge label '%s' is still existing",
+                            schema.name(), edgeLabel.name());
+                }
+            }
+        }
+        SchemaJob job = new EdgeLabelRemoveJob();
+        return asyncRun(this.graph(), schema, job);
     }
 
     @Watched(prefix = "schema")
@@ -524,7 +536,8 @@ public class SchemaTransaction extends IndexableTransaction {
         return results;
     }
 
-    protected void removeSchema(SchemaElement schema) {
+    @Override
+    public void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
         // System schema just remove from SystemSchemaStore in memory

@@ -59,6 +59,7 @@ import org.apache.hugegraph.type.define.AggregateType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.type.define.IdStrategy;
@@ -72,6 +73,8 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.NumericUtil;
 import org.apache.hugegraph.util.StringEncoding;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+
+import static org.apache.hugegraph.schema.SchemaElement.UNDEF;
 
 public class BinarySerializer extends AbstractSerializer {
 
@@ -277,15 +280,26 @@ public class BinarySerializer extends AbstractSerializer {
         }
         byte type = buffer.read();
         Id labelId = buffer.readId();
+        Id subLabelId = buffer.readId();
         String sortValues = buffer.readStringWithEnding();
         Id otherVertexId = buffer.readId();
 
         boolean direction = EdgeId.isOutDirectionFromCode(type);
-        EdgeLabel edgeLabel = graph.edgeLabelOrNone(labelId);
 
-        // Construct edge
-        HugeEdge edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
-                                               sortValues, otherVertexId);
+        HugeEdge edge;
+        if (graph == null) { /* when calculation sinking */
+            EdgeLabel edgeLabel = new EdgeLabel(null, subLabelId, UNDEF);
+            if (subLabelId != labelId) {
+                edgeLabel.edgeLabelType(EdgeLabelType.SUB);
+                edgeLabel.fatherId(labelId);
+            }
+            edge = HugeEdge.constructEdgeWithoutGraph(vertex, direction, edgeLabel,
+                                                      sortValues, otherVertexId);
+        } else {
+            EdgeLabel edgeLabel = graph.edgeLabelOrNone(subLabelId);
+            edge = HugeEdge.constructEdge(vertex, direction, edgeLabel,
+                                          sortValues, otherVertexId);
+        }
 
         // Parse edge-id + edge-properties
         buffer = BytesBuffer.wrap(col.value);
@@ -425,6 +439,7 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public BackendEntry writeOlapVertex(HugeVertex vertex) {
+        // TODO: adapt to hstore (merge olap table)
         BinaryBackendEntry entry = newBackendEntry(HugeType.OLAP, vertex.id());
         BytesBuffer buffer = BytesBuffer.allocate(8 + 16);
 
@@ -529,7 +544,6 @@ public class BinarySerializer extends AbstractSerializer {
 
     @Override
     public CIter<Edge> readEdges(HugeGraph graph, BackendEntry bytesEntry) {
-
         BinaryBackendEntry entry = this.convertEntry(bytesEntry);
 
         // Parse id
@@ -667,6 +681,11 @@ public class BinarySerializer extends AbstractSerializer {
         start.write(direction.type().code());
         start.writeId(label);
 
+        Id subLabel = cq.condition(HugeKeys.SUB_LABEL);
+        if (subLabel != null) {
+            start.writeId(subLabel);
+        }
+
         BytesBuffer end = BytesBuffer.allocate(BytesBuffer.BUF_EDGE_ID);
         end.copyFrom(start);
 
@@ -686,8 +705,10 @@ public class BinarySerializer extends AbstractSerializer {
         if (cq.paging() && !cq.page().isEmpty()) {
             includeStart = true;
             byte[] position = PageState.fromString(cq.page()).position();
-            E.checkArgument(Bytes.compare(position, startId.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(position, startId.asBytes()) >= 0,
+            //                 "Invalid page out of lower bound");
             startId = new BinaryId(position, null);
         }
         if (range.keyMax() == null) {
@@ -721,6 +742,9 @@ public class BinarySerializer extends AbstractSerializer {
                 byte t = ((Directions) value).type().code();
                 buffer.write(t);
             } else if (key == HugeKeys.LABEL) {
+                assert value instanceof Id;
+                buffer.writeId((Id) value);
+            } else if (key == HugeKeys.SUB_LABEL) {
                 assert value instanceof Id;
                 buffer.writeId((Id) value);
             } else if (key == HugeKeys.SORT_VALUES) {
@@ -797,8 +821,10 @@ public class BinarySerializer extends AbstractSerializer {
             if (start == null) {
                 return new IdPrefixQuery(query, id);
             }
-            E.checkArgument(Bytes.compare(start.asBytes(), id.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(start.asBytes(), id.asBytes()) >= 0,
+            //                 "Invalid page out of lower bound");
             return new IdPrefixQuery(query, start, id);
         }
 
@@ -827,8 +853,10 @@ public class BinarySerializer extends AbstractSerializer {
         if (start == null) {
             start = min;
         } else {
-            E.checkArgument(Bytes.compare(start.asBytes(), min.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(start.asBytes(), min.asBytes()) >= 0,
+            //                 "Invalid page out of lower bound");
         }
 
         if (keyMax == null) {
@@ -923,8 +951,10 @@ public class BinarySerializer extends AbstractSerializer {
              * the page to id and use it as the starting row for this query
              */
             byte[] position = PageState.fromString(query.page()).position();
-            E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
-                            "Invalid page out of lower bound");
+            // FIXME: Due to the inconsistency in the definition of `position` of RocksDB
+            //  scan iterator and Hstore, temporarily remove the following check.
+            // E.checkArgument(Bytes.compare(position, prefix.asBytes()) >= 0,
+            //                "Invalid page out of lower bound");
             BinaryId start = new BinaryId(position, null);
             newQuery = new IdPrefixQuery(query, start, prefix);
         } else {
@@ -1096,8 +1126,7 @@ public class BinarySerializer extends AbstractSerializer {
         public BinaryBackendEntry writeEdgeLabel(EdgeLabel schema) {
             this.entry = newBackendEntry(schema);
             writeString(HugeKeys.NAME, schema.name());
-            writeId(HugeKeys.SOURCE_LABEL, schema.sourceLabel());
-            writeId(HugeKeys.TARGET_LABEL, schema.targetLabel());
+            writeIds(HugeKeys.LINKS, schema.linksIds());
             writeEnum(HugeKeys.FREQUENCY, schema.frequency());
             writeIds(HugeKeys.PROPERTIES, schema.properties());
             writeIds(HugeKeys.SORT_KEYS, schema.sortKeys());
@@ -1119,8 +1148,7 @@ public class BinarySerializer extends AbstractSerializer {
             String name = readString(HugeKeys.NAME);
 
             EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
-            edgeLabel.sourceLabel(readId(HugeKeys.SOURCE_LABEL));
-            edgeLabel.targetLabel(readId(HugeKeys.TARGET_LABEL));
+            edgeLabel.linksIds(readIds(HugeKeys.LINKS));
             edgeLabel.frequency(readEnum(HugeKeys.FREQUENCY, Frequency.class));
             edgeLabel.properties(readIds(HugeKeys.PROPERTIES));
             edgeLabel.sortKeys(readIds(HugeKeys.SORT_KEYS));
@@ -1304,9 +1332,9 @@ public class BinarySerializer extends AbstractSerializer {
         }
 
         private byte[] writeIds(Collection<Id> ids) {
-            E.checkState(ids.size() <= BytesBuffer.UINT16_MAX,
+            E.checkState(ids.size() <= BytesBuffer.MAX_PROPERTIES,
                          "The number of properties of vertex/edge label " +
-                         "can't exceed '%s'", BytesBuffer.UINT16_MAX);
+                         "can't exceed '%s'", BytesBuffer.MAX_PROPERTIES);
             int size = 2;
             for (Id id : ids) {
                 size += (1 + id.length());

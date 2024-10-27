@@ -20,15 +20,23 @@ package org.apache.hugegraph.schema;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
+import org.apache.hugegraph.type.define.EdgeLabelType;
 import org.apache.hugegraph.type.define.Frequency;
+import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
 
 import com.google.common.base.Objects;
@@ -37,10 +45,14 @@ public class EdgeLabel extends SchemaLabel {
 
     public static final EdgeLabel NONE = new EdgeLabel(null, NONE_ID, UNDEF);
 
+    private Set<Pair<Id, Id>> links = new HashSet<>();
     private Id sourceLabel = NONE_ID;
     private Id targetLabel = NONE_ID;
     private Frequency frequency;
     private List<Id> sortKeys;
+
+    private EdgeLabelType edgeLabelType = EdgeLabelType.NORMAL;
+    private Id fatherId;
 
     public EdgeLabel(final HugeGraph graph, Id id, String name) {
         super(graph, id, name);
@@ -51,6 +63,30 @@ public class EdgeLabel extends SchemaLabel {
     @Override
     public HugeType type() {
         return HugeType.EDGE_LABEL;
+    }
+
+    public boolean isFather() {
+        return this.edgeLabelType.parent();
+    }
+
+    public void edgeLabelType(EdgeLabelType type) {
+        this.edgeLabelType = type;
+    }
+
+    public EdgeLabelType edgeLabelType() {
+        return this.edgeLabelType;
+    }
+
+    public boolean hasFather() {
+        return this.edgeLabelType.sub();
+    }
+
+    public Id fatherId() {
+        return this.fatherId;
+    }
+
+    public void fatherId(Id fatherId) {
+        this.fatherId = fatherId;
     }
 
     public Frequency frequency() {
@@ -67,53 +103,112 @@ public class EdgeLabel extends SchemaLabel {
     }
 
     public String sourceLabelName() {
-        return this.graph.vertexLabelOrNone(this.sourceLabel).name();
+        E.checkState(this.links.size() == 1,
+                     "Only edge label has single vertex label pair can call " +
+                     "sourceLabelName(), but current edge label got %s",
+                     this.links.size());
+        return this.graph.vertexLabelOrNone(this.links.iterator().next().getLeft()).name();
+    }
+
+    public List<Id> linksIds() {
+        List<Id> ids = new ArrayList<>(this.links.size() * 2);
+        for (Pair<Id, Id> link : this.links) {
+            ids.add(link.getLeft());
+            ids.add(link.getRight());
+        }
+        return ids;
+    }
+
+    public void linksIds(Id[] ids) {
+        this.links = new HashSet<>(ids.length / 2);
+        for (int i = 0; i < ids.length; i += 2) {
+            this.links.add(Pair.of(ids[i], ids[i + 1]));
+        }
     }
 
     public Id sourceLabel() {
-        return this.sourceLabel;
+        if (links.size() == 1) {
+            return links.iterator().next().getLeft();
+        }
+        return NONE_ID;
     }
 
     public void sourceLabel(Id id) {
-        E.checkArgument(this.sourceLabel == NONE_ID,
-                        "Not allowed to set source label multi times " +
-                        "of edge label '%s'", this.name());
-        this.sourceLabel = id;
+        E.checkArgument(this.links.isEmpty(),
+                        "Not allowed add source label to an edge label which " +
+                        "already has links");
+        if (this.targetLabel != NONE_ID) {
+            this.links.add(Pair.of(id, this.targetLabel));
+            this.targetLabel = NONE_ID;
+        } else {
+            this.sourceLabel = id;
+        }
     }
 
     public String targetLabelName() {
-        return this.graph.vertexLabelOrNone(this.targetLabel).name();
+        E.checkState(this.links.size() == 1,
+                     "Only edge label has single vertex label pair can call " +
+                     "sourceLabelName(), but current edge label got %s",
+                     this.links.size());
+        return this.graph.vertexLabelOrNone(this.links.iterator().next().getRight()).name();
     }
 
     public Id targetLabel() {
-        return this.targetLabel;
+        if (links.size() == 1) {
+            return links.iterator().next().getRight();
+        }
+        return NONE_ID;
     }
 
     public void targetLabel(Id id) {
-        E.checkArgument(this.targetLabel == NONE_ID,
-                        "Not allowed to set target label multi times " +
-                        "of edge label '%s'", this.name());
-        this.targetLabel = id;
+        E.checkArgument(this.links.isEmpty(),
+                        "Not allowed add source label to an edge label which " +
+                        "already has links");
+        if (this.sourceLabel != NONE_ID) {
+            this.links.add(Pair.of(this.sourceLabel, id));
+            this.sourceLabel = NONE_ID;
+        } else {
+            this.targetLabel = id;
+        }
     }
 
     public boolean linkWithLabel(Id id) {
-        return this.sourceLabel.equals(id) || this.targetLabel.equals(id);
-    }
-
-    public boolean linkWithVertexLabel(Id label, Directions dir) {
-        if (dir.equals(Directions.IN)) {
-            return this.targetLabel.equals(label);
-        } else if (dir.equals(Directions.OUT)) {
-            return this.sourceLabel.equals(label);
-        } else if (dir.equals(Directions.BOTH)) {
-            return this.targetLabel.equals(label) || this.sourceLabel.equals(label);
+        for (Pair<Id, Id> link : this.links) {
+            if (link.getLeft().equals(id) || link.getRight().equals(id)) {
+                return true;
+            }
         }
         return false;
     }
 
+    public boolean linkWithVertexLabel(Id label, Directions dir) {
+        return this.links.stream().anyMatch(pair -> {
+            Id sourceLabel = pair.getLeft();
+            Id targetLabel = pair.getRight();
+            if (dir.equals(Directions.IN)) {
+                return targetLabel.equals(label);
+            } else if (dir.equals(Directions.OUT)) {
+                return sourceLabel.equals(label);
+            } else if (dir.equals(Directions.BOTH)) {
+                return targetLabel.equals(label) || sourceLabel.equals(label);
+            }
+            return false;
+        });
+    }
+
     public boolean checkLinkEqual(Id sourceLabel, Id targetLabel) {
-        return this.sourceLabel.equals(sourceLabel) &&
-               this.targetLabel.equals(targetLabel);
+        return this.links.contains(Pair.of(sourceLabel, targetLabel));
+    }
+
+    public Set<Pair<Id, Id>> links() {
+        return this.links;
+    }
+
+    public void links(Pair<Id, Id> link) {
+        if (this.links == null) {
+            this.links = new HashSet<>();
+        }
+        this.links.add(link);
     }
 
     public boolean existSortKeys() {
@@ -149,10 +244,16 @@ public class EdgeLabel extends SchemaLabel {
 
         Id rebuildIndex();
 
+        Builder asBase();
+
+        Builder withBase(String fatherLabel);
+
         Builder link(String sourceLabel, String targetLabel);
 
+        @Deprecated
         Builder sourceLabel(String label);
 
+        @Deprecated
         Builder targetLabel(String label);
 
         Builder singleTime();
@@ -176,5 +277,169 @@ public class EdgeLabel extends SchemaLabel {
         Builder userdata(String key, Object value);
 
         Builder userdata(Map<String, Object> userdata);
+    }
+
+    @Override
+    public Map<String, Object> asMap() {
+        Map<String, Object> map = new HashMap<>();
+
+        if (this.sourceLabel() != null && this.sourceLabel() != NONE_ID) {
+            map.put(P.SOURCE_LABEL, this.sourceLabel().asString());
+        }
+
+        if (this.targetLabel() != null && this.targetLabel() != NONE_ID) {
+            map.put(P.TARGET_LABEL, this.targetLabel().asString());
+        }
+
+        if (this.properties() != null) {
+            map.put(P.PROPERTIES, this.properties());
+        }
+
+        if (this.nullableKeys() != null) {
+            map.put(P.NULLABLE_KEYS, this.nullableKeys());
+        }
+
+        if (this.indexLabels() != null) {
+            map.put(P.INDEX_LABELS, this.indexLabels());
+        }
+
+        if (this.ttlStartTime() != null) {
+            map.put(P.TT_START_TIME, this.ttlStartTime().asString());
+        }
+
+        if (this.sortKeys() != null) {
+            map.put(P.SORT_KEYS, this.sortKeys);
+        }
+
+        map.put(P.EDGELABEL_TYPE, this.edgeLabelType);
+        if (this.fatherId() != null) {
+            map.put(P.FATHER_ID, this.fatherId().asString());
+        }
+        map.put(P.ENABLE_LABEL_INDEX, this.enableLabelIndex());
+        map.put(P.TTL, String.valueOf(this.ttl()));
+        map.put(P.LINKS, this.links());
+        map.put(P.FREQUENCY, this.frequency().toString());
+
+        return super.asMap(map);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static EdgeLabel fromMap(Map<String, Object> map, HugeGraph graph) {
+        Id id = IdGenerator.of((int) map.get(EdgeLabel.P.ID));
+        String name = (String) map.get(EdgeLabel.P.NAME);
+        EdgeLabel edgeLabel = new EdgeLabel(graph, id, name);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            switch (entry.getKey()) {
+                case P.ID:
+                case P.NAME:
+                    break;
+                case P.STATUS:
+                    edgeLabel.status(
+                        SchemaStatus.valueOf(((String) entry.getValue()).toUpperCase()));
+                    break;
+                case P.USERDATA:
+                    edgeLabel.userdata(new Userdata((Map<String, Object>) entry.getValue()));
+                    break;
+                case P.PROPERTIES:
+                    Set<Id> ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    edgeLabel.properties(ids);
+                    break;
+                case P.NULLABLE_KEYS:
+                    ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    edgeLabel.nullableKeys(ids);
+                    break;
+                case P.INDEX_LABELS:
+                    ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    edgeLabel.addIndexLabels(ids.toArray(new Id[0]));
+                    break;
+                case P.ENABLE_LABEL_INDEX:
+                    boolean enableLabelIndex = (Boolean) entry.getValue();
+                    edgeLabel.enableLabelIndex(enableLabelIndex);
+                    break;
+                case P.TTL:
+                    long ttl = Long.parseLong((String) entry.getValue());
+                    edgeLabel.ttl(ttl);
+                    break;
+                case P.TT_START_TIME:
+                    long ttlStartTime =
+                            Long.parseLong((String) entry.getValue());
+                    edgeLabel.ttlStartTime(IdGenerator.of(ttlStartTime));
+                    break;
+                case P.LINKS:
+                    // TODO: serialize and deserialize
+                    List<Map> list = (List<Map>) entry.getValue();
+                    for (Map m : list) {
+                        for (Object key : m.keySet()) {
+                            Id sid = IdGenerator.of(Long.parseLong((String) key));
+                            Id tid = IdGenerator.of(Long.parseLong(String.valueOf(m.get(key))));
+                            edgeLabel.links(Pair.of(sid, tid));
+                        }
+                    }
+                    break;
+                case P.SOURCE_LABEL:
+                    long sourceLabel =
+                            Long.parseLong((String) entry.getValue());
+                    edgeLabel.sourceLabel(IdGenerator.of(sourceLabel));
+                    break;
+                case P.TARGET_LABEL:
+                    long targetLabel =
+                            Long.parseLong((String) entry.getValue());
+                    edgeLabel.targetLabel(IdGenerator.of(targetLabel));
+                    break;
+                case P.FATHER_ID:
+                    long fatherId =
+                            Long.parseLong((String) entry.getValue());
+                    edgeLabel.fatherId(IdGenerator.of(fatherId));
+                    break;
+                case P.EDGELABEL_TYPE:
+                    EdgeLabelType edgeLabelType =
+                            EdgeLabelType.valueOf(
+                                    ((String) entry.getValue()).toUpperCase());
+                    edgeLabel.edgeLabelType(edgeLabelType);
+                    break;
+                case P.FREQUENCY:
+                    Frequency frequency =
+                            Frequency.valueOf(((String) entry.getValue()).toUpperCase());
+                    edgeLabel.frequency(frequency);
+                    break;
+                case P.SORT_KEYS:
+                    ids = ((List<Integer>) entry.getValue()).stream().map(
+                            IdGenerator::of).collect(Collectors.toSet());
+                    edgeLabel.sortKeys(ids.toArray(new Id[0]));
+                    break;
+                default:
+                    throw new AssertionError(String.format(
+                            "Invalid key '%s' for edge label",
+                            entry.getKey()));
+            }
+        }
+        return edgeLabel;
+    }
+
+    public static final class P {
+
+        public static final String ID = "id";
+        public static final String NAME = "name";
+
+        public static final String STATUS = "status";
+        public static final String USERDATA = "userdata";
+
+        public static final String PROPERTIES = "properties";
+        public static final String NULLABLE_KEYS = "nullableKeys";
+        public static final String INDEX_LABELS = "indexLabels";
+
+        public static final String ENABLE_LABEL_INDEX = "enableLabelIndex";
+        public static final String TTL = "ttl";
+        public static final String TT_START_TIME = "ttlStartTime";
+        public static final String LINKS = "links";
+        public static final String SOURCE_LABEL = "sourceLabel";
+        public static final String TARGET_LABEL = "targetLabel";
+        public static final String EDGELABEL_TYPE = "edgeLabelType";
+        public static final String FATHER_ID = "fatherId";
+        public static final String FREQUENCY = "frequency";
+        public static final String SORT_KEYS = "sortKeys";
     }
 }

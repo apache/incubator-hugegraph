@@ -1,2 +1,5 @@
 # Exclude the generated PB files
 hg-store-grpc/src/main/java/
+
+# Exclude data files
+**/storage/

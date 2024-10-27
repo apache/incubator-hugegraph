@@ -143,7 +143,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 db.setAllowConcurrentMemtableWrite(true);
                 db.setEnableWriteThreadAdaptiveYield(true);
             }
-            db.setInfoLogLevel(conf.get(RocksDBOptions.LOG_LEVEL));
+            db.setInfoLogLevel(
+                    RocksDBOptions.LOG_LEVEL_MAPPING.get(conf.get(RocksDBOptions.LOG_LEVEL)));
             db.setMaxSubcompactions(conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
             db.setAllowMmapWrites(conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
             db.setAllowMmapReads(conf.get(RocksDBOptions.ALLOW_MMAP_READS));
@@ -357,7 +358,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 if (i == dbCount - 1) {
                     latestDBPath = curDBPath;
                 } else {
-                    // delete old db，在删除队列的文件不要删除
+                    // delete old db, do not delete files in the deletion queue
                     if (!factory.findPathInRemovedList(curDBPath)) {
                         try {
                             FileUtils.deleteDirectory(new File(curDBPath));
@@ -372,7 +373,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             latestDBPath = Paths.get(parentFile.getPath(), defaultName).toString();
         }
         if (factory.findPathInRemovedList(latestDBPath)) {
-            // 已经被删除，创建新的目录
+            // Has been deleted, create a new directory
             latestDBPath =
                     Paths.get(parentFile.getPath(), String.format("%s_%d", defaultName, version))
                          .toString();
@@ -429,6 +430,9 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
 
             ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
+            if (hugeConfig.get(RocksDBOptions.DISABLE_AUTO_COMPACTION)) {
+                cfOptions.setDisableAutoCompactions(true);
+            }
             RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
 
             if (columnFamilyBytes.size() > 0) {

@@ -87,7 +87,7 @@ public final class RocksDBFactory {
                                  watcher.dbSession.getRefCount(),
                                  (System.currentTimeMillis() - watcher.timestamp) / 1000);
                     } else {
-                        // 超时强制删除 (30min)
+                        // Force delete after timeout (30min)
                         watcher.dbSession.forceResetRefCount();
                     }
                 }
@@ -188,7 +188,7 @@ public final class RocksDBFactory {
     }
 
     /**
-     * 释放rocksdb对象
+     * Release rocksdb object
      *
      * @param dbName
      * @return
@@ -213,7 +213,7 @@ public final class RocksDBFactory {
     }
 
     /**
-     * 销毁图，并删除数据文件
+     * Destroy the graph, and delete the data file.
      *
      * @param dbName
      */
@@ -221,7 +221,7 @@ public final class RocksDBFactory {
         log.info("destroy {} 's  rocksdb.", dbName);
         RocksDBSession dbSession = dbSessionMap.get(dbName);
         releaseGraphDB(dbName);
-        //增加删除标记
+        // Add delete mark
         if (dbSession != null) {
             destroyGraphDBs.add(new DBSessionWatcher(dbSession));
             rocksdbChangedListeners.forEach(listener -> {

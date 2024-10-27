@@ -37,6 +37,7 @@ public class HugeGraphServer {
 
     private final RestServer restServer;
     private final GremlinServer gremlinServer;
+    private final MemoryMonitor memoryMonitor;
 
     public static void register() {
         RegisterUtil.registerBackends();
@@ -78,9 +79,15 @@ public class HugeGraphServer {
         } finally {
             System.setSecurityManager(securityManager);
         }
+
+        // Start (In-Heap) Memory Monitor
+        this.memoryMonitor = new MemoryMonitor(restServerConf);
+        this.memoryMonitor.start();
     }
 
     public void stop() {
+        this.memoryMonitor.stop();
+
         try {
             this.gremlinServer.stop().get();
             LOG.info("HugeGremlinServer stopped");

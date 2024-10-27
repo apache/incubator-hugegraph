@@ -27,7 +27,7 @@ public class Version {
     private static String version = "";
 
     /**
-     * 软件版本号
+     * Software version number
      */
     public static String getVersion() {
         if (version.isEmpty()) {
@@ -43,7 +43,7 @@ public class Version {
     }
 
     /**
-     * 存储格式版本号
+     * Storage Format Version Number
      */
     public static int getDataFmtVersion() {
         return 1;

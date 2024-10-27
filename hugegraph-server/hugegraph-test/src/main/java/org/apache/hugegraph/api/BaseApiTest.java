@@ -55,7 +55,7 @@ import jakarta.ws.rs.core.Response;
 
 public class BaseApiTest {
 
-    private static final String BASE_URL = "http://127.0.0.1:8080";
+    protected static final String BASE_URL = "http://127.0.0.1:8080";
     private static final String GRAPH = "hugegraph";
     private static final String USERNAME = "admin";
     private static final String PASSWORD = "pa";
@@ -71,7 +71,7 @@ public class BaseApiTest {
 
     protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
 
-    private static RestClient client;
+    protected static RestClient client;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -84,6 +84,7 @@ public class BaseApiTest {
     @AfterClass
     public static void clear() throws Exception {
         client.close();
+        client = null;
     }
 
     @After

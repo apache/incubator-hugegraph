@@ -61,14 +61,7 @@ ensure_path_writable "$PLUGINS"
 # The maximum and minimum heap memory that service can use
 MAX_MEM=$((32 * 1024))
 MIN_MEM=$((1 * 512))
-# TODO: upgrade to Java 11 in 1.5.0
-MIN_JAVA_VERSION=8
-
-# Note: Download for HTTPS, could comment out if you don't need it
-# TODO: only download it when we config https (check the conf file)
-if [[ ! -e "${CONF}/hugegraph-server.keystore" ]]; then
-    download "${CONF}" "${GITHUB}/apache/hugegraph-doc/raw/binary-1.0/dist/server/hugegraph-server.keystore"
-fi
+MIN_JAVA_VERSION=11
 
 # Add the slf4j-log4j12 binding
 CP=$(find -L $LIB -name 'log4j-slf4j-impl*.jar' | sort | tr '\n' ':')
@@ -128,9 +121,9 @@ fi
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
 # mention: zgc is only available on ARM-Mac with java > 13
 case "$GC_OPTION" in
-    g1|G1|g1gc)
+    "")
         echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
                                       -XX:InitiatingHeapOccupancyPercent=50 \
                                       -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
@@ -141,9 +134,8 @@ case "$GC_OPTION" in
                                       -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
                                       -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
         ;;
-    "") ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', only support 'G1/ZGC' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> ${OUTPUT}
         exit 1
 esac
 

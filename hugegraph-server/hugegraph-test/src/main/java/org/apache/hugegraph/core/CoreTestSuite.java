@@ -30,6 +30,7 @@ import org.junit.runners.Suite;
         IndexLabelCoreTest.class,
         VertexCoreTest.class,
         EdgeCoreTest.class,
+        ParentAndSubEdgeCoreTest.class,
         VertexPropertyCoreTest.class,
         EdgePropertyCoreTest.class,
         RestoreCoreTest.class,

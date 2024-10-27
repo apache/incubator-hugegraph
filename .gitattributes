@@ -5,8 +5,12 @@
 apache-release.sh export-ignore
 .licenserc.yaml export-ignore
 .editorconfig export-ignore
+hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc.so export-ignore
+hugegraph-store/hg-store-dist/src/assembly/static/bin/libjemalloc_aarch64.so export-ignore
 
 # ignored directory
 .github/ export-ignore
-hugegraph-dist/scripts/ export-ignore
-#assembly/ export-ignore
+.idea/ export-ignore
+install-dist/scripts/ export-ignore
+hugegraph-commons/hugegraph-dist/ export-ignore
+docker/ export-ignore

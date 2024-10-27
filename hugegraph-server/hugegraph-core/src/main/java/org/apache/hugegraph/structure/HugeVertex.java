@@ -39,10 +39,14 @@ import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.task.HugeServerInfo;
+import org.apache.hugegraph.task.HugeTask;
+import org.apache.hugegraph.task.HugeTaskResult;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.CollectionType;
@@ -90,6 +94,16 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
 
     @Override
     public HugeType type() {
+        if (label != null &&
+            (label.name().equals(HugeTask.P.TASK) ||
+             label.name().equals(HugeTaskResult.P.TASKRESULT))) {
+            return HugeType.TASK;
+        }
+        if (label != null &&
+            (label.name().equals(HugeServerInfo.P.SERVER) ||
+             label.name().equals(StandardClusterRoleStore.P.ROLE_DATA))) {
+            return HugeType.SERVER;
+        }
         return HugeType.VERTEX;
     }
 
@@ -289,6 +303,8 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
         E.checkArgument(label != null && !label.isEmpty(),
                         "Edge label can't be null or empty");
         EdgeLabel edgeLabel = this.graph().edgeLabel(label);
+        E.checkArgument(!edgeLabel.isFather(), "Adding an edge of parent type " +
+                                               "is not allowed");
         // Check link
         E.checkArgument(edgeLabel.checkLinkEqual(this.schemaLabel().id(),
                                                  vertex.schemaLabel().id()),

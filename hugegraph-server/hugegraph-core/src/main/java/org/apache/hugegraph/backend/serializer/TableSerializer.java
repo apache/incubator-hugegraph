@@ -61,6 +61,9 @@ import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 
+/**
+ * without father and sub edge label
+ */
 public abstract class TableSerializer extends AbstractSerializer {
 
     public TableSerializer(HugeConfig config) {

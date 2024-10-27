@@ -119,7 +119,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     public static HugeConfig initRocksdb(Map<String, Object> rocksdbConfig,
                                          RocksdbChangedListener listener) {
-        // 注册 rocksdb 配置
+        // Register rocksdb configuration
         OptionSpace.register("rocksdb", "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
         RocksDBOptions.instance();
         HugeConfig hConfig = new HugeConfig(new MapConfiguration(rocksdbConfig));
@@ -136,7 +136,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             dbName = String.format("%05d", partId);
             dbNames.put(partId, dbName);
         }
-        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 partId
+        // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is partId.
         return dbName;
     }
 
@@ -232,12 +232,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 根据 keyCode 范围返回数据，左闭右开
+     * According to keyCode range return data, left closed right open.
      *
      * @param graph
      * @param table
-     * @param codeFrom 起始 code，包含该值
-     * @param codeTo   结束 code，不包含该值
+     * @param codeFrom Starting code, including this value
+     * @param codeTo   End code, does not include this value
      * @return
      * @throws HgStoreException
      */
@@ -435,15 +435,15 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 清空图数据
+     * Clear map data
      */
     @Override
     public void truncate(String graphName, int partId) throws HgStoreException {
-        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
+        // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is rocksdb + partId
         try (RocksDBSession dbSession = getSession(graphName, partId)) {
             dbSession.sessionOp().deleteRange(keyCreator.getStartKey(partId, graphName),
                                               keyCreator.getEndKey(partId, graphName));
-            // 释放图 ID
+            // Release map ID
             keyCreator.delGraphId(partId, graphName);
         }
     }
@@ -563,7 +563,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                 boolean flag = code >= startKey && code < endKey;
                 return (cleanType == CleanType.CLEAN_TYPE_KEEP_RANGE) == flag;
             });
-            // 可能被 destroy 了
+            // May have been destroyed.
             if (HgStoreEngine.getInstance().getPartitionEngine(partId) != null) {
                 taskManager.updateAsyncTaskState(partId, graph, cleanTask.getId(),
                                                  AsyncTaskState.SUCCESS);
@@ -573,8 +573,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 清理分区数据，删除非本分区的数据
-     * 遍历 partId 的所有 key，读取 code，if code >= splitKey 生成新的 key，写入 newPartId
+     * Clean up partition data, delete data not belonging to this partition.
+     * Traverse all keys of partId, read code, if code >= splitKey generate a new key, write to newPartId
      */
     private boolean cleanPartition(Partition partition,
                                    Function<Integer, Boolean> belongsFunction) {
@@ -602,7 +602,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                         if (counter == 0) {
                             op.prepare();
                         }
-                        op.delete(table, col.name); // 删除旧数据
+                        op.delete(table, col.name); // delete old data
                         if (++counter > batchSize) {
                             op.commit();
                             counter = 0;
@@ -667,11 +667,11 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 获取 dbsession，不更新 dbsession 活跃时间
+     * Get dbsession, do not update dbsession active time
      */
     @Override
     public RocksDBSession getSession(int partId) throws HgStoreException {
-        // 每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
+        // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is rocksdb + partId
         String dbName = getDbName(partId);
         RocksDBSession dbSession = factory.queryGraphDB(dbName);
         if (dbSession == null) {
@@ -685,7 +685,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                            "failed to create a new graph db: {}", dbName);
             }
         }
-        dbSession.setDisableWAL(true); //raft 模式，关闭 rocksdb 日志
+        dbSession.setDisableWAL(true); // raft mode, disable rocksdb log
         return dbSession;
     }
 
@@ -719,7 +719,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public void deleteTable(String graph, int partId, String table) {
         dropTable(graph, partId, table);
-        // todo 检查表是否为空，为空则真实删除表
+        // TODO: Check if the table is empty, if empty then truly delete the table
 //        try (RocksDBSession session = getOrCreateGraphDB(graph, partId)) {
 //            session.deleteTables(table);
 //        }
@@ -735,7 +735,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 对 rocksdb 进行 compaction
+     * Perform compaction on RocksDB
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId) {
@@ -743,7 +743,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 对 rocksdb 进行 compaction
+     * Perform compaction on RocksDB
      */
     @Override
     public boolean dbCompaction(String graphName, int partitionId, String tableName) {
@@ -761,14 +761,14 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
-     * 销毁图，并删除数据文件
+     * Destroy the map, and delete the data file.
      *
      * @param graphName
      * @param partId
      */
     @Override
     public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
-        // 每个图每个分区对应一个 rocksdb 实例，因此 rocksdb 实例名为 rocksdb + partId
+        // Each graph each partition corresponds to a rocksdb instance, so the rocksdb instance name is rocksdb + partId
         String dbName = getDbName(partId);
 
         factory.destroyGraphDB(dbName);
@@ -904,7 +904,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             return new Tx() {
                 @Override
                 public void commit() throws HgStoreException {
-                    op.commit();  // commit发生异常后，必须调用rollback，否则造成锁未释放
+                    op.commit();  // After an exception occurs in commit, rollback must be called, otherwise it will cause the lock not to be released.
                     dbSession.close();
                 }
 

@@ -23,18 +23,19 @@ COPY . /pkg
 WORKDIR /pkg
 ARG MAVEN_ARGS
 
-RUN mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true && pwd && ls -l && rm ./hugegraph-server/*.tar.gz
+RUN mvn package $MAVEN_ARGS -e -B -ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true && pwd && ls -l && rm \
+    ./hugegraph-server/*.tar.gz && rm ./hugegraph-pd/*.tar.gz && rm ./hugegraph-store/*.tar.gz
 
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13 
 FROM openjdk:11-slim
 
-COPY --from=build /pkg/hugegraph-server/apache-hugegraph-incubating-*/ /hugegraph-server/
+COPY --from=build /pkg/hugegraph-server/apache-hugegraph-server-incubating-*/ /hugegraph-server/
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
 ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XshowSettings:vm" \
-    HUGEGRAPH_HOME="hugegraph"
+    HUGEGRAPH_HOME="hugegraph-server"
 
 #COPY . /hugegraph/hugegraph-server
 WORKDIR /hugegraph-server/
@@ -59,7 +60,7 @@ RUN set -x \
 COPY hugegraph-server/hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/scripts/detect-storage.groovy ./scripts
 COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
-RUN chmod 755 ./docker-entrypoint.sh 
+RUN chmod 755 ./docker-entrypoint.sh
 
 EXPOSE 8080
 VOLUME /hugegraph-server

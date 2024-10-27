@@ -39,6 +39,8 @@ import org.apache.hugegraph.exception.LimitExceedException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.job.ComputerJob;
 import org.apache.hugegraph.job.EphemeralJob;
+import org.apache.hugegraph.job.GremlinJob;
+import org.apache.hugegraph.job.schema.SchemaJob;
 import org.apache.hugegraph.type.define.SerialEnum;
 import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.E;
@@ -219,6 +221,10 @@ public class HugeTask<V> extends FutureTask<V> {
         return this.result;
     }
 
+    public synchronized void result(HugeTaskResult result) {
+        this.result = result.result();
+    }
+
     private synchronized boolean result(TaskStatus status, String result) {
         checkPropertySize(result, P.RESULT);
         if (this.status(status)) {
@@ -262,6 +268,18 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public boolean computer() {
         return ComputerJob.COMPUTER.equals(this.type);
+    }
+
+    public boolean schemaTask() {
+        return this.callable instanceof SchemaJob;
+    }
+
+    public boolean gremlinTask() {
+        return this.callable instanceof GremlinJob;
+    }
+
+    public boolean ephemeralTask() {
+        return this.callable instanceof EphemeralJob;
     }
 
     @Override
@@ -345,9 +363,7 @@ public class HugeTask<V> extends FutureTask<V> {
         } catch (Throwable e) {
             LOG.error("An exception occurred when calling done()", e);
         } finally {
-            StandardTaskScheduler scheduler = (StandardTaskScheduler)
-                    this.scheduler();
-            scheduler.taskDone(this);
+            this.scheduler().taskDone(this);
         }
     }
 
@@ -425,6 +441,10 @@ public class HugeTask<V> extends FutureTask<V> {
             return true;
         }
         return false;
+    }
+
+    public synchronized void overwriteStatus(TaskStatus status) {
+        this.status = status;
     }
 
     protected void property(String key, Object value) {
@@ -559,6 +579,75 @@ public class HugeTask<V> extends FutureTask<V> {
         return list.toArray();
     }
 
+    protected synchronized Object[] asArrayWithoutResult() {
+        E.checkState(this.type != null, "Task type can't be null");
+        E.checkState(this.name != null, "Task name can't be null");
+
+        List<Object> list = new ArrayList<>(28);
+
+        list.add(T.label);
+        list.add(P.TASK);
+
+        list.add(T.id);
+        list.add(this.id);
+
+        list.add(P.TYPE);
+        list.add(this.type);
+
+        list.add(P.NAME);
+        list.add(this.name);
+
+        list.add(P.CALLABLE);
+        list.add(this.callable.getClass().getName());
+
+        list.add(P.STATUS);
+        list.add(this.status.code());
+
+        list.add(P.PROGRESS);
+        list.add(this.progress);
+
+        list.add(P.CREATE);
+        list.add(this.create);
+
+        list.add(P.RETRIES);
+        list.add(this.retries);
+
+        if (this.description != null) {
+            list.add(P.DESCRIPTION);
+            list.add(this.description);
+        }
+
+        if (this.context != null) {
+            list.add(P.CONTEXT);
+            list.add(this.context);
+        }
+
+        if (this.update != null) {
+            list.add(P.UPDATE);
+            list.add(this.update);
+        }
+
+        if (this.dependencies != null) {
+            list.add(P.DEPENDENCIES);
+            list.add(this.dependencies.stream().map(Id::asLong)
+                                      .collect(toOrderSet()));
+        }
+
+        if (this.input != null) {
+            byte[] bytes = StringEncoding.compress(this.input);
+            checkPropertySize(bytes.length, P.INPUT);
+            list.add(P.INPUT);
+            list.add(bytes);
+        }
+
+        if (this.server != null) {
+            list.add(P.SERVER);
+            list.add(this.server.asString());
+        }
+
+        return list.toArray();
+    }
+
     public Map<String, Object> asMap() {
         return this.asMap(true);
     }
@@ -636,7 +725,7 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     private void checkPropertySize(int propertyLength, String propertyName) {
-        long propertyLimit = BytesBuffer.STRING_LEN_MAX;
+        long propertyLimit = BytesBuffer.MAX_PROPERTIES;
         HugeGraph graph = this.scheduler().graph();
         if (propertyName.equals(P.INPUT)) {
             propertyLimit = graph.option(CoreOptions.TASK_INPUT_SIZE_LIMIT);
@@ -671,7 +760,7 @@ public class HugeTask<V> extends FutureTask<V> {
         }
         assert task != null;
         /*
-         * This can be enabled for debug to expose schema-clear errors early，
+         * This can be enabled for debug to expose schema-clear errors early,
          * but also lead to some negative tests failed,
          */
         boolean debugTest = false;

@@ -37,6 +37,7 @@ import org.apache.hugegraph.backend.cache.CacheNotifier.GraphCacheNotifier;
 import org.apache.hugegraph.backend.cache.CacheNotifier.SchemaCacheNotifier;
 import org.apache.hugegraph.backend.cache.CachedGraphTransaction;
 import org.apache.hugegraph.backend.cache.CachedSchemaTransaction;
+import org.apache.hugegraph.backend.cache.CachedSchemaTransactionV2;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.id.SnowflakeIdGenerator;
@@ -52,7 +53,7 @@ import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
+import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.TypedOption;
@@ -69,6 +70,7 @@ import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -176,6 +178,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     private final RamTable ramtable;
 
+    private final String schedulerType;
+
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -209,6 +213,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.closed = false;
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.OLTP_ONLY;
+        this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
 
         LockUtil.init(this.name);
 
@@ -219,6 +224,13 @@ public class StandardHugeGraph implements HugeGraph {
             String message = "Failed to load backend store provider";
             LOG.error("{}: {}", message, e.getMessage());
             throw new HugeException(message, e);
+        }
+
+        if (isHstore()) {
+            // TODO: parameterize the remaining configurations
+            MetaManager.instance().connect("hg", MetaManager.MetaDriverType.PD,
+                                           "ca", "ca", "ca",
+                                           config.get(CoreOptions.PD_PEERS));
         }
 
         try {
@@ -304,8 +316,7 @@ public class StandardHugeGraph implements HugeGraph {
                                                    conf.get(
                                                            RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
         ClusterRoleStore roleStore = new StandardClusterRoleStore(this.params);
-        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleConfig,
-                                                                             roleStore);
+        this.roleElectionStateMachine = new StandardRoleElectionStateMachine(roleConfig, roleStore);
     }
 
     @Override
@@ -457,9 +468,18 @@ public class StandardHugeGraph implements HugeGraph {
         }
     }
 
-    private SchemaTransaction openSchemaTransaction() throws HugeException {
+    private boolean isHstore() {
+        return this.storeProvider.isHstore();
+    }
+
+    private ISchemaTransaction openSchemaTransaction() throws HugeException {
         this.checkGraphNotClosed();
         try {
+            if (isHstore()) {
+                return new CachedSchemaTransactionV2(
+                    MetaManager.instance().metaDriver(),
+                    MetaManager.instance().cluster(), this.params);
+            }
             return new CachedSchemaTransaction(this.params, loadSchemaStore());
         } catch (BackendException e) {
             String message = "Failed to open schema transaction";
@@ -504,11 +524,14 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     private BackendStore loadSystemStore() {
+        if (isHstore()) {
+            return this.storeProvider.loadGraphStore(this.configuration);
+        }
         return this.storeProvider.loadSystemStore(this.configuration);
     }
 
     @Watched
-    private SchemaTransaction schemaTransaction() {
+    private ISchemaTransaction schemaTransaction() {
         this.checkGraphNotClosed();
         /*
          * NOTE: each schema operation will be auto committed,
@@ -983,7 +1006,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.initBackend();
         this.serverStarted(nodeInfo);
 
-        // Write config to disk file
+        // Write config to the disk file
         String confPath = ConfigUtil.writeToFile(configPath, this.name(),
                                                  this.configuration());
         this.configuration.file(confPath);
@@ -1196,7 +1219,7 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
-        public SchemaTransaction schemaTransaction() {
+        public ISchemaTransaction schemaTransaction() {
             return StandardHugeGraph.this.schemaTransaction();
         }
 
@@ -1316,11 +1339,16 @@ public class StandardHugeGraph implements HugeGraph {
         public <T> void submitEphemeralJob(EphemeralJob<T> job) {
             this.ephemeralJobQueue.add(job);
         }
+
+        @Override
+        public String schedulerType() {
+            return StandardHugeGraph.this.schedulerType;
+        }
     }
 
     private class TinkerPopTransaction extends AbstractThreadLocalTransaction {
 
-        // Times opened from upper layer
+        // Times opened from the upper layer
         private final AtomicInteger refs;
         // Flag opened of each thread
         private final ThreadLocal<Boolean> opened;
@@ -1447,7 +1475,7 @@ public class StandardHugeGraph implements HugeGraph {
             }
         }
 
-        private SchemaTransaction schemaTransaction() {
+        private ISchemaTransaction schemaTransaction() {
             return this.getOrNewTransaction().schemaTx;
         }
 
@@ -1468,7 +1496,7 @@ public class StandardHugeGraph implements HugeGraph {
 
             Txs txs = this.transactions.get();
             if (txs == null) {
-                SchemaTransaction schemaTransaction = null;
+                ISchemaTransaction schemaTransaction = null;
                 SysTransaction sysTransaction = null;
                 GraphTransaction graphTransaction = null;
                 try {
@@ -1511,12 +1539,12 @@ public class StandardHugeGraph implements HugeGraph {
 
     private static final class Txs {
 
-        private final SchemaTransaction schemaTx;
+        private final ISchemaTransaction schemaTx;
         private final SysTransaction systemTx;
         private final GraphTransaction graphTx;
         private long openedTime;
 
-        public Txs(SchemaTransaction schemaTx, SysTransaction systemTx,
+        public Txs(ISchemaTransaction schemaTx, SysTransaction systemTx,
                    GraphTransaction graphTx) {
             assert schemaTx != null && systemTx != null && graphTx != null;
             this.schemaTx = schemaTx;

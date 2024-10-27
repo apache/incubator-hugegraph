@@ -333,12 +333,13 @@ public class MysqlTables {
             this.define.column(HugeKeys.OWNER_VERTEX, SMALL_TEXT);
             this.define.column(HugeKeys.DIRECTION, TINYINT);
             this.define.column(HugeKeys.LABEL, DATATYPE_SL);
+            this.define.column(HugeKeys.SUB_LABEL, DATATYPE_SL);
             this.define.column(HugeKeys.SORT_VALUES, SMALL_TEXT);
             this.define.column(HugeKeys.OTHER_VERTEX, SMALL_TEXT);
             this.define.column(HugeKeys.PROPERTIES, LARGE_JSON);
             this.define.column(HugeKeys.EXPIRED_TIME, BIGINT);
             this.define.keys(HugeKeys.OWNER_VERTEX, HugeKeys.DIRECTION,
-                             HugeKeys.LABEL, HugeKeys.SORT_VALUES,
+                             HugeKeys.LABEL, HugeKeys.SUB_LABEL, HugeKeys.SORT_VALUES,
                              HugeKeys.OTHER_VERTEX);
         }
 
@@ -365,6 +366,7 @@ public class MysqlTables {
             list.add(IdUtil.writeStoredString(edgeId.ownerVertexId()));
             list.add(edgeId.directionCode());
             list.add(edgeId.edgeLabelId().asLong());
+            list.add(edgeId.subLabelId().asLong());
             list.add(edgeId.sortValues());
             list.add(IdUtil.writeStoredString(edgeId.otherVertexId()));
             return list;

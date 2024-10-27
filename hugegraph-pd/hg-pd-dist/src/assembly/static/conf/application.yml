@@ -49,9 +49,9 @@ pd:
   data-path: ./pd_data
   # The check cycle of automatic expansion regularly checks the number of partitions in each store and automatically balances the number of partitions
   patrol-interval: 1800
-  # The initial store list, grpc IP: grpc port, the store in the list is automatically activated
+  # The minimum number of surviving store nodes, less than which the entire cluster is unavailable
   initial-store-count: 1
-  # grpc IP:grpc port
+  # The initial store list, grpc IP: grpc port, the store in the list is automatically activated
   initial-store-list: 127.0.0.1:8500
 
 raft:
@@ -70,7 +70,6 @@ store:
   monitor_data_interval: 1 minute
   # Retention time of monitoring data is 1 day; day, month, year
   monitor_data_retention: 1 day
-  initial-store-count: 1
 
 partition:
   # Default number of replicas per partition

@@ -67,6 +67,7 @@ import org.apache.hugegraph.iterator.Metadatable;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.system.DeleteExpiredJob;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
+import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.IndexLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaLabel;
@@ -147,6 +148,17 @@ public class GraphIndexTransaction extends AbstractTransaction {
         } else {
             this.doAppend(this.serializer.writeIndex(index));
         }
+
+        if (element instanceof HugeEdge && ((EdgeLabel) label).hasFather()) {
+            HugeIndex fatherIndex = new HugeIndex(this.graph(), IndexLabel.label(element.type()));
+            fatherIndex.fieldValues(((EdgeLabel) label).fatherId());
+            fatherIndex.elementIds(element.id(), element.expiredTime());
+            if (removed) {
+                this.doEliminate(this.serializer.writeIndex(fatherIndex));
+            } else {
+                this.doAppend(this.serializer.writeIndex(fatherIndex));
+            }
+        }
     }
 
     @Watched(prefix = "index")
@@ -166,6 +178,13 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Update index of an edge
         for (Id id : edge.schemaLabel().indexLabels()) {
             this.updateIndex(id, edge, removed);
+        }
+
+        EdgeLabel label = edge.schemaLabel();
+        if (label.hasFather()) {
+            for (Id id : graph().edgeLabel(label.fatherId()).indexLabels()) {
+                this.updateIndex(id, edge, removed);
+            }
         }
     }
 
@@ -192,7 +211,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
      * @param removed remove or add index
      */
     protected void updateIndex(Id ilId, HugeElement element, boolean removed) {
-        SchemaTransaction schema = this.params().schemaTransaction();
+        ISchemaTransaction schema = this.params().schemaTransaction();
         IndexLabel indexLabel = schema.getIndexLabel(ilId);
         E.checkArgument(indexLabel != null,
                         "Not exist index label with id '%s'", ilId);
@@ -732,7 +751,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
     @Watched(prefix = "index")
     private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
-        SchemaTransaction schema = this.params().schemaTransaction();
+        ISchemaTransaction schema = this.params().schemaTransaction();
         Id label = query.condition(HugeKeys.LABEL);
 
         List<? extends SchemaLabel> schemaLabels;
@@ -783,7 +802,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
     @Watched(prefix = "index")
     private MatchedIndex collectMatchedIndex(SchemaLabel schemaLabel,
                                              ConditionQuery query) {
-        SchemaTransaction schema = this.params().schemaTransaction();
+        ISchemaTransaction schema = this.params().schemaTransaction();
         Set<IndexLabel> ils = InsertionOrderUtil.newSet();
         for (Id il : schemaLabel.indexLabels()) {
             IndexLabel indexLabel = schema.getIndexLabel(il);
@@ -1749,7 +1768,9 @@ public class GraphIndexTransaction extends AbstractTransaction {
                                        HugeElement element) {
             if (element.type() != HugeType.VERTEX &&
                 element.type() != HugeType.EDGE_OUT &&
-                element.type() != HugeType.EDGE_IN) {
+                element.type() != HugeType.EDGE_IN &&
+                element.type() != HugeType.TASK &&
+                element.type() != HugeType.SERVER) {
                 throw new HugeException("Only accept element of type VERTEX " +
                                         "and EDGE to remove left index, " +
                                         "but got: '%s'", element.type());

@@ -164,12 +164,12 @@
             <artifactId>arthas-packaging</artifactId>
             <version>${arthas.version}</version>
         </dependency>
-      <dependency>
-        <groupId>org.gridkit.jvmtool</groupId>
-        <artifactId>sjk-core</artifactId>
-        <version>0.22</version>
-        <scope>compile</scope>
-      </dependency>
+        <dependency>
+            <groupId>org.gridkit.jvmtool</groupId>
+            <artifactId>sjk-core</artifactId>
+            <version>0.22</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>

@@ -36,13 +36,8 @@
     </parent>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
-        <release.name>hugegraph</release.name>
-        <final.name>apache-${release.name}-incubating-server-${project.version}</final.name>
-        <final.destfile>${top.level.dir}/${final.name}.tar.gz</final.destfile>
-        <compiler.source>1.8</compiler.source>
-        <compiler.target>1.8</compiler.target>
+        <final.name>apache-${release.name}-server-incubating-${project.version}</final.name>
         <slf4j.version>1.7.5</slf4j.version>
         <log4j.version>1.2.17</log4j.version>
         <log4j2.version>2.17.1</log4j2.version>
@@ -54,10 +49,8 @@
         <jersey.version>3.0.3</jersey.version>
         <metrics.version>4.2.4</metrics.version>
         <javassist.version>3.21.0-GA</javassist.version>
-        <shell-executable>bash</shell-executable>
         <checkstyle.plugin.version>3.1.2</checkstyle.plugin.version>
         <checkstyle.version>8.45</checkstyle.version>
-        <hugegraph-commons.version>1.3.0</hugegraph-commons.version>
         <grpc.version>1.47.0</grpc.version>
         <protobuf.version>3.21.7</protobuf.version>
         <jmh.version>1.36</jmh.version>
@@ -242,13 +235,11 @@
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-netty</artifactId>
                 <version>${grpc.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-stub</artifactId>
                 <version>${grpc.version}</version>
-                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.protobuf</groupId>
@@ -280,20 +271,6 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.1</version>
-                    <configuration>
-                        <source>${compiler.source}</source>
-                        <target>${compiler.target}</target>
-                        <compilerArguments>
-                            <Xmaxerrs>500</Xmaxerrs>
-                        </compilerArguments>
-                        <compilerArgs>
-                            <arg>-Xlint:unchecked</arg>
-                        </compilerArgs>
-                    </configuration>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-clean-plugin</artifactId>
                     <configuration>
@@ -310,17 +287,6 @@
                             </fileset>
                             <fileset>
                                 <directory>${final.name}</directory>
-                            </fileset>
-                            <!-- remove the artifacts in root directory -->
-                            <!-- REMOVE ME after revision 1.5.0 -->
-                            <fileset>
-                                <directory>../${project.basedir}</directory>
-                                <includes>
-                                    <include>*.tar.gz</include>
-                                </includes>
-                            </fileset>
-                            <fileset>
-                                <directory>../${final.name}</directory>
                             </fileset>
                         </filesets>
                     </configuration>

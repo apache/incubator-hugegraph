@@ -47,6 +47,9 @@ case $BACKEND in
     postgresql)
         "$TRAVIS_DIR"/install-postgresql-via-docker.sh
         ;;
+    hstore)
+        "$TRAVIS_DIR"/install-hstore.sh
+        ;;
     *)
         # don't need to install for other backends
         ;;

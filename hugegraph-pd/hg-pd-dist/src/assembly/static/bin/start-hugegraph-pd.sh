@@ -101,14 +101,20 @@ fi
 
 # Using G1GC as the default garbage collector (Recommended for large memory machines)
 case "$GC_OPTION" in
-    g1)
+    "")
         echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC -XX:+ParallelRefProcEnabled \
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
                       -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
         ;;
-    "") ;;
+    zgc|ZGC)
+        echo "Using ZGC as the default garbage collector (Only support Java 11+)"
+        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
+                                      -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
+                                      -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
+                                      -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
+        ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', only support 'g1' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> ${OUTPUT}
         exit 1
 esac
 
@@ -159,8 +165,10 @@ if [ $(ps -ef|grep -v grep| grep java|grep -cE ${CONF}) -ne 0 ]; then
 fi
 echo "Starting HugeGraphPDServer..."
 
+JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
+
 # Turn on security check
-exec ${JAVA} -Dname="HugeGraphPD" ${JAVA_OPTIONS} -jar \
+exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
     -Dspring.config.location=${CONF}/application.yml ${LIB}/hg-pd-service-*.jar >> ${OUTPUT} 2>&1 &
 
 PID="$!"

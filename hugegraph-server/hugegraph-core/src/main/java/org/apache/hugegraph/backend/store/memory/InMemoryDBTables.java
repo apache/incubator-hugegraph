@@ -237,23 +237,62 @@ public class InMemoryDBTables {
             }
 
             // Only support querying edge by label
-            E.checkState(conditions.size() == 1,
-                         "Not support querying edge by %s", conditions);
-            Condition cond = conditions.iterator().next();
-            E.checkState(cond.isRelation(),
-                         "Not support querying edge by %s", conditions);
-            Condition.Relation relation = (Condition.Relation) cond;
-            E.checkState(relation.key().equals(HugeKeys.LABEL),
-                         "Not support querying edge by %s", conditions);
-            String label = (String) relation.serialValue();
+            if (conditions.size() == 1) {
+                E.checkState(conditions.size() == 1,
+                             "Not support querying edge by %s", conditions);
+                Condition cond = conditions.iterator().next();
+                E.checkState(cond.isRelation(),
+                             "Not support querying edge by %s", conditions);
+                Condition.Relation relation = (Condition.Relation) cond;
+                E.checkState(relation.key().equals(HugeKeys.LABEL),
+                             "Not support querying edge by %s", conditions);
+                String label = (String) relation.serialValue();
+                String out = EdgeId.concat(HugeType.EDGE_OUT.string(), label);
+                String in = EdgeId.concat(HugeType.EDGE_IN.string(), label);
+                return queryByFilterInternal(out, in, entries);
+            } else {
+                E.checkState(conditions.size() == 2,
+                             "Not support querying edge by %s", conditions);
+                Iterator<Condition> conditionIterator = conditions.iterator();
 
+                Condition cond1 = conditionIterator.next();
+                E.checkState(cond1.isRelation(),
+                             "Not support querying edge by %s", conditions);
+                Condition.Relation relation1 = (Condition.Relation) cond1;
+                Condition cond2 = conditionIterator.next();
+                E.checkState(cond2.isRelation(),
+                             "Not support querying edge by %s", conditions);
+                Condition.Relation relation2 = (Condition.Relation) cond2;
+
+                if (relation1.key().equals(HugeKeys.LABEL) && relation2.key().equals(HugeKeys.SUB_LABEL)) {
+                    String label = (String) relation1.serialValue();
+                    String subLabel = (String) relation2.serialValue();
+                    String out = EdgeId.concat(HugeType.EDGE_OUT.string(), label, subLabel);
+                    String in = EdgeId.concat(HugeType.EDGE_IN.string(), label, subLabel);
+                    return queryByFilterInternal(out, in, entries);
+                } else if (relation2.key().equals(HugeKeys.LABEL) && relation1.key().equals(HugeKeys.SUB_LABEL)) {
+                    String label = (String) relation2.serialValue();
+                    String subLabel = (String) relation1.serialValue();
+                    String out = EdgeId.concat(HugeType.EDGE_OUT.string(), label, subLabel);
+                    String in = EdgeId.concat(HugeType.EDGE_IN.string(), label, subLabel);
+                    return queryByFilterInternal(out, in, entries);
+                } else {
+                    E.checkState(false, "Not support querying edge by %s", conditions);
+                }
+            }
+
+            return entries;
+        }
+
+        private Map<Id, BackendEntry> queryByFilterInternal(
+                String out, String in,
+                Map<Id, BackendEntry> entries) {
             Map<Id, BackendEntry> rs = InsertionOrderUtil.newMap();
 
             for (BackendEntry value : entries.values()) {
                 // TODO: Compatible with BackendEntry
                 TextBackendEntry entry = (TextBackendEntry) value;
-                String out = EdgeId.concat(HugeType.EDGE_OUT.string(), label);
-                String in = EdgeId.concat(HugeType.EDGE_IN.string(), label);
+
                 if (entry.containsPrefix(out)) {
                     BackendEntry edges = new TextBackendEntry(HugeType.VERTEX,
                                                               entry.id());

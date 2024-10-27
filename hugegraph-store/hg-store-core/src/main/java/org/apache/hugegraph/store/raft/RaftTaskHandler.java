@@ -20,7 +20,7 @@ package org.apache.hugegraph.store.raft;
 import org.apache.hugegraph.store.util.HgStoreException;
 
 /**
- * 接收raft发送的数据
+ * Receive data sent by raft
  */
 public interface RaftTaskHandler {
 
