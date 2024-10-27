@@ -96,25 +96,31 @@ public abstract class AbstractMemoryPool implements MemoryPool {
      * called when one layer pool is successfully executed and exited.
      */
     @Override
-    public void releaseSelf(String reason) {
-        this.memoryActionLock.lock();
+    public void releaseSelf(String reason, boolean isTriggeredInternal) {
         try {
-            if (this.isBeingArbitrated.get()) {
-                this.condition.await();
+            if (!isTriggeredInternal) {
+                this.memoryActionLock.lock();
+                if (this.isBeingArbitrated.get()) {
+                    this.condition.await();
+                }
             }
             LOG.info("[{}] starts to releaseSelf because of {}", this, reason);
             this.isClosed = true;
-            // update father
-            Optional.ofNullable(this.parent).ifPresent(parent -> parent.gcChildPool(this, false));
+            // gc self from father
+            Optional.ofNullable(this.parent).ifPresent(parent -> parent.gcChildPool(this, false,
+                                                                                    isTriggeredInternal));
+            // gc all children
             for (MemoryPool child : this.children) {
-                gcChildPool(child, true);
+                gcChildPool(child, true, isTriggeredInternal);
             }
             LOG.info("[{}] finishes to releaseSelf", this);
         } catch (InterruptedException e) {
             LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();
         } finally {
-            this.memoryActionLock.unlock();
+            if (!isTriggeredInternal) {
+                this.memoryActionLock.unlock();
+            }
             // Make these objs be GCed by JVM quickly.
             this.parent = null;
             this.children.clear();
@@ -122,9 +128,9 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     @Override
-    public void gcChildPool(MemoryPool child, boolean force) {
+    public void gcChildPool(MemoryPool child, boolean force, boolean isTriggeredInternal) {
         if (force) {
-            child.releaseSelf(String.format("[%s] releaseChildPool", this));
+            child.releaseSelf(String.format("[%s] releaseChildPool", this), isTriggeredInternal);
         }
         // reclaim child's memory and update stats
         this.stats.setAllocatedBytes(

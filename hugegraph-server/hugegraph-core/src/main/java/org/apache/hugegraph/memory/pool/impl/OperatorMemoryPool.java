@@ -54,8 +54,8 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public void releaseSelf(String reason) {
-        super.releaseSelf(reason);
+    public void releaseSelf(String reason, boolean isTriggeredInternal) {
+        super.releaseSelf(reason, isTriggeredInternal);
         // since it is already closed, its stats will not be updated. so here we can use its
         // stats out of memoryActionLock.
         this.memoryAllocator.returnMemoryToManager(getAllocatedBytes());
@@ -125,7 +125,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             LOG.warn("[{}] detected an OOM exception when request memory, will ABORT this " +
                      "query and release corresponding memory...",
                      this);
-            findRootQueryPool().releaseSelf(String.format(e.getMessage()));
+            findRootQueryPool().releaseSelf(String.format(e.getMessage()), true);
             return null;
         } finally {
             this.memoryActionLock.unlock();

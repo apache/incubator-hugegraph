@@ -80,7 +80,7 @@ public class MemoryManager {
         LOG.info("Manager gc query memory pool {}", pool);
         queryMemoryPools.remove(pool);
         long reclaimedMemory = pool.getAllocatedBytes();
-        pool.releaseSelf(String.format("GC query memory pool %s", pool));
+        pool.releaseSelf(String.format("GC query memory pool %s", pool), false);
         currentAvailableMemoryInBytes.addAndGet(reclaimedMemory);
     }
 

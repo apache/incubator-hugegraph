@@ -37,9 +37,9 @@ public class TaskMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public synchronized void releaseSelf(String reason) {
+    public void releaseSelf(String reason, boolean isTriggeredInternal) {
+        super.releaseSelf(reason, isTriggeredInternal);
         this.memoryManager.removeCorrespondingTaskMemoryPool(Thread.currentThread().getName());
-        super.releaseSelf(reason);
     }
 
     @Override

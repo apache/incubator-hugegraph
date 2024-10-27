@@ -114,4 +114,19 @@ public class MemoryManageTest {
         ByteBuf memoryBlock = (ByteBuf) query2Task1Operator1MemoryPool.requireMemory(requireBytes);
         Assert.assertNull(memoryBlock);
     }
+
+    @Test
+    public void testReleaseMemory() {
+
+    }
+
+    @Test
+    public void testLocalArbitration() {
+
+    }
+
+    @Test
+    public void testGlobalArbitration() {
+
+    }
 }

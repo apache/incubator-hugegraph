@@ -34,9 +34,22 @@ public interface MemoryPool {
 
     Object tryToAcquireMemoryInternal(long bytes);
 
-    void releaseSelf(String reason);
+    /**
+     * Release all self's resources. Called by user or called automatically by itself when OOM.
+     *
+     * @param reason:              release reason, for logging.
+     * @param isTriggeredInternal: if true, it is called automatically. if false, called by user.
+     */
+    void releaseSelf(String reason, boolean isTriggeredInternal);
 
-    void gcChildPool(MemoryPool child, boolean force);
+    /**
+     * Called by `releaseSelf` to release children's resource.
+     *
+     * @param child:               child pool
+     * @param force:               if false, called to gc self from father
+     * @param isTriggeredInternal: passed from upper caller `releaseSelf`
+     */
+    void gcChildPool(MemoryPool child, boolean force, boolean isTriggeredInternal);
 
     long getAllocatedBytes();
 
