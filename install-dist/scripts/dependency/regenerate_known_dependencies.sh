@@ -29,5 +29,5 @@ cd "$BASE_PATH"/../../../ || exit
 
 mvn dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=$DEP_PATH
 
-ls $DEP_PATH | egrep -v "^hugegraph|hubble" | sort -n > $BASE_PATH/$FILE_NAME
+ls $DEP_PATH | egrep -v "^hg|hugegraph|hubble" | sort -n > $BASE_PATH/$FILE_NAME
 rm -r -f $DEP_PATH
