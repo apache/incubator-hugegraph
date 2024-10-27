@@ -131,12 +131,12 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     public void gcChildPool(MemoryPool child, boolean force, boolean isTriggeredInternal) {
         if (force) {
             child.releaseSelf(String.format("[%s] releaseChildPool", this), isTriggeredInternal);
+            return;
         }
         // reclaim child's memory and update stats
         this.stats.setAllocatedBytes(
                 stats.getAllocatedBytes() - child.getAllocatedBytes());
         this.stats.setUsedBytes(this.stats.getUsedBytes() - child.getUsedBytes());
-        memoryManager.consumeAvailableMemory(-child.getAllocatedBytes());
         this.children.remove(child);
     }
 
@@ -209,6 +209,11 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             return this;
         }
         return getParentPool().findRootQueryPool();
+    }
+
+    @Override
+    public void setMaxCapacityBytes(long maxCapacityBytes) {
+        this.stats.setMaxCapacity(maxCapacityBytes);
     }
 
     @TestOnly

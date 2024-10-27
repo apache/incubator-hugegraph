@@ -21,7 +21,8 @@ import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.Bytes;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.netty.buffer.ByteBuf;
@@ -64,8 +65,8 @@ public class MemoryManageTest {
     protected static String QUERY2_TASK1_THREAD_NAME = "QUERY2-THREAD-1";
     protected static MemoryPool query2Task1Operator1MemoryPool;
 
-    @BeforeClass
-    public static void setUp() {
+    @Before
+    public void setUp() {
         memoryManager = MemoryManager.getInstance();
         query1MemoryPool = memoryManager.addQueryMemoryPool();
         query2MemoryPool = memoryManager.addQueryMemoryPool();
@@ -87,6 +88,19 @@ public class MemoryManageTest {
         query2Task1Operator1MemoryPool = query2Task1MemoryPool.addChildPool();
     }
 
+    @After
+    public void after() {
+        memoryManager.gcQueryMemoryPool(query1MemoryPool);
+        memoryManager.gcQueryMemoryPool(query2MemoryPool);
+        memoryManager.getCurrentAvailableMemoryInBytes()
+                     .set(MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES);
+        Assert.assertEquals(0, memoryManager.getCurrentQueryMemoryPools().size());
+        Assert.assertEquals(0, query1MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query2MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query1Task1Operator2MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get());
+    }
+
     @Test
     public void testMemoryPoolStructure() {
         Assert.assertEquals(2, memoryManager.getCurrentQueryMemoryPools().size());
@@ -106,6 +120,20 @@ public class MemoryManageTest {
         ByteBuf memoryBlock = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
         Assert.assertNotNull(memoryBlock);
         Assert.assertEquals(requireBytes, memoryBlock.capacity());
+        Assert.assertEquals(requireBytes,
+                            memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get());
+        Assert.assertEquals(
+                MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES - query1MemoryPool.getAllocatedBytes(),
+                memoryManager.getCurrentAvailableMemoryInBytes().get());
+        // will use reserved memory, not requiring memory through manager
+        ByteBuf memoryBlock2 = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
+        Assert.assertNotNull(memoryBlock2);
+        Assert.assertEquals(requireBytes, memoryBlock2.capacity());
+        Assert.assertEquals(requireBytes * 2,
+                            memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get());
+        Assert.assertEquals(
+                MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES - query1MemoryPool.getAllocatedBytes(),
+                memoryManager.getCurrentAvailableMemoryInBytes().get());
     }
 
     @Test
@@ -116,17 +144,103 @@ public class MemoryManageTest {
     }
 
     @Test
-    public void testReleaseMemory() {
+    public void testReleaseMemoryWithTask() {
+        long requireBytes = Bytes.KB;
+        ByteBuf memoryBlock = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
+        Assert.assertNotNull(memoryBlock);
+        Assert.assertEquals(requireBytes, memoryBlock.capacity());
+        query1Task1MemoryPool.releaseSelf("Test release by hand", false);
+        Assert.assertEquals(1, query1MemoryPool.getChildrenCount());
+        Assert.assertEquals(0, query1MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query1MemoryPool.getUsedBytes());
+        Assert.assertEquals(0, query1Task1MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query1Task1MemoryPool.getUsedBytes());
+        Assert.assertEquals(0, memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get());
+        Assert.assertEquals(MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES,
+                            memoryManager.getCurrentAvailableMemoryInBytes().get());
+    }
+
+    @Test
+    public void testReleaseMemoryWithQuery() {
+        long requireBytes = Bytes.KB;
+        ByteBuf memoryBlock = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
+        Assert.assertNotNull(memoryBlock);
+        Assert.assertEquals(requireBytes, memoryBlock.capacity());
+        query1MemoryPool.releaseSelf("Test release by hand", true);
+        Assert.assertEquals(0, query1MemoryPool.getChildrenCount());
+        Assert.assertEquals(0, query1MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query1MemoryPool.getUsedBytes());
+        Assert.assertEquals(0, memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get());
+        Assert.assertEquals(MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES,
+                            memoryManager.getCurrentAvailableMemoryInBytes().get());
+    }
+
+    @Test
+    public void testExpandCapacity() {
+        long requireBytes = Bytes.KB;
+        ByteBuf memoryBlock = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
+        Assert.assertNotNull(memoryBlock);
+        Assert.assertEquals(requireBytes, memoryBlock.capacity());
+        long maxCapacity = Bytes.KB * 100;
+        query2MemoryPool.setMaxCapacityBytes(maxCapacity);
+        long requireBytes2 = maxCapacity * 2;
+        ByteBuf memoryBlock2 =
+                (ByteBuf) query2Task1Operator1MemoryPool.requireMemory(requireBytes2);
+        Assert.assertNotNull(memoryBlock2);
+        Assert.assertEquals(requireBytes2, memoryBlock2.capacity());
+        Assert.assertEquals(requireBytes2 + requireBytes,
+                            memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get());
+        Assert.assertEquals(
+                MemoryManager.MAX_MEMORY_CAPACITY_IN_BYTES - query1MemoryPool.getAllocatedBytes() -
+                query2MemoryPool.getAllocatedBytes(),
+                memoryManager.getCurrentAvailableMemoryInBytes().get());
 
     }
 
     @Test
-    public void testLocalArbitration() {
-
+    public void testLocalArbitrationFail() {
+        long totalMemory = 2 * Bytes.MB + Bytes.KB;
+        memoryManager.getCurrentAvailableMemoryInBytes().set(totalMemory);
+        long requireBytes = Bytes.KB;
+        // will allocate 2MB
+        ByteBuf memoryBlock = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
+        long requireBytes2 = Bytes.MB;
+        ByteBuf memoryBlock2 =
+                (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes2);
+        Assert.assertEquals(Bytes.MB * 2, query1MemoryPool.getAllocatedBytes());
+        // query1 remaining 1023KB
+        Assert.assertEquals(Bytes.MB * 2 - requireBytes2 - requireBytes,
+                            query1MemoryPool.getFreeBytes());
+        // totally remaining 1KB
+        Assert.assertEquals(totalMemory - 2 * Bytes.MB,
+                            memoryManager.getCurrentAvailableMemoryInBytes().get());
+        // will try to allocate 1MB and trigger arbitration, which will fail and result in OOM
+        ByteBuf memoryBlock3 = (ByteBuf) query2Task1Operator1MemoryPool.requireMemory(requireBytes);
+        Assert.assertNull(memoryBlock3);
+        Assert.assertEquals(0, query2MemoryPool.getAllocatedBytes());
     }
 
     @Test
     public void testGlobalArbitration() {
-
+        long totalMemory = 20 * Bytes.MB + Bytes.KB;
+        memoryManager.getCurrentAvailableMemoryInBytes().set(totalMemory);
+        long requireBytes = Bytes.MB * 17;
+        // will allocate 20MB
+        ByteBuf memoryBlock = (ByteBuf) query1Task1Operator1MemoryPool.requireMemory(requireBytes);
+        Assert.assertEquals(Bytes.MB * 20, query1MemoryPool.getAllocatedBytes());
+        // query1 remaining 3MB
+        Assert.assertEquals(Bytes.MB * 3,
+                            query1MemoryPool.getFreeBytes());
+        // totally remaining 1KB
+        Assert.assertEquals(Bytes.KB, memoryManager.getCurrentAvailableMemoryInBytes().get());
+        // will try to allocate 1MB and trigger arbitration, which will success
+        long requireBytes2 = Bytes.KB;
+        ByteBuf memoryBlock2 =
+                (ByteBuf) query2Task1Operator1MemoryPool.requireMemory(requireBytes2);
+        Assert.assertNotNull(memoryBlock2);
+        Assert.assertEquals(Bytes.MB, query2MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(Bytes.KB, memoryBlock2.capacity());
+        // totally still remain 1KB
+        Assert.assertEquals(Bytes.KB, memoryManager.getCurrentAvailableMemoryInBytes().get());
     }
 }

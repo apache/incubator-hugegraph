@@ -34,6 +34,7 @@ import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.pool.impl.QueryMemoryPool;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.ExecutorUtil;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,6 +48,7 @@ public class MemoryManager {
 
     // TODO: read it from conf, current 1G
     public static final long MAX_MEMORY_CAPACITY_IN_BYTES = Bytes.GB;
+    // Current available memory = MAX_MEMORY_CAPACITY - sum(allocated bytes)
     private final AtomicLong currentAvailableMemoryInBytes =
             new AtomicLong(MAX_MEMORY_CAPACITY_IN_BYTES);
     private final AtomicLong currentOffHeapAllocatedMemoryInBytes = new AtomicLong(0);
@@ -79,9 +81,15 @@ public class MemoryManager {
     public void gcQueryMemoryPool(MemoryPool pool) {
         LOG.info("Manager gc query memory pool {}", pool);
         queryMemoryPools.remove(pool);
-        long reclaimedMemory = pool.getAllocatedBytes();
         pool.releaseSelf(String.format("GC query memory pool %s", pool), false);
-        currentAvailableMemoryInBytes.addAndGet(reclaimedMemory);
+    }
+
+    public void returnReclaimedTaskMemory(long bytes) {
+        currentAvailableMemoryInBytes.addAndGet(bytes);
+    }
+
+    public void consumeAvailableMemory(long size) {
+        currentAvailableMemoryInBytes.addAndGet(-size);
     }
 
     public long triggerLocalArbitration(MemoryPool targetPool, long neededBytes) {
@@ -119,18 +127,13 @@ public class MemoryManager {
         return 0;
     }
 
-    public synchronized long handleRequestFromQueryPool(long size) {
-        // 1. check whole memory capacity.
+    public synchronized long handleRequestFromQueryPool(long size, String action) {
         if (currentAvailableMemoryInBytes.get() < size) {
-            LOG.info("There isn't enough memory for query pool to expand itself: " +
-                     "requestSize={}, remainingCapacity={}", size,
+            LOG.info("There isn't enough memory for query pool to {}: " +
+                     "requestSize={}, remainingCapacity={}", size, action,
                      currentAvailableMemoryInBytes.get());
             return -1;
         }
-        currentAvailableMemoryInBytes.addAndGet(-size);
-        LOG.info("Expand query pool successfully: " +
-                 "requestSize={}, afterThisExpandingRemainingCapacity={}", size,
-                 currentAvailableMemoryInBytes.get());
         return size;
     }
 
@@ -153,16 +156,17 @@ public class MemoryManager {
         return new PriorityQueue<>(queryMemoryPools);
     }
 
-    public void consumeAvailableMemory(long size) {
-        currentAvailableMemoryInBytes.addAndGet(-size);
-    }
-
     public AtomicLong getCurrentOnHeapAllocatedMemoryInBytes() {
         return currentOnHeapAllocatedMemoryInBytes;
     }
 
     public AtomicLong getCurrentOffHeapAllocatedMemoryInBytes() {
         return currentOffHeapAllocatedMemoryInBytes;
+    }
+
+    @TestOnly
+    public AtomicLong getCurrentAvailableMemoryInBytes() {
+        return currentAvailableMemoryInBytes;
     }
 
     private static class MemoryManagerHolder {

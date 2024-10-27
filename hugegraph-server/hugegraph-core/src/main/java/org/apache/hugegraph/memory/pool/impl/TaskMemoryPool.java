@@ -58,6 +58,12 @@ public class TaskMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
+    public Object tryToAcquireMemoryInternal(long bytes) {
+        getParentPool().tryToAcquireMemoryInternal(bytes);
+        return super.tryToAcquireMemoryInternal(bytes);
+    }
+
+    @Override
     public long requestMemoryInternal(long bytes) throws QueryOutOfMemoryException {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this request", this);

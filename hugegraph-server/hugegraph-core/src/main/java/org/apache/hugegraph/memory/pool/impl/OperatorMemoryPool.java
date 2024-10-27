@@ -58,12 +58,14 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
         super.releaseSelf(reason, isTriggeredInternal);
         // since it is already closed, its stats will not be updated. so here we can use its
         // stats out of memoryActionLock.
-        this.memoryAllocator.returnMemoryToManager(getAllocatedBytes());
+        this.memoryAllocator.returnMemoryToManager(getUsedBytes());
+        this.memoryManager.returnReclaimedTaskMemory(getAllocatedBytes());
         // release memory consumer, release byte buffer.
         this.memoryConsumers.forEach(memoryConsumer -> {
             memoryConsumer.getAllMemoryBlock().forEach(memoryAllocator::releaseMemoryBlock);
         });
         this.memoryConsumers.clear();
+        this.resetStats();
     }
 
     @Override
@@ -118,7 +120,14 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
         try {
             // use lock to ensure the atomicity of the two-step operation
             this.memoryActionLock.lock();
-            long ignoredRealAllocatedBytes = requestMemoryInternal(bytes);
+            // if free memory is enough, use free memory directly.
+            if (getFreeBytes() >= bytes) {
+                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() - bytes);
+            } else {
+                // if free memory is not enough, try to request delta
+                long delta = bytes - getFreeBytes();
+                long ignoredRealAllocatedBytes = requestMemoryInternal(delta);
+            }
             return tryToAcquireMemoryInternal(bytes);
         } catch (QueryOutOfMemoryException e) {
             // Abort this query
@@ -133,21 +142,27 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     /**
-     * Operator need `size` bytes, operator pool will try to reserve some memory for it
+     * This method will update `used` and `cumulative` stats.
      */
     @Override
     public Object tryToAcquireMemoryInternal(long size) {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this allocate", this);
-            return 0;
+            return null;
         }
         LOG.info("[{}] tryToAcquireMemory: size={}", this, size);
         // 1. update statistic
         super.tryToAcquireMemoryInternal(size);
-        // 2. allocate memory, currently use off-heap mode.
+        // 2. call parent to update statistic
+        getParentPool().tryToAcquireMemoryInternal(size);
+        // 3. allocate memory, currently use off-heap mode.
         return this.memoryAllocator.tryToAllocate(size);
     }
 
+    /**
+     * Operator need `size` bytes, operator pool will try to reserve some memory for it.
+     * This method will update `allocated` and `expand` stats.
+     */
     @Override
     public long requestMemoryInternal(long size) throws QueryOutOfMemoryException {
         if (this.isClosed) {
@@ -163,9 +178,6 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             long alignedSize = MemoryManageUtils.sizeAlign(size);
             // 2. reserve(round)
             long neededMemorySize = calculateReserveMemoryDelta(alignedSize);
-            if (neededMemorySize <= 0) {
-                return 0;
-            }
             // 3. call father
             long fatherRes = getParentPool().requestMemoryInternal(neededMemorySize);
             if (fatherRes < 0) {
@@ -188,17 +200,16 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
         }
     }
 
-    /**
-     * This method should be synchronized.
-     */
-    private synchronized long calculateReserveMemoryDelta(long size) {
-        // 1. check whether you need to acquire memory or not
-        long neededSize = size - (getFreeBytes());
-        // 2. if not needed, return 0
-        if (neededSize <= 0) {
-            return 0;
-        }
-        // 3. if needed, calculate rounded size and return it
-        return MemoryManageUtils.roundDelta(getAllocatedBytes(), neededSize);
+    private long calculateReserveMemoryDelta(long size) {
+        return MemoryManageUtils.roundDelta(getAllocatedBytes(), size);
+    }
+
+    private void resetStats() {
+        this.stats.setNumAborts(0);
+        this.stats.setNumExpands(0);
+        this.stats.setNumShrinks(0);
+        this.stats.setAllocatedBytes(0);
+        this.stats.setUsedBytes(0);
+        this.stats.setCumulativeBytes(0);
     }
 }

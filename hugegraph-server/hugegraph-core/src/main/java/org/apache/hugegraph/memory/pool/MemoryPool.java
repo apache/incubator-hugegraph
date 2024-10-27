@@ -69,6 +69,8 @@ public interface MemoryPool {
 
     void bindMemoryConsumer(MemoryConsumer memoryConsumer);
 
+    void setMaxCapacityBytes(long maxCapacityBytes);
+
     @TestOnly
     int getChildrenCount();
 }
