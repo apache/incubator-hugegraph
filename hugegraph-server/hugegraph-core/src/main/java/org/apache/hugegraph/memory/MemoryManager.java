@@ -17,8 +17,10 @@
 
 package org.apache.hugegraph.memory;
 
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -38,18 +40,22 @@ import org.slf4j.LoggerFactory;
 public class MemoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);
+    private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
     private static final String QUERY_MEMORY_POOL_NAME_PREFIX = "QueryMemoryPool";
     private static final String ARBITRATE_MEMORY_POOL_NAME = "ArbitrateMemoryPool";
-    private static final String DELIMINATOR = "_";
-    private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
+    public static final String DELIMINATOR = "_";
+
     // TODO: read it from conf, current 1G
     public static final long MAX_MEMORY_CAPACITY_IN_BYTES = Bytes.GB;
     private final AtomicLong currentAvailableMemoryInBytes =
             new AtomicLong(MAX_MEMORY_CAPACITY_IN_BYTES);
     private final AtomicLong currentOffHeapAllocatedMemoryInBytes = new AtomicLong(0);
     private final AtomicLong currentOnHeapAllocatedMemoryInBytes = new AtomicLong(0);
+
     private final Queue<MemoryPool> queryMemoryPools =
             new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
+    private final Map<String, MemoryPool> threadName2TaskMemoryPoolMap = new ConcurrentHashMap<>();
+
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
 
@@ -126,6 +132,21 @@ public class MemoryManager {
                  "requestSize={}, afterThisExpandingRemainingCapacity={}", size,
                  currentAvailableMemoryInBytes.get());
         return size;
+    }
+
+    /**
+     * Used by task thread to find its memory pool to release self's memory resource when exiting.
+     */
+    public MemoryPool getCorrespondingTaskMemoryPool(String threadName) {
+        return threadName2TaskMemoryPoolMap.getOrDefault(threadName, null);
+    }
+
+    public void bindCorrespondingTaskMemoryPool(String threadName, MemoryPool memoryPool) {
+        threadName2TaskMemoryPoolMap.computeIfAbsent(threadName, key -> memoryPool);
+    }
+
+    public void removeCorrespondingTaskMemoryPool(String threadName) {
+        threadName2TaskMemoryPoolMap.remove(threadName);
     }
 
     public Queue<MemoryPool> getCurrentQueryMemoryPools() {

@@ -17,8 +17,11 @@
 
 package org.apache.hugegraph.memory.pool.impl;
 
+import static org.apache.hugegraph.memory.MemoryManager.DELIMINATOR;
+
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
+import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.util.MemoryManageUtils;
 import org.apache.hugegraph.util.Bytes;
 import org.slf4j.Logger;
@@ -27,12 +30,25 @@ import org.slf4j.LoggerFactory;
 public class QueryMemoryPool extends AbstractMemoryPool {
 
     private static final Logger LOG = LoggerFactory.getLogger(QueryMemoryPool.class);
+    private static final String TASK_MEMORY_POOL_NAME_PREFIX = "TaskMemoryPool";
     // TODO: read from conf
     private static final long QUERY_POOL_MAX_CAPACITY = Bytes.MB * 100;
 
     public QueryMemoryPool(String poolName, MemoryManager memoryManager) {
         super(null, poolName, memoryManager);
         this.stats.setMaxCapacity(QUERY_POOL_MAX_CAPACITY);
+    }
+
+    @Override
+    public MemoryPool addChildPool() {
+        int count = this.children.size();
+        String poolName =
+                TASK_MEMORY_POOL_NAME_PREFIX + DELIMINATOR + count + DELIMINATOR +
+                System.currentTimeMillis();
+        MemoryPool taskMemoryPool = new TaskMemoryPool(this, poolName, this.memoryManager);
+        this.children.add(taskMemoryPool);
+        LOG.info("QueryPool-{} added task memory pool {}", this, taskMemoryPool);
+        return taskMemoryPool;
     }
 
     @Override
@@ -83,8 +99,10 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     private long requestMemoryThroughArbitration(long bytes) {
         LOG.info("[{}] try to request memory from manager through arbitration: size={}", this,
                  bytes);
-        this.stats.setNumExpands(this.stats.getNumExpands() + 1);
         long reclaimedBytes = this.memoryManager.triggerLocalArbitration(this, bytes);
+        if (reclaimedBytes > 0) {
+            this.stats.setNumExpands(this.stats.getNumExpands() + 1);
+        }
         // 1. if arbitrate successes, update stats and return success
         if (reclaimedBytes - bytes >= 0) {
             // here we don't update capacity & reserved & allocated, because memory is

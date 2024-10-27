@@ -21,7 +21,7 @@ import org.apache.hugegraph.memory.pool.MemoryPool;
 
 public interface MemoryArbitrator {
 
-    long MAX_WAIT_TIME_FOR_LOCAL_RECLAIM = 1000;
+    long MAX_WAIT_TIME_FOR_LOCAL_RECLAIM = 2000;
 
     long MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM = 5000;
 

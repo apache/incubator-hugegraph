@@ -22,10 +22,14 @@ public class MemoryPoolStats {
     private final String memoryPoolName;
     private long maxCapacity;
     private long usedBytes;
+    // it represents the cumulative used bytes.
     private long cumulativeBytes;
     private long allocatedBytes;
 
+    // it represents the shrinking num of allocatedBytes
     private long numShrinks;
+    // for query pool, it represents the enlarging num of maxCapacity; for other pools, it
+    // represents the enlarging num of allocatedBytes
     private long numExpands;
     private long numAborts;
 

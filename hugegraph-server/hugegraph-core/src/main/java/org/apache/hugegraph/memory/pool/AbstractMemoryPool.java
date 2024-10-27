@@ -27,17 +27,19 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.consumer.MemoryConsumer;
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
+import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractMemoryPool implements MemoryPool {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractMemoryPool.class);
-    private final Queue<MemoryPool> children =
+    protected final Queue<MemoryPool> children =
             new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
     protected final MemoryManager memoryManager;
-    protected final ReentrantLock arbitrationLock = new ReentrantLock();
-    protected final Condition condition = arbitrationLock.newCondition();
+    // Allocation, deAllocation, arbitration must be serial which is controlled by this lock.
+    protected final ReentrantLock memoryActionLock = new ReentrantLock();
+    protected final Condition condition = memoryActionLock.newCondition();
     protected final AtomicBoolean isBeingArbitrated = new AtomicBoolean(false);
     protected final MemoryPoolStats stats;
     protected boolean isClosed = false;
@@ -60,7 +62,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
         long totalReclaimedBytes = 0;
         long currentNeededBytes = neededBytes;
         try {
-            this.arbitrationLock.lock();
+            this.memoryActionLock.lock();
             this.isBeingArbitrated.set(true);
             for (MemoryPool child : this.children) {
                 long reclaimedMemory = child.tryToReclaimLocalMemory(currentNeededBytes);
@@ -79,12 +81,14 @@ public abstract class AbstractMemoryPool implements MemoryPool {
                      totalReclaimedBytes, neededBytes);
             return totalReclaimedBytes;
         } finally {
-            this.stats.setNumShrinks(this.stats.getNumShrinks() + 1);
+            if (totalReclaimedBytes > 0) {
+                this.stats.setNumShrinks(this.stats.getNumShrinks() + 1);
+            }
             this.stats.setAllocatedBytes(
                     this.stats.getAllocatedBytes() - totalReclaimedBytes);
             this.isBeingArbitrated.set(false);
-            this.arbitrationLock.unlock();
             this.condition.signalAll();
+            this.memoryActionLock.unlock();
         }
     }
 
@@ -92,7 +96,8 @@ public abstract class AbstractMemoryPool implements MemoryPool {
      * called when one layer pool is successfully executed and exited.
      */
     @Override
-    public synchronized void releaseSelf(String reason) {
+    public void releaseSelf(String reason) {
+        this.memoryActionLock.lock();
         try {
             if (this.isBeingArbitrated.get()) {
                 this.condition.await();
@@ -109,6 +114,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();
         } finally {
+            this.memoryActionLock.unlock();
             // Make these objs be GCed by JVM quickly.
             this.parent = null;
             this.children.clear();
@@ -197,5 +203,10 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             return this;
         }
         return getParentPool().findRootQueryPool();
+    }
+
+    @TestOnly
+    public int getChildrenCount() {
+        return this.children.size();
     }
 }

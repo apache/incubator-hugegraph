@@ -44,19 +44,26 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
+    public MemoryPool addChildPool() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void bindMemoryConsumer(MemoryConsumer memoryConsumer) {
         this.memoryConsumers.add(memoryConsumer);
     }
 
     @Override
-    public synchronized void releaseSelf(String reason) {
+    public void releaseSelf(String reason) {
+        super.releaseSelf(reason);
+        // since it is already closed, its stats will not be updated. so here we can use its
+        // stats out of memoryActionLock.
         this.memoryAllocator.returnMemoryToManager(getAllocatedBytes());
+        // release memory consumer, release byte buffer.
         this.memoryConsumers.forEach(memoryConsumer -> {
             memoryConsumer.getAllMemoryBlock().forEach(memoryAllocator::releaseMemoryBlock);
         });
         this.memoryConsumers.clear();
-        super.releaseSelf(reason);
-        // TODO: release memory consumer, release byte buffer.
     }
 
     @Override
@@ -66,11 +73,12 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             return 0;
         }
         LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
+        long reclaimableBytes = 0;
         try {
-            this.arbitrationLock.lock();
+            this.memoryActionLock.lock();
             this.isBeingArbitrated.set(true);
             // 1. try to reclaim self free memory
-            long reclaimableBytes = getFreeBytes();
+            reclaimableBytes = getFreeBytes();
             // try its best to reclaim memory
             if (reclaimableBytes <= neededBytes) {
                 // 2. update stats
@@ -93,9 +101,12 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
 
             return neededBytes;
         } finally {
+            if (reclaimableBytes > 0) {
+                this.stats.setNumShrinks(this.stats.getNumShrinks() + 1);
+            }
             this.isBeingArbitrated.set(false);
-            this.arbitrationLock.unlock();
             this.condition.signalAll();
+            this.memoryActionLock.unlock();
         }
     }
 
@@ -106,9 +117,9 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     public Object requireMemory(long bytes) {
         try {
             // use lock to ensure the atomicity of the two-step operation
-            this.arbitrationLock.lock();
-            long realBytes = requestMemoryInternal(bytes);
-            return tryToAcquireMemoryInternal(realBytes);
+            this.memoryActionLock.lock();
+            long ignoredRealAllocatedBytes = requestMemoryInternal(bytes);
+            return tryToAcquireMemoryInternal(bytes);
         } catch (QueryOutOfMemoryException e) {
             // Abort this query
             LOG.warn("[{}] detected an OOM exception when request memory, will ABORT this " +
@@ -117,7 +128,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             findRootQueryPool().releaseSelf(String.format(e.getMessage()));
             return null;
         } finally {
-            this.arbitrationLock.unlock();
+            this.memoryActionLock.unlock();
         }
     }
 
