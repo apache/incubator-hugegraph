@@ -433,6 +433,7 @@ The text of each license is also included in licenses/LICENSE-[project].txt.
     https://central.sonatype.com/artifact/org.eclipse.jetty/jetty-webapp/9.4.46.v20220331 -> Apache 2.0
     https://central.sonatype.com/artifact/org.eclipse.jetty/jetty-xml/9.4.46.v20220331 -> Apache 2.0
     https://central.sonatype.com/artifact/com.github.jnr/jffi/1.2.16 -> Apache 2.0
+    https://central.sonatype.com/artifact/com.github.jnr/jffi/1.2.16 -> Apache 2.0
     https://central.sonatype.com/artifact/com.huaban/jieba-analysis/1.0.2 -> Apache 2.0
     https://central.sonatype.com/artifact/io.jsonwebtoken/jjwt-api/0.11.5 -> Apache 2.0
     https://central.sonatype.com/artifact/io.jsonwebtoken/jjwt-impl/0.11.5 -> Apache 2.0
