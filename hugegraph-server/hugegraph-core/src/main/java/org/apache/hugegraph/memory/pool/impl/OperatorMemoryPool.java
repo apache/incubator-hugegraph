@@ -22,11 +22,11 @@ import java.util.Set;
 
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.allocator.MemoryAllocator;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
-import org.apache.hugegraph.memory.util.MemoryManageUtils;
-import org.apache.hugegraph.memory.util.QueryOutOfMemoryException;
+import org.apache.hugegraph.memory.util.OutOfMemoryException;
+import org.apache.hugegraph.memory.util.RoundUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,13 +34,13 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
 
     private static final Logger LOG = LoggerFactory.getLogger(OperatorMemoryPool.class);
     private final MemoryAllocator memoryAllocator;
-    private final Set<MemoryConsumer> memoryConsumers;
+    private final Set<OffHeapObject> offHeapObjects;
 
     public OperatorMemoryPool(MemoryPool parent, String poolName,
                               MemoryAllocator memoryAllocator, MemoryManager memoryManager) {
         super(parent, poolName, memoryManager);
         this.memoryAllocator = memoryAllocator;
-        this.memoryConsumers = new HashSet<>();
+        this.offHeapObjects = new HashSet<>();
     }
 
     @Override
@@ -49,8 +49,8 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public void bindMemoryConsumer(MemoryConsumer memoryConsumer) {
-        this.memoryConsumers.add(memoryConsumer);
+    public void bindMemoryConsumer(OffHeapObject offHeapObject) {
+        this.offHeapObjects.add(offHeapObject);
     }
 
     @Override
@@ -61,10 +61,10 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
         this.memoryAllocator.returnMemoryToManager(getUsedBytes());
         this.memoryManager.returnReclaimedTaskMemory(getAllocatedBytes());
         // release memory consumer, release byte buffer.
-        this.memoryConsumers.forEach(memoryConsumer -> {
+        this.offHeapObjects.forEach(memoryConsumer -> {
             memoryConsumer.getAllMemoryBlock().forEach(memoryAllocator::releaseMemoryBlock);
         });
-        this.memoryConsumers.clear();
+        this.offHeapObjects.clear();
         this.resetStats();
     }
 
@@ -129,7 +129,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
                 long ignoredRealAllocatedBytes = requestMemoryInternal(delta);
             }
             return tryToAcquireMemoryInternal(bytes);
-        } catch (QueryOutOfMemoryException e) {
+        } catch (OutOfMemoryException e) {
             // Abort this query
             LOG.warn("[{}] detected an OOM exception when request memory, will ABORT this " +
                      "query and release corresponding memory...",
@@ -164,7 +164,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
      * This method will update `allocated` and `expand` stats.
      */
     @Override
-    public long requestMemoryInternal(long size) throws QueryOutOfMemoryException {
+    public long requestMemoryInternal(long size) throws OutOfMemoryException {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;
@@ -175,7 +175,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             }
             LOG.info("[{}] requestMemory: request size={}", this, size);
             // 1. align size
-            long alignedSize = MemoryManageUtils.sizeAlign(size);
+            long alignedSize = RoundUtil.sizeAlign(size);
             // 2. reserve(round)
             long neededMemorySize = calculateReserveMemoryDelta(alignedSize);
             // 3. call father
@@ -184,9 +184,9 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
                 LOG.error("[{}] requestMemory failed because of OOM, request size={}", this,
                           size);
                 this.stats.setNumAborts(this.stats.getNumAborts() + 1);
-                throw new QueryOutOfMemoryException(String.format("%s requestMemory failed " +
-                                                                  "because of OOM, request " +
-                                                                  "size=%s", this, size));
+                throw new OutOfMemoryException(String.format("%s requestMemory failed " +
+                                                             "because of OOM, request " +
+                                                             "size=%s", this, size));
             }
             // 4. update stats
             this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + neededMemorySize);
@@ -201,7 +201,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     private long calculateReserveMemoryDelta(long size) {
-        return MemoryManageUtils.roundDelta(getAllocatedBytes(), size);
+        return RoundUtil.roundDelta(getAllocatedBytes(), size);
     }
 
     private void resetStats() {

@@ -26,9 +26,9 @@ import org.slf4j.LoggerFactory;
 import sun.misc.Unsafe;
 
 // NOTE: due to different layout of klass in various versions of JDK, this class may easily crash!
-public class OffHeapMemoryAccess {
+public class OffHeapMemoryUtil {
 
-    private static final Logger LOG = LoggerFactory.getLogger(OffHeapMemoryAccess.class);
+    private static final Logger LOG = LoggerFactory.getLogger(OffHeapMemoryUtil.class);
     private static final Unsafe UNSAFE;
 
     static {

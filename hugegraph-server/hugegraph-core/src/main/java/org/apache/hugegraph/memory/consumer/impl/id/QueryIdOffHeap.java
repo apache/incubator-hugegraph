@@ -24,22 +24,20 @@ import java.util.List;
 import org.apache.hugegraph.backend.cache.CachedBackendStore;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 
-public class QueryIdOffHeap extends CachedBackendStore.QueryId implements MemoryConsumer {
+public class QueryIdOffHeap extends CachedBackendStore.QueryId implements OffHeapObject {
 
-    private final MemoryPool memoryPool;
     private ByteBuf queryOffHeap;
 
     public QueryIdOffHeap(MemoryPool memoryPool, Query q) {
         super(q);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
@@ -54,7 +52,7 @@ public class QueryIdOffHeap extends CachedBackendStore.QueryId implements Memory
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] stringBytes = query.getBytes((StandardCharsets.UTF_8));
         this.queryOffHeap = (ByteBuf) memoryPool.requireMemory(stringBytes.length);
         this.queryOffHeap.markReaderIndex();
@@ -62,13 +60,8 @@ public class QueryIdOffHeap extends CachedBackendStore.QueryId implements Memory
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.query = null;
-    }
-
-    @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return memoryPool;
     }
 
     @Override

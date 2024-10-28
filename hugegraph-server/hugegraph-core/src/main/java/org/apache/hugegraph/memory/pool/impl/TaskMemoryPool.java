@@ -23,7 +23,7 @@ import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.allocator.NettyMemoryAllocator;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
-import org.apache.hugegraph.memory.util.QueryOutOfMemoryException;
+import org.apache.hugegraph.memory.util.OutOfMemoryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +64,7 @@ public class TaskMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public long requestMemoryInternal(long bytes) throws QueryOutOfMemoryException {
+    public long requestMemoryInternal(long bytes) throws OutOfMemoryException {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;

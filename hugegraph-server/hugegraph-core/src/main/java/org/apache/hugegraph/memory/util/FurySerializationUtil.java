@@ -22,7 +22,7 @@ import java.util.UUID;
 import org.apache.fury.Fury;
 import org.apache.fury.config.Language;
 
-public class FurySerializationUtils {
+public class FurySerializationUtil {
 
     public static final Fury FURY = Fury.builder().withLanguage(Language.JAVA)
                                         // not mandatory to register all class

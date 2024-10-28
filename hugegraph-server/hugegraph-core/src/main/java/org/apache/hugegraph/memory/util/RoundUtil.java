@@ -16,18 +16,32 @@
  */
 package org.apache.hugegraph.memory.util;
 
-public class QueryOutOfMemoryException extends Exception {
+public class RoundUtil {
 
-    public QueryOutOfMemoryException(String message) {
-        super(message);
+    // TODO: configurable
+    private static final long ALIGNMENT = 8;
+    private static final long MB = 1 << 20;
+
+    public static long sizeAlign(long size) {
+        long reminder = size % ALIGNMENT;
+        return reminder == 0 ? size : size + ALIGNMENT - reminder;
     }
 
-    public QueryOutOfMemoryException(String message, Throwable cause) {
-        super(message, cause);
+    public static long roundDelta(long reservedSize, long delta) {
+        return quantizedSize(reservedSize + delta) - reservedSize;
     }
 
-    public QueryOutOfMemoryException(Exception e) {
-        super(e);
+    private static long quantizedSize(long size) {
+        if (size < 16 * MB) {
+            return roundUp(size, MB);
+        }
+        if (size < 64 * MB) {
+            return roundUp(size, 4 * MB);
+        }
+        return roundUp(size, 8 * MB);
     }
 
+    private static long roundUp(long size, long factor) {
+        return (size + factor - 1) / factor * factor;
+    }
 }

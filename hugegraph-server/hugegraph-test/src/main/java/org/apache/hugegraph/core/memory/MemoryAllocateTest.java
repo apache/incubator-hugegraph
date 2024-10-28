@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.allocator.MemoryAllocator;
 import org.apache.hugegraph.memory.allocator.NettyMemoryAllocator;
-import org.apache.hugegraph.memory.allocator.OnHeapMemoryStrategy;
+import org.apache.hugegraph.memory.allocator.OnHeapMemoryAllocator;
 import org.apache.hugegraph.util.Bytes;
 import org.junit.Assert;
 import org.junit.Before;
@@ -48,7 +48,7 @@ public class MemoryAllocateTest {
     @BeforeClass
     public static void beforeClass() {
         nettyAllocator = new NettyMemoryAllocator(MemoryManager.getInstance());
-        onHeapAllocator = new OnHeapMemoryStrategy(MemoryManager.getInstance());
+        onHeapAllocator = new OnHeapMemoryAllocator(MemoryManager.getInstance());
         memoryManager = MemoryManager.getInstance();
     }
 

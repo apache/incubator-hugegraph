@@ -25,29 +25,26 @@ import java.util.Objects;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.util.NumericUtil;
 
 import io.netty.buffer.ByteBuf;
 
-public class LongIdOffHeap extends IdGenerator.LongId implements MemoryConsumer {
+public class LongIdOffHeap extends IdGenerator.LongId implements OffHeapObject {
 
-    private final MemoryPool memoryPool;
     private ByteBuf idOffHeap;
 
     public LongIdOffHeap(MemoryPool memoryPool, long id) {
         super(id);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     public LongIdOffHeap(MemoryPool memoryPool, byte[] bytes) {
         super(bytes);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
@@ -57,24 +54,18 @@ public class LongIdOffHeap extends IdGenerator.LongId implements MemoryConsumer 
         } finally {
             idOffHeap.resetReaderIndex();
         }
-
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         this.idOffHeap = (ByteBuf) memoryPool.requireMemory(Long.BYTES);
         this.idOffHeap.markReaderIndex();
         this.idOffHeap.writeLong(id);
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.id = null;
-    }
-
-    @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return memoryPool;
     }
 
     @Override

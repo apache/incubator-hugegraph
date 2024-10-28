@@ -16,32 +16,23 @@
  */
 package org.apache.hugegraph.memory.util;
 
-public class MemoryManageUtils {
+import org.apache.hugegraph.HugeException;
 
-    // TODO: configurable
-    private static final long ALIGNMENT = 8;
-    private static final long MB = 1 << 20;
+public class OutOfMemoryException extends HugeException {
 
-    public static long sizeAlign(long size) {
-        long reminder = size % ALIGNMENT;
-        return reminder == 0 ? size : size + ALIGNMENT - reminder;
+    public OutOfMemoryException(String message) {
+        super(message);
     }
 
-    public static long roundDelta(long reservedSize, long delta) {
-        return quantizedSize(reservedSize + delta) - reservedSize;
+    public OutOfMemoryException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    private static long quantizedSize(long size) {
-        if (size < 16 * MB) {
-            return roundUp(size, MB);
-        }
-        if (size < 64 * MB) {
-            return roundUp(size, 4 * MB);
-        }
-        return roundUp(size, 8 * MB);
+    public OutOfMemoryException(String message, Object... args) {
+        super(String.format(message, args));
     }
 
-    private static long roundUp(long size, long factor) {
-        return (size + factor - 1) / factor * factor;
+    public OutOfMemoryException(String message, Throwable cause, Object... args) {
+        super(String.format(message, args), cause);
     }
 }

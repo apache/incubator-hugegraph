@@ -25,29 +25,26 @@ import java.util.List;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 
-public class StringIdOffHeap extends IdGenerator.StringId implements MemoryConsumer {
+public class StringIdOffHeap extends IdGenerator.StringId implements OffHeapObject {
 
-    private final MemoryPool memoryPool;
     private ByteBuf idOffHeap;
 
     public StringIdOffHeap(MemoryPool memoryPool, String id) {
         super(id);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     public StringIdOffHeap(MemoryPool memoryPool, byte[] bytes) {
         super(bytes);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
@@ -60,7 +57,7 @@ public class StringIdOffHeap extends IdGenerator.StringId implements MemoryConsu
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] stringBytes = id.getBytes((StandardCharsets.UTF_8));
         this.idOffHeap = (ByteBuf) memoryPool.requireMemory(stringBytes.length);
         this.idOffHeap.markReaderIndex();
@@ -68,13 +65,8 @@ public class StringIdOffHeap extends IdGenerator.StringId implements MemoryConsu
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.id = null;
-    }
-
-    @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return memoryPool;
     }
 
     @Override

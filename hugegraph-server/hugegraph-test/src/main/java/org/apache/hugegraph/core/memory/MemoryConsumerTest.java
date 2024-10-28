@@ -17,6 +17,11 @@
 
 package org.apache.hugegraph.core.memory;
 
+import org.junit.Test;
+
 public class MemoryConsumerTest extends MemoryManageTest {
 
+    @Test
+    public void test() {
+    }
 }

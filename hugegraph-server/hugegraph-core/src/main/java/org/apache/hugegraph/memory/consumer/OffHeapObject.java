@@ -26,10 +26,10 @@ import io.netty.buffer.ByteBuf;
 /**
  * This interface is used by immutable, memory-heavy objects which will be stored in off heap.
  */
-public interface MemoryConsumer {
+public interface OffHeapObject {
 
     /**
-     * This method will read Off heap ByteBuf storing binary data of self.
+     * This method will read from off-heap ByteBuf storing binary data of self.
      *
      * @return self value
      */
@@ -39,15 +39,18 @@ public interface MemoryConsumer {
      * Serialize to DataOutputStream in stack first, then request an off heap ByteBuf from
      * OperatorMemoryPool based on size of DataOutputStream. Finally, serializing it to ByteBuf.
      */
-    void serializeSelfToByteBuf();
+    void serializeSelfToByteBuf(MemoryPool memoryPool);
 
     /**
      * Called after serializingSelfToByteBuf, pointing all self's on heap vars to null, in order
      * to let GC release all its on heap memory.
      */
-    void releaseOriginalOnHeapVars();
+    void releaseOriginalVarsOnHeap();
 
-    MemoryPool getOperatorMemoryPool();
-
+    /**
+     * Called by memoryPool to release all its holding memory block when memoryPool release self.
+     *
+     * @return all holding memory block allocated by memoryPool
+     */
     List<ByteBuf> getAllMemoryBlock();
 }

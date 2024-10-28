@@ -21,9 +21,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
-import org.apache.hugegraph.memory.util.FurySerializationUtils;
+import org.apache.hugegraph.memory.util.FurySerializationUtil;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeEdgeProperty;
@@ -32,42 +32,35 @@ import org.apache.hugegraph.structure.HugeElement;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 
-public class HugeEdgePropertyOffHeap<V> extends HugeEdgeProperty<V> implements MemoryConsumer {
+public class HugeEdgePropertyOffHeap<V> extends HugeEdgeProperty<V> implements OffHeapObject {
 
-    private final MemoryPool memoryPool;
     private ByteBuf valueOffHeap;
 
     public HugeEdgePropertyOffHeap(MemoryPool memoryPool, HugeElement owner, PropertyKey key,
                                    V value) {
         super(owner, key, value);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
     public Object zeroCopyReadFromByteBuf() {
         return new HugeEdgeProperty<>(this.owner, this.pkey,
-                                      FurySerializationUtils.FURY.deserialize(
+                                      FurySerializationUtil.FURY.deserialize(
                                               ByteBufUtil.getBytes(this.valueOffHeap)));
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
-        byte[] bytes = FurySerializationUtils.FURY.serialize(this.value);
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
+        byte[] bytes = FurySerializationUtil.FURY.serialize(this.value);
         this.valueOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
         this.valueOffHeap.markReaderIndex();
         this.valueOffHeap.writeBytes(bytes);
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.value = null;
-    }
-
-    @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return memoryPool;
     }
 
     @Override
@@ -94,7 +87,7 @@ public class HugeEdgePropertyOffHeap<V> extends HugeEdgeProperty<V> implements M
 
     @Override
     public V value() throws NoSuchElementException {
-        return (V) FurySerializationUtils.FURY.deserialize(
+        return (V) FurySerializationUtil.FURY.deserialize(
                 ByteBufUtil.getBytes(this.valueOffHeap));
     }
 }

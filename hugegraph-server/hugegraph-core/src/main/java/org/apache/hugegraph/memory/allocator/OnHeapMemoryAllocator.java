@@ -21,11 +21,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.memory.MemoryManager;
 
-public class OnHeapMemoryStrategy implements MemoryAllocator {
+public class OnHeapMemoryAllocator implements MemoryAllocator {
 
     private final MemoryManager memoryManager;
 
-    public OnHeapMemoryStrategy(MemoryManager memoryManager) {
+    public OnHeapMemoryAllocator(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
     }
 

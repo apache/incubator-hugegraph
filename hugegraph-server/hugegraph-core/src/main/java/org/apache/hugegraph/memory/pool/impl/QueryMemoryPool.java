@@ -22,7 +22,7 @@ import static org.apache.hugegraph.memory.MemoryManager.DELIMINATOR;
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
-import org.apache.hugegraph.memory.util.MemoryManageUtils;
+import org.apache.hugegraph.memory.util.RoundUtil;
 import org.apache.hugegraph.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,9 +105,9 @@ public class QueryMemoryPool extends AbstractMemoryPool {
 
     private long tryToExpandSelfCapacity(long size) {
         LOG.info("[{}] try to expand its capacity: size={}", this, size);
-        long alignedSize = MemoryManageUtils.sizeAlign(size);
+        long alignedSize = RoundUtil.sizeAlign(size);
         long realNeededSize =
-                MemoryManageUtils.roundDelta(getAllocatedBytes(), alignedSize);
+                RoundUtil.roundDelta(getAllocatedBytes(), alignedSize);
         return this.memoryManager.handleRequestFromQueryPool(realNeededSize, EXPAND_SELF);
     }
 

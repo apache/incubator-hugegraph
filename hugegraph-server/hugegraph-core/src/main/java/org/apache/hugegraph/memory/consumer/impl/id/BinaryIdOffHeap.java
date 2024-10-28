@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.E;
@@ -30,22 +30,20 @@ import org.apache.hugegraph.util.E;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 
-public class BinaryIdOffHeap extends BinaryBackendEntry.BinaryId implements MemoryConsumer {
+public class BinaryIdOffHeap extends BinaryBackendEntry.BinaryId implements OffHeapObject {
 
-    private final MemoryPool memoryPool;
-    private final MemoryConsumer originId;
+    private final OffHeapObject originId;
     private ByteBuf bytesOffHeap;
 
-    public BinaryIdOffHeap(byte[] bytes, Id id, MemoryPool memoryPool, MemoryConsumer originId) {
+    public BinaryIdOffHeap(byte[] bytes, Id id, MemoryPool memoryPool, OffHeapObject originId) {
         super(bytes, id);
-        this.memoryPool = memoryPool;
         this.originId = originId;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         this.bytesOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
         this.bytesOffHeap.markReaderIndex();
         this.bytesOffHeap.writeBytes(bytes);
@@ -58,17 +56,12 @@ public class BinaryIdOffHeap extends BinaryBackendEntry.BinaryId implements Memo
     }
 
     @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return this.memoryPool;
-    }
-
-    @Override
     public List<ByteBuf> getAllMemoryBlock() {
         return Collections.singletonList(bytesOffHeap);
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.bytes = null;
         this.id = null;
     }

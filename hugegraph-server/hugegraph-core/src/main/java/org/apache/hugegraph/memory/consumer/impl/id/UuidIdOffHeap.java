@@ -27,9 +27,9 @@ import java.util.UUID;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
-import org.apache.hugegraph.memory.util.FurySerializationUtils;
+import org.apache.hugegraph.memory.util.FurySerializationUtil;
 import org.apache.hugegraph.memory.util.SerializationRuntimeException;
 import org.apache.hugegraph.util.E;
 import org.slf4j.Logger;
@@ -38,55 +38,46 @@ import org.slf4j.LoggerFactory;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 
-public class UuidIdOffHeap extends IdGenerator.UuidId implements MemoryConsumer {
+public class UuidIdOffHeap extends IdGenerator.UuidId implements OffHeapObject {
 
     private static final Logger LOG = LoggerFactory.getLogger(UuidIdOffHeap.class);
-    private final MemoryPool memoryPool;
     private ByteBuf idOffHeap;
 
     public UuidIdOffHeap(MemoryPool memoryPool, String string) {
         super(string);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     public UuidIdOffHeap(MemoryPool memoryPool, byte[] bytes) {
         super(bytes);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     public UuidIdOffHeap(MemoryPool memoryPool, UUID uuid) {
         super(uuid);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
     public Object zeroCopyReadFromByteBuf() {
-        return new IdGenerator.UuidId((UUID) FurySerializationUtils.FURY.deserialize(
+        return new IdGenerator.UuidId((UUID) FurySerializationUtil.FURY.deserialize(
                 ByteBufUtil.getBytes(this.idOffHeap)));
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
-        byte[] bytes = FurySerializationUtils.FURY.serialize(uuid);
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
+        byte[] bytes = FurySerializationUtil.FURY.serialize(uuid);
         this.idOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
         this.idOffHeap.markReaderIndex();
         this.idOffHeap.writeBytes(bytes);
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.uuid = null;
-    }
-
-    @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return memoryPool;
     }
 
     @Override
@@ -96,7 +87,7 @@ public class UuidIdOffHeap extends IdGenerator.UuidId implements MemoryConsumer 
 
     @Override
     public Object asObject() {
-        return FurySerializationUtils.FURY.deserialize(
+        return FurySerializationUtil.FURY.deserialize(
                 ByteBufUtil.getBytes(this.idOffHeap));
     }
 

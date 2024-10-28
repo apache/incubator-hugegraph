@@ -22,47 +22,40 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
-import org.apache.hugegraph.memory.util.FurySerializationUtils;
+import org.apache.hugegraph.memory.util.FurySerializationUtil;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 
-public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsumer {
+public class ObjectIdOffHeap extends IdGenerator.ObjectId implements OffHeapObject {
 
-    private final MemoryPool memoryPool;
     private ByteBuf objectOffHeap;
 
     public ObjectIdOffHeap(Object object, MemoryPool memoryPool) {
         super(object);
-        this.memoryPool = memoryPool;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
     public Object zeroCopyReadFromByteBuf() {
-        return new IdGenerator.ObjectId(FurySerializationUtils.FURY.deserialize(
+        return new IdGenerator.ObjectId(FurySerializationUtil.FURY.deserialize(
                 ByteBufUtil.getBytes(this.objectOffHeap)));
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
-        byte[] bytes = FurySerializationUtils.FURY.serialize(object);
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
+        byte[] bytes = FurySerializationUtil.FURY.serialize(object);
         this.objectOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
         this.objectOffHeap.markReaderIndex();
         this.objectOffHeap.writeBytes(bytes);
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.object = null;
-    }
-
-    @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return memoryPool;
     }
 
     @Override
@@ -72,7 +65,7 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsu
 
     @Override
     public Object asObject() {
-        return FurySerializationUtils.FURY.deserialize(ByteBufUtil.getBytes(objectOffHeap));
+        return FurySerializationUtil.FURY.deserialize(ByteBufUtil.getBytes(objectOffHeap));
     }
 
     @Override
@@ -93,6 +86,3 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements MemoryConsu
         return super.toString();
     }
 }
-
-
-

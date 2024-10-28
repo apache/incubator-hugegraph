@@ -25,7 +25,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.memory.MemoryManager;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
@@ -153,7 +153,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     @Override
-    public void bindMemoryConsumer(MemoryConsumer memoryConsumer) {
+    public void bindMemoryConsumer(OffHeapObject offHeapObject) {
         // default do nothing
     }
 

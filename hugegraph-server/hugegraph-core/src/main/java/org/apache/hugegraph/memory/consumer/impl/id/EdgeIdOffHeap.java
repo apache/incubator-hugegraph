@@ -25,7 +25,7 @@ import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdUtil;
 import org.apache.hugegraph.backend.id.SplicingIdGenerator;
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.define.Directions;
@@ -35,13 +35,13 @@ import com.google.common.collect.Lists;
 import io.netty.buffer.ByteBuf;
 
 // TODO: rewrite static method in EdgeId
-public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
+public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
 
     private final MemoryPool memoryPool;
-    private final MemoryConsumer ownerVertexIdOffHeap;
-    private final MemoryConsumer edgeLabelIdOffHeap;
-    private final MemoryConsumer subLabelIdOffHeap;
-    private final MemoryConsumer otherVertexIdOffHeap;
+    private final OffHeapObject ownerVertexIdOffHeap;
+    private final OffHeapObject edgeLabelIdOffHeap;
+    private final OffHeapObject subLabelIdOffHeap;
+    private final OffHeapObject otherVertexIdOffHeap;
     private ByteBuf sortValuesOffHeap;
     private ByteBuf cacheOffHeap;
 
@@ -52,18 +52,18 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
                          String sortValues,
                          HugeVertex otherVertex,
                          MemoryPool memoryPool,
-                         MemoryConsumer ownerVertexIdOffHeap,
-                         MemoryConsumer edgeLabelIdOffHeap,
-                         MemoryConsumer subLabelIdOffHeap,
-                         MemoryConsumer otherVertexIdOffHeap) {
+                         OffHeapObject ownerVertexIdOffHeap,
+                         OffHeapObject edgeLabelIdOffHeap,
+                         OffHeapObject subLabelIdOffHeap,
+                         OffHeapObject otherVertexIdOffHeap) {
         super(ownerVertex, direction, edgeLabelId, subLabelId, sortValues, otherVertex);
         this.memoryPool = memoryPool;
         this.ownerVertexIdOffHeap = ownerVertexIdOffHeap;
         this.edgeLabelIdOffHeap = edgeLabelIdOffHeap;
         this.subLabelIdOffHeap = subLabelIdOffHeap;
         this.otherVertexIdOffHeap = otherVertexIdOffHeap;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     public EdgeIdOffHeap(Id ownerVertexId,
@@ -73,10 +73,10 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
                          String sortValues,
                          Id otherVertexId,
                          MemoryPool memoryPool,
-                         MemoryConsumer ownerVertexIdOffHeap,
-                         MemoryConsumer edgeLabelIdOffHeap,
-                         MemoryConsumer subLabelIdOffHeap,
-                         MemoryConsumer otherVertexIdOffHeap) {
+                         OffHeapObject ownerVertexIdOffHeap,
+                         OffHeapObject edgeLabelIdOffHeap,
+                         OffHeapObject subLabelIdOffHeap,
+                         OffHeapObject otherVertexIdOffHeap) {
         super(ownerVertexId, direction, edgeLabelId, subLabelId,
               sortValues, otherVertexId, false);
         this.memoryPool = memoryPool;
@@ -84,8 +84,8 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
         this.edgeLabelIdOffHeap = edgeLabelIdOffHeap;
         this.subLabelIdOffHeap = subLabelIdOffHeap;
         this.otherVertexIdOffHeap = otherVertexIdOffHeap;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     public EdgeIdOffHeap(Id ownerVertexId,
@@ -96,10 +96,10 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
                          Id otherVertexId,
                          boolean directed,
                          MemoryPool memoryPool,
-                         MemoryConsumer ownerVertexIdOffHeap,
-                         MemoryConsumer edgeLabelIdOffHeap,
-                         MemoryConsumer subLabelIdOffHeap,
-                         MemoryConsumer otherVertexIdOffHeap) {
+                         OffHeapObject ownerVertexIdOffHeap,
+                         OffHeapObject edgeLabelIdOffHeap,
+                         OffHeapObject subLabelIdOffHeap,
+                         OffHeapObject otherVertexIdOffHeap) {
         super(ownerVertexId, direction, edgeLabelId, subLabelId, sortValues, otherVertexId,
               directed);
         this.memoryPool = memoryPool;
@@ -107,8 +107,8 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
         this.edgeLabelIdOffHeap = edgeLabelIdOffHeap;
         this.subLabelIdOffHeap = subLabelIdOffHeap;
         this.otherVertexIdOffHeap = otherVertexIdOffHeap;
-        serializeSelfToByteBuf();
-        releaseOriginalOnHeapVars();
+        serializeSelfToByteBuf(memoryPool);
+        releaseOriginalVarsOnHeap();
     }
 
     @Override
@@ -126,21 +126,16 @@ public class EdgeIdOffHeap extends EdgeId implements MemoryConsumer {
     }
 
     @Override
-    public void serializeSelfToByteBuf() {
+    public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] stringBytes = sortValues.getBytes((StandardCharsets.UTF_8));
-        this.sortValuesOffHeap = (ByteBuf) memoryPool.requireMemory(stringBytes.length);
+        this.sortValuesOffHeap = (ByteBuf) this.memoryPool.requireMemory(stringBytes.length);
         this.sortValuesOffHeap.markReaderIndex();
         this.sortValuesOffHeap.writeBytes(stringBytes);
     }
 
     @Override
-    public void releaseOriginalOnHeapVars() {
+    public void releaseOriginalVarsOnHeap() {
         this.sortValues = null;
-    }
-
-    @Override
-    public MemoryPool getOperatorMemoryPool() {
-        return memoryPool;
     }
 
     @Override

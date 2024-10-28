@@ -17,9 +17,9 @@
 
 package org.apache.hugegraph.memory.pool;
 
-import org.apache.hugegraph.memory.consumer.MemoryConsumer;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.impl.MemoryPoolStats;
-import org.apache.hugegraph.memory.util.QueryOutOfMemoryException;
+import org.apache.hugegraph.memory.util.OutOfMemoryException;
 import org.jetbrains.annotations.TestOnly;
 
 public interface MemoryPool {
@@ -30,7 +30,7 @@ public interface MemoryPool {
 
     Object requireMemory(long bytes);
 
-    long requestMemoryInternal(long bytes) throws QueryOutOfMemoryException;
+    long requestMemoryInternal(long bytes) throws OutOfMemoryException;
 
     Object tryToAcquireMemoryInternal(long bytes);
 
@@ -67,7 +67,7 @@ public interface MemoryPool {
 
     MemoryPool addChildPool();
 
-    void bindMemoryConsumer(MemoryConsumer memoryConsumer);
+    void bindMemoryConsumer(OffHeapObject offHeapObject);
 
     void setMaxCapacityBytes(long maxCapacityBytes);
 
