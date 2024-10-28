@@ -19,6 +19,7 @@ package org.apache.hugegraph.core.memory;
 
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.Bytes;
 import org.junit.After;
@@ -68,24 +69,25 @@ public class MemoryManageTest {
     @Before
     public void setUp() {
         memoryManager = MemoryManager.getInstance();
+        memoryManager.setMemoryMode(MemoryManager.MemoryMode.ENABLE_OFF_HEAP_MANAGEMENT);
         query1MemoryPool = memoryManager.addQueryMemoryPool();
         query2MemoryPool = memoryManager.addQueryMemoryPool();
 
-        query1Task1MemoryPool = query1MemoryPool.addChildPool();
+        query1Task1MemoryPool = query1MemoryPool.addChildPool("Task1");
         memoryManager.bindCorrespondingTaskMemoryPool(QUERY1_TASK1_THREAD_NAME,
-                                                      query1Task1MemoryPool);
-        query1Task1Operator1MemoryPool = query1Task1MemoryPool.addChildPool();
-        query1Task1Operator2MemoryPool = query1Task1MemoryPool.addChildPool();
+                                                      (TaskMemoryPool) query1Task1MemoryPool);
+        query1Task1Operator1MemoryPool = query1Task1MemoryPool.addChildPool("Operator1");
+        query1Task1Operator2MemoryPool = query1Task1MemoryPool.addChildPool("Operator2");
 
-        query1Task2MemoryPool = query1MemoryPool.addChildPool();
+        query1Task2MemoryPool = query1MemoryPool.addChildPool("Task2");
         memoryManager.bindCorrespondingTaskMemoryPool(QUERY1_TASK2_THREAD_NAME,
-                                                      query1Task2MemoryPool);
-        query1Task2Operator1MemoryPool = query1Task2MemoryPool.addChildPool();
+                                                      (TaskMemoryPool) query1Task2MemoryPool);
+        query1Task2Operator1MemoryPool = query1Task2MemoryPool.addChildPool("Operator1");
 
-        query2Task1MemoryPool = query2MemoryPool.addChildPool();
+        query2Task1MemoryPool = query2MemoryPool.addChildPool("Task1");
         memoryManager.bindCorrespondingTaskMemoryPool(QUERY2_TASK1_THREAD_NAME,
-                                                      query2Task1MemoryPool);
-        query2Task1Operator1MemoryPool = query2Task1MemoryPool.addChildPool();
+                                                      (TaskMemoryPool) query2Task1MemoryPool);
+        query2Task1Operator1MemoryPool = query2Task1MemoryPool.addChildPool("Operator1");
     }
 
     @After

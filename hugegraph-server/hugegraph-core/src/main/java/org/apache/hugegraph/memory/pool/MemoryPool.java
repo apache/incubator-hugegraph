@@ -65,7 +65,7 @@ public interface MemoryPool {
 
     MemoryPool findRootQueryPool();
 
-    MemoryPool addChildPool();
+    MemoryPool addChildPool(String name);
 
     void bindMemoryConsumer(OffHeapObject offHeapObject);
 

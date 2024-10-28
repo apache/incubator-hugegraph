@@ -31,9 +31,17 @@ public class TaskMemoryPool extends AbstractMemoryPool {
 
     private static final Logger LOG = LoggerFactory.getLogger(TaskMemoryPool.class);
     private static final String OPERATOR_MEMORY_POOL_NAME_PREFIX = "OperatorMemoryPool";
+    // One thread corresponds to one task memory pool. Since the execution flow within a single
+    // thread is serial, there is only one working Operator pool in the thread at each time.
+    // This variable helps the execution flow obtain the memory management context.
+    private MemoryPool CURRENT_WORKING_OPERATOR_MEMORY_POOL = null;
 
     public TaskMemoryPool(MemoryPool parent, String poolName, MemoryManager memoryManager) {
-        super(parent, poolName, memoryManager);
+        super(parent, poolName, MemoryPoolStats.MemoryPoolType.TASK, memoryManager);
+    }
+
+    public MemoryPool getCurrentWorkingOperatorMemoryPool() {
+        return CURRENT_WORKING_OPERATOR_MEMORY_POOL;
     }
 
     @Override
@@ -43,16 +51,17 @@ public class TaskMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public MemoryPool addChildPool() {
+    public MemoryPool addChildPool(String name) {
         int count = this.children.size();
         String poolName =
-                OPERATOR_MEMORY_POOL_NAME_PREFIX + DELIMINATOR + count + DELIMINATOR +
-                System.currentTimeMillis();
+                OPERATOR_MEMORY_POOL_NAME_PREFIX + DELIMINATOR + name + DELIMINATOR + count +
+                DELIMINATOR + System.currentTimeMillis();
         MemoryPool operatorPool =
                 new OperatorMemoryPool(this, poolName,
                                        new NettyMemoryAllocator(this.memoryManager),
                                        this.memoryManager);
         this.children.add(operatorPool);
+        CURRENT_WORKING_OPERATOR_MEMORY_POOL = operatorPool;
         LOG.info("TaskPool-{} added operator memory pool {}", this, operatorPool);
         return operatorPool;
     }

@@ -46,9 +46,9 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     private MemoryPool parent;
 
     public AbstractMemoryPool(MemoryPool parent, String memoryPoolName,
-                              MemoryManager memoryManager) {
+                              MemoryPoolStats.MemoryPoolType type, MemoryManager memoryManager) {
         this.parent = parent;
-        this.stats = new MemoryPoolStats(memoryPoolName);
+        this.stats = new MemoryPoolStats(memoryPoolName, type);
         this.memoryManager = memoryManager;
     }
 

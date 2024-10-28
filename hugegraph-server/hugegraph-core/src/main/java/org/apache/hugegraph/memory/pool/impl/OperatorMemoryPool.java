@@ -38,13 +38,13 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
 
     public OperatorMemoryPool(MemoryPool parent, String poolName,
                               MemoryAllocator memoryAllocator, MemoryManager memoryManager) {
-        super(parent, poolName, memoryManager);
+        super(parent, poolName, MemoryPoolStats.MemoryPoolType.OPERATOR, memoryManager);
         this.memoryAllocator = memoryAllocator;
         this.offHeapObjects = new HashSet<>();
     }
 
     @Override
-    public MemoryPool addChildPool() {
+    public MemoryPool addChildPool(String name) {
         throw new UnsupportedOperationException();
     }
 

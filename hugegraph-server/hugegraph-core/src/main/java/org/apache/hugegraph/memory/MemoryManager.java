@@ -32,6 +32,7 @@ import org.apache.hugegraph.memory.arbitrator.MemoryArbitrator;
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitratorImpl;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.pool.impl.QueryMemoryPool;
+import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.ExecutorUtil;
 import org.jetbrains.annotations.TestOnly;
@@ -41,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class MemoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);
-    private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
+    private static final int ARBITRATE_MEMORY_THREAD_NUM = 1;
     private static final String QUERY_MEMORY_POOL_NAME_PREFIX = "QueryMemoryPool";
     private static final String ARBITRATE_MEMORY_POOL_NAME = "ArbitrateMemoryPool";
     public static final String DELIMINATOR = "_";
@@ -56,13 +57,16 @@ public class MemoryManager {
 
     private final Queue<MemoryPool> queryMemoryPools =
             new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
-    private final Map<String, MemoryPool> threadName2TaskMemoryPoolMap = new ConcurrentHashMap<>();
+    private final Map<String, TaskMemoryPool> threadName2TaskMemoryPoolMap = new ConcurrentHashMap<>();
 
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
 
+    private MemoryMode memoryMode;
+
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitratorImpl(this);
+        // There should be only at most one arbitration task in any time.
         this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
                                                                  ARBITRATE_MEMORY_POOL_NAME);
     }
@@ -144,7 +148,7 @@ public class MemoryManager {
         return threadName2TaskMemoryPoolMap.getOrDefault(threadName, null);
     }
 
-    public void bindCorrespondingTaskMemoryPool(String threadName, MemoryPool memoryPool) {
+    public void bindCorrespondingTaskMemoryPool(String threadName, TaskMemoryPool memoryPool) {
         threadName2TaskMemoryPoolMap.computeIfAbsent(threadName, key -> memoryPool);
     }
 
@@ -164,6 +168,15 @@ public class MemoryManager {
         return currentOffHeapAllocatedMemoryInBytes;
     }
 
+    // TODO: read it from conf
+    public void setMemoryMode(MemoryMode conf) {
+        memoryMode = conf;
+    }
+
+    public MemoryMode getMemoryMode() {
+        return memoryMode;
+    }
+
     @TestOnly
     public AtomicLong getCurrentAvailableMemoryInBytes() {
         return currentAvailableMemoryInBytes;
@@ -180,5 +193,31 @@ public class MemoryManager {
 
     public static MemoryManager getInstance() {
         return MemoryManagerHolder.INSTANCE;
+    }
+
+    public enum MemoryMode {
+        ENABLE_OFF_HEAP_MANAGEMENT("off-heap"),
+        ENABLE_ON_HEAP_MANAGEMENT("on-heap"),
+        DISABLE_MEMORY_MANAGEMENT("disable");
+
+        private final String value;
+
+        MemoryMode(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public static MemoryMode fromValue(String value) {
+            if (value.equalsIgnoreCase(ENABLE_ON_HEAP_MANAGEMENT.getValue())) {
+                return ENABLE_ON_HEAP_MANAGEMENT;
+            } else if (value.equalsIgnoreCase(ENABLE_OFF_HEAP_MANAGEMENT.getValue())) {
+                return ENABLE_OFF_HEAP_MANAGEMENT;
+            }
+            // return DISABLE by default
+            return DISABLE_MEMORY_MANAGEMENT;
+        }
     }
 }

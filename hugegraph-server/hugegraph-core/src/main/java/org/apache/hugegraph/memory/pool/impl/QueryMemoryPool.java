@@ -37,16 +37,16 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     private static final long QUERY_POOL_MAX_CAPACITY = Bytes.MB * 100;
 
     public QueryMemoryPool(String poolName, MemoryManager memoryManager) {
-        super(null, poolName, memoryManager);
+        super(null, poolName, MemoryPoolStats.MemoryPoolType.QUERY, memoryManager);
         this.stats.setMaxCapacity(QUERY_POOL_MAX_CAPACITY);
     }
 
     @Override
-    public MemoryPool addChildPool() {
+    public MemoryPool addChildPool(String name) {
         int count = this.children.size();
         String poolName =
-                TASK_MEMORY_POOL_NAME_PREFIX + DELIMINATOR + count + DELIMINATOR +
-                System.currentTimeMillis();
+                TASK_MEMORY_POOL_NAME_PREFIX + DELIMINATOR + name + DELIMINATOR + count +
+                DELIMINATOR + System.currentTimeMillis();
         MemoryPool taskMemoryPool = new TaskMemoryPool(this, poolName, this.memoryManager);
         this.children.add(taskMemoryPool);
         LOG.info("QueryPool-{} added task memory pool {}", this, taskMemoryPool);

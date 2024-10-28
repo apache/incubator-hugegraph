@@ -20,6 +20,7 @@ package org.apache.hugegraph.memory.pool.impl;
 public class MemoryPoolStats {
 
     private final String memoryPoolName;
+    private final MemoryPoolType memoryPoolType;
     private long maxCapacity;
     private long usedBytes;
     // it represents the cumulative used bytes.
@@ -33,18 +34,35 @@ public class MemoryPoolStats {
     private long numExpands;
     private long numAborts;
 
-    public MemoryPoolStats(String MemoryPoolName) {
+    public MemoryPoolStats(String MemoryPoolName, MemoryPoolType memoryPoolType) {
         this.memoryPoolName = MemoryPoolName;
+        this.memoryPoolType = memoryPoolType;
     }
 
     @Override
     public String toString() {
-        return String.format("MemoryPool-%s: {maxCapacity[%d], usedBytes[%d]," +
-                             "cumulativeBytes[%d], allocatedBytes[%d], numShrinks[%d], " +
-                             "numExpands[%d], numAborts[%d]}.", memoryPoolName, maxCapacity,
-                             usedBytes,
-                             cumulativeBytes, allocatedBytes, numShrinks, numExpands,
-                             numAborts);
+        switch (memoryPoolType) {
+            case TASK:
+                return String.format("%s: {usedBytes[%d], cumulativeBytes[%d], " +
+                                     "allocatedBytes[%d], numShrinks[%d], numAborts[%d]}.",
+                                     memoryPoolName, usedBytes, cumulativeBytes, allocatedBytes,
+                                     numShrinks, numAborts);
+            case OPERATOR:
+                return String.format("%s: {usedBytes[%d], cumulativeBytes[%d], " +
+                                     "allocatedBytes[%d], numShrinks[%d], numExpands[%d], " +
+                                     "numAborts[%d]}.",
+                                     memoryPoolName, usedBytes, cumulativeBytes, allocatedBytes,
+                                     numShrinks, numExpands, numAborts);
+            case QUERY:
+            default:
+                return String.format("%s: {maxCapacity[%d], usedBytes[%d]," +
+                                     "cumulativeBytes[%d], allocatedBytes[%d], numShrinks[%d], " +
+                                     "numExpands[%d], numAborts[%d]}.", memoryPoolName, maxCapacity,
+                                     usedBytes,
+                                     cumulativeBytes, allocatedBytes, numShrinks, numExpands,
+                                     numAborts);
+        }
+
     }
 
     public String getMemoryPoolName() {
@@ -105,5 +123,22 @@ public class MemoryPoolStats {
 
     public void setMaxCapacity(long maxCapacity) {
         this.maxCapacity = maxCapacity;
+    }
+
+    public enum MemoryPoolType {
+        QUERY(0),
+        TASK(1),
+        OPERATOR(2),
+        UNKNOWN(3);
+
+        private final int code;
+
+        MemoryPoolType(int code) {
+            this.code = code;
+        }
+
+        public int getCode() {
+            return this.code;
+        }
     }
 }
