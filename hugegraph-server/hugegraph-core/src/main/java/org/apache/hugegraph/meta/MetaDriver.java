@@ -25,21 +25,21 @@ import org.apache.hugegraph.meta.lock.LockResult;
 
 public interface MetaDriver {
 
-    public void put(String key, String value);
+    void put(String key, String value);
 
-    public String get(String key);
+    String get(String key);
 
-    public void delete(String key);
+    void delete(String key);
 
-    public void deleteWithPrefix(String prefix);
+    void deleteWithPrefix(String prefix);
 
-    public Map<String, String> scanWithPrefix(String prefix);
+    Map<String, String> scanWithPrefix(String prefix);
 
-    public <T> void listen(String key, Consumer<T> consumer);
+    <T> void listen(String key, Consumer<T> consumer);
 
-    public <T> void listenPrefix(String prefix, Consumer<T> consumer);
+    <T> void listenPrefix(String prefix, Consumer<T> consumer);
 
-    public <T> List<String> extractValuesFromResponse(T response);
+    <T> List<String> extractValuesFromResponse(T response);
 
     /**
      * Extract K-V pairs of response
@@ -48,9 +48,9 @@ public interface MetaDriver {
      * @param response
      * @return
      */
-    public <T> Map<String, String> extractKVFromResponse(T response);
+    <T> Map<String, String> extractKVFromResponse(T response);
 
-    public LockResult tryLock(String key, long ttl, long timeout);
+    LockResult tryLock(String key, long ttl, long timeout);
 
     /**
      * return if the key is Locked.
@@ -58,9 +58,9 @@ public interface MetaDriver {
      * @param key
      * @return bool
      */
-    public boolean isLocked(String key);
+    boolean isLocked(String key);
 
-    public void unlock(String key, LockResult lockResult);
+    void unlock(String key, LockResult lockResult);
 
     /**
      * keepAlive of current lease
@@ -69,5 +69,5 @@ public interface MetaDriver {
      * @param lease
      * @return next leaseId
      */
-    public long keepAlive(String key, long lease);
+    long keepAlive(String key, long lease);
 }

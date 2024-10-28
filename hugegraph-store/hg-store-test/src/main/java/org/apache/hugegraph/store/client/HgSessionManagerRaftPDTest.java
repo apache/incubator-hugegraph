@@ -72,7 +72,7 @@ public class HgSessionManagerRaftPDTest extends HgStoreClientBase {
 
     @Test
     public void putGet() {
-        System.out.println("--- test put & get ---");
+        System.out.println("--- test put & getMetric ---");
 
         HgStoreSession session = getStoreSession(HgStoreTestUtil.GRAPH_NAME);
 
@@ -85,7 +85,7 @@ public class HgSessionManagerRaftPDTest extends HgStoreClientBase {
     }
 
     public void putGet2() {
-        System.out.println("--- test put & get ---");
+        System.out.println("--- test put & getMetric ---");
 
         HgStoreSession session = getStoreSession("testGraph");
         HgOwnerKey key = HgStoreTestUtil.toOwnerKey("FOR-PUT-KEY");
@@ -122,7 +122,7 @@ public class HgSessionManagerRaftPDTest extends HgStoreClientBase {
 
     @Test
     public void putGetUnique() {
-        System.out.println("--- test put & get ---");
+        System.out.println("--- test put & getMetric ---");
 
         HgStoreSession session = getStoreSession();
 
@@ -177,7 +177,7 @@ public class HgSessionManagerRaftPDTest extends HgStoreClientBase {
         ObjectInputStream ois = new ObjectInputStream(new FileInputStream(outputFile));
         Map<HgOwnerKey, byte[]> map = (Map<HgOwnerKey, byte[]>) ois.readObject();
         ois.close();
-        System.out.printf("%d entries get from %s\n", map.size(), outputFile.getPath());
+        System.out.printf("%d entries getMetric from %s\n", map.size(), outputFile.getPath());
 
         HgStoreSession session = getStoreSession();
         List<HgOwnerKey> keyList =
@@ -278,7 +278,7 @@ public class HgSessionManagerRaftPDTest extends HgStoreClientBase {
         HgStoreTestUtil.println("- delete " + delKey);
         session.delete(TABLE_NAME, key);
         value = session.get(TABLE_NAME, key);
-        HgStoreTestUtil.println("- get " + delKey + ": " + HgStoreTestUtil.toStr(value));
+        HgStoreTestUtil.println("- getMetric " + delKey + ": " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals(EMPTY_BYTES, value);
     }
 
@@ -300,7 +300,7 @@ public class HgSessionManagerRaftPDTest extends HgStoreClientBase {
         session.deleteSingle(TABLE_NAME, key);
         value = session.get(TABLE_NAME, key);
         HgStoreTestUtil.println(
-                "- after del, get [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
+                "- after del, getMetric [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals("", HgStoreTestUtil.toStr(value));
     }
 
