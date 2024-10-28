@@ -79,7 +79,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
         return String.join(DELIMITER, path1, path2);
     }
 
-    private String normalizePath(ContainerRequestContext requestContext) {
+    private static String normalizePath(ContainerRequestContext requestContext) {
         // Replace variable parts of the path with placeholders
         String requestPath = requestContext.getUriInfo().getPath();
         // get uri params
@@ -96,7 +96,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
             newPath = newPath.replace(value, key);
         }
 
-        LOG.trace("Original Path: {} New Path: {}", requestPath, newPath);
+        LOG.trace("normalize path, original path: '{}', new path: '{}'", requestPath, newPath);
         return newPath;
     }
 
@@ -123,7 +123,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
         if (statusOk(responseContext.getStatus())) {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_SUCCESS_COUNTER)).inc();
         } else {
-            //TODO: The return codes for compatibility need to be further detailed.
+            // TODO: The return codes for compatibility need to be further detailed.
             LOG.trace("Failed Status: {}", status);
             if (status != 500 && status != 415) {
                 MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
