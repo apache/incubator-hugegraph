@@ -45,6 +45,18 @@ public class TaskMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
+    public long tryToReclaimLocalMemory(long neededBytes, MemoryPool requestingPool) {
+        if (isClosed) {
+            LOG.warn("[{}] is already closed, will abort this reclaim", this);
+            return 0;
+        }
+        if (this.findRootQueryPool().equals(requestingPool.findRootQueryPool())) {
+            return super.tryToReclaimLocalMemoryWithoutLock(neededBytes, requestingPool);
+        }
+        return super.tryToReclaimLocalMemory(neededBytes, requestingPool);
+    }
+
+    @Override
     public void releaseSelf(String reason, boolean isTriggeredInternal) {
         super.releaseSelf(reason, isTriggeredInternal);
         this.memoryManager.removeCorrespondingTaskMemoryPool(Thread.currentThread().getName());
@@ -73,7 +85,8 @@ public class TaskMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public long requestMemoryInternal(long bytes) throws OutOfMemoryException {
+    public long requestMemoryInternal(long bytes, MemoryPool requestingPool) throws
+                                                                             OutOfMemoryException {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;
@@ -82,7 +95,7 @@ public class TaskMemoryPool extends AbstractMemoryPool {
             if (this.isBeingArbitrated.get()) {
                 this.condition.await();
             }
-            long parentRes = getParentPool().requestMemoryInternal(bytes);
+            long parentRes = getParentPool().requestMemoryInternal(bytes, requestingPool);
             if (parentRes > 0) {
                 this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + parentRes);
                 this.stats.setNumExpands(this.stats.getNumExpands() + 1);

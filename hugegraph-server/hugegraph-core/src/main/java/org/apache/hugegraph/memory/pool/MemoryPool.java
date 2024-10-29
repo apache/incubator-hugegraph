@@ -26,11 +26,11 @@ public interface MemoryPool {
 
     MemoryPoolStats getSnapShot();
 
-    long tryToReclaimLocalMemory(long neededBytes);
+    long tryToReclaimLocalMemory(long neededBytes, MemoryPool requestingPool);
 
-    Object requireMemory(long bytes);
+    Object requireMemory(long bytes, MemoryPool requestingPool);
 
-    long requestMemoryInternal(long bytes) throws OutOfMemoryException;
+    long requestMemoryInternal(long bytes, MemoryPool requestingPool) throws OutOfMemoryException;
 
     Object tryToAcquireMemoryInternal(long bytes);
 

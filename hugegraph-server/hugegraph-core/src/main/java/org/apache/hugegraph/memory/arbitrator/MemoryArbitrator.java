@@ -25,7 +25,7 @@ public interface MemoryArbitrator {
 
     long MAX_WAIT_TIME_FOR_GLOBAL_RECLAIM = 5000;
 
-    long reclaimLocally(MemoryPool queryPool, long neededBytes);
+    long reclaimLocally(MemoryPool queryPool, long neededBytes, MemoryPool requestingPool);
 
     long reclaimGlobally(MemoryPool queryPool, long neededBytes);
 }

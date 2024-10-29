@@ -53,7 +53,7 @@ public class HugeEdgePropertyOffHeap<V> extends HugeEdgeProperty<V> implements O
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] bytes = FurySerializationUtil.FURY.serialize(this.value);
-        this.valueOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
+        this.valueOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length, memoryPool);
         this.valueOffHeap.markReaderIndex();
         this.valueOffHeap.writeBytes(bytes);
     }

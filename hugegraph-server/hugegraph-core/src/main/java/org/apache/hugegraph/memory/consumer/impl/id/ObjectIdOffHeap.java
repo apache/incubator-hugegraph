@@ -48,7 +48,7 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements OffHeapObje
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] bytes = FurySerializationUtil.FURY.serialize(object);
-        this.objectOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
+        this.objectOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length, memoryPool);
         this.objectOffHeap.markReaderIndex();
         this.objectOffHeap.writeBytes(bytes);
     }

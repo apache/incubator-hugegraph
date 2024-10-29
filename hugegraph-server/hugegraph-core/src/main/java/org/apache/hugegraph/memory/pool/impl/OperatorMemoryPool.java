@@ -69,15 +69,17 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public long tryToReclaimLocalMemory(long neededBytes) {
+    public long tryToReclaimLocalMemory(long neededBytes, MemoryPool requestingPool) {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this reclaim", this);
             return 0;
         }
-        LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
         long reclaimableBytes = 0;
         try {
-            this.memoryActionLock.lock();
+            if (!this.equals(requestingPool)) {
+                this.memoryActionLock.lock();
+            }
+            LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
             this.isBeingArbitrated.set(true);
             // 1. try to reclaim self free memory
             reclaimableBytes = getFreeBytes();
@@ -107,8 +109,10 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
                 this.stats.setNumShrinks(this.stats.getNumShrinks() + 1);
             }
             this.isBeingArbitrated.set(false);
-            this.condition.signalAll();
-            this.memoryActionLock.unlock();
+            if (!this.equals(requestingPool)) {
+                this.condition.signalAll();
+                this.memoryActionLock.unlock();
+            }
         }
     }
 
@@ -116,7 +120,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
      * called by user
      */
     @Override
-    public Object requireMemory(long bytes) {
+    public Object requireMemory(long bytes, MemoryPool requestingPool) {
         try {
             // use lock to ensure the atomicity of the two-step operation
             this.memoryActionLock.lock();
@@ -126,7 +130,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             } else {
                 // if free memory is not enough, try to request delta
                 long delta = bytes - getFreeBytes();
-                long ignoredRealAllocatedBytes = requestMemoryInternal(delta);
+                long ignoredRealAllocatedBytes = requestMemoryInternal(delta, requestingPool);
             }
             return tryToAcquireMemoryInternal(bytes);
         } catch (OutOfMemoryException e) {
@@ -164,7 +168,8 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
      * This method will update `allocated` and `expand` stats.
      */
     @Override
-    public long requestMemoryInternal(long size) throws OutOfMemoryException {
+    public long requestMemoryInternal(long size, MemoryPool requestingPool) throws
+                                                                            OutOfMemoryException {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;
@@ -179,7 +184,8 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             // 2. reserve(round)
             long neededMemorySize = calculateReserveMemoryDelta(alignedSize);
             // 3. call father
-            long fatherRes = getParentPool().requestMemoryInternal(neededMemorySize);
+            long fatherRes =
+                    getParentPool().requestMemoryInternal(neededMemorySize, requestingPool);
             if (fatherRes < 0) {
                 LOG.error("[{}] requestMemory failed because of OOM, request size={}", this,
                           size);

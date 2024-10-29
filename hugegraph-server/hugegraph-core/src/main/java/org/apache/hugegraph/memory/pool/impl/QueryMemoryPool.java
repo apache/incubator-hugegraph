@@ -42,6 +42,18 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
+    public long tryToReclaimLocalMemory(long neededBytes, MemoryPool requestingPool) {
+        if (isClosed) {
+            LOG.warn("[{}] is already closed, will abort this reclaim", this);
+            return 0;
+        }
+        if (this.equals(requestingPool.findRootQueryPool())) {
+            return super.tryToReclaimLocalMemoryWithoutLock(neededBytes, requestingPool);
+        }
+        return super.tryToReclaimLocalMemory(neededBytes, requestingPool);
+    }
+
+    @Override
     public MemoryPool addChildPool(String name) {
         int count = this.children.size();
         String poolName =
@@ -54,7 +66,7 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public long requestMemoryInternal(long bytes) {
+    public long requestMemoryInternal(long bytes, MemoryPool requestingPool) {
         if (this.isClosed) {
             LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;
@@ -77,14 +89,16 @@ public class QueryMemoryPool extends AbstractMemoryPool {
                     requestedMemoryFromManager = bytes;
                 } else {
                     // 2.2 if requiring memory from manager failed, call manager to invoke arbitrate
-                    requestedMemoryFromArbitration = requestMemoryThroughArbitration(bytes);
+                    requestedMemoryFromArbitration =
+                            requestMemoryThroughArbitration(bytes, requestingPool);
                 }
             } else {
                 // 3. if capacity is enough, check whether manager has enough memory.
                 if (this.memoryManager.handleRequestFromQueryPool(bytes, REQUEST_MEMORY) < 0) {
                     // 3.1 if memory manager doesn't have enough memory, call manager to invoke
                     // arbitrate
-                    requestedMemoryFromArbitration = requestMemoryThroughArbitration(bytes);
+                    requestedMemoryFromArbitration =
+                            requestMemoryThroughArbitration(bytes, requestingPool);
                 } else {
                     // 3.2 if memory manager has enough memory, return success
                     this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + bytes);
@@ -111,10 +125,11 @@ public class QueryMemoryPool extends AbstractMemoryPool {
         return this.memoryManager.handleRequestFromQueryPool(realNeededSize, EXPAND_SELF);
     }
 
-    private long requestMemoryThroughArbitration(long bytes) {
+    private long requestMemoryThroughArbitration(long bytes, MemoryPool requestingPool) {
         LOG.info("[{}] try to request memory from manager through arbitration: size={}", this,
                  bytes);
-        long reclaimedBytes = this.memoryManager.triggerLocalArbitration(this, bytes);
+        long reclaimedBytes =
+                this.memoryManager.triggerLocalArbitration(this, bytes, requestingPool);
         if (reclaimedBytes > 0) {
             this.stats.setNumExpands(this.stats.getNumExpands() + 1);
         }

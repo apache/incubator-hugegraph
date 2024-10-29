@@ -70,7 +70,7 @@ public class UuidIdOffHeap extends IdGenerator.UuidId implements OffHeapObject {
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] bytes = FurySerializationUtil.FURY.serialize(uuid);
-        this.idOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
+        this.idOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length, memoryPool);
         this.idOffHeap.markReaderIndex();
         this.idOffHeap.writeBytes(bytes);
     }

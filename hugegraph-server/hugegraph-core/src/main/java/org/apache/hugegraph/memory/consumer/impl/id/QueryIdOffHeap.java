@@ -54,7 +54,7 @@ public class QueryIdOffHeap extends CachedBackendStore.QueryId implements OffHea
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] stringBytes = query.getBytes((StandardCharsets.UTF_8));
-        this.queryOffHeap = (ByteBuf) memoryPool.requireMemory(stringBytes.length);
+        this.queryOffHeap = (ByteBuf) memoryPool.requireMemory(stringBytes.length, memoryPool);
         this.queryOffHeap.markReaderIndex();
         this.queryOffHeap.writeBytes(stringBytes);
     }

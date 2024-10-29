@@ -58,7 +58,7 @@ public class LongIdOffHeap extends IdGenerator.LongId implements OffHeapObject {
 
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
-        this.idOffHeap = (ByteBuf) memoryPool.requireMemory(Long.BYTES);
+        this.idOffHeap = (ByteBuf) memoryPool.requireMemory(Long.BYTES, memoryPool);
         this.idOffHeap.markReaderIndex();
         this.idOffHeap.writeLong(id);
     }

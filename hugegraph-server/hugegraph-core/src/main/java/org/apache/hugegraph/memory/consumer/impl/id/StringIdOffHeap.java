@@ -59,7 +59,7 @@ public class StringIdOffHeap extends IdGenerator.StringId implements OffHeapObje
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] stringBytes = id.getBytes((StandardCharsets.UTF_8));
-        this.idOffHeap = (ByteBuf) memoryPool.requireMemory(stringBytes.length);
+        this.idOffHeap = (ByteBuf) memoryPool.requireMemory(stringBytes.length, memoryPool);
         this.idOffHeap.markReaderIndex();
         this.idOffHeap.writeBytes(stringBytes);
     }

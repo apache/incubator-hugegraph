@@ -44,7 +44,7 @@ public class BinaryIdOffHeap extends BinaryBackendEntry.BinaryId implements OffH
 
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
-        this.bytesOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length);
+        this.bytesOffHeap = (ByteBuf) memoryPool.requireMemory(bytes.length, memoryPool);
         this.bytesOffHeap.markReaderIndex();
         this.bytesOffHeap.writeBytes(bytes);
     }

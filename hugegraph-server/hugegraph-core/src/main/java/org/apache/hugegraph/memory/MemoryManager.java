@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 public class MemoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);
-    private static final int ARBITRATE_MEMORY_THREAD_NUM = 1;
+    private static final int ARBITRATE_MEMORY_THREAD_NUM = 12;
     private static final String QUERY_MEMORY_POOL_NAME_PREFIX = "QueryMemoryPool";
     private static final String ARBITRATE_MEMORY_POOL_NAME = "ArbitrateMemoryPool";
     public static final String DELIMINATOR = "_";
@@ -66,7 +66,6 @@ public class MemoryManager {
 
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitratorImpl(this);
-        // There should be only at most one arbitration task in any time.
         this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
                                                                  ARBITRATE_MEMORY_POOL_NAME);
     }
@@ -96,11 +95,12 @@ public class MemoryManager {
         currentAvailableMemoryInBytes.addAndGet(-size);
     }
 
-    public long triggerLocalArbitration(MemoryPool targetPool, long neededBytes) {
+    public long triggerLocalArbitration(MemoryPool targetPool, long neededBytes,
+                                        MemoryPool requestPool) {
         LOG.info("LocalArbitration triggered by {}: needed bytes={}", targetPool, neededBytes);
         Future<Long> future =
                 arbitrateExecutor.submit(
-                        () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes));
+                        () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes, requestPool));
         try {
             return future.get(MemoryArbitrator.MAX_WAIT_TIME_FOR_LOCAL_RECLAIM,
                               TimeUnit.MILLISECONDS);

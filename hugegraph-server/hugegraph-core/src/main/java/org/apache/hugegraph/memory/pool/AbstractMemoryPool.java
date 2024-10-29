@@ -52,33 +52,27 @@ public abstract class AbstractMemoryPool implements MemoryPool {
         this.memoryManager = memoryManager;
     }
 
-    @Override
-    public long tryToReclaimLocalMemory(long neededBytes) {
-        if (isClosed) {
-            LOG.warn("[{}] is already closed, will abort this reclaim", this);
-            return 0;
-        }
-        LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
+    protected long tryToReclaimLocalMemoryWithoutLock(long neededBytes, MemoryPool requestingPool) {
         long totalReclaimedBytes = 0;
-        long currentNeededBytes = neededBytes;
         try {
-            this.memoryActionLock.lock();
-            this.isBeingArbitrated.set(true);
-            for (MemoryPool child : this.children) {
-                long reclaimedMemory = child.tryToReclaimLocalMemory(currentNeededBytes);
-                if (reclaimedMemory > 0) {
-                    currentNeededBytes -= reclaimedMemory;
-                    totalReclaimedBytes += reclaimedMemory;
-                    // Reclaim enough memory.
-                    if (currentNeededBytes <= 0) {
-                        break;
-                    }
-                }
+            totalReclaimedBytes = reclaimChildren(neededBytes, requestingPool);
+            return totalReclaimedBytes;
+        } finally {
+            if (totalReclaimedBytes > 0) {
+                this.stats.setNumShrinks(this.stats.getNumShrinks() + 1);
             }
-            LOG.info("[{}] has finished to reclaim memory: totalReclaimedBytes={}, " +
-                     "neededBytes={}",
-                     this,
-                     totalReclaimedBytes, neededBytes);
+            this.stats.setAllocatedBytes(
+                    this.stats.getAllocatedBytes() - totalReclaimedBytes);
+            this.isBeingArbitrated.set(false);
+        }
+    }
+
+    @Override
+    public long tryToReclaimLocalMemory(long neededBytes, MemoryPool requestingPool) {
+        this.memoryActionLock.lock();
+        long totalReclaimedBytes = 0;
+        try {
+            totalReclaimedBytes = reclaimChildren(neededBytes, requestingPool);
             return totalReclaimedBytes;
         } finally {
             if (totalReclaimedBytes > 0) {
@@ -90,6 +84,30 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             this.condition.signalAll();
             this.memoryActionLock.unlock();
         }
+    }
+
+    private long reclaimChildren(long neededBytes, MemoryPool requestingPool) {
+        LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
+        this.isBeingArbitrated.set(true);
+        long totalReclaimedBytes = 0;
+        long currentNeededBytes = neededBytes;
+        for (MemoryPool child : this.children) {
+            long reclaimedMemory =
+                    child.tryToReclaimLocalMemory(currentNeededBytes, requestingPool);
+            if (reclaimedMemory > 0) {
+                currentNeededBytes -= reclaimedMemory;
+                totalReclaimedBytes += reclaimedMemory;
+                // Reclaim enough memory.
+                if (currentNeededBytes <= 0) {
+                    break;
+                }
+            }
+        }
+        LOG.info("[{}] has finished to reclaim memory: totalReclaimedBytes={}, " +
+                 "neededBytes={}",
+                 this,
+                 totalReclaimedBytes, neededBytes);
+        return totalReclaimedBytes;
     }
 
     /**
@@ -158,7 +176,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     @Override
-    public Object requireMemory(long bytes) {
+    public Object requireMemory(long bytes, MemoryPool requestingPool) {
         return null;
     }
 

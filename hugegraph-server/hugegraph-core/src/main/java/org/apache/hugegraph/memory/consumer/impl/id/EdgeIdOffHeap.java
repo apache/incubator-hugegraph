@@ -128,7 +128,7 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] stringBytes = sortValues.getBytes((StandardCharsets.UTF_8));
-        this.sortValuesOffHeap = (ByteBuf) this.memoryPool.requireMemory(stringBytes.length);
+        this.sortValuesOffHeap = (ByteBuf) this.memoryPool.requireMemory(stringBytes.length, memoryPool);
         this.sortValuesOffHeap.markReaderIndex();
         this.sortValuesOffHeap.writeBytes(stringBytes);
     }
@@ -231,7 +231,7 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
                     IdUtil.writeString((Id) this.otherVertexIdOffHeap.zeroCopyReadFromByteBuf()));
         }
         byte[] tmpCacheBytes = tmpCache.getBytes(StandardCharsets.UTF_8);
-        this.cacheOffHeap = (ByteBuf) memoryPool.requireMemory(tmpCacheBytes.length);
+        this.cacheOffHeap = (ByteBuf) memoryPool.requireMemory(tmpCacheBytes.length, memoryPool);
         this.cacheOffHeap.markReaderIndex();
         this.cacheOffHeap.writeBytes(tmpCacheBytes);
         return tmpCache;
