@@ -57,7 +57,8 @@ public class MemoryManager {
 
     private final Queue<MemoryPool> queryMemoryPools =
             new PriorityQueue<>((o1, o2) -> (int) (o2.getFreeBytes() - o1.getFreeBytes()));
-    private final Map<String, TaskMemoryPool> threadName2TaskMemoryPoolMap = new ConcurrentHashMap<>();
+    private final Map<String, TaskMemoryPool> threadName2TaskMemoryPoolMap =
+            new ConcurrentHashMap<>();
 
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
@@ -66,6 +67,9 @@ public class MemoryManager {
 
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitratorImpl(this);
+        // Since there is always only 1 working operator pool for 1 query, It is not possible to
+        // run local arbitration or global arbitration in parallel within a query. The thread
+        // pool here is to allow parallel arbitration between queries
         this.arbitrateExecutor = ExecutorUtil.newFixedThreadPool(ARBITRATE_MEMORY_THREAD_NUM,
                                                                  ARBITRATE_MEMORY_POOL_NAME);
     }
@@ -100,7 +104,8 @@ public class MemoryManager {
         LOG.info("LocalArbitration triggered by {}: needed bytes={}", targetPool, neededBytes);
         Future<Long> future =
                 arbitrateExecutor.submit(
-                        () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes, requestPool));
+                        () -> memoryArbitrator.reclaimLocally(targetPool, neededBytes,
+                                                              requestPool));
         try {
             return future.get(MemoryArbitrator.MAX_WAIT_TIME_FOR_LOCAL_RECLAIM,
                               TimeUnit.MILLISECONDS);
