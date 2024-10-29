@@ -20,6 +20,7 @@ package org.apache.hugegraph.core.memory;
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
+import org.apache.hugegraph.memory.util.RoundUtil;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.Bytes;
 import org.junit.After;
@@ -70,6 +71,9 @@ public class MemoryManageTest {
     public void setUp() {
         memoryManager = MemoryManager.getInstance();
         MemoryManager.setMemoryMode(MemoryManager.MemoryMode.ENABLE_OFF_HEAP_MANAGEMENT);
+        MemoryManager.setMaxMemoryCapacityInBytes(Bytes.GB);
+        MemoryManager.setMaxMemoryCapacityForOneQuery(Bytes.MB * 100);
+        RoundUtil.setAlignment(8);
         query1MemoryPool = memoryManager.addQueryMemoryPool();
         query2MemoryPool = memoryManager.addQueryMemoryPool();
 
