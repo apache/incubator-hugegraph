@@ -24,7 +24,6 @@ import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.util.RoundUtil;
-import org.apache.hugegraph.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,6 +71,7 @@ public class QueryMemoryPool extends AbstractMemoryPool {
         }
         long requestedMemoryFromManager = 0;
         long requestedMemoryFromArbitration = 0;
+        memoryActionLock.lock();
         try {
             if (this.isBeingArbitrated.get()) {
                 this.condition.await();
@@ -113,6 +113,8 @@ public class QueryMemoryPool extends AbstractMemoryPool {
             LOG.error("[{}] Failed to request memory because ", this, e);
             Thread.currentThread().interrupt();
             return 0;
+        } finally {
+            memoryActionLock.unlock();
         }
     }
 

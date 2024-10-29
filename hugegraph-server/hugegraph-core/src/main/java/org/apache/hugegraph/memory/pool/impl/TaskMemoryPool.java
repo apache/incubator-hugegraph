@@ -91,6 +91,7 @@ public class TaskMemoryPool extends AbstractMemoryPool {
             LOG.warn("[{}] is already closed, will abort this request", this);
             return 0;
         }
+        memoryActionLock.lock();
         try {
             if (this.isBeingArbitrated.get()) {
                 this.condition.await();
@@ -105,7 +106,8 @@ public class TaskMemoryPool extends AbstractMemoryPool {
             LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();
             return 0;
+        } finally {
+            memoryActionLock.unlock();
         }
-
     }
 }
