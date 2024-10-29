@@ -47,18 +47,21 @@ public class UuidIdOffHeap extends IdGenerator.UuidId implements OffHeapObject {
         super(string);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     public UuidIdOffHeap(MemoryPool memoryPool, byte[] bytes) {
         super(bytes);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     public UuidIdOffHeap(MemoryPool memoryPool, UUID uuid) {
         super(uuid);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override

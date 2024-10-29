@@ -18,6 +18,7 @@
 package org.apache.hugegraph.memory.consumer.impl.id;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -64,6 +65,7 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
         this.otherVertexIdOffHeap = otherVertexIdOffHeap;
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     public EdgeIdOffHeap(Id ownerVertexId,
@@ -86,6 +88,7 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
         this.otherVertexIdOffHeap = otherVertexIdOffHeap;
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     public EdgeIdOffHeap(Id ownerVertexId,
@@ -109,6 +112,7 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
         this.otherVertexIdOffHeap = otherVertexIdOffHeap;
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override
@@ -128,7 +132,8 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
     @Override
     public void serializeSelfToByteBuf(MemoryPool memoryPool) {
         byte[] stringBytes = sortValues.getBytes((StandardCharsets.UTF_8));
-        this.sortValuesOffHeap = (ByteBuf) this.memoryPool.requireMemory(stringBytes.length, memoryPool);
+        this.sortValuesOffHeap =
+                (ByteBuf) this.memoryPool.requireMemory(stringBytes.length, memoryPool);
         this.sortValuesOffHeap.markReaderIndex();
         this.sortValuesOffHeap.writeBytes(stringBytes);
     }
@@ -140,7 +145,9 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
 
     @Override
     public List<ByteBuf> getAllMemoryBlock() {
-        return Lists.newArrayList(this.sortValuesOffHeap, this.cacheOffHeap);
+        return this.cacheOffHeap == null ? Collections.singletonList(this.sortValuesOffHeap) :
+               Lists.newArrayList(this.sortValuesOffHeap,
+                                  this.cacheOffHeap);
     }
 
     @Override

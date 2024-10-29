@@ -40,6 +40,7 @@ public class BinaryIdOffHeap extends BinaryBackendEntry.BinaryId implements OffH
         this.originId = originId;
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override

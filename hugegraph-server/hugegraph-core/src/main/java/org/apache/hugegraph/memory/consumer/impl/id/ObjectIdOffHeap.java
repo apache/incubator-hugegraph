@@ -37,6 +37,7 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements OffHeapObje
         super(object);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override

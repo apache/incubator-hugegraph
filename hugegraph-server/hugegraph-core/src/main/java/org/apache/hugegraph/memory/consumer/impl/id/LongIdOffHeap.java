@@ -39,12 +39,14 @@ public class LongIdOffHeap extends IdGenerator.LongId implements OffHeapObject {
         super(id);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     public LongIdOffHeap(MemoryPool memoryPool, byte[] bytes) {
         super(bytes);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override

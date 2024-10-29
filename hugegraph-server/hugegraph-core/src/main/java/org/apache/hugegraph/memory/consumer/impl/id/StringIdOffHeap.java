@@ -27,6 +27,7 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.jetbrains.annotations.TestOnly;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
@@ -39,12 +40,14 @@ public class StringIdOffHeap extends IdGenerator.StringId implements OffHeapObje
         super(id);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     public StringIdOffHeap(MemoryPool memoryPool, byte[] bytes) {
         super(bytes);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override
@@ -128,5 +131,10 @@ public class StringIdOffHeap extends IdGenerator.StringId implements OffHeapObje
     @Override
     public String toString() {
         return this.asString();
+    }
+
+    @TestOnly
+    public ByteBuf getIdOffHeap() {
+        return idOffHeap;
     }
 }

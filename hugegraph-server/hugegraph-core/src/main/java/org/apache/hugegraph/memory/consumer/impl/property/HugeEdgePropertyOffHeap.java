@@ -41,6 +41,7 @@ public class HugeEdgePropertyOffHeap<V> extends HugeEdgeProperty<V> implements O
         super(owner, key, value);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override

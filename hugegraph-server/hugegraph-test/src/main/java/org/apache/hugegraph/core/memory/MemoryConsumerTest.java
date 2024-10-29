@@ -24,6 +24,7 @@ import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
+import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.config.HugeConfig;
@@ -31,6 +32,7 @@ import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.consumer.factory.IdFactory;
+import org.apache.hugegraph.memory.consumer.impl.id.StringIdOffHeap;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
@@ -38,6 +40,8 @@ import org.apache.hugegraph.type.define.Directions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import io.netty.util.IllegalReferenceCountException;
 
 public class MemoryConsumerTest extends MemoryManageTest {
 
@@ -97,16 +101,31 @@ public class MemoryConsumerTest extends MemoryManageTest {
         Assert.assertNotNull(stringIdOffHeap);
         Assert.assertEquals("java", stringIdOffHeap.asString());
         Assert.assertEquals(stringId, ((OffHeapObject) stringIdOffHeap).zeroCopyReadFromByteBuf());
+        // Test release memoryBlock
+        memoryManager.getCorrespondingTaskMemoryPool(Thread.currentThread().getName())
+                     .releaseSelf("test", false);
+        Assert.assertThrows(IllegalReferenceCountException.class,
+                            ((StringIdOffHeap) stringIdOffHeap).getIdOffHeap()::memoryAddress);
     }
 
     @Test
     public void testComplexId() {
         Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
         HugeVertex java = new HugeVertex(graph, stringIdOffHeap, graph.vertexLabel("book"));
-        Id edgeLableId = IdFactory.getInstance().newStringId("testEdgeLabel");
-        Id subLableId = IdFactory.getInstance().newStringId("testSubLabel");
-        Id id = IdFactory.getInstance().newEdgeId(java, Directions.OUT, edgeLableId, subLableId,
+        Id edgeLabelIdOffHeap = IdFactory.getInstance().newStringId("testEdgeLabel");
+        Id subLabelIdOffHeap = IdFactory.getInstance().newStringId("testSubLabel");
+        Id edgeIdOffHeap =
+                IdFactory.getInstance().newEdgeId(java, Directions.OUT, edgeLabelIdOffHeap,
+                                                  subLabelIdOffHeap,
                                                   "test", java);
+        Id edgeId = new EdgeId(java,
+                               Directions.OUT,
+                               (Id) ((OffHeapObject) edgeLabelIdOffHeap).zeroCopyReadFromByteBuf(),
+                               (Id) ((OffHeapObject) subLabelIdOffHeap).zeroCopyReadFromByteBuf(),
+                               "test",
+                               java);
+        Assert.assertNotNull(edgeIdOffHeap);
+        Assert.assertEquals(edgeId, edgeIdOffHeap);
     }
 
     @Test

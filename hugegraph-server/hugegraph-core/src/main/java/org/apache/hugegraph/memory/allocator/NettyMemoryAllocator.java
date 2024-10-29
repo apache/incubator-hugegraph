@@ -60,7 +60,9 @@ public class NettyMemoryAllocator implements MemoryAllocator {
     @Override
     public void releaseMemoryBlock(Object memoryBlock) {
         if (!(memoryBlock instanceof ByteBuf)) {
-            throw new IllegalArgumentException("memoryBlock must be ByteBuf");
+            throw new IllegalArgumentException(
+                    String.format("memoryBlock must be ByteBuf, current " +
+                                  "class: %s", memoryBlock.getClass()));
         }
         ByteBuf buf = (ByteBuf) memoryBlock;
         ReferenceCountUtil.safeRelease(buf);

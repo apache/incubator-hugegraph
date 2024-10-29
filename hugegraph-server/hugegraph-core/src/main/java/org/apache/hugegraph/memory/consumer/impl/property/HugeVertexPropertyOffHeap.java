@@ -40,6 +40,7 @@ public class HugeVertexPropertyOffHeap<V> extends HugeVertexProperty<V> implemen
         super(owner, key, value);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override

@@ -38,6 +38,7 @@ public class QueryIdOffHeap extends CachedBackendStore.QueryId implements OffHea
         super(q);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();
+        memoryPool.bindMemoryConsumer(this);
     }
 
     @Override
