@@ -43,6 +43,10 @@ public class IdFactory {
 
     private MemoryManager.MemoryMode memoryMode;
 
+    private IdFactory() {
+        // empty constructor
+    }
+
     /**
      * If using off-heap mode, param id must be OffHeapObject
      */

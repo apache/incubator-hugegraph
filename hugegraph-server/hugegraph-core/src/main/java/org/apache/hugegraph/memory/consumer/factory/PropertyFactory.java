@@ -34,6 +34,10 @@ public class PropertyFactory<V> {
 
     private MemoryManager.MemoryMode memoryMode;
 
+    private PropertyFactory() {
+        // empty constructor
+    }
+
     public HugeEdgeProperty<V> newHugeEdgeProperty(HugeElement owner, PropertyKey key,
                                                    V value) {
         switch (memoryMode) {
