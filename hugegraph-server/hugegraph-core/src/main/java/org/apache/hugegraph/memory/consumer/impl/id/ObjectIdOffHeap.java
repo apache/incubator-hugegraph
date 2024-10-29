@@ -33,7 +33,7 @@ public class ObjectIdOffHeap extends IdGenerator.ObjectId implements OffHeapObje
 
     private ByteBuf objectOffHeap;
 
-    public ObjectIdOffHeap(Object object, MemoryPool memoryPool) {
+    public ObjectIdOffHeap(MemoryPool memoryPool, Object object) {
         super(object);
         serializeSelfToByteBuf(memoryPool);
         releaseOriginalVarsOnHeap();

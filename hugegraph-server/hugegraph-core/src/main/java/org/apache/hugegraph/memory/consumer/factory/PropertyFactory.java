@@ -17,13 +17,19 @@
 
 package org.apache.hugegraph.memory.consumer.factory;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.consumer.impl.property.HugeEdgePropertyOffHeap;
+import org.apache.hugegraph.memory.consumer.impl.property.HugeVertexPropertyOffHeap;
 import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.structure.HugeEdgeProperty;
 import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.HugeVertexProperty;
 
+// NOTE: current MemoryManager doesn't support on-heap management.
 public class PropertyFactory<V> {
 
     private MemoryManager.MemoryMode memoryMode;
@@ -46,20 +52,41 @@ public class PropertyFactory<V> {
         }
     }
 
+    public HugeVertexProperty<V> newHugeVertexProperty(HugeElement owner, PropertyKey key,
+                                                       V value) {
+        switch (memoryMode) {
+
+            case ENABLE_ON_HEAP_MANAGEMENT:
+            case ENABLE_OFF_HEAP_MANAGEMENT:
+                TaskMemoryPool taskMemoryPool = (TaskMemoryPool) MemoryManager.getInstance()
+                                                                              .getCorrespondingTaskMemoryPool(
+                                                                                      Thread.currentThread()
+                                                                                            .getName());
+                return new HugeVertexPropertyOffHeap<>(
+                        taskMemoryPool.getCurrentWorkingOperatorMemoryPool(), owner, key, value);
+            case DISABLE_MEMORY_MANAGEMENT:
+            default:
+                return new HugeVertexProperty<>(owner, key, value);
+        }
+    }
+
     public void setMemoryMode(MemoryManager.MemoryMode memoryMode) {
         this.memoryMode = memoryMode;
     }
 
     private static class PropertyFactoryHolder {
 
-        private static final PropertyFactory<Object> INSTANCE = new PropertyFactory<>();
+        private static final Map<Class<?>, PropertyFactory<?>> FACTORIES_MAP =
+                new ConcurrentHashMap<>();
 
         private PropertyFactoryHolder() {
             // empty constructor
         }
     }
 
-    public static PropertyFactory<Object> getInstance() {
-        return PropertyFactory.PropertyFactoryHolder.INSTANCE;
+    @SuppressWarnings("unchecked")
+    public static <T> PropertyFactory<T> getInstance(Class<T> clazz) {
+        return (PropertyFactory<T>) PropertyFactoryHolder.FACTORIES_MAP
+                .computeIfAbsent(clazz, k -> new PropertyFactory<>());
     }
 }
