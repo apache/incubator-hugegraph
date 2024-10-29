@@ -305,10 +305,6 @@ public class IdFactory {
         }
     }
 
-    public void setMemoryMode(MemoryManager.MemoryMode memoryMode) {
-        this.memoryMode = memoryMode;
-    }
-
     private static class IdFactoryHolder {
 
         private static final IdFactory INSTANCE = new IdFactory();
@@ -319,6 +315,10 @@ public class IdFactory {
     }
 
     public static IdFactory getInstance() {
+        IdFactory instance = IdFactoryHolder.INSTANCE;
+        if (instance.memoryMode == null) {
+            instance.memoryMode = MemoryManager.getInstance().getMemoryMode();
+        }
         return IdFactoryHolder.INSTANCE;
     }
 }

@@ -17,9 +17,11 @@
 
 package org.apache.hugegraph.memory.pool;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -128,9 +130,13 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             Optional.ofNullable(this.parent).ifPresent(parent -> parent.gcChildPool(this, false,
                                                                                     isTriggeredInternal));
             // gc all children
-            for (MemoryPool child : this.children) {
+            Set<MemoryPool> copiedChildren = new HashSet<>(this.children);
+            // since `gcChildPool` will remove elements from this.children, we need to traverse an
+            // immutable copy of this.children.
+            for (MemoryPool child : copiedChildren) {
                 gcChildPool(child, true, isTriggeredInternal);
             }
+            copiedChildren.clear();
             LOG.info("[{}] finishes to releaseSelf", this);
         } catch (InterruptedException e) {
             LOG.error("Failed to release self because ", e);

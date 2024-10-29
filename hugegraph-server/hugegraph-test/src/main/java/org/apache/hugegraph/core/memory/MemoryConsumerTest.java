@@ -25,12 +25,16 @@ import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
-import org.apache.hugegraph.memory.consumer.impl.id.StringIdOffHeap;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
+import org.apache.hugegraph.memory.consumer.factory.IdFactory;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.type.define.Directions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -88,11 +92,21 @@ public class MemoryConsumerTest extends MemoryManageTest {
 
     @Test
     public void testId() {
-        Id stringIdOffHeap = new StringIdOffHeap(query1Task1Operator1MemoryPool, "java");
+        Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
+        Id stringId = new IdGenerator.StringId("java");
+        Assert.assertNotNull(stringIdOffHeap);
+        Assert.assertEquals("java", stringIdOffHeap.asString());
+        Assert.assertEquals(stringId, ((OffHeapObject) stringIdOffHeap).zeroCopyReadFromByteBuf());
+    }
+
+    @Test
+    public void testComplexId() {
+        Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
         HugeVertex java = new HugeVertex(graph, stringIdOffHeap, graph.vertexLabel("book"));
-        Id edgeLableId = new StringIdOffHeap(query1Task1Operator1MemoryPool, "testEdgeLabel");
-        Id subLableId = new StringIdOffHeap(query1Task1Operator1MemoryPool, "testSubLabel");
-        // Id id = new EdgeIdOffHeap(java, Directions.OUT, edgeLableId, subLableId, "test", java);
+        Id edgeLableId = IdFactory.getInstance().newStringId("testEdgeLabel");
+        Id subLableId = IdFactory.getInstance().newStringId("testSubLabel");
+        Id id = IdFactory.getInstance().newEdgeId(java, Directions.OUT, edgeLableId, subLableId,
+                                                  "test", java);
     }
 
     @Test

@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitrator;
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitratorImpl;
+import org.apache.hugegraph.memory.consumer.factory.IdFactory;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.pool.impl.QueryMemoryPool;
 import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
@@ -39,6 +40,20 @@ import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class supports memory management for HugeGraph queries.
+ * <p>
+ * Memory management is divided into three levels: query level, task (thread) level, and operator
+ * level. For each new query, the Manager's {@code addQueryMemoryPool} method is called to
+ * construct a new queryPool. During query execution, newTaskPool and newOperatorPool are
+ * required on demand.
+ * <p>
+ * Where memory needs to be requested, use {@code getCorrespondingTaskMemoryPool} to get the
+ * current taskPool, and use {@code getCurrentWorkingOperatorMemoryPool} to get the working
+ * OperatorPool from the taskPool, and use OperatorPool to request memory
+ * <p>
+ * Note: current MemoryManager doesn't support on-heap management.
+ */
 public class MemoryManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(MemoryManager.class);

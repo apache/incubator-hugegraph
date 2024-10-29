@@ -99,8 +99,22 @@ public class MemoryManageTest {
         Assert.assertEquals(0, memoryManager.getCurrentQueryMemoryPools().size());
         Assert.assertEquals(0, query1MemoryPool.getAllocatedBytes());
         Assert.assertEquals(0, query2MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query1Task1MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query2Task1MemoryPool.getAllocatedBytes());
         Assert.assertEquals(0, query1Task1Operator2MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query1Task1Operator1MemoryPool.getAllocatedBytes());
+        Assert.assertEquals(0, query2Task1Operator1MemoryPool.getAllocatedBytes());
         Assert.assertEquals(0, memoryManager.getCurrentOffHeapAllocatedMemoryInBytes().get());
+    }
+
+    @Test
+    public void testCurrentWorkingMemoryPool() {
+        TaskMemoryPool taskMemoryPool =
+                (TaskMemoryPool) memoryManager.getCorrespondingTaskMemoryPool(
+                        Thread.currentThread()
+                              .getName());
+        Assert.assertNotNull(taskMemoryPool);
+        Assert.assertNotNull(taskMemoryPool.getCurrentWorkingOperatorMemoryPool());
     }
 
     @Test
@@ -210,7 +224,7 @@ public class MemoryManageTest {
     }
 
     @Test
-    public void testLocalArbitrationFail() {
+    public void testLocalArbitration() {
         long totalMemory = 2 * Bytes.MB + Bytes.KB;
         memoryManager.getCurrentAvailableMemoryInBytes().set(totalMemory);
         long requireBytes = Bytes.KB;

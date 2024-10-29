@@ -70,10 +70,6 @@ public class PropertyFactory<V> {
         }
     }
 
-    public void setMemoryMode(MemoryManager.MemoryMode memoryMode) {
-        this.memoryMode = memoryMode;
-    }
-
     private static class PropertyFactoryHolder {
 
         private static final Map<Class<?>, PropertyFactory<?>> FACTORIES_MAP =
@@ -86,7 +82,11 @@ public class PropertyFactory<V> {
 
     @SuppressWarnings("unchecked")
     public static <T> PropertyFactory<T> getInstance(Class<T> clazz) {
-        return (PropertyFactory<T>) PropertyFactoryHolder.FACTORIES_MAP
+        PropertyFactory<T> instance = (PropertyFactory<T>) PropertyFactoryHolder.FACTORIES_MAP
                 .computeIfAbsent(clazz, k -> new PropertyFactory<>());
+        if (instance.memoryMode == null) {
+            instance.memoryMode = MemoryManager.getInstance().getMemoryMode();
+        }
+        return instance;
     }
 }
