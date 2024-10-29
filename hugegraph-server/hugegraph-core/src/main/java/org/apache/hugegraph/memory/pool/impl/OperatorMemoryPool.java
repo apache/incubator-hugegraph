@@ -125,7 +125,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             // use lock to ensure the atomicity of the two-step operation
             this.memoryActionLock.lock();
             // if free memory is enough, use free memory directly.
-            if (getFreeBytes() < bytes) {
+            if (getFreeBytes() >= bytes) {
                 LOG.debug("[{}] require {} bytes, there is enough free memory {} bytes, will " +
                          "require memory directly from self's free memory.",
                          this,
