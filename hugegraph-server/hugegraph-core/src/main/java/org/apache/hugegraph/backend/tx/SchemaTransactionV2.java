@@ -626,7 +626,8 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         return asyncRun(this.graph(), propertyKey, job);
     }
 
-    // -- store related methods, divided into two categories: 1. olap table related 2. ID generation strategy
+    // -- store related methods, divided into two categories:
+    // 1. olap table related 2. ID generation strategy
     // - 1. olap table related
     public void createOlapPk(Id id) {
         this.graphParams().loadGraphStore().createOlapTable(id);
