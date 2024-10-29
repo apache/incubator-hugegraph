@@ -79,7 +79,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             if (!this.equals(requestingPool)) {
                 this.memoryActionLock.lock();
             }
-            LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
+            LOG.debug("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
             this.isBeingArbitrated.set(true);
             // 1. try to reclaim self free memory
             reclaimableBytes = getFreeBytes();
@@ -125,8 +125,12 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             // use lock to ensure the atomicity of the two-step operation
             this.memoryActionLock.lock();
             // if free memory is enough, use free memory directly.
-            if (getFreeBytes() >= bytes) {
-                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() - bytes);
+            if (getFreeBytes() < bytes) {
+                LOG.debug("[{}] require {} bytes, there is enough free memory {} bytes, will " +
+                         "require memory directly from self's free memory.",
+                         this,
+                         getFreeBytes(),
+                         bytes);
             } else {
                 // if free memory is not enough, try to request delta
                 long delta = bytes - getFreeBytes();
@@ -154,7 +158,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             LOG.warn("[{}] is already closed, will abort this allocate", this);
             return null;
         }
-        LOG.info("[{}] tryToAcquireMemory: size={}", this, size);
+        LOG.debug("[{}] tryToAcquireMemory: size={}", this, size);
         // 1. update statistic
         super.tryToAcquireMemoryInternal(size);
         // 2. call parent to update statistic
@@ -178,7 +182,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             if (this.isBeingArbitrated.get()) {
                 this.condition.await();
             }
-            LOG.info("[{}] requestMemory: request size={}", this, size);
+            LOG.debug("[{}] requestMemory: request size={}", this, size);
             // 1. align size
             long alignedSize = RoundUtil.sizeAlign(size);
             // 2. reserve(round)
@@ -197,7 +201,7 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             // 4. update stats
             this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + neededMemorySize);
             this.stats.setNumExpands(this.stats.getNumExpands() + 1);
-            LOG.info("[{}] requestMemory success: requestedMemorySize={}", this, fatherRes);
+            LOG.debug("[{}] requestMemory success: requestedMemorySize={}", this, fatherRes);
             return fatherRes;
         } catch (InterruptedException e) {
             LOG.error("Failed to release self because ", e);

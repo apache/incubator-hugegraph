@@ -118,7 +118,7 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     }
 
     private long tryToExpandSelfCapacity(long size) {
-        LOG.info("[{}] try to expand its capacity: size={}", this, size);
+        LOG.debug("[{}] try to expand its capacity: size={}", this, size);
         long alignedSize = RoundUtil.sizeAlign(size);
         long realNeededSize =
                 RoundUtil.roundDelta(getAllocatedBytes(), alignedSize);

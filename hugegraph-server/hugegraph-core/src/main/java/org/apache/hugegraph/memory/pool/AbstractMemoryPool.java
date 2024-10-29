@@ -89,7 +89,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     private long reclaimChildren(long neededBytes, MemoryPool requestingPool) {
-        LOG.info("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
+        LOG.debug("[{}] tryToReclaimLocalMemory: neededBytes={}", this, neededBytes);
         this.isBeingArbitrated.set(true);
         long totalReclaimedBytes = 0;
         long currentNeededBytes = neededBytes;
@@ -124,7 +124,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
                     this.condition.await();
                 }
             }
-            LOG.info("[{}] starts to releaseSelf because of {}", this, reason);
+            LOG.debug("[{}] starts to releaseSelf", this);
             this.isClosed = true;
             // gc self from father
             Optional.ofNullable(this.parent).ifPresent(parent -> parent.gcChildPool(this, false,
@@ -137,7 +137,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
                 gcChildPool(child, true, isTriggeredInternal);
             }
             copiedChildren.clear();
-            LOG.info("[{}] finishes to releaseSelf", this);
+            LOG.info("[{}] finishes to releaseSelf because of {}", this, reason);
         } catch (InterruptedException e) {
             LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();

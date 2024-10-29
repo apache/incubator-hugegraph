@@ -118,12 +118,12 @@ public class EdgeIdOffHeap extends EdgeId implements OffHeapObject {
     @Override
     public Object zeroCopyReadFromByteBuf() {
         try {
-            return new EdgeId((HugeVertex) this.ownerVertexIdOffHeap.zeroCopyReadFromByteBuf(),
+            return new EdgeId((Id) this.ownerVertexIdOffHeap.zeroCopyReadFromByteBuf(),
                               this.direction,
                               (Id) this.edgeLabelIdOffHeap.zeroCopyReadFromByteBuf(),
                               (Id) this.subLabelIdOffHeap.zeroCopyReadFromByteBuf(),
                               this.sortValuesOffHeap.toString(StandardCharsets.UTF_8),
-                              (HugeVertex) this.otherVertexIdOffHeap.zeroCopyReadFromByteBuf());
+                              (Id) this.otherVertexIdOffHeap.zeroCopyReadFromByteBuf());
         } finally {
             this.sortValuesOffHeap.resetReaderIndex();
         }

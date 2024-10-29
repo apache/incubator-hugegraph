@@ -30,6 +30,7 @@ public interface OffHeapObject {
 
     /**
      * This method will read from off-heap ByteBuf storing binary data of self.
+     * Note: need class cast by hand when using.
      *
      * @return self value
      */

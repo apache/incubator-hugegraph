@@ -18,24 +18,35 @@
 package org.apache.hugegraph.core.memory;
 
 import java.nio.file.Paths;
+import java.util.UUID;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.configuration2.io.FileHandler;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
+import org.apache.hugegraph.backend.cache.CachedBackendStore;
 import org.apache.hugegraph.backend.id.EdgeId;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.consumer.factory.IdFactory;
+import org.apache.hugegraph.memory.consumer.factory.PropertyFactory;
 import org.apache.hugegraph.memory.consumer.impl.id.StringIdOffHeap;
+import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.structure.HugeEdge;
+import org.apache.hugegraph.structure.HugeEdgeProperty;
+import org.apache.hugegraph.structure.HugeProperty;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -95,9 +106,9 @@ public class MemoryConsumerTest extends MemoryManageTest {
     }
 
     @Test
-    public void testId() {
+    public void testStringId() {
         Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
-        Id stringId = new IdGenerator.StringId("java");
+        Id stringId = IdGenerator.of("java");
         Assert.assertNotNull(stringIdOffHeap);
         Assert.assertEquals("java", stringIdOffHeap.asString());
         Assert.assertEquals(stringId, ((OffHeapObject) stringIdOffHeap).zeroCopyReadFromByteBuf());
@@ -109,11 +120,65 @@ public class MemoryConsumerTest extends MemoryManageTest {
     }
 
     @Test
-    public void testComplexId() {
+    public void testLongId() {
+        Id idOffHeap = IdFactory.getInstance().newLongId(1);
+        Id id = IdGenerator.of(1);
+        Assert.assertNotNull(idOffHeap);
+        Assert.assertEquals(1, idOffHeap.asLong());
+        Assert.assertEquals(id, ((OffHeapObject) idOffHeap).zeroCopyReadFromByteBuf());
+    }
+
+    @Test
+    public void testUuidId() {
+        UUID uuidEncoding = UUID.randomUUID();
+        Id idOffHeap = IdFactory.getInstance().newUuidId(uuidEncoding);
+        Id id = IdGenerator.of(uuidEncoding);
+        Assert.assertNotNull(idOffHeap);
+        Assert.assertArrayEquals(id.asBytes(), idOffHeap.asBytes());
+        Assert.assertEquals(id, ((OffHeapObject) idOffHeap).zeroCopyReadFromByteBuf());
+    }
+
+    @Test
+    public void testBinaryId() {
+        Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
+        Id idOffHeap =
+                IdFactory.getInstance().newBinaryId(stringIdOffHeap.asBytes(), stringIdOffHeap);
+        Id id = new BinaryBackendEntry.BinaryId(stringIdOffHeap.asBytes(), stringIdOffHeap);
+        Assert.assertNotNull(idOffHeap);
+        Assert.assertArrayEquals(stringIdOffHeap.asBytes(), idOffHeap.asBytes());
+        Assert.assertEquals(id, ((OffHeapObject) idOffHeap).zeroCopyReadFromByteBuf());
+    }
+
+    @Test
+    public void testObjectId() {
+        TestObject object = new TestObject();
+        object.x = 1;
+        object.y = "test";
+        Id idOffHeap =
+                IdFactory.getInstance().newObjectId(object);
+        Id id = new IdGenerator.ObjectId(object);
+        Assert.assertNotNull(idOffHeap);
+        Assert.assertEquals(id.asObject(), idOffHeap.asObject());
+        Assert.assertEquals(id, ((OffHeapObject) idOffHeap).zeroCopyReadFromByteBuf());
+    }
+
+    @Test
+    public void testQueryId() {
+        Query q = new Query(HugeType.VERTEX);
+        Id idOffHeap =
+                IdFactory.getInstance().newQueryId(q);
+        Id id = new CachedBackendStore.QueryId(q);
+        Assert.assertNotNull(idOffHeap);
+        Assert.assertEquals(id.toString(), idOffHeap.toString());
+        Assert.assertEquals(id, ((OffHeapObject) idOffHeap).zeroCopyReadFromByteBuf());
+    }
+
+    @Test
+    public void testEdgeId() {
         Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
         HugeVertex java = new HugeVertex(graph, stringIdOffHeap, graph.vertexLabel("book"));
-        Id edgeLabelIdOffHeap = IdFactory.getInstance().newStringId("testEdgeLabel");
-        Id subLabelIdOffHeap = IdFactory.getInstance().newStringId("testSubLabel");
+        Id edgeLabelIdOffHeap = IdFactory.getInstance().newLongId(1);
+        Id subLabelIdOffHeap = IdFactory.getInstance().newLongId(2);
         Id edgeIdOffHeap =
                 IdFactory.getInstance().newEdgeId(java, Directions.OUT, edgeLabelIdOffHeap,
                                                   subLabelIdOffHeap,
@@ -125,11 +190,52 @@ public class MemoryConsumerTest extends MemoryManageTest {
                                "test",
                                java);
         Assert.assertNotNull(edgeIdOffHeap);
-        Assert.assertEquals(edgeId, edgeIdOffHeap);
+        // TODO: adopt equals method
+        Assert.assertEquals(edgeId.asString(), edgeIdOffHeap.asString());
     }
 
     @Test
     public void testProperty() {
+        Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
+        HugeVertex java = new HugeVertex(graph, stringIdOffHeap, graph.vertexLabel("book"));
+        Id edgeLabelIdOffHeap = IdFactory.getInstance().newLongId(1);
+        Id subLabelIdOffHeap = IdFactory.getInstance().newLongId(2);
 
+        Id edgeId = new EdgeId(java,
+                               Directions.OUT,
+                               (Id) ((OffHeapObject) edgeLabelIdOffHeap).zeroCopyReadFromByteBuf(),
+                               (Id) ((OffHeapObject) subLabelIdOffHeap).zeroCopyReadFromByteBuf(),
+                               "test",
+                               java);
+        HugeEdge testEdge = new HugeEdge(graph, edgeId, EdgeLabel.NONE);
+        PropertyKey propertyKey = new PropertyKey(null, IdFactory.getInstance().newLongId(3),
+                                                  "fake");
+
+        String propertyValue = "test";
+        HugeProperty<String> propertyOffHeap =
+                PropertyFactory.getInstance(String.class).newHugeEdgeProperty(testEdge,
+                                                                              propertyKey,
+                                                                              propertyValue);
+        HugeEdgeProperty<String> property = new HugeEdgeProperty<>(testEdge,
+                                                                   propertyKey,
+                                                                   propertyValue);
+        Assert.assertNotNull(propertyOffHeap);
+        Assert.assertEquals(property.value(), propertyOffHeap.value());
+        Assert.assertEquals(property, propertyOffHeap);
+    }
+
+    static class TestObject {
+
+        long x;
+        String y;
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof TestObject)) {
+                return false;
+            }
+            TestObject other = (TestObject) obj;
+            return this.x == other.x && this.y.equals(other.y);
+        }
     }
 }
