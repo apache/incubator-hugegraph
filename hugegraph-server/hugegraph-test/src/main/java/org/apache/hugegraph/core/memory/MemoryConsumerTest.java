@@ -106,11 +106,6 @@ public class MemoryConsumerTest extends MemoryManageTest {
     }
 
     @Test
-    public void test() {
-        
-    }
-
-    @Test
     public void testStringId() {
         Id stringIdOffHeap = IdFactory.getInstance().newStringId("java");
         Id stringId = IdGenerator.of("java");
