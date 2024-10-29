@@ -18,6 +18,7 @@
 package org.apache.hugegraph.memory.pool.impl;
 
 import static org.apache.hugegraph.memory.MemoryManager.DELIMINATOR;
+import static org.apache.hugegraph.memory.MemoryManager.MAX_MEMORY_CAPACITY_FOR_ONE_QUERY;
 
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.pool.AbstractMemoryPool;
@@ -33,12 +34,10 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     private static final String TASK_MEMORY_POOL_NAME_PREFIX = "TaskMemoryPool";
     private static final String EXPAND_SELF = "expand self's max capacity";
     private static final String REQUEST_MEMORY = "request to allocate memory";
-    // TODO: read from conf
-    private static final long QUERY_POOL_MAX_CAPACITY = Bytes.MB * 100;
 
     public QueryMemoryPool(String poolName, MemoryManager memoryManager) {
         super(null, poolName, MemoryPoolStats.MemoryPoolType.QUERY, memoryManager);
-        this.stats.setMaxCapacity(QUERY_POOL_MAX_CAPACITY);
+        this.stats.setMaxCapacity(MAX_MEMORY_CAPACITY_FOR_ONE_QUERY);
     }
 
     @Override

@@ -17,10 +17,13 @@
 package org.apache.hugegraph.memory.util;
 
 public class RoundUtil {
-
-    // TODO: configurable
-    private static final long ALIGNMENT = 8;
+    
     private static final long MB = 1 << 20;
+    private static long ALIGNMENT = 8;
+
+    public static void setAlignment(long alignment) {
+        ALIGNMENT = alignment;
+    }
 
     public static long sizeAlign(long size) {
         long reminder = size % ALIGNMENT;

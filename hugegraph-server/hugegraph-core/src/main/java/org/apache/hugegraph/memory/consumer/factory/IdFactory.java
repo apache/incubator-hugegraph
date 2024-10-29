@@ -321,7 +321,7 @@ public class IdFactory {
     public static IdFactory getInstance() {
         IdFactory instance = IdFactoryHolder.INSTANCE;
         if (instance.memoryMode == null) {
-            instance.memoryMode = MemoryManager.getInstance().getMemoryMode();
+            instance.memoryMode = MemoryManager.getMemoryMode();
         }
         return IdFactoryHolder.INSTANCE;
     }

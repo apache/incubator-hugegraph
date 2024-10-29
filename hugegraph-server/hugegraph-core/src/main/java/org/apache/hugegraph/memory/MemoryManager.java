@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitrator;
 import org.apache.hugegraph.memory.arbitrator.MemoryArbitratorImpl;
-import org.apache.hugegraph.memory.consumer.factory.IdFactory;
 import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.memory.pool.impl.QueryMemoryPool;
 import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
@@ -62,8 +61,8 @@ public class MemoryManager {
     private static final String ARBITRATE_MEMORY_POOL_NAME = "ArbitrateMemoryPool";
     public static final String DELIMINATOR = "_";
 
-    // TODO: read it from conf, current 1G
-    public static final long MAX_MEMORY_CAPACITY_IN_BYTES = Bytes.GB;
+    public static long MAX_MEMORY_CAPACITY_IN_BYTES = Bytes.GB;
+    public static long MAX_MEMORY_CAPACITY_FOR_ONE_QUERY = Bytes.MB * 100;
     // Current available memory = MAX_MEMORY_CAPACITY - sum(allocated bytes)
     private final AtomicLong currentAvailableMemoryInBytes =
             new AtomicLong(MAX_MEMORY_CAPACITY_IN_BYTES);
@@ -78,7 +77,7 @@ public class MemoryManager {
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
 
-    private MemoryMode memoryMode;
+    private static MemoryMode MEMORY_MODE = MemoryMode.ENABLE_OFF_HEAP_MANAGEMENT;
 
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitratorImpl(this);
@@ -188,13 +187,20 @@ public class MemoryManager {
         return currentOffHeapAllocatedMemoryInBytes;
     }
 
-    // TODO: read it from conf
-    public void setMemoryMode(MemoryMode conf) {
-        memoryMode = conf;
+    public static void setMemoryMode(MemoryMode conf) {
+        MEMORY_MODE = conf;
     }
 
-    public MemoryMode getMemoryMode() {
-        return memoryMode;
+    public static MemoryMode getMemoryMode() {
+        return MEMORY_MODE;
+    }
+
+    public static void setMaxMemoryCapacityInBytes(long maxMemoryCapacityInBytes) {
+        MAX_MEMORY_CAPACITY_IN_BYTES = maxMemoryCapacityInBytes;
+    }
+
+    public static void setMaxMemoryCapacityForOneQuery(long maxMemoryCapacityForOneQuery) {
+        MAX_MEMORY_CAPACITY_FOR_ONE_QUERY = maxMemoryCapacityForOneQuery;
     }
 
     @TestOnly

@@ -87,7 +87,7 @@ public class PropertyFactory<V> {
         PropertyFactory<T> instance = (PropertyFactory<T>) PropertyFactoryHolder.FACTORIES_MAP
                 .computeIfAbsent(clazz, k -> new PropertyFactory<>());
         if (instance.memoryMode == null) {
-            instance.memoryMode = MemoryManager.getInstance().getMemoryMode();
+            instance.memoryMode = MemoryManager.getMemoryMode();
         }
         return instance;
     }

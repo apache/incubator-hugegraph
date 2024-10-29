@@ -69,7 +69,7 @@ public class MemoryManageTest {
     @Before
     public void setUp() {
         memoryManager = MemoryManager.getInstance();
-        memoryManager.setMemoryMode(MemoryManager.MemoryMode.ENABLE_OFF_HEAP_MANAGEMENT);
+        MemoryManager.setMemoryMode(MemoryManager.MemoryMode.ENABLE_OFF_HEAP_MANAGEMENT);
         query1MemoryPool = memoryManager.addQueryMemoryPool();
         query2MemoryPool = memoryManager.addQueryMemoryPool();
 
