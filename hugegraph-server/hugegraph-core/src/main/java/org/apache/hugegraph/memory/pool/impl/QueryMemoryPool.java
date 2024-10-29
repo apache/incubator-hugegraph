@@ -127,8 +127,11 @@ public class QueryMemoryPool extends AbstractMemoryPool {
     }
 
     private long requestMemoryThroughArbitration(long bytes, MemoryPool requestingPool) {
-        LOG.info("[{}] try to request memory from manager through arbitration: size={}", this,
-                 bytes);
+        LOG.info("[{}] try to request memory from manager through arbitration: size={}, " +
+                 "snapshot-[{}]",
+                 this,
+                 bytes,
+                 this.getSnapShot());
         long reclaimedBytes =
                 this.memoryManager.triggerLocalArbitration(this, bytes, requestingPool);
         if (reclaimedBytes > 0) {

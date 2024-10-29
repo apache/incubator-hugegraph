@@ -106,9 +106,9 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             }
         }
         LOG.info("[{}] has finished to reclaim memory: totalReclaimedBytes={}, " +
-                 "neededBytes={}",
+                 "neededBytes={}, snapshot-[{}]",
                  this,
-                 totalReclaimedBytes, neededBytes);
+                 totalReclaimedBytes, neededBytes, this.getSnapShot());
         return totalReclaimedBytes;
     }
 
@@ -224,7 +224,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
 
     @Override
     public String toString() {
-        return getSnapShot().toString();
+        return this.getName();
     }
 
     @Override

@@ -90,19 +90,18 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
                 LOG.info("[{}] has tried its best to reclaim memory: " +
                          "reclaimedBytes={}," +
                          " " +
-                         "neededBytes={}",
+                         "neededBytes={}, snapshot-[{}]",
                          this,
-                         reclaimableBytes, neededBytes);
+                         reclaimableBytes, neededBytes, this.getSnapShot());
                 return reclaimableBytes;
             }
             stats.setAllocatedBytes(stats.getAllocatedBytes() - neededBytes);
             LOG.info("[{}] has reclaim enough memory: " +
                      "reclaimedBytes={}," +
                      " " +
-                     "neededBytes={}",
+                     "neededBytes={}, snapshot-[{}]",
                      this,
-                     neededBytes, neededBytes);
-
+                     neededBytes, neededBytes, this.getSnapShot());
             return neededBytes;
         } finally {
             if (reclaimableBytes > 0) {
@@ -140,8 +139,8 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
         } catch (OutOfMemoryException e) {
             // Abort this query
             LOG.warn("[{}] detected an OOM exception when request memory, will ABORT this " +
-                     "query and release corresponding memory...",
-                     this);
+                     "query and release corresponding memory... snapshot-[{}]",
+                     this, this.getSnapShot());
             findRootQueryPool().releaseSelf(String.format(e.getMessage()), true);
             return null;
         } finally {
