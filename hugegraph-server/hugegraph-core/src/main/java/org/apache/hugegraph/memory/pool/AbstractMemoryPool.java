@@ -116,9 +116,9 @@ public abstract class AbstractMemoryPool implements MemoryPool {
      * called when one layer pool is successfully executed and exited.
      */
     @Override
-    public void releaseSelf(String reason, boolean isTriggeredInternal) {
+    public void releaseSelf(String reason, boolean isTriggeredByOOM) {
         try {
-            if (!isTriggeredInternal) {
+            if (!isTriggeredByOOM) {
                 this.memoryActionLock.lock();
                 if (this.isBeingArbitrated.get()) {
                     this.condition.await();
@@ -128,13 +128,13 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             this.isClosed = true;
             // gc self from father
             Optional.ofNullable(this.parent).ifPresent(parent -> parent.gcChildPool(this, false,
-                                                                                    isTriggeredInternal));
+                                                                                    isTriggeredByOOM));
             // gc all children
             Set<MemoryPool> copiedChildren = new HashSet<>(this.children);
             // since `gcChildPool` will remove elements from this.children, we need to traverse an
             // immutable copy of this.children.
             for (MemoryPool child : copiedChildren) {
-                gcChildPool(child, true, isTriggeredInternal);
+                gcChildPool(child, true, isTriggeredByOOM);
             }
             copiedChildren.clear();
             LOG.info("[{}] finishes to releaseSelf because of {}", this, reason);
@@ -142,7 +142,7 @@ public abstract class AbstractMemoryPool implements MemoryPool {
             LOG.error("Failed to release self because ", e);
             Thread.currentThread().interrupt();
         } finally {
-            if (!isTriggeredInternal) {
+            if (!isTriggeredByOOM) {
                 this.memoryActionLock.unlock();
             }
             // Make these objs be GCed by JVM quickly.

@@ -37,7 +37,6 @@ public class PropertyFactory<V> {
     public HugeEdgeProperty<V> newHugeEdgeProperty(HugeElement owner, PropertyKey key,
                                                    V value) {
         switch (memoryMode) {
-
             case ENABLE_ON_HEAP_MANAGEMENT:
             case ENABLE_OFF_HEAP_MANAGEMENT:
                 TaskMemoryPool taskMemoryPool = (TaskMemoryPool) MemoryManager.getInstance()
@@ -55,7 +54,6 @@ public class PropertyFactory<V> {
     public HugeVertexProperty<V> newHugeVertexProperty(HugeElement owner, PropertyKey key,
                                                        V value) {
         switch (memoryMode) {
-
             case ENABLE_ON_HEAP_MANAGEMENT:
             case ENABLE_OFF_HEAP_MANAGEMENT:
                 TaskMemoryPool taskMemoryPool = (TaskMemoryPool) MemoryManager.getInstance()

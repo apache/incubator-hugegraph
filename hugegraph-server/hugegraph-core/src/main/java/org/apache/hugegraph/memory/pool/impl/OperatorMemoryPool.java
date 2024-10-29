@@ -54,8 +54,8 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
     }
 
     @Override
-    public void releaseSelf(String reason, boolean isTriggeredInternal) {
-        super.releaseSelf(reason, isTriggeredInternal);
+    public void releaseSelf(String reason, boolean isTriggeredByOOM) {
+        super.releaseSelf(reason, isTriggeredByOOM);
         // since it is already closed, its stats will not be updated. so here we can use its
         // stats out of memoryActionLock.
         this.memoryAllocator.returnMemoryToManager(getUsedBytes());
@@ -127,10 +127,10 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             // if free memory is enough, use free memory directly.
             if (getFreeBytes() >= bytes) {
                 LOG.debug("[{}] require {} bytes, there is enough free memory {} bytes, will " +
-                         "require memory directly from self's free memory.",
-                         this,
-                         getFreeBytes(),
-                         bytes);
+                          "require memory directly from self's free memory.",
+                          this,
+                          getFreeBytes(),
+                          bytes);
             } else {
                 // if free memory is not enough, try to request delta
                 long delta = bytes - getFreeBytes();
