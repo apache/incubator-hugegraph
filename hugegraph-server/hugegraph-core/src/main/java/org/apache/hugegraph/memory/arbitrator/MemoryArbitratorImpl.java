@@ -38,7 +38,7 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
         long startTime = System.currentTimeMillis();
         long res = queryPool.tryToReclaimLocalMemory(neededBytes, requestingPool);
         LOG.info("[{}] reclaim local memory: {} bytes, took {} ms",
-                 Thread.currentThread().getName(),
+                 queryPool,
                  res,
                  System.currentTimeMillis() - startTime);
         return res;
@@ -65,7 +65,7 @@ public class MemoryArbitratorImpl implements MemoryArbitrator {
             }
         }
         LOG.info("[{}] reclaim global memory: {} bytes, took {} ms",
-                 Thread.currentThread().getName(),
+                 queryPool,
                  totalReclaimedBytes,
                  System.currentTimeMillis() - startTime);
         return totalReclaimedBytes;

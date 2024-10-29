@@ -94,6 +94,9 @@ public abstract class AbstractMemoryPool implements MemoryPool {
         long totalReclaimedBytes = 0;
         long currentNeededBytes = neededBytes;
         for (MemoryPool child : this.children) {
+            if (child.equals(requestingPool)) {
+                continue;
+            }
             long reclaimedMemory =
                     child.tryToReclaimLocalMemory(currentNeededBytes, requestingPool);
             if (reclaimedMemory > 0) {
@@ -218,13 +221,12 @@ public abstract class AbstractMemoryPool implements MemoryPool {
     }
 
     @Override
-    public String getName() {
-        return this.stats.getMemoryPoolName();
-    }
-
-    @Override
     public String toString() {
         return this.getName();
+    }
+
+    public String getName() {
+        return this.stats.getMemoryPoolName();
     }
 
     @Override

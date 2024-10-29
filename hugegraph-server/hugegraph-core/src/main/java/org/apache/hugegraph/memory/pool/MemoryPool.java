@@ -92,8 +92,6 @@ public interface MemoryPool {
 
     long getMaxCapacityBytes();
 
-    String getName();
-
     MemoryPool getParentPool();
 
     MemoryPool findRootQueryPool();

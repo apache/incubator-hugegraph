@@ -105,7 +105,7 @@ public class QueryMemoryPool extends AbstractMemoryPool {
                 }
             }
             if (requestedMemoryFromManager > 0) {
-                this.memoryManager.consumeAvailableMemory(bytes);
+                this.memoryManager.consumeAvailableMemory(requestedMemoryFromManager);
             }
             return requestedMemoryFromManager == 0 ? requestedMemoryFromArbitration :
                    requestedMemoryFromManager;
@@ -134,30 +134,30 @@ public class QueryMemoryPool extends AbstractMemoryPool {
                  this.getSnapShot());
         long reclaimedBytes =
                 this.memoryManager.triggerLocalArbitration(this, bytes, requestingPool);
-        if (reclaimedBytes > 0) {
-            this.stats.setNumExpands(this.stats.getNumExpands() + 1);
-        }
         // 1. if arbitrate successes, update stats and return success
         if (reclaimedBytes - bytes >= 0) {
             // here we don't update capacity & reserved & allocated, because memory is
             // reclaimed from queryPool itself.
-            return bytes;
+            return reclaimedBytes;
         } else {
             // 2. if still not enough, try to reclaim globally
             long globalArbitrationNeededBytes = bytes - reclaimedBytes;
             long globalReclaimedBytes = this.memoryManager.triggerGlobalArbitration(this,
                                                                                     globalArbitrationNeededBytes);
             reclaimedBytes += globalReclaimedBytes;
+            // add capacity whether arbitration failed or not.
+            // NOTE: only bytes gained from global arbitration can be added to stats.
+            if (globalReclaimedBytes != 0) {
+                this.stats.setMaxCapacity(this.stats.getMaxCapacity() + globalReclaimedBytes);
+                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + globalReclaimedBytes);
+                this.stats.setNumExpands(this.stats.getNumExpands() + 1);
+            }
             // 3. if memory is enough, update stats and return success
             if (reclaimedBytes - bytes >= 0) {
-                // add capacity
-                this.stats.setMaxCapacity(this.stats.getMaxCapacity() + globalReclaimedBytes);
-                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + bytes);
-                this.stats.setNumExpands(this.stats.getNumExpands() + 1);
-                return bytes;
+                return reclaimedBytes;
             }
         }
-        // 4. if arbitrate fails, return -1, indicating that request failed.
-        return -1;
+        // 4. if arbitrate fails, return -reclaimedBytes, indicating that request failed.
+        return -reclaimedBytes;
     }
 }

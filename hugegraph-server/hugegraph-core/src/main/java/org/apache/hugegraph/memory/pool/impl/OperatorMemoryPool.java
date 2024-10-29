@@ -189,16 +189,23 @@ public class OperatorMemoryPool extends AbstractMemoryPool {
             // 3. call father
             long fatherRes =
                     getParentPool().requestMemoryInternal(neededMemorySize, requestingPool);
-            if (fatherRes < 0) {
+            if (fatherRes <= 0) {
                 LOG.error("[{}] requestMemory failed because of OOM, request size={}", this,
                           size);
+                // if parentRes <= 0, indicating we don't get enough memory bytes.
+                // But we still need to allocate these memory bytes to operatorPool to ensure
+                // memory is conserved when parentRes < 0
+                if (fatherRes < 0) {
+                    this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() - fatherRes);
+                    this.stats.setNumExpands(this.stats.getNumExpands() + 1);
+                }
                 this.stats.setNumAborts(this.stats.getNumAborts() + 1);
                 throw new OutOfMemoryException(String.format("%s requestMemory failed " +
                                                              "because of OOM, request " +
                                                              "size=%s", this, size));
             }
             // 4. update stats
-            this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + neededMemorySize);
+            this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + fatherRes);
             this.stats.setNumExpands(this.stats.getNumExpands() + 1);
             LOG.debug("[{}] requestMemory success: requestedMemorySize={}", this, fatherRes);
             return fatherRes;

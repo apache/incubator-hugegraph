@@ -100,6 +100,12 @@ public class TaskMemoryPool extends AbstractMemoryPool {
             if (parentRes > 0) {
                 this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() + parentRes);
                 this.stats.setNumExpands(this.stats.getNumExpands() + 1);
+            } else if (parentRes < 0){
+                // if parentRes < 0, indicating we don't get enough memory bytes. But we still
+                // need to allocate these memory bytes to operatorPool to ensure memory is
+                // conserved.
+                this.stats.setAllocatedBytes(this.stats.getAllocatedBytes() - parentRes);
+                this.stats.setNumExpands(this.stats.getNumExpands() + 1);
             }
             return parentRes;
         } catch (InterruptedException e) {
