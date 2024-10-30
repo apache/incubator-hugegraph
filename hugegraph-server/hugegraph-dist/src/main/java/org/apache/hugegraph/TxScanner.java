@@ -33,6 +33,7 @@ public class TxScanner {
                 switch (checkList.getStage()) {
                     case "config": {
                         configContinue(checkList);
+                        break;
                     }
                     case "initBackend" : {
                         HugeConfig config = checkList.getConfig();
@@ -42,15 +43,18 @@ public class TxScanner {
                         // Write config to disk file
                         String confPath = ConfigUtil.writeToFile(checkList.getConfigPath(), graph.name(),
                                                                  (HugeConfig)graph.configuration());
+                        break;
                     }
                     case "setServerStarted" : {
                         HugeConfig config = checkList.getConfig();
                         HugeGraph graph = (HugeGraph) GraphFactory.open(config);
                         String confPath = ConfigUtil.writeToFile(checkList.getConfigPath(), graph.name(),
                                                                  (HugeConfig)graph.configuration());
+                        break;
                     }
                     case "finish" : {
                         client.delete(prefix + checkList.getName());
+                        break;
                     }
                 }
             }
