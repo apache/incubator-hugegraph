@@ -44,11 +44,12 @@ public class EtcdDistributedLock {
     private final Lease leaseClient;
 
     private static final int poolSize = 8;
-    private final ScheduledExecutorService service = new ScheduledThreadPoolExecutor(poolSize, r -> {
-        Thread t = new Thread(r, "keepalive");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ScheduledExecutorService service =
+            new ScheduledThreadPoolExecutor(poolSize, r -> {
+                Thread t = new Thread(r, "keepalive");
+                t.setDaemon(true);
+                return t;
+            });
 
     private EtcdDistributedLock(Client client) {
         this.kvClient = client.getKVClient();

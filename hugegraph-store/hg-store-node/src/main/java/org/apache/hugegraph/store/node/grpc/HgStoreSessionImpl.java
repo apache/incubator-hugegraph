@@ -184,7 +184,7 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
 
                                   Key key = keyList.get(count.get());
                                   if (log.isDebugEnabled()) {
-                                      log.debug("batch-get: " +
+                                      log.debug("batch-getMetric: " +
                                                 HgStoreNodeUtil.toStr(
                                                         key.getKey()
                                                            .toByteArray()));
@@ -228,7 +228,7 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
                         GraphMode graphMode = graphState.getMode();
                         if (graphMode != null &&
                             graphMode.getNumber() == GraphMode.ReadOnly_VALUE) {
-                            // When in read-only state, get the latest graph state from pd, the graph's read-only state will be updated in pd's notification.
+                            // When in read-only state, getMetric the latest graph state from pd, the graph's read-only state will be updated in pd's notification.
                             Metapb.Graph pdGraph =
                                     pd.getPDClient().getGraph(graph);
                             Metapb.GraphState pdGraphState =

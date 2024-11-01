@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.RpcOptions;
+import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.alipay.sofa.rpc.bootstrap.Bootstraps;
@@ -36,9 +39,6 @@ import com.alipay.sofa.rpc.core.request.SofaRequest;
 import com.alipay.sofa.rpc.core.response.SofaResponse;
 import com.alipay.sofa.rpc.ext.Extension;
 import com.alipay.sofa.rpc.ext.ExtensionLoaderFactory;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.config.RpcOptions;
-import org.apache.hugegraph.util.Log;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -135,6 +135,7 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
                       .setConnectTimeout(connectTimeout)
                       .setReconnectPeriod(reconnectPeriod)
                       .setRetries(retries)
+                      .setSerialization(conf.get(RpcOptions.RPC_SERIALIZATION))
                       .setLoadBalancer(loadBalancer);
 
         this.configs.put(serviceId, consumerConfig);
@@ -168,13 +169,13 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
                 }
             }
 
-            if (responses.size() > 0) {
+            if (!responses.isEmpty()) {
                 /*
                  * Just choose the first one as result to return, ignore others
                  * TODO: maybe more strategies should be provided
                  */
                 return responses.get(0);
-            } else if (excepts.size() > 0) {
+            } else if (!excepts.isEmpty()) {
                 throw excepts.get(0);
             } else {
                 assert providers.isEmpty();

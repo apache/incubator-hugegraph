@@ -34,7 +34,7 @@ import org.apache.hugegraph.store.grpc.stream.KvPageRes;
 import org.apache.hugegraph.store.grpc.stream.ScanCondition;
 import org.apache.hugegraph.store.grpc.stream.ScanQueryRequest;
 import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
-import org.apache.hugegraph.store.node.util.Base58;
+import org.apache.hugegraph.store.util.Base58Encoder;
 import org.apache.hugegraph.store.node.util.HgAssert;
 import org.apache.hugegraph.store.node.util.HgGrpc;
 import org.apache.hugegraph.store.node.util.HgStoreConst;
@@ -133,7 +133,7 @@ public class ScanBatchResponse3 {
                 if (conditions.size() > 0) {
                     ScanCondition c = conditions.get(0);
                     if (c.getPrefix() != null && c.getPrefix().size() > 0) {
-                        deliverId = Base58.encode(c.getPrefix().toByteArray());
+                        deliverId = Base58Encoder.convertToBase58(c.getPrefix().toByteArray());
                         log.info("[ANALYSIS DEAL] [{}] prefixLength: {}", deliverId,
                                  conditions.size());
                     }
