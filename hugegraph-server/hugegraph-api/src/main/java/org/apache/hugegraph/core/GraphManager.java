@@ -101,14 +101,6 @@ public final class GraphManager {
     private final HugeConfig conf;
     private final EventHub eventHub;
 
-    private final String preFix = "graph_creat_tx";
-
-    private KvClient<WatchResponse> client;
-
-    @Before
-    public void setUp() {
-        this.client = new KvClient<>(PDConfig.of("localhost:8686"));
-    }
 
     public GraphManager(HugeConfig conf, EventHub hub) {
         this.graphsDir = conf.get(ServerOptions.GRAPHS);
@@ -198,36 +190,13 @@ public final class GraphManager {
                         "The graph name can't be null or empty");
         E.checkArgument(!this.graphs().contains(name),
                         "The graph name '%s' has existed", name);
-
-        CheckList checkList = new CheckList(name, configText);
-
-
         PropertiesConfiguration propConfig = ConfigUtil.buildConfig(configText);
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(config);
-        
-        checkList.setConfig(config);
-        checkList.setStage("config");
+        return this.createGraph(config, name);
+    }
 
-        String json = JsonUtil.toJson(checkList);
-
-        try {
-            client.put(preFix + name, json);
-        }
-
-        catch (PDException e) {
-            throw new RuntimeException(e);
-        }
-
-        checkList.setStage("finish");
-        try {
-            client.put(preFix + name, json);
-        }
-
-        catch (PDException e) {
-            throw new RuntimeException(e);
-        }
-
+    public HugeGraph createGraphRecover(HugeConfig config, String name) {
         return this.createGraph(config, name);
     }
 

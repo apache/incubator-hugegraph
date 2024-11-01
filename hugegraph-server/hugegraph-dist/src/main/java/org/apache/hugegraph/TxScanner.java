@@ -1,5 +1,6 @@
 package org.apache.hugegraph;
 
+import jakarta.ws.rs.core.Context;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
@@ -16,13 +17,15 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 
 
 public class TxScanner {
-    private final String prefix = "graph_creat_tx";
+    private final String prefix = "graph_creat_tx_";
+
+    @Context
+    GraphManager manager;
 
     private KvClient<WatchResponse> client;
 
     public TxScanner(KvClient<WatchResponse> client) {
     }
-
 
     public void scan() {
         try {
@@ -30,50 +33,10 @@ public class TxScanner {
             for(String key : response.getKvsMap().keySet()) {
                 String value = response.getKvsMap().get(key);
                 CheckList checkList = JsonUtil.fromJson(value, CheckList.class);
-                switch (checkList.getStage()) {
-                    case "config": {
-                        configContinue(checkList);
-                    }
-                    case "initBackend" : {
-                        HugeConfig config = checkList.getConfig();
-                        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
-                        GlobalMasterInfo globalMasterInfo = checkList.getNodeInfo();
-                        graph.serverStarted(globalMasterInfo);
-                        // Write config to disk file
-                        String confPath = ConfigUtil.writeToFile(checkList.getConfigPath(), graph.name(),
-                                                                 (HugeConfig)graph.configuration());
-                    }
-                    case "setServerStarted" : {
-                        HugeConfig config = checkList.getConfig();
-                        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
-                        String confPath = ConfigUtil.writeToFile(checkList.getConfigPath(), graph.name(),
-                                                                 (HugeConfig)graph.configuration());
-                    }
-                    case "finish" : {
-                        client.delete(prefix + checkList.getName());
-                    }
-                }
+                HugeGraph graph = manager.createGraphRecover(checkList.getConfig(), checkList.getName());
             }
         } catch (PDException e) {
             throw new RuntimeException(e);
         }
-
     }
-
-    private void configContinue(CheckList checkList) {
-        HugeConfig config = checkList.getConfig();
-        HugeGraph graph = (HugeGraph) GraphFactory.open(config);
-        try {
-            // Create graph instance
-            graph = (HugeGraph) GraphFactory.open(config);
-            String configPath = checkList.getConfigPath();
-            GlobalMasterInfo globalMasterInfo = checkList.getNodeInfo();
-            // Init graph and start it
-            graph.create(configPath, globalMasterInfo);
-        } catch (Throwable e) {
-            throw e;
-        }
-
-    }
-
 }
