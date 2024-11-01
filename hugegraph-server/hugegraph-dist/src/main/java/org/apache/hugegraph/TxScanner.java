@@ -27,6 +27,7 @@ public class TxScanner {
     public TxScanner(KvClient<WatchResponse> client) {
     }
 
+
     public void scan() {
         try {
             ScanPrefixResponse response = this.client.scanPrefix(prefix);
