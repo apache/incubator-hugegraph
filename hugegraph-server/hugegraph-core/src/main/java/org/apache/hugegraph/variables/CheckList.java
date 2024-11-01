@@ -2,69 +2,98 @@ package org.apache.hugegraph.variables;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.pd.client.KvClient;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
+import org.apache.hugegraph.util.JsonUtil;
+import org.junit.Before;
 
 import java.io.Serializable;
 
 public class CheckList implements Serializable {
 
     private String name;
-    private String configText;
-    
+
     private HugeConfig config;
 
-    private boolean initBackended;
+    private boolean taskSchedulerInit;
 
-    private boolean serverStarted;
+    private boolean serverInfoManagerInit;
 
-    private String stage;
+    private boolean authManagerInit;
+
+    private boolean initServerInfo;
 
     private String configPath;
 
     private GlobalMasterInfo nodeInfo;
 
-    boolean toCheck;
-    String context;
-    private boolean isBuild;
+    private KvClient<WatchResponse> client;
 
-    public void setBuild(boolean build) {
-        isBuild = build;
+
+    private final String preFix = "graph_creat_tx_";
+
+    @Before
+    public void setUp() {
+        this.client = new KvClient<>(PDConfig.of("localhost:8686"));
     }
 
-    public CheckList(String name, String context) {
+    public CheckList(String name, HugeConfig config) {
         this.name = name;
-        this.context = context;
-    }
-
-    public HugeConfig getConfig() {
-        return config;
-    }
-
-    public void setConfig(HugeConfig config) {
         this.config = config;
     }
 
-    public boolean isInitBackended() {
-        return initBackended;
+    public String getName() {
+        return name;
     }
 
-    public void setInitBackended(boolean initBackended) {
-        this.initBackended = initBackended;
+    public boolean isTaskSchedulerInit() {
+        return taskSchedulerInit;
     }
 
-    public boolean isServerStarted() {
-        return serverStarted;
+    public void setTaskSchedulerInit() {
+        this.taskSchedulerInit = true;
+        String json = JsonUtil.toJson(this);
+        tryPut(json);
     }
 
-    public void setServerStarted(boolean serverStarted) {
-        this.serverStarted = serverStarted;
+    public boolean isServerInfoManagerInit() {
+        return serverInfoManagerInit;
     }
 
-    public String getStage() {
-        return stage;
+    public void setServerInfoManagerInit() {
+        this.serverInfoManagerInit = true;
+        String json = JsonUtil.toJson(this);
+        tryPut(json);
     }
 
-    public void setStage(String stage) {
-        this.stage = stage;
+    public boolean isAuthManagerInit() {
+        return authManagerInit;
+    }
+
+    public void setAuthManagerInit() {
+        this.authManagerInit = true;
+        String json = JsonUtil.toJson(this);
+        tryPut(json);
+    }
+
+    public boolean isInitServerInfo() {
+        return initServerInfo;
+    }
+
+    public void setInitServerInfo() {
+        this.initServerInfo = true;
+        String json = JsonUtil.toJson(this);
+        tryPut(json);
+    }
+
+    private void tryPut(String json) {
+        try {
+            client.put(preFix + name, json);
+        } catch (PDException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public String getConfigPath() {
@@ -83,11 +112,7 @@ public class CheckList implements Serializable {
         this.nodeInfo = nodeInfo;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+    public HugeConfig getConfig() {
+        return config;
     }
 }

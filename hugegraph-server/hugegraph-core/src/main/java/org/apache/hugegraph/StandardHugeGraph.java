@@ -72,6 +72,7 @@ import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.pd.client.KvClient;
+import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.kv.KResponse;
 import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
@@ -186,8 +187,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     private final String schedulerType;
 
-    private KvClient<WatchResponse> client;
-
+    private KvClient<WatchResponse> client = new KvClient<>(PDConfig.of("localhost:8686"));
+    private CheckList checkList;
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -222,6 +223,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.OLTP_ONLY;
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
+        this.checkList = new CheckList(this.name, this.configuration);
 
         LockUtil.init(this.name);
 
@@ -293,8 +295,10 @@ public class StandardHugeGraph implements HugeGraph {
 
         LOG.info("Init server info [{}-{}] for graph '{}'...",
                  nodeInfo.nodeId(), nodeInfo.nodeRole(), this.name);
-        this.serverInfoManager().initServerInfo(nodeInfo);
-
+        if(!this.checkList.isInitServerInfo()) {
+            this.serverInfoManager().initServerInfo(nodeInfo);
+            this.checkList.setInitServerInfo();
+        }
         this.initRoleStateMachine(nodeInfo.nodeId());
 
         // TODO: check necessary?
@@ -434,9 +438,18 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void initSystemInfo() {
         try {
-            this.taskScheduler().init();
-            this.serverInfoManager().init();
-            this.authManager().init();
+            if(!this.checkList.isTaskSchedulerInit()) {
+                this.taskScheduler().init();
+                this.checkList.setTaskSchedulerInit();
+            }
+            if(!this.checkList.isServerInfoManagerInit()) {
+                this.serverInfoManager().init();
+                this.checkList.setTaskSchedulerInit();
+            }
+            if(!this.checkList.isAuthManagerInit()) {
+                this.authManager().init();
+                this.checkList.setAuthManagerInit();
+            }
         } finally {
             this.closeTx();
         }
@@ -1011,30 +1024,15 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void create(String configPath, GlobalMasterInfo nodeInfo){
-        //CheckList checkList = new CheckList();
-        KResponse result = null;
-        try {
-            result = client.get(this.name);
-            String json = result.getValue();
-            CheckList checkList = JsonUtil.fromJson(json, CheckList.class);
-
+            this.checkList.setConfigPath(configPath);
+            this.checkList.setNodeInfo(nodeInfo);
             this.initBackend();
-            checkList.setInitBackended(true);
-            checkList.setStage("initBackend");
-            client.put(name, JsonUtil.toJson(checkList));
             this.serverStarted(nodeInfo);
-            checkList.setServerStarted(true);
-            checkList.setStage("setServerStarted");
-            client.put(name, JsonUtil.toJson(checkList));
-
 
             // Write config to disk file
             String confPath = ConfigUtil.writeToFile(configPath, this.name(),
                                                      this.configuration());
             this.configuration.file(confPath);
-        } catch (Exception e) {
-
-        }
     }
 
     @Override
