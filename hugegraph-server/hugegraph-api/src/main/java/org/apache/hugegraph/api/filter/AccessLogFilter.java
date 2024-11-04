@@ -116,7 +116,7 @@ public class AccessLogFilter implements ContainerResponseFilter {
         String metricsName = join(path, method);
 
         int status = responseContext.getStatus();
-        if (status != 500 && status != 415) {
+        if (isStatusXx(status)) {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
         }
 
@@ -163,5 +163,9 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
     private boolean statusOk(int status) {
         return status >= 200 && status < 300;
+    }
+
+    private boolean isStatusXx(int status) {
+        return status != 500 && status != 415;
     }
 }
