@@ -34,8 +34,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.google.common.collect.Iterators;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
@@ -103,6 +101,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 
 import jakarta.ws.rs.ForbiddenException;
 
@@ -1053,8 +1052,10 @@ public class GraphTransaction extends IndexableTransaction {
         if (query instanceof ConditionQuery && !query.paging()) {
             // TODO: support: paging + parent label
             boolean supportIn = this.storeFeatures().supportsQueryWithInCondition();
-            // consider multi labels + properties, see org.apache.hugegraph.core.EdgeCoreTest.testQueryInEdgesOfVertexByLabels
-            Stream<ConditionQuery> flattenedQueries = ConditionQueryFlatten.flatten((ConditionQuery) query, supportIn).stream();
+            // consider multi labels + properties,
+            // see org.apache.hugegraph.core.EdgeCoreTest.testQueryInEdgesOfVertexByLabels
+            Stream<ConditionQuery> flattenedQueries =
+                    ConditionQueryFlatten.flatten((ConditionQuery) query, supportIn).stream();
 
             Stream<Iterator<HugeEdge>> edgeIterators = flattenedQueries.map(cq -> {
                 Id label = cq.condition(HugeKeys.LABEL);
@@ -1073,7 +1074,8 @@ public class GraphTransaction extends IndexableTransaction {
                 }
             });
 
-            return edgeIterators.reduce(ExtendableIterator::concat).orElse(Collections.emptyIterator());
+            return edgeIterators.reduce(ExtendableIterator::concat)
+                                .orElse(Collections.emptyIterator());
         }
 
         return queryEdgesFromBackendInternal(query);
@@ -1640,7 +1642,8 @@ public class GraphTransaction extends IndexableTransaction {
              */
             boolean byLabel = (label != null && query.conditionsSize() == 1);
             if (!byLabel || this.store().features().supportsQueryByLabel()) {
-                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() && byLabel && query.resultType().isEdge()) {
+                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() && byLabel &&
+                    query.resultType().isEdge()) {
                     // for memory backend
                     EdgeLabel edgeLabel = graph().edgeLabel(label);
                     if (edgeLabel.hasFather()) {

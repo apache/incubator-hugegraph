@@ -255,7 +255,8 @@ public class HugeIndex implements GraphType, Cloneable {
                          "Invalid range index field type");
             Class<?> clazz = dataType.isNumber() ?
                              dataType.clazz() : DataType.LONG.clazz();
-            values = bytes2number(buffer.read(id.length - labelLength - HUGE_TYPE_CODE_LENGTH), clazz);
+            values = bytes2number(buffer.read(id.length - labelLength - HUGE_TYPE_CODE_LENGTH),
+                                  clazz);
         }
         HugeIndex index = new HugeIndex(graph, indexLabel);
         index.fieldValues(values);

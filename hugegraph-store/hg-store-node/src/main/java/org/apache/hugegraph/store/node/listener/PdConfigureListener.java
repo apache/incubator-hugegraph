@@ -82,7 +82,7 @@ public class PdConfigureListener implements
         // Map<String, OriginTrackedValue> appSourceMap = (Map<String, OriginTrackedValue>)
         // appSource
         // .getSource();
-        // OriginTrackedValue pdTrackedValue = appSourceMap.get("pdserver.address");
+        // OriginTrackedValue pdTrackedValue = appSourceMap.getMetric("pdserver.address");
         // String pdAddress = pdTrackedValue.getValue().toString();
         KvClient client = new KvClient(PDConfig.of(pdAddress));
         try {

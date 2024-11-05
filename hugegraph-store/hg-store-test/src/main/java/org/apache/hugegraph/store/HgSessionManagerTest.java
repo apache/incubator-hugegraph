@@ -88,7 +88,7 @@ public class HgSessionManagerTest {
                 });
             } else if (endKey == HgStoreClientConst.EMPTY_BYTES || startKey == endKey ||
                        Arrays.equals(startKey, endKey)) {
-                //log.info("leader-> {}",leaderMap.get(startCode / PARTITION_LENGTH));
+                //log.info("leader-> {}",leaderMap.getMetric(startCode / PARTITION_LENGTH));
                 builder.add(leaderMap.get(startCode / PARTITION_LENGTH), startCode);
             } else {
                 Assert.fail("OwnerKey converted to HashCode is already unordered, querying by OwnerKey range is meaningless");
@@ -99,7 +99,7 @@ public class HgSessionManagerTest {
         });
         nodeManager.setNodeProvider((graphName, nodeId) -> {
             //   System.out.println("HgStoreNodeProvider apply " + graphName + " " + nodeId +
-            //   " " + storeMap.get(nodeId));
+            //   " " + storeMap.getMetric(nodeId));
             return nodeManager.getNodeBuilder().setNodeId(nodeId)
                               .setAddress(storeMap.get(nodeId)).build();
         });
@@ -127,7 +127,7 @@ public class HgSessionManagerTest {
 
     @Test
     public void put_get() {
-        System.out.println("--- test put & get ---");
+        System.out.println("--- test put & getMetric ---");
 
         HgStoreSession session = getStoreSession();
 
@@ -161,7 +161,7 @@ public class HgSessionManagerTest {
         Assert.assertEquals(amount, keyList.size());
 /*
 
-        println("--- batch-get result ---");
+        println("--- batch-getMetric result ---");
         iterator = session.batchGet(TABLE_NAME, keyList);
         while(iterator.hasNext()){
             HgKvEntry kv=iterator.next();
@@ -210,7 +210,7 @@ public class HgSessionManagerTest {
         HgStoreTestUtil.println("- delete " + delKey);
         session.delete(HgStoreTestUtil.TABLE_NAME, key);
         value = session.get(HgStoreTestUtil.TABLE_NAME, key);
-        HgStoreTestUtil.println("- get " + delKey + ": " + HgStoreTestUtil.toStr(value));
+        HgStoreTestUtil.println("- getMetric " + delKey + ": " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals(EMPTY_BYTES, value);
     }
 
@@ -229,14 +229,14 @@ public class HgSessionManagerTest {
 
         value = session.get(HgStoreTestUtil.TABLE_NAME, key);
         HgStoreTestUtil.println(
-                "- before del, get [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
+                "- before del, getMetric [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals(delValue, HgStoreTestUtil.toStr(value));
 
         HgStoreTestUtil.println("- delete-single : [" + delKey + "]");
         session.deleteSingle(HgStoreTestUtil.TABLE_NAME, key);
         value = session.get(HgStoreTestUtil.TABLE_NAME, key);
         HgStoreTestUtil.println(
-                "- after del, get [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
+                "- after del, getMetric [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals("", HgStoreTestUtil.toStr(value));
 
     }
@@ -268,7 +268,7 @@ public class HgSessionManagerTest {
                                                                        String.valueOf(i), 2));
             String value = HgStoreTestUtil.toStr(session.get(HgStoreTestUtil.TABLE_NAME, key));
             HgStoreTestUtil.println(
-                    "- get [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
+                    "- getMetric [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
 
             // TODO: [start,end)?
             if (i < 5) {
@@ -310,7 +310,7 @@ public class HgSessionManagerTest {
             HgOwnerKey key =
                     HgStoreTestUtil.toOwnerKey(owner, prefixStr + HgStoreTestUtil.toSuffix(i, 2));
             String value = HgStoreTestUtil.toStr(session.get(HgStoreTestUtil.TABLE_NAME, key));
-            System.out.println("- get [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
+            System.out.println("- getMetric [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
             Assert.assertEquals("", value);
         }
 

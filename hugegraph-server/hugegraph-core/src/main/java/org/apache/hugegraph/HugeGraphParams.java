@@ -25,7 +25,6 @@ import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.job.EphemeralJob;
