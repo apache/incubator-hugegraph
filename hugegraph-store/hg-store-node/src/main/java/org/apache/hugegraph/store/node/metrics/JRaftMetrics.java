@@ -168,33 +168,33 @@ public class JRaftMetrics {
 
         String baseName = PREFIX + "." + name.toLowerCase();
 
-        Gauge.builder(baseName + ".median", histogram, (d) -> d.getSnapshot().getMedian())
+        Gauge.builder(baseName + ".median", histogram, h -> h.getSnapshot().getMedian())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".min", histogram, (d) -> d.getSnapshot().getMin())
+        Gauge.builder(baseName + ".min", histogram, h -> h.getSnapshot().getMin())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".max", histogram, (d) -> d.getSnapshot().getMax())
+        Gauge.builder(baseName + ".max", histogram, h -> h.getSnapshot().getMax())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".mean", histogram, (d) -> d.getSnapshot().getMean())
+        Gauge.builder(baseName + ".mean", histogram, h -> h.getSnapshot().getMean())
              .tags(tags).register(registry);
 
         baseName = baseName + ".summary";
-        Gauge.builder(baseName, histogram, (d) -> d.getSnapshot().getMedian())
+        Gauge.builder(baseName, histogram, h -> h.getSnapshot().getMedian())
              .tags(tags).tag(LABELS, LABEL_50).register(registry);
-        Gauge.builder(baseName, histogram, (d) -> d.getSnapshot().get75thPercentile())
+        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get75thPercentile())
              .tags(tags).tag(LABELS, LABEL_75).register(registry);
-        Gauge.builder(baseName, histogram, (d) -> d.getSnapshot().get95thPercentile())
+        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get95thPercentile())
              .tags(tags).tag(LABELS, LABEL_95).register(registry);
-        Gauge.builder(baseName, histogram, (d) -> d.getSnapshot().get98thPercentile())
+        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get98thPercentile())
              .tags(tags).tag(LABELS, LABEL_98).register(registry);
-        Gauge.builder(baseName, histogram, (d) -> d.getSnapshot().get99thPercentile())
+        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get99thPercentile())
              .tags(tags).tag(LABELS, LABEL_99).register(registry);
-        Gauge.builder(baseName, histogram, (d) -> d.getSnapshot().get999thPercentile())
+        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get999thPercentile())
              .tags(tags).tag(LABELS, LABEL_999).register(registry);
 
         Gauge.builder(baseName + ".sum", histogram,
-                      (d) -> Arrays.stream(d.getSnapshot().getValues()).sum())
+                      h -> Arrays.stream(h.getSnapshot().getValues()).sum())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".count", histogram, (d) -> d.getSnapshot().size())
+        Gauge.builder(baseName + ".count", histogram, h -> h.getSnapshot().size())
              .tags(tags).register(registry);
 
     }
@@ -208,7 +208,7 @@ public class JRaftMetrics {
 
         String baseName = PREFIX + "." + name.toLowerCase();
 
-        Gauge.builder(baseName + ".count", timer, t->t.getCount())
+        Gauge.builder(baseName + ".count", timer, t -> t.getCount())
              .tags(tags).register(registry);
         Gauge.builder(baseName + ".min", timer, t -> t.getSnapshot().getMin())
              .tags(tags).register(registry);
