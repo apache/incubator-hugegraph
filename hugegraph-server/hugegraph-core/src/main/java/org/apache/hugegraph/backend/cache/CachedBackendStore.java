@@ -215,14 +215,19 @@ public class CachedBackendStore implements BackendStore {
     /**
      * Query as an Id for cache
      */
-    static class QueryId implements Id {
+    public static class QueryId implements Id {
 
-        private String query;
-        private int hashCode;
+        protected String query;
+        protected int hashCode;
 
         public QueryId(Query q) {
             this.query = q.toString();
             this.hashCode = q.hashCode();
+        }
+
+        public QueryId(String query, int hashCode) {
+            this.query = query;
+            this.hashCode = hashCode;
         }
 
         @Override

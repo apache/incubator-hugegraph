@@ -31,7 +31,7 @@ public abstract class HugeProperty<V> implements Property<V>, GraphType {
 
     protected final HugeElement owner;
     protected final PropertyKey pkey;
-    protected final V value;
+    protected V value;
 
     public HugeProperty(HugeElement owner, PropertyKey pkey, V value) {
         E.checkArgument(owner != null, "Property owner can't be null");
