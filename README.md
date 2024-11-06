@@ -43,7 +43,7 @@ the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details.
 >  
 > 1. The docker image of hugegraph is a convenience release, but not **official distribution** artifacts. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
 > 
-> 2. Recommend to use `release tag`(like `1.2.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> 2. Recommend to use `release tag` (like `1.5.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ### 2. Download Way
 
@@ -61,9 +61,8 @@ and provides detailed documentation for users. (Structure / Usage / API / Config
 And here are links of other **HugeGraph** component/repositories:
 1. [hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-client)**)
 2. [hugegraph-computer](https://github.com/apache/hugegraph-computer) (integrated **graph computing** system)
-3. [hugegraph-commons](https://github.com/apache/hugegraph-commons) (**common & rpc** libs)
-4. [hugegraph-website](https://github.com/apache/hugegraph-doc) (**doc & website** code)
-5. [hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai) (integrated **Graph AI/LLM/KG** system)
+3. [hugegraph-website](https://github.com/apache/hugegraph-doc) (**doc & website** code)
+4. [hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai) (integrated **Graph AI/LLM/KG** system)
 
 ## License
 
