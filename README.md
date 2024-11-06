@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img width="720" alt="hugegraph-logo" src="https://github.com/apache/incubator-hugegraph/assets/38098239/e02ffaed-4562-486b-ba8f-e68d02bb0ea6" style="zoom:100%;" />
+    <img width="720" alt="hugegraph-logo" src="https://github.com/apache/hugegraph/assets/38098239/e02ffaed-4562-486b-ba8f-e68d02bb0ea6" style="zoom:100%;" />
 </h1>
 
 <h3 align="center">A graph database that supports more than 10 billion data, high performance and scalability</h3>
@@ -26,7 +26,7 @@ achieved through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful
 - Compliance to [Apache TinkerPop 3](https://tinkerpop.apache.org/), support [Gremlin](https://tinkerpop.apache.org/gremlin.html) & [Cypher](https://en.wikipedia.org/wiki/Cypher) language
 - Schema Metadata Management, including VertexLabel, EdgeLabel, PropertyKey and IndexLabel
 - Multi-type Indexes, supporting exact query, range query and complex conditions combination query
-- Plug-in Backend Store Driver Framework, support `RocksDB`, `Cassandra`, `HBase`, `ScyllaDB`, and `MySQL/Postgre` now and easy to add another backend store driver if needed
+- Plug-in Backend Store Driver Framework, support `RocksDB`/`HStore`, `HBase`, `Cassandra/ScyllaDB`, and `MySQL/Postgre` now and easy to add another backend store driver if needed
 - Integration with `Flink/Spark/HDFS`, and friendly to connect other big data platforms
 
 
@@ -59,10 +59,10 @@ The project [doc page](https://hugegraph.apache.org/docs/) contains more informa
 and provides detailed documentation for users. (Structure / Usage / API / Configs...)
 
 And here are links of other **HugeGraph** component/repositories:
-1. [hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-client)**)
+1. [hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-client)**)
 2. [hugegraph-computer](https://github.com/apache/hugegraph-computer) (integrated **graph computing** system)
-3. [hugegraph-website](https://github.com/apache/hugegraph-doc) (**doc & website** code)
-4. [hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai) (integrated **Graph AI/LLM/KG** system)
+3. [hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai) (integrated **Graph AI/LLM/KG** system)
+4. [hugegraph-website](https://github.com/apache/hugegraph-doc) (**doc & website** code)
 
 ## License
 
@@ -89,9 +89,9 @@ and we are looking forward to working with you to build an excellent open-source
 
 ## Contact Us
 
-- [GitHub Issues](https://github.com/apache/incubator-hugegraph/issues): Feedback on usage issues and functional requirements (quick response)
+- [GitHub Issues](https://github.com/apache/hugegraph/issues): Feedback on usage issues and functional requirements (quick response)
  - Feedback Email: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscriber](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/) only)
  - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
- <img src="https://github.com/apache/incubator-hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="300"/>
+ <img src="https://github.com/apache/hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="300"/>
 
