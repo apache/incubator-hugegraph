@@ -402,20 +402,6 @@ The text of each license is also included in licenses/LICENSE-[project].txt.
     https://central.sonatype.com/artifact/org.lionsoul/jcseg-core/2.6.2 -> Apache 2.0
     https://central.sonatype.com/artifact/org.jctools/jctools-core/2.1.1 -> Apache 2.0
     https://central.sonatype.com/artifact/org.jctools/jctools-core/3.1.0 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.connectors/jersey-apache-connector/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.core/jersey-client/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.core/jersey-common/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-grizzly2-http/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-grizzly2-servlet/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-servlet/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-servlet-core/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.ext/jersey-entity-filtering/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.inject/jersey-hk2/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.media/jersey-media-jaxb/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.media/jersey-media-json-jackson/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.core/jersey-server/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.test-framework/jersey-test-framework-core/3.0.3 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.glassfish.jersey.test-framework.providers/jersey-test-framework-provider-grizzly2/3.0.3 -> Apache 2.0
     https://central.sonatype.com/artifact/io.etcd/jetcd-common/0.5.9 -> Apache 2.0
     https://central.sonatype.com/artifact/io.etcd/jetcd-core/0.5.9 -> Apache 2.0
     https://central.sonatype.com/artifact/org.eclipse.jetty/jetty-annotations/9.4.46.v20220331 -> Apache 2.0
@@ -720,6 +706,20 @@ The text of each license is also included in licenses/LICENSE-[project].txt.
     https://central.sonatype.com/artifact/jakarta.servlet/jakarta.servlet-api/5.0.0 -> EPL 2.0
     https://central.sonatype.com/artifact/jakarta.websocket/jakarta.websocket-api/1.1.2 -> EPL 2.0
     https://central.sonatype.com/artifact/jakarta.ws.rs/jakarta.ws.rs-api/3.0.0 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.connectors/jersey-apache-connector/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.core/jersey-client/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.core/jersey-common/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-grizzly2-http/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-grizzly2-servlet/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-servlet/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.containers/jersey-container-servlet-core/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.ext/jersey-entity-filtering/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.inject/jersey-hk2/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.media/jersey-media-jaxb/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.media/jersey-media-json-jackson/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.core/jersey-server/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.test-framework/jersey-test-framework-core/3.0.3 -> EPL 2.0
+    https://central.sonatype.com/artifact/org.glassfish.jersey.test-framework.providers/jersey-test-framework-provider-grizzly2/3.0.3 -> EPL 2.0
     https://central.sonatype.com/artifact/org.junit.jupiter/junit-jupiter/5.7.2 -> EPL 2.0
     https://central.sonatype.com/artifact/org.junit.jupiter/junit-jupiter-api/5.7.2 -> EPL 2.0
     https://central.sonatype.com/artifact/org.junit.jupiter/junit-jupiter-engine/5.7.2 -> EPL 2.0
