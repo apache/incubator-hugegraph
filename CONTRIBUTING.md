@@ -76,9 +76,9 @@ Note: To be consistent with the code style easily, if you use [IDEA](https://www
 ##### 3.2.1 Check licenses
 If we want to add new third-party dependencies to the `HugeGraph` project, we need to do the following things:
 1. Find the third-party dependent repository, put the dependent `license` file into [./hugegraph-dist/release-docs/licenses/](https://github.com/apache/incubator-hugegraph/tree/master/hugegraph-dist/release-docs/licenses) path.
-2. Declare the dependency in [./hugegraph-server/hugegraph-dist/release-docs/LICENSE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/release-docs/LICENSE) `LICENSE` information.
-3. Find the NOTICE file in the repository and append it to [./hugegraph-server/hugegraph-dist/release-docs/NOTICE](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/release-docs/NOTICE) file (skip this step if there is no NOTICE file).
-4. Execute locally [./hugegraph-server/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh) to update the dependency list [known-dependencies.txt](https://github.com/apache/incubator-hugegraph/blob/master/hugegraph-server/hugegraph-dist/scripts/dependency/known-dependencies.txt) (or manually update).
+2. Declare the dependency in [./install-dist/release-docs/LICENSE](https://github.com/apache/incubator-hugegraph/blob/master/install-dist/release-docs/LICENSE) `LICENSE` information.
+3. Find the NOTICE file in the repository and append it to [./install-dist/release-docs/NOTICE](https://github.com/apache/incubator-hugegraph/blob/master/install-dist/release-docs/NOTICE) file (skip this step if there is no NOTICE file).
+4. Execute locally [./install-dist/scripts/dependency/regenerate_known_dependencies.sh](https://github.com/apache/incubator-hugegraph/blob/master/install-dist/scripts/dependency/regenerate_known_dependencies.sh) to update the dependency list [known-dependencies.txt](https://github.com/apache/incubator-hugegraph/blob/master/install-dist/scripts/dependency/known-dependencies.txt) (or manually update).
 
 **Example**: A new third-party dependency is introduced into the project -> `ant-1.9.1.jar`
 - The project source code is located at: https://github.com/apache/ant/tree/rel/1.9.1
