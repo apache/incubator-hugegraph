@@ -87,7 +87,7 @@ fastparse_2.12-2.0.4.jar
 fastutil-8.5.9.jar
 findbugs-annotations-1.3.9-1.jar
 front-end-9.0-9.0.20190305.jar
-fury-core-0.9.0-SNAPSHOT.jar
+fury-core-0.9.0.jar
 gremlin-console-3.5.1.jar
 gremlin-core-3.5.1.jar
 gremlin-driver-3.5.1.jar
