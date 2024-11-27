@@ -42,6 +42,7 @@ import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 import com.codahale.metrics.annotation.Timed;
@@ -169,7 +170,7 @@ public class KneighborAPI extends TraverserAPI {
                                               QueryResults.emptyIterator());
         }
 
-        Iterator<?> iterVertex;
+        Iterator<Vertex> iterVertex = Collections.emptyIterator();
         Set<Id> vertexIds = new HashSet<>(neighbors);
         if (request.withPath) {
             for (HugeTraverser.Path p : paths) {
@@ -179,18 +180,12 @@ public class KneighborAPI extends TraverserAPI {
         if (request.withVertex && !vertexIds.isEmpty()) {
             iterVertex = g.vertices(vertexIds.toArray());
             measure.addIterCount(vertexIds.size(), 0L);
-        } else {
-            iterVertex = vertexIds.iterator();
         }
 
-        Iterator<?> iterEdge = Collections.emptyIterator();
-        if (request.withPath) {
+        Iterator<Edge> iterEdge = Collections.emptyIterator();
+        if (request.withPath && request.withEdge) {
             Set<Edge> edges = results.edgeResults().getEdges(paths);
-            if (request.withEdge) {
-                iterEdge = edges.iterator();
-            } else {
-                iterEdge = HugeTraverser.EdgeRecord.getEdgeIds(edges).iterator();
-            }
+            iterEdge = edges.iterator();
         }
 
         return manager.serializer(g, measure.measures())
