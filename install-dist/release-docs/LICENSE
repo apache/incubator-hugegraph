@@ -808,14 +808,6 @@ The text of each license is also included in licenses/LICENSE-[project].txt.
     https://central.sonatype.com/artifact/org.mindrot/jbcrypt/0.4 -> ISC
 
 ========================================================================
-Third party The JSON License licenses
-========================================================================
-The following components are provided under the The JSON License License. See project link for details.
-The text of each license is also included in licenses/LICENSE-[project].txt.
-
-    https://central.sonatype.com/artifact/org.json/json/20210307 -> The JSON License
-
-========================================================================
 Third party EPL 1.0 licenses
 ========================================================================
 The following components are provided under the EPL 1.0 License. See project link for details.

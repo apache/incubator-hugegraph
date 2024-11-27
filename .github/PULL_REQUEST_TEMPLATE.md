@@ -51,7 +51,7 @@ For example:
 
 <!-- DO NOT REMOVE THIS SECTION. CHECK THE PROPER BOX ONLY. -->
 
-- [ ]  Dependencies ([add/update license](https://hugegraph.apache.org/docs/contribution-guidelines/contribute/#321-check-licenses) info & [regenerate_dependencies](../hugegraph-server/hugegraph-dist/scripts/dependency/regenerate_known_dependencies.sh)) <!-- Don't forget to add/update the info in "LICENSE" & "NOTICE" files (both in root & dist module) -->
+- [ ]  Dependencies ([add/update license](https://hugegraph.apache.org/docs/contribution-guidelines/contribute/#321-check-licenses) info & [regenerate_known_dependencies.sh](../install-dist/scripts/dependency/regenerate_known_dependencies.sh)) <!-- Don't forget to add/update the info in "LICENSE" & "NOTICE" files (both in root & dist module) -->
 - [ ]  Modify configurations
 - [ ]  The public API
 - [ ]  Other affects (typed here)
