@@ -34,7 +34,7 @@ achieved through [Gremlin](https://tinkerpop.apache.org/gremlin.html)(a powerful
 
 ### 1. Docker Way (Convenient for Test)
 
-We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to quickly start an inner 
+We can use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph:1.3.0` to quickly start an inner 
 HugeGraph server with `RocksDB` (in backgrounds) for **test/dev**.
 You can visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy) or
 the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details. ([Docker Compose](./hugegraph-server/hugegraph-dist/docker/example))
@@ -43,7 +43,7 @@ the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details.
 >  
 > 1. The docker image of hugegraph is a convenience release, but not **official distribution** artifacts. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
 > 
-> 2. Recommend to use `release tag` (like `1.5.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> 2. Recommend to use `release tag` (like `1.3.0`/`1.5.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ### 2. Download Way
 
