@@ -133,7 +133,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        this.store().provider().listen(this.storeEventListener);
+        this.store().provider().listenDataCacheClear(this.storeEventListener);
 
         // Listen cache event: "cache"(invalid cache item)
         this.cacheEventListener = event -> {
