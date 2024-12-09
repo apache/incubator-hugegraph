@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.apache.hugegraph.backend.id.Id.IdType;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.memory.consumer.factory.IdFactory;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.LongEncoding;
@@ -35,19 +36,19 @@ public abstract class IdGenerator {
     public abstract Id generate(HugeVertex vertex);
 
     public static Id of(String id) {
-        return new StringId(id);
+        return IdFactory.getInstance().newStringId(id);
     }
 
     public static Id of(UUID id) {
-        return new UuidId(id);
+        return IdFactory.getInstance().newUuidId(id);
     }
 
     public static Id of(String id, boolean uuid) {
-        return uuid ? new UuidId(id) : new StringId(id);
+        return uuid ? IdFactory.getInstance().newUuidId(id) : IdFactory.getInstance().newStringId(id);
     }
 
     public static Id of(long id) {
-        return new LongId(id);
+        return IdFactory.getInstance().newLongId(id);
     }
 
     public static Id of(Object id) {
@@ -66,11 +67,11 @@ public abstract class IdGenerator {
     public static Id of(byte[] bytes, IdType type) {
         switch (type) {
             case LONG:
-                return new LongId(bytes);
+                return IdFactory.getInstance().newLongId(bytes);
             case UUID:
-                return new UuidId(bytes);
+                return IdFactory.getInstance().newUuidId(bytes);
             case STRING:
-                return new StringId(bytes);
+                return IdFactory.getInstance().newStringId(bytes);
             default:
                 throw new AssertionError("Invalid id type " + type);
         }
