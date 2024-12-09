@@ -30,6 +30,7 @@ import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.memory.consumer.factory.PropertyFactory;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -235,7 +236,9 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
     @Watched(prefix = "edge")
     @Override
     protected <V> HugeEdgeProperty<V> newProperty(PropertyKey pkey, V val) {
-        return new HugeEdgeProperty<>(this, pkey, val);
+        Class<V> valueType = (Class<V>) val.getClass();
+        PropertyFactory<V> propertyFactory = PropertyFactory.getInstance(valueType);
+        return propertyFactory.newHugeEdgeProperty(this, pkey, val);
     }
 
     @Watched(prefix = "edge")

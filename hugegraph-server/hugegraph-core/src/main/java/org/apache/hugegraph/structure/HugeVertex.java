@@ -40,6 +40,7 @@ import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
+import org.apache.hugegraph.memory.consumer.factory.PropertyFactory;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -492,7 +493,9 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
     @Watched(prefix = "vertex")
     @Override
     protected <V> HugeVertexProperty<V> newProperty(PropertyKey pkey, V val) {
-        return new HugeVertexProperty<>(this, pkey, val);
+        Class<V> valueType = (Class<V>) val.getClass();
+        PropertyFactory<V> propertyFactory = PropertyFactory.getInstance(valueType);
+        return propertyFactory.newHugeVertexProperty(this, pkey, val);
     }
 
     @Watched(prefix = "vertex")

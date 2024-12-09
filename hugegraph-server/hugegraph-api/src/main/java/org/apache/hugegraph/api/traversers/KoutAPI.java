@@ -34,6 +34,9 @@ import org.apache.hugegraph.api.graph.VertexAPI;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.KoutTraverser;
@@ -93,6 +96,9 @@ public class KoutAPI extends TraverserAPI {
                   "'{}', max degree '{}', capacity '{}' and limit '{}'",
                   graph, source, direction, edgeLabel, depth,
                   nearest, maxDegree, capacity, limit);
+        MemoryPool queryPool = MemoryManager.getInstance().addQueryMemoryPool();
+        MemoryPool currentTaskPool = queryPool.addChildPool("kout-main-task");
+        MemoryManager.getInstance().bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(), (TaskMemoryPool) currentTaskPool);
 
         ApiMeasurer measure = new ApiMeasurer();
 
