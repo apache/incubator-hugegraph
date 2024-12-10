@@ -70,6 +70,8 @@ import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.util.RoundUtil;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.pd.client.KvClient;
 import org.apache.hugegraph.pd.client.PDConfig;
@@ -224,6 +226,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.readMode = GraphReadMode.OLTP_ONLY;
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
         this.checkList = new CheckList(this.name, this.configuration);
+
+        MemoryManager.setMemoryMode(
+                MemoryManager.MemoryMode.fromValue(config.get(CoreOptions.MEMORY_MODE)));
+        MemoryManager.setMaxMemoryCapacityInBytes(config.get(CoreOptions.MAX_MEMORY_CAPACITY));
+        MemoryManager.setMaxMemoryCapacityForOneQuery(
+                config.get(CoreOptions.ONE_QUERY_MAX_MEMORY_CAPACITY));
+        RoundUtil.setAlignment(config.get(CoreOptions.MEMORY_ALIGNMENT));
 
         LockUtil.init(this.name);
 
@@ -498,8 +507,8 @@ public class StandardHugeGraph implements HugeGraph {
         try {
             if (isHstore()) {
                 return new CachedSchemaTransactionV2(
-                    MetaManager.instance().metaDriver(),
-                    MetaManager.instance().cluster(), this.params);
+                        MetaManager.instance().metaDriver(),
+                        MetaManager.instance().cluster(), this.params);
             }
             return new CachedSchemaTransaction(this.params, loadSchemaStore());
         } catch (BackendException e) {

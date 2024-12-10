@@ -4,7 +4,7 @@
 > 
 > 1. The docker image of hugegraph is a convenience release, not official distribution artifacts from ASF. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
 > 
-> 2. Recommend to use `release tag` (like `1.3.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> 2. Recommend to use `release tag` (like `1.3.0`/`1.5.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ## 1. Deploy
 
@@ -12,7 +12,7 @@ We can use docker to quickly start an inner HugeGraph server with RocksDB in the
 
 1. Using docker run
 
-    Use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph` to start hugegraph server.
+    Use `docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph:1.3.0` to start hugegraph server.
 
 2. Using docker compose
 
@@ -22,7 +22,7 @@ We can use docker to quickly start an inner HugeGraph server with RocksDB in the
     version: '3'
     services:
       graph:
-        image: hugegraph/hugegraph
+        image: hugegraph/hugegraph:1.3.0
         ports:
           - 8080:8080
     ```
@@ -35,7 +35,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
 
 1. Using docker run
 
-    Use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD=true -v /path/to/script:/hugegraph-server/scripts/example.groovy hugegraph/hugegraph`
+    Use `docker run -itd --name=graph -p 8080:8080 -e PRELOAD=true -v /path/to/script:/hugegraph-server/scripts/example.groovy hugegraph/hugegraph:1.3.0`
     to start hugegraph server.
 
 2. Using docker compose 
@@ -46,7 +46,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
     version: '3'
     services:
       graph:
-        image: hugegraph/hugegraph
+        image: hugegraph/hugegraph:1.3.0
         environment:
           - PRELOAD=true
         volumes:
@@ -63,7 +63,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
 
 1. Using docker run
 
-    Use `docker run -itd --name=graph -p 8080:8080 -e AUTH=true -e PASSWORD=123456 hugegraph/hugegraph` to enable the authentication and set the password with `-e AUTH=true -e PASSWORD=123456`.
+    Use `docker run -itd --name=graph -p 8080:8080 -e AUTH=true -e PASSWORD=123456 hugegraph/hugegraph:1.3.0` to enable the authentication and set the password with `-e AUTH=true -e PASSWORD=123456`.
 
 2. Using docker compose
 
@@ -73,7 +73,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
     version: '3'
     services:
       server:
-        image: hugegraph/hugegraph
+        image: hugegraph/hugegraph:1.3.0
         container_name: graph
         ports:
           - 8080:8080
@@ -81,6 +81,7 @@ If you want to customize the preloaded data, please mount the groovy scripts (no
           - AUTH=true
           - PASSWORD=123456
     ```
+
 ## 4. Running Open-Telemetry-Collector
 
 > CAUTION:

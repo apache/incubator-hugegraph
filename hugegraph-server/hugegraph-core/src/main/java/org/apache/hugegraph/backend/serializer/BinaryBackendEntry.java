@@ -208,10 +208,10 @@ public class BinaryBackendEntry implements BackendEntry {
         return this.id().hashCode() ^ this.columns.size();
     }
 
-    public static final class BinaryId implements Id {
+    public static class BinaryId implements Id {
 
-        private final byte[] bytes;
-        private final Id id;
+        protected byte[] bytes;
+        protected Id id;
 
         public BinaryId(byte[] bytes, Id id) {
             this.bytes = bytes;

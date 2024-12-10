@@ -32,8 +32,8 @@ import org.apache.hugegraph.util.StringEncoding;
  * > sortKeys > target-vertex-id }
  * NOTE:
  * <p>1. for edges with edgeLabelType = NORMAL: edgeLabelId = parentEdgeLabelId = subEdgeLabelId;
- *       for edges with edgeLabelType = PARENT: edgeLabelId = subEdgeLabelId, parentEdgeLabelId =
- *       edgeLabelId.fatherId
+ * for edges with edgeLabelType = PARENT: edgeLabelId = subEdgeLabelId, parentEdgeLabelId =
+ * edgeLabelId.fatherId
  * <p>2.if we use `entry.type()` which is IN or OUT as a part of id,
  * an edge's id will be different due to different directions (belongs
  * to 2 owner vertex)
@@ -49,15 +49,14 @@ public class EdgeId implements Id {
             HugeKeys.OTHER_VERTEX
     };
 
-    private final Id ownerVertexId;
-    private final Directions direction;
-    private final Id edgeLabelId;
-    private final Id subLabelId;
-    private final String sortValues;
-    private final Id otherVertexId;
-
-    private final boolean directed;
-    private String cache;
+    protected final Id ownerVertexId;
+    protected final Id edgeLabelId;
+    protected final Id subLabelId;
+    protected final Id otherVertexId;
+    protected final Directions direction;
+    protected final boolean directed;
+    protected String sortValues;
+    protected String cache;
 
     public EdgeId(HugeVertex ownerVertex, Directions direction,
                   Id edgeLabelId, Id subLabelId, String sortValues, HugeVertex otherVertex) {
