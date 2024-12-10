@@ -103,26 +103,30 @@ public class KoutAPI extends TraverserAPI {
                                                       (TaskMemoryPool) currentTaskPool);
         MemoryPool currentOperationPool = currentTaskPool.addChildPool("kout-main-operation");
 
-        ApiMeasurer measure = new ApiMeasurer();
+        try {
+            ApiMeasurer measure = new ApiMeasurer();
 
-        Id sourceId = VertexAPI.checkAndParseVertexId(source);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+            Id sourceId = VertexAPI.checkAndParseVertexId(source);
+            Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+            HugeGraph g = graph(manager, graph);
 
-        Set<Id> ids;
-        try (KoutTraverser traverser = new KoutTraverser(g)) {
-            ids = traverser.kout(sourceId, dir, edgeLabel, depth,
-                                 nearest, maxDegree, capacity, limit);
-            measure.addIterCount(traverser.vertexIterCounter.get(),
-                                 traverser.edgeIterCounter.get());
+            Set<Id> ids;
+            try (KoutTraverser traverser = new KoutTraverser(g)) {
+                ids = traverser.kout(sourceId, dir, edgeLabel, depth,
+                                     nearest, maxDegree, capacity, limit);
+                measure.addIterCount(traverser.vertexIterCounter.get(),
+                                     traverser.edgeIterCounter.get());
+            }
+
+            if (count_only) {
+                return manager.serializer(g, measure.measures())
+                              .writeMap(ImmutableMap.of("vertices_size", ids.size()));
+            }
+            return manager.serializer(g, measure.measures()).writeList("vertices", ids);
+        } finally {
+            queryPool.releaseSelf("Complete kout query", false);
         }
-
-        if (count_only) {
-            return manager.serializer(g, measure.measures())
-                          .writeMap(ImmutableMap.of("vertices_size", ids.size()));
-        }
-        return manager.serializer(g, measure.measures()).writeList("vertices", ids);
     }
 
     @POST

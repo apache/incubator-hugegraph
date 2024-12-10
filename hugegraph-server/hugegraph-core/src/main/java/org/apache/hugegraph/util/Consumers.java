@@ -118,13 +118,13 @@ public final class Consumers<V> {
     }
 
     private Void runAndDone(MemoryPool queryPool) {
+        MemoryPool currentTaskPool = queryPool.addChildPool("kout-consume-task");
+        MemoryManager.getInstance()
+                     .bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(),
+                                                      (TaskMemoryPool) currentTaskPool);
+        MemoryPool currentOperationPool =
+                currentTaskPool.addChildPool("kout-consume-operation");
         try {
-            MemoryPool currentTaskPool = queryPool.addChildPool("kout-consume-task");
-            MemoryManager.getInstance()
-                         .bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(),
-                                                          (TaskMemoryPool) currentTaskPool);
-            MemoryPool currentOperationPool =
-                    currentTaskPool.addChildPool("kout-consume-operation");
             this.run();
         } catch (Throwable e) {
             if (e instanceof StopExecution) {
@@ -139,6 +139,7 @@ public final class Consumers<V> {
         } finally {
             this.done();
             this.latch.countDown();
+            currentTaskPool.releaseSelf("Complete kout consume task", false);
         }
         return null;
     }

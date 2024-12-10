@@ -143,6 +143,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
 
     @Override
     public Iterator<BackendEntry> query(RocksDBSessions.Session session, Query query) {
+        super.query(session, query);
         if (query.limit() == 0L && !query.noLimit()) {
             LOG.debug("Return empty result(limit=0) for query {}", query);
             return Collections.emptyIterator();

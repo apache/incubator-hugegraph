@@ -27,6 +27,8 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.pool.MemoryPool;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
@@ -135,7 +137,14 @@ public abstract class BackendTable<Session extends BackendSession, Entry> {
 
     public abstract void clear(Session session);
 
-    public abstract Iterator<BackendEntry> query(Session session, Query query);
+    public Iterator<BackendEntry> query(Session session, Query query) {
+        MemoryPool currentTaskPool = MemoryManager.getInstance()
+                                                  .getCorrespondingTaskMemoryPool(
+                                                          Thread.currentThread().getName());
+        MemoryPool currentOperationPool =
+                currentTaskPool.addChildPool("BackendTable-Iterator");
+        return null;
+    }
 
     public Iterator<BackendEntry> queryOlap(Session session, Query query) {
         throw new NotImplementedException();
