@@ -98,7 +98,10 @@ public class KoutAPI extends TraverserAPI {
                   nearest, maxDegree, capacity, limit);
         MemoryPool queryPool = MemoryManager.getInstance().addQueryMemoryPool();
         MemoryPool currentTaskPool = queryPool.addChildPool("kout-main-task");
-        MemoryManager.getInstance().bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(), (TaskMemoryPool) currentTaskPool);
+        MemoryManager.getInstance()
+                     .bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(),
+                                                      (TaskMemoryPool) currentTaskPool);
+        MemoryPool currentOperationPool = currentTaskPool.addChildPool("kout-main-operation");
 
         ApiMeasurer measure = new ApiMeasurer();
 
