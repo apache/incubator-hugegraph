@@ -30,6 +30,7 @@ import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.consumer.factory.PropertyFactory;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
@@ -78,6 +79,12 @@ public class HugeEdge extends HugeElement implements Edge, Cloneable {
         this.sourceVertex = null;
         this.targetVertex = null;
         this.isOutEdge = true;
+    }
+
+    public void convertIdToOnHeapIfNeeded() {
+        if (this.id instanceof OffHeapObject) {
+            this.id = (Id) ((OffHeapObject) this.id).zeroCopyReadFromByteBuf();
+        }
     }
 
     @Override

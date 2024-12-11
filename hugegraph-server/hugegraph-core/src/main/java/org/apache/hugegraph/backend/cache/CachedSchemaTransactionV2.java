@@ -42,6 +42,7 @@ import org.apache.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
 public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
+
     private final Cache<Id, Object> idCache;
     private final Cache<Id, Object> nameCache;
 
@@ -51,8 +52,8 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     private EventListener cacheEventListener;
 
     public CachedSchemaTransactionV2(MetaDriver metaDriver,
-                                   String cluster,
-                                   HugeGraphParams graphParams) {
+                                     String cluster,
+                                     HugeGraphParams graphParams) {
         super(metaDriver, cluster, graphParams);
 
         final long capacity = graphParams.configuration()
@@ -223,6 +224,9 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     private void updateCache(SchemaElement schema) {
         this.resetCachedAllIfReachedCapacity();
 
+        // convert schema.id to on heap if needed.
+        schema.convertIdToOnHeapIfNeeded();
+
         // update id cache
         Id prefixedId = generateId(schema.type(), schema.id());
         this.idCache.update(prefixedId, schema);
@@ -268,10 +272,12 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             value = super.getSchema(type, id);
             if (value != null) {
                 this.resetCachedAllIfReachedCapacity();
-
-                this.idCache.update(prefixedId, value);
-
+                // convert schema.id to on heap if needed.
                 SchemaElement schema = (SchemaElement) value;
+                schema.convertIdToOnHeapIfNeeded();
+
+                this.idCache.update(prefixedId, schema);
+
                 Id prefixedName = generateId(schema.type(), schema.name());
                 this.nameCache.update(prefixedName, schema);
             }
@@ -321,6 +327,9 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             if (results.size() <= free) {
                 // Update cache
                 for (T schema : results) {
+                    // convert schema.id to on heap if needed.
+                    schema.convertIdToOnHeapIfNeeded();
+
                     Id prefixedId = generateId(schema.type(), schema.id());
                     this.idCache.update(prefixedId, schema);
 
@@ -481,7 +490,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     }
 
     private static class CachedTypes
-        extends ConcurrentHashMap<HugeType, Boolean> {
+            extends ConcurrentHashMap<HugeType, Boolean> {
 
         private static final long serialVersionUID = -2215549791679355996L;
     }

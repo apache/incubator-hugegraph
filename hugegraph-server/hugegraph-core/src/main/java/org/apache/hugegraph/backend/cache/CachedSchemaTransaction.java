@@ -176,6 +176,9 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     private void updateCache(SchemaElement schema) {
         this.resetCachedAllIfReachedCapacity();
 
+        // convert schema.id to on heap if needed.
+        schema.convertIdToOnHeapIfNeeded();
+
         // update id cache
         Id prefixedId = generateId(schema.type(), schema.id());
         this.idCache.update(prefixedId, schema);
@@ -204,14 +207,20 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.arrayCaches.remove(type, id);
     }
 
+    /**
+     * Ids used in cache must be on-heap object
+     */
     private static Id generateId(HugeType type, Id id) {
         // NOTE: it's slower performance to use:
         // String.format("%x-%s", type.code(), name)
-        return IdGenerator.of(type.string() + "-" + id.asString());
+        return new IdGenerator.StringId(type.string() + "-" + id.asString());
     }
 
+    /**
+     * Ids used in cache must be on-heap object
+     */
     private static Id generateId(HugeType type, String name) {
-        return IdGenerator.of(type.string() + "-" + name);
+        return new IdGenerator.StringId(type.string() + "-" + name);
     }
 
     @Override

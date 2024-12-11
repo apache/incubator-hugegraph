@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
@@ -97,11 +98,13 @@ public class KoutAPI extends TraverserAPI {
                   graph, source, direction, edgeLabel, depth,
                   nearest, maxDegree, capacity, limit);
         MemoryPool queryPool = MemoryManager.getInstance().addQueryMemoryPool();
-        MemoryPool currentTaskPool = queryPool.addChildPool("kout-main-task");
-        MemoryManager.getInstance()
-                     .bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(),
-                                                      (TaskMemoryPool) currentTaskPool);
-        MemoryPool currentOperationPool = currentTaskPool.addChildPool("kout-main-operation");
+        Optional.ofNullable(queryPool).ifPresent(pool -> {
+            MemoryPool currentTaskPool = pool.addChildPool("kout-main-task");
+            MemoryManager.getInstance()
+                         .bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(),
+                                                          (TaskMemoryPool) currentTaskPool);
+            MemoryPool currentOperationPool = currentTaskPool.addChildPool("kout-main-operation");
+        });
 
         try {
             ApiMeasurer measure = new ApiMeasurer();
@@ -125,7 +128,8 @@ public class KoutAPI extends TraverserAPI {
             }
             return manager.serializer(g, measure.measures()).writeList("vertices", ids);
         } finally {
-            queryPool.releaseSelf("Complete kout query", false);
+            Optional.ofNullable(queryPool)
+                    .ifPresent(pool -> MemoryManager.getInstance().gcQueryMemoryPool(pool));
         }
     }
 

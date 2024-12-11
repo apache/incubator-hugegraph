@@ -40,6 +40,7 @@ import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.memory.consumer.factory.PropertyFactory;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.schema.EdgeLabel;
@@ -92,6 +93,13 @@ public class HugeVertex extends HugeElement implements Vertex, Cloneable {
             }
         }
     }
+
+    public void convertIdToOnHeapIfNeeded() {
+        if (this.id instanceof OffHeapObject) {
+            this.id = (Id) ((OffHeapObject) this.id).zeroCopyReadFromByteBuf();
+        }
+    }
+
 
     @Override
     public HugeType type() {

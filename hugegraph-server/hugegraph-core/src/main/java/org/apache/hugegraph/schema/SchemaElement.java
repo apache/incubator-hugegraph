@@ -24,6 +24,7 @@ import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.memory.consumer.OffHeapObject;
 import org.apache.hugegraph.type.Nameable;
 import org.apache.hugegraph.type.Typeable;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -58,9 +59,9 @@ public abstract class SchemaElement implements Nameable, Typeable,
 
     protected final HugeGraph graph;
 
-    private final Id id;
     private final String name;
     private final Userdata userdata;
+    private Id id;
     private SchemaStatus status;
 
     public SchemaElement(final HugeGraph graph, Id id, String name) {
@@ -81,6 +82,12 @@ public abstract class SchemaElement implements Nameable, Typeable,
 
     public Id id() {
         return this.id;
+    }
+
+    public void convertIdToOnHeapIfNeeded() {
+        if (this.id instanceof OffHeapObject) {
+            this.id = (Id) ((OffHeapObject) this.id).zeroCopyReadFromByteBuf();
+        }
     }
 
     public long longId() {

@@ -77,7 +77,7 @@ public class MemoryManager {
     private final MemoryArbitrator memoryArbitrator;
     private final ExecutorService arbitrateExecutor;
 
-    private static MemoryMode MEMORY_MODE = MemoryMode.ENABLE_OFF_HEAP_MANAGEMENT;
+    private static MemoryMode MEMORY_MODE = MemoryMode.DISABLE_MEMORY_MANAGEMENT;
 
     private MemoryManager() {
         this.memoryArbitrator = new MemoryArbitratorImpl(this);
@@ -89,6 +89,10 @@ public class MemoryManager {
     }
 
     public MemoryPool addQueryMemoryPool() {
+        if (MEMORY_MODE == MemoryMode.DISABLE_MEMORY_MANAGEMENT) {
+            return null;
+        }
+
         int count = queryMemoryPools.size();
         String poolName =
                 QUERY_MEMORY_POOL_NAME_PREFIX + DELIMINATOR + count + DELIMINATOR +
