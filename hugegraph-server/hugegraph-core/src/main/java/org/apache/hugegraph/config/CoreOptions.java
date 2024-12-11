@@ -687,7 +687,7 @@ public class CoreOptions extends OptionHolder {
             "memory.mode",
             "The memory mode used for query in HugeGraph.",
             disallowEmpty(),
-            "off-heap"
+            "disable"
     );
 
     public static final ConfigOption<Long> MAX_MEMORY_CAPACITY = new ConfigOption<>(
