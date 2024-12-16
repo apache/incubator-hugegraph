@@ -13,8 +13,7 @@ jobs:
   build-commons:
     runs-on: ubuntu-latest
     env:
-      # TODO: reset use stage to false later
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      USE_STAGE: 'false' # Whether to include the stage repository.
 
     strategy:
       fail-fast: false
