@@ -58,7 +58,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new BinaryIdOffHeap(bytes, null,
+                return taskMemoryPool == null ?
+                       new BinaryBackendEntry.BinaryId(bytes, id) :
+                       new BinaryIdOffHeap(bytes, null,
                                            taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                            (OffHeapObject) id);
             case DISABLE_MEMORY_MANAGEMENT:
@@ -75,7 +77,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new LongIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.LongId(id) :
+                       new LongIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                          id);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -91,7 +95,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new LongIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.LongId(bytes) :
+                       new LongIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                          bytes);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -107,7 +113,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new ObjectIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.ObjectId(object) :
+                       new ObjectIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                            object);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -123,7 +131,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new QueryIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new CachedBackendStore.QueryId(q) :
+                       new QueryIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                           q);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -139,7 +149,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new StringIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.StringId(id) :
+                       new StringIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                            id);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -155,7 +167,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new StringIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.StringId(bytes) :
+                       new StringIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                            bytes);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -171,7 +185,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new UuidIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.UuidId(id) :
+                       new UuidIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                          id);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -187,7 +203,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new UuidIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.UuidId(bytes) :
+                       new UuidIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                          bytes);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -203,7 +221,9 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new UuidIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
+                return taskMemoryPool == null ?
+                       new IdGenerator.UuidId(id) :
+                       new UuidIdOffHeap(taskMemoryPool.getCurrentWorkingOperatorMemoryPool(),
                                          id);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
@@ -224,7 +244,10 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new EdgeIdOffHeap(ownerVertex,
+                return taskMemoryPool == null ?
+                       new EdgeId(ownerVertex, direction, edgeLabelId, subLabelId, sortValues,
+                                  otherVertex) :
+                       new EdgeIdOffHeap(ownerVertex,
                                          direction,
                                          null,
                                          null,
@@ -235,7 +258,7 @@ public class IdFactory {
                                          (OffHeapObject) edgeLabelId,
                                          (OffHeapObject) subLabelId,
                                          (OffHeapObject) otherVertex.id()
-                );
+                       );
             case DISABLE_MEMORY_MANAGEMENT:
             default:
                 return new EdgeId(ownerVertex, direction, edgeLabelId, subLabelId, sortValues,
@@ -256,7 +279,10 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new EdgeIdOffHeap((Id) null,
+                return taskMemoryPool == null ?
+                       new EdgeId(ownerVertexId, direction, edgeLabelId, subLabelId, sortValues,
+                                  otherVertexId) :
+                       new EdgeIdOffHeap((Id) null,
                                          direction,
                                          null,
                                          null,
@@ -267,7 +293,7 @@ public class IdFactory {
                                          (OffHeapObject) edgeLabelId,
                                          (OffHeapObject) subLabelId,
                                          (OffHeapObject) otherVertexId
-                );
+                       );
             case DISABLE_MEMORY_MANAGEMENT:
             default:
                 return new EdgeId(ownerVertexId, direction, edgeLabelId, subLabelId, sortValues,
@@ -289,7 +315,10 @@ public class IdFactory {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new EdgeIdOffHeap(null,
+                return taskMemoryPool == null ?
+                       new EdgeId(ownerVertexId, direction, edgeLabelId, subLabelId, sortValues,
+                                  otherVertexId, directed) :
+                       new EdgeIdOffHeap(null,
                                          direction,
                                          null,
                                          null,
@@ -301,7 +330,7 @@ public class IdFactory {
                                          (OffHeapObject) edgeLabelId,
                                          (OffHeapObject) subLabelId,
                                          (OffHeapObject) otherVertexId
-                );
+                       );
             case DISABLE_MEMORY_MANAGEMENT:
             default:
                 return new EdgeId(ownerVertexId, direction, edgeLabelId, subLabelId, sortValues,
