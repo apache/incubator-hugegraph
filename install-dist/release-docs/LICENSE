@@ -227,6 +227,14 @@ hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/backend/id/Sn
 hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherOpProcessor.java from https://github.com/opencypher/cypher-for-gremlin
 hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/opencypher/CypherPlugin.java from https://github.com/opencypher/cypher-for-gremlin
 
+========================================================================
+Third party Apache 2.0 licenses (swagger-ui)
+========================================================================
+
+The following components are provided under the Apache License. See project link for details.
+The text of each license is the standard Apache 2.0 license.
+
+    (Apache License, Version 2.0) * swagger-ui v4.15.5 (https://github.com/swagger-api/swagger-ui)
 
 ========================================================================
 Third party Apache 2.0 licenses
