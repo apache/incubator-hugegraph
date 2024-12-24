@@ -37,6 +37,9 @@ public class AppConfig {
     @Value("${pdserver.address}")
     private String pdServerAddress;
 
+    @Value("${pe.auto-init-pe}")
+    private boolean autoInitPe;
+
     @Value("${grpc.host}")
     private String host;
 
@@ -59,6 +62,10 @@ public class AppConfig {
     // Built-in pd mode, for standalone deployment
     @Value("${app.fake-pd: false}")
     private boolean fakePd;
+
+    // Temp storage directory during bulkload.
+    @Value("${app.bulkload-dir}")
+    private String bulkloadDir;
     @Autowired
     private Raft raft;
     @Autowired
