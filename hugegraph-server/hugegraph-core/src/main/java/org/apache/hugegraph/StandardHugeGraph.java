@@ -73,6 +73,11 @@ import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
 import org.apache.hugegraph.memory.MemoryManager;
 import org.apache.hugegraph.memory.util.RoundUtil;
 import org.apache.hugegraph.meta.MetaManager;
+import org.apache.hugegraph.pd.client.KvClient;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.kv.KResponse;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
@@ -99,8 +104,10 @@ import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.LockUtil;
 import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.variables.CheckList;
 import org.apache.hugegraph.variables.HugeVariables;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -182,6 +189,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     private final String schedulerType;
 
+    private KvClient<WatchResponse> client = new KvClient<>(PDConfig.of("localhost:8686"));
+    private CheckList checkList;
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
         this.configuration = config;
@@ -216,6 +225,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.OLTP_ONLY;
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
+        this.checkList = new CheckList(this.name, this.configuration);
 
         MemoryManager.setMemoryMode(
                 MemoryManager.MemoryMode.fromValue(config.get(CoreOptions.MEMORY_MODE)));
@@ -294,8 +304,10 @@ public class StandardHugeGraph implements HugeGraph {
 
         LOG.info("Init server info [{}-{}] for graph '{}'...",
                  nodeInfo.nodeId(), nodeInfo.nodeRole(), this.name);
-        this.serverInfoManager().initServerInfo(nodeInfo);
-
+        if(!this.checkList.isInitServerInfo()) {
+            this.serverInfoManager().initServerInfo(nodeInfo);
+            this.checkList.setInitServerInfo();
+        }
         this.initRoleStateMachine(nodeInfo.nodeId());
 
         // TODO: check necessary?
@@ -435,9 +447,18 @@ public class StandardHugeGraph implements HugeGraph {
     @Override
     public void initSystemInfo() {
         try {
-            this.taskScheduler().init();
-            this.serverInfoManager().init();
-            this.authManager().init();
+            if(!this.checkList.isTaskSchedulerInit()) {
+                this.taskScheduler().init();
+                this.checkList.setTaskSchedulerInit();
+            }
+            if(!this.checkList.isServerInfoManagerInit()) {
+                this.serverInfoManager().init();
+                this.checkList.setTaskSchedulerInit();
+            }
+            if(!this.checkList.isAuthManagerInit()) {
+                this.authManager().init();
+                this.checkList.setAuthManagerInit();
+            }
         } finally {
             this.closeTx();
         }
@@ -1011,14 +1032,16 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void create(String configPath, GlobalMasterInfo nodeInfo) {
-        this.initBackend();
-        this.serverStarted(nodeInfo);
+    public void create(String configPath, GlobalMasterInfo nodeInfo){
+            this.checkList.setConfigPath(configPath);
+            this.checkList.setNodeInfo(nodeInfo);
+            this.initBackend();
+            this.serverStarted(nodeInfo);
 
-        // Write config to the disk file
-        String confPath = ConfigUtil.writeToFile(configPath, this.name(),
-                                                 this.configuration());
-        this.configuration.file(confPath);
+            // Write config to disk file
+            String confPath = ConfigUtil.writeToFile(configPath, this.name(),
+                                                     this.configuration());
+            this.configuration.file(confPath);
     }
 
     @Override

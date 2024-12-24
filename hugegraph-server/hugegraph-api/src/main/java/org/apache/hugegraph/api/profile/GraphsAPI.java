@@ -29,6 +29,8 @@ import org.apache.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import org.apache.hugegraph.auth.HugePermission;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.pd.client.KvClient;
+import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
 import org.apache.hugegraph.util.E;
@@ -65,6 +67,8 @@ public class GraphsAPI extends API {
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
     private static final String CONFIRM_DROP = "I'm sure to drop the graph";
+
+    private KvClient<WatchResponse> client;
 
     @GET
     @Timed
