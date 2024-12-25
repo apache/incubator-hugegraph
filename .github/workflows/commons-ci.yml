@@ -45,9 +45,9 @@ jobs:
           cp $HOME/.m2/settings.xml /tmp/settings.xml
           cp -vf .github/configs/settings.xml $HOME/.m2/settings.xml && cat $HOME/.m2/settings.xml
 
-      - name: Compile
+      - name: Install
         run: |
-          mvn compile -Dmaven.javadoc.skip=true -ntp
+          mvn install -Dmaven.javadoc.skip=true -ntp -Dmaven.test.skip=true
 
       - name: Run common test
         run: |

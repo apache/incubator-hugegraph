@@ -45,8 +45,8 @@ jobs:
 
       - name: Run simple cluster test
         run: |
-          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P simple-cluster-test -DskipCommonsTests=true
+          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P simple-cluster-test
 
       - name: Run multi cluster test
         run: |
-          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P multi-cluster-test -DskipCommonsTests=true
+          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P multi-cluster-test
