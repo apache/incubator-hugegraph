@@ -131,6 +131,6 @@ public final class ApiVersion {
 
     public static void check() {
         // Check the version of hugegraph-core. Do first check from version 0.3
-        VersionUtil.check(CoreVersion.VERSION, "1.0", "1.8", CoreVersion.NAME);
+        VersionUtil.check(CoreVersion.VERSION, "1.0", "1.9", CoreVersion.NAME);
     }
 }
