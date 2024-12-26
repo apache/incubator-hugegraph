@@ -23,7 +23,7 @@ import org.apache.hugegraph.util.VersionUtil.Version;
 public class CoreVersion {
 
     public static final String NAME = "hugegraph-core";
-    public static final String DEFAULT_VERSION = "1.6.0";
+    public static final String DEFAULT_VERSION = "1.7.0";
     /**
      * The second parameter of Version.of() is for IDE running without JAR
      */
@@ -40,6 +40,6 @@ public class CoreVersion {
 
     public static void check() {
         // Check the version of hugegraph-common
-        VersionUtil.check(CommonVersion.VERSION, "1.0", "1.55", CommonVersion.NAME);
+        VersionUtil.check(CommonVersion.VERSION, "1.0", "1.8", CommonVersion.NAME);
     }
 }

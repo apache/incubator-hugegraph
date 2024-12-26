@@ -86,8 +86,8 @@
     </scm>
 
     <properties>
-        <revision>1.6.0</revision>
-        <hugegraph-commons.version>1.6.0</hugegraph-commons.version>
+        <revision>1.7.0</revision>
+        <hugegraph-commons.version>1.7.0</hugegraph-commons.version>
         <lombok.version>1.18.30</lombok.version>
         <release.name>hugegraph</release.name>
         <maven.compiler.source>11</maven.compiler.source>
