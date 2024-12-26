@@ -91,6 +91,7 @@ jobs:
       - name: Run TinkerPop test
         if: ${{ env.RELEASE_BRANCH == 'true' }}
         run: |
+          echo "[WARNING] Enter Tinkerpop Test, current 'github.ref_name' is ${{ github.ref_name }}"
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
