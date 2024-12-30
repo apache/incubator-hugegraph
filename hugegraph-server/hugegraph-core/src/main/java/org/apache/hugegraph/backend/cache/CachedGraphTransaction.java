@@ -260,6 +260,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
                 return QueryResults.emptyIterator();
             }
             if (needCacheVertex(vertex)) {
+                vertex.convertIdToOnHeapIfNeeded();
                 this.verticesCache.update(vertex.id(), vertex);
             }
             return QueryResults.iterator(vertex);
@@ -295,6 +296,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             for (HugeVertex vertex : listIterator.list()) {
                 // Skip large vertex
                 if (needCacheVertex(vertex)) {
+                    vertex.convertIdToOnHeapIfNeeded();
                     this.verticesCache.update(vertex.id(), vertex);
                 }
             }
@@ -353,6 +355,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
         if (edges.isEmpty()) {
             this.edgesCache.update(cacheKey, Collections.emptyList());
         } else if (edges.size() <= MAX_CACHE_EDGES_PER_QUERY) {
+            edges.forEach(HugeEdge::convertIdToOnHeapIfNeeded);
             this.edgesCache.update(cacheKey, edges);
         }
 
@@ -378,6 +381,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
                     vertexIds[vertexOffset++] = vertex.id();
                     if (needCacheVertex(vertex)) {
                         // Update cache
+                        vertex.convertIdToOnHeapIfNeeded();
                         this.verticesCache.updateIfPresent(vertex.id(), vertex);
                     } else {
                         // Skip large vertex

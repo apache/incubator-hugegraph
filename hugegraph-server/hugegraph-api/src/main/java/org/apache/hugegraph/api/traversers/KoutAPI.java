@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
@@ -34,6 +35,9 @@ import org.apache.hugegraph.api.graph.VertexAPI;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.KoutTraverser;
@@ -93,27 +97,40 @@ public class KoutAPI extends TraverserAPI {
                   "'{}', max degree '{}', capacity '{}' and limit '{}'",
                   graph, source, direction, edgeLabel, depth,
                   nearest, maxDegree, capacity, limit);
+        MemoryPool queryPool = MemoryManager.getInstance().addQueryMemoryPool();
+        Optional.ofNullable(queryPool).ifPresent(pool -> {
+            MemoryPool currentTaskPool = pool.addChildPool("kout-main-task");
+            MemoryManager.getInstance()
+                         .bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(),
+                                                          (TaskMemoryPool) currentTaskPool);
+            MemoryPool currentOperationPool = currentTaskPool.addChildPool("kout-main-operation");
+        });
 
-        ApiMeasurer measure = new ApiMeasurer();
+        try {
+            ApiMeasurer measure = new ApiMeasurer();
 
-        Id sourceId = VertexAPI.checkAndParseVertexId(source);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+            Id sourceId = VertexAPI.checkAndParseVertexId(source);
+            Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+            HugeGraph g = graph(manager, graph);
 
-        Set<Id> ids;
-        try (KoutTraverser traverser = new KoutTraverser(g)) {
-            ids = traverser.kout(sourceId, dir, edgeLabel, depth,
-                                 nearest, maxDegree, capacity, limit);
-            measure.addIterCount(traverser.vertexIterCounter.get(),
-                                 traverser.edgeIterCounter.get());
+            Set<Id> ids;
+            try (KoutTraverser traverser = new KoutTraverser(g)) {
+                ids = traverser.kout(sourceId, dir, edgeLabel, depth,
+                                     nearest, maxDegree, capacity, limit);
+                measure.addIterCount(traverser.vertexIterCounter.get(),
+                                     traverser.edgeIterCounter.get());
+            }
+
+            if (count_only) {
+                return manager.serializer(g, measure.measures())
+                              .writeMap(ImmutableMap.of("vertices_size", ids.size()));
+            }
+            return manager.serializer(g, measure.measures()).writeList("vertices", ids);
+        } finally {
+            Optional.ofNullable(queryPool)
+                    .ifPresent(pool -> MemoryManager.getInstance().gcQueryMemoryPool(pool));
         }
-
-        if (count_only) {
-            return manager.serializer(g, measure.measures())
-                          .writeMap(ImmutableMap.of("vertices_size", ids.size()));
-        }
-        return manager.serializer(g, measure.measures()).writeList("vertices", ids);
     }
 
     @POST
