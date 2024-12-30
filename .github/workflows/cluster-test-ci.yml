@@ -12,7 +12,7 @@ jobs:
   cluster-test:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      USE_STAGE: 'false' # Whether to include the stage repository.
 
     steps:
       - name: Install JDK 11
@@ -45,8 +45,8 @@ jobs:
 
       - name: Run simple cluster test
         run: |
-          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P simple-cluster-test -DskipCommonsTests=true
+          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P simple-cluster-test
 
       - name: Run multi cluster test
         run: |
-          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P multi-cluster-test -DskipCommonsTests=true
+          mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test -am -P multi-cluster-test
