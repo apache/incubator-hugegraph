@@ -43,7 +43,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> REST_SERVER_URL =
             new ConfigOption<>(
                     "restserver.url",
-                    "The url for listening of hugeserver.",
+                    "The url for listening of graph server.",
                     disallowEmpty(),
                     "http://127.0.0.1:8080"
             );
