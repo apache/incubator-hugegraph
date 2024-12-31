@@ -215,6 +215,17 @@ public class DefaultPdProvider implements PdProvider {
     }
 
     @Override
+    public List<Partition> getLeaderPartitionsByStore(long storeId) throws PDException {
+        List<Partition> partitions = new ArrayList<>();
+        List<Metapb.Partition> parts = pdClient.getLeaderPartitionsByStore(storeId);
+        parts.forEach(e -> {
+            partitions.add(new Partition(e));
+        });
+        return partitions;
+
+    }
+
+    @Override
     public void updatePartitionCache(Partition partition, Boolean changeLeader) {
         Metapb.Shard leader = null;
 
@@ -324,6 +335,11 @@ public class DefaultPdProvider implements PdProvider {
                         event.onPartitionKeyRangeChanged(instruct.getId(), partition,
                                                          instruct.getKeyRange(),
                                                          consumer);
+                    }
+                    if(instruct.hasBulkloadInfo()){
+                        event.onPartitionBulkload(instruct.getId(), partition,
+                                                  instruct.getBulkloadInfo(), consumer);
+
                     }
                 }
             }

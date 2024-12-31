@@ -757,6 +757,21 @@ public class PDClient {
         return response.getPartition();
     }
 
+    public List<Metapb.Partition> getLeaderPartitionsByStore(long storeId) throws PDException {
+
+        Metapb.PartitionQuery query = Metapb.PartitionQuery.newBuilder()
+                                                           .setStoreId(storeId)
+                                                           .setIsLeader(1)
+                                                           .build();
+        Pdpb.QueryPartitionsRequest request = Pdpb.QueryPartitionsRequest.newBuilder()
+                                                                         .setQuery(query).build();
+        Pdpb.QueryPartitionsResponse response =
+                blockingUnaryCall(PDGrpc.getQueryPartitionsMethod(), request);
+
+        handleResponseError(response.getHeader());
+        return response.getPartitionsList();
+    }
+
     /**
      * Delete the partitioned cache
      */
