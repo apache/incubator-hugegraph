@@ -13,8 +13,7 @@ jobs:
     # TODO: we need test & replace it to ubuntu-24.04 or ubuntu-latest
     runs-on: ubuntu-20.04
     env:
-      # TODO: reset use stage to false later
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      USE_STAGE: 'false' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
       REPORT_DIR: target/site/jacoco
       BACKEND: ${{ matrix.BACKEND }}
@@ -92,6 +91,7 @@ jobs:
       - name: Run TinkerPop test
         if: ${{ env.RELEASE_BRANCH == 'true' }}
         run: |
+          echo "[WARNING] Enter Tinkerpop Test, current 'github.ref_name' is ${{ github.ref_name }}"
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
