@@ -17,12 +17,13 @@
 
 package org.apache.hugegraph.version;
 
-import org.apache.hugegraph.util.VersionUtil.Version;
+import org.apache.hugegraph.util.VersionUtil;
 
 public class RpcVersion {
 
     public static final String NAME = "hugegraph-rpc";
 
     // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(RpcVersion.class, "1.5.0");
+    public static final VersionUtil.Version VERSION = VersionUtil.Version.of(
+            RpcVersion.class, VersionUtil.getVersionNumber());
 }

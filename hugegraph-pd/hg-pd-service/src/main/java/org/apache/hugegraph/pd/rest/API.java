@@ -29,11 +29,13 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.MessageOrBuilder;
 import com.google.protobuf.util.JsonFormat;
 
+import org.apache.hugegraph.util.VersionUtil;
+
 public class API {
 
     // TODO: use a flexible way to define the version
     // refer: https://github.com/apache/hugegraph/pull/2528#discussion_r1573823996
-    public static final String VERSION = "1.5.0";
+    public static final String VERSION = VersionUtil.getVersionNumber();
     public static final String PD = "PD";
     public static final String STORE = "STORE";
     public static String STATUS_KEY = "status";

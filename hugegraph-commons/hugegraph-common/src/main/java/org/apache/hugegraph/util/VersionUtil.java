@@ -19,9 +19,11 @@ package org.apache.hugegraph.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -232,5 +234,17 @@ public final class VersionUtil {
         public String toString() {
             return this.version;
         }
+    }
+
+    public static String getVersionNumber() {
+        final Properties PROPS = new Properties();
+
+        try (InputStream is =
+                     VersionUtil.class.getResourceAsStream("/version.properties")) {
+            PROPS.load(is);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not load version.properties", e);
+        }
+        return PROPS.getProperty("version");
     }
 }

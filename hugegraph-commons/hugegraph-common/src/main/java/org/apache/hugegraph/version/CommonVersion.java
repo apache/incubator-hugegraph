@@ -17,12 +17,15 @@
 
 package org.apache.hugegraph.version;
 
-import org.apache.hugegraph.util.VersionUtil.Version;
+import org.apache.hugegraph.util.VersionUtil;
+
 
 public class CommonVersion {
 
     public static final String NAME = "hugegraph-common";
 
     // The second parameter of Version.of() is for all-in-one JAR
-    public static final Version VERSION = Version.of(CommonVersion.class, "1.5.0");
+    public static final VersionUtil.Version
+            VERSION = VersionUtil.Version.of(CommonVersion.class, VersionUtil.getVersionNumber());
+
 }
