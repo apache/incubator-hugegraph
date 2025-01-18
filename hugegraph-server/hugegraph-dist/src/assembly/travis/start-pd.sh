@@ -19,7 +19,7 @@ set -ev
 
 HOME_DIR=$(pwd)
 source $HOME_DIR/hugegraph-commons/hugegraph-common/src/main/resources/version.properties
-PD_DIR=$HOME_DIR/hugegraph-pd/apache-hugegraph-pd-incubating-${revision}
+PD_DIR=$HOME_DIR/hugegraph-pd/apache-hugegraph-pd-incubating-${version}
 
 pushd $PD_DIR
 . bin/start-hugegraph-pd.sh
