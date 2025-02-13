@@ -174,6 +174,12 @@ public class RamCache extends AbstractCache<Id, Object> {
         this.map.values().forEach(node -> consumer.accept(node.value()));
     }
 
+    @Override
+    public void traverseKeys(Consumer<Id> consumer) {
+        E.checkNotNull(consumer, "consumer");
+        this.map.keySet().forEach(consumer);
+    }
+
     @Watched(prefix = "ramcache")
     @Override
     public void clear() {

@@ -71,7 +71,8 @@ public enum HugeType implements SerialEnum {
     // System schema
     SYS_SCHEMA(250, "SS"),
 
-    MAX_TYPE(255, "~");
+    MAX_TYPE(255, "~"),
+    EDGE_VERTEX(121, "E_V");
 
     private byte type = 0;
     private String name;
@@ -196,5 +197,8 @@ public enum HugeType implements SerialEnum {
 
     public boolean isLabelIndex() {
         return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX;
+    }
+    public boolean isEdgeVertex() {
+        return this == EDGE_VERTEX ;
     }
 }

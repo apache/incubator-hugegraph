@@ -42,6 +42,7 @@ public class CacheManager {
     private static final long LOG_TICK_COST_TIME = 1000L;
 
     private final Map<String, Cache<Id, ?>> caches;
+    private final Map<String, VertexToEdgeLookupCache> lookUps;
     private final Timer timer;
 
     public static CacheManager instance() {
@@ -57,6 +58,7 @@ public class CacheManager {
 
     private CacheManager() {
         this.caches = new ConcurrentHashMap<>();
+        this.lookUps = new ConcurrentHashMap<>();
         this.timer = new Timer("cache-expirer", true);
 
         this.scheduleTimer(TIMER_TICK_PERIOD);
@@ -71,6 +73,9 @@ public class CacheManager {
                             caches().entrySet()) {
                         this.tick(entry.getKey(), entry.getValue());
                     }
+                    lookUps.forEach(
+                            (k, v) -> this.tickVertexEdgeQueryIndex(k, v)
+                    );
                 } catch (Throwable e) {
                     LOG.warn("An exception occurred when running tick", e);
                 }
@@ -86,6 +91,20 @@ public class CacheManager {
                              LOG_TICK_COST_TIME, cache.size(), cache.expire());
                 }
                 LOG.debug("Cache '{}' expiration tick cost {}ms", name, cost);
+            }
+
+            private void tickVertexEdgeQueryIndex(String name,VertexToEdgeLookupCache vertexEdgeQueryIndex) {
+                long start = System.currentTimeMillis();
+                if(vertexEdgeQueryIndex !=null){
+                    long items=vertexEdgeQueryIndex.tick();
+                    long cost = System.currentTimeMillis() - start;
+                    if (cost > LOG_TICK_COST_TIME) {
+                        LOG.info("vertexEdgeQueryIndex Cache '{}' expired {} queryIds cost {}ms > {}ms " ,
+                                 name,items,cost, LOG_TICK_COST_TIME);
+                    }
+                    LOG.info(" vertexEdgeQueryIndex Cache '{}' expiration tick cost {}ms", name, cost);
+                }
+
             }
         };
 
@@ -103,6 +122,23 @@ public class CacheManager {
 
     public <V> Cache<Id, V> cache(String name) {
         return this.cache(name, RamCache.DEFAULT_SIZE);
+    }
+
+    public  VertexToEdgeLookupCache lookup(String name) {
+        return this.lookUps.get(name);
+    }
+
+    public VertexToEdgeLookupCache lookup(String name, long capacity,Cache<Id, Object> edgesCache) {
+
+        if (!this.lookUps.containsKey(name)) {
+            this.lookUps.putIfAbsent(name,
+                                     new VertexToEdgeLookupCache(edgesCache,capacity)
+            );
+            LOG.info("Init VertexToEdgeLookupCache for '{}' with capacity {}",
+                     name, capacity);
+        }
+        VertexToEdgeLookupCache vertexToEdgeLookupCache = this.lookUps.get(name);
+        return vertexToEdgeLookupCache;
     }
 
     public <V> Cache<Id, V> cache(String name, long capacity) {
