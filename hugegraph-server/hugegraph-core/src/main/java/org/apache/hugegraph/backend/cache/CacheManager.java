@@ -137,8 +137,7 @@ public class CacheManager {
             LOG.info("Init VertexToEdgeLookupCache for '{}' with capacity {}",
                      name, capacity);
         }
-        VertexToEdgeLookupCache vertexToEdgeLookupCache = this.lookUps.get(name);
-        return vertexToEdgeLookupCache;
+        return this.lookUps.get(name);
     }
 
     public <V> Cache<Id, V> cache(String name, long capacity) {

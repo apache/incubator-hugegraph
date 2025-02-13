@@ -51,11 +51,7 @@ import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
-
 import com.google.common.collect.ImmutableSet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class CachedGraphTransaction extends GraphTransaction {
 
@@ -75,8 +71,6 @@ public final class CachedGraphTransaction extends GraphTransaction {
      * the scheduled task of edge2VertexIndex will clean up expired queryIds.
      */
     private final VertexToEdgeLookupCache vertex2EdgeQueriesIndex;
-
-    private static final Logger log = LoggerFactory.getLogger(CachedGraphTransaction.class);
 
     public CachedGraphTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
