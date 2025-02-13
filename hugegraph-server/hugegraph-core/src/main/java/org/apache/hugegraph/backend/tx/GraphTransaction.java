@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -139,6 +140,11 @@ public class GraphTransaction extends IndexableTransaction {
 
     private final int verticesCapacity;
     private final int edgesCapacity;
+    protected static final ConcurrentHashMap<String, Boolean> graphCacheListenStatus =
+            new ConcurrentHashMap<>();
+    protected static final ConcurrentHashMap<String, Boolean> storeEventListenStatus =
+            new ConcurrentHashMap<>();
+
 
     public GraphTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);

@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -1615,37 +1616,51 @@ public class StandardHugeGraph implements HugeGraph {
 
     private static class AbstractCacheNotifier implements CacheNotifier {
 
+        public static final Logger LOG = Log.logger(AbstractCacheNotifier.class);
+
         private final EventHub hub;
         private final EventListener cacheEventListener;
 
         public AbstractCacheNotifier(EventHub hub, CacheNotifier proxy) {
             this.hub = hub;
             this.cacheEventListener = event -> {
-                Object[] args = event.args();
-                E.checkArgument(args.length > 0 && args[0] instanceof String,
-                                "Expect event action argument");
-                if (Cache.ACTION_INVALIDED.equals(args[0])) {
-                    event.checkArgs(String.class, HugeType.class, Object.class);
-                    HugeType type = (HugeType) args[1];
-                    Object ids = args[2];
-                    if (ids instanceof Id[]) {
-                        // argument type mismatch: proxy.invalid2(type,Id[]ids)
-                        proxy.invalid2(type, (Id[]) ids);
-                    } else if (ids instanceof Id) {
-                        proxy.invalid(type, (Id) ids);
-                    } else {
-                        E.checkArgument(false, "Unexpected argument: %s", ids);
+                try {
+                    LOG.info("Received event: {}", event);
+                    Object[] args = event.args();
+                    E.checkArgument(args.length > 0 && args[0] instanceof String,
+                                    "Expect event action argument");
+                    String action = (String) args[0];
+                    LOG.debug("Event action: {}", action);
+                    if (Cache.ACTION_INVALIDED.equals(action)) {
+                        event.checkArgs(String.class, HugeType.class, Object.class);
+                        HugeType type = (HugeType) args[1];
+                        Object ids = args[2];
+                        if (ids instanceof Id[]) {
+                            LOG.debug("Calling proxy.invalid2 with type: {}, IDs: {}", type, Arrays.toString((Id[]) ids));
+                            proxy.invalid2(type, (Id[]) ids);
+                        } else if (ids instanceof Id) {
+                            LOG.debug("Calling proxy.invalid with type: {}, ID: {}", type, ids);
+                            proxy.invalid(type, (Id) ids);
+                        } else {
+                            LOG.error("Unexpected argument: {}", ids);
+                            E.checkArgument(false, "Unexpected argument: %s", ids);
+                        }
+                        return true;
+                    } else if (Cache.ACTION_CLEARED.equals(action)) {
+                        event.checkArgs(String.class, HugeType.class);
+                        HugeType type = (HugeType) args[1];
+                        LOG.debug("Calling proxy.clear with type: {}", type);
+                        proxy.clear(type);
+                        return true;
                     }
-                    return true;
-                } else if (Cache.ACTION_CLEARED.equals(args[0])) {
-                    event.checkArgs(String.class, HugeType.class);
-                    HugeType type = (HugeType) args[1];
-                    proxy.clear(type);
-                    return true;
+                } catch (Exception e) {
+                    LOG.error("Error processing cache event: {}", e.getMessage(), e);
                 }
+                LOG.warn("Event {} not handled",event);
                 return false;
             };
             this.hub.listen(Events.CACHE, this.cacheEventListener);
+            LOG.info("Cache event listener registered successfully. cacheEventListener {}",this.cacheEventListener);
         }
 
         @Override
