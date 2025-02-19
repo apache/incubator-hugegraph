@@ -125,15 +125,12 @@ public class HugegraphHessianSerializerFactory extends SerializerFactory {
         }
     }
 
-    private void addInnerClasses(String... classNames) {
-        Collections.addAll(whitelist, classNames);
-    }
-
     private void tryAddClass(String className) {
         try {
             Class.forName(className);
             whitelist.add(className);
         } catch (ClassNotFoundException e) {
+            log.warn("Failed to load class {}", className);
         }
     }
 

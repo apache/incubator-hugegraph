@@ -65,10 +65,7 @@ public class IpAuthHandler extends ChannelDuplexHandler {
     }
 
     private boolean isIpAllowed(String ip) {
-        if (allowedIps.isEmpty() || allowedIps.contains(ip)) {
-            return true;
-        }
-        return false;
+        return allowedIps.isEmpty() || allowedIps.contains(ip);
     }
 
     @Override
