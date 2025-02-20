@@ -18,7 +18,9 @@
 set -ev
 
 HOME_DIR=$(pwd)
-STORE_DIR=$HOME_DIR/hugegraph-store/apache-hugegraph-store-incubating-1.5.0
+
+source $HOME_DIR/hugegraph-commons/hugegraph-common/src/main/resources/version.properties
+STORE_DIR=$HOME_DIR/hugegraph-store/apache-hugegraph-store-incubating-${version}
 
 pushd $STORE_DIR
 . bin/start-hugegraph-store.sh
