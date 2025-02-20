@@ -37,6 +37,9 @@ achieved through the powerful [Gremlin](https://tinkerpop.apache.org/gremlin.htm
 Use Docker to quickly start a HugeGraph server with `RocksDB` (in the background) for **testing or development**:
 
 ```
+# (Optional) 
+# 1. add "-e PASSWORD=xxx" to enable the auth system
+# 2. add "-e PRELOAD="true" to auto-load a sample graph
 docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph:1.5.0
 ```
 
@@ -44,15 +47,15 @@ Please visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-s
 the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details. ([Docker Compose](./hugegraph-server/hugegraph-dist/docker/example))
 
 > Note:
->  
 > 1. The Docker image of HugeGraph is a convenience release, but not **official distribution** artifacts. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
-> 
-> 2. Recommend to use `release tag` (like `1.5.0`/`1.7.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> 2. Recommend to use `release tag` (like `1.5.0`/`1.x.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ### 2. Download
 
 Visit [Download Page](https://hugegraph.apache.org/docs/download/download/) and refer the [doc](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#32-download-the-binary-tar-tarball) 
 to download the latest release package and start the server.
+
+**Note:** if you want to use it in the production environment or expose it to the public network, must enable the [AuthSystem](https://hugegraph.apache.org/docs/config/config-authentication/) to ensure safe. 
 
 ### 3. Build From Source
 
