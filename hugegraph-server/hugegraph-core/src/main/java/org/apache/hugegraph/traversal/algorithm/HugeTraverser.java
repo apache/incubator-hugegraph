@@ -639,7 +639,7 @@ public class HugeTraverser {
             this.graph.vertex(vertexId);
         } catch (NotFoundException e) {
             throw new IllegalArgumentException(String.format(
-                    "The %s with id '%s' does not exist", name, vertexId), e);
+                    "The %s with id '%s' does not exist: %s", name, vertexId, e.getMessage()), e);
         }
     }
 
