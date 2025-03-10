@@ -19,6 +19,7 @@ package org.apache.hugegraph.pd.raft;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -26,6 +27,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
+import com.alipay.remoting.ExtendedNettyChannelHandler;
+import com.alipay.remoting.config.BoltServerOption;
+import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
+import io.netty.channel.ChannelHandler;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
@@ -50,8 +56,8 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.jraft.util.ThreadId;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
-
 import lombok.extern.slf4j.Slf4j;
+import org.apache.hugegraph.pd.raft.auth.IpAuthHandler;
 
 @Slf4j
 public class RaftEngine {
@@ -117,7 +123,7 @@ public class RaftEngine {
 
         final PeerId serverId = JRaftUtils.getPeerId(config.getAddress());
 
-        rpcServer = createRaftRpcServer(config.getAddress());
+        rpcServer = createRaftRpcServer(config.getAddress(), initConf.getPeers());
         // construct raft group and start raft
         this.raftGroupService =
                 new RaftGroupService(groupId, serverId, nodeOptions, rpcServer, true);
@@ -130,12 +136,33 @@ public class RaftEngine {
     /**
      * Create a Raft RPC Server for communication between PDs
      */
-    private RpcServer createRaftRpcServer(String raftAddr) {
+    private RpcServer createRaftRpcServer(String raftAddr, List<PeerId> peers) {
         Endpoint endpoint = JRaftUtils.getEndPoint(raftAddr);
         RpcServer rpcServer = RaftRpcServerFactory.createRaftRpcServer(endpoint);
+        configureRaftServerIpWhitelist(peers, rpcServer);
         RaftRpcProcessor.registerProcessor(rpcServer, this);
         rpcServer.init(null);
         return rpcServer;
+    }
+
+    private static void configureRaftServerIpWhitelist(List<PeerId> peers, RpcServer rpcServer) {
+        if(rpcServer instanceof BoltRpcServer){
+            ((BoltRpcServer) rpcServer).getServer().option(BoltServerOption.EXTENDED_NETTY_CHANNEL_HANDLER,
+                                                           new ExtendedNettyChannelHandler() {
+                                                               @Override
+                                                               public List<ChannelHandler> frontChannelHandlers() {
+                                                                   return Collections.singletonList(
+                                                                           IpAuthHandler.getInstance(
+                                                                                   peers.stream()
+                                                                                        .map(PeerId::getIp)
+                                                                                        .collect(Collectors.toSet())));
+                                                               }
+                                                               @Override
+                                                               public List<ChannelHandler> backChannelHandlers() {
+                                                                   return Collections.emptyList();
+                                                               }
+                                                           });
+        }
     }
 
     public void shutDown() {
