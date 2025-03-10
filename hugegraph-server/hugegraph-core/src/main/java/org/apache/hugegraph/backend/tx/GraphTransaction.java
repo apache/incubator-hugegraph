@@ -2334,4 +2334,13 @@ public class GraphTransaction extends IndexableTransaction {
     public void removeOlapPk(Id pkId) {
         this.store().removeOlapTable(pkId);
     }
+
+    protected final Collection<HugeEdge> edgesInTxUpdated() {
+        List<HugeEdge> edges =
+                new ArrayList<>(this.addedEdges.size()+this.updatedEdges.size()+this.removedEdges.size());
+        edges.addAll(this.updatedEdges.values());
+        edges.addAll(this.addedEdges.values());
+        edges.addAll(this.removedEdges.values());
+        return edges;
+    }
 }
