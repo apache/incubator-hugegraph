@@ -133,7 +133,9 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        this.store().provider().listen(this.storeEventListener);
+        if(storeEventListenStatus.putIfAbsent(this.params().name(),true)==null){
+            this.store().provider().listen(this.storeEventListener);
+        }
 
         // Listen cache event: "cache"(invalid cache item)
         this.cacheEventListener = event -> {
@@ -182,19 +184,21 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        EventHub graphEventHub = this.params().graphEventHub();
-        if (!graphEventHub.containsListener(Events.CACHE)) {
+        if(graphCacheListenStatus.putIfAbsent(this.params().name(),true)==null){
+            EventHub graphEventHub = this.params().graphEventHub();
             graphEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
     }
 
     private void unlistenChanges() {
-        // Unlisten store event
-        this.store().provider().unlisten(this.storeEventListener);
-
-        // Unlisten cache event
-        EventHub graphEventHub = this.params().graphEventHub();
-        graphEventHub.unlisten(Events.CACHE, this.cacheEventListener);
+        String graphName = this.params().name();
+        if (graphCacheListenStatus.remove(graphName) != null) {
+            EventHub graphEventHub = this.params().graphEventHub();
+            graphEventHub.unlisten(Events.CACHE, this.cacheEventListener);
+        }
+        if (storeEventListenStatus.remove(graphName) != null) {
+            this.store().provider().unlisten(this.storeEventListener);
+        }
     }
 
     private void notifyChanges(String action, HugeType type, Id[] ids) {
