@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.backend.store;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,6 +27,7 @@ import org.apache.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
@@ -34,6 +36,10 @@ public class BackendProviderFactory {
     private static final Logger LOG = Log.logger(BackendProviderFactory.class);
 
     private static Map<String, Class<? extends BackendStoreProvider>> providers;
+
+    private static final List<String> LEGAL_BACKEND = List.of("memory", "rocksdb", "hbase",
+                                                              "hstore");
+
 
     static {
         providers = new ConcurrentHashMap<>();
@@ -57,6 +63,12 @@ public class BackendProviderFactory {
 
     private static BackendStoreProvider newProvider(HugeConfig config) {
         String backend = config.get(CoreOptions.BACKEND).toLowerCase();
+        // NOTE: since 1.7.0, only hstore, rocksdb, hbase, memory are supported for backend.
+        // if you want to use cassandra, mysql, postgresql, cockroachdb or palo as backend,
+        // please find a version before 1.7.0 of apache hugegraph for your application.
+        E.checkState(!LEGAL_BACKEND.contains(backend.toLowerCase()),
+                     "backend is illegal: %s", backend);
+
         String graph = config.get(CoreOptions.STORE);
 
         if (InMemoryDBStoreProvider.matchType(backend)) {

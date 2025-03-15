@@ -81,16 +81,6 @@ search.text_analyzer_mode=INDEX
 #rocksdb.wal_path=/path/to/disk
 
 
-# cassandra backend config
-cassandra.host=localhost
-cassandra.port=9042
-cassandra.username=
-cassandra.password=
-#cassandra.connect_timeout=5
-#cassandra.read_timeout=20
-#cassandra.keyspace.strategy=SimpleStrategy
-#cassandra.keyspace.replication=3
-
 # hbase backend config
 #hbase.hosts=localhost
 #hbase.port=2181
@@ -102,25 +92,3 @@ cassandra.password=
 #hbase.enable_partition=true
 #hbase.vertex_partitions=10
 #hbase.edge_partitions=30
-
-# mysql backend config
-#jdbc.driver=com.mysql.jdbc.Driver
-#jdbc.url=jdbc:mysql://127.0.0.1:3306
-#jdbc.username=root
-#jdbc.password=
-#jdbc.reconnect_max_times=3
-#jdbc.reconnect_interval=3
-#jdbc.ssl_mode=false
-
-# postgresql & cockroachdb backend config
-#jdbc.driver=org.postgresql.Driver
-#jdbc.url=jdbc:postgresql://localhost:5432/
-#jdbc.username=postgres
-#jdbc.password=
-#jdbc.postgresql.connect_database=template1
-
-# palo backend config
-#palo.host=127.0.0.1
-#palo.poll_interval=10
-#palo.temp_dir=./palo-data
-#palo.file_limit_size=32
