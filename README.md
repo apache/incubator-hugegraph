@@ -26,7 +26,7 @@ achieved through the powerful [Gremlin](https://tinkerpop.apache.org/gremlin.htm
 - Compliant to [Apache TinkerPop 3](https://tinkerpop.apache.org/), supports [Gremlin](https://tinkerpop.apache.org/gremlin.html) & [Cypher](https://en.wikipedia.org/wiki/Cypher) language
 - Schema Metadata Management, including VertexLabel, EdgeLabel, PropertyKey and IndexLabel
 - Multi-type Indexes, supporting exact query, range query and complex conditions combination query
-- Plug-in Backend Store Driver Framework, support `RocksDB`/`HStore`, `HBase`, `Cassandra/ScyllaDB`, and `MySQL/Postgre` now and easy to add another backend store driver if needed
+- Plug-in Backend Store Driver Framework, support `RocksDB`/`HStore`, `HBase` now and easy to add another backend store driver if needed
 - Integration with `Flink/Spark/HDFS`, and friendly to connect other big data platforms
 
 

@@ -70,26 +70,11 @@ public class RegisterUtil {
 
     private static void registerBackend(String backend) {
         switch (backend) {
-            case "cassandra":
-                registerCassandra();
-                break;
-            case "scylladb":
-                registerScyllaDB();
-                break;
             case "hbase":
                 registerHBase();
                 break;
             case "rocksdb":
                 registerRocksDB();
-                break;
-            case "mysql":
-                registerMysql();
-                break;
-            case "palo":
-                registerPalo();
-                break;
-            case "postgresql":
-                registerPostgresql();
                 break;
             case "hstore":
                 registerHstore();
