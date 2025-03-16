@@ -32,20 +32,20 @@ fi
 case $BACKEND in
     cassandra)
         # TODO: replace it with docker
-        "$TRAVIS_DIR"/install-cassandra.sh
+        echo "cassandra is not supported since 1.7.0"
         ;;
     scylladb)
-        "$TRAVIS_DIR"/install-scylladb.sh
+        echo "scylladb is not supported since 1.7.0"
         ;;
     hbase)
         # TODO: replace it with hbase2.3+ to avoid java8 env
         "$TRAVIS_DIR"/install-hbase.sh
         ;;
     mysql)
-        "$TRAVIS_DIR"/install-mysql-via-docker.sh
+        echo "mysql is not supported since 1.7.0"
         ;;
     postgresql)
-        "$TRAVIS_DIR"/install-postgresql-via-docker.sh
+        echo "postgresql is not supported since 1.7.0"
         ;;
     hstore)
         "$TRAVIS_DIR"/install-hstore.sh

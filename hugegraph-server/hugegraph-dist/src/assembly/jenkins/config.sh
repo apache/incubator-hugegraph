@@ -69,46 +69,6 @@ function config_memory() {
     echo $CONF
 }
 
-function config_cassandra() {
-
-    BACKEND="cassandra"
-    SERIALIZER="cassandra"
-    STORE="hugegraph_$BUILD_ID"
-    HOST=${CASSANDRA_HOST}
-    PORT=${CASSANDRA_PORT}
-
-    CONF=`config_common $BACKEND $SERIALIZER $STORE`
-    if [ $? -ne 0 ]; then
-        echo $CONF
-        exit 1
-    fi
-
-    sed -i "s/cassandra\.host=.*/cassandra\.host=$HOST/" $CONF
-    sed -i "s/cassandra\.port=.*/cassandra\.port=$PORT/" $CONF
-
-    echo $CONF
-}
-
-function config_scylladb() {
-
-    BACKEND="scylladb"
-    SERIALIZER="scylladb"
-    STORE="hugegraph_${BACKEND}_${BUILD_ID}"
-    HOST=${SCYLLADB_HOST}
-    PORT=${SCYLLADB_PORT}
-
-    CONF=`config_common $BACKEND $SERIALIZER $STORE`
-    if [ $? -ne 0 ]; then
-        echo $CONF
-        exit 1
-    fi
-
-    sed -i "s/cassandra\.host=.*/cassandra\.host=$HOST/" $CONF
-    sed -i "s/cassandra\.port=.*/cassandra\.port=$PORT/" $CONF
-
-    echo $CONF
-}
-
 function config_rocksdb() {
 
     BACKEND="rocksdb"
@@ -125,26 +85,6 @@ function config_rocksdb() {
     mkdir -p hugegraph-test/$DATA_PATH
     sed -i "s/rocksdb\.data_path=.*/rocksdb\.data_path=$DATA_PATH/" $CONF
     sed -i "s/rocksdb\.wal_path=.*/rocksdb\.wal_path=$DATA_PATH/" $CONF
-
-    echo $CONF
-}
-
-function config_mysql() {
-
-    BACKEND="mysql"
-    SERIALIZER="mysql"
-    STORE="hugegraph_$BUILD_ID"
-    JDBC_URL=${MYSQL_JDBC_URL}
-    JDBC_USERNAME=${MYSQL_JDBC_USERNAME}
-
-    CONF=`config_common $BACKEND $SERIALIZER $STORE`
-    if [ $? -ne 0 ]; then
-        echo $CONF
-        exit 1
-    fi
-
-    sed -i "s/jdbc\.url=.*/jdbc\.url=$JDBC_URL/" $CONF
-    sed -i "s/jdbc\.username=.*/jdbc\.username=$JDBC_USERNAME/" $CONF
 
     echo $CONF
 }

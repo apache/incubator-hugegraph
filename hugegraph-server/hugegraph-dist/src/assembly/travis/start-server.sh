@@ -34,12 +34,8 @@ GREMLIN_CONF=$BASE_DIR/conf/gremlin-server.yaml
 . ${BIN}/util.sh
 
 declare -A backend_serializer_map=(["memory"]="text" \
-                                   ["cassandra"]="cassandra" \
-                                   ["scylladb"]="scylladb" \
-                                   ["mysql"]="mysql" \
                                    ["hbase"]="hbase" \
                                    ["rocksdb"]="binary" \
-                                   ["postgresql"]="postgresql" \
                                    ["hstore"]="binary")
 
 SERIALIZER=${backend_serializer_map[$BACKEND]}
@@ -47,11 +43,6 @@ SERIALIZER=${backend_serializer_map[$BACKEND]}
 # Set backend and serializer
 sed -i "s/backend=.*/backend=$BACKEND/" $CONF
 sed -i "s/serializer=.*/serializer=$SERIALIZER/" $CONF
-
-# Set PostgresSQL configurations if needed
-if [ "$BACKEND" == "postgresql" ]; then
-    sed -i '/org.postgresql.Driver/,+2 s/\#//g' $CONF
-fi
 
 # Set timeout for hbase
 if [ "$BACKEND" == "hbase" ]; then

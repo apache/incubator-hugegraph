@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-# Backends contains [memory, rocksdb, cassandra, scylladb, mysql]
+# Backends contains [memory, rocksdb, mysql]
 export BACKEND=memory
 # The jenkins script store path
 export SCRIPT_DIR="hugegraph-server/hugegraph-dist/src/assembly/jenkins"
