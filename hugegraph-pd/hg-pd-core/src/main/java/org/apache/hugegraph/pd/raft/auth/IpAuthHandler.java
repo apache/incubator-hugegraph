@@ -75,7 +75,7 @@ public class IpAuthHandler extends ChannelDuplexHandler {
         if (ctx.channel().isActive()) {
             ctx.close().addListener(future -> {
                 if (!future.isSuccess()) {
-                    log.warn("clien : {} connection closed failed : {}",clientIp,future.cause().getMessage());
+                    log.warn("client : {} connection closed failed : {}",clientIp,future.cause().getMessage());
                 }
             });
         }
