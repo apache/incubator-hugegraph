@@ -71,7 +71,7 @@ public class IpAuthHandler extends ChannelDuplexHandler {
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         String clientIp=getClientIp(ctx);
-        log.warn("clien : {} connection exception : {}",clientIp,cause);
+        log.warn("client : {} connection exception : {}",clientIp,cause);
         if (ctx.channel().isActive()) {
             ctx.close().addListener(future -> {
                 if (!future.isSuccess()) {
