@@ -87,7 +87,7 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public void listenDataCacheClear(EventListener listener) {
         if (!vertexEdgeCacheClearListened) {
-            synchronized (this) {
+            synchronized (AbstractBackendStoreProvider.class) {
                 if (!vertexEdgeCacheClearListened) {
                     listen(listener);
                     vertexEdgeCacheClearListened = true;
