@@ -75,7 +75,7 @@ public abstract class AbstractBackendStoreProvider
     @Override
     public void listenSchemaCacheClear(EventListener listener) {
         if (!schemaCacheClearListened) {
-            synchronized (this) {
+            synchronized (AbstractBackendStoreProvider.class) {
                 if (!schemaCacheClearListened) {
                     listen(listener);
                     schemaCacheClearListened = true;
