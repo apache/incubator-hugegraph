@@ -145,7 +145,6 @@ public class GraphTransaction extends IndexableTransaction {
     protected static final ConcurrentHashMap<String, Boolean> storeEventListenStatus =
             new ConcurrentHashMap<>();
 
-
     public GraphTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
 
@@ -406,8 +405,8 @@ public class GraphTransaction extends IndexableTransaction {
             /*
              * If the backend stores vertex together with edges, it's edges
              * would be removed after removing vertex. Otherwise, if the
-             * backend stores vertex which is separated from edges, it's
-             * edges should be removed manually when removing vertex.
+             * backend stores vertex which is separated from edges,
+             * its edges should be removed manually when removing vertex.
              */
             this.doRemove(this.serializer.writeVertex(v.prepareRemoved()));
             this.indexTx.updateVertexIndex(v, true);
@@ -441,7 +440,7 @@ public class GraphTransaction extends IndexableTransaction {
                 if (this.store().features().supportsUpdateVertexProperty()) {
                     // Update vertex index without removed property
                     this.indexTx.updateVertexIndex(prop.element(), false);
-                    // Eliminate the property(OUT and IN owner edge)
+                    // Eliminate the property (OUT and IN owner edge)
                     this.doEliminate(this.serializer.writeVertexProperty(prop));
                 } else {
                     // Override vertex
@@ -453,12 +452,12 @@ public class GraphTransaction extends IndexableTransaction {
                 if (this.store().features().supportsUpdateEdgeProperty()) {
                     // Update edge index without removed property
                     this.indexTx.updateEdgeIndex(prop.element(), false);
-                    // Eliminate the property(OUT and IN owner edge)
+                    // Eliminate the property (OUT and IN owner edge)
                     this.doEliminate(this.serializer.writeEdgeProperty(prop));
                     this.doEliminate(this.serializer.writeEdgeProperty(
                             prop.switchEdgeOwner()));
                 } else {
-                    // Override edge(it will be in addedEdges & updatedEdges)
+                    // Override edge (it will be in addedEdges & updatedEdges)
                     this.addEdge(prop.element());
                 }
             }
@@ -470,7 +469,7 @@ public class GraphTransaction extends IndexableTransaction {
                 if (this.store().features().supportsUpdateVertexProperty()) {
                     // Update vertex index with new added property
                     this.indexTx.updateVertexIndex(prop.element(), false);
-                    // Append new property(OUT and IN owner edge)
+                    // Append new property (OUT and IN owner edge)
                     this.doAppend(this.serializer.writeVertexProperty(prop));
                 } else {
                     // Override vertex
@@ -480,9 +479,9 @@ public class GraphTransaction extends IndexableTransaction {
                 assert p.element().type().isEdge();
                 HugeEdgeProperty<?> prop = (HugeEdgeProperty<?>) p;
                 if (this.store().features().supportsUpdateEdgeProperty()) {
-                    // Update edge index with new added property
+                    // Update edge-index with new added property
                     this.indexTx.updateEdgeIndex(prop.element(), false);
-                    // Append new property(OUT and IN owner edge)
+                    // Append new property (OUT and IN owner edge)
                     this.doAppend(this.serializer.writeEdgeProperty(prop));
                     this.doAppend(this.serializer.writeEdgeProperty(
                             prop.switchEdgeOwner()));
@@ -566,12 +565,12 @@ public class GraphTransaction extends IndexableTransaction {
         QueryList<Number> queries = this.optimizeQueries(query, q -> {
             boolean isIndexQuery = q instanceof IdQuery;
             assert isIndexQuery || isConditionQuery || q == query;
-            // Need to fallback if there are uncommitted records
+            // Need to fall back if there are uncommitted records
             boolean fallback = hasUpdate;
             Number result;
 
             if (fallback) {
-                // Here just ignore it, and do fallback later
+                // Here just ignore it, and do fall back later
                 result = null;
             } else if (!isIndexQuery || !isConditionQuery) {
                 // It's a sysprop-query, let parent tx do it
@@ -584,7 +583,7 @@ public class GraphTransaction extends IndexableTransaction {
                 assert query instanceof ConditionQuery;
                 OptimizedType optimized = ((ConditionQuery) query).optimized();
                 if (this.optimizeAggrByIndex && optimized == OptimizedType.INDEX) {
-                    // The ids size means results count (assume no left index)
+                    // The id's size means result count (assume no left index)
                     result = q.idsSize();
                 } else {
                     assert !fallback;
@@ -593,7 +592,7 @@ public class GraphTransaction extends IndexableTransaction {
                 }
             }
 
-            // Can't be optimized, then do fallback
+            // Can't be optimized, then do fall back
             if (fallback) {
                 assert result == null;
                 assert q.resultType().isVertex() || q.resultType().isEdge();
@@ -635,7 +634,7 @@ public class GraphTransaction extends IndexableTransaction {
             /*
              * No need to lock VERTEX_LABEL_ADD_UPDATE, because vertex label
              * update only can add nullable properties and user data, which is
-             * unconcerned with add vertex
+             * unconcerned with added vertex
              */
             this.beforeWrite();
             this.addedVertices.put(vertex.id(), vertex);
@@ -768,21 +767,16 @@ public class GraphTransaction extends IndexableTransaction {
             return this.queryVerticesByIds(vertexIds, false, false,
                                            HugeType.SERVER);
         }
-        return this.queryVerticesByIds(vertexIds, false, false,
-                                       HugeType.VERTEX);
+        return this.queryVerticesByIds(vertexIds, false, false, HugeType.VERTEX);
     }
 
-    protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
-                                              boolean adjacentVertex,
-                                              boolean checkMustExist) {
-        return this.queryVerticesByIds(vertexIds, adjacentVertex, checkMustExist,
-                                       HugeType.VERTEX);
+    protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds, boolean adjacentVertex,
+                                                  boolean checkMustExist) {
+        return this.queryVerticesByIds(vertexIds, adjacentVertex, checkMustExist, HugeType.VERTEX);
     }
 
-    protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds,
-                                                  boolean adjacentVertex,
-                                                  boolean checkMustExist,
-                                                  HugeType type) {
+    protected Iterator<Vertex> queryVerticesByIds(Object[] vertexIds, boolean adjacentVertex,
+                                                  boolean checkMustExist, HugeType type) {
         Query.checkForceCapacity(vertexIds.length);
 
         // NOTE: allowed duplicated vertices if query by duplicated ids
@@ -896,7 +890,7 @@ public class GraphTransaction extends IndexableTransaction {
             /*
              * No need to lock EDGE_LABEL_ADD_UPDATE, because edge label
              * update only can add nullable properties and user data, which is
-             * unconcerned with add edge
+             * unconcerned with added edge
              */
             this.beforeWrite();
             this.addedEdges.put(edge.id(), edge);
@@ -1138,7 +1132,7 @@ public class GraphTransaction extends IndexableTransaction {
         E.checkState(vertex != null,
                      "No owner for updating property '%s'", prop.key());
 
-        // Add property in memory for new created vertex
+        // Add property in memory for newly created vertex
         if (vertex.fresh()) {
             // The owner will do property update
             vertex.setProperty(prop);
@@ -1183,7 +1177,7 @@ public class GraphTransaction extends IndexableTransaction {
         List<Id> primaryKeyIds = vertex.schemaLabel().primaryKeys();
         E.checkArgument(!primaryKeyIds.contains(propKey.id()),
                         "Can't remove primary key '%s'", prop.key());
-        // Remove property in memory for new created vertex
+        // Remove property in memory for newly created vertex
         if (vertex.fresh()) {
             // The owner will do property update
             vertex.removeProperty(propKey.id());
@@ -1216,7 +1210,7 @@ public class GraphTransaction extends IndexableTransaction {
         E.checkState(edge != null,
                      "No owner for updating property '%s'", prop.key());
 
-        // Add property in memory for new created edge
+        // Add property in memory for newly created edge
         if (edge.fresh()) {
             // The owner will do property update
             edge.setProperty(prop);
@@ -1256,11 +1250,11 @@ public class GraphTransaction extends IndexableTransaction {
         if (!edge.hasProperty(propKey.id())) {
             return;
         }
-        // Check is removing sort key
+        // Check is removing a sort key
         List<Id> sortKeyIds = edge.schemaLabel().sortKeys();
         E.checkArgument(!sortKeyIds.contains(prop.propertyKey().id()),
                         "Can't remove sort key '%s'", prop.key());
-        // Remove property in memory for new created edge
+        // Remove property in memory for newly created edge
         if (edge.fresh()) {
             // The owner will do property update
             edge.removeProperty(propKey.id());
@@ -1286,7 +1280,7 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     /**
-     * Construct one edge condition query based on source vertex, direction and
+     * Construct one-edge condition query based on source vertex, direction and
      * edge labels
      *
      * @param sourceVertex source vertex of edge
@@ -1346,8 +1340,8 @@ public class GraphTransaction extends IndexableTransaction {
     }
 
     private static ConditionQuery constructEdgesQuery(Id sourceVertex,
-                                                     Directions direction,
-                                                     List<Id> edgeLabels) {
+                                                      Directions direction,
+                                                      List<Id> edgeLabels) {
         E.checkState(sourceVertex != null,
                      "The edge query must contain source vertex");
         E.checkState(direction != null,
@@ -1460,7 +1454,7 @@ public class GraphTransaction extends IndexableTransaction {
             /*
              * Supported query:
              *  1.query just by edge label
-             *  2.query just by PROPERTIES (like containsKey,containsValue)
+             *  2.query just by PROPERTIES (like containsKey, containsValue)
              *  3.query with scan
              */
             if (query.containsCondition(HugeKeys.LABEL) ||
@@ -1576,8 +1570,8 @@ public class GraphTransaction extends IndexableTransaction {
                 }
 
                 if (vertexIdList.size() != filterVertexList.size()) {
-                    // Modify on the copied relation to avoid affecting other query
-                    Condition.Relation relation = 
+                    // Modify on the copied relation to avoid affecting another query
+                    Condition.Relation relation =
                             query.copyRelationAndUpdateQuery(HugeKeys.OWNER_VERTEX);
                     relation.value(filterVertexList);
                 }
@@ -1609,7 +1603,8 @@ public class GraphTransaction extends IndexableTransaction {
                  */
                 query.resetUserpropConditions();
 
-                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() && query.condition(HugeKeys.SUB_LABEL) == null) {
+                if (this.storeFeatures().supportsFatherAndSubEdgeLabel() &&
+                    query.condition(HugeKeys.SUB_LABEL) == null) {
                     query.eq(HugeKeys.SUB_LABEL, el.id());
                 }
                 LOG.debug("Query edges by sortKeys: {}", query);
@@ -1619,7 +1614,7 @@ public class GraphTransaction extends IndexableTransaction {
 
         /*
          * Query only by sysprops, like: by vertex label, by edge label.
-         * NOTE: we assume sysprops would be indexed by backend store
+         * NOTE: we assume sysprops would be indexed by backend store,
          * but we don't support query edges only by direction/target-vertex.
          */
         if (query.allSysprop()) {
@@ -1848,7 +1843,7 @@ public class GraphTransaction extends IndexableTransaction {
             }
             /*
              * No need to lock INDEX_LABEL_ADD_UPDATE, because index label
-             * update only can add  user data, which is unconcerned with
+             * update only can add user data, which is unconcerned with
              * update property
              */
             this.beforeWrite();
@@ -1925,7 +1920,8 @@ public class GraphTransaction extends IndexableTransaction {
             }
             if (cq.optimized() == OptimizedType.INDEX) {
                 // g.E().hasLabel(xxx).has(yyy)
-                // consider OptimizedType.INDEX_FILTER occurred in org.apache.hugegraph.core.EdgeCoreTest.testQueryCount
+                // consider OptimizedType.INDEX_FILTER occurred in org.apache.hugegraph.core
+                // .EdgeCoreTest.testQueryCount
                 try {
                     this.indexTx.asyncRemoveIndexLeft(cq, elem);
                 } catch (Throwable e) {
@@ -1940,7 +1936,7 @@ public class GraphTransaction extends IndexableTransaction {
             if (cq.existLeftIndex(elem.id())) {
                 /*
                  * Both have correct and left index, wo should return true
-                 * but also needs to cleaned up left index
+                 * but also needs to clean up left index
                  */
                 try {
                     this.indexTx.asyncRemoveIndexLeft(cq, elem);
@@ -2073,8 +2069,8 @@ public class GraphTransaction extends IndexableTransaction {
         Set<V> txResults = InsertionOrderUtil.newSet();
 
         /*
-         * Collect added/updated records
-         * Records in memory have higher priority than query from backend store
+         * Collect added/updated records.
+         * Records in memory have higher priority than a query from backend store
          */
         for (V elem : addedTxRecords.values()) {
             if (query.reachLimit(txResults.size())) {
@@ -2281,7 +2277,7 @@ public class GraphTransaction extends IndexableTransaction {
                 while (iter.hasNext()) {
                     consumer.accept(iter.next());
                     /*
-                     * Commit per batch to avoid too much data in single commit,
+                     * Commit per batch to avoid too much data in a single commit,
                      * especially for Cassandra backend
                      */
                     this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
@@ -2306,7 +2302,7 @@ public class GraphTransaction extends IndexableTransaction {
                         if (label.equals(elemLabel)) {
                             consumer.accept(e);
                             /*
-                             * Commit per batch to avoid too much data in single
+                             * Commit per batch to avoid too much data in a single
                              * commit, especially for Cassandra backend
                              */
                             this.commitIfGtSize(GraphTransaction.COMMIT_BATCH);
