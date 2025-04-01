@@ -28,16 +28,15 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import com.alipay.remoting.ExtendedNettyChannelHandler;
-import com.alipay.remoting.config.BoltServerOption;
-import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
-import io.netty.channel.ChannelHandler;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.raft.auth.IpAuthHandler;
 
+import com.alipay.remoting.ExtendedNettyChannelHandler;
+import com.alipay.remoting.config.BoltServerOption;
 import com.alipay.sofa.jraft.JRaftUtils;
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
@@ -53,11 +52,13 @@ import com.alipay.sofa.jraft.option.RaftOptions;
 import com.alipay.sofa.jraft.option.RpcOptions;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
+import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
 import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.jraft.util.ThreadId;
 import com.alipay.sofa.jraft.util.internal.ThrowUtil;
+
+import io.netty.channel.ChannelHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.hugegraph.pd.raft.auth.IpAuthHandler;
 
 @Slf4j
 public class RaftEngine {
@@ -146,22 +147,27 @@ public class RaftEngine {
     }
 
     private static void configureRaftServerIpWhitelist(List<PeerId> peers, RpcServer rpcServer) {
-        if(rpcServer instanceof BoltRpcServer){
-            ((BoltRpcServer) rpcServer).getServer().option(BoltServerOption.EXTENDED_NETTY_CHANNEL_HANDLER,
-                                                           new ExtendedNettyChannelHandler() {
-                                                               @Override
-                                                               public List<ChannelHandler> frontChannelHandlers() {
-                                                                   return Collections.singletonList(
-                                                                           IpAuthHandler.getInstance(
-                                                                                   peers.stream()
-                                                                                        .map(PeerId::getIp)
-                                                                                        .collect(Collectors.toSet())));
-                                                               }
-                                                               @Override
-                                                               public List<ChannelHandler> backChannelHandlers() {
-                                                                   return Collections.emptyList();
-                                                               }
-                                                           });
+        if (rpcServer instanceof BoltRpcServer) {
+            ((BoltRpcServer) rpcServer).getServer().option(
+                    BoltServerOption.EXTENDED_NETTY_CHANNEL_HANDLER,
+                    new ExtendedNettyChannelHandler() {
+                        @Override
+                        public List<ChannelHandler> frontChannelHandlers() {
+                            return Collections.singletonList(
+                                    IpAuthHandler.getInstance(
+                                            peers.stream()
+                                                 .map(PeerId::getIp)
+                                                 .collect(Collectors.toSet())
+                                    )
+                            );
+                        }
+
+                        @Override
+                        public List<ChannelHandler> backChannelHandlers() {
+                            return Collections.emptyList();
+                        }
+                    }
+            );
         }
     }
 
