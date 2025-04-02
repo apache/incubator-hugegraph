@@ -33,9 +33,11 @@ case $BACKEND in
     cassandra)
         # TODO: replace it with docker
         echo "cassandra is not supported since 1.7.0"
+        exit 1
         ;;
     scylladb)
         echo "scylladb is not supported since 1.7.0"
+        exit 1
         ;;
     hbase)
         # TODO: replace it with hbase2.3+ to avoid java8 env
@@ -43,9 +45,11 @@ case $BACKEND in
         ;;
     mysql)
         echo "mysql is not supported since 1.7.0"
+        exit 1
         ;;
     postgresql)
         echo "postgresql is not supported since 1.7.0"
+        exit 1
         ;;
     hstore)
         "$TRAVIS_DIR"/install-hstore.sh

@@ -37,8 +37,8 @@ public class BackendProviderFactory {
 
     private static Map<String, Class<? extends BackendStoreProvider>> providers;
 
-    private static final List<String> LEGAL_BACKEND = List.of("memory", "rocksdb", "hbase",
-                                                              "hstore");
+    private static final List<String> ALLOWED_BACKENDS = List.of("memory", "rocksdb", "hbase",
+                                                                 "hstore");
 
     static {
         providers = new ConcurrentHashMap<>();
@@ -65,7 +65,7 @@ public class BackendProviderFactory {
         // NOTE: since 1.7.0, only hstore, rocksdb, hbase, memory are supported for backend.
         // if you want to use cassandra, mysql, postgresql, cockroachdb or palo as backend,
         // please find a version before 1.7.0 of apache hugegraph for your application.
-        E.checkState(LEGAL_BACKEND.contains(backend.toLowerCase()),
+        E.checkState(ALLOWED_BACKENDS.contains(backend.toLowerCase()),
                      "backend is illegal: %s", backend);
 
         String graph = config.get(CoreOptions.STORE);
