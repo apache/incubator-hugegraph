@@ -31,6 +31,7 @@ import org.apache.hugegraph.pd.TaskScheduleService;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.BulkloadInfo;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
 import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
 import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
@@ -141,6 +142,12 @@ public class PDCoreTestBase {
             public void changePartitionKeyRange(Metapb.Partition partition,
                                                 PartitionKeyRange partitionKeyRange)
                     throws PDException {
+
+            }
+
+            @Override
+            public void bulkloadPartition(Metapb.Partition partition,
+                                          BulkloadInfo BulkloadInfo) throws PDException {
 
             }
         });
