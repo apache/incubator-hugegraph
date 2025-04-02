@@ -31,7 +31,7 @@ CONF=$BASE_DIR/conf/graphs/hugegraph.properties
 REST_CONF=$BASE_DIR/conf/rest-server.properties
 GREMLIN_CONF=$BASE_DIR/conf/gremlin-server.yaml
 
-. ${BIN}/util.sh
+. "${BIN}"/util.sh
 
 declare -A backend_serializer_map=(["memory"]="text" \
                                    ["hbase"]="hbase" \
