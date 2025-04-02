@@ -29,6 +29,8 @@ import com.caucho.hessian.io.Hessian2Output;
 
 import lombok.Data;
 
+import org.apache.hugegraph.pd.raft.serializer.HugegraphHessianSerializerFactory;
+
 @Data
 public class KVOperation {
 
@@ -84,6 +86,7 @@ public class KVOperation {
 
         try (ByteArrayInputStream bis = new ByteArrayInputStream(value, 1, value.length - 1)) {
             Hessian2Input input = new Hessian2Input(bis);
+            input.setSerializerFactory(HugegraphHessianSerializerFactory.getInstance());
             KVOperation op = new KVOperation();
             op.op = value[0];
             op.key = input.readBytes();
