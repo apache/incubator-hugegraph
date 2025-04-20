@@ -119,7 +119,7 @@ public interface AuthManager {
 
     RolePermission rolePermission(AuthElement element);
 
-    String loginUser(String username, String password) throws AuthenticationException;
+    String loginUser(String username, String password, long expire) throws AuthenticationException;
 
     void logoutUser(String token);
 

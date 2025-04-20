@@ -70,7 +70,8 @@ public class LoginAPI extends API {
         checkCreatingBody(jsonLogin);
 
         try {
-            String token = manager.authManager().loginUser(jsonLogin.name, jsonLogin.password);
+            String token = manager.authManager()
+                                  .loginUser(jsonLogin.name, jsonLogin.password, jsonLogin.expire);
             HugeGraph g = graph(manager, graph);
             return manager.serializer(g).writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
@@ -131,6 +132,8 @@ public class LoginAPI extends API {
         private String name;
         @JsonProperty("user_password")
         private String password;
+        @JsonProperty("token_expire")
+        private long expire;
 
         @Override
         public void checkCreate(boolean isBatch) {

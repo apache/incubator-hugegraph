@@ -114,6 +114,13 @@ public class StandardAuthManager implements AuthManager {
         this.ipWhiteListEnabled = false;
     }
 
+    /**
+     * Maybe can define an proxy class to choose forward or call local
+     */
+    public static boolean isLocal(AuthManager authManager) {
+        return authManager instanceof StandardAuthManager;
+    }
+
     private <V> Cache<Id, V> cache(String prefix, long capacity,
                                    long expiredTime) {
         String name = prefix + "-" + this.graph.name();
@@ -634,7 +641,7 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
-    public String loginUser(String username, String password)
+    public String loginUser(String username, String password, long expire)
             throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);
         if (user == null) {
@@ -715,13 +722,6 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public void enabledWhiteIpList(boolean status) {
         this.ipWhiteListEnabled = status;
-    }
-
-    /**
-     * Maybe can define an proxy class to choose forward or call local
-     */
-    public static boolean isLocal(AuthManager authManager) {
-        return authManager instanceof StandardAuthManager;
     }
 
     public <R> R commit(Callable<R> callable) {

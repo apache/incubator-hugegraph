@@ -110,15 +110,16 @@ import jakarta.ws.rs.NotAuthorizedException;
 
 public final class HugeGraphAuthProxy implements HugeGraph {
 
+    private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
+    private static final ThreadLocal<Context> CONTEXTS = new InheritableThreadLocal<>();
+
     static {
         HugeGraph.registerTraversalStrategies(HugeGraphAuthProxy.class);
     }
 
-    private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
     private final Cache<Id, UserWithRole> usersRoleCache;
     private final Cache<Id, RateLimiter> auditLimiters;
     private final double auditLogMaxRate;
-
     private final HugeGraph hugegraph;
     private final TaskSchedulerProxy taskScheduler;
     private final AuthManagerProxy authManager;
@@ -139,6 +140,40 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         // TODO: Consider better way to get, use auth client's config now
         this.auditLogMaxRate = config.get(AuthOptions.AUTH_AUDIT_LOG_RATE);
         LOG.info("Audit log rate limit is {}/s", this.auditLogMaxRate);
+    }
+
+    static Context setContext(Context context) {
+        Context old = CONTEXTS.get();
+        CONTEXTS.set(context);
+        return old;
+    }
+
+    static void resetContext() {
+        CONTEXTS.remove();
+    }
+
+    private static Context getContext() {
+        // Return task context first
+        String taskContext = TaskManager.getContext();
+        User user = User.fromJson(taskContext);
+        if (user != null) {
+            return new Context(user);
+        }
+
+        return CONTEXTS.get();
+    }
+
+    private static String getContextString() {
+        Context context = getContext();
+        if (context == null) {
+            return null;
+        }
+        return context.user().toJson();
+    }
+
+    static void logUser(User user, String path) {
+        LOG.info("User '{}' login from client [{}] with path '{}'",
+                 user.username(), user.client(), path);
     }
 
     @Override
@@ -1016,6 +1051,61 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return result;
     }
 
+    static class Context {
+
+        private static final Context ADMIN = new Context(User.ADMIN);
+
+        private final User user;
+
+        public Context(User user) {
+            E.checkNotNull(user, "user");
+            this.user = user;
+        }
+
+        public static Context admin() {
+            return ADMIN;
+        }
+
+        public User user() {
+            return this.user;
+        }
+    }
+
+    static class ContextTask implements Runnable {
+
+        private final Runnable runner;
+        private final Context context;
+
+        public ContextTask(Runnable runner) {
+            this.context = getContext();
+            this.runner = runner;
+        }
+
+        @Override
+        public void run() {
+            setContext(this.context);
+            try {
+                this.runner.run();
+            } finally {
+                resetContext();
+            }
+        }
+    }
+
+    public static class ContextThreadPoolExecutor extends ThreadPoolExecutor {
+
+        public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
+                                         ThreadFactory threadFactory) {
+            super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
+                  new LinkedBlockingQueue<>(), threadFactory);
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            super.execute(new ContextTask(command));
+        }
+    }
+
     class TaskSchedulerProxy implements TaskScheduler {
 
         private final TaskScheduler taskScheduler;
@@ -1621,9 +1711,9 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
-        public String loginUser(String username, String password) {
+        public String loginUser(String username, String password, long expire) {
             try {
-                return this.authManager.loginUser(username, password);
+                return this.authManager.loginUser(username, password, expire);
             } catch (AuthenticationException e) {
                 throw new NotAuthorizedException(e.getMessage(), e);
             }
@@ -1839,97 +1929,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public String toString() {
             return this.origin.toString();
-        }
-    }
-
-    private static final ThreadLocal<Context> CONTEXTS = new InheritableThreadLocal<>();
-
-    protected static Context setContext(Context context) {
-        Context old = CONTEXTS.get();
-        CONTEXTS.set(context);
-        return old;
-    }
-
-    protected static void resetContext() {
-        CONTEXTS.remove();
-    }
-
-    protected static Context getContext() {
-        // Return task context first
-        String taskContext = TaskManager.getContext();
-        User user = User.fromJson(taskContext);
-        if (user != null) {
-            return new Context(user);
-        }
-
-        return CONTEXTS.get();
-    }
-
-    protected static String getContextString() {
-        Context context = getContext();
-        if (context == null) {
-            return null;
-        }
-        return context.user().toJson();
-    }
-
-    protected static void logUser(User user, String path) {
-        LOG.info("User '{}' login from client [{}] with path '{}'",
-                 user.username(), user.client(), path);
-    }
-
-    static class Context {
-
-        private static final Context ADMIN = new Context(User.ADMIN);
-
-        private final User user;
-
-        public Context(User user) {
-            E.checkNotNull(user, "user");
-            this.user = user;
-        }
-
-        public User user() {
-            return this.user;
-        }
-
-        public static Context admin() {
-            return ADMIN;
-        }
-    }
-
-    static class ContextTask implements Runnable {
-
-        private final Runnable runner;
-        private final Context context;
-
-        public ContextTask(Runnable runner) {
-            this.context = getContext();
-            this.runner = runner;
-        }
-
-        @Override
-        public void run() {
-            setContext(this.context);
-            try {
-                this.runner.run();
-            } finally {
-                resetContext();
-            }
-        }
-    }
-
-    public static class ContextThreadPoolExecutor extends ThreadPoolExecutor {
-
-        public ContextThreadPoolExecutor(int corePoolSize, int maxPoolSize,
-                                         ThreadFactory threadFactory) {
-            super(corePoolSize, maxPoolSize, 0L, TimeUnit.MILLISECONDS,
-                  new LinkedBlockingQueue<>(), threadFactory);
-        }
-
-        @Override
-        public void execute(Runnable command) {
-            super.execute(new ContextTask(command));
         }
     }
 }
