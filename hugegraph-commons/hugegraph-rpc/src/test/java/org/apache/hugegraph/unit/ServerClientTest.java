@@ -41,7 +41,6 @@ import com.alipay.sofa.rpc.core.exception.SofaRpcRuntimeException;
 import com.google.common.collect.ImmutableMap;
 
 public class ServerClientTest extends BaseUnitTest {
-
     private static RpcServer rpcServer;
     private static RpcClientProvider rpcClient;
 
