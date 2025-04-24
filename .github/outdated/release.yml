@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-23.04
     env:
       TAG_NAME: ${{ github.ref_name }}
     steps:
