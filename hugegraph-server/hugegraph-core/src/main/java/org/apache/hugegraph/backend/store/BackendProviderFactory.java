@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.backend.store;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,14 +27,24 @@ import org.apache.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+/**
+ * BREAKING CHANGE:
+ * since 1.7.0, only "hstore, rocksdb, hbase, memory" are supported for backend.
+ * if you want to use cassandra, mysql, postgresql, cockroachdb or palo as backend,
+ * please find a version before 1.7.0 of apache hugegraph for your application.
+ */
 public class BackendProviderFactory {
 
     private static final Logger LOG = Log.logger(BackendProviderFactory.class);
 
-    private static Map<String, Class<? extends BackendStoreProvider>> providers;
+    private static final Map<String, Class<? extends BackendStoreProvider>> providers;
+
+    private static final List<String> ALLOWED_BACKENDS = List.of("memory", "rocksdb", "hbase",
+                                                                 "hstore");
 
     static {
         providers = new ConcurrentHashMap<>();
@@ -47,8 +58,7 @@ public class BackendProviderFactory {
 
         BackendStoreProvider provider = newProvider(config);
         if (raftMode) {
-            LOG.info("Opening backend store '{}' in raft mode for graph '{}'",
-                     backend, graph);
+            LOG.info("Opening backend store '{}' in raft mode for graph '{}'", backend, graph);
             provider = new RaftBackendStoreProvider(params, provider);
         }
         provider.open(graph);
@@ -57,8 +67,10 @@ public class BackendProviderFactory {
 
     private static BackendStoreProvider newProvider(HugeConfig config) {
         String backend = config.get(CoreOptions.BACKEND).toLowerCase();
-        String graph = config.get(CoreOptions.STORE);
+        E.checkState(ALLOWED_BACKENDS.contains(backend.toLowerCase()),
+                     "backend is illegal: %s", backend);
 
+        String graph = config.get(CoreOptions.STORE);
         if (InMemoryDBStoreProvider.matchType(backend)) {
             return InMemoryDBStoreProvider.instance(graph);
         }
@@ -68,24 +80,23 @@ public class BackendProviderFactory {
                                "Not exists BackendStoreProvider: %s", backend);
 
         assert BackendStoreProvider.class.isAssignableFrom(clazz);
-        BackendStoreProvider instance = null;
+        BackendStoreProvider instance;
         try {
-            instance = clazz.newInstance();
+            instance = clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
             throw new BackendException(e);
         }
 
         BackendException.check(backend.equals(instance.type()),
                                "BackendStoreProvider with type '%s' " +
-                               "can't be opened by key '%s'",
-                               instance.type(), backend);
+                               "can't be opened by key '%s'", instance.type(), backend);
         return instance;
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     public static void register(String name, String classPath) {
         ClassLoader classLoader = BackendProviderFactory.class.getClassLoader();
-        Class<?> clazz = null;
+        Class<?> clazz;
         try {
             clazz = classLoader.loadClass(classPath);
         } catch (Exception e) {
