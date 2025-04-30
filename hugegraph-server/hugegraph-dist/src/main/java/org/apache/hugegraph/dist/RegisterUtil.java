@@ -38,6 +38,12 @@ import org.apache.hugegraph.util.VersionUtil;
 import org.apache.hugegraph.version.CoreVersion;
 import org.slf4j.Logger;
 
+/**
+ * BREAKING CHANGE:
+ * since 1.7.0, only "hstore, rocksdb, hbase, memory" are supported for backend.
+ * if you want to use cassandra, mysql, postgresql, cockroachdb or palo as backend,
+ * please find a version before 1.7.0 of apache hugegraph for your application.
+ */
 public class RegisterUtil {
 
     private static final Logger LOG = Log.logger(RegisterUtil.class);
@@ -70,26 +76,11 @@ public class RegisterUtil {
 
     private static void registerBackend(String backend) {
         switch (backend) {
-            case "cassandra":
-                registerCassandra();
-                break;
-            case "scylladb":
-                registerScyllaDB();
-                break;
             case "hbase":
                 registerHBase();
                 break;
             case "rocksdb":
                 registerRocksDB();
-                break;
-            case "mysql":
-                registerMysql();
-                break;
-            case "palo":
-                registerPalo();
-                break;
-            case "postgresql":
-                registerPostgresql();
                 break;
             case "hstore":
                 registerHstore();
@@ -97,34 +88,6 @@ public class RegisterUtil {
             default:
                 throw new HugeException("Unsupported backend type '%s'", backend);
         }
-    }
-
-    public static void registerCassandra() {
-        // Register config
-        OptionSpace.register("cassandra",
-                             "org.apache.hugegraph.backend.store.cassandra.CassandraOptions");
-        // Register serializer
-        SerializerFactory.register("cassandra",
-                                   "org.apache.hugegraph.backend.store.cassandra" +
-                                   ".CassandraSerializer");
-        // Register backend
-        BackendProviderFactory.register("cassandra",
-                                        "org.apache.hugegraph.backend.store.cassandra" +
-                                        ".CassandraStoreProvider");
-    }
-
-    public static void registerScyllaDB() {
-        // Register config
-        OptionSpace.register("scylladb",
-                             "org.apache.hugegraph.backend.store.cassandra.CassandraOptions");
-        // Register serializer
-        SerializerFactory.register("scylladb",
-                                   "org.apache.hugegraph.backend.store.cassandra" +
-                                   ".CassandraSerializer");
-        // Register backend
-        BackendProviderFactory.register("scylladb",
-                                        "org.apache.hugegraph.backend.store.scylladb" +
-                                        ".ScyllaDBStoreProvider");
     }
 
     public static void registerHBase() {
@@ -151,46 +114,6 @@ public class RegisterUtil {
         BackendProviderFactory.register("rocksdbsst",
                                         "org.apache.hugegraph.backend.store.rocksdbsst" +
                                         ".RocksDBSstStoreProvider");
-    }
-
-    public static void registerMysql() {
-        // Register config
-        OptionSpace.register("mysql",
-                             "org.apache.hugegraph.backend.store.mysql.MysqlOptions");
-        // Register serializer
-        SerializerFactory.register("mysql",
-                                   "org.apache.hugegraph.backend.store.mysql.MysqlSerializer");
-        // Register backend
-        BackendProviderFactory.register("mysql",
-                                        "org.apache.hugegraph.backend.store.mysql" +
-                                        ".MysqlStoreProvider");
-    }
-
-    public static void registerPalo() {
-        // Register config
-        OptionSpace.register("palo",
-                             "org.apache.hugegraph.backend.store.palo.PaloOptions");
-        // Register serializer
-        SerializerFactory.register("palo",
-                                   "org.apache.hugegraph.backend.store.palo.PaloSerializer");
-        // Register backend
-        BackendProviderFactory.register("palo",
-                                        "org.apache.hugegraph.backend.store.palo" +
-                                        ".PaloStoreProvider");
-    }
-
-    public static void registerPostgresql() {
-        // Register config
-        OptionSpace.register("postgresql",
-                             "org.apache.hugegraph.backend.store.postgresql.PostgresqlOptions");
-        // Register serializer
-        SerializerFactory.register("postgresql",
-                                   "org.apache.hugegraph.backend.store.postgresql" +
-                                   ".PostgresqlSerializer");
-        // Register backend
-        BackendProviderFactory.register("postgresql",
-                                        "org.apache.hugegraph.backend.store.postgresql" +
-                                        ".PostgresqlStoreProvider");
     }
 
     public static void registerHstore() {

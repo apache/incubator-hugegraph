@@ -90,7 +90,7 @@ public class RaftStateMachine extends StateMachineAdapter {
                     done.run(Status.OK());
                 }
             } catch (Throwable t) {
-                log.error("StateMachine meet critical error: {}.", t);
+                log.error("StateMachine encountered critical error", t);
                 if (done != null) {
                     done.run(new Status(RaftError.EINTERNAL, t.getMessage()));
                 }
@@ -101,7 +101,7 @@ public class RaftStateMachine extends StateMachineAdapter {
 
     @Override
     public void onError(final RaftException e) {
-        log.error("Raft StateMachine on error {}", e);
+        log.error("Raft StateMachine encountered an error", e);
     }
 
     @Override
@@ -117,9 +117,7 @@ public class RaftStateMachine extends StateMachineAdapter {
         log.info("Raft becomes leader");
         Utils.runInThread(() -> {
             if (!CollectionUtils.isEmpty(stateListeners)) {
-                stateListeners.forEach(listener -> {
-                    listener.onRaftLeaderChanged();
-                });
+                stateListeners.forEach(RaftStateListener::onRaftLeaderChanged);
             }
         });
     }
@@ -136,9 +134,7 @@ public class RaftStateMachine extends StateMachineAdapter {
         super.onStartFollowing(ctx);
         Utils.runInThread(() -> {
             if (!CollectionUtils.isEmpty(stateListeners)) {
-                stateListeners.forEach(listener -> {
-                    listener.onRaftLeaderChanged();
-                });
+                stateListeners.forEach(RaftStateListener::onRaftLeaderChanged);
             }
         });
     }
