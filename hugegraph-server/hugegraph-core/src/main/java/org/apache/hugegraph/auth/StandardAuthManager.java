@@ -641,6 +641,13 @@ public class StandardAuthManager implements AuthManager {
     }
 
     @Override
+    public String loginUser(String username, String password)
+            throws AuthenticationException {
+        return this.loginUser(username, password, -1L);
+    }
+
+    // TODO: the expire haven't been implemented yet
+    @Override
     public String loginUser(String username, String password, long expire)
             throws AuthenticationException {
         HugeUser user = this.matchUser(username, password);

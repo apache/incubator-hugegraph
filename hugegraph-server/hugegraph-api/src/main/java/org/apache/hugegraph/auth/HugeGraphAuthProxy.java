@@ -1711,6 +1711,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         }
 
         @Override
+        public String loginUser(String username, String password) {
+            return this.loginUser(username, password, -1L);
+        }
+
+        // TODO: the expire haven't been implemented yet
+        @Override
         public String loginUser(String username, String password, long expire) {
             try {
                 return this.authManager.loginUser(username, password, expire);
