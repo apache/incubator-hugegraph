@@ -93,6 +93,17 @@ message PartitionHeartbeatResponse {
   CleanPartition clean_partition = 9;
   // partition key range variation
   PartitionKeyRange key_range = 10;
+  BulkloadInfo   bulkload_info =11;
+}
+
+message BulkloadInfo {
+  string hdfsPath = 1;
+  string table_name=3;
+  int32  maxDownloadRate = 4;
+}
+
+message PartitionHolder {
+  string targetIp = 1;
 }
 
 /* Date model */
