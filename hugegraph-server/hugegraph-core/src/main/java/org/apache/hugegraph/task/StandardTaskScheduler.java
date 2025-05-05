@@ -273,7 +273,7 @@ public class StandardTaskScheduler implements TaskScheduler {
             // The task scheduled to workers, let the worker node to cancel
             this.save(task);
             assert task.server() != null : task;
-            assert this.serverManager().selfIsMaster();
+            assert this.serverManager().selfIsMasterOrSingleComputer();
             if (!task.server().equals(this.serverManager().selfNodeId())) {
                 /*
                  * Remove the task from memory if it's running on worker node,
@@ -312,7 +312,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                     continue;
                 }
 
-                if (!this.serverManager.selfIsMaster()) {
+                if (!this.serverManager.selfIsMasterOrSingleComputer()) {
                     return;
                 }
 
@@ -720,7 +720,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     private void checkOnMasterNode(String op) {
-        if (!this.serverManager().selfIsMaster()) {
+        if (!this.serverManager().selfIsMasterOrSingleComputer()) {
             throw new HugeException("Can't %s task on non-master server", op);
         }
     }
