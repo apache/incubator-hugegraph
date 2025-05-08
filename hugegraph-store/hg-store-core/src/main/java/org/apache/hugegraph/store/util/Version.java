@@ -31,11 +31,21 @@ public class Version {
      */
     public static String getVersion() {
         if (version.isEmpty()) {
-            try (InputStream is = Version.class.getResourceAsStream("/version.txt")) {
-                byte[] buf = new byte[64];
-                int len = is.read(buf);
-                version = new String(buf, 0, len);
+            try {
+                InputStream is = Version.class.getResourceAsStream("/version.txt");
+                if (is != null) {
+                    try (is) {
+                        byte[] buf = new byte[64];
+                        int len = is.read(buf);
+                        version = new String(buf, 0, len);
+                    }
+                } else {
+                    // 如果找不到version.txt文件，设置一个默认值
+                    version = "unknown";
+                    log.warn("Cannot find version.txt resource file, using default version: {}", version);
+                }
             } catch (Exception e) {
+                version = "unknown";
                 log.error("Version.getVersion exception: ", e);
             }
         }
