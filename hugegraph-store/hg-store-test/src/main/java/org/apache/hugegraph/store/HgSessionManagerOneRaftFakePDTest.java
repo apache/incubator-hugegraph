@@ -104,7 +104,7 @@ public class HgSessionManagerOneRaftFakePDTest {
 
     // @Test
     public void put_get() {
-        System.out.println("--- test put & get ---");
+        System.out.println("--- test put & getMetric ---");
 
         HgStoreSession session = getStoreSession();
 
@@ -120,7 +120,7 @@ public class HgSessionManagerOneRaftFakePDTest {
 
     // @Test
     public void put_get2() {
-        System.out.println("--- test put & get 2---");
+        System.out.println("--- test put & getMetric 2---");
 
         String GRAPH_NAME = "default/hugegraph/g2";
         String TABLE_NAME = "put_get2";
@@ -165,7 +165,7 @@ public class HgSessionManagerOneRaftFakePDTest {
         Assert.assertEquals(resList.size(), keyList.size());
 
         // println(list);
-        HgStoreTestUtil.println("--- batch-get result ---");
+        HgStoreTestUtil.println("--- batch-getMetric result ---");
         Assert.assertTrue((resList.stream()
                                   .map(e -> map.containsKey(HgStoreTestUtil.toOwnerKey(e.key())))
                                   .allMatch(Boolean::booleanValue))
@@ -212,7 +212,7 @@ public class HgSessionManagerOneRaftFakePDTest {
         HgStoreTestUtil.println("- delete " + delKey);
         session.delete(HgStoreTestUtil.TABLE_NAME, key);
         value = session.get(HgStoreTestUtil.TABLE_NAME, key);
-        HgStoreTestUtil.println("- get " + delKey + ": " + HgStoreTestUtil.toStr(value));
+        HgStoreTestUtil.println("- getMetric " + delKey + ": " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals(EMPTY_BYTES, value);
     }
 
@@ -231,14 +231,14 @@ public class HgSessionManagerOneRaftFakePDTest {
 
         value = session.get(HgStoreTestUtil.TABLE_NAME, key);
         HgStoreTestUtil.println(
-                "- before del, get [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
+                "- before del, getMetric [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals(delValue, HgStoreTestUtil.toStr(value));
 
         HgStoreTestUtil.println("- delete-single : [" + delKey + "]");
         session.deleteSingle(HgStoreTestUtil.TABLE_NAME, key);
         value = session.get(HgStoreTestUtil.TABLE_NAME, key);
         HgStoreTestUtil.println(
-                "- after del, get [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
+                "- after del, getMetric [" + delKey + "] = " + HgStoreTestUtil.toStr(value));
         Assert.assertEquals("", HgStoreTestUtil.toStr(value));
 
     }
@@ -272,7 +272,7 @@ public class HgSessionManagerOneRaftFakePDTest {
                                                                        String.valueOf(i), 2));
             String value = HgStoreTestUtil.toStr(session.get(HgStoreTestUtil.TABLE_NAME, key));
             HgStoreTestUtil.println(
-                    "- get [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
+                    "- getMetric [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
 
             // TODO: [start,end)?
             if (i < 5) {
@@ -314,7 +314,7 @@ public class HgSessionManagerOneRaftFakePDTest {
             HgOwnerKey key =
                     HgStoreTestUtil.toOwnerKey(owner, prefixStr + HgStoreTestUtil.toSuffix(i, 2));
             String value = HgStoreTestUtil.toStr(session.get(HgStoreTestUtil.TABLE_NAME, key));
-            System.out.println("- get [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
+            System.out.println("- getMetric [" + HgStoreTestUtil.toStr(key.getKey()) + "] = " + value);
             Assert.assertEquals("", value);
         }
 

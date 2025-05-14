@@ -30,7 +30,6 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotFoundException;
@@ -45,19 +44,18 @@ import org.apache.hugegraph.util.E;
 
 import com.google.common.collect.ImmutableList;
 
-public class VertexLabelBuilder extends AbstractBuilder
-        implements VertexLabel.Builder {
+public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.Builder {
 
     private Id id;
-    private String name;
+    private final String name;
     private IdStrategy idStrategy;
-    private Set<String> properties;
-    private List<String> primaryKeys;
-    private Set<String> nullableKeys;
+    private final Set<String> properties;
+    private final List<String> primaryKeys;
+    private final Set<String> nullableKeys;
     private long ttl;
     private String ttlStartTime;
     private Boolean enableLabelIndex;
-    private Userdata userdata;
+    private final Userdata userdata;
     private boolean checkExist;
 
     public VertexLabelBuilder(ISchemaTransaction transaction,
@@ -559,7 +557,7 @@ public class VertexLabelBuilder extends AbstractBuilder
         if (this.ttlStartTime == null) {
             return;
         }
-        // Check whether the properties contains the specified keys
+        // Check whether the properties contain the specified keys
         E.checkArgument(!this.properties.isEmpty(),
                         "The properties can't be empty when exist " +
                         "ttl start time for edge label '%s'", this.name);

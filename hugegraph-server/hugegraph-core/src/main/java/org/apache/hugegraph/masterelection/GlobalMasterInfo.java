@@ -25,7 +25,7 @@ import org.apache.hugegraph.util.E;
 // TODO: rename to GlobalNodeRoleInfo
 public final class GlobalMasterInfo {
 
-    private final static NodeInfo NO_MASTER = new NodeInfo(false, "");
+    private static final NodeInfo NO_MASTER = new NodeInfo(false, "");
 
     private volatile boolean supportElection;
     private volatile NodeInfo masterNodeInfo;

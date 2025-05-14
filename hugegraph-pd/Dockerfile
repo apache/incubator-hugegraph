@@ -42,6 +42,8 @@ WORKDIR /hugegraph-pd/
 
 # 1. Install environment and init HugeGraph Sever
 RUN set -x \
+    && rm /var/lib/dpkg/info/libc-bin.* \
+    && apt-get -q clean \
     && apt-get -q update \
     && apt-get -q install -y --no-install-recommends --no-install-suggests \
        dumb-init \
