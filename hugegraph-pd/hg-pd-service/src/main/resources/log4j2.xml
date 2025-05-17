@@ -22,27 +22,33 @@
     <properties>
         <property name="LOG_PATH">logs</property>
         <property name="FILE_NAME">hugegraph-pd</property>
+        <property name="RAFT_FILE_NAME">raft-${FILE_NAME}</property>
+        <property name="EXPIRE_DAY">6d</property>
+        <property name="ACCUMULATED_SIZE">2GB</property>
+        <property name="ACCUMULATED_COUNT">100</property>
+        <property name="MAX_COUNT">32</property>
     </properties>
 
     <appenders>
         <Console name="console" target="SYSTEM_OUT">
-            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY" />
-            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n" />
+            <ThresholdFilter level="DEBUG" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
         </Console>
 
         <!-- Normal server log config -->
         <RollingRandomAccessFile name="file" fileName="${LOG_PATH}/${FILE_NAME}.log"
                                  filePattern="${LOG_PATH}/$${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd}-%i.log"
                                  bufferedIO="true" bufferSize="524288" immediateFlush="false">
-            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY" />
-            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n" />
+            <ThresholdFilter level="TRACE" onMatch="ACCEPT" onMismatch="DENY"/>
+            <PatternLayout pattern="%-d{yyyy-MM-dd HH:mm:ss} [%t] [%p] %c{1.} - %m%n"/>
             <!--JsonLayout compact="true" eventEol="true" complete="true" locationInfo="true">
                 <KeyValuePair key="timestamp" value="$${date:yyyy-MM-dd HH:mm:ss.SSS}"/>
             </JsonLayout-->
             <!-- Trigger after exceeding 1day or 50MB -->
             <Policies>
-                <SizeBasedTriggeringPolicy size="128MB" />
-                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+                <SizeBasedTriggeringPolicy size="128MB"/>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>
+                <OnStartupTriggeringPolicy/>
             </Policies>
             <!-- Keep 5 files per day & auto delete after over 2GB or 100 files -->
             <DefaultRolloverStrategy max="16">

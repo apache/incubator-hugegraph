@@ -1,0 +1,50 @@
+syntax = "proto3";
+package meta;
+option java_package = "org.apache.hugegraph.pd.grpc";
+import "google/protobuf/any.proto";
+import "metapb.proto";
+import "common.proto";
+option java_multiple_files = true;
+
+service MetaService{
+  rpc getStores(NoArg) returns(Stores);
+  rpc getPartitions(NoArg) returns(Partitions);
+  rpc getShardGroups(NoArg) returns(ShardGroups);
+  rpc getGraphSpaces(NoArg) returns(GraphSpaces);
+  rpc getGraphs(NoArg) returns(Graphs);
+  rpc updateStore(metapb.Store) returns(VoidResponse);
+  rpc updatePartition(metapb.Partition) returns(VoidResponse);
+  rpc updateShardGroup(metapb.ShardGroup) returns(VoidResponse);
+  rpc updateGraphSpace(metapb.GraphSpace) returns(VoidResponse);
+  rpc updateGraph(metapb.Graph) returns(VoidResponse);
+  rpc updatePeers(NoArg) returns(VoidResponse);
+}
+message Stores{
+  ResponseHeader header = 1;
+  repeated metapb.Store data = 2;
+}
+message Partitions{
+  ResponseHeader header = 1;
+  repeated metapb.Partition data = 2;
+}
+message ShardGroups{
+  ResponseHeader header = 1;
+  repeated metapb.ShardGroup data = 2;
+}
+message Shards{
+  ResponseHeader header = 1;
+  repeated metapb.Shard data = 2;
+}
+message GraphSpaces{
+  ResponseHeader header = 1;
+  repeated metapb.GraphSpace data = 2;
+}
+message Graphs{
+  ResponseHeader header = 1;
+  repeated metapb.Graph data = 2;
+}
+
+message DefaultResponse{
+  ResponseHeader header = 1;
+  repeated google.protobuf.Any data = 2;
+}

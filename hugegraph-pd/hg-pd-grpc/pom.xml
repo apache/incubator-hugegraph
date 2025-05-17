@@ -43,16 +43,49 @@
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
             <version>${grpc.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-protobuf</artifactId>
             <version>${grpc.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.api.grpc</groupId>
+                    <artifactId>proto-google-common-protos</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
             <version>${grpc.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>30.1-android</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>javax.annotation</groupId>

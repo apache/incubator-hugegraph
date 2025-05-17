@@ -44,6 +44,69 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-struct</artifactId>
+            <version>${hugegraph.struct.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.lucene</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.hankcs</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.collections</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apdplat</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.ansj</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.janeluo</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.tinkerpop</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>it.unimi.dsi</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.lz4</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.huaban</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.lionsoul</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.chenlb.mmseg4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hugegraph</groupId>
+                    <artifactId>hg-pd-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
@@ -107,6 +170,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <version>5.8.3</version>
+        </dependency>
+        <dependency>
             <groupId>com.lmax</groupId>
             <artifactId>disruptor</artifactId>
             <version>3.4.1</version>
@@ -120,6 +188,17 @@
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
             <version>3.17.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.errorprone</groupId>
+                    <artifactId>error_prone_annotations</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>de.schlichtherle.truelicense</groupId>
+            <artifactId>truelicense-core</artifactId>
+            <version>1.33</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hugegraph</groupId>

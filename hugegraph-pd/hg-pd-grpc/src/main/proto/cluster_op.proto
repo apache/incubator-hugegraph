@@ -1,0 +1,134 @@
+syntax = "proto3";
+
+import "common.proto";
+import "metapb.proto";
+import "metaTask.proto";
+
+option java_package = "org.apache.hugegraph.pd.grpc";
+
+message ChangePeerListRequest{
+  RequestHeader header = 1;
+  string peer_List = 2;
+}
+message ChangePeerListResponse{
+  ResponseHeader header = 1;
+}
+
+message SplitDataParam{
+  // 被分裂的源分区ID
+  uint32 partition_id = 1;
+  //目标分区数量
+  uint32 count = 2;
+}
+
+enum OperationMode {
+  Auto      = 0;
+  Expert    = 1;
+}
+
+message SplitDataRequest{
+  RequestHeader header = 1;
+  //工作模式
+  //  Auto：自动分裂，每个Store上分区数达到最大值
+  //  Expert:专家模式，需要指定splitParams
+  OperationMode mode = 2;
+  repeated SplitDataParam param = 3;
+  uint32 store_group_id = 4;
+}
+
+message SplitGraphDataRequest{
+  RequestHeader header = 1;
+  //工作模式
+  string graph_name = 2;
+  uint32 to_count = 3;
+}
+
+message SplitDataResponse{
+  ResponseHeader header = 1;
+}
+
+message MovePartitionParam{
+  uint32 partition_id = 1;
+  uint64 src_store_id = 2;
+  uint64 dst_store_id = 3;
+}
+
+message MovePartitionRequest{
+  RequestHeader header = 1;
+  //工作模式
+  //  Auto：自动转移，达到每个Store上分区数量相同
+  //  Expert:专家模式，需要指定transferParams
+  OperationMode mode = 2;
+  repeated MovePartitionParam param = 3;
+  uint32 store_group_id = 4;
+}
+
+message MovePartitionResponse{
+  ResponseHeader header = 1;
+}
+
+message BalanceLeadersRequest{
+  RequestHeader header = 1;
+}
+
+message BalanceLeadersResponse{
+  ResponseHeader header = 1;
+}
+
+message DbCompactionRequest{
+  RequestHeader header = 1;
+  string tableName = 2;
+}
+
+message DbCompactionResponse{
+  ResponseHeader header = 1;
+}
+
+message CombineClusterRequest {
+  RequestHeader header = 1;
+  uint32 toCount = 2;
+  uint32 storeGroupId = 3;
+}
+
+message CombineClusterResponse {
+  ResponseHeader header = 1;
+}
+
+message CombineGraphRequest {
+  RequestHeader header = 1;
+  string graphName = 2;
+  uint32 toCount = 3;
+}
+
+message CombineGraphResponse {
+  ResponseHeader header = 1;
+}
+
+message ChangeShardRequest{
+  RequestHeader header = 1;
+  uint32 groupId = 2;
+  repeated metapb.Shard shards = 3;
+}
+
+message ChangeShardResponse {
+  ResponseHeader header = 1;
+}
+
+message UpdatePdRaftRequest{
+  RequestHeader header = 1;
+  string config = 3;
+}
+
+message UpdatePdRaftResponse{
+  ResponseHeader header = 1;
+  string message = 2;
+}
+
+message ReportTaskRequest{
+  RequestHeader header = 1;
+  metaTask.Task task = 2;
+}
+
+message ReportTaskResponse{
+  ResponseHeader header = 1;
+}
