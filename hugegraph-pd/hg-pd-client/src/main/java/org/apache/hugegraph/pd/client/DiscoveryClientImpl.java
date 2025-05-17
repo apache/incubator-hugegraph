@@ -24,20 +24,25 @@ import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 
-@Useless("discovery related")
+/**
+ * @author zhangyingjie
+ * @date 2021/12/20
+ **/
 public class DiscoveryClientImpl extends DiscoveryClient {
 
-    private final String id;
-    private final RegisterType type;
-    private final String version;
-    private final String appName;
-    private final int times;
-    private final String address;
-    private final Map labels;
-    private final Consumer registerConsumer;
+    private volatile String id ;
+    private RegisterType type; // 心跳类型，备用
+    private String version;
+    private String appName;
+    private int times; // 心跳过期次数，备用
+    private String address;
+    private Map labels;
+    private Consumer registerConsumer;
+    private PDConfig conf;
+
 
     private DiscoveryClientImpl(Builder builder) {
-        super(builder.centerAddress, builder.delay);
+        super(builder.delay, builder.conf);
         period = builder.delay;
         id = builder.id;
         type = builder.type;
@@ -66,6 +71,11 @@ public class DiscoveryClientImpl extends DiscoveryClient {
         return registerConsumer;
     }
 
+    @Override
+    public void onLeaderChanged(String leaderAddress) {
+
+    }
+
     public static final class Builder {
 
         private int delay;
@@ -78,6 +88,7 @@ public class DiscoveryClientImpl extends DiscoveryClient {
         private String appName;
         private int times;
         private Consumer registerConsumer;
+        private PDConfig conf;
 
         private Builder() {
         }
@@ -124,6 +135,11 @@ public class DiscoveryClientImpl extends DiscoveryClient {
 
         public Builder setTimes(int val) {
             times = val;
+            return this;
+        }
+
+        public Builder setPdConfig(PDConfig val) {
+            this.conf = val;
             return this;
         }
 

@@ -1,0 +1,104 @@
+syntax = "proto3";
+
+import  "google/protobuf/any.proto";
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.pd.grpc.common";
+option java_outer_classname = "HgPdCommonProto";
+
+message RequestHeader {
+    // 集群 ID.
+    uint64 cluster_id = 1;
+    // 发送者 ID.
+    uint64 sender_id = 2;
+}
+
+message ResponseHeader {
+    // cluster_id is the ID of the cluster which sent the response.
+    uint64 cluster_id = 1;
+    Errors error = 2;
+}
+
+enum ErrorType {
+    OK = 0;
+    WARNING = 1;
+    UNKNOWN = 2;
+    ALREADY_BOOTSTRAPPED = 4;
+    INCOMPATIBLE_VERSION = 5;
+
+    // meta not exists
+    SHARD_GROUPS_NOT_EXISTS = 10;
+    GRAPH_NOT_EXISTS = 11;
+    PARTITION_NOT_EXISTS = 12;
+    STORE_GROUP_NOT_EXISTS = 13;
+    STORE_NOT_EXISTS = 14;
+    TASK_NOT_EXISTS = 15;
+
+    GRAPH_ALREADY_EXISTS = 20;
+
+    NOT_LEADER = 100;
+    STORE_ID_NOT_EXIST = 101;
+    NO_ACTIVE_STORE = 102;
+    NOT_FOUND = 103;
+    PD_UNREACHABLE = 104;
+    LESS_ACTIVE_STORE = 105;
+    STORE_HAS_BEEN_REMOVED = 106;
+
+    // license 错误
+    LICENSE_ERROR= 107;
+    // license 认证错误
+    LICENSE_VERIFY_ERROR= 108;
+
+    STORE_PROHIBIT_DELETION = 111;
+    SET_CONFIG_SHARD_COUNT_ERROR = 112;
+    UPDATE_STORE_STATE_ERROR = 113;
+    STORE_PROHIBIT_DUPLICATE = 114;
+    STORE_TOMBSTONE = 203;
+
+    ETCD_READ_ERROR = 1000;
+    ETCD_WRITE_ERROR = 1001;
+
+    ROCKSDB_READ_ERROR = 1002;
+    ROCKSDB_WRITE_ERROR = 1003;
+    ROCKSDB_DEL_ERROR = 1004;
+    ROCKSDB_SAVE_SNAPSHOT_ERROR = 1005;
+    ROCKSDB_LOAD_SNAPSHOT_ERROR = 1006;
+
+    // 当前集群状态禁止分裂
+    Cluster_State_Forbid_Splitting = 1007;
+    // 正在分裂中
+    Split_Partition_Doing = 1008;
+    // store上分区数量超过上限
+    Too_Many_Partitions_Per_Store = 1009;
+    //分区下线正在进行
+    Store_Tombstone_Doing = 1010;
+    // 不合法的分裂个数
+    Invalid_Split_Partition_Count = 1011;
+    Invalid_Combine_Partition_Count = 1012;
+    Combine_Partition_Doing = 1013;
+    Invalid_Partition_count = 1014;
+    ERROR = 9999;
+    // PD 状态
+    PD_UNAVAILABLE = 10000;
+    PD_NOT_LEADER = 10001;
+    PD_RAFT_NOT_READY = 10002;
+    PD_UNAUTHENTICATED = 10003;
+    // Store 状态
+    STORE_UNAVAILABLE = 20000;
+    STORE_NOT_LEADER = 20001;
+    // Client 状态
+    CLIENT_INVALID_PARAMETER = 30000;
+}
+
+message Errors {
+    ErrorType type = 1;
+    string message = 2;
+    google.protobuf.Any data = 3;
+}
+
+message NoArg{
+    RequestHeader header = 1;
+}
+
+message VoidResponse{
+    ResponseHeader header = 1;
+}

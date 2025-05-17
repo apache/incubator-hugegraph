@@ -17,8 +17,7 @@
 
 syntax = "proto3";
 package kv;
-import "pdpb.proto";
-import "metapb.proto";
+import "common.proto";
 
 option java_package = "org.apache.hugegraph.pd.grpc.kv";
 option java_multiple_files = true;
@@ -43,37 +42,37 @@ service KvService {
 
 /* requests */
 message Kv {
-  pdpb.RequestHeader header = 1;
+  RequestHeader header = 1;
   string key = 2;
   string value = 3;
 }
 message KvResponse {
-  pdpb.ResponseHeader header = 1;
+    ResponseHeader header = 1;
 }
 
 message K{
-  pdpb.RequestHeader header = 1;
+  RequestHeader header = 1;
   string key = 2;
 }
 
 message KResponse{
-  pdpb.ResponseHeader header = 1;
+  ResponseHeader header = 1;
   string value = 2;
 }
 
 message ScanPrefixResponse {
-  pdpb.ResponseHeader header = 1;
-  map<string, string> kvs = 2;
+  ResponseHeader header = 1;
+  map<string,string> kvs = 2;
 }
 
 message LockRequest{
-  pdpb.RequestHeader header = 1;
+  RequestHeader header = 1;
   string key = 2;
   int64 ttl = 3;
   int64 clientId = 4;
 }
 message LockResponse{
-  pdpb.ResponseHeader header = 1;
+  ResponseHeader header = 1;
   string key = 2;
   int64 ttl = 3;
   int64 clientId = 4;
@@ -81,7 +80,7 @@ message LockResponse{
 }
 
 message LockAliveResponse{
-  pdpb.ResponseHeader header = 1;
+  ResponseHeader header = 1;
   int64 clientId = 2;
 }
 
@@ -104,8 +103,8 @@ message WatchEvent {
 }
 
 message WatchResponse {
-  pdpb.ResponseHeader header = 1;
-  repeated WatchEvent events = 2;
+  ResponseHeader header = 1;
+  repeated WatchEvent events= 2;
   int64 clientId = 3;
   WatchState state = 4;
 }
@@ -118,8 +117,8 @@ enum WatchState {
 }
 
 message WatchRequest {
-  pdpb.RequestHeader header = 1;
-  WatchState state = 2;
+  RequestHeader header = 1;
+  WatchState state= 2;
   string key = 3;
   int64 clientId = 4;
 }
@@ -131,13 +130,13 @@ message V{
 }
 
 message TTLRequest{
-  pdpb.RequestHeader header = 1;
+  RequestHeader header = 1;
   string key = 2;
   string value = 3;
   int64 ttl = 4;
 }
 
 message TTLResponse{
-  pdpb.ResponseHeader header = 1;
+  ResponseHeader header = 1;
   bool succeed = 2;
 }

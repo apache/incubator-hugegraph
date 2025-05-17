@@ -18,8 +18,11 @@
 syntax = "proto3";
 package pdpb;
 
+import "common.proto";
 import "metapb.proto";
 import "metaTask.proto";
+import "store_group.proto";
+import "cluster_op.proto";
 
 option java_package = "org.apache.hugegraph.pd.grpc";
 
@@ -48,10 +51,12 @@ service PD {
   rpc DelPartition(DelPartitionRequest) returns (DelPartitionResponse) {}
   // Query partition information based on conditions, including Store, Graph and other conditions
   rpc QueryPartitions(QueryPartitionsRequest) returns (QueryPartitionsResponse){}
+
+  rpc CreateGraph(CreateGraphRequest) returns (CreateGraphResponse){}
   // Read graph information
   rpc GetGraph(GetGraphRequest) returns (GetGraphResponse){}
   // Modify graph information
-  rpc SetGraph(SetGraphRequest) returns (SetGraphResponse){}
+  rpc SetGraph(CreateGraphRequest) returns (CreateGraphResponse){}
   rpc DelGraph(DelGraphRequest) returns (DelGraphResponse){}
   // Global unique incremental ID
   rpc GetId(GetIdRequest) returns (GetIdResponse){}
@@ -65,17 +70,30 @@ service PD {
   rpc SetGraphSpace(SetGraphSpaceRequest) returns (SetGraphSpaceResponse){}
   // Get cluster health status
   rpc GetClusterStats(GetClusterStatsRequest) returns (GetClusterStatsResponse){}
+  rpc GetMembersAndClusterState(GetMembersRequest) returns (MembersAndClusterState) {}
   // Replace PD cluster nodes
   rpc ChangePeerList(ChangePeerListRequest) returns (getChangePeerListResponse) {}
   // Data splitting
   rpc SplitData(SplitDataRequest) returns (SplitDataResponse){}
-
   rpc SplitGraphData(SplitGraphDataRequest) returns (SplitDataResponse) {}
+  // change shard
+  rpc ChangeShard(ChangeShardRequest) returns (ChangeShardResponse) {}
   // Data migration
   rpc MovePartition(MovePartitionRequest) returns (MovePartitionResponse){}
+  // 合并分区
+  rpc CombineCluster(CombineClusterRequest) returns (CombineClusterResponse){}
+  rpc CombineGraph(CombineGraphRequest) returns (CombineGraphResponse) {}
+  //平衡store中分区leader的数量
+  rpc BalanceLeaders(BalanceLeadersRequest) returns (BalanceLeadersResponse){}
+  // 通知rocksdb进行compaction
+  rpc DbCompaction(DbCompactionRequest) returns (DbCompactionResponse){}
   // Report partition splitting and other task execution results
   rpc ReportTask(ReportTaskRequest) returns (ReportTaskResponse){}
 
+  // 更新pd raft
+  rpc updatePdRaft(UpdatePdRaftRequest) returns (UpdatePdRaftResponse)  {}
+  // shard group 运维相关的处理
+  rpc UpdateShardGroupOp(ChangeShardRequest) returns (ChangeShardResponse){}
   rpc GetPartitionStats(GetPartitionStatsRequest) returns (GetPartitionStatsResponse){}
   // Balance the number of partition leaders in the store
   rpc BalanceLeaders(BalanceLeadersRequest) returns (BalanceLeadersResponse){}
@@ -103,8 +121,29 @@ service PD {
   // Update pd raft
   rpc updatePdRaft(UpdatePdRaftRequest) returns (UpdatePdRaftResponse)  {}
 
+  // cache
   rpc getCache(GetGraphRequest) returns (CacheResponse)  {}
   rpc getPartitions(GetGraphRequest) returns (CachePartitionResponse)  {}
+  rpc getGraphStats(GetGraphRequest) returns (GraphStatsResponse)  {}
+
+  // 索引创建下沉， 提交重建索引任务, 查询， 重试
+  rpc submitIndexTask(IndexTaskCreateRequest) returns (TaskQueryResponse) {}
+  rpc submitBackupGraphTask(BackupGraphRequest) returns (TaskQueryResponse) {}
+
+  // task 的通用接口，包含索引创建下沉，图备份等
+  rpc queryTaskState(TaskQueryRequest) returns (TaskQueryResponse) {}
+  rpc retryTask(TaskQueryRequest) returns (TaskQueryResponse){}
+
+  // store group
+  rpc createStoreGroup(storeGroup.CreateStoreGroupRequest) returns (storeGroup.CreateStoreGroupResponse){}
+  rpc getStoreGroup(storeGroup.GetStoreGroupRequest) returns (storeGroup.GetStoreGroupResponse){}
+  rpc getAllStoreGroup(storeGroup.GetAllStoreGroupRequest) returns (storeGroup.GetAllStoreGroupResponse){}
+  rpc updateStoreGroup(storeGroup.UpdateStoreGroupRequest) returns (storeGroup.UpdateStoreGroupResponse){}
+  rpc getStoresByStoreGroup(storeGroup.GetGroupStoresRequest) returns (storeGroup.GetGroupStoresResponse){}
+  rpc updateStoreGroupRelation(storeGroup.UpdateStoreGroupRelationRequest) returns (storeGroup.UpdateStoreGroupRelationResponse){}
+  rpc getLeaderGrpcAddress(NoArg) returns (GetLeaderGrpcAddressResponse){}
+  rpc clearGrpcAddressCache(NoArg) returns (VoidResponse){}
+  rpc getAllGrpcAddresses(NoArg) returns (GetAllGrpcAddressesResponse){}
 }
 
 message RequestHeader {
@@ -161,6 +200,7 @@ message Error {
   ErrorType type = 1;
   string message = 2;
 }
+
 message GetStoreRequest {
   RequestHeader header = 1;
   uint64 store_id = 2;
@@ -187,7 +227,6 @@ message RegisterStoreRequest {
   RequestHeader header = 1;
   metapb.Store store = 2;
 }
-
 
 message RegisterStoreResponse {
   ResponseHeader header = 1;
@@ -220,10 +259,8 @@ message GetAllStoresResponse {
   repeated metapb.Store stores = 2;
 }
 
-
 message StoreHeartbeatRequest {
   RequestHeader header = 1;
-
   metapb.StoreStats stats = 2;
 }
 
@@ -239,13 +276,11 @@ message GetPartitionRequest {
   bytes key = 3;
 }
 
-
 message GetPartitionByCodeRequest {
   RequestHeader header = 1;
   string graph_name = 2;
   uint64 code = 3;
 }
-
 
 message GetPartitionResponse {
   ResponseHeader header = 1;
@@ -289,14 +324,10 @@ message ScanPartitionsRequest {
   bytes end_key = 4; // end_key is +inf when it is empty.
 }
 
-
-
 message ScanPartitionsResponse {
   ResponseHeader header = 1;
   repeated metapb.PartitionShard partitions = 4;
 }
-
-
 
 message QueryPartitionsRequest{
   RequestHeader header = 1;
@@ -308,8 +339,6 @@ message QueryPartitionsResponse {
   repeated metapb.Partition partitions = 4;
 }
 
-
-
 message GetGraphRequest{
   RequestHeader header = 1;
   string graph_name = 2;
@@ -320,12 +349,12 @@ message GetGraphResponse{
   metapb.Graph graph = 2;
 }
 
-message SetGraphRequest{
+message CreateGraphRequest{
   RequestHeader header = 1;
   metapb.Graph graph = 2;
 }
 
-message SetGraphResponse{
+message CreateGraphResponse{
   ResponseHeader header = 1;
   metapb.Graph graph = 2;
 }
@@ -372,6 +401,13 @@ message GetMembersResponse{
   metapb.Member leader = 3;
 }
 
+message MembersAndClusterState{
+  ResponseHeader header = 1;
+  repeated metapb.Member members = 2;
+  metapb.Member leader = 3;
+  repeated metapb.GroupClusterState state = 4;
+}
+
 message GetPDConfigRequest{
   RequestHeader header = 1;
   uint64 version = 2 ;
@@ -390,7 +426,6 @@ message SetPDConfigRequest{
 message SetPDConfigResponse{
   ResponseHeader header = 1;
 }
-
 
 message GetGraphSpaceRequest{
   RequestHeader header = 1;
@@ -413,6 +448,8 @@ message SetGraphSpaceResponse{
 
 message GetClusterStatsRequest{
   RequestHeader header = 1;
+  int64 storeId = 2;
+  int32 storeGroup = 3;
 }
 
 message GetClusterStatsResponse{
@@ -516,34 +553,6 @@ message PutLicenseResponse{
   ResponseHeader header = 1;
 }
 
-message DbCompactionRequest{
-  RequestHeader header = 1;
-  string tableName = 2;
-}
-
-message DbCompactionResponse{
-  ResponseHeader header = 1;
-}
-
-message CombineClusterRequest {
-  RequestHeader header = 1;
-  uint32 toCount = 2;
-}
-
-message CombineClusterResponse {
-  ResponseHeader header = 1;
-}
-
-message CombineGraphRequest {
-  RequestHeader header = 1;
-  string graphName = 2;
-  uint32 toCount = 3;
-}
-
-message CombineGraphResponse {
-  ResponseHeader header = 1;
-}
-
 message DeleteShardGroupRequest {
   RequestHeader header = 1;
   uint32 groupId = 2;
@@ -572,14 +581,49 @@ message UpdateShardGroupResponse{
   ResponseHeader header = 1;
 }
 
-message ChangeShardRequest{
-  RequestHeader header = 1;
-  uint32 groupId = 2;
-  repeated metapb.Shard shards = 3;
+message CacheResponse {
+  ResponseHeader header = 1;
+  // 返回修改后的Store
+  repeated metapb.Store stores = 2;
+  repeated metapb.ShardGroup shards = 3;
+  repeated metapb.Graph graphs = 4;
+}
+message CachePartitionResponse {
+  ResponseHeader header = 1;
+  repeated metapb.Partition partitions = 2;
 }
 
-message ChangeShardResponse {
+message IndexTaskCreateRequest {
+  RequestHeader header = 1;
+  metapb.BuildIndexParam param = 2;
+}
+
+message BackupGraphRequest {
+  RequestHeader header = 1;
+  string graph_name = 2;
+  string target_graph_name = 3;
+}
+
+message TaskQueryRequest {
+  RequestHeader header = 1;
+  uint64 task_id = 2;
+}
+
+message TaskQueryResponse{
   ResponseHeader header = 1;
+  metaTask.TaskState state = 2;
+  string message = 3;
+  uint64 task_id = 4;
+}
+
+message GraphStatsResponse {
+  ResponseHeader header = 1;
+  metapb.GraphStats stats = 2;
+}
+
+message GetLeaderGrpcAddressResponse {
+  ResponseHeader header = 1;
+  string address = 2;
 }
 
 message UpdatePdRaftRequest{
@@ -601,4 +645,10 @@ message CacheResponse {
 message CachePartitionResponse {
   ResponseHeader header = 1;
   repeated metapb.Partition partitions = 2;
+}
+
+message GetAllGrpcAddressesResponse {
+  ResponseHeader header = 1;
+  bool allowed = 2;
+  repeated string addresses = 3;
 }

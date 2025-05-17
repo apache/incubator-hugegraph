@@ -1,0 +1,72 @@
+syntax = "proto3";
+package storeGroup;
+
+import "common.proto";
+import "metapb.proto";
+
+option java_package = "org.apache.hugegraph.pd.grpc";
+
+message CreateStoreGroupRequest {
+  RequestHeader header = 1;
+  uint32 groupId = 2;
+  string name = 3;
+  uint32 partition_count = 4;
+}
+
+message CreateStoreGroupResponse {
+  ResponseHeader header = 1;
+  metapb.StoreGroup storeGroup = 2;
+}
+
+message GetStoreGroupRequest {
+  RequestHeader header = 1;
+  uint32 groupId = 2;
+}
+
+message GetStoreGroupResponse {
+  ResponseHeader header = 1;
+  metapb.StoreGroup storeGroup = 2;
+}
+
+message GetAllStoreGroupRequest {
+  RequestHeader header = 1;
+  uint32 groupId = 2;
+}
+
+message GetAllStoreGroupResponse {
+  ResponseHeader header = 1;
+  repeated metapb.StoreGroup storeGroups = 2;
+}
+
+message UpdateStoreGroupRequest {
+  RequestHeader header = 1;
+  uint32 groupId = 2;
+  string name = 3;
+}
+
+message UpdateStoreGroupResponse {
+  ResponseHeader header = 1;
+  metapb.StoreGroup storeGroup = 2;
+}
+
+message GetGroupStoresRequest {
+  RequestHeader header = 1;
+  uint32 store_groupId = 2;
+}
+
+message GetGroupStoresResponse {
+  ResponseHeader header = 1;
+  repeated metapb.Store stores = 2;
+}
+
+message UpdateStoreGroupRelationRequest {
+  RequestHeader header = 1;
+  uint64 storeId = 2;
+  uint32 store_groupId = 3;
+}
+
+message UpdateStoreGroupRelationResponse {
+  ResponseHeader header = 1;
+  bool success = 2;
+  string message = 3;
+}
