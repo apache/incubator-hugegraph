@@ -51,6 +51,8 @@ public interface PdProvider {
 
     List<Partition> getPartitionsByStore(long storeId) throws PDException;
 
+    List<Partition> getLeaderPartitionsByStore(long storeId) throws PDException;
+
     void updatePartitionCache(Partition partition, Boolean changeLeader);
 
     void invalidPartitionCache(String graph, int partId);
