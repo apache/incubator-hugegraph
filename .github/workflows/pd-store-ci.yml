@@ -1,4 +1,4 @@
-name: "HugeGraph-PD & Store & Hstore CI"
+name: "HugeGraph-PD & Store CI"
 
 on:
   push:
@@ -141,76 +141,6 @@ jobs:
       - name: Run raft-core test
         run: |
           mvn test -pl hugegraph-store/hg-store-test -am -P store-raftcore-test
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3.0.0
-        with:
-          file: ${{ env.REPORT_DIR }}/*.xml
-
-  hstore:
-    # TODO: avoid duplicated env setup
-    runs-on: ubuntu-latest
-    env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
-      TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
-      REPORT_DIR: target/site/jacoco
-      BACKEND: hstore
-      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') || startsWith(github.base_ref, 'release-') }}
-
-    steps:
-      - name: Install JDK 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: '11'
-          distribution: 'zulu'
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Checkout
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 2
-
-      - name: use staged maven repo settings
-        if: ${{ env.USE_STAGE == 'true' }}
-        run: |
-          cp $HOME/.m2/settings.xml /tmp/settings.xml
-          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
-
-      - name: Package
-        run: |
-          mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
-
-      - name: Prepare env and service
-        run: |
-          $TRAVIS_DIR/install-backend.sh $BACKEND
-
-      - name: Run unit test
-        run: |
-          $TRAVIS_DIR/run-unit-test.sh $BACKEND
-
-      - name: Run core test
-        run: |
-          $TRAVIS_DIR/run-core-test.sh $BACKEND
-
-      - name: Run api test
-        run: |
-          $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR
-
-      - name: Run raft test
-        if: ${{ env.BACKEND == 'rocksdb' }}
-        run: |
-          $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR
-
-      - name: Run TinkerPop test
-        if: ${{ env.RELEASE_BRANCH == 'true' }}
-        run: |
-          $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND tinkerpop
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3.0.0
