@@ -69,7 +69,7 @@ jobs:
       - name: Package (for hstore)
         if: ${{ matrix.BACKEND == 'hstore' }}
         run: |
-          mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
+          mvn package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
 
       - name: Prepare backend environment
         run: |
