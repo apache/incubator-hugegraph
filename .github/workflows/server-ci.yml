@@ -73,7 +73,7 @@ jobs:
 
       - name: Prepare backend unique environment
         run: |
-          bash ../scripts/prepare-backend.sh $BACKEND
+          bash .github/scripts/prepare-backend.sh $BACKEND
 
       - name: Run unit test
         run: |
@@ -105,4 +105,5 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ${{ env.REPORT_DIR }}/*.xml
+
 
