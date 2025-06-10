@@ -71,9 +71,9 @@ jobs:
         run: |
           mvn package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
 
-      - name: Prepare backend environment
+      - name: Prepare backend unique environment
         run: |
-          $TRAVIS_DIR/install-backend.sh $BACKEND && jps -l
+          bash ../scripts/prepare-backend.sh $BACKEND
 
       - name: Run unit test
         run: |
@@ -105,3 +105,4 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ${{ env.REPORT_DIR }}/*.xml
+
