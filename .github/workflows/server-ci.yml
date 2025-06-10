@@ -100,5 +100,3 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ${{ env.REPORT_DIR }}/*.xml
-
-

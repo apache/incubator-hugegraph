@@ -1,4 +1,10 @@
 #!/bin/bash
+# This script prepares the backend CI environment based on the specified backend type.
+# It handles special build requirements for specific backends before invoking the
+# standard installation script.
+#
+# Usage: prepare-backend.sh <backend_type>
+#   where <backend_type> is one of: memory, rocksdb, hbase, hstore, etc.
 set -e
 
 BACKEND=$1
