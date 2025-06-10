@@ -498,8 +498,6 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerMethodsToFilter(loadClass("java.lang.ProcessImpl"), "forkAndExec",
                                            "setAccessible", "start");
 
-        optionalMethodsToFilter("sun.invoke.util.BytecodeDescriptor", "parseMethod", "parseSig");
-        optionalMethodsToFilter("sun.reflect.misc.MethodUtil", "invoke");
         optionalMethodsToFilter("jdk.internal.reflect.MethodAccessor", "invoke");
         optionalMethodsToFilter("jdk.internal.reflect.NativeMethodAccessorImpl", "invoke");
     }
@@ -636,8 +634,8 @@ public final class HugeFactoryAuthProxy {
         try {
             clazz = Class.forName(className);
         } catch (ClassNotFoundException e) {
-            // TODO: we just ignore the exception, change it after we drop Java8 support
-            LOG.warn("Skip register class {} to filter", className);
+            LOG.debug("Internal class {} not found in this JDK implementation, skipping filter registration", 
+                     className, e);
         }
         if (clazz != null) {
             Reflection.registerMethodsToFilter(clazz, methodNames);
