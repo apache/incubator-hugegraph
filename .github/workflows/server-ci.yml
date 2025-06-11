@@ -36,22 +36,15 @@ jobs:
         with:
           fetch-depth: 5
 
-      # TODO: Remove this step after install-backend.sh updated
-      - name: Install Java8 for backend
-        uses: actions/setup-java@v4
-        with:
-          java-version: '8'
-          distribution: 'zulu'
-
-      - name: Prepare backend environment
-        run: |
-          $TRAVIS_DIR/install-backend.sh $BACKEND && jps -l
-
       - name: Install Java ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'zulu'
+
+      - name: Prepare backend environment
+        run: |
+          $TRAVIS_DIR/install-backend.sh $BACKEND && jps -l
 
       - name: Cache Maven packages
         uses: actions/cache@v4
