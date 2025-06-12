@@ -28,7 +28,6 @@ import org.apache.hugegraph.version.CoreVersion;
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.api.MultiException;
-import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ResourceConfig;

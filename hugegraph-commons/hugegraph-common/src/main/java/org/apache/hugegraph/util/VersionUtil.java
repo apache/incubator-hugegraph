@@ -104,20 +104,25 @@ public final class VersionUtil {
                        .getValue(Attributes.Name.IMPLEMENTATION_VERSION);
     }
 
+    public static Properties loadProperties() {
+        final Properties props = new Properties();
+
+        try (InputStream is =
+                     VersionUtil.class.getResourceAsStream("/version.properties")) {
+                        props.load(is);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not load version.properties", e);
+        }
+        return props;
+    }
+
     /**
      * Get version from properties
      * @return      The common version
      */
     public static String getVersionFromProperties() {
-        final Properties PROPS = new Properties();
-
-        try (InputStream is =
-                     VersionUtil.class.getResourceAsStream("/version.properties")) {
-            PROPS.load(is);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not load version.properties", e);
-        }
-        return PROPS.getProperty("Version");
+        Properties props = loadProperties();
+        return props.getProperty("Version");
     }
 
     /**
@@ -125,39 +130,18 @@ public final class VersionUtil {
      * @return      The api version
      */
     public static String getApiVersionFromProperties() {
-        final Properties PROPS = new Properties();
-
-        try (InputStream is =
-                     VersionUtil.class.getResourceAsStream("/version.properties")) {
-            PROPS.load(is);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not load version.properties", e);
-        }
-        return PROPS.getProperty("ApiVersion");
+        Properties props = loadProperties();
+        return props.getProperty("ApiVersion");
     }
 
     public static String getApiCheckBeginVersionFromProperties() {
-        final Properties PROPS = new Properties();
-
-        try (InputStream is =
-                     VersionUtil.class.getResourceAsStream("/version.properties")) {
-            PROPS.load(is);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not load version.properties", e);
-        }
-        return PROPS.getProperty("ApiCheckBeginVersion");
+        Properties props = loadProperties();
+        return props.getProperty("ApiCheckBeginVersion");
     }
 
     public static String getApiCheckEndVersionFromProperties() {
-        final Properties PROPS = new Properties();
-
-        try (InputStream is =
-                     VersionUtil.class.getResourceAsStream("/version.properties")) {
-            PROPS.load(is);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not load version.properties", e);
-        }
-        return PROPS.getProperty("ApiCheckEndVersion");
+        Properties props = loadProperties();
+        return props.getProperty("ApiCheckEndVersion");
     }
 
     /**
