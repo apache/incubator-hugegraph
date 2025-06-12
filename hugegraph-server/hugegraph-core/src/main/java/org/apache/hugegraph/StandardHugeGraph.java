@@ -1003,7 +1003,7 @@ public class StandardHugeGraph implements HugeGraph {
             LockUtil.destroy(this.name);
         }
         // Make sure that all transactions are closed in all threads
-        if(!this.tx.closed()){
+        if(!this.tx.closed()) {
             for (String key : this.tx.openedThreads) {
                 LOG.warn("thread [{}] did not close transaction", key);
             }

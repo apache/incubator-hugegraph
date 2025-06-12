@@ -154,9 +154,12 @@ public class StandardTaskScheduler implements TaskScheduler {
             LOG.info("restore task {}", task);
             this.restore(task);
         }
-
-        this.graph.graphTransaction().commit();
-        this.graph.closeTx();
+        try {
+            this.graph.graphTransaction().commit();
+        }
+        finally {
+            this.graph.closeTx();
+        }
     }
 
     private <V> Future<?> restore(HugeTask<V> task) {
