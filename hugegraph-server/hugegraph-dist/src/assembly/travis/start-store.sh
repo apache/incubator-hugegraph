@@ -18,8 +18,16 @@
 set -ev
 
 HOME_DIR=$(pwd)
-source $HOME_DIR/hugegraph-commons/hugegraph-common/src/main/resources/version.properties
-STORE_DIR=$HOME_DIR/hugegraph-store/apache-hugegraph-store-incubating-${Version}
+
+PROPERTIES_FILE="$HOME_DIR/hugegraph-commons/hugegraph-common/src/main/resources/version.properties"
+if [ -f "$PROPERTIES_FILE" ]; then
+    export $(grep -v '^#' "$PROPERTIES_FILE" | xargs)
+else
+    echo "Error: properties file not found at $PROPERTIES_FILE"
+    exit 1
+fi
+
+STORE_DIR=$HOME_DIR/hugegraph-store/apache-hugegraph-store-incubating-$VersionInBash
 
 pushd $STORE_DIR
 . bin/start-hugegraph-store.sh
