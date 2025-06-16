@@ -109,7 +109,7 @@ public final class VersionUtil {
 
         try (InputStream is =
                      VersionUtil.class.getResourceAsStream("/version.properties")) {
-                        props.load(is);
+            props.load(is);
         } catch (IOException e) {
             throw new RuntimeException("Could not load version.properties", e);
         }
