@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1001,10 +1002,17 @@ public class StandardHugeGraph implements HugeGraph {
             this.storeProvider.close();
             LockUtil.destroy(this.name);
         }
+
         // Make sure that all transactions are closed in all threads
+        if (!this.tx.closed()) {
+            for (String key : this.tx.openedThreads) {
+                LOG.warn("thread [{}] did not close transaction", key);
+            }
+        }
         E.checkState(this.tx.closed(),
                      "Ensure tx closed in all threads when closing graph '%s'",
                      this.name);
+
     }
 
     @Override
@@ -1356,6 +1364,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         // Times opened from the upper layer
         private final AtomicInteger refs;
+        private final ConcurrentHashMap.KeySetView<String, Boolean> openedThreads =
+                ConcurrentHashMap.newKeySet();
         // Flag opened of each thread
         private final ThreadLocal<Boolean> opened;
         // Backend transactions
@@ -1470,6 +1480,7 @@ public class StandardHugeGraph implements HugeGraph {
             assert !this.opened.get();
             this.opened.set(true);
             this.transactions.get().openedTime(DateUtil.now().getTime());
+            this.openedThreads.add(Thread.currentThread().getName());
             this.refs.incrementAndGet();
         }
 
@@ -1477,6 +1488,7 @@ public class StandardHugeGraph implements HugeGraph {
             // Just set flag opened=false to reuse the backend tx
             if (this.opened.get()) {
                 this.opened.set(false);
+                this.openedThreads.remove(Thread.currentThread().getName());
                 this.refs.decrementAndGet();
             }
         }
