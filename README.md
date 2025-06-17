@@ -40,7 +40,7 @@ Use Docker to quickly start a HugeGraph server with `RocksDB` (in the background
 ```
 # (Optional) 
 # 1. add "-e PASSWORD=xxx" to enable the auth system
-# 2. add "-e PRELOAD="true" to auto-load a sample graph
+# 2. add "-e PRELOAD=true" to auto-load a sample graph
 docker run -itd --name=graph -p 8080:8080 hugegraph/hugegraph:1.5.0
 ```
 
