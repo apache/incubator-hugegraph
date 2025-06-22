@@ -20,6 +20,8 @@ package org.apache.hugegraph.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -35,6 +37,9 @@ import java.util.function.Consumer;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.pool.MemoryPool;
+import org.apache.hugegraph.memory.pool.impl.TaskMemoryPool;
 import org.apache.hugegraph.task.TaskManager.ContextCallable;
 import org.slf4j.Logger;
 
@@ -105,11 +110,25 @@ public final class Consumers<V> {
                  this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
             this.runningFutures.add(
-                    this.executor.submit(new ContextCallable<>(this::runAndDone)));
+                    this.executor.submit(
+                            new ContextCallable<>(() -> this.runAndDone(MemoryManager.getInstance()
+                                                                                     .getCorrespondingTaskMemoryPool(
+                                                                                             Thread.currentThread()
+                                                                                                   .getName())))));
         }
     }
 
-    private Void runAndDone() {
+    private Void runAndDone(MemoryPool taskPool) {
+        MemoryPool currentTaskPool = null;
+        if (Objects.nonNull(taskPool)) {
+            currentTaskPool = taskPool.findRootQueryPool().addChildPool("kout-consume-task");
+            MemoryManager.getInstance()
+                         .bindCorrespondingTaskMemoryPool(Thread.currentThread().getName(),
+                                                          (TaskMemoryPool) currentTaskPool);
+            MemoryPool currentOperationPool =
+                    currentTaskPool.addChildPool("kout-consume-operation");
+        }
+
         try {
             this.run();
         } catch (Throwable e) {
@@ -125,6 +144,9 @@ public final class Consumers<V> {
         } finally {
             this.done();
             this.latch.countDown();
+            Optional.ofNullable(currentTaskPool)
+                    .ifPresent(pool -> pool.releaseSelf("Complete kout consume task",
+                                                        false));
         }
         return null;
     }
