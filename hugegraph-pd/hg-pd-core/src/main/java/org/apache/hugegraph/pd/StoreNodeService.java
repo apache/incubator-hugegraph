@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Metapb.GraphMode;
 import org.apache.hugegraph.pd.grpc.Metapb.GraphModeReason;
@@ -123,6 +124,105 @@ public class StoreNodeService {
 
             }
         });
+    }
+
+    public synchronized List<Metapb.Shard> allocShards(int partId) throws PDException {
+        if (storeInfoMeta.getShardGroup(partId) == null) {
+            List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
+
+            if (stores.size() == 0) {
+                throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
+                                      "There is no any online store");
+            }
+
+            if (stores.size() < pdConfig.getMinStoreCount()) {
+                throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
+                                      "The number of active stores is less then " +
+                                      pdConfig.getMinStoreCount());
+            }
+
+            int shardCount = pdConfig.getPartition().getShardCount();
+            shardCount = Math.min(shardCount, stores.size());
+            if (shardCount == 2 || shardCount < 1) {
+                shardCount = 1;
+            }
+            allocShards();
+        }
+        return storeInfoMeta.getShardGroup(partId).getShardsList();
+    }
+
+    public synchronized void allocShards() throws PDException {
+        if (storeInfoMeta.getShardGroupCount() ==
+            0) {
+            List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
+
+            if (stores.size() == 0) {
+                throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
+                                      "There is no any online store");
+            }
+
+            if (stores.size() < pdConfig.getMinStoreCount()) {
+                throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
+                                      "The number of active stores is less then " +
+                                      pdConfig.getMinStoreCount());
+            }
+
+            int shardCount = pdConfig.getPartition().getShardCount();
+            shardCount = Math.min(shardCount, stores.size());
+            if (shardCount == 2 || shardCount < 1) {
+                shardCount = 1;
+            }
+
+            for (int groupId = 0; groupId < pdConfig.getConfigService().getPartitionCount();
+                 groupId++) {
+                int storeIdx = groupId % stores.size();
+                List<Metapb.Shard> shards = new ArrayList<>();
+                for (int i = 0; i < shardCount; i++) {
+                    Metapb.Shard shard = Metapb.Shard.newBuilder()
+                                                     .setStoreId(stores.get(storeIdx).getId())
+                                                     .setRole(i == 0 ? Metapb.ShardRole.Leader :
+                                                              Metapb.ShardRole.Follower)
+                                                     .build();
+                    shards.add(shard);
+                    storeIdx = (storeIdx + 1) >= stores.size() ? 0 : ++storeIdx;
+                }
+
+                Metapb.ShardGroup group = Metapb.ShardGroup.newBuilder()
+                                                           .setId(groupId)
+                                                           .setState(
+                                                                   Metapb.PartitionState.PState_Normal)
+                                                           .addAllShards(shards)
+                                                           .build();
+                storeInfoMeta.updateShardGroup(group);
+                partitionService.updateShardGroupCache(group);
+                onShardGroupStatusChanged(group, group);
+                log.info("alloc shard group: id {}", groupId);
+            }
+        }
+
+    }
+
+    public int bulkloadPartitions(String graphName, String tableName,
+                                  Map<Integer, String> parseHdfsPathMap,Integer maxDownloadRate) throws
+                                                                         PDException {
+        partitionService.bulkloadPartitions(graphName, tableName, parseHdfsPathMap,maxDownloadRate);
+        while (true) {
+
+            if (partitionService.getBulkloadStatus(graphName)
+                                .equals(MetaTask.TaskState.Task_Success)) {
+                return 0;
+            } else if (partitionService.getBulkloadStatus(graphName)
+                                       .equals(MetaTask.TaskState.Task_Failure)) {
+                return -1;
+
+            } else {
+                try {
+                    Thread.sleep(10000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     /**
