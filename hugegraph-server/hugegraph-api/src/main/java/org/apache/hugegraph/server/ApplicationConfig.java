@@ -93,6 +93,14 @@ public class ApplicationConfig extends ResourceConfig {
         MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
         register(new InstrumentedResourceMethodApplicationListener(registry));
 
+        // Set OpenApi in runtime
+        registerOpenApi();
+
+        register(OpenApiResource.class);
+    }
+
+
+    void registerOpenApi() {
         OpenAPI openAPI = new OpenAPI();
         Info info = new Info()
             .title("HugeGraph RESTful API")
@@ -133,7 +141,6 @@ public class ApplicationConfig extends ResourceConfig {
                 return null;
             }
         });
-        register(OpenApiResource.class);
     }
 
     private class ConfFactory extends AbstractBinder implements Factory<HugeConfig> {
