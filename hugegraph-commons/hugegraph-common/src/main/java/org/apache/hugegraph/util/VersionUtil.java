@@ -29,6 +29,8 @@ import java.util.jar.Manifest;
 
 public final class VersionUtil {
 
+    private static volatile Properties CACHED_PROPERTIES = null;
+    private static final Object VERSION_FILE_LOCK = new Object();
     /**
      * Compare if a version is inside a range [begin, end)
      * @param version   The version to be compared
@@ -105,15 +107,25 @@ public final class VersionUtil {
     }
 
     public static Properties loadProperties() {
-        final Properties props = new Properties();
-
-        try (InputStream is =
-                     VersionUtil.class.getResourceAsStream("/version.properties")) {
-            props.load(is);
-        } catch (IOException e) {
-            throw new RuntimeException("Could not load version.properties", e);
+        if (CACHED_PROPERTIES == null) {
+            synchronized (VERSION_FILE_LOCK) {
+                if (CACHED_PROPERTIES == null) {
+                    final Properties props = new Properties();
+                    try (InputStream is = VersionUtil.class.getResourceAsStream(
+                            "/version.properties")) {
+                        if (is == null) {
+                            throw new RuntimeException(
+                                    "version.properties file not found in classpath");
+                        }
+                        props.load(is);
+                        CACHED_PROPERTIES = props;
+                    } catch (IOException e) {
+                        throw new RuntimeException("Could not load version.properties", e);
+                    }
+                }
+            }
         }
-        return props;
+        return CACHED_PROPERTIES;
     }
 
     /**
@@ -122,7 +134,11 @@ public final class VersionUtil {
      */
     public static String getVersionFromProperties() {
         Properties props = loadProperties();
-        return props.getProperty("Version");
+        String version = props.getProperty("Version");
+        if (version == null) {
+            throw new RuntimeException("Version property not found in version.properties");
+        }
+        return version;
     }
 
     /**
@@ -131,17 +147,29 @@ public final class VersionUtil {
      */
     public static String getApiVersionFromProperties() {
         Properties props = loadProperties();
-        return props.getProperty("ApiVersion");
+        String apiVersion = props.getProperty("ApiVersion");
+        if (apiVersion == null) {
+            throw new RuntimeException("ApiVersion property not found in version.properties");
+        }
+        return apiVersion;
     }
 
     public static String getApiCheckBeginVersionFromProperties() {
         Properties props = loadProperties();
-        return props.getProperty("ApiCheckBeginVersion");
+        String apiVersion = props.getProperty("ApiCheckBeginVersion");
+        if (apiVersion == null) {
+            throw new RuntimeException("ApiCheckBeginVersion property not found in version.properties");
+        }
+        return apiVersion;
     }
 
     public static String getApiCheckEndVersionFromProperties() {
         Properties props = loadProperties();
-        return props.getProperty("ApiCheckEndVersion");
+        String apiVersion = props.getProperty("ApiCheckEndVersion");
+        if (apiVersion == null) {
+            throw new RuntimeException("ApiCheckEndVersion property not found in version.properties");
+        }
+        return apiVersion;
     }
 
     /**

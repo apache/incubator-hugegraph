@@ -18,7 +18,7 @@
 package org.apache.hugegraph.version;
 
 import org.apache.hugegraph.util.VersionUtil;
-import org.apache.hugegraph.util.VersionUtil.Version;;
+import org.apache.hugegraph.util.VersionUtil.Version;
 
 public class CommonVersion {
 

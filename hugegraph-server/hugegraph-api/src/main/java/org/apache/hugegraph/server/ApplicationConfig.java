@@ -36,6 +36,7 @@ import org.glassfish.jersey.server.monitoring.ApplicationEvent;
 import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
+import org.glassfish.jersey.servlet.ServletProperties;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey3.InstrumentedResourceMethodApplicationListener;
@@ -108,16 +109,30 @@ public class ApplicationConfig extends ResourceConfig {
         SwaggerConfiguration oasConfig = new SwaggerConfiguration()
                 .openAPI(openAPI)
                 .prettyPrint(true);
- 
-        try {
-            new JaxrsOpenApiContextBuilder()
-                    .servletConfig(servletConfig)
-                    .application(this)
-                    .openApiConfiguration(oasConfig)
-                    .buildContext(true);
-        } catch (OpenApiConfigurationException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
+        register(new ApplicationEventListener() {
+            @Override
+            public void onEvent(ApplicationEvent event) {
+                if (event.getType() == ApplicationEvent.Type.INITIALIZATION_FINISHED) {
+                    try {
+                        JaxrsOpenApiContextBuilder builder =
+                                (JaxrsOpenApiContextBuilder) new JaxrsOpenApiContextBuilder()
+                                        .application(ApplicationConfig.this)
+                                        .openApiConfiguration(oasConfig);
+                        if (servletConfig != null) {
+                            builder.servletConfig(servletConfig);
+                        }   
+                        builder.buildContext(true);
+                   } catch (OpenApiConfigurationException e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                   }
+                }
+            }
+
+            @Override
+            public RequestEventListener onRequest(RequestEvent requestEvent) {
+                return null;
+            }
+        });
         register(OpenApiResource.class);
     }
 
