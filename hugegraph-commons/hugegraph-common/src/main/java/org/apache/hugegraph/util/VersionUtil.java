@@ -19,14 +19,18 @@ package org.apache.hugegraph.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
 public final class VersionUtil {
 
+    private static volatile Properties CACHED_PROPERTIES = null;
+    private static final Object VERSION_FILE_LOCK = new Object();
     /**
      * Compare if a version is inside a range [begin, end)
      * @param version   The version to be compared
@@ -100,6 +104,72 @@ public final class VersionUtil {
         }
         return manifest.getMainAttributes()
                        .getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+    }
+
+    public static Properties loadProperties() {
+        if (CACHED_PROPERTIES == null) {
+            synchronized (VERSION_FILE_LOCK) {
+                if (CACHED_PROPERTIES == null) {
+                    final Properties props = new Properties();
+                    try (InputStream is = VersionUtil.class.getResourceAsStream(
+                            "/version.properties")) {
+                        if (is == null) {
+                            throw new RuntimeException(
+                                    "version.properties file not found in classpath");
+                        }
+                        props.load(is);
+                        CACHED_PROPERTIES = props;
+                    } catch (IOException e) {
+                        throw new RuntimeException("Could not load version.properties", e);
+                    }
+                }
+            }
+        }
+        return CACHED_PROPERTIES;
+    }
+
+    /**
+     * Get version from properties
+     * @return      The common version
+     */
+    public static String getVersionFromProperties() {
+        Properties props = loadProperties();
+        String version = props.getProperty("Version");
+        if (version == null) {
+            throw new RuntimeException("Version property not found in version.properties");
+        }
+        return version;
+    }
+
+    /**
+     * Get api version from properties
+     * @return      The api version
+     */
+    public static String getApiVersionFromProperties() {
+        Properties props = loadProperties();
+        String apiVersion = props.getProperty("ApiVersion");
+        if (apiVersion == null) {
+            throw new RuntimeException("ApiVersion property not found in version.properties");
+        }
+        return apiVersion;
+    }
+
+    public static String getApiCheckBeginVersionFromProperties() {
+        Properties props = loadProperties();
+        String apiVersion = props.getProperty("ApiCheckBeginVersion");
+        if (apiVersion == null) {
+            throw new RuntimeException("ApiCheckBeginVersion property not found in version.properties");
+        }
+        return apiVersion;
+    }
+
+    public static String getApiCheckEndVersionFromProperties() {
+        Properties props = loadProperties();
+        String apiVersion = props.getProperty("ApiCheckEndVersion");
+        if (apiVersion == null) {
+            throw new RuntimeException("ApiCheckEndVersion property not found in version.properties");
+        }
+        return apiVersion;
     }
 
     /**
