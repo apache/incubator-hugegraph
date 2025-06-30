@@ -245,6 +245,12 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         try {
+
+            this.loadSchemaStore().open(this.configuration);
+            this.loadSystemStore().open(this.configuration);
+            this.loadGraphStore().open(this.configuration);
+            this.storeProvider.init();
+
             this.tx = new TinkerPopTransaction(this);
             boolean supportsPersistence = this.backendStoreFeatures().supportsPersistence();
             this.features = new HugeFeatures(this, supportsPersistence);
