@@ -47,8 +47,11 @@ public class PropertyFactory<V> {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new HugeEdgePropertyOffHeap<>(
-                        taskMemoryPool.getCurrentWorkingOperatorMemoryPool(), owner, key, value);
+                return taskMemoryPool == null ?
+                       new HugeEdgeProperty<>(owner, key, value) :
+                       new HugeEdgePropertyOffHeap<>(
+                               taskMemoryPool.getCurrentWorkingOperatorMemoryPool(), owner, key,
+                               value);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
                 return new HugeEdgeProperty<>(owner, key, value);
@@ -64,8 +67,11 @@ public class PropertyFactory<V> {
                                                                               .getCorrespondingTaskMemoryPool(
                                                                                       Thread.currentThread()
                                                                                             .getName());
-                return new HugeVertexPropertyOffHeap<>(
-                        taskMemoryPool.getCurrentWorkingOperatorMemoryPool(), owner, key, value);
+                return taskMemoryPool == null ?
+                       new HugeVertexProperty<>(owner, key, value) :
+                       new HugeVertexPropertyOffHeap<>(
+                               taskMemoryPool.getCurrentWorkingOperatorMemoryPool(), owner, key,
+                               value);
             case DISABLE_MEMORY_MANAGEMENT:
             default:
                 return new HugeVertexProperty<>(owner, key, value);
