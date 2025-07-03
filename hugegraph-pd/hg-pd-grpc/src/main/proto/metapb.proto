@@ -201,8 +201,13 @@ message PartitionStats{
   uint64 approximate_keys = 13;
   // heartbeat timestamp
   int64 timestamp = 16;
+  // graphId
+  map<int64,GraphIdMap> graph_ids = 17;
 }
 
+message GraphIdMap{
+  map<string, int64> graphid_map = 1;
+}
 message GraphStats{
   // graph
   string graph_name = 1;
@@ -313,6 +318,7 @@ message PartitionQuery{
   optional uint64 store_id = 1;      // 0 Indicates that the query criteria do not contain store_id
   optional string graph_name = 2;
   optional uint32 partition_id = 4;
+  optional uint32 is_leader = 5;    // 0 表示查询条件不区分role的类型，1 是只需要leader的partition
 }
 
 // PD Node information
