@@ -23,6 +23,8 @@ RegisterUtil.registerBackends()
 
 conf = "conf/graphs/hugegraph.properties"
 graph = HugeFactory.open(conf)
+
+graph.initBackend()
 graph.serverStarted(GlobalMasterInfo.master("server-tinkerpop"))
 schema = graph.schema()
 
