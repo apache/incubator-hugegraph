@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.structure;
 
+import org.apache.hugegraph.memory.consumer.factory.PropertyFactory;
 import org.apache.hugegraph.schema.EdgeLabel;
 import org.apache.hugegraph.schema.PropertyKey;
 import org.apache.hugegraph.type.HugeType;
@@ -67,7 +68,9 @@ public class HugeEdgeProperty<V> extends HugeProperty<V> {
 
     public HugeEdgeProperty<V> switchEdgeOwner() {
         assert this.owner instanceof HugeEdge;
-        return new HugeEdgeProperty<>(((HugeEdge) this.owner).switchOwner(),
-                                      this.pkey, this.value);
+        Class<V> valueType = (Class<V>) this.value.getClass();
+        PropertyFactory<V> propertyFactory = PropertyFactory.getInstance(valueType);
+        return propertyFactory.newHugeEdgeProperty(((HugeEdge) this.owner).switchOwner(),
+                                                   this.pkey, this.value);
     }
 }
