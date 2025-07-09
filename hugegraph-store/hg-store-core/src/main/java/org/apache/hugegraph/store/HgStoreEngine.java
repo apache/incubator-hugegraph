@@ -330,6 +330,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, HgStoreSt
 
                     // Partition status listening
                     engine.addStateListener(this.heartbeatService);
+                    ptOpts.setBulkloadDir(options.getBulkloadDir());
                     engine.init(ptOpts);
                     partitionEngines.put(ptOpts.getGroupId(), engine);
                 }
