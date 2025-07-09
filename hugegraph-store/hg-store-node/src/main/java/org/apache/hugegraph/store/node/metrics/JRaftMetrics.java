@@ -65,10 +65,18 @@ public class JRaftMetrics {
     private JRaftMetrics() {
     }
 
-    public synchronized static void init(MeterRegistry meterRegistry) {
+    public synchronized static void init(MeterRegistry meterRegistry, boolean isInitialCall) {
         if (registry == null) {
             registry = meterRegistry;
             registerMeters();
+            if (isInitialCall) {
+                log.debug("JRaftMetrics initialized during application startup");
+            } else {
+                log.debug("JRaftMetrics initialized during scheduled refresh");
+            }
+        } else if (!isInitialCall) {
+            registerNodeMetrics();
+            log.debug("JRaftMetrics refreshed during scheduled refresh");
         }
     }
 
@@ -108,9 +116,7 @@ public class JRaftMetrics {
 
         synchronized (groupSet) {
             map.forEach((group, metrics) -> {
-                if (!groupSet.add(group)) {
-                    return;
-                }
+                groupSet.add(group);
 
                 metrics.getMetricRegistry().getGauges()
                        .forEach((k, v) -> registerGauge(group, k, v));
