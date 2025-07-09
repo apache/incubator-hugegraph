@@ -219,7 +219,8 @@ public class SessionOperatorImpl implements SessionOperator {
     }
 
     /**
-     * commit throws an exception, you must call rollback, otherwise it will cause cfHandleReadLock not to be released.
+     * commit throws an exception, you must call rollback, otherwise it will cause
+     * cfHandleReadLock not to be released.
      */
     @Override
     public Integer commit() throws DBStoreException {
@@ -398,6 +399,7 @@ public class SessionOperatorImpl implements SessionOperator {
     public long keyCount(byte[] start, byte[] end, String tableName) {
         ScanIterator it = scan(tableName, start, end, ScanIterator.Trait.SCAN_LT_END);
         return it.count();
+        //test push
     }
 
     @Override
