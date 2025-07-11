@@ -127,10 +127,10 @@ public final class ApiVersion {
      * The second parameter of Version.of() is for IDE running without JAR
      * Note: Also update the version number in hugegraph-server/hugegraph-api/pom.xml
      */
-    public static final Version VERSION = Version.of(ApiVersion.class, "0.71");
+    public static final Version VERSION = Version.of(ApiVersion.class, VersionUtil.getApiVersionFromProperties());
 
     public static void check() {
         // Check the version of hugegraph-core. Do first check from version 0.3
-        VersionUtil.check(CoreVersion.VERSION, "1.0", "1.6", CoreVersion.NAME);
+        VersionUtil.check(CoreVersion.VERSION, VersionUtil.getApiCheckBeginVersionFromProperties(), VersionUtil.getApiCheckEndVersionFromProperties(), CoreVersion.NAME);
     }
 }

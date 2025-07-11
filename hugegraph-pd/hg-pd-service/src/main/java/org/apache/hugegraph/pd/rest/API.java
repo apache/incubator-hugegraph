@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.util.VersionUtil;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,7 +34,7 @@ public class API {
 
     // TODO: use a flexible way to define the version
     // refer: https://github.com/apache/hugegraph/pull/2528#discussion_r1573823996
-    public static final String VERSION = "1.5.0";
+    public static final String VERSION = VersionUtil.getVersionFromProperties();
     public static final String PD = "PD";
     public static final String STORE = "STORE";
     public static String STATUS_KEY = "status";
