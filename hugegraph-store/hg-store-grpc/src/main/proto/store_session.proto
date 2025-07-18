@@ -22,7 +22,6 @@ option java_package = "org.apache.hugegraph.store.grpc.session";
 option java_outer_classname = "HgStoreSessionProto";
 
 import "store_common.proto";
-import "store_stream_meta.proto";
 
 service HgStoreSession {
   rpc Get2(GetReq) returns (FeedbackRes) {}
@@ -31,7 +30,6 @@ service HgStoreSession {
   rpc Table(TableReq) returns (FeedbackRes){};
   rpc Graph(GraphReq) returns (FeedbackRes){};
   rpc Clean(CleanReq) returns (FeedbackRes) {}
-  rpc Count(ScanStreamReq) returns (Agg) {}
 }
 
 message TableReq{
@@ -129,8 +127,4 @@ enum PartitionFaultType{
   // Partition does not belong to this machine
   PARTITION_FAULT_TYPE_NOT_LOCAL = 3;
 
-}
-message Agg {
-  Header header = 1;
-  int64 count = 2;
 }

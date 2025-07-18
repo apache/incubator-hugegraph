@@ -1,0 +1,122 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+syntax = "proto3";
+
+import "store_common.proto";
+
+option java_multiple_files = true;
+option java_package = "org.apache.hugegraph.store.grpc.query";
+option java_outer_classname = "AggPushDownQueryProto";
+
+service QueryService {
+  rpc query(stream QueryRequest) returns (stream QueryResponse) {}
+  // rpc close(google.protobuf.StringValue) returns(google.protobuf.BoolValue) {}
+  // 简单的查询
+  rpc query0(QueryRequest) returns (QueryResponse) {}
+  rpc count(QueryRequest) returns (QueryResponse) {}
+}
+
+enum AggregationType {
+  COUNT = 0;
+  SUM = 1;
+  MIN = 2;
+  MAX = 3;
+  AVG = 4;
+}
+
+message AggregateFunc {
+  AggregationType funcType = 1;
+  bytes field = 2;  // count 函数不检查，设置为-1， property id
+  string type = 3; // 初始化buffer类型
+}
+
+enum ScanType {
+  TABLE_SCAN = 0;
+  PRIMARY_SCAN = 1;
+  INDEX_SCAN = 2;
+  NO_SCAN = 3; // 只扫索引
+}
+
+message ScanTypeParam {
+  bytes key_start = 1;
+  bytes key_end = 2;
+  int32 scan_boundary = 3; // range boundary
+  bool is_prefix = 4; // 区分id和prefix
+  bool is_secondary_index = 5; // 区分primary scan or index scan
+  int32 code = 6; // id code
+  bytes id_prefix = 7; // check the element id prefix when parse index
+}
+
+message Index {
+  repeated ScanTypeParam params = 1;
+}
+
+enum DeDupOption {
+  NONE = 0;
+  DEDUP = 1;
+  LIMIT_DEDUP = 2;
+  PRECISE_DEDUP = 3;
+}
+
+message QueryRequest{
+  string queryId = 1;
+  string graph = 2;
+  string table = 3;
+
+  repeated AggregateFunc functions = 4;
+  // 属性剪裁，如果为空，则返回所有的属性, aggregation 作为单独字段，不包含此列
+  // 如果有group by，应该是group by的子集
+  repeated bytes property = 5;
+  repeated bytes group_by = 6; // group by的字段
+  repeated uint32 having = 7;   // having 的过滤 （暂不实现),
+  repeated bytes order_by = 8; // order by 字段
+  bool sort_order = 9; // asc or desc
+  bool null_property = 10; // 不使用property，仅仅返回key
+
+  ScanType scan_type = 11; // 表扫描类型, 如果有索引，此项忽略
+
+  repeated ScanTypeParam scan_type_param = 12; // id, prefix 只用到start
+
+  DeDupOption dedup_option = 13;  // 是否需要key消重
+
+  bytes condition = 21; // condition
+  bytes position = 24;            // 返回offset ~ offset + limit
+  uint32 limit = 23;             // page
+  uint32 offset = 25;           // offset
+
+  double sample_factor = 31; // 抽样频率，应该小于等于1
+
+  repeated bytes olap_property = 32; // 读取的olap 属性
+
+  // 使用的索引, 第一层为or关系，第二层为 and关系
+  // indexes ((index,index) or (index, index))
+  repeated Index indexes = 41;
+
+  bool load_property_from_index = 42;
+  bool check_ttl = 43;
+  // 按照element的 label id group by
+  bool group_by_schema_label = 44;
+}
+
+message QueryResponse {
+  string query_id = 1;
+  bool is_ok = 2;
+  bool is_finished = 3;
+  string message = 4;
+  repeated Kv data = 5;
+}
