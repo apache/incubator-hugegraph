@@ -22,7 +22,9 @@ option java_package = "org.apache.hugegraph.pd.grpc.common";
 option java_outer_classname = "HgPdCommonProto";
 
 message RequestHeader {
+  // cluster ID
   uint64 cluster_id = 1;
+  // sender ID
   uint64 sender_id = 2;
 }
 
@@ -48,4 +50,8 @@ enum ErrorType {
 message Error {
   ErrorType type = 1;
   string message = 2;
+}
+
+message NoArg{
+  RequestHeader header = 1;
 }
