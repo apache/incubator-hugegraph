@@ -68,6 +68,16 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.listenChanges();
     }
 
+    private static Id generateId(HugeType type, Id id) {
+        // NOTE: it's slower performance to use:
+        // String.format("%x-%s", type.code(), name)
+        return IdGenerator.of(type.string() + "-" + id.asString());
+    }
+
+    private static Id generateId(HugeType type, String name) {
+        return IdGenerator.of(type.string() + "-" + name);
+    }
+
     @Override
     public void close() {
         try {
@@ -79,7 +89,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
     }
 
     private Cache<Id, Object> cache(String prefix, long capacity) {
-        final String name = prefix + "-" + this.graphName();
+        final String name = prefix + "-" + this.graph().spaceGraphName();
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
     }
@@ -163,7 +173,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         return this.arrayCaches.cachedTypes();
     }
 
-    private void clearCache(boolean notify) {
+    public void clearCache(boolean notify) {
         this.idCache.clear();
         this.nameCache.clear();
         this.arrayCaches.clear();
@@ -202,16 +212,6 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         // remove from optimized array cache
         this.arrayCaches.remove(type, id);
-    }
-
-    private static Id generateId(HugeType type, Id id) {
-        // NOTE: it's slower performance to use:
-        // String.format("%x-%s", type.code(), name)
-        return IdGenerator.of(type.string() + "-" + id.asString());
-    }
-
-    private static Id generateId(HugeType type, String name) {
-        return IdGenerator.of(type.string() + "-" + name);
     }
 
     @Override

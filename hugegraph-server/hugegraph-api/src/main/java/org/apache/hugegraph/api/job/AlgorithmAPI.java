@@ -46,7 +46,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/jobs/algorithm")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/algorithm")
 @Singleton
 @Tag(name = "AlgorithmAPI")
 public class AlgorithmAPI extends API {
@@ -61,6 +61,7 @@ public class AlgorithmAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> post(@Context GraphManager manager,
+                                @PathParam("graphspace") String graphSpace,
                                 @PathParam("graph") String graph,
                                 @PathParam("name") String algorithm,
                                 Map<String, Object> parameters) {
@@ -74,7 +75,7 @@ public class AlgorithmAPI extends API {
             throw new NotFoundException("Not found algorithm: " + algorithm);
         }
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Map<String, Object> input = ImmutableMap.of("algorithm", algorithm,
                                                     "parameters", parameters);
         JobBuilder<Object> builder = JobBuilder.of(g);

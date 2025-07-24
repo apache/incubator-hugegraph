@@ -52,7 +52,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/auth/users")
+@Path("graphspaces/{graphspace}/graphs/{graph}/auth/users")
 @Singleton
 @Tag(name = "UserAPI")
 public class UserAPI extends API {
@@ -65,12 +65,13 @@ public class UserAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          JsonUser jsonUser) {
         LOG.debug("Graph [{}] create user: {}", graph, jsonUser);
         checkCreatingBody(jsonUser);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         HugeUser user = jsonUser.build();
         user.id(manager.authManager().createUser(user));
         return manager.serializer(g).writeAuthElement(user);
@@ -82,13 +83,14 @@ public class UserAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          JsonUser jsonUser) {
         LOG.debug("Graph [{}] update user: {}", graph, jsonUser);
         checkUpdatingBody(jsonUser);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         HugeUser user;
         try {
             user = manager.authManager().getUser(UserAPI.parseId(id));
@@ -104,11 +106,12 @@ public class UserAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
         LOG.debug("Graph [{}] list users", graph);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         List<HugeUser> users = manager.authManager().listAllUsers(limit);
         return manager.serializer(g).writeAuthElements("users", users);
     }
@@ -118,11 +121,12 @@ public class UserAPI extends API {
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @PathParam("id") String id) {
         LOG.debug("Graph [{}] get user: {}", graph, id);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         HugeUser user = manager.authManager().getUser(IdGenerator.of(id));
         return manager.serializer(g).writeAuthElement(user);
     }
@@ -132,12 +136,13 @@ public class UserAPI extends API {
     @Path("{id}/role")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String role(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] get user role: {}", graph, id);
 
         @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         HugeUser user = manager.authManager().getUser(IdGenerator.of(id));
         return manager.authManager().rolePermission(user).toJson();
     }
@@ -147,12 +152,13 @@ public class UserAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @PathParam("id") String id) {
         LOG.debug("Graph [{}] delete user: {}", graph, id);
 
         @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         try {
             manager.authManager().deleteUser(IdGenerator.of(id));
         } catch (NotFoundException e) {

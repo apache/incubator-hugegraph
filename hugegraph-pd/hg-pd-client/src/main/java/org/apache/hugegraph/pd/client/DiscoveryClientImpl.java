@@ -17,12 +17,12 @@
 
 package org.apache.hugegraph.pd.client;
 
-import java.util.Map;
-import java.util.function.Consumer;
-
 import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
+
+import java.util.Map;
+import java.util.function.Consumer;
 
 @Useless("discovery related")
 public class DiscoveryClientImpl extends DiscoveryClient {
@@ -102,6 +102,11 @@ public class DiscoveryClientImpl extends DiscoveryClient {
 
         public Builder setType(RegisterType val) {
             type = val;
+            return this;
+        }
+
+        public Builder setPdConfig(PDConfig val) {
+            this.conf = val;
             return this;
         }
 
