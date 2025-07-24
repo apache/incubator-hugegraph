@@ -42,6 +42,7 @@ import org.apache.hugegraph.util.Events;
 import com.google.common.collect.ImmutableSet;
 
 public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
+
     private final Cache<Id, Object> idCache;
     private final Cache<Id, Object> nameCache;
 
@@ -51,8 +52,8 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     private EventListener cacheEventListener;
 
     public CachedSchemaTransactionV2(MetaDriver metaDriver,
-                                   String cluster,
-                                   HugeGraphParams graphParams) {
+                                     String cluster,
+                                     HugeGraphParams graphParams) {
         super(metaDriver, cluster, graphParams);
 
         final long capacity = graphParams.configuration()
@@ -85,8 +86,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     }
 
     private Cache<Id, Object> cache(String prefix, long capacity) {
-        // TODO: uncomment later - graph space
-        final String name = prefix + "-" + this.graphName();
+        final String name = prefix + "-" + this.graph().spaceGraphName();
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
     }
@@ -212,10 +212,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
 
         if (!this.graph().option(CoreOptions.TASK_SYNC_DELETION)) {
             MetaManager.instance()
-                       // TODO: uncomment later - graph space
-                       //.notifySchemaCacheClear(this.graph().graphSpace(),
-                       //                        this.graph().name());
-                       .notifySchemaCacheClear("",
+                       .notifySchemaCacheClear(this.graph().graphSpace(),
                                                this.graph().name());
         }
     }
@@ -243,10 +240,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
 
         if (!this.graph().option(CoreOptions.TASK_SYNC_DELETION)) {
             MetaManager.instance()
-                       // TODO: uncomment later - graph space
-                       //.notifySchemaCacheClear(this.graph().graphSpace(),
-                       //                        this.graph().name());
-                       .notifySchemaCacheClear("",
+                       .notifySchemaCacheClear(this.graph().graphSpace(),
                                                this.graph().name());
         }
     }
@@ -481,7 +475,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     }
 
     private static class CachedTypes
-        extends ConcurrentHashMap<HugeType, Boolean> {
+            extends ConcurrentHashMap<HugeType, Boolean> {
 
         private static final long serialVersionUID = -2215549791679355996L;
     }

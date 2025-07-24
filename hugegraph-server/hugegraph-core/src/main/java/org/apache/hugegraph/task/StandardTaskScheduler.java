@@ -91,6 +91,16 @@ public class StandardTaskScheduler implements TaskScheduler {
         this.taskTx = null;
     }
 
+    private static boolean sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+            return true;
+        } catch (InterruptedException ignored) {
+            // Ignore InterruptedException
+            return false;
+        }
+    }
+
     @Override
     public HugeGraph graph() {
         return this.graph.graph();
@@ -99,6 +109,11 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public String graphName() {
         return this.graph.name();
+    }
+
+    @Override
+    public String spaceGraphName() {
+        return this.graph.graph().spaceGraphName();
     }
 
     @Override
@@ -156,8 +171,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
         try {
             this.graph.graphTransaction().commit();
-        }
-        finally {
+        } finally {
             this.graph.closeTx();
         }
     }
@@ -199,7 +213,6 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         // Check this is on master for normal task schedule
         this.checkOnMasterNode("schedule");
-
         if (this.serverManager().onlySingleNode() && !task.computer()) {
             /*
              * Speed up for single node, submit the task immediately,
@@ -523,7 +536,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     public <V> HugeTask<V> findTask(Id id) {
-        HugeTask<V> result =  this.call(() -> {
+        HugeTask<V> result = this.call(() -> {
             Iterator<Vertex> vertices = this.tx().queryTaskInfos(id);
             Vertex vertex = QueryResults.one(vertices);
             if (vertex == null) {
@@ -733,15 +746,5 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     private boolean supportsPaging() {
         return this.graph.backendStoreFeatures().supportsQueryByPage();
-    }
-
-    private static boolean sleep(long ms) {
-        try {
-            Thread.sleep(ms);
-            return true;
-        } catch (InterruptedException ignored) {
-            // Ignore InterruptedException
-            return false;
-        }
     }
 }
