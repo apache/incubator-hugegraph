@@ -46,7 +46,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/jobs/computer")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/computer")
 @Singleton
 @Tag(name = "ComputerAPI")
 public class ComputerAPI extends API {
@@ -62,6 +62,7 @@ public class ComputerAPI extends API {
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> post(@Context GraphManager manager,
                                 @PathParam("graph") String graph,
+                                @PathParam("graphspace") String graphSpace,
                                 @PathParam("name") String computer,
                                 Map<String, Object> parameters) {
         LOG.debug("Graph [{}] schedule computer job: {}", graph, parameters);
@@ -74,12 +75,14 @@ public class ComputerAPI extends API {
             throw new NotFoundException("Not found computer: " + computer);
         }
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Map<String, Object> input = ImmutableMap.of("computer", computer,
                                                     "parameters", parameters);
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name("computer:" + computer)
                .input(JsonUtil.toJson(input))
+               //todo:zzz auth
+               //.context(HugeGraphAuthProxy.getContextString())
                .job(new ComputerJob());
         HugeTask<Object> task = builder.schedule();
         return ImmutableMap.of("task_id", task.id());

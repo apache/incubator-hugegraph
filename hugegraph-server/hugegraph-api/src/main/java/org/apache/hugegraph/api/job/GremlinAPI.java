@@ -56,7 +56,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/jobs/gremlin")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/gremlin")
 @Singleton
 @Tag(name = "GremlinAPI")
 public class GremlinAPI extends API {
@@ -73,20 +73,24 @@ public class GremlinAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=gremlin_execute"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=gremlin_execute"})
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> post(@Context GraphManager manager,
+                                @PathParam("graphspace") String graphSpace,
                                 @PathParam("graph") String graph,
                                 GremlinRequest request) {
         LOG.debug("Graph [{}] schedule gremlin job: {}", graph, request);
         checkCreatingBody(request);
         GREMLIN_JOB_INPUT_HISTOGRAM.update(request.gremlin.length());
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         request.aliase(graph, "graph");
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name(request.name())
                .input(request.toJson())
+               //todo:zzz
+               //.context(HugeGraphAuthProxy.getContextString())
                .job(new GremlinJob());
         return ImmutableMap.of("task_id", builder.schedule().id());
     }

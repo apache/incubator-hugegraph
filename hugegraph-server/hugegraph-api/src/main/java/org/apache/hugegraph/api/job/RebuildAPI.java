@@ -40,7 +40,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/jobs/rebuild")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/rebuild")
 @Singleton
 @Tag(name = "RebuildAPI")
 public class RebuildAPI extends API {
@@ -52,14 +52,17 @@ public class RebuildAPI extends API {
     @Path("vertexlabels/{name}")
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=index_write"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=index_label_write"})
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> vertexLabelRebuild(@Context GraphManager manager,
+                                              @PathParam("graphspace")
+                                              String graphSpace,
                                               @PathParam("graph") String graph,
                                               @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild vertex label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return ImmutableMap.of("task_id",
                                g.schema().vertexLabel(name).rebuildIndex());
     }
@@ -69,14 +72,16 @@ public class RebuildAPI extends API {
     @Path("edgelabels/{name}")
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=index_write"})
-    @RedirectFilter.RedirectMasterRole
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=index_label_write"})
     public Map<String, Id> edgeLabelRebuild(@Context GraphManager manager,
+                                            @PathParam("graphspace")
+                                            String graphSpace,
                                             @PathParam("graph") String graph,
                                             @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild edge label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return ImmutableMap.of("task_id",
                                g.schema().edgeLabel(name).rebuildIndex());
     }
@@ -86,14 +91,17 @@ public class RebuildAPI extends API {
     @Path("indexlabels/{name}")
     @Status(Status.ACCEPTED)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=index_write"})
+    @RolesAllowed({"admin", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=index_label_write"})
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> indexLabelRebuild(@Context GraphManager manager,
+                                             @PathParam("graphspace")
+                                             String graphSpace,
                                              @PathParam("graph") String graph,
                                              @PathParam("name") String name) {
         LOG.debug("Graph [{}] rebuild index label: {}", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return ImmutableMap.of("task_id",
                                g.schema().indexLabel(name).rebuild());
     }
