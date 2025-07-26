@@ -29,6 +29,9 @@ import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.metrics.MetricsUtil;
+import org.apache.hugegraph.space.GraphSpace;
+import org.apache.hugegraph.space.SchemaTemplate;
+import org.apache.hugegraph.space.Service;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.JsonUtil;
@@ -55,7 +58,17 @@ public class API {
             .getSubtype();
     public static final String ACTION_APPEND = "append";
     public static final String ACTION_ELIMINATE = "eliminate";
+    public static final String ACTION_UPDATE = "update";
     public static final String ACTION_CLEAR = "clear";
+    public static final String USER_NAME_PATTERN = "^[0-9a-zA-Z_.-]{2,64}$";
+    public static final String USER_PASSWORD_PATTERN = "[a-zA-Z0-9~!@#$%^&*()" +
+                                                       "_+|<>,.?/:;" +
+                                                       "'`\"\\[\\]{}\\\\]{5," +
+                                                       "16}";
+    public static final String USER_NICKNAME_PATTERN = "^(?!_)(?!.*?_$)" +
+                                                       "[a-zA-Z0-9\u4e00-\u9fa5~!@#$" +
+                                                       "%^&*()_+|<>,.?/:;" +
+                                                       "'`\"\\[\\]{}\\\\]{1,16}$";
     protected static final Logger LOG = Log.logger(API.class);
     private static final Meter SUCCEED_METER =
             MetricsUtil.registerMeter(API.class, "commit-succeed");
@@ -65,17 +78,58 @@ public class API {
             MetricsUtil.registerMeter(API.class, "expected-error");
     private static final Meter UNKNOWN_ERROR_METER =
             MetricsUtil.registerMeter(API.class, "unknown-error");
+    private static final Meter succeedMeter =
+            MetricsUtil.registerMeter(API.class, "commit-succeed");
+    private static final Meter illegalArgErrorMeter =
+            MetricsUtil.registerMeter(API.class, "illegal-arg");
+    private static final Meter expectedErrorMeter =
+            MetricsUtil.registerMeter(API.class, "expected-error");
+    private static final Meter unknownErrorMeter =
+            MetricsUtil.registerMeter(API.class, "unknown-error");
 
-    public static HugeGraph graph(GraphManager manager, String graph) {
-        HugeGraph g = manager.graph(graph);
+    public static HugeGraph graph(GraphManager manager, String graphSpace,
+                                  String graph) {
+        HugeGraph g = manager.graph(graphSpace, graph);
         if (g == null) {
-            throw new NotFoundException(String.format("Graph '%s' does not exist", graph));
+            throw new NotFoundException(String.format(
+                    "Graph '%s' does not exist", graph));
         }
         return g;
     }
 
-    public static HugeGraph graph4admin(GraphManager manager, String graph) {
-        return graph(manager, graph).hugegraph();
+    public static GraphSpace space(GraphManager manager, String space) {
+        GraphSpace s = manager.graphSpace(space);
+        if (s == null) {
+            throw new NotFoundException(String.format(
+                    "Graph space '%s' does not exist", space));
+        }
+        return s;
+    }
+
+    public static Service service(GraphManager manager, String graphSpace,
+                                  String service) {
+        Service s = manager.service(graphSpace, service);
+        if (s == null) {
+            throw new NotFoundException(String.format(
+                    "Service '%s' does not exist", service));
+        }
+        return s;
+    }
+
+    public static SchemaTemplate schemaTemplate(GraphManager manager,
+                                                String graphSpace,
+                                                String schemaTemplate) {
+        SchemaTemplate st = manager.schemaTemplate(graphSpace, schemaTemplate);
+        if (st == null) {
+            throw new NotFoundException(String.format(
+                    "Schema template '%s' does not exist", schemaTemplate));
+        }
+        return st;
+    }
+
+    public static HugeGraph graph4admin(GraphManager manager, String graphSpace,
+                                        String graph) {
+        return graph(manager, graphSpace, graph).hugegraph();
     }
 
     public static <R> R commit(HugeGraph g, Callable<R> callable) {
@@ -185,6 +239,34 @@ public class API {
         } else {
             throw new NotSupportedException(String.format("Not support action '%s'", action));
         }
+    }
+
+    public static boolean hasAdminPerm(GraphManager manager, String user) {
+        return manager.authManager().isAdminManager(user);
+    }
+
+    public static boolean hasSpaceManagerPerm(GraphManager manager,
+                                              String graphSpace,
+                                              String user) {
+        return manager.authManager().isSpaceManager(graphSpace, user);
+    }
+
+    public static boolean hasAnySpaceManagerPerm(GraphManager manager,
+                                                 String user) {
+        return manager.authManager().isSpaceManager(user);
+    }
+
+    public static boolean hasAdminOrSpaceManagerPerm(GraphManager manager,
+                                                     String graphSpace,
+                                                     String user) {
+        return hasAdminPerm(manager, user) ||
+               hasSpaceManagerPerm(manager, graphSpace, user);
+    }
+
+    public static void validPermission(boolean hasPermission, String user,
+                                       String action) {
+        E.checkArgument(hasPermission, "The user [%s] has no permission to [%s].",
+                        user, action);
     }
 
     public static class ApiMeasurer {
