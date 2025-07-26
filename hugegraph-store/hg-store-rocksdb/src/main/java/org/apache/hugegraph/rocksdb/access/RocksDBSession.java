@@ -866,6 +866,42 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         }
     }
 
+    /**
+     * 根据表名获取 size
+     * @param table table
+     * @param start key start
+     * @param end key end
+     * @return size
+     */
+    public long getApproximateDataSize(String table, byte[] start, byte[] end) {
+        cfHandleLock.readLock().lock();
+        try {
+            if (this.tables.containsKey(table)) {
+                return 0;
+            }
+
+            long kbSize = 0;
+            long bytesSize = 0;
+            Range r1 = new Range(new Slice(start), new Slice(end));
+
+            var h = this.tables.get(table);
+            long[] sizes =
+                this.rocksDB.getApproximateSizes(
+                    h, Arrays.asList(r1), SizeApproximationFlag.INCLUDE_FILES, SizeApproximationFlag.INCLUDE_MEMTABLES);
+
+            bytesSize += sizes[0];
+            kbSize += bytesSize / 1024;
+            bytesSize = bytesSize % 1024;
+
+            if (bytesSize != 0) {
+                kbSize += 1;
+            }
+            return kbSize;
+        } finally {
+            cfHandleLock.readLock().unlock();
+        }
+    }
+
     public Map<String, String> getApproximateCFDataSize(byte[] start, byte[] end) {
         Map<String, String> map = new ConcurrentHashMap<>(this.tables.size());
         cfHandleLock.readLock().lock();
