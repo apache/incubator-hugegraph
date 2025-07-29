@@ -356,9 +356,13 @@ public final class TaskManager {
     public void onAsRoleMaster() {
         try {
             for (TaskScheduler entry : this.schedulers.values()) {
-                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager serverInfoManager = scheduler.serverManager();
-                serverInfoManager.changeServerRole(NodeRole.MASTER);
+                ServerInfoManager serverInfoManager = entry.serverManager();
+                if (serverInfoManager != null) {
+                    serverInfoManager.changeServerRole(NodeRole.MASTER);
+                } else {
+                    LOG.warn("ServerInfoManager is null for graph {}",
+                             entry.graphName());
+                }
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when change to master role", e);
@@ -369,9 +373,13 @@ public final class TaskManager {
     public void onAsRoleWorker() {
         try {
             for (TaskScheduler entry : this.schedulers.values()) {
-                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager serverInfoManager = scheduler.serverManager();
-                serverInfoManager.changeServerRole(NodeRole.WORKER);
+                ServerInfoManager serverInfoManager = entry.serverManager();
+                if (serverInfoManager != null) {
+                    serverInfoManager.changeServerRole(NodeRole.WORKER);
+                } else {
+                    LOG.warn("ServerInfoManager is null for graph {}",
+                             entry.graphName());
+                }
             }
         } catch (Throwable e) {
             LOG.error("Exception occurred when change to worker role", e);
