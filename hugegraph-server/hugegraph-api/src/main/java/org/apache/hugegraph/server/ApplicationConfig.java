@@ -36,18 +36,23 @@ import org.glassfish.jersey.server.monitoring.ApplicationEvent;
 import org.glassfish.jersey.server.monitoring.ApplicationEventListener;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 import org.glassfish.jersey.server.monitoring.RequestEventListener;
+import org.glassfish.jersey.servlet.ServletProperties;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.jersey3.InstrumentedResourceMethodApplicationListener;
 
+import io.swagger.v3.oas.integration.OpenApiConfigurationException;
+import io.swagger.v3.jaxrs2.integration.JaxrsOpenApiContextBuilder;
 import io.swagger.v3.jaxrs2.integration.resources.OpenApiResource;
-import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
-import io.swagger.v3.oas.annotations.info.Contact;
-import io.swagger.v3.oas.annotations.info.Info;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.integration.SwaggerConfiguration;
+import io.swagger.v3.oas.models.OpenAPI;
+import jakarta.servlet.ServletConfig;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import jakarta.ws.rs.ApplicationPath;
+import jakarta.ws.rs.core.Context;
 
 @SecurityScheme(
         name = "basic",
@@ -60,16 +65,9 @@ import jakarta.ws.rs.ApplicationPath;
         scheme = "bearer"
 )
 @ApplicationPath("/")
-@OpenAPIDefinition(
-        info = @Info(
-                title = "HugeGraph RESTful API",
-                version = CoreVersion.DEFAULT_VERSION,
-                description = "All management API for HugeGraph",
-                contact = @Contact(url = "https://github.com/apache/hugegraph", name = "HugeGraph")
-        ),
-        security = {@SecurityRequirement(name = "basic"), @SecurityRequirement(name = "bearer")}
-)
 public class ApplicationConfig extends ResourceConfig {
+    @Context
+    private ServletConfig servletConfig;
 
     public ApplicationConfig(HugeConfig conf, EventHub hub) {
         packages("org.apache.hugegraph.api");
@@ -95,8 +93,54 @@ public class ApplicationConfig extends ResourceConfig {
         MetricRegistry registry = MetricManager.INSTANCE.getRegistry();
         register(new InstrumentedResourceMethodApplicationListener(registry));
 
-        // Register OpenApi file to support display on swagger-ui
+        // Set OpenApi in runtime
+        registerOpenApi();
+
         register(OpenApiResource.class);
+    }
+
+
+    void registerOpenApi() {
+        OpenAPI openAPI = new OpenAPI();
+        Info info = new Info()
+            .title("HugeGraph RESTful API")
+            .version(CoreVersion.DEFAULT_VERSION)
+            .description("All management API for HugeGraph")
+            .contact(new io.swagger.v3.oas.models.info.Contact()
+                .name("HugeGraph")
+                .url("https://github.com/apache/hugegraph")); 
+
+        openAPI.setInfo(info);
+        openAPI.addSecurityItem(new SecurityRequirement().addList("basic"));
+        openAPI.addSecurityItem(new SecurityRequirement().addList("bearer"));
+        
+        SwaggerConfiguration oasConfig = new SwaggerConfiguration()
+                .openAPI(openAPI)
+                .prettyPrint(true);
+        register(new ApplicationEventListener() {
+            @Override
+            public void onEvent(ApplicationEvent event) {
+                if (event.getType() == ApplicationEvent.Type.INITIALIZATION_FINISHED) {
+                    try {
+                        JaxrsOpenApiContextBuilder builder =
+                                (JaxrsOpenApiContextBuilder) new JaxrsOpenApiContextBuilder()
+                                        .application(ApplicationConfig.this)
+                                        .openApiConfiguration(oasConfig);
+                        if (servletConfig != null) {
+                            builder.servletConfig(servletConfig);
+                        }   
+                        builder.buildContext(true);
+                   } catch (OpenApiConfigurationException e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                   }
+                }
+            }
+
+            @Override
+            public RequestEventListener onRequest(RequestEvent requestEvent) {
+                return null;
+            }
+        });
     }
 
     private class ConfFactory extends AbstractBinder implements Factory<HugeConfig> {

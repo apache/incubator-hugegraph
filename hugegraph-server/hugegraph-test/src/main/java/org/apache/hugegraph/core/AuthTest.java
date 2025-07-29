@@ -55,6 +55,63 @@ import com.google.common.collect.ImmutableSet;
 
 public class AuthTest extends BaseCoreTest {
 
+    private static Id makeProjectAndAddGraph(HugeGraph graph,
+                                             String projectName,
+                                             String graphName) {
+        HugeProject project = makeProject(projectName, "");
+        AuthManager authManager = graph.authManager();
+        Id projectId = authManager.createProject(project);
+        projectId = authManager.projectAddGraphs(projectId,
+                                                 ImmutableSet.of(graphName));
+        Assert.assertNotNull(projectId);
+        return projectId;
+    }
+
+    private static HugeProject makeProject(String name, String desc) {
+        HugeProject project = new HugeProject(name, desc);
+        project.creator("admin");
+        return project;
+    }
+
+    private static HugeUser makeUser(String name, String password) {
+        HugeUser user = new HugeUser(name);
+        user.password(password);
+        user.creator("admin");
+        return user;
+    }
+
+    private static HugeGroup makeGroup(String name) {
+        HugeGroup group = new HugeGroup(name);
+        group.creator("admin");
+        return group;
+    }
+
+    private static HugeTarget makeTarget(String name, String url) {
+        HugeTarget target = new HugeTarget(name, url);
+        target.creator("admin");
+        return target;
+    }
+
+    private static HugeTarget makeTarget(String name, String graph, String url,
+                                         List<HugeResource> ress) {
+        HugeTarget target = new HugeTarget(name, graph, url, ress);
+        target.creator("admin");
+        return target;
+    }
+
+    private static HugeBelong makeBelong(Id user, Id group) {
+        HugeBelong belong = new HugeBelong(user, group);
+        belong.creator("admin");
+        return belong;
+    }
+
+    private static HugeAccess makeAccess(Id group, Id target,
+                                         HugePermission permission) {
+        HugeAccess access = new HugeAccess(group, target, permission);
+        access.creator("admin");
+        return access;
+    }
+
     @After
     public void clearAll() {
         HugeGraph graph = graph();
@@ -301,7 +358,7 @@ public class AuthTest extends BaseCoreTest {
 
         group = authManager.getGroup(id);
         Assert.assertEquals("group1", group.name());
-        Assert.assertEquals(null, group.description());
+        Assert.assertNull(group.description());
         Assert.assertEquals(group.create(), group.update());
 
         Assert.assertEquals(ImmutableMap.of("group_name", "group1",
@@ -632,7 +689,7 @@ public class AuthTest extends BaseCoreTest {
         HugeBelong belong = authManager.getBelong(id1);
         Assert.assertEquals(user, belong.source());
         Assert.assertEquals(group1, belong.target());
-        Assert.assertEquals(null, belong.description());
+        Assert.assertNull(belong.description());
         Assert.assertEquals(belong.create(), belong.update());
 
         Map<String, Object> expected = new HashMap<>();
@@ -647,7 +704,7 @@ public class AuthTest extends BaseCoreTest {
         belong = authManager.getBelong(id2);
         Assert.assertEquals(user, belong.source());
         Assert.assertEquals(group2, belong.target());
-        Assert.assertEquals(null, belong.description());
+        Assert.assertNull(belong.description());
         Assert.assertEquals(belong.create(), belong.update());
 
         expected = new HashMap<>();
@@ -1321,11 +1378,11 @@ public class AuthTest extends BaseCoreTest {
         authManager.createUser(user);
 
         // Login
-        authManager.loginUser("test", "pass");
+        authManager.loginUser("test", "pass", 10080L);
 
         // Invalid username or password
         Assert.assertThrows(AuthenticationException.class, () -> {
-            authManager.loginUser("huge", "graph");
+            authManager.loginUser("huge", "graph", 10080L);
         }, e -> {
             Assert.assertContains("Incorrect username or password", e.getMessage());
         });
@@ -1338,7 +1395,7 @@ public class AuthTest extends BaseCoreTest {
         HugeUser user = makeUser("test", StringEncoding.hashPassword("pass"));
         Id userId = authManager.createUser(user);
 
-        String token = authManager.loginUser("test", "pass");
+        String token = authManager.loginUser("test", "pass", 10080L);
 
         UserWithRole userWithRole;
         userWithRole = authManager.validateUser(token);
@@ -1375,7 +1432,7 @@ public class AuthTest extends BaseCoreTest {
         Id userId = authManager.createUser(user);
 
         // Login
-        String token = authManager.loginUser("test", "pass");
+        String token = authManager.loginUser("test", "pass", 10080L);
 
         // Logout
         Cache<Id, String> tokenCache = Whitebox.getInternalState(authManager,
@@ -1500,79 +1557,22 @@ public class AuthTest extends BaseCoreTest {
 
         List<HugeProject> projects = authManager.listAllProject(1);
         Assert.assertNotNull(projects);
-        Assert.assertTrue(projects.size() == 1);
+        Assert.assertEquals(1, projects.size());
 
         projects = authManager.listAllProject(-1);
         Assert.assertNotNull(projects);
-        Assert.assertTrue(projects.size() == 3);
+        Assert.assertEquals(3, projects.size());
 
         projects = authManager.listAllProject(3);
         Assert.assertNotNull(projects);
-        Assert.assertTrue(projects.size() == 3);
+        Assert.assertEquals(3, projects.size());
 
         projects = authManager.listAllProject(4);
         Assert.assertNotNull(projects);
-        Assert.assertTrue(projects.size() == 3);
+        Assert.assertEquals(3, projects.size());
 
         projects = authManager.listAllProject(2);
         Assert.assertNotNull(projects);
-        Assert.assertTrue(projects.size() == 2);
-    }
-
-    private static Id makeProjectAndAddGraph(HugeGraph graph,
-                                             String projectName,
-                                             String graphName) {
-        HugeProject project = makeProject(projectName, "");
-        AuthManager authManager = graph.authManager();
-        Id projectId = authManager.createProject(project);
-        projectId = authManager.projectAddGraphs(projectId,
-                                                 ImmutableSet.of(graphName));
-        Assert.assertNotNull(projectId);
-        return projectId;
-    }
-
-    private static HugeProject makeProject(String name, String desc) {
-        HugeProject project = new HugeProject(name, desc);
-        project.creator("admin");
-        return project;
-    }
-
-    private static HugeUser makeUser(String name, String password) {
-        HugeUser user = new HugeUser(name);
-        user.password(password);
-        user.creator("admin");
-        return user;
-    }
-
-    private static HugeGroup makeGroup(String name) {
-        HugeGroup group = new HugeGroup(name);
-        group.creator("admin");
-        return group;
-    }
-
-    private static HugeTarget makeTarget(String name, String url) {
-        HugeTarget target = new HugeTarget(name, url);
-        target.creator("admin");
-        return target;
-    }
-
-    private static HugeTarget makeTarget(String name, String graph, String url,
-                                         List<HugeResource> ress) {
-        HugeTarget target = new HugeTarget(name, graph, url, ress);
-        target.creator("admin");
-        return target;
-    }
-
-    private static HugeBelong makeBelong(Id user, Id group) {
-        HugeBelong belong = new HugeBelong(user, group);
-        belong.creator("admin");
-        return belong;
-    }
-
-    private static HugeAccess makeAccess(Id group, Id target,
-                                         HugePermission permission) {
-        HugeAccess access = new HugeAccess(group, target, permission);
-        access.creator("admin");
-        return access;
+        Assert.assertEquals(2, projects.size());
     }
 }

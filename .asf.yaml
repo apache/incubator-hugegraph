@@ -17,12 +17,12 @@
 
 github:
   features:
-    # Enable issue management
     issues: true
     # Enable wiki for documentation
     wiki: true
     # Enable projects for project management boards
     projects: true
+    discussions: true
   description: A graph database that supports more than 100+ billion data, high performance and scalability (Include OLTP Engine & REST-API & Backends)
   homepage: https://hugegraph.apache.org
   del_branch_on_merge: true
@@ -47,6 +47,10 @@ github:
         dismiss_stale_reviews: true
         require_code_owner_reviews: false
         required_approving_review_count: 2
+  # (for non-committer): assign/edit/close issues & PR, without write access to the code
+  collaborators:
+    - Pengzna
+    - haohao0103
 
 # refer https://cwiki.apache.org/confluence/display/INFRA/Git+-+.asf.yaml+features#Git.asf.yamlfeatures-Notificationsettingsforrepositories
 notifications:

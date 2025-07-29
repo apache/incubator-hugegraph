@@ -21,14 +21,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import com.alipay.sofa.rpc.common.RpcOptions;
-import com.alipay.sofa.rpc.core.exception.SofaRpcException;
-import com.alipay.sofa.rpc.core.exception.SofaRpcRuntimeException;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.rpc.RpcClientProvider;
 import org.apache.hugegraph.rpc.RpcCommonConfig;
@@ -38,6 +30,14 @@ import org.apache.hugegraph.rpc.RpcServer;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.E;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.alipay.sofa.rpc.common.RpcOptions;
+import com.alipay.sofa.rpc.core.exception.SofaRpcException;
+import com.alipay.sofa.rpc.core.exception.SofaRpcRuntimeException;
 import com.google.common.collect.ImmutableMap;
 
 public class ServerClientTest extends BaseUnitTest {
@@ -169,7 +169,7 @@ public class ServerClientTest extends BaseUnitTest {
         RpcProviderConfig serverConfig = rpcServerAdaptive.config();
         serverConfig.addService(HelloService.class, new HelloServiceImpl());
 
-        // Start other server bound the port
+        // Start another server bound the port
         int usedPort = rpcServerAdaptive.port();
         InetAddress ip = InetAddress.getByName(rpcServerAdaptive.host());
         ServerSocket inUse = new ServerSocket(usedPort,50, ip);

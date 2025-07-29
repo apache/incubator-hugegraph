@@ -39,10 +39,12 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
         </dependency>
+        <!-- TODO: replace it by  jackson(com.fasterxml.jackson.core:jackson-databind) -->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20210307</version>
+            <version>20240303</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

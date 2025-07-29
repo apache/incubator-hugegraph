@@ -83,6 +83,8 @@ public class GraphSONSchemaSerializer {
         }
 
         if (!edgeLabel.isFather()) {
+            map.put(HugeKeys.SOURCE_LABEL, edgeLabel.sourceLabelName());
+            map.put(HugeKeys.TARGET_LABEL, edgeLabel.targetLabelName());
             map.put(HugeKeys.LINKS,
                     graph.mapPairId2Name(edgeLabel.links()));
             map.put(HugeKeys.FREQUENCY, edgeLabel.frequency());

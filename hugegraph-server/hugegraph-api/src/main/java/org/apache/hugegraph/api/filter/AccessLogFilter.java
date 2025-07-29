@@ -25,6 +25,7 @@ import static org.apache.hugegraph.metrics.MetricsUtil.METRICS_PATH_TOTAL_COUNTE
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Map;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
@@ -39,6 +40,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.ext.Provider;
 
 // TODO: should add test for this class
@@ -77,6 +79,27 @@ public class AccessLogFilter implements ContainerResponseFilter {
         return String.join(DELIMITER, path1, path2);
     }
 
+    private static String normalizePath(ContainerRequestContext requestContext) {
+        // Replace variable parts of the path with placeholders
+        String requestPath = requestContext.getUriInfo().getPath();
+        // get uri params
+        MultivaluedMap<String, String> pathParameters = requestContext.getUriInfo()
+                                                                      .getPathParameters();
+
+        String newPath = requestPath;
+        for (Map.Entry<String, java.util.List<String>> entry : pathParameters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue().get(0);
+            if ("graph".equals(key)) {
+                newPath = newPath.replace(key, value);
+            }
+            newPath = newPath.replace(value, key);
+        }
+
+        LOG.trace("normalize path, original path: '{}', new path: '{}'", requestPath, newPath);
+        return newPath;
+    }
+
     /**
      * Use filter to log request info
      *
@@ -88,15 +111,23 @@ public class AccessLogFilter implements ContainerResponseFilter {
                        ContainerResponseContext responseContext) throws IOException {
         // Grab corresponding request / response info from context;
         URI uri = requestContext.getUriInfo().getRequestUri();
-        String path = uri.getRawPath();
         String method = requestContext.getMethod();
+        String path = normalizePath(requestContext);
         String metricsName = join(path, method);
 
-        MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
+        int status = responseContext.getStatus();
+        if (isStatusXx(status)) {
+            MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_TOTAL_COUNTER)).inc();
+        }
+
         if (statusOk(responseContext.getStatus())) {
             MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_SUCCESS_COUNTER)).inc();
         } else {
-            MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
+            // TODO: The return codes for compatibility need to be further detailed.
+            LOG.trace("Failed Status: {}", status);
+            if (status != 500 && status != 415) {
+                MetricsUtil.registerCounter(join(metricsName, METRICS_PATH_FAILED_COUNTER)).inc();
+            }
         }
 
         Object requestTime = requestContext.getProperty(REQUEST_TIME);
@@ -105,8 +136,11 @@ public class AccessLogFilter implements ContainerResponseFilter {
             long start = (Long) requestTime;
             long executeTime = now - start;
 
-            MetricsUtil.registerHistogram(join(metricsName, METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
-                       .update(executeTime);
+            if (status != 500 && status != 415) {
+                MetricsUtil.registerHistogram(join(metricsName,
+                                                   METRICS_PATH_RESPONSE_TIME_HISTOGRAM))
+                           .update(executeTime);
+            }
 
             HugeConfig config = configProvider.get();
             long timeThreshold = config.get(ServerOptions.SLOW_QUERY_LOG_TIME_THRESHOLD);
@@ -129,5 +163,9 @@ public class AccessLogFilter implements ContainerResponseFilter {
 
     private boolean statusOk(int status) {
         return status >= 200 && status < 300;
+    }
+
+    private boolean isStatusXx(int status) {
+        return status != 500 && status != 415;
     }
 }

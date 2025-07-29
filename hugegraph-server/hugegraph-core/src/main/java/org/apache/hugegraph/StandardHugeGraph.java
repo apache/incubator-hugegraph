@@ -17,10 +17,12 @@
 
 package org.apache.hugegraph;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,6 +72,8 @@ import org.apache.hugegraph.masterelection.RoleElectionOptions;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.masterelection.StandardClusterRoleStore;
 import org.apache.hugegraph.masterelection.StandardRoleElectionStateMachine;
+import org.apache.hugegraph.memory.MemoryManager;
+import org.apache.hugegraph.memory.util.RoundUtil;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
@@ -214,6 +218,13 @@ public class StandardHugeGraph implements HugeGraph {
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.OLTP_ONLY;
         this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
+
+        MemoryManager.setMemoryMode(
+                MemoryManager.MemoryMode.fromValue(config.get(CoreOptions.MEMORY_MODE)));
+        MemoryManager.setMaxMemoryCapacityInBytes(config.get(CoreOptions.MAX_MEMORY_CAPACITY));
+        MemoryManager.setMaxMemoryCapacityForOneQuery(
+                config.get(CoreOptions.ONE_QUERY_MAX_MEMORY_CAPACITY));
+        RoundUtil.setAlignment(config.get(CoreOptions.MEMORY_ALIGNMENT));
 
         LockUtil.init(this.name);
 
@@ -477,8 +488,8 @@ public class StandardHugeGraph implements HugeGraph {
         try {
             if (isHstore()) {
                 return new CachedSchemaTransactionV2(
-                    MetaManager.instance().metaDriver(),
-                    MetaManager.instance().cluster(), this.params);
+                        MetaManager.instance().metaDriver(),
+                        MetaManager.instance().cluster(), this.params);
             }
             return new CachedSchemaTransaction(this.params, loadSchemaStore());
         } catch (BackendException e) {
@@ -568,11 +579,7 @@ public class StandardHugeGraph implements HugeGraph {
     private AbstractSerializer serializer() {
         String name = this.configuration.get(CoreOptions.SERIALIZER);
         LOG.debug("Loading serializer '{}' for graph '{}'", name, this.name);
-        AbstractSerializer serializer = SerializerFactory.serializer(this.configuration, name);
-        if (serializer == null) {
-            throw new HugeException("Can't load serializer with name " + name);
-        }
-        return serializer;
+        return SerializerFactory.serializer(this.configuration, name);
     }
 
     private Analyzer analyzer() {
@@ -588,7 +595,7 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     protected void reloadRamtable(boolean loadFromFile) {
-        // Expect triggered manually, like gremlin job
+        // Expect triggered manually, like a gremlin job
         if (this.ramtable != null) {
             this.ramtable.reload(loadFromFile, this.name);
         } else {
@@ -995,10 +1002,17 @@ public class StandardHugeGraph implements HugeGraph {
             this.storeProvider.close();
             LockUtil.destroy(this.name);
         }
+
         // Make sure that all transactions are closed in all threads
+        if (!this.tx.closed()) {
+            for (String key : this.tx.openedThreads) {
+                LOG.warn("thread [{}] did not close transaction", key);
+            }
+        }
         E.checkState(this.tx.closed(),
                      "Ensure tx closed in all threads when closing graph '%s'",
                      this.name);
+
     }
 
     @Override
@@ -1350,6 +1364,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         // Times opened from the upper layer
         private final AtomicInteger refs;
+        private final ConcurrentHashMap.KeySetView<String, Boolean> openedThreads =
+                ConcurrentHashMap.newKeySet();
         // Flag opened of each thread
         private final ThreadLocal<Boolean> opened;
         // Backend transactions
@@ -1464,6 +1480,7 @@ public class StandardHugeGraph implements HugeGraph {
             assert !this.opened.get();
             this.opened.set(true);
             this.transactions.get().openedTime(DateUtil.now().getTime());
+            this.openedThreads.add(Thread.currentThread().getName());
             this.refs.incrementAndGet();
         }
 
@@ -1471,6 +1488,7 @@ public class StandardHugeGraph implements HugeGraph {
             // Just set flag opened=false to reuse the backend tx
             if (this.opened.get()) {
                 this.opened.set(false);
+                this.openedThreads.remove(Thread.currentThread().getName());
                 this.refs.decrementAndGet();
             }
         }
@@ -1606,37 +1624,51 @@ public class StandardHugeGraph implements HugeGraph {
 
     private static class AbstractCacheNotifier implements CacheNotifier {
 
+        public static final Logger LOG = Log.logger(AbstractCacheNotifier.class);
+
         private final EventHub hub;
         private final EventListener cacheEventListener;
 
         public AbstractCacheNotifier(EventHub hub, CacheNotifier proxy) {
             this.hub = hub;
             this.cacheEventListener = event -> {
-                Object[] args = event.args();
-                E.checkArgument(args.length > 0 && args[0] instanceof String,
-                                "Expect event action argument");
-                if (Cache.ACTION_INVALIDED.equals(args[0])) {
-                    event.checkArgs(String.class, HugeType.class, Object.class);
-                    HugeType type = (HugeType) args[1];
-                    Object ids = args[2];
-                    if (ids instanceof Id[]) {
-                        // argument type mismatch: proxy.invalid2(type,Id[]ids)
-                        proxy.invalid2(type, (Id[]) ids);
-                    } else if (ids instanceof Id) {
-                        proxy.invalid(type, (Id) ids);
-                    } else {
-                        E.checkArgument(false, "Unexpected argument: %s", ids);
+                try {
+                    LOG.info("Received event: {}", event);
+                    Object[] args = event.args();
+                    E.checkArgument(args.length > 0 && args[0] instanceof String,
+                                    "Expect event action argument");
+                    String action = (String) args[0];
+                    LOG.debug("Event action: {}", action);
+                    if (Cache.ACTION_INVALIDED.equals(action)) {
+                        event.checkArgs(String.class, HugeType.class, Object.class);
+                        HugeType type = (HugeType) args[1];
+                        Object ids = args[2];
+                        if (ids instanceof Id[]) {
+                            LOG.debug("Calling proxy.invalid2 with type: {}, IDs: {}", type, Arrays.toString((Id[]) ids));
+                            proxy.invalid2(type, (Id[]) ids);
+                        } else if (ids instanceof Id) {
+                            LOG.debug("Calling proxy.invalid with type: {}, ID: {}", type, ids);
+                            proxy.invalid(type, (Id) ids);
+                        } else {
+                            LOG.error("Unexpected argument: {}", ids);
+                            E.checkArgument(false, "Unexpected argument: %s", ids);
+                        }
+                        return true;
+                    } else if (Cache.ACTION_CLEARED.equals(action)) {
+                        event.checkArgs(String.class, HugeType.class);
+                        HugeType type = (HugeType) args[1];
+                        LOG.debug("Calling proxy.clear with type: {}", type);
+                        proxy.clear(type);
+                        return true;
                     }
-                    return true;
-                } else if (Cache.ACTION_CLEARED.equals(args[0])) {
-                    event.checkArgs(String.class, HugeType.class);
-                    HugeType type = (HugeType) args[1];
-                    proxy.clear(type);
-                    return true;
+                } catch (Exception e) {
+                    LOG.error("Error processing cache event: {}", e.getMessage(), e);
                 }
+                LOG.warn("Event {} not handled",event);
                 return false;
             };
             this.hub.listen(Events.CACHE, this.cacheEventListener);
+            LOG.info("Cache event listener registered successfully. cacheEventListener {}",this.cacheEventListener);
         }
 
         @Override

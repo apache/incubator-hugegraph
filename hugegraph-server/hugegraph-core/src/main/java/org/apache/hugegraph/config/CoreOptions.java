@@ -20,6 +20,7 @@ package org.apache.hugegraph.config;
 import static org.apache.hugegraph.backend.tx.GraphTransaction.COMMIT_BATCH;
 import static org.apache.hugegraph.config.OptionChecker.allowValues;
 import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
+import static org.apache.hugegraph.config.OptionChecker.nonNegativeInt;
 import static org.apache.hugegraph.config.OptionChecker.positiveInt;
 import static org.apache.hugegraph.config.OptionChecker.rangeInt;
 
@@ -680,5 +681,33 @@ public class CoreOptions extends OptionHolder {
             "The addresses of pd nodes, separated with commas.",
             disallowEmpty(),
             "127.0.0.1:8686"
+    );
+
+    public static final ConfigOption<String> MEMORY_MODE = new ConfigOption<>(
+            "memory.mode",
+            "The memory mode used for query in HugeGraph.",
+            disallowEmpty(),
+            "off-heap"
+    );
+
+    public static final ConfigOption<Long> MAX_MEMORY_CAPACITY = new ConfigOption<>(
+            "memory.max_capacity",
+            "The maximum memory capacity that can be managed for all queries in HugeGraph.",
+            nonNegativeInt(),
+            Bytes.GB
+    );
+
+    public static final ConfigOption<Long> ONE_QUERY_MAX_MEMORY_CAPACITY = new ConfigOption<>(
+            "memory.one_query_max_capacity",
+            "The maximum memory capacity that can be managed for a query in HugeGraph.",
+            nonNegativeInt(),
+            Bytes.MB * 100
+    );
+
+    public static final ConfigOption<Long> MEMORY_ALIGNMENT = new ConfigOption<>(
+            "memory.alignment",
+            "The alignment used for round memory size.",
+            nonNegativeInt(),
+            8L
     );
 }

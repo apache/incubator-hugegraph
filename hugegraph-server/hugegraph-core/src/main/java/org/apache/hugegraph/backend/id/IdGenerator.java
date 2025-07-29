@@ -119,15 +119,15 @@ public abstract class IdGenerator {
         return IdType.UNKNOWN;
     }
 
-    private static int compareType(Id id1, Id id2) {
+    public static int compareType(Id id1, Id id2) {
         return idType(id1).ordinal() - idType(id2).ordinal();
     }
 
     /****************************** id defines ******************************/
 
-    public static final class StringId implements Id {
+    public static class StringId implements Id {
 
-        private final String id;
+        protected String id;
 
         public StringId(String id) {
             E.checkArgument(!id.isEmpty(), "The id can't be empty");
@@ -196,11 +196,11 @@ public abstract class IdGenerator {
         }
     }
 
-    public static final class LongId extends Number implements Id {
+    public static class LongId extends Number implements Id {
 
         private static final long serialVersionUID = -7732461469037400190L;
 
-        private final long id;
+        protected Long id;
 
         public LongId(long id) {
             this.id = id;
@@ -270,7 +270,7 @@ public abstract class IdGenerator {
 
         @Override
         public int intValue() {
-            return (int) this.id;
+            return this.id.intValue();
         }
 
         @Override
@@ -289,9 +289,9 @@ public abstract class IdGenerator {
         }
     }
 
-    public static final class UuidId implements Id {
+    public static class UuidId implements Id {
 
-        private final UUID uuid;
+        protected UUID uuid;
 
         public UuidId(String string) {
             this(StringEncoding.uuid(string));
@@ -379,9 +379,9 @@ public abstract class IdGenerator {
     /**
      * This class is just used by backend store for wrapper object as Id
      */
-    public static final class ObjectId implements Id {
+    public static class ObjectId implements Id {
 
-        private final Object object;
+        protected Object object;
 
         public ObjectId(Object object) {
             E.checkNotNull(object, "object");
