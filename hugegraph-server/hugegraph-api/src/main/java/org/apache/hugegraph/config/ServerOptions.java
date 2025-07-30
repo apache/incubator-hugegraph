@@ -79,7 +79,7 @@ public class ServerOptions extends OptionHolder {
                     "Whether to enable role election, if enabled, the server " +
                     "will elect a master node in the cluster.",
                     disallowEmpty(),
-                    true
+                    false
             );
 
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
