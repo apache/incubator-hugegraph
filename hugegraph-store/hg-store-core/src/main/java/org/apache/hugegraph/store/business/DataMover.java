@@ -30,6 +30,7 @@ import com.alipay.sofa.jraft.Status;
 /**
  * Data transfer interface, implementing partition splitting and merging, supporting cross-machine data transfer.
  */
+@Deprecated
 public interface DataMover {
 
     void setBusinessHandler(BusinessHandler handler);

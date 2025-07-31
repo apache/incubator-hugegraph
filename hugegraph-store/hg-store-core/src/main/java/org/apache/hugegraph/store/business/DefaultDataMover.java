@@ -42,6 +42,7 @@ import com.alipay.sofa.jraft.Status;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Deprecated
 public class DefaultDataMover implements DataMover {
 
     public static int Batch_Put_Size = 2000;

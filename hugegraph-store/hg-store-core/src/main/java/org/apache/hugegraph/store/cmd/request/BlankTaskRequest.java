@@ -15,12 +15,18 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
-public class GetStoreInfoRequest extends HgCmdBase.BaseRequest {
+import org.apache.hugegraph.store.cmd.HgCmdBase;
+
+/**
+ * @author zhangyingjie
+ * @date 2023/8/21
+ **/
+public class BlankTaskRequest extends HgCmdBase.BaseRequest {
 
     @Override
     public byte magic() {
-        return HgCmdBase.GET_STORE_INFO;
+        return HgCmdBase.BLANK_TASK;
     }
 }

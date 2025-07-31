@@ -15,17 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
-import lombok.Data;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
-@Data
-public class DbCompactionRequest extends HgCmdBase.BaseRequest {
-
-    private String tableName;
+public class GetStoreInfoRequest extends HgCmdBase.BaseRequest {
 
     @Override
     public byte magic() {
-        return HgCmdBase.ROCKSDB_COMPACTION;
+        return HgCmdBase.GET_STORE_INFO;
     }
 }

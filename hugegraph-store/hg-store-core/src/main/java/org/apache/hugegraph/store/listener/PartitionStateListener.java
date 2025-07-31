@@ -15,24 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.listener;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import lombok.Data;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.meta.PartitionRole;
 
-@Data
-public class DestroyRaftRequest extends HgCmdBase.BaseRequest {
+public interface PartitionStateListener {
 
-    private final List<String> graphNames = new ArrayList<>();
+    // 分区角色发生改变
+    void partitionRoleChanged(Partition partition, PartitionRole newRole);
 
-    public void addGraphName(String graphName) {
-        graphNames.add(graphName);
-    }
-
-    @Override
-    public byte magic() {
-        return HgCmdBase.DESTROY_RAFT;
-    }
+    // 分区发生改变
+    void partitionShardChanged(Partition partition, List<Metapb.Shard> oldShards,
+                               List<Metapb.Shard> newShards);
 }
