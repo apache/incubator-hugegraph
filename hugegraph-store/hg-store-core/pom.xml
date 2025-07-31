@@ -114,6 +114,11 @@
             <artifactId>hg-store-common</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>org.roaringbitmap</groupId>
+            <artifactId>RoaringBitmap</artifactId>
+            <version>0.9.38</version>
+        </dependency>
 
         <!-- tinkerpop -->
         <dependency>

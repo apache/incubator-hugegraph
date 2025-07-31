@@ -41,5 +41,9 @@
             <artifactId>guava</artifactId>
             <version>32.0.1-android</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-struct</artifactId>
+        </dependency>
     </dependencies>
 </project>
