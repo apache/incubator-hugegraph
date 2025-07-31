@@ -469,7 +469,8 @@ public final class GraphManager {
 
         NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
         boolean supportRoleElection = !nodeRole.computer() &&
-                                      this.supportRoleElection();
+                                      this.supportRoleElection() &&
+                                      config.get(ServerOptions.ENABLE_SERVER_ROLE_ELECTION);
         if (supportRoleElection) {
             // Init any server as Worker role, then do role election
             nodeRole = NodeRole.WORKER;
