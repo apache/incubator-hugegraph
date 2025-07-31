@@ -47,9 +47,16 @@ cd "${TOP}" || exit
 
 DEFAULT_JAVA_OPTIONS=""
 JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' | awk -F'_' '{print $1}')
-# TODO: better not string number compare, use `bc` like github.com/koalaman/shellcheck/wiki/SC2072
-if [[ $? -eq 0 && $JAVA_VERSION >  "1.9" ]]; then
-      DEFAULT_JAVA_OPTIONS="--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED"
+
+# 提取主版本号进行数值比较
+if [[ $JAVA_VERSION == 1.* ]]; then
+    MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f2)
+else
+    MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f1)
+fi
+
+if [[ $? -eq 0 && $MAJOR_VERSION -ge 9 ]]; then
+    DEFAULT_JAVA_OPTIONS="--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED"
 fi
 
 echo "Initializing HugeGraph Store..."
