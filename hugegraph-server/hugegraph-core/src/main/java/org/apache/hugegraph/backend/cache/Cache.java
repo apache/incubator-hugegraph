@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.backend.cache;
 
+import org.apache.hugegraph.backend.id.Id;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -66,4 +67,9 @@ public interface Cache<K, V> {
     <T> T attachment(T object);
 
     <T> T attachment();
+
+    // Traverse all keys in the cache for testing purpose
+    default void traverseKeys(Consumer<Id> consumer) {
+        // Default implementation: do nothing
+    }
 }
