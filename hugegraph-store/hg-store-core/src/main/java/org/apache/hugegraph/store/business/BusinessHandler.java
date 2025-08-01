@@ -129,6 +129,9 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     TxBuilder txBuilder(String graph, int partId);
 
+    Map<Long, Map<String, Long>> getGraphIds();
+
+
     default void doBatch(String graph, int partId, List<BatchEntry> entryList) {
         BusinessHandler.TxBuilder builder = txBuilder(graph, partId);
         try {

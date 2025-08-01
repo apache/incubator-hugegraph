@@ -26,9 +26,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.pulse.BulkloadInfo;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
 import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
 import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
@@ -53,6 +56,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 /**
  * PD sends partition instruction processor to Store
  */
+@Slf4j
 public class PartitionInstructionProcessor implements PartitionInstructionListener {
 
     private static final Logger LOG = Log.logger(PartitionInstructionProcessor.class);
@@ -264,6 +268,37 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
                                     });
         }
 
+    }
+
+    @Override
+    public void onPartitionBulkload(long taskId, Partition partition, BulkloadInfo bulkloadInfo, Consumer<Integer> consumer)  {
+        PartitionEngine engine = storeEngine.getPartitionEngine(partition.getId());
+        if (preCheckTaskId(taskId, partition.getId())) {
+            return;
+        }
+        if (engine != null ) {
+            log.info("onPartitionBulkload,taskId:{},partiiton: {},bulkloadInfo:{}",taskId,partition, bulkloadInfo);
+            consumer.accept(0);
+            String graphName = partition.getGraphName();
+            int partitionId = partition.getId();
+            MetaTask.Task task = MetaTask.Task.newBuilder()
+                                              .setId(taskId)
+                                              .setPartition(partition.getProtoObj())
+                                              .setType(MetaTask.TaskType.Ingest_SSTFile)
+                                              .setState(MetaTask.TaskState.Task_Ready)
+                                              .setBulkloadInfo(bulkloadInfo)
+                                              .build();
+
+            try {
+                threadPool.submit(() -> {
+                    engine.moveData(task);
+                });
+            } catch (Exception e) {
+                LOG.error("Partition {}-{} ingestSSTFileTask exception {}",
+                          graphName, partitionId, e);
+            }
+
+        }
     }
 
     @Override
