@@ -119,10 +119,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     private PartitionStateMachine stateMachine;
     @Getter
     private RaftGroupService raftGroupService;
-    @Getter
     private TaskManager taskManager;
     private SnapshotHandler snapshotHandler;
-    @Getter
     private Node raftNode;
     private volatile boolean started;
 
@@ -1096,13 +1094,15 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     }
                     log.info("Partition {},path:{}  begin to doSnapshotSync", this.getGroupId(),
                              lockPath);
-                    raftNode.getRaftOptions().setTruncateLog(true);
+                    //todo soya may have problem
+                    //raftNode.getRaftOptions().setTruncateLog(true);
                     CountDownLatch latch = new CountDownLatch(1);
                     AtomicReference<Status> result = new AtomicReference<>();
                     raftNode.snapshot(status -> {
                         result.set(status);
                         try {
-                            raftNode.getRaftOptions().setTruncateLog(false);
+                            //todo soya may have problem
+                            //raftNode.getRaftOptions().setTruncateLog(false);
                             latch.countDown();
                             log.info("Partition {},path: {} doSnapshotSync result : {}. ", groupId,
                                      lockPath, status);
