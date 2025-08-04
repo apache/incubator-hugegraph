@@ -25,6 +25,7 @@ function abs_path() {
     cd -P "$(dirname "$SOURCE")" && pwd
 }
 
+REQUIRED_JAVA_VERSION="11"
 BIN=$(abs_path)
 TOP="$(cd "${BIN}"/../ && pwd)"
 CONF="$TOP/conf"
@@ -48,15 +49,19 @@ cd "${TOP}" || exit
 DEFAULT_JAVA_OPTIONS=""
 JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}' | awk -F'_' '{print $1}')
 
-# 提取主版本号进行数值比较
+# Extract the major version number for numerical comparison
 if [[ $JAVA_VERSION == 1.* ]]; then
     MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f2)
 else
     MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f1)
 fi
 
-if [[ $? -eq 0 && $MAJOR_VERSION -ge 9 ]]; then
+# Compare with the required Java version
+if [[ $? -eq 0 && $MAJOR_VERSION -ge $REQUIRED_JAVA_VERSION ]]; then
     DEFAULT_JAVA_OPTIONS="--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED"
+else
+    echo "Error: This application requires Java version $REQUIRED_JAVA_VERSION or higher."
+    exit 1
 fi
 
 echo "Initializing HugeGraph Store..."
