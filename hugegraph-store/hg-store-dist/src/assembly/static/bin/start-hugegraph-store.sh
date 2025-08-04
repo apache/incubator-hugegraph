@@ -131,7 +131,14 @@ fi
 
 # check jdk version
 JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}'  | awk -F'_' '{print $1}')
-if [[ $? -ne 0 || $JAVA_VERSION < $EXPECT_JDK_VERSION ]]; then
+
+if [[ $JAVA_VERSION == 1.* ]]; then
+    MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f2)
+else
+    MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f1)
+fi
+
+if [[ $? -ne 0 || $MAJOR_VERSION -lt $EXPECT_JDK_VERSION ]]; then
     echo "Please make sure that the JDK is installed and the version >= $EXPECT_JDK_VERSION"  >> ${OUTPUT}
     exit 1
 fi
