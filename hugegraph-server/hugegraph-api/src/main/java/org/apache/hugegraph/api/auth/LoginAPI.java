@@ -51,7 +51,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 
-@Path("graphs/{graph}/auth")
+@Path("graphspaces/{graphspace}/graphs/{graph}/auth")
 @Singleton
 @Tag(name = "LoginAPI")
 public class LoginAPI extends API {
@@ -64,7 +64,9 @@ public class LoginAPI extends API {
     @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public String login(@Context GraphManager manager, @PathParam("graph") String graph,
+    public String login(@Context GraphManager manager,
+                        @PathParam("graphspace") String graphSpace,
+                        @PathParam("graph") String graph,
                         JsonLogin jsonLogin) {
         LOG.debug("Graph [{}] user login: {}", graph, jsonLogin);
         checkCreatingBody(jsonLogin);
@@ -72,7 +74,7 @@ public class LoginAPI extends API {
         try {
             String token = manager.authManager()
                                   .loginUser(jsonLogin.name, jsonLogin.password, jsonLogin.expire);
-            HugeGraph g = graph(manager, graph);
+            HugeGraph g = graph(manager, graphSpace, graph);
             return manager.serializer(g).writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
             throw new NotAuthorizedException(e.getMessage(), e);
@@ -105,7 +107,9 @@ public class LoginAPI extends API {
     @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public String verifyToken(@Context GraphManager manager, @PathParam("graph") String graph,
+    public String verifyToken(@Context GraphManager manager,
+                              @PathParam("graphspace") String graphSpace,
+                              @PathParam("graph") String graph,
                               @HeaderParam(HttpHeaders.AUTHORIZATION) String token) {
         E.checkArgument(StringUtils.isNotEmpty(token),
                         "Request header Authorization must not be null");
@@ -118,7 +122,7 @@ public class LoginAPI extends API {
         token = token.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX.length());
         UserWithRole userWithRole = manager.authManager().validateUser(token);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return manager.serializer(g)
                       .writeMap(ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
                                                 userWithRole.username(),

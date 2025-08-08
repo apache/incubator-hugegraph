@@ -42,7 +42,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/variables")
+@Path("graphspaces/{graphspace}/graphs/{graph}/variables")
 @Singleton
 @Tag(name = "VariablesAPI")
 public class VariablesAPI extends API {
@@ -55,6 +55,7 @@ public class VariablesAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> update(@Context GraphManager manager,
+                                      @PathParam("graphspace") String graphSpace,
                                       @PathParam("graph") String graph,
                                       @PathParam("key") String key,
                                       JsonVariableValue value) {
@@ -62,7 +63,7 @@ public class VariablesAPI extends API {
                         "The variable value can't be empty");
         LOG.debug("Graph [{}] set variable for {}: {}", graph, key, value);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         commit(g, () -> g.variables().set(key, value.data));
         return ImmutableMap.of(key, value.data);
     }
@@ -71,10 +72,11 @@ public class VariablesAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> list(@Context GraphManager manager,
+                                    @PathParam("graphspace") String graphSpace,
                                     @PathParam("graph") String graph) {
         LOG.debug("Graph [{}] get variables", graph);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         return g.variables().asMap();
     }
 
@@ -83,11 +85,12 @@ public class VariablesAPI extends API {
     @Path("{key}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public Map<String, Object> get(@Context GraphManager manager,
+                                   @PathParam("graphspace") String graphSpace,
                                    @PathParam("graph") String graph,
                                    @PathParam("key") String key) {
         LOG.debug("Graph [{}] get variable by key '{}'", graph, key);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Optional<?> object = g.variables().get(key);
         if (!object.isPresent()) {
             throw new NotFoundException(String.format(
@@ -101,11 +104,12 @@ public class VariablesAPI extends API {
     @Path("{key}")
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @PathParam("key") String key) {
         LOG.debug("Graph [{}] remove variable by key '{}'", graph, key);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         commit(g, () -> g.variables().remove(key));
     }
 

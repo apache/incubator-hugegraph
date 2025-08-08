@@ -57,7 +57,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/schema/vertexlabels")
+@Path("graphspaces/{graphspace}/graphs/{graph}/schema/vertexlabels")
 @Singleton
 @Tag(name = "VertexLabelAPI")
 public class VertexLabelAPI extends API {
@@ -69,16 +69,18 @@ public class VertexLabelAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_write"})
+    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=vertex_label_write"})
     @RedirectFilter.RedirectMasterRole
     public String create(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          JsonVertexLabel jsonVertexLabel) {
         LOG.debug("Graph [{}] create vertex label: {}",
                   graph, jsonVertexLabel);
         checkCreatingBody(jsonVertexLabel);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         VertexLabel.Builder builder = jsonVertexLabel.convert2Builder(g);
         VertexLabel vertexLabel = builder.create();
         return manager.serializer(g).writeVertexLabel(vertexLabel);
@@ -89,9 +91,11 @@ public class VertexLabelAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_write"})
+    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=vertex_label_write"})
     @RedirectFilter.RedirectMasterRole
     public String update(@Context GraphManager manager,
+                         @PathParam("graphspace") String graphSpace,
                          @PathParam("graph") String graph,
                          @PathParam("name") String name,
                          @QueryParam("action") String action,
@@ -106,7 +110,7 @@ public class VertexLabelAPI extends API {
         // Parse action parameter
         boolean append = checkAndParseAction(action);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         VertexLabel.Builder builder = jsonVertexLabel.convert2Builder(g);
         VertexLabel vertexLabel = append ?
                                   builder.append() :
@@ -117,8 +121,10 @@ public class VertexLabelAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_read"})
+    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=vertex_label_read"})
     public String list(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        @QueryParam("names") List<String> names) {
         boolean listAll = CollectionUtils.isEmpty(names);
@@ -128,7 +134,7 @@ public class VertexLabelAPI extends API {
             LOG.debug("Graph [{}] get vertex labels by names {}", graph, names);
         }
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         List<VertexLabel> labels;
         if (listAll) {
             labels = g.schema().getVertexLabels();
@@ -145,13 +151,15 @@ public class VertexLabelAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_read"})
+    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=vertex_label_read"})
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @PathParam("name") String name) {
         LOG.debug("Graph [{}] get vertex label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         VertexLabel vertexLabel = g.schema().getVertexLabel(name);
         return manager.serializer(g).writeVertexLabel(vertexLabel);
     }
@@ -162,14 +170,16 @@ public class VertexLabelAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$graph $action=vertex_label_delete"})
+    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+                            "$action=vertex_label_delete"})
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> delete(@Context GraphManager manager,
+                                  @PathParam("graphspace") String graphSpace,
                                   @PathParam("graph") String graph,
                                   @PathParam("name") String name) {
         LOG.debug("Graph [{}] remove vertex label by name '{}'", graph, name);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         // Throw 404 if not exists
         g.schema().getVertexLabel(name);
         return ImmutableMap.of("task_id",
