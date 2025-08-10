@@ -78,12 +78,13 @@ else
 fi
 
 # check jdk version
-JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}'  | awk -F'_' '{print $1}')
+EXPECT_JDK_VERSION=11
 
-if [[ $JAVA_VERSION == 1.* ]]; then
-    MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f2)
-else
-    MAJOR_VERSION=$(echo $JAVA_VERSION | cut -d'.' -f1)
+# Extract and check Java version
+JAVA_VERSION=$($JAVA -version 2>&1 | head -n1 | sed -n 's/.*version "\([0-9]*\)\..*/\1/p')
+
+if [[ "$JAVA_VERSION" != "$EXPECT_JDK_VERSION" ]]; then
+    echo "Expected Java ${EXPECT_JDK_VERSION}, but found Java ${JAVA_VERSION} ✗" >> ${OUTPUT}
 fi
 
 
