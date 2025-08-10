@@ -81,9 +81,9 @@ import org.slf4j.Logger;
 @SuppressWarnings("serial")
 public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
-    private static final long serialVersionUID = 6480426922914059122L;
+    private static final Logger LOG = Log.logger(HugeGraphSONModule.class);
 
-    public static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
+    private static final long serialVersionUID = 6480426922914059122L;
 
     private static final String TYPE_NAMESPACE = "hugegraph";
 
@@ -97,7 +97,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
 
     // NOTE: jackson will synchronize DateFormat
     private static final String DF = "yyyy-MM-dd HH:mm:ss.SSS";
-    private static final Logger LOG = Log.logger(HugeGraphSONModule.class);
+    public static final DateFormat DATE_FORMAT = new SimpleDateFormat(DF);
 
     static {
         TYPE_DEFINITIONS = new ConcurrentHashMap<>();
