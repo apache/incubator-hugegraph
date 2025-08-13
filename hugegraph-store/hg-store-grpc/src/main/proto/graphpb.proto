@@ -45,6 +45,7 @@ message ScanPartitionRequest{
     bytes position = 10;
     // Return condition
     repeated int64 properties = 11;
+    int32 batchSize = 12;
   }
 
 
