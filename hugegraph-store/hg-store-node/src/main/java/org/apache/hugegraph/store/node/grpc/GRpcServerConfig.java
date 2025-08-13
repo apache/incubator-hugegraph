@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.store.node.grpc;
 
+import org.apache.hugegraph.store.consts.PoolNames;
 import org.apache.hugegraph.store.node.AppConfig;
 import org.apache.hugegraph.store.node.util.HgExecutorUtil;
 import org.lognet.springboot.grpc.GRpcServerBuilderConfigurer;
@@ -30,8 +31,6 @@ import io.grpc.ServerBuilder;
  */
 @Component
 public class GRpcServerConfig extends GRpcServerBuilderConfigurer {
-
-    public final static String EXECUTOR_NAME = "hg-grpc";
     @Autowired
     private AppConfig appConfig;
 
@@ -39,7 +38,7 @@ public class GRpcServerConfig extends GRpcServerBuilderConfigurer {
     public void configure(ServerBuilder<?> serverBuilder) {
         AppConfig.ThreadPoolGrpc grpc = appConfig.getThreadPoolGrpc();
         serverBuilder.executor(
-                HgExecutorUtil.createExecutor(EXECUTOR_NAME, grpc.getCore(), grpc.getMax(),
+                HgExecutorUtil.createExecutor(PoolNames.GRPC, grpc.getCore(), grpc.getMax(),
                                               grpc.getQueue())
         );
     }

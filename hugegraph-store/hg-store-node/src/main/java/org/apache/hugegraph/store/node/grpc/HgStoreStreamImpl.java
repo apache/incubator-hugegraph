@@ -20,6 +20,7 @@ package org.apache.hugegraph.store.node.grpc;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.hugegraph.store.consts.PoolNames;
 import org.apache.hugegraph.store.grpc.state.ScanState;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
 import org.apache.hugegraph.store.grpc.stream.KvPageRes;
@@ -70,7 +71,7 @@ public class HgStoreStreamImpl extends HgStoreStreamGrpc.HgStoreStreamImplBase {
                 if (this.executor == null) {
                     AppConfig.ThreadPoolScan scan = this.appConfig.getThreadPoolScan();
                     this.executor =
-                            HgExecutorUtil.createExecutor("hg-scan", scan.getCore(), scan.getMax(),
+                            HgExecutorUtil.createExecutor(PoolNames.SCAN, scan.getCore(), scan.getMax(),
                                                           scan.getQueue());
                 }
             }

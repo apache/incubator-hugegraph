@@ -45,8 +45,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
 
-    static ByteBufferAllocator bfAllocator =
-            new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
     static ByteBufferAllocator alloc =
             new ByteBufferAllocator(ParallelScanIterator.maxBodySize * 3 / 2, 1000);
     private final int maxInFlightCount = PropertyUtil.getInt("app.scan.stream.inflight", 16);

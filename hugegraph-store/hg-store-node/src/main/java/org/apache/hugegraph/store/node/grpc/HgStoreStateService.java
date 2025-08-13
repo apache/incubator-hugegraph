@@ -17,13 +17,21 @@
 
 package org.apache.hugegraph.store.node.grpc;
 
+import java.util.List;
+
+import org.apache.hugegraph.store.PartitionEngine;
 import org.apache.hugegraph.store.grpc.state.HgStoreStateGrpc;
 import org.apache.hugegraph.store.grpc.state.NodeStateRes;
+import org.apache.hugegraph.store.grpc.state.PartitionRequest;
+import org.apache.hugegraph.store.grpc.state.PeersResponse;
 import org.apache.hugegraph.store.grpc.state.ScanState;
 import org.apache.hugegraph.store.grpc.state.SubStateReq;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.alipay.sofa.jraft.Node;
+import com.alipay.sofa.jraft.conf.Configuration;
+import com.alipay.sofa.jraft.entity.PeerId;
 import com.google.protobuf.Empty;
 
 import io.grpc.stub.StreamObserver;
@@ -38,6 +46,8 @@ public class HgStoreStateService extends HgStoreStateGrpc.HgStoreStateImplBase {
 
     @Autowired
     HgStoreStreamImpl impl;
+    @Autowired
+    private HgStoreNodeService storeService;
 
     @Override
     public void subState(SubStateReq request, StreamObserver<NodeStateRes> observer) {
@@ -53,6 +63,26 @@ public class HgStoreStateService extends HgStoreStateGrpc.HgStoreStateImplBase {
     public void getScanState(SubStateReq request, StreamObserver<ScanState> observer) {
         ScanState state = impl.getState();
         observer.onNext(state);
+        observer.onCompleted();
+    }
+
+    @Override
+    public void getPeers(PartitionRequest request, StreamObserver<PeersResponse> observer) {
+        PartitionEngine engine = storeService.getStoreEngine().getPartitionEngine(request.getId());
+        StringBuilder result = new StringBuilder();
+        if (engine != null) {
+            Node raftNode = engine.getRaftNode();
+            Configuration conf = raftNode.getCurrentConf();
+            List<PeerId> peers = conf.getPeers();
+            for (PeerId id : peers) {
+                result.append(id.getEndpoint().toString());
+                result.append(",");
+            }
+            if (result.length() > 0) {
+                result.deleteCharAt(result.length() - 1);
+            }
+        }
+        observer.onNext(PeersResponse.newBuilder().setPeers(result.toString()).build());
         observer.onCompleted();
     }
 }

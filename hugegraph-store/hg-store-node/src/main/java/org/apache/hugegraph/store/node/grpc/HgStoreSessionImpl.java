@@ -32,6 +32,7 @@ import org.apache.hugegraph.store.grpc.common.Key;
 import org.apache.hugegraph.store.grpc.common.Kv;
 import org.apache.hugegraph.store.grpc.common.ResCode;
 import org.apache.hugegraph.store.grpc.common.ResStatus;
+import org.apache.hugegraph.store.grpc.common.TTLCleanRequest;
 import org.apache.hugegraph.store.grpc.session.Agg;
 import org.apache.hugegraph.store.grpc.session.BatchEntry;
 import org.apache.hugegraph.store.grpc.session.BatchGetReq;
@@ -58,10 +59,12 @@ import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.protobuf.ByteString;
+import com.google.protobuf.util.JsonFormat;
 
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
+//todo refactor
 @Slf4j
 @GRpcService
 public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBase {
@@ -153,6 +156,30 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
             String msg = "Failed to doClean, graph: " + graph + "; partitionId = " + partId;
             log.error(msg, t);
             builder.setStatus(HgGrpc.fail(msg));
+        }
+        GrpcClosure.setResult(response, builder.build());
+    }
+
+    public void cleanTtl(int partId, TTLCleanRequest request, RaftClosure response) {
+        String graph = request.getGraph();
+        FeedbackRes.Builder builder = FeedbackRes.newBuilder();
+        String table = request.getTable();
+        List<ByteString> ids = request.getIdsList();
+        try {
+            if (getWrapper().cleanTtl(graph, partId, table, ids)) {
+                builder.setStatus(HgGrpc.success());
+            } else {
+                builder.setStatus(HgGrpc.not());
+            }
+        } catch (Throwable t) {
+            String msg = "cleanTtl with error: ";
+            try {
+                msg += JsonFormat.printer().print(request);
+            } catch (Exception e) {
+            } finally {
+                log.error(msg, t);
+                builder.setStatus(HgGrpc.fail(msg));
+            }
         }
         GrpcClosure.setResult(response, builder.build());
     }
@@ -292,16 +319,11 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
         BatchGrpcClosure<FeedbackRes> closure =
                 new BatchGrpcClosure<>(groups.size());
         groups.forEach((partition, entries) -> {
-            storeService.addRaftTask(HgStoreNodeService.BATCH_OP, graph,
-                                     partition,
-                                     BatchReq.newBuilder()
-                                             .setHeader(request.getHeader())
-                                             .setWriteReq(
-                                                     BatchWriteReq.newBuilder()
-                                                                  .addAllEntry(
-                                                                          entries))
-                                             .build(),
-                                     closure.newRaftClosure());
+            storeService.addRaftTask(HgStoreNodeService.BATCH_OP, graph, partition,
+                                     BatchReq.newBuilder().setHeader(request.getHeader())
+                                             .setWriteReq(BatchWriteReq.newBuilder()
+                                                                       .addAllEntry(entries))
+                                             .build(), closure.newRaftClosure());
         });
 
         if (!graph.isEmpty()) {
@@ -526,26 +548,5 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
             builder.setStatus(HgGrpc.fail(msg));
         }
         GrpcClosure.setResult(response, builder.build());
-    }
-
-    @Override
-    public void count(ScanStreamReq request, StreamObserver<Agg> observer) {
-        ScanIterator it = null;
-        try {
-            BusinessHandler handler = storeService.getStoreEngine().getBusinessHandler();
-            long count = handler.count(request.getHeader().getGraph(), request.getTable());
-            observer.onNext(Agg.newBuilder().setCount(count).build());
-            observer.onCompleted();
-        } catch (Exception e) {
-            observer.onError(e);
-        } finally {
-            if (it != null) {
-                try {
-                    it.close();
-                } catch (Exception e) {
-
-                }
-            }
-        }
     }
 }

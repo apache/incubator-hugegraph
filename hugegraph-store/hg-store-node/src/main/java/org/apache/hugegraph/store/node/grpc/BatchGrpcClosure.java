@@ -117,13 +117,12 @@ class BatchGrpcClosure<V> {
         PartitionFaultResponse errorResponse;
 
         if (leaderMap.size() > 0) {
-            PartitionFaultResponse.Builder partitionFault =
-                    PartitionFaultResponse.newBuilder().setFaultType(
-                            PartitionFaultType.PARTITION_FAULT_TYPE_NOT_LEADER);
+            PartitionFaultResponse.Builder partitionFault = PartitionFaultResponse.newBuilder()
+                                                                                  .setFaultType(
+                                                                                          PartitionFaultType.PARTITION_FAULT_TYPE_NOT_LEADER);
             leaderMap.forEach((k, v) -> {
-                partitionFault.addPartitionLeaders(PartitionLeader.newBuilder()
-                                                                  .setPartitionId(k)
-                                                                  .setLeaderId(v).build());
+                partitionFault.addPartitionLeaders(
+                        PartitionLeader.newBuilder().setPartitionId(k).setLeaderId(v).build());
             });
             errorResponse = partitionFault.build();
         } else {
@@ -167,26 +166,23 @@ class BatchGrpcClosure<V> {
             if (errorStatus.isEmpty()) {  // No error, merge results
                 observer.onNext(ok.apply(results));
             } else {
-                observer.onNext((V) FeedbackRes.newBuilder()
-                                               .setStatus(ResStatus.newBuilder()
-                                                                   .setCode(ResCode.RES_CODE_FAIL)
-                                                                   .setMsg(getErrorMsg()))
+                observer.onNext((V) FeedbackRes.newBuilder().setStatus(
+                                                       ResStatus.newBuilder().setCode(ResCode.RES_CODE_FAIL).setMsg(getErrorMsg()))
                                                .setPartitionFaultResponse(this.getErrorResponse())
                                                .build());
             }
         } catch (InterruptedException e) {
             log.error("waitFinish exception: ", e);
-            observer.onNext((V) FeedbackRes.newBuilder()
-                                           .setStatus(ResStatus.newBuilder()
-                                                               .setCode(ResCode.RES_CODE_FAIL)
-                                                               .setMsg(e.getLocalizedMessage())
-                                                               .build()).build());
+            observer.onNext((V) FeedbackRes.newBuilder().setStatus(
+                    ResStatus.newBuilder().setCode(ResCode.RES_CODE_FAIL)
+                             .setMsg(e.getLocalizedMessage()).build()).build());
         }
         observer.onCompleted();
     }
 
     /**
-     * Select one incorrect result from multiple results, if there are no errors, return the first one.
+     * Select one incorrect result from multiple results, if there are no errors, return the
+     * first one.
      */
     public FeedbackRes selectError(List<FeedbackRes> results) {
         if (!CollectionUtils.isEmpty(results)) {
@@ -202,10 +198,8 @@ class BatchGrpcClosure<V> {
             });
             return res.get();
         } else {
-            return FeedbackRes.newBuilder()
-                              .setStatus(ResStatus.newBuilder()
-                                                  .setCode(ResCode.RES_CODE_OK).build())
-                              .build();
+            return FeedbackRes.newBuilder().setStatus(
+                    ResStatus.newBuilder().setCode(ResCode.RES_CODE_OK).build()).build();
         }
 
     }
