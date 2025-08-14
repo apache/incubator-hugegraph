@@ -28,11 +28,6 @@ import java.util.Map;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.hugegraph.util.Bytes;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.backend.BinaryId;
@@ -52,10 +47,16 @@ import org.apache.hugegraph.structure.Index;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.EdgeLabelType;
+import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
+import org.slf4j.Logger;
+
 import com.google.common.primitives.Longs;
 
 public class BinaryElementSerializer {
+
     static final BinaryElementSerializer INSTANCE =
             new BinaryElementSerializer();
     static Logger log = Log.logger(BinaryElementSerializer.class);
@@ -97,9 +98,9 @@ public class BinaryElementSerializer {
     /**
      * 将顶点 kv 数据反序列成 BaseVertex 类型顶点
      *
-     * @param vertexCol    必须是顶点数据的 column
-     * @param vertex vertex==null 时，用于算子下沉，将 col 数据反序列成 BaseVertex ;
-     *               vertex!=null 时，将 col 信息增加到 vertex 中
+     * @param vertexCol 必须是顶点数据的 column
+     * @param vertex    vertex==null 时，用于算子下沉，将 col 数据反序列成 BaseVertex ;
+     *                  vertex!=null 时，将 col 信息增加到 vertex 中
      */
     public BaseVertex parseVertex(HugeGraphSupplier graph, BackendColumn vertexCol,
                                   BaseVertex vertex) {
@@ -134,11 +135,34 @@ public class BinaryElementSerializer {
     }
 
     /**
+     * 从给定的col中解析label id (仅在算子下沉需要按label收集统计信息时使用)
+     *
+     * @param col      kvColumn
+     * @param isVertex 当前的column是否是顶点数据
+     * @return edge or vertex label id
+     */
+    public Id parseLabelFromCol(BackendColumn col, boolean isVertex) {
+        BytesBuffer buffer;
+        if (isVertex) {
+            buffer = BytesBuffer.wrap(col.value);
+            // next buffer.readId() is the label id of vertex
+        } else {
+            buffer = BytesBuffer.wrap(col.name);
+            Id ownerVertexId = buffer.readId();
+            E.checkState(buffer.remaining() > 0, "Missing column type");
+            byte type = buffer.read();
+            Id labelId = buffer.readId();
+            // next buffer.readId() is the sub-label id of edge
+        }
+        return buffer.readId();
+    }
+
+    /**
      * 将顶点 kv 数据反序列成 BaseVertex 类型顶点
      *
-     * @param olapVertexCol    必须是顶点数据的 column
-     * @param vertex vertex==null 时，用于算子下沉，将 col 数据反序列成 olapBaseVertex ;
-     *               vertex!=null 时，将 col 信息增加到 olapBaseVertex 中
+     * @param olapVertexCol 必须是顶点数据的 column
+     * @param vertex        vertex==null 时，用于算子下沉，将 col 数据反序列成 olapBaseVertex ;
+     *                      vertex!=null 时，将 col 信息增加到 olapBaseVertex 中
      */
     public BaseVertex parseVertexOlap(HugeGraphSupplier graph,
                                       BackendColumn olapVertexCol, BaseVertex vertex) {
@@ -307,7 +331,6 @@ public class BinaryElementSerializer {
                 "BinaryElementSerializer.parseIndex");
     }
 
-
     public BackendColumn writeVertex(BaseVertex vertex) {
         if (vertex.olap()) {
             return this.writeOlapVertex(vertex);
@@ -384,9 +407,7 @@ public class BinaryElementSerializer {
 
     /**
      * @param index value
-     * @return
-     *
-     * format
+     * @return format
      * | empty(field-value) | 0x00  |  base64(expiredtime) |
      */
     private byte[] formatIndexValue(Index index) {
@@ -438,7 +459,6 @@ public class BinaryElementSerializer {
                           .writeEdgeId(edge.id()).bytes();
     }
 
-
     protected byte[] formatEdgeValue(BaseEdge edge) {
         Map<Id, BaseProperty<?>> properties = edge.getProperties();
         int propsCount = properties.size();
@@ -469,7 +489,6 @@ public class BinaryElementSerializer {
         }
     }
 
-
     public void formatExpiredTime(long expiredTime, BytesBuffer buffer) {
         buffer.writeVLong(expiredTime);
     }
@@ -494,7 +513,9 @@ public class BinaryElementSerializer {
         return HugeType.fromString(type);
     }
 
-    /** 计算点/边的ownerid
+    /**
+     * 计算点/边的ownerid
+     *
      * @param element
      * @return
      */
@@ -511,6 +532,7 @@ public class BinaryElementSerializer {
 
     /**
      * 计算索引的 ownerid
+     *
      * @param index
      * @return
      */
