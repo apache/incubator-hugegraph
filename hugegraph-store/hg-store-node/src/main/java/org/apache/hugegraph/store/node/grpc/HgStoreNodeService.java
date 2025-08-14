@@ -82,7 +82,8 @@ public class HgStoreNodeService implements RaftTaskHandler {
     public void init() {
         log.info("{}", appConfig.toString());
         HgStoreEngineOptions options = new HgStoreEngineOptions() {{
-            setRaftAddress(appConfig.getRaft().getAddress());
+            AppConfig.Raft raft = appConfig.getRaft();
+            setRaftAddress(raft.getAddress());
             setDataPath(appConfig.getDataPath());
             setRaftPath(appConfig.getRaftPath());
             setPdAddress(appConfig.getPdServerAddress());
@@ -91,18 +92,18 @@ public class HgStoreNodeService implements RaftTaskHandler {
             setGrpcAddress(appConfig.getStoreServerAddress());
             setLabels(appConfig.getLabelConfig().getLabel());
             setRaftOptions(new RaftOptions() {{
-                setMetrics(appConfig.getRaft().isMetrics());
-                setRpcDefaultTimeout(appConfig.getRaft().getRpcTimeOut());
-                setSnapshotLogIndexMargin(appConfig.getRaft().getSnapshotLogIndexMargin());
-                setSnapshotIntervalSecs(appConfig.getRaft().getSnapshotInterval());
-                setDisruptorBufferSize(appConfig.getRaft().getDisruptorBufferSize());
-                setMaxLogSize(appConfig.getRaft().getMaxLogFileSize());
-                setAveLogEntrySizeRatio(appConfig.getRaft().getAveLogEntrySizeRation());
-                setUseRocksDBSegmentLogStorage(appConfig.getRaft()
-                                                        .isUseRocksDBSegmentLogStorage());
-                setMaxSegmentFileSize(appConfig.getRaft().getMaxSegmentFileSize());
-                setMaxReplicatorInflightMsgs(appConfig.getRaft().getMaxReplicatorInflightMsgs());
-                if (appConfig.getRaft().getRpcPoolSizeByMultipleOfCPU() > 0) {
+                setMetrics(raft.isMetrics());
+                setRpcDefaultTimeout(raft.getRpcTimeOut());
+                setSnapshotLogIndexMargin(raft.getSnapshotLogIndexMargin());
+                setSnapshotIntervalSecs(raft.getSnapshotInterval());
+                setSnapshotDownloadingThreads(raft.getSnapshotDownloadingThread());
+                setDisruptorBufferSize(raft.getDisruptorBufferSize());
+                setMaxLogSize(raft.getMaxLogFileSize());
+                setAveLogEntrySizeRatio(raft.getAveLogEntrySizeRation());
+                setUseRocksDBSegmentLogStorage(raft.isUseRocksDBSegmentLogStorage());
+                setMaxSegmentFileSize(raft.getMaxSegmentFileSize());
+                setMaxReplicatorInflightMsgs(raft.getMaxReplicatorInflightMsgs());
+                if (raft.getRpcPoolSizeByMultipleOfCPU() > 0) {
                     setRaftRpcThreadPoolSize(Utils.cpus() * raft.getRpcPoolSizeByMultipleOfCPU());
                 }
                 setRaftRpcThreadPoolSizeOfBasic(raft.getRpcPoolSizeOfBasic());

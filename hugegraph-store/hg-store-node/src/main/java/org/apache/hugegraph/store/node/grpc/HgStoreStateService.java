@@ -72,7 +72,8 @@ public class HgStoreStateService extends HgStoreStateGrpc.HgStoreStateImplBase {
         StringBuilder result = new StringBuilder();
         if (engine != null) {
             Node raftNode = engine.getRaftNode();
-            Configuration conf = raftNode.getCurrentConf();
+            //todo soya need to check
+            Configuration conf = new Configuration(raftNode.listPeers(), raftNode.listLearners());
             List<PeerId> peers = conf.getPeers();
             for (PeerId id : peers) {
                 result.append(id.getEndpoint().toString());

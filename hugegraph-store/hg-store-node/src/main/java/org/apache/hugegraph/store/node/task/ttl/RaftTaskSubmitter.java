@@ -40,10 +40,11 @@ import com.google.protobuf.ByteString;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
+
 /**
  * @date 2024/5/7
  **/
+@Slf4j
 public class RaftTaskSubmitter extends TaskSubmitter {
 
     public RaftTaskSubmitter(HgStoreNodeService service, BusinessHandler handler) {
@@ -102,3 +103,5 @@ public class RaftTaskSubmitter extends TaskSubmitter {
         return Status.OK();
     }
 }
+
+

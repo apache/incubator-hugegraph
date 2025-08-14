@@ -177,7 +177,7 @@ public class GraphIdManager extends PartitionMetaStore {
     /**
      * Return key with used Cid
      */
-    private byte[] genCIDSlotKey(String key, long value) {
+    public byte[] genCIDSlotKey(String key, long value) {
         byte[] keySlot = MetadataKeyHelper.getCidSlotKeyPrefix(key);
         ByteBuffer buf = ByteBuffer.allocate(keySlot.length + Long.SIZE);
         buf.put(keySlot);

@@ -43,9 +43,9 @@ public class QueryPlan {
     }
 
     /**
-     * 判断聚合阶段是否存在。
+     * judge if there is aggregation stage
      *
-     * @return 如果存在聚合阶段则返回true，否则返回false。
+     * @return return false if not
      */
     public boolean containsAggStage() {
         return stages.stream().anyMatch(stage -> stage.getName().equals("AGG_STAGE"));

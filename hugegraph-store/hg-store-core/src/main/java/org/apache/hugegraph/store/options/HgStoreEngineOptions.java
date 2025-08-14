@@ -43,7 +43,7 @@ public class HgStoreEngineOptions {
     private final int partitionHBInterval = 5;
     // Waiting for leader timeout, in seconds
     private final int waitLeaderTimeout = 30;
-    private final int raftRpcThreadPoolSize = Utils.cpus() * 6;
+    private int raftRpcThreadPoolSize = Utils.cpus() * 6;
     private int raftRpcThreadPoolSizeOfBasic = 256;
     // No PD mode, for development and debugging use only
     private boolean fakePD = false;
