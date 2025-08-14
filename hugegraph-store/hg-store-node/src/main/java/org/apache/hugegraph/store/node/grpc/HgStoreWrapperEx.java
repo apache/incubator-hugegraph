@@ -31,6 +31,8 @@ import org.apache.hugegraph.store.grpc.common.TableMethod;
 import org.apache.hugegraph.store.grpc.session.BatchEntry;
 import org.apache.hugegraph.store.term.HgPair;
 
+import com.google.protobuf.ByteString;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -119,5 +121,10 @@ public class HgStoreWrapperEx {
             throw new UnsupportedOperationException("GraphMethod: " + method.name());
         }
         return flag;
+    }
+
+    public boolean cleanTtl(String graph, int partId, String table,
+                            List<ByteString> ids) {
+        return this.handler.cleanTtl(graph, partId, table, ids);
     }
 }

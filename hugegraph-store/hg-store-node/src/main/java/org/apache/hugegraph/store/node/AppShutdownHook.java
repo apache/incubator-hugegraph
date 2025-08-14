@@ -17,13 +17,22 @@
 
 package org.apache.hugegraph.store.node;
 
-import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.business.BusinessHandlerImpl;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * copy from web
  */
+@Slf4j
 public class AppShutdownHook extends Thread {
 
+    private static final String msg =
+            "there are still uninterruptible jobs that have not been completed and" +
+            " will wait for them to complete";
     private final Thread mainThread;
     private boolean shutDownSignalReceived;
 
@@ -53,7 +62,52 @@ public class AppShutdownHook extends Thread {
         return shutDownSignalReceived;
     }
 
+    /**
+     * shutdown method
+     * 1. check uninterruptible job
+     * 2. check compaction job
+     */
     private void doSomethingForShutdown() {
-        RocksDBFactory.getInstance().releaseAllGraphDB();
+        checkUninterruptibleJobs();
+        checkCompactJob();
+        //RocksDBFactory.getInstance().releaseAllGraphDB();
+    }
+
+    private void checkUninterruptibleJobs() {
+        ThreadPoolExecutor jobs = HgStoreEngine.getUninterruptibleJobs();
+        try {
+            long lastPrint = System.currentTimeMillis() - 5000;
+            log.info("check for ongoing background jobs that cannot be interrupted....");
+            while (jobs.getActiveCount() != 0 || !jobs.getQueue().isEmpty()) {
+                synchronized (AppShutdownHook.class) {
+                    if (System.currentTimeMillis() - lastPrint > 5000) {
+                        log.warn(msg);
+                        lastPrint = System.currentTimeMillis();
+                    }
+                    try {
+                        AppShutdownHook.class.wait(200);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+        } catch (Exception e) {
+
+        }
+        try {
+            jobs.shutdownNow();
+        } catch (Exception e) {
+
+        }
+        log.info("all ongoing background jobs have been completed and the shutdown will continue");
+    }
+
+    private void checkCompactJob() {
+        ThreadPoolExecutor jobs = BusinessHandlerImpl.getCompactionPool();
+        try {
+            jobs.shutdownNow();
+        } catch (Exception e) {
+
+        }
+        log.info("closed compact job pool");
     }
 }
