@@ -17,6 +17,11 @@
 
 package org.apache.hugegraph.store.node.grpc.query;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.consts.PoolNames;
@@ -26,22 +31,19 @@ import org.apache.hugegraph.store.grpc.query.QueryResponse;
 import org.apache.hugegraph.store.grpc.query.QueryServiceGrpc;
 import org.apache.hugegraph.store.query.KvSerializer;
 import org.apache.hugegraph.store.util.ExecutorUtil;
+import org.lognet.springboot.grpc.GRpcService;
+
 import com.google.protobuf.ByteString;
+
 import io.grpc.stub.StreamObserver;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.lognet.springboot.grpc.GRpcService;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 @GRpcService
 public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBase {
 
-    private final int batchSize ;
+    private final int batchSize;
 
     private final Long timeout;
 
@@ -55,9 +57,25 @@ public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBa
         batchSize = queryPushDownOption.getFetchBatchSize();
 
         this.threadPool = ExecutorUtil.createExecutor(PoolNames.SCAN_V2,
-                Runtime.getRuntime().availableProcessors(),
-                queryPushDownOption.getThreadPoolSize(),
-                10000, true);
+                                                      Runtime.getRuntime().availableProcessors(),
+                                                      queryPushDownOption.getThreadPoolSize(),
+                                                      10000, true);
+    }
+
+    /**
+     * 生成错误响应。
+     *
+     * @param queryId 查询标识符
+     * @param t       异常对象
+     * @return 查询响应对象
+     */
+    public static QueryResponse errorResponse(QueryResponse.Builder builder, String queryId,
+                                              Throwable t) {
+        return builder.setQueryId(queryId)
+                      .setIsOk(false)
+                      .setIsFinished(false)
+                      .setMessage(t.getMessage() == null ? "" : t.getMessage())
+                      .build();
     }
 
     @Override
@@ -77,8 +95,9 @@ public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBa
                 var column = (RocksDBSession.BackendColumn) itr.next();
                 if (column != null) {
                     builder.addData(kvBuilder.setKey(ByteString.copyFrom(column.name))
-                            .setValue(column.value == null ? ByteString.EMPTY : ByteString.copyFrom(column.value))
-                            .build());
+                                             .setValue(column.value == null ? ByteString.EMPTY :
+                                                       ByteString.copyFrom(column.value))
+                                             .build());
                 }
             }
             builder.setQueryId(request.getQueryId());
@@ -94,13 +113,14 @@ public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBa
     /**
      * 查询数据条数
      *
-     * @param request   查询请求对象
-     * @param observer  Observer 对象，用于接收查询响应结果
+     * @param request  查询请求对象
+     * @param observer Observer 对象，用于接收查询响应结果
      */
     @Override
     public void count(QueryRequest request, StreamObserver<QueryResponse> observer) {
 
-        log.debug("query id : {}, simple count of table: {}", request.getQueryId(), request.getTable());
+        log.debug("query id : {}, simple count of table: {}", request.getQueryId(),
+                  request.getTable());
         var builder = QueryResponse.newBuilder();
         var kvBuilder = Kv.newBuilder();
 
@@ -109,9 +129,10 @@ public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBa
             var handler = new QueryUtil().getHandler();
             long start = System.currentTimeMillis();
             long count = handler.count(request.getGraph(), request.getTable());
-            log.debug("query id: {}, count of cost: {} ms", request.getQueryId(), System.currentTimeMillis() - start);
+            log.debug("query id: {}, count of cost: {} ms", request.getQueryId(),
+                      System.currentTimeMillis() - start);
             List<Object> array = new ArrayList<>();
-            for (int i = 0 ; i < request.getFunctionsList().size(); i ++) {
+            for (int i = 0; i < request.getFunctionsList().size(); i++) {
                 array.add(new AtomicLong(count));
             }
 
@@ -126,20 +147,5 @@ public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBa
             observer.onNext(errorResponse(builder, request.getQueryId(), e));
         }
         observer.onCompleted();
-    }
-
-    /**
-     * 生成错误响应。
-     *
-     * @param queryId 查询标识符
-     * @param t 异常对象
-     * @return 查询响应对象
-     */
-    public static QueryResponse errorResponse(QueryResponse.Builder builder, String queryId, Throwable t) {
-        return builder.setQueryId(queryId)
-                .setIsOk(false)
-                .setIsFinished(false)
-                .setMessage(t.getMessage() == null ? "" : t.getMessage())
-                .build();
     }
 }

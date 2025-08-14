@@ -17,17 +17,16 @@
 
 package org.apache.hugegraph.store.node.grpc.query;
 
-
-import org.apache.hugegraph.store.util.MultiKv;
-
 import java.util.Comparator;
 import java.util.List;
 
-public class MultiKeyComparator implements Comparator<MultiKv>{
+import org.apache.hugegraph.store.util.MultiKv;
 
-    private List<Integer> orders;
+public class MultiKeyComparator implements Comparator<MultiKv> {
 
-    public MultiKeyComparator(List<Integer> orders){
+    private final List<Integer> orders;
+
+    public MultiKeyComparator(List<Integer> orders) {
         this.orders = orders;
     }
 
@@ -43,7 +42,7 @@ public class MultiKeyComparator implements Comparator<MultiKv>{
             return key1 == null ? -1 : 1;
         }
 
-        for (int i = 0 ; i < this.orders.size(); i ++) {
+        for (int i = 0; i < this.orders.size(); i++) {
             var index = this.orders.get(i);
             var v1 = key1.size() > index ? key1.get(index) : null;
             var v2 = key2.size() > index ? key2.get(index) : null;

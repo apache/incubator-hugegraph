@@ -20,16 +20,15 @@ package org.apache.hugegraph.store.node.listener;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import com.alipay.sofa.jraft.Status;
-import com.alipay.sofa.jraft.entity.PeerId;
-
 import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.node.grpc.HgStoreStreamImpl;
+import org.apache.hugegraph.store.node.task.TTLCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
 
-import org.apache.hugegraph.store.node.grpc.HgStoreStreamImpl;
-import org.apache.hugegraph.store.node.task.TTLCleaner;
+import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.entity.PeerId;
 
 import lombok.extern.slf4j.Slf4j;
 

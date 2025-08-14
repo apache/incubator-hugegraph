@@ -20,6 +20,7 @@ package org.apache.hugegraph.store.node.grpc.query.model;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.store.util.MultiKv;
 import org.apache.hugegraph.structure.BaseElement;
+
 import lombok.Data;
 
 @Data
@@ -43,16 +44,16 @@ public class PipelineResult {
         this.element = element;
     }
 
-    public PipelineResult(MultiKv kv){
+    public PipelineResult(MultiKv kv) {
         this.resultType = PipelineResultType.MKV;
         this.kv = kv;
     }
 
-    private PipelineResult(){
+    private PipelineResult() {
         this.resultType = PipelineResultType.NULL;
     }
 
-    private PipelineResult(String message){
+    private PipelineResult(String message) {
         this.resultType = PipelineResultType.ERROR;
         this.message = message;
     }

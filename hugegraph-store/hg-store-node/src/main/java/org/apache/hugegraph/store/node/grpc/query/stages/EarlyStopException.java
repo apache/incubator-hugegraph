@@ -17,5 +17,6 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
-public class EarlyStopException extends Exception{
+public class EarlyStopException extends Exception {
+
 }

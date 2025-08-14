@@ -17,17 +17,18 @@
 
 package org.apache.hugegraph.store.node.grpc.query.model;
 
-import org.apache.hugegraph.store.node.grpc.query.QueryStage;
-import org.apache.hugegraph.store.node.grpc.query.stages.EarlyStopException;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.store.node.grpc.query.QueryStage;
+import org.apache.hugegraph.store.node.grpc.query.stages.EarlyStopException;
+
 public class QueryPlan {
-    private List<QueryStage> stages;
+
+    private final List<QueryStage> stages;
 
     public QueryPlan() {
         stages = new LinkedList<>();
@@ -37,7 +38,7 @@ public class QueryPlan {
         this.stages.add(pipeline);
     }
 
-    public boolean onlyStopStage(){
+    public boolean onlyStopStage() {
         return stages.size() == 1 && "STOP_STAGE".equals(stages.get(0).getName());
     }
 
@@ -54,7 +55,8 @@ public class QueryPlan {
      * execute pipeline
      *
      * @param data the input data
-     * @return null when filtered or limited, iterator when encounter an iterator stage, or element when plain pipeline
+     * @return null when filtered or limited, iterator when encounter an iterator stage, or
+     * element when plain pipeline
      * @throws EarlyStopException throws early stop exception when reach the limit of limit stage
      */
     public Object execute(PipelineResult data) throws EarlyStopException {
@@ -94,8 +96,9 @@ public class QueryPlan {
         return next.iterator();
     }
 
-    private void callStage(QueryStage stage, List<Object> list, PipelineResult pre) throws EarlyStopException {
-        Object ret ;
+    private void callStage(QueryStage stage, List<Object> list, PipelineResult pre) throws
+                                                                                    EarlyStopException {
+        Object ret;
         if (stage.isIterator()) {
             ret = stage.handleIterator(pre);
         } else {
@@ -109,12 +112,13 @@ public class QueryPlan {
 
     @Override
     public String toString() {
-        var names = String.join(", ", stages.stream().map(QueryStage::getName).collect(Collectors.toList()));
+        var names = String.join(", ", stages.stream().map(QueryStage::getName)
+                                            .collect(Collectors.toList()));
         return "QueryPlan{" + "stages=[" + names + "]}";
     }
 
     public void clear() {
-        for (var stage: stages) {
+        for (var stage : stages) {
             stage.close();
         }
         this.stages.clear();

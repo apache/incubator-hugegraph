@@ -17,6 +17,10 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.store.business.itrv2.TypeTransIterator;
 import org.apache.hugegraph.store.business.itrv2.io.SortShuffleSerializer;
@@ -29,18 +33,17 @@ import org.apache.hugegraph.store.query.BaseElementComparator;
 import org.apache.hugegraph.store.util.MultiKv;
 import org.apache.hugegraph.store.util.SortShuffle;
 import org.apache.hugegraph.structure.BaseElement;
-import com.google.protobuf.ByteString;
-import lombok.extern.slf4j.Slf4j;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import com.google.protobuf.ByteString;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 排序
  */
 @Slf4j
 public class OrderByStage implements QueryStage {
+
     private SortShuffle sortShuffle;
 
     private Iterator iterator;
@@ -58,19 +61,20 @@ public class OrderByStage implements QueryStage {
         // agg
         if ((Boolean) objects[2]) {
             if (orderBys == null) {
-                sortShuffle = new SortShuffle<>(MultiKv::compareTo, SortShuffleSerializer.ofMultiKvSerializer());
+                sortShuffle = new SortShuffle<>(MultiKv::compareTo,
+                                                SortShuffleSerializer.ofMultiKvSerializer());
             } else {
                 List<Integer> orders = new ArrayList<>();
                 for (Id id : orderBys) {
                     orders.add(groupBys.indexOf(id));
                 }
                 sortShuffle = new SortShuffle<>(new MultiKeyComparator(orders),
-                        SortShuffleSerializer.ofMultiKvSerializer());
+                                                SortShuffleSerializer.ofMultiKvSerializer());
             }
             resultType = PipelineResultType.MKV;
         } else {
             sortShuffle = new SortShuffle<>(new BaseElementComparator(orderBys, this.isAsc),
-                    SortShuffleSerializer.ofBaseElementSerializer());
+                                            SortShuffleSerializer.ofBaseElementSerializer());
             resultType = PipelineResultType.HG_ELEMENT;
         }
 
@@ -86,7 +90,7 @@ public class OrderByStage implements QueryStage {
         if (result == null) {
             return null;
         }
-        if (! result.isEmpty()) {
+        if (!result.isEmpty()) {
             try {
                 if (result.getResultType() == PipelineResultType.MKV) {
                     sortShuffle.append(result.getKv());
@@ -110,6 +114,7 @@ public class OrderByStage implements QueryStage {
         return new TypeTransIterator<PipelineResult, PipelineResult>(new Iterator<>() {
 
             private boolean closeFlag = false;
+
             @Override
             public boolean hasNext() {
                 var ret = iterator.hasNext();

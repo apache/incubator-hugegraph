@@ -17,6 +17,19 @@
 
 package org.apache.hugegraph.store.node.grpc.query;
 
+import static org.apache.hugegraph.store.business.BusinessHandlerImpl.getGraphSupplier;
+import static org.apache.hugegraph.store.constant.HugeServerTables.OLAP_TABLE;
+import static org.apache.hugegraph.store.constant.HugeServerTables.TASK_TABLE;
+import static org.apache.hugegraph.store.constant.HugeServerTables.VERTEX_TABLE;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.id.Id;
@@ -28,9 +41,9 @@ import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.grpc.query.AggregationType;
 import org.apache.hugegraph.store.grpc.query.DeDupOption;
+import org.apache.hugegraph.store.grpc.query.QueryRequest;
 import org.apache.hugegraph.store.grpc.query.ScanType;
 import org.apache.hugegraph.store.grpc.query.ScanTypeParam;
-import org.apache.hugegraph.store.grpc.query.QueryRequest;
 import org.apache.hugegraph.store.node.grpc.EmptyIterator;
 import org.apache.hugegraph.store.node.grpc.query.model.QueryPlan;
 import org.apache.hugegraph.store.query.QueryTypeParam;
@@ -39,21 +52,10 @@ import org.apache.hugegraph.store.query.func.AggregationFunction;
 import org.apache.hugegraph.store.query.func.AggregationFunctions;
 import org.apache.hugegraph.structure.BaseElement;
 import org.apache.hugegraph.structure.BaseVertex;
+
 import com.google.protobuf.ByteString;
+
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import static org.apache.hugegraph.store.business.BusinessHandlerImpl.getGraphSupplier;
-import static org.apache.hugegraph.store.constant.HugeServerTables.OLAP_TABLE;
-import static org.apache.hugegraph.store.constant.HugeServerTables.TASK_TABLE;
-import static org.apache.hugegraph.store.constant.HugeServerTables.VERTEX_TABLE;
 
 @Slf4j
 public class QueryUtil {
@@ -64,24 +66,15 @@ public class QueryUtil {
 
     private static BusinessHandler handler;
 
-    private static BinaryElementSerializer serializer = new BinaryElementSerializer();
+    private static final BinaryElementSerializer serializer = new BinaryElementSerializer();
 
-    private static Set<String> vertexTables = new HashSet<>(List.of(VERTEX_TABLE, OLAP_TABLE, TASK_TABLE));
-
-    public BusinessHandler getHandler() {
-        if (this.handler == null) {
-            synchronized (this) {
-                if (this.handler == null) {
-                    this.handler = HgStoreEngine.getInstance().getBusinessHandler();
-                }
-            }
-        }
-        return handler;
-    }
+    private static final Set<String> vertexTables =
+            new HashSet<>(List.of(VERTEX_TABLE, OLAP_TABLE, TASK_TABLE));
 
     /**
      * 要求有语意和顺序关系
      * <a href="https://ku.baidu-int.com/knowledge/HFVrC7hq1Q/pKzJfZczuc/s_2oxmmDFf/kYq5DJapBA4XCV">implementation<a>
+     *
      * @param request query request
      * @return query plan
      */
@@ -95,13 +88,13 @@ public class QueryUtil {
         }
 
         if (request.getSampleFactor() < 1.0) {
-            var sampleStage= QueryStages.ofSampleStage();
+            var sampleStage = QueryStages.ofSampleStage();
             sampleStage.init(request.getSampleFactor());
             plan.addStage(sampleStage);
         }
 
         // only count agg. fast-forward
-        if (isOnlyCountAggregationFunction(request)){
+        if (isOnlyCountAggregationFunction(request)) {
             var simple = QueryStages.ofSimpleCountStage();
             simple.init(request.getFunctionsList().size());
             plan.addStage(simple);
@@ -126,7 +119,7 @@ public class QueryUtil {
                 plan.addStage(olap);
             }
 
-            if (! request.getCondition().isEmpty()) {
+            if (!request.getCondition().isEmpty()) {
                 var filterStage = QueryStages.ofFilterStage();
                 filterStage.init(request.getCondition().toByteArray());
                 plan.addStage(filterStage);
@@ -160,7 +153,7 @@ public class QueryUtil {
             plan.addStage(agg);
         }
 
-        if (!isEmpty(request.getPropertyList()) || request.getNullProperty()){
+        if (!isEmpty(request.getPropertyList()) || request.getNullProperty()) {
             var selector = QueryStages.ofProjectionStage();
             selector.init(request.getPropertyList(), request.getNullProperty());
             plan.addStage(selector);
@@ -175,8 +168,8 @@ public class QueryUtil {
             if (!isEmpty(request.getOrderByList())) {
                 var order = QueryStages.ofOrderByStage();
                 order.init(request.getOrderByList(), request.getGroupByList(),
-                        !isEmpty(request.getFunctionsList()),
-                        request.getSortOrder());
+                           !isEmpty(request.getFunctionsList()),
+                           request.getSortOrder());
                 plan.addStage(order);
             }
 
@@ -191,15 +184,17 @@ public class QueryUtil {
         return plan;
     }
 
-    private static boolean isOnlyCountAggregationFunction(QueryRequest request){
+    private static boolean isOnlyCountAggregationFunction(QueryRequest request) {
         return !isEmpty(request.getFunctionsList()) &&
-                request.getFunctionsList().stream().allMatch(f -> f.getFuncType() == AggregationType.COUNT) &&
-                isEmpty(request.getGroupByList()) && request.getCondition().isEmpty()
-                && !request.getGroupBySchemaLabel();
+               request.getFunctionsList().stream()
+                      .allMatch(f -> f.getFuncType() == AggregationType.COUNT) &&
+               isEmpty(request.getGroupByList()) && request.getCondition().isEmpty()
+               && !request.getGroupBySchemaLabel();
     }
 
     private static boolean canOptimiseToTop(QueryRequest request) {
-        return !isEmpty(request.getOrderByList()) && request.getLimit() < TOP_LIMIT && request.getLimit() > 0;
+        return !isEmpty(request.getOrderByList()) && request.getLimit() < TOP_LIMIT &&
+               request.getLimit() > 0;
     }
 
     /**
@@ -211,7 +206,7 @@ public class QueryUtil {
     private static boolean needDeserialize(QueryRequest request) {
         return !isEmpty(request.getOrderByList()) || !isEmpty(request.getPropertyList())
                || !request.getCondition().isEmpty() || !isEmpty(request.getFunctionsList())
-                && !request.getGroupBySchemaLabel();
+                                                       && !request.getGroupBySchemaLabel();
     }
 
     /**
@@ -231,31 +226,32 @@ public class QueryUtil {
             case PRIMARY_SCAN:
                 // id scan
                 // todo: 多个主键查询 + 精确去重+limit 的情况，考虑使用 map 做一部分的精确
-                return handler.scan(request.getGraph(), request.getTable(), toQTP(request.getScanTypeParamList()),
-                        request.getDedupOption());
+                return handler.scan(request.getGraph(), request.getTable(),
+                                    toQTP(request.getScanTypeParamList()),
+                                    request.getDedupOption());
 
             case NO_SCAN:
                 // no scan 不需要反查：
                 // 1. 能够直接解析，不需要反查。2. 不需要消重，直接取 count
                 return handler.scanIndex(request.getGraph(),
-                        request.getIndexesList().stream()
-                                .map(x -> toQTP(x.getParamsList()))
-                                .collect(Collectors.toList()),
-                        request.getDedupOption(),
-                        request.getLoadPropertyFromIndex(),
-                        request.getCheckTtl());
+                                         request.getIndexesList().stream()
+                                                .map(x -> toQTP(x.getParamsList()))
+                                                .collect(Collectors.toList()),
+                                         request.getDedupOption(),
+                                         request.getLoadPropertyFromIndex(),
+                                         request.getCheckTtl());
 
             case INDEX_SCAN:
                 return handler.scanIndex(request.getGraph(),
-                    request.getTable(),
-                    request.getIndexesList().stream()
-                            .map(x -> toQTP(x.getParamsList()))
-                            .collect(Collectors.toList()),
-                    request.getDedupOption(),
-                    true,
-                    needIndexTransKey(request),
-                    request.getCheckTtl(),
-                    request.getLimit());
+                                         request.getTable(),
+                                         request.getIndexesList().stream()
+                                                .map(x -> toQTP(x.getParamsList()))
+                                                .collect(Collectors.toList()),
+                                         request.getDedupOption(),
+                                         true,
+                                         needIndexTransKey(request),
+                                         request.getCheckTtl(),
+                                         request.getLimit());
             default:
                 break;
         }
@@ -266,12 +262,14 @@ public class QueryUtil {
     /**
      * 1. no scan/ 不需要回表
      * 2. 只有一个索引，
+     *
      * @param request
      * @return
      */
     private static boolean needIndexTransKey(QueryRequest request) {
-        if (request.getScanType() == ScanType.NO_SCAN ) {
-            return ! isOnlyCountAggregationFunction(request) && request.getDedupOption() == DeDupOption.NONE;
+        if (request.getScanType() == ScanType.NO_SCAN) {
+            return !isOnlyCountAggregationFunction(request) &&
+                   request.getDedupOption() == DeDupOption.NONE;
         }
         return true;
     }
@@ -282,18 +280,17 @@ public class QueryUtil {
 
     private static QueryTypeParam fromScanTypeParam(ScanTypeParam param) {
         return new QueryTypeParam(param.getKeyStart().toByteArray(),
-                param.getKeyEnd().toByteArray(),
-                param.getScanBoundary(),
-                param.getIsPrefix(),
-                param.getIsSecondaryIndex(),
-                param.getCode(),
-                param.getIdPrefix().toByteArray());
+                                  param.getKeyEnd().toByteArray(),
+                                  param.getScanBoundary(),
+                                  param.getIsPrefix(),
+                                  param.getIsSecondaryIndex(),
+                                  param.getCode(),
+                                  param.getIdPrefix().toByteArray());
     }
 
-    public static <E>  boolean isEmpty(Collection<E> c) {
+    public static <E> boolean isEmpty(Collection<E> c) {
         return c == null || c.size() == 0;
     }
-
 
     public static BaseElement parseEntry(HugeGraphSupplier graph,
                                          BackendColumn column,
@@ -311,29 +308,34 @@ public class QueryUtil {
 
     /**
      * 一次的顶点序列化 - 反序列化
+     *
      * @param vertexColumn vertex
-     * @param olap olap vertex
+     * @param olap         olap vertex
      * @return new vertex
      */
-    public static BackendColumn combineColumn(BackendColumn vertexColumn, List<BackendColumn> olap) {
+    public static BackendColumn combineColumn(BackendColumn vertexColumn,
+                                              List<BackendColumn> olap) {
         return serializer.mergeCols(vertexColumn, olap.toArray(new BackendColumn[0]));
     }
-
 
     public static AggregationFunction createFunc(AggregationType funcType, String genericType) {
         AggregationFunction func = null;
         switch (funcType) {
             case AVG:
-                func = new AggregationFunctions.AvgFunction(getAggregationBufferSupplier(genericType));
+                func = new AggregationFunctions.AvgFunction(
+                        getAggregationBufferSupplier(genericType));
                 break;
             case SUM:
-                func = new AggregationFunctions.SumFunction(getAggregationBufferSupplier(genericType));
+                func = new AggregationFunctions.SumFunction(
+                        getAggregationBufferSupplier(genericType));
                 break;
             case MAX:
-                func = new AggregationFunctions.MaxFunction(getAggregationBufferSupplier(genericType));
+                func = new AggregationFunctions.MaxFunction(
+                        getAggregationBufferSupplier(genericType));
                 break;
             case MIN:
-                func = new AggregationFunctions.MinFunction(getAggregationBufferSupplier(genericType));
+                func = new AggregationFunctions.MinFunction(
+                        getAggregationBufferSupplier(genericType));
                 break;
             case COUNT:
                 func = new AggregationFunctions.CountFunction();
@@ -348,11 +350,10 @@ public class QueryUtil {
         return AggregationFunctions.getAggregationBufferSupplier(genericType);
     }
 
-
     public static List<Id> fromStringBytes(List<ByteString> list) {
         return list.stream()
-                .map(id -> id == null ? null : IdUtil.fromBytes(id.toByteArray()))
-                .collect(Collectors.toList());
+                   .map(id -> id == null ? null : IdUtil.fromBytes(id.toByteArray()))
+                   .collect(Collectors.toList());
     }
 
     /**
@@ -369,6 +370,17 @@ public class QueryUtil {
         var id = serializer.parseLabelFromCol(BackendColumn.of(column.name, column.value),
                                               isVertex);
         return id.asLong();
+    }
+
+    public BusinessHandler getHandler() {
+        if (handler == null) {
+            synchronized (this) {
+                if (handler == null) {
+                    handler = HgStoreEngine.getInstance().getBusinessHandler();
+                }
+            }
+        }
+        return handler;
     }
 
 }

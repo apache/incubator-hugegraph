@@ -23,11 +23,10 @@ import java.util.Arrays;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
-
 import org.apache.hugegraph.store.node.AppConfig;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,7 +43,7 @@ public class PlaceHolderListener implements ApplicationListener<ApplicationReady
             String dataPath = config.getDataPath();
             String[] paths = dataPath.split(",");
             Integer size = config.getPlaceholderSize();
-            Arrays.stream(paths).parallel().forEach(path->{
+            Arrays.stream(paths).parallel().forEach(path -> {
                 if (!StringUtils.isEmpty(path)) {
                     File ph = new File(path + "/" + HgStoreEngineOptions.PLACE_HOLDER_PREFIX);
                     if (!ph.exists() && size > 0) {

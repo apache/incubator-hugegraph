@@ -17,6 +17,11 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
+import static org.apache.hugegraph.store.constant.HugeServerTables.OLAP_TABLE;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.pd.common.PartitionUtils;
@@ -29,12 +34,8 @@ import org.apache.hugegraph.store.node.grpc.query.QueryUtil;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResultType;
 import org.apache.hugegraph.structure.BaseVertex;
+
 import com.google.protobuf.ByteString;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.apache.hugegraph.store.constant.HugeServerTables.OLAP_TABLE;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,14 +44,12 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class OlapStage implements QueryStage {
-    private String graph;
-
-    private String table;
-
-    private List<Id> properties;
 
     private final BusinessHandler handler = new QueryUtil().getHandler();
     private final BinaryElementSerializer serializer = new BinaryElementSerializer();
+    private String graph;
+    private String table;
+    private List<Id> properties;
 
     @Override
     public void init(Object... objects) {
@@ -61,18 +60,19 @@ public class OlapStage implements QueryStage {
 
     @Override
     public PipelineResult handle(PipelineResult result) {
-        if (result == null){
+        if (result == null) {
             return null;
         }
 
         if (result.getResultType() == PipelineResultType.HG_ELEMENT) {
             var element = result.getElement();
-            var code = PartitionUtils.calcHashcode(BinaryElementSerializer.ownerId(element).asBytes());
+            var code =
+                    PartitionUtils.calcHashcode(BinaryElementSerializer.ownerId(element).asBytes());
 
             for (Id property : properties) {
                 // 构建 key
                 var key = getOlapKey(property, element.id());
-                var values =  handler.doGet(this.graph, code, OLAP_TABLE, key);
+                var values = handler.doGet(this.graph, code, OLAP_TABLE, key);
                 if (values != null) {
                     var column = BackendColumn.of(key, values);
                     QueryUtil.parseOlap(column, (BaseVertex) element);
@@ -106,7 +106,8 @@ public class OlapStage implements QueryStage {
     }
 
     private byte[] getOlapKey(Id propertyId, Id vertexId) {
-        BytesBuffer bufferName = BytesBuffer.allocate(1 + propertyId.length() + 1 + vertexId.length());
+        BytesBuffer bufferName =
+                BytesBuffer.allocate(1 + propertyId.length() + 1 + vertexId.length());
         bufferName.writeId(propertyId);
         return bufferName.writeId(vertexId).bytes();
     }

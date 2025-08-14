@@ -35,7 +35,7 @@ public class FilterStage implements QueryStage {
 
     @Override
     public PipelineResult handle(PipelineResult result) {
-        if (result == null || result.isEmpty()){
+        if (result == null || result.isEmpty()) {
             return result;
         }
 
@@ -44,7 +44,7 @@ public class FilterStage implements QueryStage {
         }
 
         if (conditionQUery.resultType().isVertex() || conditionQUery.resultType().isEdge()) {
-            if (! conditionQUery.test(result.getElement())){
+            if (!conditionQUery.test(result.getElement())) {
                 return null;
             }
         }

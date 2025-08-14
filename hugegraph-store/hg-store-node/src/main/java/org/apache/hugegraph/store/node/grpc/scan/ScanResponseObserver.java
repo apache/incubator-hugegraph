@@ -46,11 +46,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ScanResponseObserver<T> implements
                                      StreamObserver<ScanPartitionRequest> {
 
-    private static int batchSize = 100000;
     private static final int MAX_PAGE = 8; //
     private static final Error ok = Error.newBuilder().setType(ErrorType.OK).build();
     private static final ResponseHeader okHeader =
             ResponseHeader.newBuilder().setError(ok).build();
+    private static int batchSize = 100000;
     private final BusinessHandler handler;
     private final AtomicInteger nextSeqNo = new AtomicInteger(0);
     private final AtomicInteger cltSeqNo = new AtomicInteger(0);
@@ -82,7 +82,8 @@ public class ScanResponseObserver<T> implements
      * November 2, 2022
      * 1. Read the thread of rocksdb iterator read
      * 2. Perform data conversion and send to the blocking queue thread offer
-     * 3. Thread for reading data from the blocking queue and sending, including waking up the reading and sending threads when no data is read
+     * 3. Thread for reading data from the blocking queue and sending, including waking up the
+     * reading and sending threads when no data is read
      * */
 
     public ScanResponseObserver(StreamObserver<ScanResponse> sender,
@@ -219,8 +220,6 @@ public class ScanResponseObserver<T> implements
             }
         } catch (Exception e) {
             log.warn("on Complete with error:", e);
-        } finally {
-
         }
     }
 
@@ -247,7 +246,7 @@ public class ScanResponseObserver<T> implements
                                     break;
                                 }
                             }
-                            if (iter.getStopCause() != null){
+                            if (iter.getStopCause() != null) {
                                 throw iter.getStopCause();
                             }
                             if (!(iter.hasNext() && leftCount > -1)) {

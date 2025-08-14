@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.store.node.grpc.query;
 
-
 import org.apache.hugegraph.store.node.grpc.query.stages.AggStage;
 import org.apache.hugegraph.store.node.grpc.query.stages.DeserializationStage;
 import org.apache.hugegraph.store.node.grpc.query.stages.ExtractAggFieldStage;

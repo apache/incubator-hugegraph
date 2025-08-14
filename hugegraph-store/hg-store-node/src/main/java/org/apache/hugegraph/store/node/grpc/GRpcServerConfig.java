@@ -31,6 +31,7 @@ import io.grpc.ServerBuilder;
  */
 @Component
 public class GRpcServerConfig extends GRpcServerBuilderConfigurer {
+
     @Autowired
     private AppConfig appConfig;
 

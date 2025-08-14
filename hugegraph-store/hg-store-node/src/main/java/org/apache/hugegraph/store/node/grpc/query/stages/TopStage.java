@@ -17,6 +17,11 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.PriorityQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+
 import org.apache.hugegraph.store.business.itrv2.TypeTransIterator;
 import org.apache.hugegraph.store.node.grpc.query.QueryStage;
 import org.apache.hugegraph.store.node.grpc.query.QueryUtil;
@@ -24,14 +29,11 @@ import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResultType;
 import org.apache.hugegraph.store.query.BaseElementComparator;
 import org.apache.hugegraph.structure.BaseElement;
+
 import com.google.protobuf.ByteString;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.PriorityQueue;
-import java.util.concurrent.PriorityBlockingQueue;
-
 public class TopStage implements QueryStage {
+
     private PriorityBlockingQueue<BaseElement> queue;
 
     private BaseElementComparator comparator;
@@ -46,8 +48,9 @@ public class TopStage implements QueryStage {
         this.isAsc = (boolean) objects[2];
 
         // 需要构建一个相反的堆
-        this.comparator = new BaseElementComparator(QueryUtil.fromStringBytes((List<ByteString>) objects[1]),
-                !isAsc);
+        this.comparator =
+                new BaseElementComparator(QueryUtil.fromStringBytes((List<ByteString>) objects[1]),
+                                          !isAsc);
         this.queue = new PriorityBlockingQueue<>(limit, this.comparator);
     }
 

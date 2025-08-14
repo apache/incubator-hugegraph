@@ -22,5 +22,5 @@ public enum PipelineResultType {
     BACKEND_COLUMN,
     HG_ELEMENT,
     NULL,
-    ERROR;
+    ERROR
 }

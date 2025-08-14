@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.store.node.controller;
 
-import com.alipay.sofa.jraft.entity.PeerId;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hugegraph.store.PartitionEngine;
-import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.Store;
-
-import lombok.extern.slf4j.Slf4j;
+import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,8 +31,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.alipay.sofa.jraft.entity.PeerId;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * For testing only
@@ -61,9 +62,9 @@ public class HgTestController {
     @GetMapping(value = "/raftRestart/{groupId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public String restartRaftNode(@PathVariable(value = "groupId") int groupId) {
         PartitionEngine engine = nodeService.getStoreEngine().getPartitionEngine(groupId);
-        if (engine != null ) {
-        engine.restartRaftNode();
-        return "OK";
+        if (engine != null) {
+            engine.restartRaftNode();
+            return "OK";
         } else {
             return "partition engine not found";
         }
@@ -151,7 +152,8 @@ public class HgTestController {
     public String noVote() {
         try {
             nodeService.getStoreEngine().getPartitionEngines().values().forEach(engine -> {
-                engine.getRaftNode().disableVote(); });
+                engine.getRaftNode().disableVote();
+            });
             return "OK";
         } catch (Exception e) {
             log.error("pulse reset error: ", e);
@@ -162,7 +164,8 @@ public class HgTestController {
     @GetMapping(value = "/restart_raft", produces = MediaType.APPLICATION_JSON_VALUE)
     public String restartRaft() {
         try {
-            nodeService.getStoreEngine().getPartitionEngines().values().forEach(PartitionEngine::restartRaftNode);
+            nodeService.getStoreEngine().getPartitionEngines().values()
+                       .forEach(PartitionEngine::restartRaftNode);
             return "OK";
         } catch (Exception e) {
             log.error("pulse reset error: ", e);
@@ -170,16 +173,16 @@ public class HgTestController {
         }
     }
 
-
     @GetMapping(value = "/all_raft_start", produces = MediaType.APPLICATION_JSON_VALUE)
     public String isRaftAllStarted() {
         try {
             var engine = nodeService.getStoreEngine();
             var storeId = engine.getPartitionManager().getStore().getId();
-            var flag = nodeService.getStoreEngine().getPdProvider().getPartitionsByStore(storeId).stream()
-                    .mapToInt(Partition::getId)
-                    .allMatch(i -> engine.getPartitionEngine(i) != null);
-            return flag ? "OK" : "NO" ;
+            var flag = nodeService.getStoreEngine().getPdProvider().getPartitionsByStore(storeId)
+                                  .stream()
+                                  .mapToInt(Partition::getId)
+                                  .allMatch(i -> engine.getPartitionEngine(i) != null);
+            return flag ? "OK" : "NO";
         } catch (Exception e) {
             log.error("pulse reset error: ", e);
             return e.getMessage();

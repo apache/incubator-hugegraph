@@ -17,11 +17,11 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
-import org.apache.hugegraph.store.node.grpc.query.QueryStage;
-import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
-
 import java.util.Objects;
 import java.util.Random;
+
+import org.apache.hugegraph.store.node.grpc.query.QueryStage;
+import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 
 /**
  * 抽样

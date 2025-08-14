@@ -17,22 +17,23 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.store.node.grpc.query.QueryStage;
 import org.apache.hugegraph.store.node.grpc.query.QueryUtil;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResultType;
+
 import com.google.protobuf.ByteString;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 
 /**
  * 剪裁
  */
 public class ProjectionStage implements QueryStage {
+
     private Set<Id> propertySet;
 
     private boolean removeAllProperty;
@@ -51,13 +52,14 @@ public class ProjectionStage implements QueryStage {
 
         if (result.getResultType() == PipelineResultType.HG_ELEMENT) {
             var element = result.getElement();
-            for (var id : element.getProperties().entrySet()){
-                if (! this.propertySet.contains(id.getKey()) || this.removeAllProperty) {
+            for (var id : element.getProperties().entrySet()) {
+                if (!this.propertySet.contains(id.getKey()) || this.removeAllProperty) {
                     element.removeProperty(id.getKey());
                 }
             }
             return result;
-        } else if (result.getResultType() == PipelineResultType.BACKEND_COLUMN && this.removeAllProperty){
+        } else if (result.getResultType() == PipelineResultType.BACKEND_COLUMN &&
+                   this.removeAllProperty) {
             var column = result.getColumn();
             column.value = new byte[0];
         }

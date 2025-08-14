@@ -17,6 +17,17 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.apache.hugegraph.store.business.itrv2.FileObjectIterator;
 import org.apache.hugegraph.store.business.itrv2.TypeTransIterator;
 import org.apache.hugegraph.store.business.itrv2.io.SortShuffleSerializer;
@@ -30,17 +41,6 @@ import org.apache.hugegraph.store.query.func.AggregationFunction;
 import org.apache.hugegraph.store.query.func.AggregationFunctions;
 import org.apache.hugegraph.store.util.MultiKv;
 import org.apache.hugegraph.store.util.SortShuffle;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 聚合计算
@@ -73,25 +73,25 @@ public class AggStage implements QueryStage {
     public void init(Object... objects) {
         this.funcMetas = (List<Tuple2<AggregationType, String>>) objects[0];
         functionSize = funcMetas.size();
-        path = SortShuffle.getBasePath() +  "agg_tmp_" + Thread.currentThread().getId() + "/";
+        path = SortShuffle.getBasePath() + "agg_tmp_" + Thread.currentThread().getId() + "/";
         new File(path).mkdirs();
     }
 
     /**
      * 将迭代器中的数据进行处理，并返回结果的迭代器
      *
-     * @param result   数据结果对象
-     * @return         返回处理后的迭代器
+     * @param result 数据结果对象
+     * @return 返回处理后的迭代器
      */
     @Override
     public Iterator<PipelineResult> handleIterator(PipelineResult result) {
         if (result.getResultType() == PipelineResultType.MKV) {
             var kv = result.getKv();
-            if (! maps.containsKey(kv.getKeys())) {
+            if (!maps.containsKey(kv.getKeys())) {
                 maps.putIfAbsent(kv.getKeys(), generateFunctions());
             }
 
-            for (int i = 0 ; i < functionSize; i ++) {
+            for (int i = 0; i < functionSize; i++) {
                 var function = maps.get(kv.getKeys()).get(i);
                 Object value = kv.getValues().get(i);
                 if (function instanceof AggregationFunctions.AvgFunction) {
@@ -115,13 +115,14 @@ public class AggStage implements QueryStage {
             var list = changeToList();
             if (this.file == null) {
                 return new TypeTransIterator<>(list.iterator(), PipelineResult::new,
-                        () -> PipelineResult.EMPTY).toIterator();
+                                               () -> PipelineResult.EMPTY).toIterator();
             } else {
                 writeToFile(list);
                 return new TypeTransIterator<>(
-                        new FileObjectIterator<>(this.file, SortShuffleSerializer.ofBackendColumnSerializer()),
+                        new FileObjectIterator<>(this.file,
+                                                 SortShuffleSerializer.ofBackendColumnSerializer()),
                         PipelineResult::new, () -> PipelineResult.EMPTY
-                    ).toIterator();
+                ).toIterator();
             }
         }
 
@@ -130,7 +131,8 @@ public class AggStage implements QueryStage {
 
     /**
      * avg 函数的隐式转换
-     * @param clz the class type of the value
+     *
+     * @param clz   the class type of the value
      * @param value value
      * @return Double value
      */
@@ -174,11 +176,11 @@ public class AggStage implements QueryStage {
 
     private List<MultiKv> changeToList() {
         List<MultiKv> result = new ArrayList<>();
-        for (var entry: this.maps.entrySet()) {
+        for (var entry : this.maps.entrySet()) {
             result.add(new MultiKv(entry.getKey(),
-                    entry.getValue().stream()
-                            .map(x -> x.getBuffer())
-                            .collect(Collectors.toList())));
+                                   entry.getValue().stream()
+                                        .map(x -> x.getBuffer())
+                                        .collect(Collectors.toList())));
         }
 
         result.sort(MultiKv::compareTo);

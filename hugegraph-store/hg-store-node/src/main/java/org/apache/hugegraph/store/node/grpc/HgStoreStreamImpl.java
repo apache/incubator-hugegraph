@@ -71,7 +71,8 @@ public class HgStoreStreamImpl extends HgStoreStreamGrpc.HgStoreStreamImplBase {
                 if (this.executor == null) {
                     AppConfig.ThreadPoolScan scan = this.appConfig.getThreadPoolScan();
                     this.executor =
-                            HgExecutorUtil.createExecutor(PoolNames.SCAN, scan.getCore(), scan.getMax(),
+                            HgExecutorUtil.createExecutor(PoolNames.SCAN, scan.getCore(),
+                                                          scan.getMax(),
                                                           scan.getQueue());
                 }
             }

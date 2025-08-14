@@ -29,10 +29,11 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class TtlCheckStage implements QueryStage {
+
     private boolean isVertex;
 
-    private DirectBinarySerializer serializer = new DirectBinarySerializer();
-    private long now ;
+    private final DirectBinarySerializer serializer = new DirectBinarySerializer();
+    private long now;
 
     @Override
     public void init(Object... objects) {

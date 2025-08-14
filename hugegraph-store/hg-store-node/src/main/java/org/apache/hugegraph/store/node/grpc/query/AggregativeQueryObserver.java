@@ -17,6 +17,18 @@
 
 package org.apache.hugegraph.store.node.grpc.query;
 
+import static org.apache.hugegraph.store.node.grpc.query.AggregativeQueryService.errorResponse;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
@@ -32,54 +44,35 @@ import org.apache.hugegraph.store.query.KvSerializer;
 import org.apache.hugegraph.structure.BaseEdge;
 import org.apache.hugegraph.structure.BaseElement;
 import org.apache.hugegraph.structure.BaseVertex;
+
 import com.google.protobuf.ByteString;
+
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.apache.hugegraph.store.node.grpc.query.AggregativeQueryService.errorResponse;
-
 
 @Slf4j
 public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
 
     private static final int RESULT_COUNT = 16;
-
-    private StreamObserver<QueryResponse> sender;
-
     private final ExecutorService threadPool;
-
     private final long timeout;
-
     private final int batchSize;
-
     private final AtomicInteger consumeCount = new AtomicInteger(0);
-
     private final AtomicInteger sendCount = new AtomicInteger(0);
-
     private final AtomicBoolean clientCanceled = new AtomicBoolean(false);
-
+    //    private final ThreadLocal<QueryResponse.Builder> localBuilder = ThreadLocal.withInitial
+    //    (QueryResponse::newBuilder);
+//    private final ThreadLocal<Kv.Builder> localKvBuilder = ThreadLocal.withInitial
+//    (Kv::newBuilder);
+    private final BinaryElementSerializer serializer = BinaryElementSerializer.getInstance();
+    private final StreamObserver<QueryResponse> sender;
     private volatile ScanIterator iterator = null;
-
     private QueryPlan plan = null;
-
     private String queryId;
 
-//    private final ThreadLocal<QueryResponse.Builder> localBuilder = ThreadLocal.withInitial(QueryResponse::newBuilder);
-//    private final ThreadLocal<Kv.Builder> localKvBuilder = ThreadLocal.withInitial(Kv::newBuilder);
-    private final BinaryElementSerializer serializer = BinaryElementSerializer.getInstance();
-
-   public AggregativeQueryObserver(StreamObserver<QueryResponse> sender, ExecutorService threadPool, long timeout,
-                              int batchSize) {
+    public AggregativeQueryObserver(StreamObserver<QueryResponse> sender,
+                                    ExecutorService threadPool, long timeout,
+                                    int batchSize) {
         this.sender = sender;
         this.threadPool = threadPool;
         this.batchSize = batchSize;
@@ -99,7 +92,8 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
             iterator = QueryUtil.getIterator(request);
             plan = QueryUtil.buildPlan(request);
             threadPool.submit(this::sendData);
-            log.debug("query id: {}, init data cost: {} ms", queryId, (System.nanoTime() - current) * 1.0 / 1000000);
+            log.debug("query id: {}, init data cost: {} ms", queryId,
+                      (System.nanoTime() - current) * 1.0 / 1000000);
         } else {
             this.consumeCount.incrementAndGet();
             log.debug("query id: {}, send feedback of {}", queryId, this.consumeCount.get());
@@ -125,13 +119,14 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
             var responseBuilder = getBuilder();
             var kvBuilder = getKvBuilder();
 
-            while (! this.clientCanceled.get()) {
+            while (!this.clientCanceled.get()) {
                 // produces more result than consumer, just waiting
                 if (sendCount.get() - consumeCount.get() >= RESULT_COUNT) {
                     // read timeout, takes long time not to read data
                     if (System.currentTimeMillis() - lastSend > timeout) {
                         this.sender.onNext(errorResponse(getBuilder(), queryId,
-                                new RuntimeException("sending-timeout, server closed")));
+                                                         new RuntimeException(
+                                                                 "sending-timeout, server closed")));
                         this.sender.onCompleted();
                         return;
                     }
@@ -159,7 +154,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
                     }
                 }
 
-                if (builder.getIsFinished() || ! builder.getIsOk()) {
+                if (builder.getIsFinished() || !builder.getIsOk()) {
                     break;
                 }
             }
@@ -172,15 +167,16 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
 
     /**
      * 1.1: pipeline is empty:
-     *    --> read data from iterator
+     * --> read data from iterator
      * 1.2: pipeline is not empty
-     *    1.2.1: only stop stage: --> just finish
-     *    1.2.2: has Agg or top or sort --> multi thread
-     *    1.2.3: plain stage: --> read data from iterator through pipeline
+     * 1.2.1: only stop stage: --> just finish
+     * 1.2.2: has Agg or top or sort --> multi thread
+     * 1.2.3: plain stage: --> read data from iterator through pipeline
      *
      * @return result builder
      */
-    private QueryResponse.Builder readBatchData(QueryResponse.Builder builder, Kv.Builder kvBuilder) {
+    private QueryResponse.Builder readBatchData(QueryResponse.Builder builder,
+                                                Kv.Builder kvBuilder) {
         ScanIterator itr = this.iterator;
         boolean empty = plan.isEmpty();
         boolean finish = false;
@@ -190,7 +186,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
         long current = System.nanoTime();
 
         try {
-            if (! empty) {
+            if (!empty) {
                 if (this.plan.onlyStopStage()) {
                     builder.setIsOk(true).setIsFinished(true);
                     return builder;
@@ -235,7 +231,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
             builder.clear();
 
             List<Kv> batchResult = new ArrayList<>();
-            while (itr.hasNext() && ! this.clientCanceled.get()) {
+            while (itr.hasNext() && !this.clientCanceled.get()) {
                 if (count >= batchSize) {
                     break;
                 }
@@ -245,10 +241,12 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
                     var column = (RocksDBSession.BackendColumn) iterator.next();
                     if (column != null) {
                         batchResult.add(kvBuilder.clear().setKey(ByteString.copyFrom(column.name))
-                                .setValue(column.value == null ? ByteString.EMPTY : ByteString.copyFrom(column.value))
-                                .build());
+                                                 .setValue(column.value == null ? ByteString.EMPTY :
+                                                           ByteString.copyFrom(column.value))
+                                                 .build());
                         // builder.addData(kvBuilder.setKey(ByteString.copyFrom(column.name))
-                        //        .setValue(column.value == null ? ByteString.EMPTY : ByteString.copyFrom(column.value))
+                        //        .setValue(column.value == null ? ByteString.EMPTY : ByteString
+                        //        .copyFrom(column.value))
                         //        .build());
                         count++;
                     }
@@ -273,15 +271,17 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
         } catch (Exception e) {
             log.error("readBatchData got error: ", e);
             return builder.setIsOk(false).setIsFinished(false).setMessage("Store Server Error: "
-                    + Arrays.toString(e.getStackTrace()));
+                                                                          + Arrays.toString(
+                    e.getStackTrace()));
         }
 
-        if (checkIterator){
+        if (checkIterator) {
             // check the iterator
-            finish = ! itr.hasNext();
+            finish = !itr.hasNext();
         }
-        log.debug("query id: {}, finished batch, with size :{}, finish:{}, cost: {} ms", queryId, count,
-                finish, (System.nanoTime() - current) * 1.0 / 1000000);
+        log.debug("query id: {}, finished batch, with size :{}, finish:{}, cost: {} ms", queryId,
+                  count,
+                  finish, (System.nanoTime() - current) * 1.0 / 1000000);
 
         return builder.setIsOk(true).setIsFinished(finish);
     }
@@ -289,9 +289,10 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
     public ScanIterator executePlainPipeline(ScanIterator itr) {
         return new ScanIterator() {
             private boolean limitFlag = false;
+
             @Override
             public boolean hasNext() {
-                return itr.hasNext() && ! limitFlag;
+                return itr.hasNext() && !limitFlag;
             }
 
             @Override
@@ -315,17 +316,17 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
         };
     }
 
-
     /**
      * 用于并行化处理
+     *
      * @param itr input iterator
      */
     private void execute(ScanIterator itr) {
         long recordCount = 0;
         long current = System.nanoTime();
-        while (itr.hasNext() && ! this.clientCanceled.get()) {
+        while (itr.hasNext() && !this.clientCanceled.get()) {
             try {
-                recordCount ++;
+                recordCount++;
                 executePipeline(itr.next());
                 if (System.currentTimeMillis() - current > timeout * 1000) {
                     throw new RuntimeException("execution timeout");
@@ -368,7 +369,8 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
             case BACKEND_COLUMN:
                 var column = result.getColumn();
                 builder.setKey(ByteString.copyFrom(column.name));
-                builder.setValue(column.value == null ? ByteString.EMPTY : ByteString.copyFrom(column.value));
+                builder.setValue(column.value == null ? ByteString.EMPTY :
+                                 ByteString.copyFrom(column.value));
                 break;
             case MKV:
                 var mkv = result.getKv();
@@ -381,7 +383,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
                 BackendColumn backendColumn;
                 if (element instanceof BaseVertex) {
                     backendColumn = serializer.writeVertex((BaseVertex) element);
-                } else  { // if (element instanceof BaseEdge) {
+                } else { // if (element instanceof BaseEdge) {
                     backendColumn = serializer.writeEdge((BaseEdge) element);
                 }
 

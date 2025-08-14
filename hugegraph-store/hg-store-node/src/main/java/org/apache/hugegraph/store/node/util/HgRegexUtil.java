@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  */
 public class HgRegexUtil {
 
-    private static Map<String, Pattern> patternMap = new LinkedHashMap<>();
+    private static final Map<String, Pattern> patternMap = new LinkedHashMap<>();
 
     public static String getGroupValue(String regex, String source, int groupId) {
         if (regex == null || "".equals(regex) || source == null || "".equals(source)) {

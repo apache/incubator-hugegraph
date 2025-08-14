@@ -17,14 +17,14 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
-import org.apache.hugegraph.store.node.grpc.query.QueryStage;
-import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
-import org.apache.hugegraph.store.util.MultiKv;
+import static org.apache.hugegraph.store.node.grpc.query.QueryUtil.EMPTY_AGG_KEY;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.hugegraph.store.node.grpc.query.QueryUtil.EMPTY_AGG_KEY;
+import org.apache.hugegraph.store.node.grpc.query.QueryStage;
+import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
+import org.apache.hugegraph.store.util.MultiKv;
 
 /**
  * 简单的count计数

@@ -52,7 +52,7 @@ public class DeserializationStage implements QueryStage {
             return result;
         }
         var column = result.getColumn();
-        if (column.value == null)  {
+        if (column.value == null) {
             return null;
         }
         try {
@@ -61,7 +61,7 @@ public class DeserializationStage implements QueryStage {
                                                QueryUtil.isVertex(this.table));
             return new PipelineResult(element);
         } catch (Exception e) {
-            log.error("Deserialization error: {}", graph,  e);
+            log.error("Deserialization error: {}", graph, e);
             return null;
         }
     }

@@ -17,11 +17,11 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
-import org.apache.hugegraph.store.node.grpc.query.QueryStage;
-import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
-
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.hugegraph.store.node.grpc.query.QueryStage;
+import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 
 /**
  * 限制N
@@ -39,7 +39,8 @@ public class LimitStage implements QueryStage {
 
     @Override
     public PipelineResult handle(PipelineResult result) throws EarlyStopException {
-        if (Objects.equals(result, PipelineResult.EMPTY) || counter.getAndIncrement() < this.limit) {
+        if (Objects.equals(result, PipelineResult.EMPTY) ||
+            counter.getAndIncrement() < this.limit) {
             return result;
         }
         throw new EarlyStopException();

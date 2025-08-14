@@ -16,13 +16,6 @@
  */
 package org.apache.hugegraph.store.node.metrics;
 
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
-
 //@Deprecated
 //public class SystemMemoryStats extends ProcfsRecord {
 //

@@ -17,6 +17,9 @@
 
 package org.apache.hugegraph.store.node.grpc.query.stages;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.store.node.grpc.query.QueryStage;
 import org.apache.hugegraph.store.node.grpc.query.QueryUtil;
@@ -24,15 +27,14 @@ import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResultType;
 import org.apache.hugegraph.store.util.MultiKv;
 import org.apache.hugegraph.structure.BaseElement;
-import com.google.protobuf.ByteString;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.google.protobuf.ByteString;
 
 /**
  * 提取聚合函数所需字段
  */
 public class ExtractAggFieldStage implements QueryStage {
+
     private List<Id> groupBys;
 
     private List<Id> fields;
@@ -66,22 +68,22 @@ public class ExtractAggFieldStage implements QueryStage {
             return null;
         }
 
-        if (this.groupByElementSchemaId && ! result.isEmpty()) {
+        if (this.groupByElementSchemaId && !result.isEmpty()) {
             return new PipelineResult(MultiKv.of(List.of(QueryUtil.getLabelId(result.getColumn(),
                                                                               this.isVertex)),
                                                  List.of(1L)));
         } else if (result.getResultType() == PipelineResultType.HG_ELEMENT) {
             var element = result.getElement();
             return new PipelineResult(MultiKv.of(getFields(this.groupBys, element),
-                                            getFields(this.fields, element)));
+                                                 getFields(this.fields, element)));
         }
         return result;
     }
 
     private List<Object> getFields(List<Id> ids, BaseElement element) {
         return ids.stream()
-                .map(id -> id == null ? null : element.getPropertyValue(id))
-                .collect(Collectors.toList());
+                  .map(id -> id == null ? null : element.getPropertyValue(id))
+                  .collect(Collectors.toList());
     }
 
     private List<Object> getSchemaId(BaseElement element) {

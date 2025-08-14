@@ -16,37 +16,17 @@
  */
 package org.apache.hugegraph.store.node.metrics;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongUnaryOperator;
 
 public class ProcfsSmaps extends ProcfsEntry {
 
-    public enum KEY {
-        /**
-         * Virtual set size
-         */
-        VSS,
-        /**
-         * Resident set size
-         */
-        RSS,
-        /**
-         * Proportional set size
-         */
-        PSS,
-        /**
-         * Paged out memory
-         */
-        SWAP,
-        /**
-         * Paged out memory accounting shared pages. Since Linux 4.3.
-         */
-        SWAPPSS
-    }
-
     private static final int KILOBYTE = 1024;
-
     private final Map<KEY, AtomicLong> values = new HashMap<>();
 
     public ProcfsSmaps() {
@@ -55,6 +35,12 @@ public class ProcfsSmaps extends ProcfsEntry {
 
     /* default */ ProcfsSmaps(ProcfsReader reader) {
         super(reader);
+    }
+
+    private static long parseKiloBytes(String line) {
+        Objects.requireNonNull(line);
+
+        return Long.parseLong(line.split("\\s+")[1]);
     }
 
     @Override
@@ -101,10 +87,27 @@ public class ProcfsSmaps extends ProcfsEntry {
         });
     }
 
-    private static long parseKiloBytes(String line) {
-        Objects.requireNonNull(line);
-
-        return Long.parseLong(line.split("\\s+")[1]);
+    public enum KEY {
+        /**
+         * Virtual set size
+         */
+        VSS,
+        /**
+         * Resident set size
+         */
+        RSS,
+        /**
+         * Proportional set size
+         */
+        PSS,
+        /**
+         * Paged out memory
+         */
+        SWAP,
+        /**
+         * Paged out memory accounting shared pages. Since Linux 4.3.
+         */
+        SWAPPSS
     }
 
 }

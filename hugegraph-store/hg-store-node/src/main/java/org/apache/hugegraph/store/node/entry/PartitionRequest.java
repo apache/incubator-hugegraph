@@ -19,8 +19,8 @@ package org.apache.hugegraph.store.node.entry;
 
 import lombok.Data;
 
-
 @Data
 public class PartitionRequest {
+
     private Integer id;
 }

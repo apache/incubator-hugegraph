@@ -127,27 +127,6 @@ public class JRaftMetrics {
 
     }
 
-    private static class HistogramWrapper {
-
-        private com.codahale.metrics.Histogram histogram;
-
-        private Snapshot snapshot;
-        private long ts = System.currentTimeMillis();
-
-        HistogramWrapper(com.codahale.metrics.Histogram histogram) {
-            this.histogram = histogram;
-            this.snapshot = this.histogram.getSnapshot();
-        }
-
-        Snapshot getSnapshot() {
-            if (System.currentTimeMillis() - this.ts > 30_000) {
-                this.snapshot = this.histogram.getSnapshot();
-                this.ts = System.currentTimeMillis();
-            }
-            return this.snapshot;
-        }
-    }
-
     private static HistogramWrapper toWrapper(com.codahale.metrics.Histogram histogram) {
         return new HistogramWrapper(histogram);
     }
@@ -311,5 +290,26 @@ public class JRaftMetrics {
                  .tag("str.gauge", String.valueOf(gauge.getValue())).register(registry);
         }
 
+    }
+
+    private static class HistogramWrapper {
+
+        private final com.codahale.metrics.Histogram histogram;
+
+        private Snapshot snapshot;
+        private long ts = System.currentTimeMillis();
+
+        HistogramWrapper(com.codahale.metrics.Histogram histogram) {
+            this.histogram = histogram;
+            this.snapshot = this.histogram.getSnapshot();
+        }
+
+        Snapshot getSnapshot() {
+            if (System.currentTimeMillis() - this.ts > 30_000) {
+                this.snapshot = this.histogram.getSnapshot();
+                this.ts = System.currentTimeMillis();
+            }
+            return this.snapshot;
+        }
     }
 }

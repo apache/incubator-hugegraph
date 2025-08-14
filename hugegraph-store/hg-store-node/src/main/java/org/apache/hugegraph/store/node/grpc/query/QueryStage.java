@@ -17,20 +17,22 @@
 
 package org.apache.hugegraph.store.node.grpc.query;
 
+import java.util.Iterator;
+
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 import org.apache.hugegraph.store.node.grpc.query.stages.EarlyStopException;
-
-import java.util.Iterator;
 
 public interface QueryStage {
 
     /**
      * init params
+     *
      * @param objects params
      */
-    default void init(Object... objects) {}
+    default void init(Object... objects) {
+    }
 
-    default PipelineResult handle (PipelineResult result) throws EarlyStopException {
+    default PipelineResult handle(PipelineResult result) throws EarlyStopException {
         return null;
     }
 
@@ -41,7 +43,10 @@ public interface QueryStage {
     default Iterator<PipelineResult> handleIterator(PipelineResult result) {
         return null;
     }
+
     String getName();
 
-    default void close() {};
+    default void close() {
+    }
+
 }

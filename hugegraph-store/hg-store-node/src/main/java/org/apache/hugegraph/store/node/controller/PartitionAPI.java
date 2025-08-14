@@ -200,19 +200,21 @@ public class PartitionAPI {
         return okMap("arthasstart", ret);
     }
 
-    public Map<String, Object> compact(@PathVariable(value = "id")int id){
-        boolean submitted = nodeService.getStoreEngine().getBusinessHandler().blockingCompact("", id);
+    public Map<String, Object> compact(@PathVariable(value = "id") int id) {
+        boolean submitted =
+                nodeService.getStoreEngine().getBusinessHandler().blockingCompact("", id);
         Map<String, Object> map = new HashMap<>();
         if (submitted) {
             map.put("code", "OK");
-            map.put("msg", "compaction was successfully submitted. See the log for more information");
+            map.put("msg",
+                    "compaction was successfully submitted. See the log for more information");
         } else {
             map.put("code", "Failed");
-            map.put("msg", "compaction task fail to submit, and there could be another task in progress");
+            map.put("msg",
+                    "compaction task fail to submit, and there could be another task in progress");
         }
         return map;
     }
-
 
     public Map<String, Object> okMap(String k, Object v) {
         Map<String, Object> map = new HashMap<>();

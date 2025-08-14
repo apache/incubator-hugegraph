@@ -102,7 +102,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                                                         .isUseRocksDBSegmentLogStorage());
                 setMaxSegmentFileSize(appConfig.getRaft().getMaxSegmentFileSize());
                 setMaxReplicatorInflightMsgs(appConfig.getRaft().getMaxReplicatorInflightMsgs());
-                if (appConfig.getRaft().getRpcPoolSizeByMultipleOfCPU() > 0){
+                if (appConfig.getRaft().getRpcPoolSizeByMultipleOfCPU() > 0) {
                     setRaftRpcThreadPoolSize(Utils.cpus() * raft.getRpcPoolSizeByMultipleOfCPU());
                 }
                 setRaftRpcThreadPoolSizeOfBasic(raft.getRpcPoolSizeOfBasic());
@@ -114,7 +114,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 setShardCount(appConfig.getFakePdConfig().getShardCount());
             }});
 
-            setQueryPushDownOption(new QueryPushDownOption(){{
+            setQueryPushDownOption(new QueryPushDownOption() {{
                 setThreadPoolSize(appConfig.getQueryPushDownConfig().getThreadPoolSize());
                 setFetchBatchSize(appConfig.getQueryPushDownConfig().getFetchBatchSize());
                 setFetchTimeout(appConfig.getQueryPushDownConfig().getFetchTimeOut());
@@ -142,7 +142,8 @@ public class HgStoreNodeService implements RaftTaskHandler {
     /**
      * Add raft task, forward data to raft
      *
-     * @return true means the data has been submitted, false means not submitted, used to reduce batch splitting for single-replica storage
+     * @return true means the data has been submitted, false means not submitted, used to reduce
+     * batch splitting for single-replica storage
      */
     public <Req extends com.google.protobuf.GeneratedMessageV3>
     void addRaftTask(byte methodId, String graphName, Integer partitionId, Req req,
