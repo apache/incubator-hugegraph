@@ -19,6 +19,7 @@ package org.apache.hugegraph.store.node;
 
 import org.apache.hugegraph.store.node.listener.ContextClosedListener;
 import org.apache.hugegraph.store.node.listener.PdConfigureListener;
+import org.apache.hugegraph.store.node.listener.PlaceHolderListener;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -56,8 +57,10 @@ public class StoreNodeApplication {
         SpringApplication application = new SpringApplication(StoreNodeApplication.class);
         PdConfigureListener listener = new PdConfigureListener();
         ContextClosedListener closedListener = new ContextClosedListener();
+        PlaceHolderListener placeHolderListener = new PlaceHolderListener();
         application.addListeners(listener);
         application.addListeners(closedListener);
+        application.addListeners(placeHolderListener);
         ConfigurableApplicationContext context = application.run();
         listener.setContext(context);
         System.out.println("StoreNodeApplication started.");
