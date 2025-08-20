@@ -64,6 +64,7 @@ public enum HugeType implements SerialEnum {
     SEARCH_INDEX(170, "AI"),
     SHARD_INDEX(175, "HI"),
     UNIQUE_INDEX(178, "UI"),
+    VECTOR_INDEX(180, "VI"),
 
     TASK(180, "T"),
     SERVER(181, "SERVER"),

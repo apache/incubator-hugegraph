@@ -244,6 +244,13 @@ public class IndexLabelAPI extends API {
             E.checkArgumentNotNull(this.indexType,
                                    "The index type of index label '%s' " +
                                    "can't be null", this.name);
+            if(this.indexType == IndexType.VECTOR){
+                E.checkArgumentNotNull(this.userdata,
+                                       "The user_data(dimension and metric) of vector index " +
+                                       "label '%s' " +
+                                       "can't be null", this.name);
+            }
+
         }
 
         @Override
