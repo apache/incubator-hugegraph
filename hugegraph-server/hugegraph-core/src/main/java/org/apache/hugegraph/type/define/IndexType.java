@@ -38,7 +38,10 @@ public enum IndexType implements SerialEnum {
     SHARD(4, "shard"),
 
     // For unique index
-    UNIQUE(5, "unique");
+    UNIQUE(5, "unique"),
+
+    //For vector index
+    VECTOR(6, "vector");
 
     private byte code = 0;
     private String name = null;
@@ -80,6 +83,8 @@ public enum IndexType implements SerialEnum {
                 return HugeType.SHARD_INDEX;
             case UNIQUE:
                 return HugeType.UNIQUE_INDEX;
+            case VECTOR:
+                return HugeType.VECTOR_INDEX;
             default:
                 throw new AssertionError(String.format(
                         "Unknown index type '%s'", this));
@@ -116,5 +121,9 @@ public enum IndexType implements SerialEnum {
 
     public boolean isUnique() {
         return this == UNIQUE;
+    }
+
+    public boolean isVector() {
+        return this == VECTOR;
     }
 }

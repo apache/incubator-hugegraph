@@ -43,6 +43,7 @@ import org.apache.hugegraph.schema.Userdata;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
+import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.IndexType;
@@ -390,6 +391,11 @@ public class IndexLabelBuilder extends AbstractBuilder
         return this;
     }
 
+    public IndexLabelBuilder vector() {
+        this.indexType = IndexType.VECTOR;
+        return this;
+    }
+
     @Override
     public IndexLabelBuilder on(HugeType baseType, String baseValue) {
         E.checkArgument(baseType == HugeType.VERTEX_LABEL ||
@@ -526,6 +532,21 @@ public class IndexLabelBuilder extends AbstractBuilder
                             "Search index can only build on text property, " +
                             "but got %s(%s)", dataType, field);
         }
+
+        // Vector index must build on float list
+        if(this.indexType.isVector()){
+            E.checkArgument(fields.size() == 1,
+                            "vector index can only build on " +
+                            "one field, but got %s fields: '%s'",
+                            fields.size(), fields);
+            String field = fields.iterator().next();
+            DataType dataType = this.graph().propertyKey(field).dataType();
+            Cardinality cardinality = this.graph().propertyKey(field).cardinality();
+            E.checkArgument((dataType == DataType.FLOAT) &&
+                                      (cardinality == Cardinality.LIST),
+                            "vector index can only build on Float List, " +
+                            "but got %s(%s)", dataType, cardinality);
+        }
     }
 
     private void checkFields4Range() {
@@ -586,6 +607,9 @@ public class IndexLabelBuilder extends AbstractBuilder
                 break;
             case UNIQUE:
                 this.checkRepeatUniqueIndex(schemaLabel);
+                break;
+            case VECTOR:
+                this.checkRepeatVectorIndex(schemaLabel);
                 break;
             default:
                 throw new AssertionError(String.format(
@@ -674,6 +698,11 @@ public class IndexLabelBuilder extends AbstractBuilder
             this.checkRepeatIndex(schemaLabel, IndexType.SHARD);
         }
     }
+
+    private void checkRepeatVectorIndex(SchemaLabel schemaLabel) {
+        this.checkRepeatIndex(schemaLabel, IndexType.VECTOR);
+    }
+
 
     private void checkRepeatUniqueIndex(SchemaLabel schemaLabel) {
         this.checkRepeatIndex(schemaLabel, List::containsAll, IndexType.UNIQUE);
