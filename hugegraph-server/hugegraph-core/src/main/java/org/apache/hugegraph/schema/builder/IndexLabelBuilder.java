@@ -30,7 +30,6 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
@@ -543,7 +542,7 @@ public class IndexLabelBuilder extends AbstractBuilder
             DataType dataType = this.graph().propertyKey(field).dataType();
             Cardinality cardinality = this.graph().propertyKey(field).cardinality();
             E.checkArgument((dataType == DataType.FLOAT) &&
-                                      (cardinality == Cardinality.LIST),
+                            (cardinality == Cardinality.LIST),
                             "vector index can only build on Float List, " +
                             "but got %s(%s)", dataType, cardinality);
         }

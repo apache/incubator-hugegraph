@@ -235,11 +235,10 @@ public class IndexLabelAPI extends API {
             E.checkArgumentNotNull(this.indexType,
                                    "The index type of index label '%s' " +
                                    "can't be null", this.name);
-            if(this.indexType == IndexType.VECTOR){
+            if (this.indexType == IndexType.VECTOR) {
                 E.checkArgumentNotNull(this.userdata,
-                                       "The user_data(dimension and metric) of vector index " +
-                                       "label '%s' " +
-                                       "can't be null", this.name);
+                                       "The user_data(dimension and metric) of " +
+                                       "vector index label '%s' " + "can't be null", this.name);
             }
 
         }
@@ -289,6 +288,9 @@ public class IndexLabelAPI extends API {
             }
             if (this.rebuild != null) {
                 builder.rebuild(this.rebuild);
+            }
+            if (this.indexType == IndexType.VECTOR) {
+                builder.rebuild(false);
             }
             return builder;
         }
