@@ -17,30 +17,23 @@
 
 package org.apache.hugegraph.pd.common;
 
-public class PDException extends Exception {
-    private int errorCode = 0;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
-    public PDException(int error) {
-        super(String.format("Error code = %d", error));
-        this.errorCode = error;
+public class DefaultThreadFactory implements ThreadFactory {
+
+    private final AtomicInteger number = new AtomicInteger(1);
+    private final String prefix;
+
+    public DefaultThreadFactory(String prefix) {
+        this.prefix = prefix + "-";
     }
 
-    public PDException(int error, String msg) {
-        super(msg);
-        this.errorCode = error;
-    }
-
-    public PDException(int error, Throwable e) {
-        super(e);
-        this.errorCode = error;
-    }
-
-    public PDException(int error, String msg, Throwable e) {
-        super(msg, e);
-        this.errorCode = error;
-    }
-
-    public int getErrorCode() {
-        return errorCode;
+    @Override
+    public Thread newThread(Runnable r) {
+        Thread t = new Thread(r, prefix + number.getAndIncrement());
+        t.setDaemon(true);
+        t.setPriority(Thread.NORM_PRIORITY);
+        return t;
     }
 }
