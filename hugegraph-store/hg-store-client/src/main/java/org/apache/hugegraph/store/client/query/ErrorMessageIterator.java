@@ -15,17 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store;
+package org.apache.hugegraph.store.client.query;
 
-import javax.annotation.concurrent.ThreadSafe;
+import org.apache.hugegraph.store.client.type.HgStoreClientException;
 
-/**
- * created on 2021/10/12
- */
-@ThreadSafe
-public interface HgSessionProvider {
+import java.util.Iterator;
 
-    HgStoreSession createSession(String graphName);
+public class ErrorMessageIterator<E> implements Iterator<E> {
 
-    HgStoreSession createSession(String graphName, HgSessionConfig sessionConfig);
+    private String message;
+
+    public ErrorMessageIterator(String message) {
+        this.message = message;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return true;
+    }
+
+    @Override
+    public E next() {
+        throw new HgStoreClientException(message);
+    }
 }

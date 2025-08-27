@@ -67,4 +67,5 @@ public final class HgNodePartitionerBuilder {
         this.partitions = partitions;
     }
 
+
 }

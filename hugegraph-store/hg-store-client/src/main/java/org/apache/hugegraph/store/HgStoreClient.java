@@ -37,6 +37,8 @@ public final class HgStoreClient {
     private final HgSessionProvider sessionProvider;
     private PDClient pdClient;
 
+    private HgSessionConfig sessionConfig;
+
     public HgStoreClient() {
         this.sessionProvider = new HgStoreSessionProvider();
     }
@@ -67,6 +69,10 @@ public final class HgStoreClient {
     public void setPDConfig(PDConfig config) {
         pdClient = PDClient.create(config);
         setPdClient(pdClient);
+    }
+
+    public void setSessionConfig(HgSessionConfig sessionConfig) {
+        this.sessionConfig = sessionConfig;
     }
 
     /**

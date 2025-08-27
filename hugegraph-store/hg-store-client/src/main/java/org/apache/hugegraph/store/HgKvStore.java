@@ -19,8 +19,12 @@ package org.apache.hugegraph.store;
 
 import java.util.List;
 
+import org.apache.hugegraph.HugeGraphSupplier;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
 import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
+import org.apache.hugegraph.store.query.StoreQueryParam;
+import org.apache.hugegraph.structure.BaseElement;
 
 /**
  * @version 0.2.0
@@ -98,7 +102,11 @@ public interface HgKvStore {
 
     HgKvIterator<HgKvEntry> scanIterator(ScanStreamReq.Builder scanReqBuilder);
 
+    //todo soya to be removed in the future
     long count(String table);
+
+    List<HgKvIterator<BaseElement>> query(StoreQueryParam query, HugeGraphSupplier supplier) throws
+                                                                                             PDException;
 
     boolean truncate();
 

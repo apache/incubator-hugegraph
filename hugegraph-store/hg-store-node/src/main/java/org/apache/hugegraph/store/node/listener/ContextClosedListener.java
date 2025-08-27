@@ -26,6 +26,7 @@ import org.apache.hugegraph.store.node.task.TTLCleaner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.stereotype.Service;
 
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.entity.PeerId;
@@ -33,6 +34,7 @@ import com.alipay.sofa.jraft.entity.PeerId;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Service
 public class ContextClosedListener implements ApplicationListener<ContextClosedEvent> {
 
     @Autowired
@@ -110,9 +112,14 @@ public class ContextClosedListener implements ApplicationListener<ContextClosedE
                              }
                          });
 
-            HgStoreEngine.getInstance().getPartitionEngines()
-                         .forEach((integer, partitionEngine) -> partitionEngine.getRaftNode()
-                                                                               .disableVote());
+            //HgStoreEngine.getInstance().getPartitionEngines()
+            //             .forEach((integer, partitionEngine) -> partitionEngine.getRaftNode()
+            //                                                                   .disableVote());
+            //todo soya is this right?
+            HgStoreEngine.getInstance().getPartitionEngines().forEach(
+                    ((integer, partitionEngine) -> partitionEngine.getRaftNode()
+                                                                  .shutdown())
+            );
         } catch (Exception e) {
             log.error("transfer leader failed: " + e.getMessage());
         }

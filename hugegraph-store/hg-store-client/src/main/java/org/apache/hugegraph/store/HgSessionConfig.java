@@ -17,15 +17,10 @@
 
 package org.apache.hugegraph.store;
 
-import javax.annotation.concurrent.ThreadSafe;
 
-/**
- * created on 2021/10/12
- */
-@ThreadSafe
-public interface HgSessionProvider {
+import lombok.Data;
 
-    HgStoreSession createSession(String graphName);
-
-    HgStoreSession createSession(String graphName, HgSessionConfig sessionConfig);
+@Data
+public class HgSessionConfig {
+    private long queryPushDownTimeout = 1800_000;
 }

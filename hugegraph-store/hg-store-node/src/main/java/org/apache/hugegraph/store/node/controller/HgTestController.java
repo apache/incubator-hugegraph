@@ -148,18 +148,18 @@ public class HgTestController {
         }
     }
 
-    @GetMapping(value = "/no_vote", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String noVote() {
-        try {
-            nodeService.getStoreEngine().getPartitionEngines().values().forEach(engine -> {
-                engine.getRaftNode().disableVote();
-            });
-            return "OK";
-        } catch (Exception e) {
-            log.error("pulse reset error: ", e);
-            return e.getMessage();
-        }
-    }
+    //@GetMapping(value = "/no_vote", produces = MediaType.APPLICATION_JSON_VALUE)
+    //public String noVote() {
+    //    try {
+    //        nodeService.getStoreEngine().getPartitionEngines().values().forEach(engine -> {
+    //            engine.getRaftNode().disableVote();
+    //        });
+    //        return "OK";
+    //    } catch (Exception e) {
+    //        log.error("pulse reset error: ", e);
+    //        return e.getMessage();
+    //    }
+    //}
 
     @GetMapping(value = "/restart_raft", produces = MediaType.APPLICATION_JSON_VALUE)
     public String restartRaft() {
