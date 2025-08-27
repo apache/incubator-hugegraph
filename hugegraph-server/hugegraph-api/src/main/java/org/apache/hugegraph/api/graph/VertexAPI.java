@@ -44,7 +44,9 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.optimize.QueryHolder;
 import org.apache.hugegraph.traversal.optimize.Text;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
@@ -212,6 +214,83 @@ public class VertexAPI extends BatchAPI {
         commit(g, () -> updateProperties(vertex, jsonVertex, append));
 
         return manager.serializer(g).writeVertex(vertex);
+    }
+
+    @POST
+    @Timed(name = "ann-search")
+    @Path("annsearch")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin", "$owner=$graph $action=vertex_read"})
+    public String annSearch(@Context GraphManager manager,
+                            @PathParam("graph") String graph,
+                            AnnSearchRequest searchRequest) {
+        LOG.debug("Graph [{}] ANN search with request: {}", graph, searchRequest);
+
+        AnnSearchRequest.checkRequest(searchRequest);
+
+        HugeGraph g = graph(manager, graph);
+
+        // Check if vertex label exists
+        VertexLabel vertexLabel = g.vertexLabel(searchRequest.vertex_label);
+        if (vertexLabel == null) {
+            throw new IllegalArgumentException(
+                    "Vertex label not found: " + searchRequest.vertex_label);
+        }
+
+        // Check if the property exists in the vertex label
+        PropertyKey propertyKey = g.propertyKey(searchRequest.properties);
+        if (propertyKey == null) {
+            throw new IllegalArgumentException(
+                    "Property key not found: " + searchRequest.properties);
+        }
+
+        // Check if the property is defined in the vertex label
+        if (!vertexLabel.properties().contains(propertyKey.id())) {
+            throw new IllegalArgumentException("Property '" + searchRequest.properties +
+                                               "' is not defined in vertex label '" +
+                                               searchRequest.vertex_label + "'");
+        }
+
+        // Check if vector index exists for the property
+        boolean hasVectorIndex = g.indexLabels().stream().anyMatch(indexLabel ->
+                                                    indexLabel.indexType() == IndexType.VECTOR &&
+                                                    indexLabel.baseType() == HugeType.VERTEX_LABEL &&
+                                                    indexLabel.baseValue()
+                                                              .equals(vertexLabel.id()) &&
+                                                    indexLabel.indexFields()
+                                                              .contains(propertyKey.id()));
+
+        if (!hasVectorIndex) {
+            throw new IllegalArgumentException(
+                    "No vector index found for property '" + searchRequest.properties +
+                    "' in vertex label '" + searchRequest.vertex_label + "'");
+        }
+
+        // Log query information
+        LOG.debug(
+                "ANN query: vertex_label={}, property={}, vector_length={}, metric={}, " +
+                "dimension={}, hasVectorIndex={}",
+                searchRequest.vertex_label, searchRequest.properties,
+                searchRequest.user_vector.length,
+                searchRequest.metric, searchRequest.dimension, hasVectorIndex);
+
+        try {
+            // TODO: Here should call the actual ANN query from backend
+            LOG.debug("ANN query not yet implemented, returning empty result");
+
+            // Temporary: return empty result
+            return manager.serializer(g).writeVertices(g.traversal().V().limit(0), false);
+
+            // Future implementation:
+            // 1. Call JVector engine for similarity query
+            // 2. Return topk most similar vertices
+
+        } finally {
+            if (g.tx().isOpen()) {
+                g.tx().close();
+            }
+        }
     }
 
     @GET
@@ -460,6 +539,36 @@ public class VertexAPI extends BatchAPI {
         public String toString() {
             return String.format("JsonVertex{label=%s, properties=%s}",
                                  this.label, this.properties);
+        }
+    }
+
+    // ANN search request class
+    private static class AnnSearchRequest {
+        @JsonProperty("vertex_label")
+        public String vertex_label;
+        @JsonProperty("properties")
+        public String properties;
+        @JsonProperty("user_vector")
+        public float[] user_vector;
+        @JsonProperty("metric")
+        public String metric;
+        @JsonProperty("dimension")
+        public Integer dimension;
+        
+        private static void checkRequest(AnnSearchRequest req) {
+            E.checkArgumentNotNull(req, "AnnSearchRequest can't be null");
+            E.checkArgumentNotNull(req.vertex_label, "Parameter 'vertex_label' can't be null");
+            E.checkArgumentNotNull(req.properties, "Parameter 'properties' can't be null");
+            E.checkArgumentNotNull(req.user_vector, "Parameter 'user_vector' can't be null");
+            E.checkArgument(req.user_vector.length > 0, "Parameter 'user_vector' can't be empty");
+            E.checkArgumentNotNull(req.metric, "Parameter 'metric' can't be null");
+            E.checkArgumentNotNull(req.dimension, "Parameter 'dimension' can't be null");
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("AnnSearchRequest{vertex_label=%s, properties=%s, user_vector=%s, metric=%s, dimension=%s}",
+                                 vertex_label, properties, Arrays.toString(user_vector), metric, dimension);
         }
     }
 }
