@@ -39,6 +39,7 @@
         <module>hg-pd-core</module>
         <module>hg-pd-service</module>
         <module>hg-pd-dist</module>
+        <module>hg-pd-cli</module>
     </modules>
 
     <properties>
