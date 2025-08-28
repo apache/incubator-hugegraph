@@ -57,6 +57,11 @@
             <version>${revision}</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hg-pd-cli</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
