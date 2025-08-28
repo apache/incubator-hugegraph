@@ -66,9 +66,7 @@ public abstract class TaskAndResultScheduler implements TaskScheduler {
         E.checkNotNull(graph, "graph");
 
         this.graph = graph;
-        // TODO: uncomment later - graph space
-        // this.graphSpace = graph.graph().graphSpace();
-        this.graphSpace = "";
+        this.graphSpace = graph.graph().graphSpace();
         this.graphName = graph.name();
 
         this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);

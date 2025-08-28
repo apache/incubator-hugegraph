@@ -48,8 +48,8 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 public class DistributedTaskScheduler extends TaskAndResultScheduler {
-    private final long schedulePeriod;
     private static final Logger LOG = Log.logger(DistributedTaskScheduler.class);
+    private final long schedulePeriod;
     private final ExecutorService taskDbExecutor;
     private final ExecutorService schemaTaskExecutor;
     private final ExecutorService olapTaskExecutor;
@@ -89,25 +89,21 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                                         .get(CoreOptions.TASK_SCHEDULE_PERIOD);
 
         this.cronFuture = this.schedulerExecutor.scheduleWithFixedDelay(
-            () -> {
-                // TODO: uncomment later - graph space
-                // LockUtil.lock(this.graph().spaceGraphName(), LockUtil.GRAPH_LOCK);
-                LockUtil.lock("", LockUtil.GRAPH_LOCK);
-                try {
-                    // TODO: Use super administrator privileges to query tasks.
-                    // TaskManager.useAdmin();
-                    this.cronSchedule();
-                } catch (Throwable t) {
-                    // TODO: log with graph space
-                    LOG.info("cronScheduler exception graph: {}", this.graphName(), t);
-                } finally {
-                    // TODO: uncomment later - graph space
-                    LockUtil.unlock("", LockUtil.GRAPH_LOCK);
-                    // LockUtil.unlock(this.graph().spaceGraphName(), LockUtil.GRAPH_LOCK);
-                }
-            },
-            10L, schedulePeriod,
-            TimeUnit.SECONDS);
+                () -> {
+                    LockUtil.lock(this.graph().spaceGraphName(), LockUtil.GRAPH_LOCK);
+                    try {
+                        // TODO: Use super administrator privileges to query tasks.
+                        // TaskManager.useAdmin();
+                        this.cronSchedule();
+                    } catch (Throwable t) {
+                        // TODO: log with graph space
+                        LOG.info("cronScheduler exception graph: {}", this.spaceGraphName(), t);
+                    } finally {
+                        LockUtil.unlock(this.graph().spaceGraphName(), LockUtil.GRAPH_LOCK);
+                    }
+                },
+                10L, schedulePeriod,
+                TimeUnit.SECONDS);
     }
 
     private static boolean sleep(long ms) {
@@ -129,7 +125,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
         // Handle tasks in NEW status
         Iterator<HugeTask<Object>> news = queryTaskWithoutResultByStatus(
-            TaskStatus.NEW);
+                TaskStatus.NEW);
 
         while (!this.closed.get() && news.hasNext()) {
             HugeTask<?> newTask = news.next();
@@ -143,7 +139,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
         // Handling tasks in RUNNING state
         Iterator<HugeTask<Object>> runnings =
-            queryTaskWithoutResultByStatus(TaskStatus.RUNNING);
+                queryTaskWithoutResultByStatus(TaskStatus.RUNNING);
 
         while (!this.closed.get() && runnings.hasNext()) {
             HugeTask<?> running = runnings.next();
@@ -165,7 +161,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
         // Handle tasks in FAILED/HANGING state
         Iterator<HugeTask<Object>> faileds =
-            queryTaskWithoutResultByStatus(TaskStatus.FAILED);
+                queryTaskWithoutResultByStatus(TaskStatus.FAILED);
 
         while (!this.closed.get() && faileds.hasNext()) {
             HugeTask<?> failed = faileds.next();
@@ -180,7 +176,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
         // Handling tasks in CANCELLING state
         Iterator<HugeTask<Object>> cancellings = queryTaskWithoutResultByStatus(
-            TaskStatus.CANCELLING);
+                TaskStatus.CANCELLING);
 
         while (!this.closed.get() && cancellings.hasNext()) {
             Id cancellingId = cancellings.next().id();
@@ -203,7 +199,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
         // Handling tasks in DELETING status
         Iterator<HugeTask<Object>> deletings = queryTaskWithoutResultByStatus(
-            TaskStatus.DELETING);
+                TaskStatus.DELETING);
 
         while (!this.closed.get() && deletings.hasNext()) {
             Id deletingId = deletings.next().id();
@@ -322,7 +318,8 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     @Override
     public <V> HugeTask<V> delete(Id id, boolean force) {
         if (!force) {
-            // Change status to DELETING, perform the deletion operation through automatic scheduling.
+            // Change status to DELETING, perform the deletion operation through automatic
+            // scheduling.
             this.updateStatus(id, null, TaskStatus.DELETING);
             return null;
         } else {
@@ -372,13 +369,13 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds)
-        throws TimeoutException {
+            throws TimeoutException {
         return this.waitUntilTaskCompleted(id, seconds, QUERY_INTERVAL);
     }
 
     @Override
     public <V> HugeTask<V> waitUntilTaskCompleted(Id id)
-        throws TimeoutException {
+            throws TimeoutException {
         // This method is just used by tests
         long timeout = this.graph.configuration()
                                  .get(CoreOptions.TASK_WAIT_TIMEOUT);
@@ -387,7 +384,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     private <V> HugeTask<V> waitUntilTaskCompleted(Id id, long seconds,
                                                    long intervalMs)
-        throws TimeoutException {
+            throws TimeoutException {
         long passes = seconds * 1000 / intervalMs;
         HugeTask<V> task = null;
         for (long pass = 0; ; pass++) {
@@ -414,12 +411,12 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             sleep(intervalMs);
         }
         throw new TimeoutException(String.format(
-            "Task '%s' was not completed in %s seconds", id, seconds));
+                "Task '%s' was not completed in %s seconds", id, seconds));
     }
 
     @Override
     public void waitUntilAllTasksCompleted(long seconds)
-        throws TimeoutException {
+            throws TimeoutException {
         long passes = seconds * 1000 / QUERY_INTERVAL;
         int taskSize = 0;
         for (long pass = 0; ; pass++) {
@@ -434,8 +431,8 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             sleep(QUERY_INTERVAL);
         }
         throw new TimeoutException(String.format(
-            "There are still %s incomplete tasks after %s seconds",
-            taskSize, seconds));
+                "There are still %s incomplete tasks after %s seconds",
+                taskSize, seconds));
 
     }
 
@@ -463,7 +460,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         } catch (Exception e) {
             throw new HugeException("Failed to update/query TaskStore for " +
                                     "graph(%s/%s): %s", e, this.graphSpace,
-                                    this.graph.name(), e.toString());
+                                    this.graph.graph().spaceGraphName(), e.toString());
         }
     }
 
@@ -552,13 +549,13 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     protected void logCurrentState() {
         int gremlinActive =
-            ((ThreadPoolExecutor) gremlinTaskExecutor).getActiveCount();
+                ((ThreadPoolExecutor) gremlinTaskExecutor).getActiveCount();
         int schemaActive =
-            ((ThreadPoolExecutor) schemaTaskExecutor).getActiveCount();
+                ((ThreadPoolExecutor) schemaTaskExecutor).getActiveCount();
         int ephemeralActive =
-            ((ThreadPoolExecutor) ephemeralTaskExecutor).getActiveCount();
+                ((ThreadPoolExecutor) ephemeralTaskExecutor).getActiveCount();
         int olapActive =
-            ((ThreadPoolExecutor) olapTaskExecutor).getActiveCount();
+                ((ThreadPoolExecutor) olapTaskExecutor).getActiveCount();
 
         LOG.info("Current State: gremlinTaskExecutor({}), schemaTaskExecutor" +
                  "({}), ephemeralTaskExecutor({}), olapTaskExecutor({})",
@@ -571,8 +568,8 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
         try {
             lockResult =
-                MetaManager.instance().tryLockTask(graphSpace, graphName,
-                                                   taskId);
+                    MetaManager.instance().tryLockTask(graphSpace, graphName,
+                                                       taskId);
         } catch (Throwable t) {
             LOG.warn(String.format("try to lock task(%s) error", taskId), t);
         }
@@ -594,6 +591,21 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     private boolean isLockedTask(String taskId) {
         return MetaManager.instance().isLockedTask(graphSpace,
                                                    graphName, taskId);
+    }
+
+    @Override
+    public String graphName() {
+        return this.graph.name();
+    }
+
+    @Override
+    public String spaceGraphName() {
+        return this.graphSpace + "-" + this.graphName;
+    }
+
+    @Override
+    public void taskDone(HugeTask<?> task) {
+        // DO Nothing
     }
 
     private class TaskRunner<V> implements Runnable {
@@ -626,7 +638,8 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
                     runningTasks.put(task.id(), task);
 
-                    // Task execution will not throw exceptions, HugeTask will catch exceptions during execution and store them in the DB.
+                    // Task execution will not throw exceptions, HugeTask will catch exceptions
+                    // during execution and store them in the DB.
                     task.run();
                 } catch (Throwable t) {
                     LOG.warn("exception when execute task", t);
@@ -638,15 +651,5 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                 }
             }
         }
-    }
-
-    @Override
-    public String graphName() {
-        return this.graph.name();
-    }
-
-    @Override
-    public void taskDone(HugeTask<?> task) {
-        // DO Nothing
     }
 }

@@ -151,7 +151,8 @@ public class GraphTransaction extends IndexableTransaction {
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();
 
-        this.locksTable = new LockUtil.LocksTable(graph.name());
+        String spaceGraph = graph.graph().spaceGraphName();
+        this.locksTable = new LockUtil.LocksTable(spaceGraph);
 
         final HugeConfig conf = graph.configuration();
         this.checkCustomVertexExist =

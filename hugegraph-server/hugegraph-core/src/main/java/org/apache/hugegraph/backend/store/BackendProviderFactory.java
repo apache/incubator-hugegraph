@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
@@ -53,7 +54,11 @@ public class BackendProviderFactory {
     public static BackendStoreProvider open(HugeGraphParams params) {
         HugeConfig config = params.configuration();
         String backend = config.get(CoreOptions.BACKEND).toLowerCase();
-        String graph = config.get(CoreOptions.STORE);
+        BackendException.check(!StringUtils.isEmpty(params.graph().graphSpace()),
+                               "GraphSpace can not be empty for '%s'",
+                               config.get(CoreOptions.STORE));
+        String graph = params.graph().graphSpace()
+                       + "/" + config.get(CoreOptions.STORE);
         boolean raftMode = config.get(CoreOptions.RAFT_MODE);
 
         BackendStoreProvider provider = newProvider(config);
