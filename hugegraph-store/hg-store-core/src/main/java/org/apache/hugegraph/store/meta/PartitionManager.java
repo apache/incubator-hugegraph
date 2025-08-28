@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -37,8 +38,10 @@ import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.business.BusinessHandlerImpl;
-import org.apache.hugegraph.store.cmd.UpdatePartitionRequest;
-import org.apache.hugegraph.store.cmd.UpdatePartitionResponse;
+import org.apache.hugegraph.store.cmd.HgCmdClient;
+import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
+import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
+import org.apache.hugegraph.store.listener.PartitionChangedListener;
 import org.apache.hugegraph.store.meta.base.GlobalMetaStore;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import org.apache.hugegraph.store.options.MetadataOptions;
@@ -72,6 +75,7 @@ public class PartitionManager extends GlobalMetaStore {
 
     // Record all partition information of this machine, consistent with rocksdb storage.
     private Map<String, Map<Integer, Partition>> partitions;
+    private HgCmdClient cmdClient;
 
     public PartitionManager(PdProvider pdProvider, HgStoreEngineOptions options) {
         super(new MetadataOptions() {{
@@ -225,7 +229,7 @@ public class PartitionManager extends GlobalMetaStore {
         var partIds = new HashSet<Integer>();
         for (String path : this.options.getDataPath().split(",")) {
             File[] dirs = new File(path + "/" + HgStoreEngineOptions.DB_Path_Prefix).listFiles();
-            if (dirs == null) {
+            if (dirs == null || dirs.length == 0) {
                 continue;
             }
 
@@ -241,6 +245,8 @@ public class PartitionManager extends GlobalMetaStore {
             }
         }
 
+        Set<Integer> normalPartitions = new HashSet<>();
+
         // Once according to the partition read
         for (int partId : partIds) {
             if (!resetPartitionPath(partId)) {
@@ -249,24 +255,31 @@ public class PartitionManager extends GlobalMetaStore {
                 continue;
             }
 
-            for (var metaPart : wrapper.scan(partId, Metapb.Partition.parser(), key)) {
+            var metaParts = wrapper.scan(partId, Metapb.Partition.parser(), key);
+            int countOfPartition = 0;
+
+            var shards = pdProvider.getShardGroup(partId).getShardsList();
+
+            for (var metaPart : metaParts) {
                 var graph = metaPart.getGraphName();
                 var pdPartition = pdProvider.getPartitionByID(graph, metaPart.getId());
                 boolean isLegeal = false;
-
-                var shards = pdProvider.getShardGroup(metaPart.getId()).getShardsList();
 
                 if (pdPartition != null) {
                     // Check if it contains this store id
                     if (shards.stream().anyMatch(s -> s.getStoreId() == storeId)) {
                         isLegeal = true;
                     }
+                } else {
+                    continue;
                 }
 
                 if (isLegeal) {
                     if (!partitions.containsKey(graph)) {
                         partitions.put(graph, new ConcurrentHashMap<>());
                     }
+
+                    countOfPartition += 1;
 
                     Partition partition = new Partition(metaPart);
                     partition.setWorkState(Metapb.PartitionState.PState_Normal);     // Start recovery work state
@@ -283,6 +296,19 @@ public class PartitionManager extends GlobalMetaStore {
                               graph, partId, getStore().getId(), shards2Peers(shards));
                     System.exit(0);
                 }
+            }
+
+            if (countOfPartition > 0) {
+                // 分区数据正常
+                normalPartitions.add(partId);
+            }
+            wrapper.close(partId);
+        }
+
+        // 删掉多余的分区存储路径，被迁移走的分区，有可能还会迁回来
+        for (var location : storeMetadata.getPartitionStores()) {
+            if (!normalPartitions.contains(location.getPartitionId())) {
+                storeMetadata.removePartitionStore(location.getPartitionId());
             }
         }
     }
@@ -611,7 +637,7 @@ public class PartitionManager extends GlobalMetaStore {
                             Metapb.ShardGroup.parser());
 
         if (shardGroup == null) {
-            shardGroup = pdProvider.getShardGroup(partitionId);
+            shardGroup = pdProvider.getShardGroupDirect(partitionId);
 
             if (shardGroup != null) {
                 // local not found, write back to db from pd
@@ -726,6 +752,18 @@ public class PartitionManager extends GlobalMetaStore {
         return ids;
     }
 
+    public Set<Integer> getLeaderPartitionIdSet() {
+        Set<Integer> ids = new HashSet<>();
+        partitions.forEach((key, value) -> {
+            value.forEach((k, v) -> {
+                if (!useRaft || v.isLeader()) {
+                    ids.add(k);
+                }
+            });
+        });
+        return ids;
+    }
+
     /**
      * Generate partition peer string, containing priority information *
      *
@@ -833,15 +871,15 @@ public class PartitionManager extends GlobalMetaStore {
         return result[0];
     }
 
-    public Shard getShardByRaftEndpoint(ShardGroup group, String endpoint) {
-        final Shard[] result = {new Shard()};
-        group.getShards().forEach((shard) -> {
+    public Shard getShardByEndpoint(ShardGroup group, String endpoint) {
+        List<Shard> shards = group.getShards();
+        for (Shard shard : shards) {
             Store store = getStore(shard.getStoreId());
             if (store != null && store.getRaftAddress().equalsIgnoreCase(endpoint)) {
-                result[0] = shard;
+                return shard;
             }
-        });
-        return result[0];
+        }
+        return new Shard();
     }
 
     /**
@@ -885,6 +923,16 @@ public class PartitionManager extends GlobalMetaStore {
         return location;
     }
 
+    /**
+     * db 存储路径
+     *
+     * @return location/db
+     */
+    public String getDbDataPath(int partitionId) {
+        String dbName = BusinessHandlerImpl.getDbName(partitionId);
+        return getDbDataPath(partitionId, dbName);
+    }
+
     public void reportTask(MetaTask.Task task) {
         try {
             pdProvider.reportTask(task);
@@ -908,14 +956,39 @@ public class PartitionManager extends GlobalMetaStore {
         return wrapper;
     }
 
-    /**
-     * Partition object is modified message
-     */
-    public interface PartitionChangedListener {
+    public void setCmdClient(HgCmdClient client) {
+        this.cmdClient = client;
+    }
 
-        void onChanged(Partition partition);
+    public UpdatePartitionResponse updateState(Metapb.Partition partition,
+                                               Metapb.PartitionState state) {
+        // 分区分裂时，主动需要查找 leader 进行同步信息
+        UpdatePartitionRequest request = new UpdatePartitionRequest();
+        request.setWorkState(state);
+        request.setPartitionId(partition.getId());
+        request.setGraphName(partition.getGraphName());
+        return cmdClient.raftUpdatePartition(request);
+    }
 
-        UpdatePartitionResponse rangeOrStateChanged(UpdatePartitionRequest request);
+    public UpdatePartitionResponse updateRange(Metapb.Partition partition, int startKey,
+                                               int endKey) {
+        // 分区分裂时，主动需要查找 leader 进行同步信息
+        UpdatePartitionRequest request = new UpdatePartitionRequest();
+        request.setStartKey(startKey);
+        request.setEndKey(endKey);
+        request.setPartitionId(partition.getId());
+        request.setGraphName(partition.getGraphName());
+        return cmdClient.raftUpdatePartition(request);
+    }
+
+    public List<Integer> getPartitionIds(String graph) {
+        List<Integer> ids = new ArrayList<>();
+        if (partitions.containsKey(graph)) {
+            partitions.get(graph).forEach((k, v) -> {
+                ids.add(k);
+            });
+        }
+        return ids;
     }
 
 }

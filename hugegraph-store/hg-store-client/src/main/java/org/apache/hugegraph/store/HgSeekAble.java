@@ -22,7 +22,11 @@ package org.apache.hugegraph.store;
  */
 public interface HgSeekAble {
 
-    byte[] position();
+    default byte[] position() {
+        return null;
+    }
 
-    void seek(byte[] position);
+    default void seek(byte[] position) {
+    }
+
 }
