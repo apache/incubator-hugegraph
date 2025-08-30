@@ -37,6 +37,7 @@ import org.apache.hugegraph.backend.query.Condition.Relation;
 import org.apache.hugegraph.backend.query.Condition.RelationType;
 import org.apache.hugegraph.backend.query.serializer.QueryAdapter;
 import org.apache.hugegraph.backend.query.serializer.QueryIdAdapter;
+import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeProperty;
@@ -215,6 +216,10 @@ public class ConditionQuery extends IdQuery {
     }
 
     public List<Condition.Relation> relations() {
+        return this.selfRelations();
+    }
+
+    private List<Condition.Relation> selfRelations() {
         List<Condition.Relation> relations = new ArrayList<>();
         for (Condition c : this.conditions) {
             relations.addAll(c.relations());
@@ -447,7 +452,7 @@ public class ConditionQuery extends IdQuery {
 
     public List<Relation> userpropRelations() {
         List<Relation> relations = new ArrayList<>();
-        for (Relation r : this.relations()) {
+        for (Relation r : this.selfRelations()) {
             if (!r.isSysprop()) {
                 relations.add(r);
             }
@@ -456,12 +461,16 @@ public class ConditionQuery extends IdQuery {
     }
 
     public void resetUserpropConditions() {
+        if (this.conditions.isEmpty()) {
+            // UnsupprotedOperationException when ImmutableList.removeIf()
+            return;
+        }
         this.conditions.removeIf(condition -> !condition.isSysprop());
     }
 
     public Set<Id> userpropKeys() {
         Set<Id> keys = new LinkedHashSet<>();
-        for (Relation r : this.relations()) {
+        for (Relation r : this.selfRelations()) {
             if (!r.isSysprop()) {
                 Condition.UserpropRelation ur = (Condition.UserpropRelation) r;
                 keys.add(ur.key());
@@ -525,7 +534,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean hasRangeCondition() {
         // NOTE: we need to judge all the conditions, including the nested
-        for (Condition.Relation r : this.relations()) {
+        for (Condition.Relation r : this.selfRelations()) {
             if (r.relation().isRangeType()) {
                 return true;
             }
@@ -535,7 +544,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean hasSearchCondition() {
         // NOTE: we need to judge all the conditions, including the nested
-        for (Condition.Relation r : this.relations()) {
+        for (Condition.Relation r : this.selfRelations()) {
             if (r.relation().isSearchType()) {
                 return true;
             }
@@ -545,7 +554,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean hasSecondaryCondition() {
         // NOTE: we need to judge all the conditions, including the nested
-        for (Condition.Relation r : this.relations()) {
+        for (Condition.Relation r : this.selfRelations()) {
             if (r.relation().isSecondaryType()) {
                 return true;
             }
@@ -555,7 +564,7 @@ public class ConditionQuery extends IdQuery {
 
     public boolean hasNeqCondition() {
         // NOTE: we need to judge all the conditions, including the nested
-        for (Condition.Relation r : this.relations()) {
+        for (Condition.Relation r : this.selfRelations()) {
             if (r.relation() == RelationType.NEQ) {
                 return true;
             }
@@ -647,10 +656,19 @@ public class ConditionQuery extends IdQuery {
                 return false;
             }
         }
-        return true;
+
+        return !this.mayHasDupKeys(ImmutableSet.of(HugeKeys.LABEL));
     }
 
-    public boolean mayHasDupKeys(Set<HugeKeys> keys) {
+    public boolean canFlatten() {
+        return false;
+    }
+
+    public List<ConditionQuery> flatten() {
+        throw new NotSupportException("ConditionQuery.flatten()");
+    }
+
+    private boolean mayHasDupKeys(Set<HugeKeys> keys) {
         Map<HugeKeys, Integer> keyCounts = new HashMap<>();
         for (Condition condition : this.conditions) {
             if (!condition.isRelation()) {
