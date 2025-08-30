@@ -70,6 +70,7 @@ public class StringIdOffHeap extends IdGenerator.StringId implements OffHeapObje
     @Override
     public void releaseOriginalVarsOnHeap() {
         this.id = null;
+        this.bytes = null;
     }
 
     @Override
