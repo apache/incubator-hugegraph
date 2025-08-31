@@ -66,6 +66,10 @@ public class GraphSpace {
     private Date createTime;
     private Date updateTime;
 
+    public GraphSpace() {
+        this.creator = DEFAULT_CREATOR_NAME;
+    }
+
     public GraphSpace(String name) {
         E.checkArgument(name != null && !StringUtils.isEmpty(name),
                         "The name of graph space can't be null or empty");

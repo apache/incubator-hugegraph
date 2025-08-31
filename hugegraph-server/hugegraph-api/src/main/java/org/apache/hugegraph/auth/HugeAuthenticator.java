@@ -58,6 +58,7 @@ public interface HugeAuthenticator extends Authenticator {
     RolePermission ROLE_ADMIN = RolePermission.admin();
 
     String VAR_PREFIX = "$";
+    String KEY_GRAPHSPACE = VAR_PREFIX + "graphspace";
     String KEY_OWNER = VAR_PREFIX + "owner";
     String KEY_DYNAMIC = VAR_PREFIX + "dynamic";
     String KEY_ACTION = VAR_PREFIX + "action";
@@ -253,7 +254,7 @@ public interface HugeAuthenticator extends Authenticator {
     class RolePerm {
 
         @JsonProperty("roles") // graph -> action -> resource
-        private Map<String, Map<HugePermission, Object>> roles;
+        private final Map<String, Map<HugePermission, Object>> roles;
 
         public RolePerm() {
             this.roles = new HashMap<>();
@@ -453,7 +454,8 @@ public interface HugeAuthenticator extends Authenticator {
             this.action = HugePermission.valueOf(action.toUpperCase());
         }
 
-        public static String roleFor(String owner, HugePermission perm) {
+        public static String roleFor(String graphSpace, String owner,
+                                     HugePermission perm) {
             /*
              * Construct required permission such as:
              *  $owner=graph1 $action=read
@@ -462,10 +464,11 @@ public interface HugeAuthenticator extends Authenticator {
              * In the future maybe also support:
              *  $owner=graph1 $action=vertex_read
              */
-            return String.format("%s=%s %s=%s", KEY_OWNER, owner,
+            return String.format("%s=%s %s=%s %s=%s",
+                                 KEY_GRAPHSPACE, graphSpace,
+                                 KEY_OWNER, owner,
                                  KEY_ACTION, perm.string());
         }
-
         public static RequiredPerm fromJson(String json) {
             return JsonUtil.fromJson(json, RequiredPerm.class);
         }

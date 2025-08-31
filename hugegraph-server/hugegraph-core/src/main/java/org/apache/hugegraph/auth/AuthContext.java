@@ -17,36 +17,26 @@
  * under the License.
  */
 
-package org.apache.hugegraph.kvstore;
+package org.apache.hugegraph.auth;
 
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+public class AuthContext {
 
-import org.apache.hugegraph.backend.store.Shard;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+    private static final ThreadLocal<String> CONTEXT = new ThreadLocal<>();
+    public static String admin;
 
-public interface KvStore {
+    public static void resetContext() {
+        CONTEXT.remove();
+    }
 
-    void set(String key, String value);
+    public static String getContext() {
+        return CONTEXT.get();
+    }
 
-    String get(String key);
+    public static void setContext(String context) {
+        CONTEXT.set(context);
+    }
 
-    List<String> mget(String... keys);
-
-    void remove(String key);
-
-    Boolean contains(String key);
-
-    Number count();
-
-    void clearAll();
-
-    List<Shard> shards(long splitSize);
-
-    Iterator<Vertex> queryVariablesByShard(String start, String end, String page,
-                                           long pageLimit);
-
-    Map<String, Object> batchSet(Map<String, Object> params);
-
+    public static void useAdmin() {
+        CONTEXT.set(admin);
+    }
 }
