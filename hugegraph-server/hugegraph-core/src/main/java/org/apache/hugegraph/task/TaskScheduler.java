@@ -77,5 +77,7 @@ public interface TaskScheduler {
 
     String graphName();
 
+    String spaceGraphName();
+
     void taskDone(HugeTask<?> task);
 }

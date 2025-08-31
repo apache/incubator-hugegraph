@@ -123,7 +123,7 @@ public class StandardAuthManager implements AuthManager {
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,
                                    long expiredTime) {
-        String name = prefix + "-" + this.graph.name();
+        String name = prefix + "-" + this.graph.graph().spaceGraphName();
         Cache<Id, V> cache = CacheManager.instance().cache(name, capacity);
         if (expiredTime > 0L) {
             cache.expire(Duration.ofSeconds(expiredTime).toMillis());
@@ -408,7 +408,7 @@ public class StandardAuthManager implements AuthManager {
                                                      project.name(),
                                                      null);
             HugeTarget target = new HugeTarget(targetName,
-                                               this.graph.name(),
+                                               this.graph.graph().spaceGraphName(),
                                                "localhost:8080",
                                                ImmutableList.of(resource));
             // Ditto
@@ -442,7 +442,7 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public HugeProject deleteProject(Id id) {
         return this.commit(() -> {
-            LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+            LockUtil.Locks locks = new LockUtil.Locks(this.graph.graph().spaceGraphName());
             try {
                 locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
 
@@ -498,7 +498,7 @@ public class StandardAuthManager implements AuthManager {
                         "Failed to add graphs to project '%s', the graphs " +
                         "parameter can't be empty", id);
 
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.graph().spaceGraphName());
         try {
             locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
 
@@ -526,7 +526,7 @@ public class StandardAuthManager implements AuthManager {
                         "Failed to delete graphs from the project '%s', " +
                         "the graphs parameter can't be null or empty", id);
 
-        LockUtil.Locks locks = new LockUtil.Locks(this.graph.name());
+        LockUtil.Locks locks = new LockUtil.Locks(this.graph.graph().spaceGraphName());
         try {
             locks.lockWrites(LockUtil.PROJECT_UPDATE, id);
 
