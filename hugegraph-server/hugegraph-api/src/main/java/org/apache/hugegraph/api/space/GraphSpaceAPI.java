@@ -369,7 +369,6 @@ public class GraphSpaceAPI extends API {
             graphSpace.operatorImagePath(this.operatorImagePath);
             graphSpace.internalAlgorithmImageUrl(this.internalAlgorithmImageUrl);
 
-            //todo:zzz 是啥有什么用
             graphSpace.configs(this.configs);
 
             return graphSpace;

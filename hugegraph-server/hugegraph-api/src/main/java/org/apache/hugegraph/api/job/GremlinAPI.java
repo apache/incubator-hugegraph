@@ -89,7 +89,7 @@ public class GremlinAPI extends API {
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name(request.name())
                .input(request.toJson())
-               //todo:zzz
+               //todo: auth
                //.context(HugeGraphAuthProxy.getContextString())
                .job(new GremlinJob());
         return ImmutableMap.of("task_id", builder.schedule().id());

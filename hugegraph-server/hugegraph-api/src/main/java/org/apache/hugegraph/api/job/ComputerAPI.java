@@ -81,7 +81,7 @@ public class ComputerAPI extends API {
         JobBuilder<Object> builder = JobBuilder.of(g);
         builder.name("computer:" + computer)
                .input(JsonUtil.toJson(input))
-               //todo:zzz auth
+               //todo: auth
                //.context(HugeGraphAuthProxy.getContextString())
                .job(new ComputerJob());
         HugeTask<Object> task = builder.schedule();
