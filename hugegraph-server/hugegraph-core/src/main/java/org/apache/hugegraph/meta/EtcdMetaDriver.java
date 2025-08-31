@@ -279,6 +279,11 @@ public class EtcdMetaDriver implements MetaDriver {
     }
 
     @Override
+    public LockResult lock(String key, long ttl) {
+        return this.lock.lock(key, ttl);
+    }
+
+    @Override
     public LockResult tryLock(String key, long ttl, long timeout) {
         return this.lock.tryLock(key, ttl, timeout);
     }
