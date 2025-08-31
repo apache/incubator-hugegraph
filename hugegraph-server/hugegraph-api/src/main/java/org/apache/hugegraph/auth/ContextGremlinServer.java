@@ -75,7 +75,7 @@ public class ContextGremlinServer extends GremlinServer {
             LOG.debug("GremlinServer accepts event '{}'", event.name());
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
-            this.removeGraph(graph.name());
+            this.removeGraph(graph.spaceGraphName());
             return null;
         });
     }
@@ -124,7 +124,7 @@ public class ContextGremlinServer extends GremlinServer {
     }
 
     private void injectGraph(HugeGraph graph) {
-        String name = graph.name();
+        String name = graph.spaceGraphName();
         GraphManager manager = this.getServerGremlinExecutor()
                                    .getGraphManager();
         GremlinExecutor executor = this.getServerGremlinExecutor()

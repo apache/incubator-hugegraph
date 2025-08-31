@@ -96,7 +96,6 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                         // TaskManager.useAdmin();
                         this.cronSchedule();
                     } catch (Throwable t) {
-                        // TODO: log with graph space
                         LOG.info("cronScheduler exception graph: {}", this.spaceGraphName(), t);
                     } finally {
                         LockUtil.unlock(this.graph().spaceGraphName(), LockUtil.GRAPH_LOCK);
