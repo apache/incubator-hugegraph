@@ -30,7 +30,7 @@ import jakarta.ws.rs.core.Response;
 
 public class TaskApiTest extends BaseApiTest {
 
-    private static final String PATH = "/graphs/hugegraph/tasks/";
+    private static final String PATH = "/graphspaces/DEFAULT/graphs/hugegraphapi/tasks/";
 
     @Before
     public void prepareSchema() {
@@ -134,7 +134,7 @@ public class TaskApiTest extends BaseApiTest {
 
     private int rebuild() {
         // create a rebuild_index task
-        String rebuildPath = "/graphs/hugegraph/jobs/rebuild/indexlabels";
+        String rebuildPath = "/graphspaces/DEFAULT/graphs/hugegraphapi/jobs/rebuild/indexlabels";
         String personByCity = "personByCity";
         Map<String, Object> params = ImmutableMap.of();
         Response r = client().put(rebuildPath, personByCity, "", params);
@@ -148,7 +148,7 @@ public class TaskApiTest extends BaseApiTest {
                       "\"bindings\":{}," +
                       "\"language\":\"gremlin-groovy\"," +
                       "\"aliases\":{}}";
-        String path = "/graphs/hugegraph/jobs/gremlin";
+        String path = "/graphspaces/DEFAULT/graphs/hugegraphapi/jobs/gremlin";
         String content = assertResponseStatus(201, client().post(path, body));
         return assertJsonContains(content, "task_id");
     }
