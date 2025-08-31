@@ -19,6 +19,7 @@ package org.apache.hugegraph;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -30,9 +31,11 @@ import org.apache.hugegraph.backend.id.Id;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
+import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftGroupManager;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.TypedOption;
+import org.apache.hugegraph.kvstore.KvStore;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
 import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
@@ -69,7 +72,13 @@ public interface HugeGraph extends Graph {
 
     HugeGraph hugegraph();
 
+    void kvStore(KvStore kvStore);
+
+    KvStore kvStore();
+
     SchemaManager schema();
+
+    BackendStoreProvider storeProvider();
 
     Id getNextId(HugeType type);
 
@@ -186,7 +195,13 @@ public interface HugeGraph extends Graph {
 
     Number queryNumber(Query query);
 
+    String graphSpace();
+
+    void graphSpace(String graphSpace);
+
     String name();
+
+    String spaceGraphName();
 
     String backend();
 
@@ -205,6 +220,24 @@ public interface HugeGraph extends Graph {
     void waitReady(RpcServer rpcServer);
 
     void serverStarted(GlobalMasterInfo nodeInfo);
+
+    String nickname();
+
+    void nickname(String nickname);
+
+    String creator();
+
+    void creator(String creator);
+
+    Date createTime();
+
+    void createTime(Date createTime);
+
+    Date updateTime();
+
+    void updateTime(Date updateTime);
+
+    void waitStarted();
 
     boolean started();
 

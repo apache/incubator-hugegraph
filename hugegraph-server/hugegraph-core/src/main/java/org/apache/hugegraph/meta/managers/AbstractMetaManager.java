@@ -89,7 +89,7 @@ public class AbstractMetaManager {
     }
 
     public LockResult lock(String key, long ttl) {
-        LockResult lockResult = this.metaDriver.lock(key, ttl);
+        LockResult lockResult = this.metaDriver.tryLock(key, ttl, LOCK_DEFAULT_TIMEOUT);
         if (!lockResult.lockSuccess()) {
             throw new HugeException("Failed to lock '%s'", key);
         }
