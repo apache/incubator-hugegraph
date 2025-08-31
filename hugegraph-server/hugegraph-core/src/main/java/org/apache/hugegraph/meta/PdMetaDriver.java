@@ -209,4 +209,23 @@ public class PdMetaDriver implements MetaDriver {
             throw new HugeException("Failed to keepTTLAlive '%s' to pd", e, key);
         }
     }
+
+    public static class PDAuthConfig {
+
+        private static String service;
+        private static String token;
+
+        public static void setAuthority(String service, String token) {
+            PDAuthConfig.service = service;
+            PDAuthConfig.token = token;
+        }
+
+        public static String service() {
+            return service;
+        }
+
+        public static String token() {
+            return token;
+        }
+    }
 }
