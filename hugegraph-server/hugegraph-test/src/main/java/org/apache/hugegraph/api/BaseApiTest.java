@@ -19,6 +19,7 @@ package org.apache.hugegraph.api;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.apache.http.util.TextUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.JsonUtil;
+import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import org.glassfish.jersey.client.filter.EncodingFilter;
 import org.glassfish.jersey.message.GZipEncoder;
@@ -50,17 +52,20 @@ import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
 public class BaseApiTest {
 
     protected static final String BASE_URL = "http://127.0.0.1:8080";
-    private static final String GRAPH = "hugegraph";
+    private static final String GRAPH = "hugegraphapi";
+    private static final String GRAPHSPACE = "DEFAULT";
     private static final String USERNAME = "admin";
-    private static final String PASSWORD = "pa";
-
-    protected static final String URL_PREFIX = "graphs/" + GRAPH;
+    protected static final String URL_PREFIX = "graphspaces/" + GRAPHSPACE + "/graphs/" + GRAPH;
+    protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
+    private static final String PASSWORD = "admin";
+    private static final int NO_LIMIT = -1;
     private static final String SCHEMA_PKS = "/schema/propertykeys";
     private static final String SCHEMA_VLS = "/schema/vertexlabels";
     private static final String SCHEMA_ELS = "/schema/edgelabels";
@@ -69,8 +74,6 @@ public class BaseApiTest {
     private static final String GRAPH_EDGE = "/graph/edges";
     private static final String BATCH = "/batch";
 
-    protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
-
     protected static RestClient client;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -78,7 +81,7 @@ public class BaseApiTest {
     @BeforeClass
     public static void init() {
         client = newClient();
-        BaseApiTest.clearData();
+        BaseApiTest.initOrClear();
     }
 
     @AfterClass
@@ -100,156 +103,84 @@ public class BaseApiTest {
         return new RestClient(BASE_URL);
     }
 
-    public static class RestClient {
-
-        private final Client client;
-        private final WebTarget target;
-
-        public RestClient(String url) {
-            this(url, true);
-        }
-
-        public RestClient(String url, Boolean enableAuth) {
-            this.client = ClientBuilder.newClient();
-            this.client.register(EncodingFilter.class);
-            this.client.register(GZipEncoder.class);
-            if (enableAuth) {
-                this.client.register(HttpAuthenticationFeature.basic(USERNAME, PASSWORD));
-            }
-            this.target = this.client.target(url);
-        }
-
-        public void close() {
-            this.client.close();
-        }
-
-        public WebTarget target() {
-            return this.target;
-        }
-
-        public WebTarget target(String url) {
-            return this.client.target(url);
-        }
-
-        public Response get(String path) {
-            return this.target.path(path).request().get();
-        }
-
-        public Response get(String path, String id) {
-            return this.target.path(path).path(id).request().get();
-        }
-
-        public Response get(String path, MultivaluedMap<String, Object> headers) {
-            return this.target.path(path).request().headers(headers).get();
-        }
-
-        public Response get(String path, Multimap<String, Object> params) {
-            WebTarget target = this.target.path(path);
-            for (Map.Entry<String, Object> entries : params.entries()) {
-                target = target.queryParam(entries.getKey(), entries.getValue());
-            }
-            return target.request().get();
-        }
-
-        public Response get(String path, Map<String, Object> params) {
-            WebTarget target = this.target.path(path);
-            for (Map.Entry<String, Object> i : params.entrySet()) {
-                target = target.queryParam(i.getKey(), i.getValue());
-            }
-            return target.request().get();
-        }
-
-        public Response post(String path, String content) {
-            return this.post(path, Entity.json(content));
-        }
-
-        public Response post(String path, Entity<?> entity) {
-            return this.target.path(path).request().post(entity);
-        }
-
-        public Response put(String path, String id, String content,
-                            Map<String, Object> params) {
-            WebTarget target = this.target.path(path).path(id);
-            for (Map.Entry<String, Object> i : params.entrySet()) {
-                target = target.queryParam(i.getKey(), i.getValue());
-            }
-            return target.request().put(Entity.json(content));
-        }
-
-        public Response delete(String path, String id) {
-            return this.target.path(path).path(id).request().delete();
-        }
-
-        public Response delete(String path, Map<String, Object> params) {
-            WebTarget target = this.target.path(path);
-            for (Map.Entry<String, Object> i : params.entrySet()) {
-                target = target.queryParam(i.getKey(), i.getValue());
-            }
-            return target.request().delete();
-        }
-
-        public Response delete(String path,
-                               MultivaluedMap<String, Object> headers) {
-            WebTarget target = this.target.path(path);
-            return target.request().headers(headers).delete();
-        }
-    }
-
     /**
      * Utils method to init some properties
      */
     protected static void initPropertyKey() {
         String path = URL_PREFIX + SCHEMA_PKS;
 
-        createAndAssert(path, "{\n" +
-                              "\"name\": \"name\",\n" +
-                              "\"data_type\": \"TEXT\",\n" +
-                              "\"cardinality\": \"SINGLE\",\n" +
-                              "\"check_exist\": false,\n" +
-                              "\"properties\":[]\n" +
-                              "}", 202);
-        createAndAssert(path, "{\n" +
-                              "\"name\": \"age\",\n" +
-                              "\"data_type\": \"INT\",\n" +
-                              "\"cardinality\": \"SINGLE\",\n" +
-                              "\"check_exist\": false,\n" +
-                              "\"properties\":[]\n" +
-                              "}", 202);
-        createAndAssert(path, "{\n" +
-                              "\"name\": \"city\",\n" +
-                              "\"data_type\": \"TEXT\",\n" +
-                              "\"cardinality\": \"SINGLE\",\n" +
-                              "\"check_exist\": false,\n" +
-                              "\"properties\":[]\n" +
-                              "}", 202);
-        createAndAssert(path, "{\n" +
-                              "\"name\": \"lang\",\n" +
-                              "\"data_type\": \"TEXT\",\n" +
-                              "\"cardinality\": \"SINGLE\",\n" +
-                              "\"check_exist\": false,\n" +
-                              "\"properties\":[]\n" +
-                              "}", 202);
-        createAndAssert(path, "{\n" +
-                              "\"name\": \"date\",\n" +
-                              "\"data_type\": \"TEXT\",\n" +
-                              "\"cardinality\": \"SINGLE\",\n" +
-                              "\"check_exist\": false,\n" +
-                              "\"properties\":[]\n" +
-                              "}", 202);
-        createAndAssert(path, "{\n" +
-                              "\"name\": \"price\",\n" +
-                              "\"data_type\": \"INT\",\n" +
-                              "\"cardinality\": \"SINGLE\",\n" +
-                              "\"check_exist\": false,\n" +
-                              "\"properties\":[]\n" +
-                              "}", 202);
-        createAndAssert(path, "{\n" +
-                              "\"name\": \"weight\",\n" +
-                              "\"data_type\": \"DOUBLE\",\n" +
-                              "\"cardinality\": \"SINGLE\",\n" +
-                              "\"check_exist\": false,\n" +
-                              "\"properties\":[]\n" +
-                              "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"name\",\n"
+                              + "\"data_type\": \"TEXT\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"age\",\n"
+                              + "\"data_type\": \"INT\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"city\",\n"
+                              + "\"data_type\": \"TEXT\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"lang\",\n"
+                              + "\"data_type\": \"TEXT\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"date\",\n"
+                              + "\"data_type\": \"TEXT\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"price\",\n"
+                              + "\"data_type\": \"INT\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"weight\",\n"
+                              + "\"data_type\": \"DOUBLE\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+        createAndAssert(path, "{\n"
+                              + "\"name\": \"rank\",\n"
+                              + "\"data_type\": \"TEXT\",\n"
+                              + "\"cardinality\": \"SINGLE\",\n"
+                              + "\"check_exist\": false,\n"
+                              + "\"properties\":[]\n"
+                              + "}", 202);
+    }
+
+    protected static void waitTaskStatus(int task, Set<String> expectedStatus) {
+        String status;
+        int times = 0;
+        int maxTimes = 100000;
+        do {
+            Response r = client.get("/graphspaces/DEFAULT/graphs/hugegraphapi/tasks/",
+                                    String.valueOf(task));
+            String content = assertResponseStatus(200, r);
+            status = assertJsonContains(content, "task_status");
+            if (times++ > maxTimes) {
+                Assert.fail(String.format("Failed to wait for task %s " +
+                                          "due to timeout", task));
+            }
+        } while (!expectedStatus.contains(status));
     }
 
     protected static void initVertexLabel() {
@@ -484,7 +415,7 @@ public class BaseApiTest {
         String props = MAPPER.writeValueAsString(ImmutableMap.of(key, value));
         Map<String, Object> params = ImmutableMap.of(
                 "label", label,
-                "properties", URLEncoder.encode(props, "UTF-8")
+                "properties", URLEncoder.encode(props, StandardCharsets.UTF_8)
         );
         Response r = client.get(URL_PREFIX + GRAPH_VERTEX, params);
         String content = assertResponseStatus(200, r);
@@ -559,20 +490,25 @@ public class BaseApiTest {
         waitTaskStatus(task, completed);
     }
 
-    protected static void waitTaskStatus(int task, Set<String> expectedStatus) {
-        String status;
-        int times = 0;
-        int maxTimes = 100000;
-        do {
-            Response r = client.get("/graphs/hugegraph/tasks/",
-                                    String.valueOf(task));
-            String content = assertResponseStatus(200, r);
-            status = assertJsonContains(content, "task_status");
-            if (times++ > maxTimes) {
-                Assert.fail(String.format("Failed to wait for task %s " +
-                                          "due to timeout", task));
+    protected static void initOrClear() {
+        Response r = client.get(URL_PREFIX);
+        if (r.getStatus() != 200) {
+            String body = "{\n" +
+                          "  \"backend\": \"hstore\",\n" +
+                          "  \"serializer\": \"binary\",\n" +
+                          "  \"store\": \"hugegraphapi\",\n" +
+                          "  \"search.text_analyzer\": \"jieba\",\n" +
+                          "  \"search.text_analyzer_mode\": \"INDEX\"\n" +
+                          "}";
+
+            r = client.post(URL_PREFIX, Entity.entity(body, MediaType.APPLICATION_JSON_TYPE));
+            if (r.getStatus() != 201) {
+                throw new HugeException("Failed to create graph: " + GRAPH +
+                                        r.readEntity(String.class));
             }
-        } while (!expectedStatus.contains(status));
+        } else {
+            BaseApiTest.clearData();
+        }
     }
 
     protected static String parseId(String content) throws IOException {
@@ -599,6 +535,16 @@ public class BaseApiTest {
         }
     }
 
+    protected static String assertErrorContains(Response response,
+                                                String message) {
+        Assert.assertNotEquals("Fail to assert request failed", 200,
+                               response.getStatus());
+        String content = response.readEntity(String.class);
+        Map<String, String> resultMap = JsonUtil.fromJson(content, Map.class);
+        Assert.assertTrue(resultMap.get("message").contains(message));
+        return content;
+    }
+
     protected static void clearData() {
         clearGraph();
         clearSchema();
@@ -620,6 +566,25 @@ public class BaseApiTest {
                                        response.getStatus(), content);
         Assert.assertEquals(message, status, response.getStatus());
         return content;
+    }
+
+    public static void clearUsers() {
+        String path = "auth/users";
+        Response r = client.get(path,
+                                ImmutableMap.of("limit", NO_LIMIT));
+        String result = r.readEntity(String.class);
+        Map<String, List<Map<String, Object>>> resultMap =
+                JsonUtil.fromJson(result,
+                                  new TypeReference<Map<String,
+                                          List<Map<String, Object>>>>() {
+                                  });
+        List<Map<String, Object>> users = resultMap.get("users");
+        for (Map<String, Object> user : users) {
+            if (user.get("user_name").equals("admin")) {
+                continue;
+            }
+            client.delete(path, (String) user.get("id"));
+        }
     }
 
     public static <T> T assertJsonContains(String response, String key) {
@@ -648,5 +613,218 @@ public class BaseApiTest {
         }
         Assert.assertNotNull(message, found);
         return found;
+    }
+
+    public static void createSpace(String name, boolean auth) {
+        String body = "{\n" +
+                      "  \"name\": \"%s\",\n" +
+                      "  \"description\": \"no namespace\",\n" +
+                      "  \"cpu_limit\": 1000,\n" +
+                      "  \"memory_limit\": 1024,\n" +
+                      "  \"storage_limit\": 1000,\n" +
+                      "  \"compute_cpu_limit\": 0,\n" +
+                      "  \"compute_memory_limit\": 0,\n" +
+                      "  \"oltp_namespace\": null,\n" +
+                      "  \"olap_namespace\": null,\n" +
+                      "  \"storage_namespace\": null,\n" +
+                      "  \"operator_image_path\": \"aaa\",\n" +
+                      "  \"internal_algorithm_image_url\": \"aaa\",\n" +
+                      "  \"max_graph_number\": 100,\n" +
+                      "  \"max_role_number\": 100,\n" +
+                      "  \"auth\": %s,\n" +
+                      "  \"configs\": {}\n" +
+                      "}";
+        String jsonBody = String.format(body, name, auth);
+
+        Response r = client.post("graphspaces",
+                                 Entity.entity(jsonBody, MediaType.APPLICATION_JSON));
+        assertResponseStatus(201, r);
+    }
+
+    public static void clearSpaces() {
+        Response r = client.get("graphspaces");
+        String result = r.readEntity(String.class);
+        Map<String, Object> resultMap = JsonUtil.fromJson(result, Map.class);
+        List<String> spaces = (List<String>) resultMap.get("graphSpaces");
+        for (String space : spaces) {
+            if (!"DEFAULT".equals(space)) {
+                client.delete("graphspaces", space);
+            }
+        }
+    }
+
+    public static Response createGraph(String graphSpace, String name) {
+        return createGraph(graphSpace, name, name);
+    }
+
+    public static Response createGraph(String graphSpace, String name,
+                                       String nickname) {
+        String config = "{\n" +
+                        "  \"backend\": \"hstore\",\n" +
+                        "  \"serializer\": \"binary\",\n" +
+                        "  \"store\": \"%s\",\n" +
+                        "  \"nickname\": \"%s\",\n" +
+                        "  \"search.text_analyzer\": \"jieba\",\n" +
+                        "  \"search.text_analyzer_mode\": \"INDEX\"\n" +
+                        "}";
+        String path = String.format("graphspaces/%s/graphs/%s", graphSpace,
+                                    name);
+        return client.post(path, Entity.json(String.format(config, name, nickname)));
+    }
+
+    public static Response updateGraph(String action, String graphSpace,
+                                       String name, String nickname) {
+        String body = "{\n" +
+                      "  \"action\": \"%s\",\n" +
+                      "  \"update\": {\n" +
+                      "    \"name\":\"%s\",\n" +
+                      "    \"nickname\": \"%s\"\n" +
+                      "  }\n" +
+                      "}";
+        String path = String.format("graphspaces/%s/graphs", graphSpace);
+        return client.put(path, name,
+                          String.format(body, action, name, nickname),
+                          ImmutableMap.of());
+    }
+
+    public static RestClient userClient(String username) {
+        String user1 = "{\"user_name\":\"%s\"," +
+                       "\"user_password\":\"%s\"}";
+        Response r = client.post("auth/users",
+                                 String.format(user1, username, username));
+        assertResponseStatus(201, r);
+
+        RestClient client = new RestClient(BASE_URL, username, username);
+        return client;
+    }
+
+    public static RestClient spaceManagerClient(String graphSpace,
+                                                String username) {
+        RestClient spaceClient = userClient(username);
+
+        String spaceBody = "{\n" +
+                           "  \"user\": \"%s\",\n" +
+                           "  \"type\": \"SPACE\",\n" +
+                           "  \"graphspace\": \"%s\"\n" +
+                           "}";
+        client.post("auth/managers", String.format(spaceBody, username,
+                                                   graphSpace));
+        return spaceClient;
+    }
+
+    public static RestClient analystClient(String graphSpace, String username) {
+        RestClient analystClient = userClient(username);
+
+        String body = "{\n" +
+                      "  \"user\": \"%s\",\n" +
+                      "  \"role\": \"analyst\",\n" +
+                      "}";
+        String path = String.format("graphspaces/%s/role", graphSpace);
+        client.post(path, String.format(body, username));
+        return analystClient;
+    }
+
+    public static class RestClient {
+
+        private final Client client;
+        private final WebTarget target;
+
+        public RestClient(String url) {
+            this(url, true);
+        }
+
+        public RestClient(String url, Boolean enableAuth) {
+            this.client = ClientBuilder.newClient();
+            this.client.register(EncodingFilter.class);
+            this.client.register(GZipEncoder.class);
+            if (enableAuth) {
+                this.client.register(HttpAuthenticationFeature.basic(USERNAME, PASSWORD));
+            }
+            this.target = this.client.target(url);
+        }
+
+        public RestClient(String url, String username, String password) {
+            this.client = ClientBuilder.newClient();
+            this.client.register(EncodingFilter.class);
+            this.client.register(GZipEncoder.class);
+            this.client.register(HttpAuthenticationFeature.basic(username,
+                                                                 password));
+            this.target = this.client.target(url);
+        }
+
+        public void close() {
+            this.client.close();
+        }
+
+        public WebTarget target() {
+            return this.target;
+        }
+
+        public WebTarget target(String url) {
+            return this.client.target(url);
+        }
+
+        public Response get(String path) {
+            return this.target.path(path).request().get();
+        }
+
+        public Response get(String path, String id) {
+            return this.target.path(path).path(id).request().get();
+        }
+
+        public Response get(String path, MultivaluedMap<String, Object> headers) {
+            return this.target.path(path).request().headers(headers).get();
+        }
+
+        public Response get(String path, Multimap<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> entries : params.entries()) {
+                target = target.queryParam(entries.getKey(), entries.getValue());
+            }
+            return target.request().get();
+        }
+
+        public Response get(String path, Map<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().get();
+        }
+
+        public Response post(String path, String content) {
+            return this.post(path, Entity.json(content));
+        }
+
+        public Response post(String path, Entity<?> entity) {
+            return this.target.path(path).request().post(entity);
+        }
+
+        public Response put(String path, String id, String content,
+                            Map<String, Object> params) {
+            WebTarget target = this.target.path(path).path(id);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().put(Entity.json(content));
+        }
+
+        public Response delete(String path, String id) {
+            return this.target.path(path).path(id).request().delete();
+        }
+
+        public Response delete(String path, Map<String, Object> params) {
+            WebTarget target = this.target.path(path);
+            for (Map.Entry<String, Object> i : params.entrySet()) {
+                target = target.queryParam(i.getKey(), i.getValue());
+            }
+            return target.request().delete();
+        }
+
+        public Response delete(String path,
+                               MultivaluedMap<String, Object> headers) {
+            WebTarget target = this.target.path(path);
+            return target.request().headers(headers).delete();
+        }
     }
 }
