@@ -27,6 +27,11 @@ import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
 import org.slf4j.Logger;
 
+import java.util.Map;
+
+import static org.apache.hugegraph.core.GraphManager.DELIMITER;
+import static org.apache.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
+
 public class HugeGremlinServer {
 
     private static final Logger LOG = Log.logger(HugeGremlinServer.class);
@@ -46,7 +51,14 @@ public class HugeGremlinServer {
         // Scan graph confs and inject into gremlin server context
         E.checkState(settings.graphs != null,
                      "The GremlinServer's settings.graphs is null");
-        settings.graphs.putAll(ConfigUtil.scanGraphsDir(graphsDir));
+        if (graphsDir != null) {
+            Map<String, String> configs = ConfigUtil.scanGraphsDir(graphsDir);
+            for (Map.Entry<String, String> entry : configs.entrySet()) {
+                String key = String.join(DELIMITER, DEFAULT_GRAPH_SPACE_SERVICE_NAME,
+                        entry.getKey());
+                settings.graphs.put(key, entry.getValue());
+            }
+        }
 
         LOG.info("Configuring Gremlin Server from {}", conf);
         ContextGremlinServer server = new ContextGremlinServer(settings, hub);

@@ -294,6 +294,9 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public String spaceGraphName() {
+        if (this.graphSpace == null) {
+            return this.name;
+        }
         return this.graphSpace + "-" + this.name;
     }
 

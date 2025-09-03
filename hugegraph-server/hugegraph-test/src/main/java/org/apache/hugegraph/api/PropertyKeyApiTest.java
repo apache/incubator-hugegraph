@@ -25,7 +25,7 @@ import jakarta.ws.rs.core.Response;
 public class PropertyKeyApiTest extends BaseApiTest {
 
     private static final String PATH =
-            "/graphspaces/DEFAULT/graphs/hugegraphapi/schema/propertykeys/";
+            "/graphspaces/DEFAULT/graphs/hugegraph/schema/propertykeys/";
 
     @Test
     public void testCreate() {

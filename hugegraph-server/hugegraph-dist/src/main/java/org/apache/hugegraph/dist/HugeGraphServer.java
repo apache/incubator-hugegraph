@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.dist;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.config.HugeConfig;
@@ -30,6 +28,8 @@ import org.apache.hugegraph.util.Log;
 import org.apache.logging.log4j.LogManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
+
+import java.util.concurrent.CompletableFuture;
 
 public class HugeGraphServer {
 

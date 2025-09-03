@@ -34,14 +34,6 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8080"
             );
 
-    public static final ConfigOption<Boolean> REST_SERVER_ENABLE_GRAPHSPACES_FILTER =
-            new ConfigOption<>(
-                    "restserver.enable_graphspaces_filter",
-                    "Whether to enable graphspaces url filter.",
-                    disallowEmpty(),
-                    false
-            );
-
     public static final ConfigOption<Integer> SERVER_EVENT_HUB_THREADS =
             new ConfigOption<>(
                     "server.event_hub_threads",
