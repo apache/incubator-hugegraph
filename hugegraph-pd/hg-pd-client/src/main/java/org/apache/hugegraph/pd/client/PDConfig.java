@@ -17,20 +17,35 @@
 
 package org.apache.hugegraph.pd.client;
 
+import java.util.Base64;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public final class PDConfig {
 
+    private static final int GRPC_DEFAULT_MAX_INBOUND_MESSAGE_SIZE = 1024 * 1024 * 1024;
+    private static final int GRPC_DEFAULT_MAX_OUTBOUND_MESSAGE_SIZE = 1024 * 1024 * 1024;
+    private static final int inboundMessageSize = GRPC_DEFAULT_MAX_INBOUND_MESSAGE_SIZE;
+    private static final int outboundMessageSize = GRPC_DEFAULT_MAX_OUTBOUND_MESSAGE_SIZE;
+    // Whether to receive asynchronous PD notifications
+    private final boolean enablePDNotify = false;
+    private boolean enableCache = false;
     // TODO: multi-server
     private String serverHost = "localhost:9000";
-
     // The timeout period for grpc call is 10 seconds
     private long grpcTimeOut = 60000;
-
-    // Whether to receive asynchronous PD notifications
-    private boolean enablePDNotify = false;
-
-    private boolean enableCache = false;
+    private String authority;
+    private String userName = "";
 
     private PDConfig() {
+    }
+
+    public String getServerHost() {
+        return serverHost;
+    }
+
+    public long getGrpcTimeOut() {
+        return grpcTimeOut;
     }
 
     public static PDConfig of() {
@@ -43,6 +58,12 @@ public final class PDConfig {
         return config;
     }
 
+    public PDConfig setEnableCache(boolean enableCache) {
+        this.enableCache = enableCache;
+        return this;
+    }
+
+
     public static PDConfig of(String serverHost, long timeOut) {
         PDConfig config = new PDConfig();
         config.serverHost = serverHost;
@@ -50,18 +71,8 @@ public final class PDConfig {
         return config;
     }
 
-    public String getServerHost() {
-        return serverHost;
-    }
-
-    public long getGrpcTimeOut() {
-        return grpcTimeOut;
-    }
-
     @Deprecated
     public PDConfig setEnablePDNotify(boolean enablePDNotify) {
-        this.enablePDNotify = enablePDNotify;
-        this.enableCache = enablePDNotify;
         return this;
     }
 
@@ -69,15 +80,16 @@ public final class PDConfig {
         return enableCache;
     }
 
-    public PDConfig setEnableCache(boolean enableCache) {
-        this.enableCache = enableCache;
+    @Override
+    public String toString() {
+        return "PDConfig{ serverHost='" + serverHost + '\'' + '}';
+    }
+
+    public PDConfig setAuthority(String userName, String pwd) {
+        this.userName = userName;
+        String auth = userName + ':' + pwd;
+        this.authority = new String(Base64.getEncoder().encode(auth.getBytes(UTF_8)));
         return this;
     }
 
-    @Override
-    public String toString() {
-        return "PDConfig{" +
-               "serverHost='" + serverHost + '\'' +
-               '}';
-    }
 }
