@@ -57,28 +57,27 @@ public class HugeGraphServer {
         EventHub hub = new EventHub("gremlin=>hub<=rest");
 
         try {
+            // Start HugeRestServer
+            this.restServer = HugeRestServer.start(restServerConf, hub);
+        } catch (Throwable e) {
+            LOG.error("HugeRestServer start error: ", e);
+            throw e;
+        }
+
+        try {
             // Start GremlinServer
             this.gremlinServer = HugeGremlinServer.start(gremlinServerConf,
                                                          graphsDir, hub);
         } catch (Throwable e) {
             LOG.error("HugeGremlinServer start error: ", e);
+            try {
+                this.restServer.shutdown().get();
+            } catch (Throwable t) {
+                LOG.error("HugeRestServer stop error: ", t);
+            }
             throw e;
         } finally {
             System.setSecurityManager(securityManager);
-        }
-
-        try {
-            // Start HugeRestServer
-            this.restServer = HugeRestServer.start(restServerConf, hub);
-        } catch (Throwable e) {
-            LOG.error("HugeRestServer start error: ", e);
-            try {
-                this.gremlinServer.stop().get();
-            } catch (Throwable t) {
-                LOG.error("GremlinServer stop error: ", t);
-            }
-            HugeFactory.shutdown(30L);
-            throw e;
         }
 
         // Start (In-Heap) Memory Monitor
