@@ -17,8 +17,6 @@
 
 package org.apache.hugegraph.dist;
 
-import java.util.concurrent.CompletableFuture;
-
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.config.HugeConfig;
@@ -30,6 +28,8 @@ import org.apache.hugegraph.util.Log;
 import org.apache.logging.log4j.LogManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.slf4j.Logger;
+
+import java.util.concurrent.CompletableFuture;
 
 public class HugeGraphServer {
 
@@ -57,27 +57,28 @@ public class HugeGraphServer {
         EventHub hub = new EventHub("gremlin=>hub<=rest");
 
         try {
-            // Start HugeRestServer
-            this.restServer = HugeRestServer.start(restServerConf, hub);
-        } catch (Throwable e) {
-            LOG.error("HugeRestServer start error: ", e);
-            throw e;
-        }
-
-        try {
             // Start GremlinServer
             this.gremlinServer = HugeGremlinServer.start(gremlinServerConf,
                                                          graphsDir, hub);
         } catch (Throwable e) {
             LOG.error("HugeGremlinServer start error: ", e);
-            try {
-                this.restServer.shutdown().get();
-            } catch (Throwable t) {
-                LOG.error("HugeRestServer stop error: ", t);
-            }
             throw e;
         } finally {
             System.setSecurityManager(securityManager);
+        }
+
+        try {
+            // Start HugeRestServer
+            this.restServer = HugeRestServer.start(restServerConf, hub);
+        } catch (Throwable e) {
+            LOG.error("HugeRestServer start error: ", e);
+            try {
+                this.gremlinServer.stop().get();
+            } catch (Throwable t) {
+                LOG.error("GremlinServer stop error: ", t);
+            }
+            HugeFactory.shutdown(30L);
+            throw e;
         }
 
         // Start (In-Heap) Memory Monitor
