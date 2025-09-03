@@ -59,12 +59,12 @@ import jakarta.ws.rs.core.Response;
 public class BaseApiTest {
 
     protected static final String BASE_URL = "http://127.0.0.1:8080";
-    private static final String GRAPH = "hugegraphapi";
+    private static final String GRAPH = "hugegraph";
     private static final String GRAPHSPACE = "DEFAULT";
     private static final String USERNAME = "admin";
     protected static final String URL_PREFIX = "graphspaces/" + GRAPHSPACE + "/graphs/" + GRAPH;
     protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
-    private static final String PASSWORD = "admin";
+    private static final String PASSWORD = "pa";
     private static final int NO_LIMIT = -1;
     private static final String SCHEMA_PKS = "/schema/propertykeys";
     private static final String SCHEMA_VLS = "/schema/vertexlabels";
@@ -172,7 +172,7 @@ public class BaseApiTest {
         int times = 0;
         int maxTimes = 100000;
         do {
-            Response r = client.get("/graphspaces/DEFAULT/graphs/hugegraphapi/tasks/",
+            Response r = client.get("/graphspaces/DEFAULT/graphs/hugegraph/tasks/",
                                     String.valueOf(task));
             String content = assertResponseStatus(200, r);
             status = assertJsonContains(content, "task_status");
@@ -496,15 +496,15 @@ public class BaseApiTest {
             String body = "{\n" +
                           "  \"backend\": \"hstore\",\n" +
                           "  \"serializer\": \"binary\",\n" +
-                          "  \"store\": \"hugegraphapi\",\n" +
+                          "  \"store\": \"hugegraph\",\n" +
                           "  \"search.text_analyzer\": \"jieba\",\n" +
                           "  \"search.text_analyzer_mode\": \"INDEX\"\n" +
                           "}";
 
             r = client.post(URL_PREFIX, Entity.entity(body, MediaType.APPLICATION_JSON_TYPE));
             if (r.getStatus() != 201) {
-                throw new HugeException("Failed to create graph: " + GRAPH +
-                                        r.readEntity(String.class));
+                // isn't hstore
+                BaseApiTest.clearData();
             }
         } else {
             BaseApiTest.clearData();

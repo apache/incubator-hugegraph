@@ -34,7 +34,7 @@ import jakarta.ws.rs.core.Response;
 
 public class ProjectApiTest extends BaseApiTest {
 
-    private static final String PATH = "graphspaces/DEFAULT/graphs/hugegraphapi/auth/projects";
+    private static final String PATH = "graphspaces/DEFAULT/graphs/hugegraph/auth/projects";
 
     @Override
     @After
