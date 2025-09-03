@@ -86,6 +86,7 @@
     </scm>
 
     <properties>
+        <fabric8.version>5.6.0</fabric8.version>
         <revision>1.5.0</revision>
         <hugegraph-commons.version>1.5.0</hugegraph-commons.version>
         <lombok.version>1.18.30</lombok.version>
