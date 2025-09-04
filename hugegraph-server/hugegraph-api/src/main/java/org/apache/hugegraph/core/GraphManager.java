@@ -245,8 +245,21 @@ public final class GraphManager {
             this.localGraphs = ImmutableSet.of();
         }
 
-        if (!pdPeers.isEmpty()) {
-            loadMetaFromPd();
+        try {
+            PDConfig pdConfig = PDConfig.of(this.pdPeers);
+            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
+                                  PdMetaDriver.PDAuthConfig.token());
+            this.pdClient = DiscoveryClientImpl
+                    .newBuilder()
+                    .setCenterAddress(this.pdPeers)
+                    .setPdConfig(pdConfig)
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (this.pdClient.isPdReady()) {
+            loadMetaFromPD();
         }
     }
 
@@ -328,20 +341,7 @@ public final class GraphManager {
                         NICKNAME_MAX_LENGTH);
     }
 
-    private void loadMetaFromPd() {
-        try {
-            PDConfig pdConfig = PDConfig.of(this.pdPeers);
-            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
-                                  PdMetaDriver.PDAuthConfig.token());
-            this.pdClient = DiscoveryClientImpl
-                    .newBuilder()
-                    .setCenterAddress(this.pdPeers)
-                    .setPdConfig(pdConfig)
-                    .build();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+    private void loadMetaFromPD() {
         this.initMetaManager(conf);
         this.initK8sManagerIfNeeded(conf);
 
