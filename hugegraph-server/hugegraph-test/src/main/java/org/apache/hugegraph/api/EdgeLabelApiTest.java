@@ -29,7 +29,7 @@ import jakarta.ws.rs.core.Response;
 public class EdgeLabelApiTest extends BaseApiTest {
 
     private static final String PATH =
-            "/graphspaces/DEFAULT/graphs/hugegraphapi/schema/edgelabels/";
+            "/graphspaces/DEFAULT/graphs/hugegraph/schema/edgelabels/";
 
     @Before
     public void prepareSchema() {

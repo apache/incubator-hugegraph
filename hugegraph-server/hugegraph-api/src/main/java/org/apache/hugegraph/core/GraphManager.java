@@ -17,28 +17,51 @@
 
 package org.apache.hugegraph.core;
 
-import com.alipay.sofa.rpc.config.ServerConfig;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.gson.Gson;
-import io.fabric8.kubernetes.api.model.Namespace;
-import jakarta.ws.rs.core.SecurityContext;
+import static org.apache.hugegraph.HugeFactory.SYS_GRAPH;
+import static org.apache.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_DESCRIPTION;
+import static org.apache.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
+
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
-import org.apache.hugegraph.auth.*;
+import org.apache.hugegraph.auth.AuthManager;
+import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeAuthenticator.User;
+import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
+import org.apache.hugegraph.auth.HugeGraphAuthProxy;
+import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
-import org.apache.hugegraph.config.*;
+import org.apache.hugegraph.config.ConfigOption;
+import org.apache.hugegraph.config.CoreOptions;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotSupportException;
@@ -102,33 +125,28 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import com.alipay.sofa.rpc.config.ServerConfig;
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.gson.Gson;
 
-import static org.apache.hugegraph.HugeFactory.SYS_GRAPH;
-import static org.apache.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_DESCRIPTION;
-import static org.apache.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_NAME;
+import io.fabric8.kubernetes.api.model.Namespace;
+import jakarta.ws.rs.core.SecurityContext;
 
 public final class GraphManager {
 
     public static final String NAME_REGEX = "^[a-z][a-z0-9_]{0,47}$";
     // nickname should be compatible with all patterns of name
     public static final String NICKNAME_REGEX = "^[a-zA-Z\u4e00-\u9fa5]" +
-            "[a-zA-Z0-9\u4e00-\u9fa5~!@#$" +
-            "%^&*()_+|<>,.?/:;" +
-            "'`\"\\[\\]{}\\\\]{0,47}$";
+                                                "[a-zA-Z0-9\u4e00-\u9fa5~!@#$" +
+                                                "%^&*()_+|<>,.?/:;" +
+                                                "'`\"\\[\\]{}\\\\]{0,47}$";
     public static final int NICKNAME_MAX_LENGTH = 48;
     public static final String DELIMITER = "-";
     public static final String NAMESPACE_CREATE = "namespace_create";
     private static final Logger LOG = Log.logger(GraphManager.class);
-    private final KvStore kvStore;
+    private KvStore kvStore;
 
     private final String cluster;
     private final String graphsDir;
@@ -160,6 +178,7 @@ public final class GraphManager {
     private final HugeConfig config;
     private RoleElectionStateMachine roleStateMachine;
     private K8sDriver.CA ca;
+    private final boolean PDExist;
 
     private String pdK8sServiceId;
 
@@ -182,9 +201,9 @@ public final class GraphManager {
         this.startIgnoreSingleGraphError = conf.get(
                 ServerOptions.SERVER_START_IGNORE_SINGLE_GRAPH_ERROR);
         E.checkArgument(server != null && !server.isEmpty(),
-                "The server name can't be null or empty");
+                        "The server name can't be null or empty");
         E.checkArgument(role != null && !role.isEmpty(),
-                "The server role can't be null or empty");
+                        "The server role can't be null or empty");
         this.graphsDir = conf.get(ServerOptions.GRAPHS);
         this.cluster = conf.get(ServerOptions.CLUSTER);
         this.graphSpaces = new ConcurrentHashMap<>();
@@ -207,31 +226,8 @@ public final class GraphManager {
         this.k8sApiEnabled = conf.get(ServerOptions.K8S_API_ENABLE);
         this.licenseValid = true;
 
-        try {
-            PDConfig pdConfig = PDConfig.of(this.pdPeers);
-            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
-                    PdMetaDriver.PDAuthConfig.token());
-            this.pdClient = DiscoveryClientImpl
-                    .newBuilder()
-                    .setCenterAddress(this.pdPeers)
-                    .setPdConfig(pdConfig)
-                    .build();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         this.listenChanges();
-        this.initMetaManager(conf);
-        this.initK8sManagerIfNeeded(conf);
-
-        this.createDefaultGraphSpaceIfNeeded(conf);
-
-        this.loadGraphSpaces();
-
         this.initNodeRole();
-        this.kvStore = this.kvStoreInit();
-        this.loadServices();
-
         if (this.authenticator != null) {
             this.authManager = this.authenticator.authManager();
         } else {
@@ -246,18 +242,44 @@ public final class GraphManager {
             Map<String, String> graphConfigs =
                     ConfigUtil.scanGraphsDir(this.graphsDir);
             this.localGraphs = graphConfigs.keySet();
-            this.loadGraphs(graphConfigs);
+            this.loadGraphsFromLocal(graphConfigs);
         } else {
             this.localGraphs = ImmutableSet.of();
         }
 
-        this.loadGraphsFromMeta(this.graphConfigs());
+        try {
+            PDConfig pdConfig = PDConfig.of(this.pdPeers);
+            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
+                                  PdMetaDriver.PDAuthConfig.token());
+            this.pdClient = DiscoveryClientImpl
+                    .newBuilder()
+                    .setCenterAddress(this.pdPeers)
+                    .setPdConfig(pdConfig)
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (this.pdClient.isPdReady()) {
+            loadMetaFromPD();
+            PDExist = true;
+        } else {
+            PDExist = false;
+        }
+    }
+
+    private static String spaceGraphName(String graphSpace, String graph) {
+        return String.join(DELIMITER, graphSpace, graph);
     }
 
     private static String serviceId(String graphSpace, Service.ServiceType type,
                                     String serviceName) {
         return String.join(DELIMITER, graphSpace, type.name(), serviceName)
-                .replace("_", "-").toLowerCase();
+                     .replace("_", "-").toLowerCase();
+    }
+
+    private boolean usePD() {
+        return this.PDExist;
     }
 
     private static void registerCacheMetrics(Map<String, Cache<?, ?>> caches) {
@@ -297,8 +319,12 @@ public final class GraphManager {
         return String.join(DELIMITER, graphSpace, service);
     }
 
-    private static String graphName(String graphSpace, String graph) {
-        return String.join(DELIMITER, graphSpace, graph);
+    private static void checkName(String name, String type) {
+        E.checkArgument(name.matches(NAME_REGEX),
+                        "Invalid id or name '%s' for %s, valid name is up to " +
+                        "48 alpha-numeric characters and underscores and only" +
+                        "letters are supported as first letter. " +
+                        "Note: letter is lower case", name, type);
     }
 
     private static void checkGraphSpaceName(String name) {
@@ -312,21 +338,27 @@ public final class GraphManager {
         checkName(name, "graph");
     }
 
-    private static void checkName(String name, String type) {
-        E.checkArgument(name.matches(NAME_REGEX),
-                "Invalid id or name '%s' for %s, valid name is up to " +
-                        "48 alpha-numeric characters and underscores and only" +
-                        "letters are supported as first letter. " +
-                        "Note: letter is lower case", name, type);
-    }
-
     public static void checkNickname(String nickname) {
         E.checkArgument(nickname.matches(NICKNAME_REGEX),
-                "Invalid nickname '%s' for %s, valid name is up " +
+                        "Invalid nickname '%s' for %s, valid name is up " +
                         "to %s letters, Chinese or special " +
                         "characters, and can only start with a " +
                         "letter or Chinese", nickname, "graph",
-                NICKNAME_MAX_LENGTH);
+                        NICKNAME_MAX_LENGTH);
+    }
+
+    private void loadMetaFromPD() {
+        this.initMetaManager(conf);
+        this.initK8sManagerIfNeeded(conf);
+
+        this.createDefaultGraphSpaceIfNeeded(conf);
+
+        this.loadGraphSpaces();
+
+        this.kvStore = this.kvStoreInit();
+        this.loadServices();
+
+        this.loadGraphsFromMeta(this.graphConfigs());
     }
 
     public static void prepareSchema(HugeGraph graph, String gremlin) {
@@ -392,7 +424,7 @@ public final class GraphManager {
     public void init() {
         this.listenChanges();
 
-        this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
+        this.loadGraphsFromLocal(ConfigUtil.scanGraphsDir(this.graphsDir));
 
         // Start RPC-Server for raft-rpc/auth-rpc/cache-notify-rpc...
         this.startRpcServer();
@@ -421,7 +453,7 @@ public final class GraphManager {
         }
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
-            this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
+            this.loadGraphsFromLocal(ConfigUtil.scanGraphsDir(this.graphsDir));
         }
         // Load graphs configured in etcd
         this.loadGraphsFromMeta(this.graphConfigs());
@@ -444,7 +476,7 @@ public final class GraphManager {
             this.ca = new K8sDriver.CA(ca, clientCa, clientKey);
         }
         this.metaManager.connect(this.cluster, MetaManager.MetaDriverType.PD,
-                ca, clientCa, clientKey, endpoints);
+                                 ca, clientCa, clientKey, endpoints);
     }
 
     private void initK8sManagerIfNeeded(HugeConfig conf) {
@@ -475,12 +507,12 @@ public final class GraphManager {
                     .serviceConfigs(graphSpace);
             for (Map.Entry<String, Service> entry : services.entrySet()) {
                 this.services.put(serviceName(graphSpace, entry.getKey()),
-                        entry.getValue());
+                                  entry.getValue());
             }
         }
         Service service = new Service(this.serviceID, User.ADMIN.getName(),
-                Service.ServiceType.OLTP,
-                Service.DeploymentType.MANUAL);
+                                      Service.ServiceType.OLTP,
+                                      Service.DeploymentType.MANUAL);
         service.description(service.name());
 
         if (this.serverDeployInK8s) {
@@ -491,8 +523,8 @@ public final class GraphManager {
         }
 
         service.serviceId(serviceId(this.serviceGraphSpace,
-                Service.ServiceType.OLTP,
-                this.serviceID));
+                                    Service.ServiceType.OLTP,
+                                    this.serviceID));
 
         String serviceName = serviceName(this.serviceGraphSpace, this.serviceID);
         Boolean newAdded = false;
@@ -524,7 +556,7 @@ public final class GraphManager {
                 // Register to etcd since even-handler has not been registered now
                 this.metaManager.addServiceConfig(this.serviceGraphSpace, self);
                 this.metaManager.notifyServiceAdd(this.serviceGraphSpace,
-                        this.serviceID);
+                                                  this.serviceID);
             }
         }
     }
@@ -570,13 +602,13 @@ public final class GraphManager {
         String olapNs = config.get(
                 ServerOptions.SERVER_DEFAULT_OLAP_K8S_NAMESPACE);
         graphSpace = this.createGraphSpace(DEFAULT_GRAPH_SPACE_SERVICE_NAME,
-                GraphSpace.DEFAULT_NICKNAME,
-                DEFAULT_GRAPH_SPACE_DESCRIPTION,
-                Integer.MAX_VALUE, Integer.MAX_VALUE,
-                Integer.MAX_VALUE, Integer.MAX_VALUE,
-                Integer.MAX_VALUE, oltpNs, olapNs,
-                false, User.ADMIN.getName(),
-                ImmutableMap.of());
+                                           GraphSpace.DEFAULT_NICKNAME,
+                                           DEFAULT_GRAPH_SPACE_DESCRIPTION,
+                                           Integer.MAX_VALUE, Integer.MAX_VALUE,
+                                           Integer.MAX_VALUE, Integer.MAX_VALUE,
+                                           Integer.MAX_VALUE, oltpNs, olapNs,
+                                           false, User.ADMIN.getName(),
+                                           ImmutableMap.of());
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
         if (!useK8s) {
             return;
@@ -617,10 +649,10 @@ public final class GraphManager {
                                         boolean auth, String creator,
                                         Map<String, Object> configs) {
         GraphSpace space = new GraphSpace(name, nickname, description,
-                cpuLimit,
-                memoryLimit, storageLimit,
-                maxGraphNumber, maxRoleNumber,
-                auth, creator, configs);
+                                          cpuLimit,
+                                          memoryLimit, storageLimit,
+                                          maxGraphNumber, maxRoleNumber,
+                                          auth, creator, configs);
         space.oltpNamespace(oltpNamespace);
         space.olapNamespace(olapNamespace);
         return this.createGraphSpace(space);
@@ -641,8 +673,8 @@ public final class GraphManager {
         }
 
         E.checkArgument(!isExistedSpaceNickname(name, nickname),
-                "Space nickname '%s' existed",
-                nickname);
+                        "Space nickname '%s' existed",
+                        nickname);
         space.name(name);
         space.nickname(nickname);
         this.limitStorage(space, space.storageLimit);
@@ -652,37 +684,37 @@ public final class GraphManager {
         if (useK8s) {
             E.checkArgument(!space.oltpNamespace().isEmpty() &&
                             !space.olapNamespace().isEmpty(),
-                    "Oltp and olap namespace of space for " +
+                            "Oltp and olap namespace of space for " +
                             "k8s-enabled server must be set",
-                    nickname);
+                            nickname);
 
             boolean notDefault = !DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(name);
             int cpuLimit = space.cpuLimit();
             int memoryLimit = space.memoryLimit();
 
             int computeCpuLimit = space.computeCpuLimit() == 0 ?
-                    space.cpuLimit() : space.computeCpuLimit();
+                                  space.cpuLimit() : space.computeCpuLimit();
             int computeMemoryLimit = space.computeMemoryLimit() == 0 ?
-                    space.memoryLimit() : space.computeMemoryLimit();
+                                     space.memoryLimit() : space.computeMemoryLimit();
             boolean sameNamespace = space.oltpNamespace().equals(space.olapNamespace());
             attachK8sNamespace(space.oltpNamespace(),
-                    space.operatorImagePath(), sameNamespace);
+                               space.operatorImagePath(), sameNamespace);
             if (notDefault) {
                 if (sameNamespace) {
                     this.makeResourceQuota(space.oltpNamespace(),
-                            cpuLimit + computeCpuLimit,
-                            memoryLimit + computeMemoryLimit);
+                                           cpuLimit + computeCpuLimit,
+                                           memoryLimit + computeMemoryLimit);
                 } else {
                     this.makeResourceQuota(space.oltpNamespace(), cpuLimit,
-                            memoryLimit);
+                                           memoryLimit);
                 }
             }
             if (!sameNamespace) {
                 attachK8sNamespace(space.olapNamespace(),
-                        space.operatorImagePath(), true);
+                                   space.operatorImagePath(), true);
                 if (notDefault) {
                     this.makeResourceQuota(space.olapNamespace(),
-                            computeCpuLimit, computeMemoryLimit);
+                                           computeCpuLimit, computeMemoryLimit);
                 }
             }
         }
@@ -716,15 +748,15 @@ public final class GraphManager {
                 Namespace current = k8sManager.namespace(namespace);
                 if (null == current) {
                     LockResult lock = this.metaManager.lock(this.cluster,
-                            NAMESPACE_CREATE,
-                            namespace);
+                                                            NAMESPACE_CREATE,
+                                                            namespace);
                     try {
                         current = k8sManager.namespace(namespace);
                         if (null != current) {
                             return false;
                         }
                         current = k8sManager.createNamespace(namespace,
-                                ImmutableMap.of());
+                                                             ImmutableMap.of());
                         if (null == current) {
                             throw new HugeException(
                                     "Cannot attach k8s namespace {}",
@@ -738,14 +770,14 @@ public final class GraphManager {
                         // String imageName = "";
                         if (isOlap) {
                             LOG.info("Try to create operator pod for k8s " +
-                                            "namespace {} with operator image {}",
-                                    namespace, olapOperatorImage);
+                                     "namespace {} with operator image {}",
+                                     namespace, olapOperatorImage);
                             k8sManager.createOperatorPod(namespace,
-                                    olapOperatorImage);
+                                                         olapOperatorImage);
                         }
                     } finally {
                         this.metaManager.unlock(lock, this.cluster,
-                                NAMESPACE_CREATE, namespace);
+                                                NAMESPACE_CREATE, namespace);
                     }
                 }
             }
@@ -763,7 +795,7 @@ public final class GraphManager {
     private void limitStorage(GraphSpace space, int storageLimit) {
         PDConfig pdConfig = PDConfig.of(this.pdPeers).setEnablePDNotify(true);
         pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
-                PdMetaDriver.PDAuthConfig.token());
+                              PdMetaDriver.PDAuthConfig.token());
         PDClient pdClient = PDClient.create(pdConfig);
         try {
             pdClient.setGraphSpace(space.name(), storageLimit);
@@ -783,7 +815,7 @@ public final class GraphManager {
             gs.setStorageUsed(usedGb.intValue());
         } catch (PDException e) {
             LOG.error("Get graph space '{}' storage information meet error {}",
-                    graphSpace, e);
+                      graphSpace, e);
         }
     }
 
@@ -814,7 +846,7 @@ public final class GraphManager {
     public void dropGraphSpace(String name) {
         if (this.serviceGraphSpace.equals(name)) {
             throw new HugeException("cannot delete service graph space %s",
-                    this.serviceGraphSpace);
+                                    this.serviceGraphSpace);
         }
         this.clearGraphSpace(name);
         this.metaManager.removeGraphSpaceConfig(name);
@@ -836,16 +868,16 @@ public final class GraphManager {
                             if (header.hasError()) {
                                 Pdpb.ErrorType errorType = header.getError().getType();
                                 if (errorType == Pdpb.ErrorType.LICENSE_ERROR
-                                        || errorType == Pdpb.ErrorType.LICENSE_VERIFY_ERROR) {
+                                    || errorType == Pdpb.ErrorType.LICENSE_VERIFY_ERROR) {
                                     if (licenseValid) {
                                         LOG.warn("License check failure. {}",
-                                                header.getError().getMessage());
+                                                 header.getError().getMessage());
                                         licenseValid = false;
                                     }
                                     return;
                                 } else {
                                     LOG.warn("RegisterServiceToPd Error. {}",
-                                            header.getError().getMessage());
+                                             header.getError().getMessage());
                                 }
                             }
                         }
@@ -892,7 +924,7 @@ public final class GraphManager {
 
             config
                     .setNodePort(serviceDTO.getSpec().getPorts()
-                            .get(0).getNodePort().toString())
+                                           .get(0).getNodePort().toString())
                     .setNodeName(nodeName)
                     .setAppName(this.cluster)
                     .setGrpcAddress(this.pdPeers)
@@ -941,7 +973,7 @@ public final class GraphManager {
         }
     }
 
-    public void loadGraphs(Map<String, String> graphConfs) {
+    public void loadGraphsFromLocal(Map<String, String> graphConfs) {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
             String graphConfPath = conf.getValue();
@@ -964,21 +996,28 @@ public final class GraphManager {
          * 3. inject graph and traversal source into gremlin server context
          * 4. inject graph into rest server context
          */
-        String spaceGraphName = graphName(graphspace, name);
+        String spaceGraphName = spaceGraphName(graphspace, name);
         HugeGraph sourceGraph = this.graph(spaceGraphName);
         E.checkArgumentNotNull(sourceGraph,
-                "The clone source graph '%s' doesn't exist in graphspace '%s'",
-                name, graphspace);
+                               "The clone source graph '%s' doesn't exist in graphspace '%s'",
+                               name, graphspace);
         E.checkArgument(StringUtils.isNotEmpty(newName),
-                "The new graph name can't be null or empty");
+                        "The new graph name can't be null or empty");
 
-        String newGraphKey = graphName(graphspace, newName);
+        String newGraphKey = spaceGraphName(graphspace, newName);
         E.checkArgument(!this.graphs.containsKey(newGraphKey),
-                "The graph '%s' has existed in graphspace '%s'", newName, graphspace);
+                        "The graph '%s' has existed in graphspace '%s'", newName, graphspace);
 
         // Get source graph configuration
-        Map<String, Object> sourceConfigs = this.metaManager.getGraphConfig(graphspace, name);
-        Map<String, Object> newConfigs = new HashMap<>(sourceConfigs);
+        HugeConfig cloneConfig = sourceGraph.cloneConfig(newGraphKey);
+
+        // Convert HugeConfig to Map for processing
+        Map<String, Object> newConfigs = new HashMap<>();
+
+        // Copy all properties from cloneConfig to newConfigs
+        cloneConfig.getKeys().forEachRemaining(key -> {
+            newConfigs.put(key, cloneConfig.getProperty(key));
+        });
 
         // Override with new configurations if provided
         if (configs != null && !configs.isEmpty()) {
@@ -988,8 +1027,14 @@ public final class GraphManager {
         // Update store name to the new graph name
         newConfigs.put("store", newName);
 
-        // Create the new graph with cloned configuration
-        String creator = String.valueOf(sourceConfigs.get("creator"));
+        // Get creator from the configuration, fallback to "admin" if not found
+        String creator = (String) newConfigs.get("creator");
+
+        //todo: auth
+        if (creator == null) {
+            creator = "admin"; // default creator
+        }
+
         Date timeStamp = new Date();
         newConfigs.put("create_time", timeStamp);
         newConfigs.put("update_time", timeStamp);
@@ -1014,7 +1059,7 @@ public final class GraphManager {
             HugeFactory.checkGraphName(parts[1], "meta server");
             try {
                 HugeGraph graph = this.createGraph(parts[0], parts[1],
-                        creator, config, false);
+                                                   creator, config, false);
                 graph.createTime(createTime);
                 graph.updateTime(updateTime);
             } catch (HugeException e) {
@@ -1022,7 +1067,7 @@ public final class GraphManager {
                     throw e;
                 }
                 LOG.error(String.format("Failed to load graph '%s' from " +
-                        "meta server", parts[1]), e);
+                                        "meta server", parts[1]), e);
             }
         }
     }
@@ -1059,25 +1104,102 @@ public final class GraphManager {
         String[] parts = key.split(DELIMITER);
         // server 注册的图空间不为 DEFAULT 时，只加载其注册的图空间下的图
         if (!"DEFAULT".equals(this.serviceGraphSpace) &&
-                !this.serviceGraphSpace.equals(parts[0])) {
+            !this.serviceGraphSpace.equals(parts[0])) {
             LOG.warn(String.format("Load graph [%s] was discarded, due to the graph " +
-                            "space [%s] registered by the current server does " +
-                            "not match [%s].", key,
-                    this.serviceGraphSpace, parts[0]));
+                                   "space [%s] registered by the current server does " +
+                                   "not match [%s].", key,
+                                   this.serviceGraphSpace, parts[0]));
             return true;
         }
         return false;
     }
 
+    private void checkOptions(HugeConfig config) {
+        // The store cannot be the same as the existing graph
+        this.checkOptionUnique(config, CoreOptions.STORE);
+        /*
+         * TODO: should check data path for rocksdb since can't use the same
+         * data path for different graphs, but it's not easy to check here.
+         */
+    }
+
+    private void checkOptionUnique(HugeConfig config,
+                                   TypedOption<?, ?> option) {
+        Object incomingValue = config.get(option);
+        for (String graphName : this.graphs.keySet()) {
+            HugeGraph graph = this.graph(graphName);
+            assert graph != null;
+            Object existedValue = graph.option(option);
+            E.checkArgument(!incomingValue.equals(existedValue),
+                            "The value '%s' of option '%s' conflicts with " +
+                            "existed graph", incomingValue, option.name());
+        }
+    }
+
+    public HugeGraph createGraphLocal(String name, String configText) {
+        E.checkArgument(this.conf.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
+                        "Not allowed to create graph '%s' dynamically, " +
+                        "please set `enable_dynamic_create_drop` to true.",
+                        name);
+        E.checkArgument(StringUtils.isNotEmpty(name),
+                        "The graph name can't be null or empty");
+        E.checkArgument(!this.graphs().contains(name),
+                        "The graph name '%s' has existed", name);
+
+        PropertiesConfiguration propConfig = ConfigUtil.buildConfig(configText);
+        HugeConfig config = new HugeConfig(propConfig);
+        this.checkOptions(config);
+
+        return this.createGraphLocal(config, name);
+    }
+
+    private HugeGraph createGraphLocal(HugeConfig config, String name) {
+        HugeGraph graph = null;
+        try {
+            // Create graph instance
+            graph = (HugeGraph) GraphFactory.open(config);
+
+            // Init graph and start it
+            graph.create(this.graphsDir, this.globalNodeRoleInfo);
+        } catch (Throwable e) {
+            LOG.error("Failed to create graph '{}' due to: {}",
+                      name, e.getMessage(), e);
+            if (graph != null) {
+                this.dropGraphLocal(graph);
+            }
+            throw e;
+        }
+
+        // Let gremlin server and rest server add graph to context
+        this.notifyAndWaitEvent(Events.GRAPH_CREATE, graph);
+
+        return graph;
+    }
+
+    private void dropGraphLocal(HugeGraph graph) {
+        // Clear data and config files
+        graph.drop();
+
+        /*
+         * Will fill graph instance into HugeFactory.graphs after
+         * GraphFactory.open() succeed, remove it when the graph drops
+         */
+        HugeFactory.remove(graph);
+    }
+
     public HugeGraph createGraph(String graphSpace, String name, String creator,
                                  Map<String, Object> configs, boolean init) {
+        if (!usePD()) {
+            return createGraphLocal(configs.toString(), name);
+        }
+
         // server 注册的图空间不为 DEFAULT 时，只加载其注册的图空间下的图
         if (!"DEFAULT".equals(this.serviceGraphSpace) &&
-                !this.serviceGraphSpace.equals(graphSpace)) {
+            !this.serviceGraphSpace.equals(graphSpace)) {
             throw new HugeException(String.format(
                     "The graph space registered by the current server is " +
-                            "[%s], and graph creation of the graph space [%s] is not " +
-                            "accepted", this.serviceGraphSpace, graphSpace));
+                    "[%s], and graph creation of the graph space [%s] is not " +
+                    "accepted", this.serviceGraphSpace, graphSpace));
         }
 
         String key = String.join(DELIMITER, graphSpace, name);
@@ -1100,8 +1222,8 @@ public final class GraphManager {
 
         // init = false means load graph from meta
         E.checkArgument(!init || !isExistedGraphNickname(graphSpace, nickname),
-                "Graph nickname '%s' for %s has existed",
-                nickname, graphSpace);
+                        "Graph nickname '%s' for %s has existed",
+                        nickname, graphSpace);
 
         GraphSpace gs = this.graphSpace(graphSpace);
         E.checkArgumentNotNull(gs, "Invalid graph space: '%s'", graphSpace);
@@ -1110,12 +1232,12 @@ public final class GraphManager {
             gs.graphNumberUsed(allGraphs.size());
             if (gs.tryOfferGraph()) {
                 LOG.info("The graph_number_used successfully increased to {} " +
-                                "of graph space: {} for graph: {}",
-                        gs.graphNumberUsed(), gs.name(), name);
+                         "of graph space: {} for graph: {}",
+                         gs.graphNumberUsed(), gs.name(), name);
             } else {
                 throw new HugeException("Failed create graph due to reach " +
-                        "graph limit for graph space '%s'",
-                        graphSpace);
+                                        "graph limit for graph space '%s'",
+                                        graphSpace);
             }
         }
 
@@ -1140,13 +1262,13 @@ public final class GraphManager {
         Configuration propConfig = this.buildConfig(attachLocalCacheConfig(configs));
         String storeName = propConfig.getString(CoreOptions.STORE.name());
         E.checkArgument(name.equals(storeName),
-                "The store name '%s' not match url name '%s'",
-                storeName, name);
+                        "The store name '%s' not match url name '%s'",
+                        storeName, name);
 
         HugeConfig config = new HugeConfig(propConfig);
         this.checkOptions(graphSpace, config);
         HugeGraph graph = this.createGraph(graphSpace, config,
-                this.authManager, init);
+                                           this.authManager, init);
         graph.graphSpace(graphSpace);
         graph.kvStore(this.kvStore);
 
@@ -1155,7 +1277,7 @@ public final class GraphManager {
         graph.createTime(timeStamp);
         graph.updateTime(timeStamp);
 
-        String graphName = graphName(graphSpace, name);
+        String graphName = spaceGraphName(graphSpace, name);
         if (init) {
             this.creatingGraphs.add(graphName);
             this.metaManager.addGraphConfig(graphSpace, name, configs);
@@ -1188,8 +1310,8 @@ public final class GraphManager {
         return Collections.unmodifiableSet(this.graphs.keySet());
     }
 
-    public HugeGraph graph(String name) {
-        Graph graph = this.graphs.get(name);
+    public HugeGraph graph(String spaceGraphName) {
+        Graph graph = this.graphs.get(spaceGraphName);
         if (graph == null) {
             return null;
         } else if (graph instanceof HugeGraph) {
@@ -1354,6 +1476,10 @@ public final class GraphManager {
         });
     }
 
+    private String defaultSpaceGraphName(String graphName) {
+        return "DEFAULT-" + graphName;
+    }
+
     private void loadGraph(String name, String graphConfPath) {
         HugeConfig config = new HugeConfig(graphConfPath);
 
@@ -1364,7 +1490,7 @@ public final class GraphManager {
         this.transferRoleWorkerConfig(config);
 
         Graph graph = GraphFactory.open(config);
-        this.graphs.put(name, graph);
+        this.graphs.put(defaultSpaceGraphName(name), graph);
 
         HugeConfig graphConfig = (HugeConfig) graph.configuration();
         assert graphConfPath.equals(Objects.requireNonNull(graphConfig.file()).getPath());
@@ -1466,7 +1592,7 @@ public final class GraphManager {
             hugegraph.serverStarted(this.globalNodeRoleInfo);
         }
         if (!this.globalNodeRoleInfo.nodeRole().computer() && this.supportRoleElection() &&
-                config.get(ServerOptions.ENABLE_SERVER_ROLE_ELECTION)) {
+            config.get(ServerOptions.ENABLE_SERVER_ROLE_ELECTION)) {
             this.initRoleStateMachine();
         }
     }
@@ -1652,27 +1778,27 @@ public final class GraphManager {
         Object value = this.config.get(CoreOptions.VERTEX_CACHE_EXPIRE);
         if (Objects.nonNull(value)) {
             attachedConfigs.putIfAbsent(CoreOptions.VERTEX_CACHE_EXPIRE.name(),
-                    String.valueOf(value));
+                                        String.valueOf(value));
         }
         value = this.config.get(CoreOptions.EDGE_CACHE_EXPIRE);
         if (Objects.nonNull(value)) {
             attachedConfigs.putIfAbsent(CoreOptions.EDGE_CACHE_EXPIRE.name(),
-                    String.valueOf(value));
+                                        String.valueOf(value));
         }
         value = this.config.get(CoreOptions.EDGE_CACHE_CAPACITY);
         if (Objects.nonNull(value)) {
             attachedConfigs.putIfAbsent(CoreOptions.EDGE_CACHE_CAPACITY.name(),
-                    String.valueOf(value));
+                                        String.valueOf(value));
         }
         value = this.config.get(CoreOptions.VERTEX_CACHE_CAPACITY);
         if (Objects.nonNull(value)) {
             attachedConfigs.putIfAbsent(CoreOptions.VERTEX_CACHE_CAPACITY.name(),
-                    String.valueOf(value));
+                                        String.valueOf(value));
         }
         value = this.config.get(CoreOptions.QUERY_TRUST_INDEX);
         if (Objects.nonNull(value)) {
             attachedConfigs.putIfAbsent(CoreOptions.QUERY_TRUST_INDEX.name(),
-                    value);
+                                        value);
         }
         return attachedConfigs;
     }
@@ -1715,28 +1841,28 @@ public final class GraphManager {
         }
         configs.put(PdRegisterLabel.REGISTER_TYPE.name(), registerType.name());
         Query query = Query.newBuilder().setAppName(cluster)
-                .putAllLabels(configs)
-                .build();
+                           .putAllLabels(configs)
+                           .build();
         NodeInfos nodeInfos = this.pdClient.getNodeInfos(query);
         for (NodeInfo nodeInfo : nodeInfos.getInfoList()) {
             LOG.info("node app name {}, node address: {}",
-                    nodeInfo.getAppName(), nodeInfo.getAddress());
+                     nodeInfo.getAppName(), nodeInfo.getAddress());
         }
         return nodeInfos.getInfoList().stream()
-                .map(nodeInfo -> nodeInfo.getAddress())
-                .collect(Collectors.toSet());
+                        .map(nodeInfo -> nodeInfo.getAddress())
+                        .collect(Collectors.toSet());
     }
 
     public HugeGraph graph(String graphSpace, String name) {
         String key = String.join(DELIMITER, graphSpace, name);
         Graph graph = this.graphs.get(key);
-        if (graph == null) {
+        if (graph == null && usePD()) {
             Map<String, Map<String, Object>> configs =
                     this.metaManager.graphConfigs(graphSpace);
             // 如果当前 server 注册的不是 DEFAULT 图空间，只加载注册的图空间下的图创建
             if (!configs.containsKey(key) ||
-                    (!"DEFAULT".equals(this.serviceGraphSpace) &&
-                            !graphSpace.equals(this.serviceGraphSpace))) {
+                (!"DEFAULT".equals(this.serviceGraphSpace) &&
+                 !graphSpace.equals(this.serviceGraphSpace))) {
                 return null;
             }
             Map<String, Object> config = configs.get(key);
@@ -1744,7 +1870,7 @@ public final class GraphManager {
             Date createTime = parseDate(config.get("create_time"));
             Date updateTime = parseDate(config.get("update_time"));
             HugeGraph graph1 = this.createGraph(graphSpace, name,
-                    creator, config, false);
+                                                creator, config, false);
             graph1.createTime(createTime);
             graph1.updateTime(updateTime);
             this.graphs.put(key, graph1);
@@ -1755,18 +1881,40 @@ public final class GraphManager {
         throw new NotSupportException("graph instance of %s", graph.getClass());
     }
 
+    public void dropGraphLocal(String name) {
+        HugeGraph graph = this.graph(name);
+        E.checkArgument(this.conf.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
+                        "Not allowed to drop graph '%s' dynamically, " +
+                        "please set `enable_dynamic_create_drop` to true.",
+                        name);
+        E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
+        E.checkArgument(this.graphs.size() > 1,
+                        "The graph '%s' is the only one, not allowed to delete",
+                        name);
+
+        this.dropGraphLocal(graph);
+
+        // Let gremlin server and rest server context remove graph
+        this.notifyAndWaitEvent(Events.GRAPH_DROP, graph);
+    }
+
     public void dropGraph(String graphSpace, String name, boolean clear) {
+        if (!usePD()) {
+            dropGraphLocal(name);
+            return;
+        }
+
         boolean grpcThread = Thread.currentThread().getName().contains("grpc");
         HugeGraph g = this.graph(graphSpace, name);
         E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
         if (this.localGraphs.contains(name)) {
             throw new HugeException("Can't delete graph '%s' loaded from " +
-                    "local config. Please delete config file " +
-                    "and restart HugeGraphServer if really " +
-                    "want to delete it.", name);
+                                    "local config. Please delete config file " +
+                                    "and restart HugeGraphServer if really " +
+                                    "want to delete it.", name);
         }
 
-        String graphName = graphName(graphSpace, name);
+        String graphName = spaceGraphName(graphSpace, name);
         if (clear) {
             this.removingGraphs.add(graphName);
             try {
@@ -1786,9 +1934,9 @@ public final class GraphManager {
                 g.taskScheduler().close();
             } catch (Throwable t) {
                 LOG.warn(String.format(
-                                "Error when close TaskScheduler of %s",
-                                graphName),
-                        t);
+                                 "Error when close TaskScheduler of %s",
+                                 graphName),
+                         t);
             }
 
             g.clearBackend();
@@ -1802,8 +1950,8 @@ public final class GraphManager {
         if (!grpcThread) {
             gs.recycleGraph();
             LOG.info("The graph_number_used successfully decreased to {} " +
-                            "of graph space: {} for graph: {}",
-                    gs.graphNumberUsed(), gs.name(), name);
+                     "of graph space: {} for graph: {}",
+                     gs.graphNumberUsed(), gs.name(), name);
             this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
         }
         // Let gremlin server and rest server context remove graph
@@ -1843,13 +1991,13 @@ public final class GraphManager {
         for (Map.Entry<String, Graph> entry : this.graphs.entrySet()) {
             String[] parts = entry.getKey().split(DELIMITER);
             if (!Objects.equals(graphSpace, parts[0]) ||
-                    !Objects.equals(incomingValue, parts[1])) {
+                !Objects.equals(incomingValue, parts[1])) {
                 continue;
             }
             Object existedValue = ((HugeGraph) entry.getValue()).option(option);
             E.checkArgument(!incomingValue.equals(existedValue),
-                    "The option '%s' conflict with existed",
-                    option.name());
+                            "The option '%s' conflict with existed",
+                            option.name());
         }
     }
 
@@ -1862,6 +2010,9 @@ public final class GraphManager {
     }
 
     public GraphSpace graphSpace(String name) {
+        if (!usePD()) {
+            return new GraphSpace("DEFAULT");
+        }
         GraphSpace space = this.graphSpaces.get(name);
         if (space == null) {
             space = this.metaManager.graphSpace(name);
