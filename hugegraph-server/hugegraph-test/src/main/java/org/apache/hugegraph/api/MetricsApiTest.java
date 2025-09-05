@@ -79,7 +79,8 @@ public class MetricsApiTest extends BaseApiTest {
     public void testMetricsBackend() {
         Response r = client().get(PATH, "backend");
         String result = assertResponseStatus(200, r);
-        Object value = assertJsonContains(result, "hugegraph");
+        // With GraphSpace support, the key is now "DEFAULT-hugegraph"
+        Object value = assertJsonContains(result, "DEFAULT-hugegraph");
 
         Assert.assertTrue(value instanceof Map);
         Map<?, ?> graph = (Map<?, ?>) value;

@@ -45,7 +45,8 @@ public class GremlinApiTest extends BaseApiTest {
     @Test
     public void testGet() {
         Map<String, Object> params = ImmutableMap.of("gremlin",
-                                                     "hugegraph.traversal().V()");
+                                                     "this.binding.'DEFAULT-hugegraph'.traversal" +
+                                                     "().V()");
         Response r = client().get(path, params);
         Assert.assertEquals(r.readEntity(String.class), 200, r.getStatus());
     }
@@ -93,11 +94,12 @@ public class GremlinApiTest extends BaseApiTest {
     @Test
     public void testClearAndInit() {
         String body = "{" +
-                      "\"gremlin\":\"hugegraph.backendStoreFeatures()" +
+                      "\"gremlin\":\"graph.backendStoreFeatures()" +
                       "                       .supportsSharedStorage();\"," +
                       "\"bindings\":{}," +
                       "\"language\":\"gremlin-groovy\"," +
-                      "\"aliases\":{\"g\":\"__g_DEFAULT-hugegraph\"}}";
+                      "\"aliases\":{\"graph\":\"DEFAULT-hugegraph\"," +
+                      "\"g\":\"__g_DEFAULT-hugegraph\"}}";
         String content = assertResponseStatus(200, client().post(path, body));
         Map<?, ?> result = assertJsonContains(content, "result");
         @SuppressWarnings({"unchecked"})
@@ -108,42 +110,45 @@ public class GremlinApiTest extends BaseApiTest {
 
         body = "{" +
                "\"gremlin\":\"" +
-               "  if (!hugegraph.backendStoreFeatures()" +
+               "  if (!graph.backendStoreFeatures()" +
                "                .supportsSharedStorage())" +
                "    return;" +
-               "  def auth = hugegraph.hugegraph().authManager();" +
+               "  def auth = graph.hugegraph().authManager();" +
                "  def admin = auth.findUser('admin');" +
-               "  hugegraph.clearBackend();" +
-               "  hugegraph.initBackend();" +
+               "  graph.clearBackend();" +
+               "  graph.initBackend();" +
                "  auth.createUser(admin);\"," +
                "\"bindings\":{}," +
                "\"language\":\"gremlin-groovy\"," +
-               "\"aliases\":{\"g\":\"__g_DEFAULT-hugegraph\"}}";
+               "\"aliases\":{\"graph\":\"DEFAULT-hugegraph\"," +
+               "\"g\":\"__g_DEFAULT-hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
 
         body = "{" +
-               "\"gremlin\":\"hugegraph.serverStarted(" +
+               "\"gremlin\":\"graph.serverStarted(" +
                "              GlobalMasterInfo.master('server1'))\"," +
                "\"bindings\":{}," +
                "\"language\":\"gremlin-groovy\"," +
-               "\"aliases\":{\"g\":\"__g_DEFAULT-hugegraph\"}}";
+               "\"aliases\":{\"graph\":\"DEFAULT-hugegraph\"," +
+               "\"g\":\"__g_DEFAULT-hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
     public void testTruncate() {
         String body = "{" +
-                      "\"gremlin\":\"try {hugegraph.truncateBackend()} " +
+                      "\"gremlin\":\"try {graph.truncateBackend()} " +
                       "catch (UnsupportedOperationException e) {}\"," +
                       "\"bindings\":{}," +
                       "\"language\":\"gremlin-groovy\"," +
-                      "\"aliases\":{\"g\":\"__g_DEFAULT-hugegraph\"}}";
+                      "\"aliases\":{\"graph\":\"DEFAULT-hugegraph\"," +
+                      "\"g\":\"__g_DEFAULT-hugegraph\"}}";
         assertResponseStatus(200, client().post(path, body));
     }
 
     @Test
     public void testSetVertexProperty() {
-        String pkPath = "/graphs/hugegraph/schema/propertykeys/";
+        String pkPath = "/" + URL_PREFIX + "/schema/propertykeys/";
         // Cardinality single
         String foo = "{" +
                      "\"name\": \"foo\"," +
@@ -161,7 +166,7 @@ public class GremlinApiTest extends BaseApiTest {
                      "}";
         assertResponseStatus(202, client().post(pkPath, bar));
 
-        String vlPath = "/graphs/hugegraph/schema/vertexlabels/";
+        String vlPath = "/" + URL_PREFIX + "/schema/vertexlabels/";
         String vertexLabel = "{" +
                              "\"name\": \"person\"," +
                              "\"id_strategy\": \"CUSTOMIZE_STRING\"," +
