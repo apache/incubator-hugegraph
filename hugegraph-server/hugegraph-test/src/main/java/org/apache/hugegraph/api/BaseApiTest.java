@@ -64,7 +64,7 @@ public class BaseApiTest {
     private static final String USERNAME = "admin";
     protected static final String URL_PREFIX = "graphspaces/" + GRAPHSPACE + "/graphs/" + GRAPH;
     protected static final String TRAVERSERS_API = URL_PREFIX + "/traversers";
-    private static final String PASSWORD = "admin";
+    private static final String PASSWORD = "pa";
     private static final int NO_LIMIT = -1;
     private static final String SCHEMA_PKS = "/schema/propertykeys";
     private static final String SCHEMA_VLS = "/schema/vertexlabels";
