@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeFactory;
@@ -177,6 +178,7 @@ public final class GraphManager {
     private final HugeConfig config;
     private RoleElectionStateMachine roleStateMachine;
     private K8sDriver.CA ca;
+    private final boolean PDExist;
 
     private String pdK8sServiceId;
 
@@ -240,7 +242,7 @@ public final class GraphManager {
             Map<String, String> graphConfigs =
                     ConfigUtil.scanGraphsDir(this.graphsDir);
             this.localGraphs = graphConfigs.keySet();
-            this.loadGraphs(graphConfigs);
+            this.loadGraphsFromLocal(graphConfigs);
         } else {
             this.localGraphs = ImmutableSet.of();
         }
@@ -260,7 +262,14 @@ public final class GraphManager {
 
         if (this.pdClient.isPdReady()) {
             loadMetaFromPD();
+            PDExist = true;
+        } else {
+            PDExist = false;
         }
+    }
+
+    private static String spaceGraphName(String graphSpace, String graph) {
+        return String.join(DELIMITER, graphSpace, graph);
     }
 
     private static String serviceId(String graphSpace, Service.ServiceType type,
@@ -269,11 +278,8 @@ public final class GraphManager {
                      .replace("_", "-").toLowerCase();
     }
 
-    private static String graphName(String graphSpace, String graph) {
-        if (graphSpace == null) {
-            return graph;
-        }
-        return String.join(DELIMITER, graphSpace, graph);
+    private boolean usePD() {
+        return this.PDExist;
     }
 
     private static void registerCacheMetrics(Map<String, Cache<?, ?>> caches) {
@@ -418,7 +424,7 @@ public final class GraphManager {
     public void init() {
         this.listenChanges();
 
-        this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
+        this.loadGraphsFromLocal(ConfigUtil.scanGraphsDir(this.graphsDir));
 
         // Start RPC-Server for raft-rpc/auth-rpc/cache-notify-rpc...
         this.startRpcServer();
@@ -447,7 +453,7 @@ public final class GraphManager {
         }
         if (this.graphLoadFromLocalConfig) {
             // Load graphs configured in local conf/graphs directory
-            this.loadGraphs(ConfigUtil.scanGraphsDir(this.graphsDir));
+            this.loadGraphsFromLocal(ConfigUtil.scanGraphsDir(this.graphsDir));
         }
         // Load graphs configured in etcd
         this.loadGraphsFromMeta(this.graphConfigs());
@@ -967,7 +973,7 @@ public final class GraphManager {
         }
     }
 
-    public void loadGraphs(Map<String, String> graphConfs) {
+    public void loadGraphsFromLocal(Map<String, String> graphConfs) {
         for (Map.Entry<String, String> conf : graphConfs.entrySet()) {
             String name = conf.getKey();
             String graphConfPath = conf.getValue();
@@ -990,7 +996,7 @@ public final class GraphManager {
          * 3. inject graph and traversal source into gremlin server context
          * 4. inject graph into rest server context
          */
-        String spaceGraphName = graphName(graphspace, name);
+        String spaceGraphName = spaceGraphName(graphspace, name);
         HugeGraph sourceGraph = this.graph(spaceGraphName);
         E.checkArgumentNotNull(sourceGraph,
                                "The clone source graph '%s' doesn't exist in graphspace '%s'",
@@ -998,13 +1004,20 @@ public final class GraphManager {
         E.checkArgument(StringUtils.isNotEmpty(newName),
                         "The new graph name can't be null or empty");
 
-        String newGraphKey = graphName(graphspace, newName);
+        String newGraphKey = spaceGraphName(graphspace, newName);
         E.checkArgument(!this.graphs.containsKey(newGraphKey),
                         "The graph '%s' has existed in graphspace '%s'", newName, graphspace);
 
         // Get source graph configuration
-        Map<String, Object> sourceConfigs = this.metaManager.getGraphConfig(graphspace, name);
-        Map<String, Object> newConfigs = new HashMap<>(sourceConfigs);
+        HugeConfig cloneConfig = sourceGraph.cloneConfig(newGraphKey);
+
+        // Convert HugeConfig to Map for processing
+        Map<String, Object> newConfigs = new HashMap<>();
+
+        // Copy all properties from cloneConfig to newConfigs
+        cloneConfig.getKeys().forEachRemaining(key -> {
+            newConfigs.put(key, cloneConfig.getProperty(key));
+        });
 
         // Override with new configurations if provided
         if (configs != null && !configs.isEmpty()) {
@@ -1014,8 +1027,14 @@ public final class GraphManager {
         // Update store name to the new graph name
         newConfigs.put("store", newName);
 
-        // Create the new graph with cloned configuration
-        String creator = String.valueOf(sourceConfigs.get("creator"));
+        // Get creator from the configuration, fallback to "admin" if not found
+        String creator = (String) newConfigs.get("creator");
+
+        //todo: auth
+        if (creator == null) {
+            creator = "admin"; // default creator
+        }
+
         Date timeStamp = new Date();
         newConfigs.put("create_time", timeStamp);
         newConfigs.put("update_time", timeStamp);
@@ -1095,8 +1114,85 @@ public final class GraphManager {
         return false;
     }
 
+    private void checkOptions(HugeConfig config) {
+        // The store cannot be the same as the existing graph
+        this.checkOptionUnique(config, CoreOptions.STORE);
+        /*
+         * TODO: should check data path for rocksdb since can't use the same
+         * data path for different graphs, but it's not easy to check here.
+         */
+    }
+
+    private void checkOptionUnique(HugeConfig config,
+                                   TypedOption<?, ?> option) {
+        Object incomingValue = config.get(option);
+        for (String graphName : this.graphs.keySet()) {
+            HugeGraph graph = this.graph(graphName);
+            assert graph != null;
+            Object existedValue = graph.option(option);
+            E.checkArgument(!incomingValue.equals(existedValue),
+                            "The value '%s' of option '%s' conflicts with " +
+                            "existed graph", incomingValue, option.name());
+        }
+    }
+
+    public HugeGraph createGraphLocal(String name, String configText) {
+        E.checkArgument(this.conf.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
+                        "Not allowed to create graph '%s' dynamically, " +
+                        "please set `enable_dynamic_create_drop` to true.",
+                        name);
+        E.checkArgument(StringUtils.isNotEmpty(name),
+                        "The graph name can't be null or empty");
+        E.checkArgument(!this.graphs().contains(name),
+                        "The graph name '%s' has existed", name);
+
+        PropertiesConfiguration propConfig = ConfigUtil.buildConfig(configText);
+        HugeConfig config = new HugeConfig(propConfig);
+        this.checkOptions(config);
+
+        return this.createGraphLocal(config, name);
+    }
+
+    private HugeGraph createGraphLocal(HugeConfig config, String name) {
+        HugeGraph graph = null;
+        try {
+            // Create graph instance
+            graph = (HugeGraph) GraphFactory.open(config);
+
+            // Init graph and start it
+            graph.create(this.graphsDir, this.globalNodeRoleInfo);
+        } catch (Throwable e) {
+            LOG.error("Failed to create graph '{}' due to: {}",
+                      name, e.getMessage(), e);
+            if (graph != null) {
+                this.dropGraphLocal(graph);
+            }
+            throw e;
+        }
+
+        // Let gremlin server and rest server add graph to context
+        this.notifyAndWaitEvent(Events.GRAPH_CREATE, graph);
+
+        return graph;
+    }
+
+    private void dropGraphLocal(HugeGraph graph) {
+        // Clear data and config files
+        graph.drop();
+
+        /*
+         * Will fill graph instance into HugeFactory.graphs after
+         * GraphFactory.open() succeed, remove it when the graph drops
+         */
+        HugeFactory.remove(graph);
+    }
+
     public HugeGraph createGraph(String graphSpace, String name, String creator,
                                  Map<String, Object> configs, boolean init) {
+        if (!usePD()) {
+            return createGraphLocal(configs.toString(), name);
+        }
+
         // server 注册的图空间不为 DEFAULT 时，只加载其注册的图空间下的图
         if (!"DEFAULT".equals(this.serviceGraphSpace) &&
             !this.serviceGraphSpace.equals(graphSpace)) {
@@ -1181,7 +1277,7 @@ public final class GraphManager {
         graph.createTime(timeStamp);
         graph.updateTime(timeStamp);
 
-        String graphName = graphName(graphSpace, name);
+        String graphName = spaceGraphName(graphSpace, name);
         if (init) {
             this.creatingGraphs.add(graphName);
             this.metaManager.addGraphConfig(graphSpace, name, configs);
@@ -1214,8 +1310,8 @@ public final class GraphManager {
         return Collections.unmodifiableSet(this.graphs.keySet());
     }
 
-    public HugeGraph graph(String name) {
-        Graph graph = this.graphs.get(name);
+    public HugeGraph graph(String spaceGraphName) {
+        Graph graph = this.graphs.get(spaceGraphName);
         if (graph == null) {
             return null;
         } else if (graph instanceof HugeGraph) {
@@ -1380,6 +1476,10 @@ public final class GraphManager {
         });
     }
 
+    private String defaultSpaceGraphName(String graphName) {
+        return "DEFAULT-" + graphName;
+    }
+
     private void loadGraph(String name, String graphConfPath) {
         HugeConfig config = new HugeConfig(graphConfPath);
 
@@ -1390,7 +1490,7 @@ public final class GraphManager {
         this.transferRoleWorkerConfig(config);
 
         Graph graph = GraphFactory.open(config);
-        this.graphs.put(name, graph);
+        this.graphs.put(defaultSpaceGraphName(name), graph);
 
         HugeConfig graphConfig = (HugeConfig) graph.configuration();
         assert graphConfPath.equals(Objects.requireNonNull(graphConfig.file()).getPath());
@@ -1756,7 +1856,7 @@ public final class GraphManager {
     public HugeGraph graph(String graphSpace, String name) {
         String key = String.join(DELIMITER, graphSpace, name);
         Graph graph = this.graphs.get(key);
-        if (graph == null) {
+        if (graph == null && usePD()) {
             Map<String, Map<String, Object>> configs =
                     this.metaManager.graphConfigs(graphSpace);
             // 如果当前 server 注册的不是 DEFAULT 图空间，只加载注册的图空间下的图创建
@@ -1781,7 +1881,29 @@ public final class GraphManager {
         throw new NotSupportException("graph instance of %s", graph.getClass());
     }
 
+    public void dropGraphLocal(String name) {
+        HugeGraph graph = this.graph(name);
+        E.checkArgument(this.conf.get(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP),
+                        "Not allowed to drop graph '%s' dynamically, " +
+                        "please set `enable_dynamic_create_drop` to true.",
+                        name);
+        E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
+        E.checkArgument(this.graphs.size() > 1,
+                        "The graph '%s' is the only one, not allowed to delete",
+                        name);
+
+        this.dropGraphLocal(graph);
+
+        // Let gremlin server and rest server context remove graph
+        this.notifyAndWaitEvent(Events.GRAPH_DROP, graph);
+    }
+
     public void dropGraph(String graphSpace, String name, boolean clear) {
+        if (!usePD()) {
+            dropGraphLocal(name);
+            return;
+        }
+
         boolean grpcThread = Thread.currentThread().getName().contains("grpc");
         HugeGraph g = this.graph(graphSpace, name);
         E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
@@ -1792,7 +1914,7 @@ public final class GraphManager {
                                     "want to delete it.", name);
         }
 
-        String graphName = graphName(graphSpace, name);
+        String graphName = spaceGraphName(graphSpace, name);
         if (clear) {
             this.removingGraphs.add(graphName);
             try {
@@ -1888,6 +2010,9 @@ public final class GraphManager {
     }
 
     public GraphSpace graphSpace(String name) {
+        if (!usePD()) {
+            return new GraphSpace("DEFAULT");
+        }
         GraphSpace space = this.graphSpaces.get(name);
         if (space == null) {
             space = this.metaManager.graphSpace(name);
