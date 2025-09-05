@@ -111,3 +111,10 @@ enum GraphMethod{
   GRAPH_METHOD_UNKNOWN = 0;
   GRAPH_METHOD_DELETE = 3;
 }
+
+message TTLCleanRequest {
+  string graph = 1;
+  int32 partitionId = 2;
+  string table = 3;
+  repeated bytes ids = 4;
+}
