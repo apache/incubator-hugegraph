@@ -133,7 +133,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        if (storeEventListenStatus.putIfAbsent(this.params().name(), true) == null) {
+        if (storeEventListenStatus.putIfAbsent(this.params().spaceGraphName(), true) == null) {
             this.store().provider().listen(this.storeEventListener);
         }
 
@@ -184,7 +184,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        if (graphCacheListenStatus.putIfAbsent(this.params().name(), true) == null) {
+        if (graphCacheListenStatus.putIfAbsent(this.params().spaceGraphName(), true) == null) {
             EventHub graphEventHub = this.params().graphEventHub();
             graphEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
