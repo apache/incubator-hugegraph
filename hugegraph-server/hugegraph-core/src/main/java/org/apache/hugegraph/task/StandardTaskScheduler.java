@@ -113,7 +113,7 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public String spaceGraphName() {
-        return this.graph.graph().spaceGraphName();
+        return this.graph.spaceGraphName();
     }
 
     @Override

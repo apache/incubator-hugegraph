@@ -377,6 +377,14 @@ public class ServerOptions extends OptionHolder {
                     true
             );
 
+    public static final ConfigOption<Boolean> USE_PD =
+            new ConfigOption<>(
+                    "usePD",
+                    "Whether use pd",
+                    disallowEmpty(),
+                    false
+            );
+
     public static final ConfigOption<Integer> MAX_VERTICES_PER_BATCH =
             new ConfigOption<>(
                     "batch.max_vertices_per_batch",
