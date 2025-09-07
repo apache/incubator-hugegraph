@@ -41,6 +41,7 @@ import org.junit.runners.Suite;
         TraversersApiTestSuite.class,
         CypherApiTest.class,
         ArthasApiTest.class,
+        GraphSpaceApiTest.class,
 })
 public class ApiTestSuite {
 
