@@ -208,6 +208,7 @@ public final class GraphManager {
         this.cluster = conf.get(ServerOptions.CLUSTER);
         this.graphSpaces = new ConcurrentHashMap<>();
         this.services = new ConcurrentHashMap<>();
+        // key is graphSpaceName + "-" + graphName
         this.graphs = new ConcurrentHashMap<>();
         this.removingGraphs = ConcurrentHashMap.newKeySet();
         this.creatingGraphs = ConcurrentHashMap.newKeySet();
@@ -260,12 +261,16 @@ public final class GraphManager {
             e.printStackTrace();
         }
 
-        if (this.pdClient.isPdReady()) {
+        boolean metaInit;
+        try {
+            this.initMetaManager(conf);
             loadMetaFromPD();
-            PDExist = true;
-        } else {
-            PDExist = false;
+            metaInit = true;
+        } catch (Exception e) {
+            metaInit = false;
+            LOG.warn("Unable to init meta store,pd is not ready" + e.getMessage());
         }
+        PDExist = metaInit;
     }
 
     private static String spaceGraphName(String graphSpace, String graph) {
@@ -348,7 +353,6 @@ public final class GraphManager {
     }
 
     private void loadMetaFromPD() {
-        this.initMetaManager(conf);
         this.initK8sManagerIfNeeded(conf);
 
         this.createDefaultGraphSpaceIfNeeded(conf);
@@ -806,6 +810,9 @@ public final class GraphManager {
 
     public void getSpaceStorage(String graphSpace) {
         GraphSpace gs = this.graphSpace(graphSpace);
+        if (gs == null) {
+            throw new HugeException("Cannot find graph space {}", graphSpace);
+        }
         MetaDriver metaDriver = this.metaManager.metaDriver();
         assert metaDriver instanceof PdMetaDriver;
         PDClient pdClient = ((PdMetaDriver) metaDriver).pdClient();
