@@ -49,15 +49,6 @@ public class DiscoveryClientImpl extends DiscoveryClient {
         registerConsumer = builder.registerConsumer;
     }
 
-    public boolean isPdReady() {
-        try {
-            this.getRegisterNode();
-        } catch (Exception e) {
-            return false;
-        }
-        return true;
-    }
-
     public static Builder newBuilder() {
         return new Builder();
     }
