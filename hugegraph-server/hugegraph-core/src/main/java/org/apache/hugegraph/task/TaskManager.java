@@ -360,7 +360,7 @@ public final class TaskManager {
                 if (serverInfoManager != null) {
                     serverInfoManager.changeServerRole(NodeRole.MASTER);
                 } else {
-                    LOG.warn("ServerInfoManager is null for graph {}", entry.graphName());
+                    LOG.warn("ServerInfoManager is null for graph {}", entry.spaceGraphName());
                 }
             }
         } catch (Throwable e) {
@@ -376,7 +376,7 @@ public final class TaskManager {
                 if (serverInfoManager != null) {
                     serverInfoManager.changeServerRole(NodeRole.WORKER);
                 } else {
-                    LOG.warn("ServerInfoManager is null for graph {}", entry.graphName());
+                    LOG.warn("ServerInfoManager is null for graph {}", entry.spaceGraphName());
                 }
             }
         } catch (Throwable e) {

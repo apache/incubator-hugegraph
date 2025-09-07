@@ -459,7 +459,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         } catch (Exception e) {
             throw new HugeException("Failed to update/query TaskStore for " +
                                     "graph(%s/%s): %s", e, this.graphSpace,
-                                    this.graph.graph().spaceGraphName(), e.toString());
+                                    this.graph.spaceGraphName(), e.toString());
         }
     }
 

@@ -105,7 +105,7 @@ public class HugeFactory {
     }
 
     public static void remove(HugeGraph graph) {
-        String spaceGraphName = graph.graphSpace() + "-" + graph.name();
+        String spaceGraphName = graph.spaceGraphName();
         GRAPHS.remove(spaceGraphName);
     }
 
@@ -154,6 +154,7 @@ public class HugeFactory {
             return;
         }
         try {
+
             if (!EventHub.destroy(timeout)) {
                 throw new TimeoutException(timeout + "s");
             }

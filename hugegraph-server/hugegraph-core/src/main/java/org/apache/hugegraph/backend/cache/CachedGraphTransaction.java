@@ -97,7 +97,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
 
     private Cache<Id, Object> cache(String prefix, String type, long capacity,
                                     long entrySize, long expire) {
-        String name = prefix + "-" + this.params().graph().spaceGraphName();
+        String name = prefix + "-" + this.params().spaceGraphName();
         Cache<Id, Object> cache;
         switch (type) {
             case "l1":
@@ -133,7 +133,7 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        if (storeEventListenStatus.putIfAbsent(this.params().name(), true) == null) {
+        if (storeEventListenStatus.putIfAbsent(this.params().spaceGraphName(), true) == null) {
             this.store().provider().listen(this.storeEventListener);
         }
 
@@ -184,14 +184,14 @@ public final class CachedGraphTransaction extends GraphTransaction {
             }
             return false;
         };
-        if (graphCacheListenStatus.putIfAbsent(this.params().name(), true) == null) {
+        if (graphCacheListenStatus.putIfAbsent(this.params().spaceGraphName(), true) == null) {
             EventHub graphEventHub = this.params().graphEventHub();
             graphEventHub.listen(Events.CACHE, this.cacheEventListener);
         }
     }
 
     private void unlistenChanges() {
-        String graphName = this.params().name();
+        String graphName = this.params().spaceGraphName();
         if (graphCacheListenStatus.remove(graphName) != null) {
             EventHub graphEventHub = this.params().graphEventHub();
             graphEventHub.unlisten(Events.CACHE, this.cacheEventListener);

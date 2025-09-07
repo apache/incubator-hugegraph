@@ -52,7 +52,7 @@ public class GraphSpaceApiTest extends BaseApiTest {
     public void testAddSpaceNamespace() {
         String body = "{\n" +
                       "  \"name\": \"test_add_no_ns\",\n" +
-                      "  \"nickname\":\"测试无名称空间\",\n" +
+                      "  \"nickname\":\"Test No Namespace\",\n" +
                       "  \"description\": \"no namespace\",\n" +
                       "  \"cpu_limit\": 1000,\n" +
                       "  \"memory_limit\": 1024,\n" +
@@ -74,7 +74,7 @@ public class GraphSpaceApiTest extends BaseApiTest {
 
         String body2 = "{\n" +
                        "  \"name\": \"test_add_has_ns\",\n" +
-                       "  \"nickname\":\"测试有名称空间\",\n" +
+                       "  \"nickname\":\"Test With Namespace\",\n" +
                        "  \"description\": \"has namespace\",\n" +
                        "  \"cpu_limit\": 1000,\n" +
                        "  \"memory_limit\": 1024,\n" +
@@ -106,7 +106,7 @@ public class GraphSpaceApiTest extends BaseApiTest {
         String spaceName = "test_delete_space";
         String body = "{"
                       + "\"name\":\"" + spaceName + "\","
-                      + "\"nickname\":\"测试删除空间\","
+                      + "\"nickname\":\"Test Delete Space\","
                       + "\"description\":\"Test delete space\","
                       + "\"cpu_limit\":1000,"
                       + "\"memory_limit\":1024,"
@@ -124,19 +124,19 @@ public class GraphSpaceApiTest extends BaseApiTest {
                       + "\"configs\":{}"
                       + "}";
 
-        // 创建图空间
+        // Create graph space
         Response r = this.client().post(PATH, body);
         assertResponseStatus(201, r);
 
-        // 验证图空间存在
+        // Verify graph space exists
         r = this.client().get(PATH, spaceName);
         assertResponseStatus(200, r);
 
-        // 删除图空间
+        // Delete graph space
         r = this.client().delete(PATH, spaceName);
         assertResponseStatus(204, r);
 
-        // 验证图空间已删除
+        // Verify graph space has been deleted
         r = this.client().get(PATH, spaceName);
         assertResponseStatus(400, r);
     }
@@ -146,7 +146,7 @@ public class GraphSpaceApiTest extends BaseApiTest {
         String spaceName = "duplicate_space";
         String body = "{"
                       + "\"name\":\"" + spaceName + "\","
-                      + "\"nickname\":\"重复测试空间\","
+                      + "\"nickname\":\"Duplicate Test Space\","
                       + "\"description\":\"Test duplicate space\","
                       + "\"cpu_limit\":1000,"
                       + "\"memory_limit\":1024,"
@@ -164,11 +164,11 @@ public class GraphSpaceApiTest extends BaseApiTest {
                       + "\"configs\":{}"
                       + "}";
 
-        // 第一次创建成功
+        // First creation should succeed
         Response r = this.client().post(PATH, body);
         assertResponseStatus(201, r);
 
-        // 第二次创建应该失败（重名）
+        // Second creation should fail (duplicate name)
         r = this.client().post(PATH, body);
         assertResponseStatus(400, r);
     }
@@ -177,10 +177,10 @@ public class GraphSpaceApiTest extends BaseApiTest {
     public void testSpaceResourceLimits() {
         String spaceName = "test_limits_space";
 
-        // 测试极小限制
+        // Test minimum limits
         String minLimitsBody = "{"
                                + "\"name\":\"" + spaceName + "_min\","
-                               + "\"nickname\":\"最小限制测试\","
+                               + "\"nickname\":\"Minimum Limits Test\","
                                + "\"description\":\"Test minimum limits\","
                                + "\"cpu_limit\":1,"
                                + "\"memory_limit\":1,"
@@ -201,10 +201,10 @@ public class GraphSpaceApiTest extends BaseApiTest {
         Response r = this.client().post(PATH, minLimitsBody);
         assertResponseStatus(201, r);
 
-        // 测试极大限制
+        // Test maximum limits
         String maxLimitsBody = "{"
                                + "\"name\":\"" + spaceName + "_max\","
-                               + "\"nickname\":\"最大限制测试\","
+                               + "\"nickname\":\"Maximum Limits Test\","
                                + "\"description\":\"Test maximum limits\","
                                + "\"cpu_limit\":999999,"
                                + "\"memory_limit\":999999,"
@@ -228,10 +228,10 @@ public class GraphSpaceApiTest extends BaseApiTest {
 
     @Test
     public void testInvalidSpaceCreation() {
-        // 测试无效的空间名称
+        // Test invalid space name
         String invalidNameBody = "{"
                                  + "\"name\":\"\","
-                                 + "\"nickname\":\"无效名称测试\","
+                                 + "\"nickname\":\"Invalid Name Test\","
                                  + "\"description\":\"Test invalid name\","
                                  + "\"cpu_limit\":1000,"
                                  + "\"memory_limit\":1024,"
@@ -252,10 +252,10 @@ public class GraphSpaceApiTest extends BaseApiTest {
         Response r = this.client().post(PATH, invalidNameBody);
         assertResponseStatus(400, r);
 
-        // 测试负数限制
+        // Test negative limits
         String negativeLimitsBody = "{"
                                     + "\"name\":\"test_negative\","
-                                    + "\"nickname\":\"负数限制测试\","
+                                    + "\"nickname\":\"Negative Limits Test\","
                                     + "\"description\":\"Test negative limits\","
                                     + "\"cpu_limit\":-1,"
                                     + "\"memory_limit\":-1,"

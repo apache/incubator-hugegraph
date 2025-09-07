@@ -381,7 +381,7 @@ public class HugeGraphSONModule extends TinkerPopJacksonModule {
                         try {
                             create = SafeDateUtil.parse(val, DF);
                         } catch (ParseException e) {
-                            e.printStackTrace();
+                            LOG.warn("Failed to parse date: {}", val, e);
                             create = new Date();
                         }
                     }

@@ -27,16 +27,15 @@ import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 @Useless("discovery related")
 public class DiscoveryClientImpl extends DiscoveryClient {
 
-    private volatile String id;
-    private RegisterType type;
-    private String version;
-    private String appName;
-    private int times;
-    private String address;
-    private Map labels;
-    private Consumer registerConsumer;
+    private final String id;
+    private final RegisterType type;
+    private final String version;
+    private final String appName;
+    private final int times;
+    private final String address;
+    private final Map labels;
+    private final Consumer registerConsumer;
     private PDConfig conf;
-
 
     private DiscoveryClientImpl(Builder builder) {
         super(builder.centerAddress, builder.delay, builder.conf);
@@ -102,11 +101,6 @@ public class DiscoveryClientImpl extends DiscoveryClient {
 
         public Builder setType(RegisterType val) {
             type = val;
-            return this;
-        }
-
-        public Builder setPdConfig(PDConfig val) {
-            this.conf = val;
             return this;
         }
 
