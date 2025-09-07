@@ -62,7 +62,6 @@ import org.apache.hugegraph.space.register.RegisterConfig;
 import org.apache.hugegraph.space.register.dto.ApplicationDTO;
 import org.apache.hugegraph.space.register.dto.EurekaDTO;
 import org.apache.hugegraph.space.register.dto.EurekaInstanceDTO;
-import org.apache.hugegraph.space.register.dto.PortDTO;
 import org.apache.hugegraph.space.register.dto.ServiceDTO;
 
 import com.google.common.base.Strings;
@@ -91,7 +90,7 @@ public class PdRegister implements IServiceRegister {
         return getInstance("hg", "$2a$04$i10KooNg6wLvIPVDh909n.RBYlZ/4pJo978nFK86nrqQiGIKV4UGS");
     }
 
-    //todo:zzz use this
+    //FIXME: pd auth:use this method to replace getInstance()
     public static PdRegister getInstance(String service, String token) {
         synchronized (MTX) {
             if (null == instance) {
@@ -173,23 +172,20 @@ public class PdRegister implements IServiceRegister {
         String result = "";
 
         try {
-            try {
-                if (file.canRead()) {
-                    FileReader reader = new FileReader(file);
-                    BufferedReader bufferedReader = new BufferedReader(reader);
-                    String namespace = bufferedReader.readLine();
-                    namespace = namespace.trim();
-                    result = namespace;
-                    bufferedReader.close();
-                } else {
-                    System.out.println("Cannot read namespace file");
-                }
-            } catch (Throwable var10) {
+            if (file.canRead()) {
+                FileReader reader = new FileReader(file);
+                BufferedReader bufferedReader = new BufferedReader(reader);
+                String namespace = bufferedReader.readLine();
+                namespace = namespace.trim();
+                result = namespace;
+                bufferedReader.close();
+            } else {
+                System.out.println("Cannot read namespace file");
             }
-
-            return result;
-        } finally {
+        } catch (Throwable var10) {
         }
+
+        return result;
     }
 
     private String getAppName() {
@@ -203,23 +199,20 @@ public class PdRegister implements IServiceRegister {
         String result = "";
 
         try {
-            try {
-                if (file.canRead()) {
-                    FileReader reader = new FileReader(file);
-                    BufferedReader bufferedReader = new BufferedReader(reader);
-                    String namespace = bufferedReader.readLine();
-                    namespace = namespace.trim();
-                    result = namespace;
-                    bufferedReader.close();
-                } else {
-                    System.out.println("Cannot read namespace file");
-                }
-            } catch (Throwable var10) {
+            if (file.canRead()) {
+                FileReader reader = new FileReader(file);
+                BufferedReader bufferedReader = new BufferedReader(reader);
+                String namespace = bufferedReader.readLine();
+                namespace = namespace.trim();
+                result = namespace;
+                bufferedReader.close();
+            } else {
+                System.out.println("Cannot read namespace file");
             }
-
-            return result;
-        } finally {
+        } catch (Throwable var10) {
         }
+
+        return result;
     }
 
     private String getServiceHost() {
