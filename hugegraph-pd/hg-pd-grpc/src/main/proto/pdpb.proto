@@ -105,6 +105,8 @@ service PD {
 
   rpc getCache(GetGraphRequest) returns (CacheResponse)  {}
   rpc getPartitions(GetGraphRequest) returns (CachePartitionResponse)  {}
+  rpc getGraphStats(GetGraphRequest) returns (GraphStatsResponse)  {}
+  rpc GetMembersAndClusterState(GetMembersRequest) returns (MembersAndClusterState) {}
 }
 
 message RequestHeader {
@@ -372,6 +374,13 @@ message GetMembersResponse{
   metapb.Member leader = 3;
 }
 
+message MembersAndClusterState{
+  ResponseHeader header = 1;
+  repeated metapb.Member members = 2;
+  metapb.Member leader = 3;
+  metapb.ClusterState state = 4;
+}
+
 message GetPDConfigRequest{
   RequestHeader header = 1;
   uint64 version = 2 ;
@@ -601,4 +610,9 @@ message CacheResponse {
 message CachePartitionResponse {
   ResponseHeader header = 1;
   repeated metapb.Partition partitions = 2;
+}
+
+message GraphStatsResponse {
+  ResponseHeader header = 1;
+  metapb.GraphStats stats = 2;
 }

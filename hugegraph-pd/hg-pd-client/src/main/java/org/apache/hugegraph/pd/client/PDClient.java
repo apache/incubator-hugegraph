@@ -40,6 +40,7 @@ import org.apache.hugegraph.pd.grpc.Pdpb.GetGraphRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionByCodeRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionResponse;
+import org.apache.hugegraph.pd.grpc.Pdpb.GraphStatsResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent;
@@ -1282,6 +1283,14 @@ public class PDClient {
                                                                    .build();
         Pdpb.UpdatePdRaftResponse response = getStub().updatePdRaft(request);
         handleResponseError(response.getHeader());
+    }
+
+    public GraphStatsResponse getGraphStats(String graphName) throws PDException {
+        GetGraphRequest request =
+                GetGraphRequest.newBuilder().setHeader(header).setGraphName(graphName).build();
+        GraphStatsResponse graphStats = getStub().getGraphStats(request);
+        handleResponseError(graphStats.getHeader());
+        return graphStats;
     }
 
     public interface PDEventListener {

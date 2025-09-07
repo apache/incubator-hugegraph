@@ -27,9 +27,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
+
+import io.grpc.CallOptions;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.MethodDescriptor;
+
+import io.grpc.stub.AbstractBlockingStub;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.ConfigService;
@@ -47,11 +54,13 @@ import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Metapb.GraphStats;
 import org.apache.hugegraph.pd.grpc.PDGrpc;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.grpc.Pdpb.CachePartitionResponse;
 import org.apache.hugegraph.pd.grpc.Pdpb.CacheResponse;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetGraphRequest;
+import org.apache.hugegraph.pd.grpc.Pdpb.GraphStatsResponse;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.PutLicenseResponse;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
@@ -89,7 +98,7 @@ import lombok.extern.slf4j.Slf4j;
 // TODO: uncomment later - remove license verifier service now
 @Slf4j
 @GRpcService
-public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftStateListener {
+public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
 
     static String TASK_ID_KEY = "task_id";
     private final Pdpb.ResponseHeader okHeader = Pdpb.ResponseHeader.newBuilder().setError(
@@ -1248,37 +1257,43 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         observer.onCompleted();
     }
 
-    @Override
     public boolean isLeader() {
         return RaftEngine.getInstance().isLeader();
     }
 
-    //private <ReqT, RespT, StubT extends AbstractBlockingStub<StubT>> void redirectToLeader(
-    //        MethodDescriptor<ReqT, RespT> method, ReqT req, io.grpc.stub.StreamObserver<RespT>
-    //        observer) {
-    //    try {
-    //        var addr = RaftEngine.getInstance().getLeaderGrpcAddress();
-    //        ManagedChannel channel;
-    //
-    //        if ((channel = channelMap.get(addr)) == null) {
-    //            synchronized (this) {
-    //                if ((channel = channelMap.get(addr)) == null|| channel.isShutdown()) {
-    //                    channel = ManagedChannelBuilder
-    //                            .forTarget(addr).usePlaintext()
-    //                            .build();
-    //                }
-    //            }
-    //            log.info("Grpc get leader address {}", RaftEngine.getInstance()
-    //            .getLeaderGrpcAddress());
-    //        }
-    //
-    //        io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, CallOptions
-    //        .DEFAULT), req,
-    //                                                observer);
-    //    } catch (Exception e) {
-    //        e.printStackTrace();
-    //    }
-    //}
+    private <ReqT, RespT, StubT extends AbstractBlockingStub<StubT>> void redirectToLeader(
+            MethodDescriptor<ReqT, RespT> method, ReqT req,
+            io.grpc.stub.StreamObserver<RespT> observer) {
+        try {
+            var addr = RaftEngine.getInstance().getLeaderGrpcAddress();
+            ManagedChannel channel;
+
+            if ((channel = channelMap.get(addr)) == null || channel.isTerminated() ||
+                channel.isShutdown()) {
+                synchronized (this) {
+                    if ((channel = channelMap.get(addr)) == null || channel.isTerminated() ||
+                        channel.isShutdown()) {
+                        while (channel != null && channel.isShutdown() && !channel.isTerminated()) {
+                            channel.awaitTermination(50, TimeUnit.MILLISECONDS);
+                        }
+
+                        channel = ManagedChannelBuilder
+                                .forTarget(addr).usePlaintext()
+                                .build();
+                        channelMap.put(addr, channel);
+                    }
+                }
+                log.info("Grpc get leader address {}",
+                         RaftEngine.getInstance().getLeaderGrpcAddress());
+            }
+
+            io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, CallOptions.DEFAULT),
+                                                    req,
+                                                    observer);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Renewal peerList
@@ -1756,6 +1771,77 @@ public class PDService extends PDGrpc.PDImplBase implements ServiceGrpc, RaftSta
         List<Metapb.Partition> partitions = partitionService.getPartitions(request.getGraphName());
         response = CachePartitionResponse.newBuilder().addAllPartitions(partitions)
                                          .setHeader(okHeader).build();
+        observer.onNext(response);
+        observer.onCompleted();
+    }
+
+    @Override
+    public void getGraphStats(GetGraphRequest request,
+                              io.grpc.stub.StreamObserver<GraphStatsResponse> observer) {
+        if (!isLeader()) {
+            redirectToLeader(PDGrpc.getGetGraphStatsMethod(), request, observer);
+            return;
+        }
+        String graphName = request.getGraphName();
+        GraphStatsResponse.Builder builder = GraphStatsResponse.newBuilder();
+        try {
+            List<Metapb.Store> stores = storeNodeService.getStores(graphName);
+            long dataSize = 0;
+            long keySize = 0;
+            for (Metapb.Store store : stores) {
+                List<GraphStats> gss = store.getStats().getGraphStatsList();
+                if (gss.size() > 0) {
+                    String gssGraph = gss.get(0).getGraphName();
+                    String suffix = "/g";
+                    if (gssGraph.split("/").length > 2 && !graphName.endsWith(suffix)) {
+                        graphName += suffix;
+                    }
+                    for (GraphStats gs : gss) {
+                        boolean nameEqual = graphName.equals(gs.getGraphName());
+                        boolean roleEqual = Metapb.ShardRole.Leader.equals(gs.getRole());
+                        if (nameEqual && roleEqual) {
+                            dataSize += gs.getApproximateSize();
+                            keySize += gs.getApproximateKeys();
+                        }
+                    }
+                }
+            }
+            GraphStats stats = GraphStats.newBuilder().setApproximateSize(dataSize)
+                                         .setApproximateKeys(keySize)
+                                         .setGraphName(request.getGraphName())
+                                         .build();
+            builder.setStats(stats);
+        } catch (PDException e) {
+            builder.setHeader(newErrorHeader(e));
+        }
+        observer.onNext(builder.build());
+        observer.onCompleted();
+    }
+
+    @Override
+    public void getMembersAndClusterState(Pdpb.GetMembersRequest request,
+                                          io.grpc.stub.StreamObserver<Pdpb.MembersAndClusterState> observer) {
+        if (!isLeader()) {
+            redirectToLeader(PDGrpc.getGetMembersAndClusterStateMethod(), request, observer);
+            return;
+        }
+        Pdpb.MembersAndClusterState response;
+        try {
+            response = Pdpb.MembersAndClusterState.newBuilder()
+                                                  .addAllMembers(
+                                                          RaftEngine.getInstance().getMembers())
+                                                  .setLeader(
+                                                          RaftEngine.getInstance().getLocalMember())
+                                                  .setState(storeNodeService.getClusterStats()
+                                                                            .getState())
+                                                  .build();
+
+        } catch (Exception e) {
+            log.error("getMembers exception: ", e);
+            response = Pdpb.MembersAndClusterState.newBuilder()
+                                                  .setHeader(newErrorHeader(-1, e.getMessage()))
+                                                  .build();
+        }
         observer.onNext(response);
         observer.onCompleted();
     }
