@@ -155,6 +155,7 @@ public final class GraphManager {
     private final Boolean k8sApiEnabled;
     private final Map<String, GraphSpace> graphSpaces;
     private final Map<String, Service> services;
+    //FIXME: add one class like graphKey as key,which contains graphSpace and graphName
     private final Map<String, Graph> graphs;
     private final Set<String> localGraphs;
     private final Set<String> removingGraphs;
@@ -248,29 +249,16 @@ public final class GraphManager {
             this.localGraphs = ImmutableSet.of();
         }
 
-        try {
-            PDConfig pdConfig = PDConfig.of(this.pdPeers);
-            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
-                                  PdMetaDriver.PDAuthConfig.token());
-            this.pdClient = DiscoveryClientImpl
-                    .newBuilder()
-                    .setCenterAddress(this.pdPeers)
-                    .setPdConfig(pdConfig)
-                    .build();
-        } catch (Exception e) {
-            e.printStackTrace();
+        PDExist = conf.get(ServerOptions.USE_PD);
+        if (PDExist) {
+            try {
+                loadMetaFromPD();
+            } catch (Exception e) {
+                LOG.error("Unable to load meta for PD server and usePD = true in server options",
+                          e);
+                throw new IllegalStateException(e);
+            }
         }
-
-        boolean metaInit;
-        try {
-            this.initMetaManager(conf);
-            loadMetaFromPD();
-            metaInit = true;
-        } catch (Exception e) {
-            metaInit = false;
-            LOG.warn("Unable to init meta store,pd is not ready" + e.getMessage());
-        }
-        PDExist = metaInit;
     }
 
     private static String spaceGraphName(String graphSpace, String graph) {
@@ -353,6 +341,20 @@ public final class GraphManager {
     }
 
     private void loadMetaFromPD() {
+        try {
+            PDConfig pdConfig = PDConfig.of(this.pdPeers);
+            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
+                                  PdMetaDriver.PDAuthConfig.token());
+            this.pdClient = DiscoveryClientImpl
+                    .newBuilder()
+                    .setCenterAddress(this.pdPeers)
+                    .setPdConfig(pdConfig)
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        this.initMetaManager(conf);
         this.initK8sManagerIfNeeded(conf);
 
         this.createDefaultGraphSpaceIfNeeded(conf);
@@ -393,7 +395,7 @@ public final class GraphManager {
                 this.metaManager.getSysGraphConfig();
         boolean init = false;
         Date timeStamp = new Date();
-        // 创建系统图存在于 default 图空间
+        // Create system graph in default graph space
         String gs = "DEFAULT";
         if (sysGraphConfig == null) {
             init = true;
@@ -520,7 +522,8 @@ public final class GraphManager {
         service.description(service.name());
 
         if (this.serverDeployInK8s) {
-            // 支持 saas 化仅在 k8s 中启动 server，将正确 server 服务的 urls 注册到 pd
+            // Support SaaS mode only in k8s to start server, register correct server service
+            // URLs to pd
             service.urls(this.serverUrlsToPd);
         } else {
             service.url(this.url);
@@ -1050,10 +1053,11 @@ public final class GraphManager {
     }
 
     private void loadGraph(Map<String, Map<String, Object>> graphConfigs) {
-        // 加载图
+        // Load graph
         for (Map.Entry<String, Map<String, Object>> conf : graphConfigs.entrySet()) {
             String[] parts = conf.getKey().split(DELIMITER);
-            // server 注册的图空间不为 DEFAULT 时，只加载其注册的图空间下的图
+            // When server registered graph space is not DEFAULT, only load graphs under its
+            // registered graph space
             if (this.filterLoadGraphByServiceGraphSpace(conf.getKey())) {
                 continue;
             }
@@ -1088,7 +1092,8 @@ public final class GraphManager {
                 new HashMap<String, Map<String, Object>>();
 
         for (Map.Entry<String, Map<String, Object>> conf : graphConfigs.entrySet()) {
-            // server 注册的图空间不为 DEFAULT 时，只加载其注册的图空间下的图
+            // When server registered graph space is not DEFAULT, only load graphs under its
+            // registered graph space
             if (this.filterLoadGraphByServiceGraphSpace(conf.getKey())) {
                 continue;
             }
@@ -1102,7 +1107,7 @@ public final class GraphManager {
             }
         }
 
-        // 加载真正的图
+        // Load actual graph
         this.loadGraph(realGraphConfigs);
 
     }
@@ -1554,7 +1559,7 @@ public final class GraphManager {
                     } catch (Exception e) {
                         throw new BackendException(
                                 "The backend store of '%s' can't " +
-                                "initialize admin user", hugegraph.name());
+                                "initialize admin user", hugegraph.spaceGraphName());
                     }
                 }
             }
@@ -1562,7 +1567,7 @@ public final class GraphManager {
             if (!info.exists()) {
                 throw new BackendException(
                         "The backend store of '%s' has not been initialized",
-                        hugegraph.name());
+                        hugegraph.spaceGraphName());
             }
             if (!info.checkVersion()) {
                 throw new BackendException(
@@ -1772,10 +1777,14 @@ public final class GraphManager {
     }
 
     /**
-     * @param configs 接口创建图的配置或者是从 pd 拿到的配置
-     *                缓存配置优先级：PD or User 设置 > Local 设置 > 默认设置
-     *                -如果 configs 中包含点边 cache 相关的配置项，则不编辑
-     *                -如果 configs 中不包含点边 cache 相关的配置项，但当前本地的配置文件中存在 cache 相关的配置项，则使用配置文件中的配置项
+     * @param configs Configuration for interface graph creation or configuration obtained from pd
+     *                Cache configuration priority: PD or User settings > Local settings >
+     *                Default settings
+     *                - If configs contain vertex/edge cache related configuration items, do not
+     *                edit
+     *                - If configs do not contain vertex/edge cache related configuration items,
+     *                but current local configuration file contains cache related configuration
+     *                items, use configuration items from configuration file
      */
     private Map<String, Object> attachLocalCacheConfig(Map<String, Object> configs) {
         Map<String, Object> attachedConfigs = new HashMap<>(configs);
@@ -1866,7 +1875,8 @@ public final class GraphManager {
         if (graph == null && usePD()) {
             Map<String, Map<String, Object>> configs =
                     this.metaManager.graphConfigs(graphSpace);
-            // 如果当前 server 注册的不是 DEFAULT 图空间，只加载注册的图空间下的图创建
+            // If current server registered graph space is not DEFAULT, only load graph creation
+            // under registered graph space
             if (!configs.containsKey(key) ||
                 (!"DEFAULT".equals(this.serviceGraphSpace) &&
                  !graphSpace.equals(this.serviceGraphSpace))) {
@@ -1971,7 +1981,7 @@ public final class GraphManager {
                 LOG.warn("Failed to close graph", e);
             }
             try {
-                // 删除 HugeFactory 中的别名图
+                // Delete alias graph in HugeFactory
                 HugeFactory.remove((HugeGraph) graph);
             } catch (Exception e) {
                 LOG.warn("Failed to remove hugeFactory graph", e);

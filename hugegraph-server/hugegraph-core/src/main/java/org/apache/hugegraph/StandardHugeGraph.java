@@ -1482,6 +1482,11 @@ public class StandardHugeGraph implements HugeGraph {
         }
 
         @Override
+        public String spaceGraphName() {
+            return StandardHugeGraph.this.spaceGraphName();
+        }
+
+        @Override
         public GraphMode mode() {
             return StandardHugeGraph.this.mode();
         }

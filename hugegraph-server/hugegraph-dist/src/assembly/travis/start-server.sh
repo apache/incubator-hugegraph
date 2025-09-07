@@ -51,6 +51,11 @@ if [ "$BACKEND" == "hbase" ]; then
     sed -i 's/evaluationTimeout.*/evaluationTimeout: 200000/' $GREMLIN_CONF
 fi
 
+# Set usePD=true for hstore
+if [ "$BACKEND" == "hstore" ]; then
+    sed -i '$ausePD=true' $REST_CONF
+fi
+
 # Append schema.sync_deletion=true to config file
 echo "schema.sync_deletion=true" >> $CONF
 
