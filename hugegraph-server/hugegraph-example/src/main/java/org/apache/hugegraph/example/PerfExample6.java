@@ -24,7 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 /**
- * Perf test for: query vertices/adj-edges by ids
+ * Perf test for: query vertices/adj-edges by ids with edges insert
  */
 public class PerfExample6 extends PerfExample5 {
 
