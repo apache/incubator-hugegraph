@@ -132,7 +132,8 @@ public abstract class IdGenerator {
         protected byte[] bytes;
 
         public StringId(String id) {
-            E.checkArgument(!id.isEmpty(), "The id can't be empty");
+            E.checkArgument(id != null && !id.isEmpty(),
+                            "The id can't be null or empty");
             this.id = id;
             this.bytes = null;
         }
@@ -157,6 +158,7 @@ public abstract class IdGenerator {
         @Override
         public String asString() {
             if (this.id == null) {
+                assert this.bytes != null;
                 this.id = StringEncoding.decode(this.bytes);
             }
             return this.id;
@@ -170,6 +172,7 @@ public abstract class IdGenerator {
         @Override
         public byte[] asBytes() {
             if (this.bytes == null) {
+                assert this.id != null;
                 this.bytes = StringEncoding.encode(this.id);
             }
             return this.bytes;
@@ -206,7 +209,10 @@ public abstract class IdGenerator {
             StringId other = (StringId) obj;
             if (this.id != null) {
                 return this.id.equals(other.asString());
+            } else if (other.bytes == null) {
+                return this.asString().equals(other.asString());
             } else {
+                assert this.bytes != null;
                 return Bytes.equals(this.bytes, other.asBytes());
             }
         }
