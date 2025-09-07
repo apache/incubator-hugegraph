@@ -66,12 +66,14 @@ public class MemberAPI extends API {
     public RestApiResponse getMembers() throws InterruptedException, ExecutionException {
 
         String leaderGrpcAddress = RaftEngine.getInstance().getLeaderGrpcAddress();
-        CallStreamObserverWrap<Pdpb.GetMembersResponse> response = new CallStreamObserverWrap<>();
-        pdService.getMembers(Pdpb.GetMembersRequest.newBuilder().build(), response);
+        CallStreamObserverWrap<Pdpb.MembersAndClusterState> response =
+                new CallStreamObserverWrap<>();
+        pdService.getMembersAndClusterState(Pdpb.GetMembersRequest.newBuilder().build(), response);
         List<Member> members = new ArrayList<>();
         Member leader = null;
         Map<String, Integer> stateCountMap = new HashMap<>();
-        for (Metapb.Member member : response.get().get(0).getMembersList()) {
+        Pdpb.MembersAndClusterState membersAndClusterState = response.get().get(0);
+        for (Metapb.Member member : membersAndClusterState.getMembersList()) {
             String stateKey = member.getState().name();
             stateCountMap.put(stateKey, stateCountMap.getOrDefault(stateKey, 0) + 1);
             Member member1 = new Member(member);
@@ -81,7 +83,7 @@ public class MemberAPI extends API {
             member1.role = member.getRole().name();
             members.add(member1);
         }
-        String state = pdService.getStoreNodeService().getClusterStats().getState().toString();
+        String state = membersAndClusterState.getState().toString();
         HashMap<String, Object> resultMap = new HashMap<>();
         resultMap.put("state", state);
         resultMap.put("pdList", members);
