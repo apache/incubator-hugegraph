@@ -670,6 +670,9 @@ public class TaskScheduleService {
                 case Clean_Partition:
                     partitionService.handleCleanPartitionTask(task);
                     break;
+                case Build_Index:
+                    partitionService.handleBuildIndexTask(task);
+                    break;
                 default:
                     break;
             }

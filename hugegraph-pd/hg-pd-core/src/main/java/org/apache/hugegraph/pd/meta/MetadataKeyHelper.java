@@ -40,6 +40,7 @@ public class MetadataKeyHelper {
     private static final String PD_CONFIG = "PD_CONFIG";
     private static final String TASK_SPLIT = "TASK_SPLIT";
     private static final String TASK_MOVE = "TASK_MOVE";
+    private static final String TASK_BUILD_INDEX = "TASK_BI";
     private static final String LOG_RECORD = "LOG_RECORD";
 
     private static final String QUEUE = "QUEUE";
@@ -273,7 +274,24 @@ public class MetadataKeyHelper {
         return builder.toString().getBytes(Charset.defaultCharset());
     }
 
-    public static byte[] getAllMoveTaskPrefix() {
+    public static byte[] getBuildIndexTaskKey(long taskId, int partitionId) {
+        // TASK_BI/ task id / partition id
+        StringBuilder builder = StringBuilderHelper.get()
+                                                   .append(TASK_BUILD_INDEX).append(DELIMITER)
+                                                   .append(taskId).append(DELIMITER)
+                                                   .append(partitionId);
+        return builder.toString().getBytes(Charset.defaultCharset());
+    }
+
+    public static byte[] getBuildIndexTaskPrefix(long taskId) {
+        // TASK_MOVE/{GraphName}/to PartitionID/{source partitionID}
+        StringBuilder builder = StringBuilderHelper.get()
+                                                   .append(TASK_BUILD_INDEX).append(DELIMITER)
+                                                   .append(taskId);
+        return builder.toString().getBytes(Charset.defaultCharset());
+    }
+
+    public static byte[] getAllMoveTaskPrefix(){
         // TASK_MOVE/{graphName}/toPartitionId/
         StringBuilder builder = StringBuilderHelper.get()
                                                    .append(TASK_MOVE).append(DELIMITER);
