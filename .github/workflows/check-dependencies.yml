@@ -1,3 +1,4 @@
+
 name: "3rd-party"
 
 on:
@@ -32,7 +33,7 @@ jobs:
 
       - name: mvn install
         run: |
-          mvn install -Dmaven.test.skip=true -ntp
+          mvn install -Dmaven.test.skip=true -ntp --fail-at-end
       - name: generate current dependencies
         run: |
           bash $SCRIPT_DEPENDENCY/regenerate_known_dependencies.sh current-dependencies.txt
