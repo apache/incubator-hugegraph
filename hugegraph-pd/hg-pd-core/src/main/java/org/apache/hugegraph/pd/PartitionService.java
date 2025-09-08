@@ -1025,7 +1025,7 @@ public class PartitionService implements RaftStateListener {
 
     public void changeShard(int groupId, List<Metapb.Shard> shards) throws PDException {
         var partitions = getPartitionById(groupId);
-        if (partitions.size() == 0) {
+        if (partitions.isEmpty()) {
             return;
         }
         fireChangeShard(partitions.get(0), shards, ConfChangeType.CONF_CHANGE_TYPE_ADJUST);
@@ -1325,6 +1325,32 @@ public class PartitionService implements RaftStateListener {
         );
 
         // If it fails, try again?
+    }
+
+    public void handleBuildIndexTask(MetaTask.Task task) throws PDException {
+        if (task == null) {
+            throw new PDException(-1, "Invalid build index task: task is null");
+        }
+
+        if (task.getType() != MetaTask.TaskType.Build_Index) {
+            throw new PDException(-1, "Task type must be Build_Index");
+        }
+
+        if (!task.hasBuildIndex()) {
+            throw new PDException(-1, "Task must contain build index data");
+        }
+
+        log.info("build index task {} -{} , report state: {}",
+                 task.getPartition().getGraphName(),
+                 task.getPartition().getId(),
+                 task.getState());
+
+        try {
+            storeService.getTaskInfoMeta().updateBuildIndexTask(task);
+        } catch (Exception e) {
+            log.error("Failed to update build index task {}", task.getId(), e);
+            throw new PDException(-1, "Failed to update build index task: " + e.getMessage());
+        }
     }
 
     public synchronized void handleSplitTask(MetaTask.Task task) throws PDException {
