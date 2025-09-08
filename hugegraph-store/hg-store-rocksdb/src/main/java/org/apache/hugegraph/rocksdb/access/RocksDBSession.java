@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,7 @@ import org.rocksdb.DBOptions;
 import org.rocksdb.DBOptionsInterface;
 import org.rocksdb.Env;
 import org.rocksdb.FlushOptions;
+import org.rocksdb.InfoLogLevel;
 import org.rocksdb.IngestExternalFileOptions;
 import org.rocksdb.MutableColumnFamilyOptionsInterface;
 import org.rocksdb.MutableDBOptionsInterface;
@@ -63,6 +65,7 @@ import org.rocksdb.Statistics;
 import org.rocksdb.WriteBufferManager;
 import org.rocksdb.WriteOptions;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -83,8 +86,10 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     private DBOptions dbOptions;
     private volatile boolean closed = false;
 
-    public RocksDBSession(HugeConfig hugeConfig, String dbDataPath, String graphName,
-                          long version) {
+    @Getter
+    private Map<String, String> iteratorMap;
+
+    public RocksDBSession(HugeConfig hugeConfig, String dbDataPath, String graphName, long version) {
         this.hugeConfig = hugeConfig;
         this.graphName = graphName;
         this.cfHandleLock = new ReentrantReadWriteLock();
@@ -93,6 +98,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         this.shutdown = new AtomicBoolean(false);
         this.writeOptions = new WriteOptions();
         this.rocksDbStats = new Statistics();
+        this.iteratorMap = new ConcurrentHashMap<>();
         openRocksDB(dbDataPath, version);
     }
 
@@ -107,6 +113,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         this.writeOptions = origin.writeOptions;
         this.rocksDbStats = origin.rocksDbStats;
         this.shutdown = origin.shutdown;
+        this.iteratorMap = origin.iteratorMap;
         this.refCount = origin.refCount;
         this.refCount.incrementAndGet();
     }
@@ -143,8 +150,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 db.setAllowConcurrentMemtableWrite(true);
                 db.setEnableWriteThreadAdaptiveYield(true);
             }
-            db.setInfoLogLevel(
-                    RocksDBOptions.LOG_LEVEL_MAPPING.get(conf.get(RocksDBOptions.LOG_LEVEL)));
+            db.setInfoLogLevel(InfoLogLevel.valueOf(
+                    conf.get(RocksDBOptions.LOG_LEVEL) + "_LEVEL"));
             db.setMaxSubcompactions(conf.get(RocksDBOptions.MAX_SUB_COMPACTIONS));
             db.setAllowMmapWrites(conf.get(RocksDBOptions.ALLOW_MMAP_WRITES));
             db.setAllowMmapReads(conf.get(RocksDBOptions.ALLOW_MMAP_READS));
@@ -430,9 +437,6 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             List<byte[]> columnFamilyBytes = RocksDB.listColumnFamilies(new Options(), dbPath);
 
             ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
-            if (hugeConfig.get(RocksDBOptions.DISABLE_AUTO_COMPACTION)) {
-                cfOptions.setDisableAutoCompactions(true);
-            }
             RocksDBSession.initOptions(this.hugeConfig, null, null, cfOptions, cfOptions);
 
             if (columnFamilyBytes.size() > 0) {
@@ -862,6 +866,42 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         }
     }
 
+    /**
+     * Get size by table name
+     * @param table table
+     * @param start key start
+     * @param end key end
+     * @return size
+     */
+    public long getApproximateDataSize(String table, byte[] start, byte[] end) {
+        cfHandleLock.readLock().lock();
+        try {
+            if (!this.tables.containsKey(table)) {
+                return 0;
+            }
+
+            long kbSize = 0;
+            long bytesSize = 0;
+            Range r1 = new Range(new Slice(start), new Slice(end));
+
+            var h = this.tables.get(table);
+            long[] sizes =
+                this.rocksDB.getApproximateSizes(
+                    h, Arrays.asList(r1), SizeApproximationFlag.INCLUDE_FILES, SizeApproximationFlag.INCLUDE_MEMTABLES);
+
+            bytesSize += sizes[0];
+            kbSize += bytesSize / 1024;
+            bytesSize = bytesSize % 1024;
+
+            if (bytesSize != 0) {
+                kbSize += 1;
+            }
+            return kbSize;
+        } finally {
+            cfHandleLock.readLock().unlock();
+        }
+    }
+
     public Map<String, String> getApproximateCFDataSize(byte[] start, byte[] end) {
         Map<String, String> map = new ConcurrentHashMap<>(this.tables.size());
         cfHandleLock.readLock().lock();
@@ -1054,5 +1094,21 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 shutdown();
             }
         }
+    }
+
+    public static String stackToString() {
+        return Arrays.stream(Thread.currentThread().getStackTrace())
+                     .map(StackTraceElement::toString)
+                     .collect(Collectors.joining("\n\t"));
+    }
+
+    public void addIterator(String key, ScanIterator iterator) {
+        log.debug("add iterator, key {}", key);
+        this.iteratorMap.put(key, stackToString());
+    }
+
+    public void removeIterator(String key) {
+        log.debug("remove iterator key, {}", key);
+        this.iteratorMap.remove(key);
     }
 }
