@@ -370,7 +370,10 @@ public class SessionOperatorImpl implements SessionOperator {
                         iterator.seekToFirst();
                     }
                 }
-                if (iterator == null) return null;
+                //FIXME Is this right？
+                if (iterator == null){
+                    return null;
+                }
                 String key = getIteratorKey();
                 var newIterator = getScanRawIterator(iterator, readOptions, startSeqNum, key);
                 session.addIterator(key, newIterator);
