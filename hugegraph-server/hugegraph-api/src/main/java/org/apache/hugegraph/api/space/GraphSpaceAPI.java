@@ -97,6 +97,7 @@ public class GraphSpaceAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
     public String create(@Context GraphManager manager,
                          JsonGraphSpace jsonGraphSpace) {
 
@@ -256,6 +257,7 @@ public class GraphSpaceAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
     public void delete(@Context GraphManager manager,
                        @PathParam("name") String name) {
         manager.dropGraphSpace(name);

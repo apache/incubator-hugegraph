@@ -249,29 +249,16 @@ public final class GraphManager {
             this.localGraphs = ImmutableSet.of();
         }
 
-        try {
-            PDConfig pdConfig = PDConfig.of(this.pdPeers);
-            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
-                                  PdMetaDriver.PDAuthConfig.token());
-            this.pdClient = DiscoveryClientImpl
-                    .newBuilder()
-                    .setCenterAddress(this.pdPeers)
-                    .setPdConfig(pdConfig)
-                    .build();
-        } catch (Exception e) {
-            e.printStackTrace();
+        PDExist = conf.get(ServerOptions.USE_PD);
+        if (PDExist) {
+            try {
+                loadMetaFromPD();
+            } catch (Exception e) {
+                LOG.error("Unable to load meta for PD server and usePD = true in server options",
+                          e);
+                throw new IllegalStateException(e);
+            }
         }
-
-        boolean metaInit;
-        try {
-            this.initMetaManager(conf);
-            loadMetaFromPD();
-            metaInit = true;
-        } catch (Exception e) {
-            metaInit = false;
-            LOG.warn("Unable to init meta store,pd is not ready" + e.getMessage());
-        }
-        PDExist = metaInit;
     }
 
     private static String spaceGraphName(String graphSpace, String graph) {
@@ -354,6 +341,20 @@ public final class GraphManager {
     }
 
     private void loadMetaFromPD() {
+        try {
+            PDConfig pdConfig = PDConfig.of(this.pdPeers);
+            pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
+                                  PdMetaDriver.PDAuthConfig.token());
+            this.pdClient = DiscoveryClientImpl
+                    .newBuilder()
+                    .setCenterAddress(this.pdPeers)
+                    .setPdConfig(pdConfig)
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        this.initMetaManager(conf);
         this.initK8sManagerIfNeeded(conf);
 
         this.createDefaultGraphSpaceIfNeeded(conf);

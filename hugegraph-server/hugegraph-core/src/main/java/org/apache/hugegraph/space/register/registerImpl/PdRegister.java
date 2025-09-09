@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -106,7 +107,7 @@ public class PdRegister implements IServiceRegister {
         String origin = config.getAppName() + config.getPodIp() + config.getNodeName();
 
         try {
-            md5 = MessageDigest.getInstance("md5").digest(origin.getBytes());
+            md5 = MessageDigest.getInstance("md5").digest(origin.getBytes(StandardCharsets.UTF_8));
         } catch (NoSuchAlgorithmException var7) {
         }
 
