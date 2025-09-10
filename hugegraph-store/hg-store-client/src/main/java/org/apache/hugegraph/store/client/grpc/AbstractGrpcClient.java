@@ -69,7 +69,7 @@ public abstract class AbstractGrpcClient {
                             int fi = i;
                             executor.execute(() -> {
                                 try {
-                                    value[fi] = getManagedChannel(target);
+                                    value[fi] = createChannel(target);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 } finally {
@@ -169,7 +169,7 @@ public abstract class AbstractGrpcClient {
                             config.getGrpcMaxOutboundMessageSize());
     }
 
-    private ManagedChannel getManagedChannel(String target) {
+    protected ManagedChannel createChannel(String target) {
         return ManagedChannelBuilder.forTarget(target).usePlaintext().build();
     }
 

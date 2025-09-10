@@ -102,9 +102,6 @@ public interface HgKvStore {
 
     HgKvIterator<HgKvEntry> scanIterator(ScanStreamReq.Builder scanReqBuilder);
 
-    //todo soya to be removed in the future
-    long count(String table);
-
     List<HgKvIterator<BaseElement>> query(StoreQueryParam query, HugeGraphSupplier supplier) throws
                                                                                              PDException;
 

@@ -45,6 +45,7 @@ import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgKvOrderedIterator;
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgScanQuery;
+import org.apache.hugegraph.store.HgSessionConfig;
 import org.apache.hugegraph.store.HgStoreSession;
 import org.apache.hugegraph.store.client.grpc.KvBatchScanner;
 import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
@@ -68,12 +69,13 @@ import lombok.extern.slf4j.Slf4j;
 @NotThreadSafe
 class NodeTxSessionProxy implements HgStoreSession {
 
+    private final HgSessionConfig sessionConfig;
     private final HgStoreNodeManager nodeManager;
     private final HgStoreNodePartitioner nodePartitioner;
     private final String graphName;
     private final NodeTxExecutor txExecutor;
 
-    NodeTxSessionProxy(String graphName, HgStoreNodeManager nodeManager) {
+    public NodeTxSessionProxy(String graphName, HgStoreNodeManager nodeManager) {
         this.nodeManager = nodeManager;
         this.graphName = graphName;
         this.nodePartitioner = this.nodeManager.getNodePartitioner();
@@ -81,6 +83,19 @@ class NodeTxSessionProxy implements HgStoreSession {
 
         isFalse(this.nodePartitioner == null,
                 "Failed to retrieve the node-partitioner from node-manager.");
+        sessionConfig = new HgSessionConfig();
+    }
+
+    public NodeTxSessionProxy(String graphName, HgStoreNodeManager nodeManager,
+                              HgSessionConfig config) {
+        this.nodeManager = nodeManager;
+        this.graphName = graphName;
+        this.nodePartitioner = this.nodeManager.getNodePartitioner();
+        this.txExecutor = NodeTxExecutor.graphOf(this.graphName, this);
+
+        isFalse(this.nodePartitioner == null,
+                "Failed to retrieve the node-partitioner from node-manager.");
+        sessionConfig = config;
     }
 
     @Override

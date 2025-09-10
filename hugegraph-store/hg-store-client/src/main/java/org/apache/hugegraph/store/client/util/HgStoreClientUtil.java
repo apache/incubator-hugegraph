@@ -89,10 +89,11 @@ public final class HgStoreClientUtil {
         if (ownerKey == null) {
             return "";
         }
-        return "{ " +
-               "owner: " + Arrays.toString(ownerKey.getOwner()) +
-               ", key: " + toStr(ownerKey.getKey()) +
-               " }";
+        return new StringBuilder()
+                .append("{ ")
+                .append("owner: ").append(Arrays.toString(ownerKey.getOwner()))
+                .append(", key: ").append(toStr(ownerKey.getKey()))
+                .append(" }").toString();
     }
 
     public static byte[] toBytes(String str) {
