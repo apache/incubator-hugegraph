@@ -17,6 +17,9 @@
 
 package org.apache.hugegraph.store.client.grpc;
 
+import static org.apache.hugegraph.store.client.grpc.GrpcUtil.getHeader;
+import static org.apache.hugegraph.store.client.grpc.GrpcUtil.toTk;
+
 import java.util.List;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -40,9 +43,6 @@ import org.apache.hugegraph.store.grpc.session.TableReq;
 import io.grpc.ManagedChannel;
 import lombok.extern.slf4j.Slf4j;
 
-import static org.apache.hugegraph.store.client.grpc.GrpcUtil.getHeader;
-import static org.apache.hugegraph.store.client.grpc.GrpcUtil.toTk;
-
 /**
  * created on 2021/11/18
  *
@@ -64,7 +64,7 @@ class GrpcStoreSessionClient extends AbstractGrpcClient {
 
     FeedbackRes doGet(HgStoreNodeSession nodeSession, String table, HgOwnerKey ownerKey) {
         return this.getBlockingStub(nodeSession)
-                   .get(GetReq.newBuilder().setHeader(getHeader(nodeSession))
+                   .get2(GetReq.newBuilder().setHeader(getHeader(nodeSession))
                               .setTk(toTk(table, ownerKey))
                               .build());
     }
@@ -89,7 +89,7 @@ class GrpcStoreSessionClient extends AbstractGrpcClient {
         if (log.isDebugEnabled()) {
             log.debug("batchGet2: {}-{}-{}-{}", nodeSession, table, keyList, builder.build());
         }
-        return this.getBlockingStub(nodeSession).batchGet(builder.build());
+        return this.getBlockingStub(nodeSession).batchGet2(builder.build());
 
     }
 
