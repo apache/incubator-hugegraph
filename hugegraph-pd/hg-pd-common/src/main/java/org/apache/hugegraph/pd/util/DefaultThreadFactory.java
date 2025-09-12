@@ -15,32 +15,30 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.common;
+package org.apache.hugegraph.pd.util;
 
-public class PDException extends Exception {
-    private int errorCode = 0;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
+public class DefaultThreadFactory implements ThreadFactory {
 
-    public PDException(int error) {
-        super(String.format("Error code = %d", error));
-        this.errorCode = error;
+    private final AtomicInteger number = new AtomicInteger(1);
+    private final String namePrefix;
+    private boolean daemon;
+
+    public DefaultThreadFactory(String prefix, boolean daemon) {
+        this.namePrefix = prefix + "-";
+        this.daemon = daemon;
     }
 
-    public PDException(int error, String msg) {
-        super(msg);
-        this.errorCode = error;
+    public DefaultThreadFactory(String prefix) {
+        this(prefix, true);
     }
 
-    public PDException(int error, Throwable e) {
-        super(e);
-        this.errorCode = error;
-    }
-
-    public PDException(int error, String msg, Throwable e) {
-        super(msg, e);
-        this.errorCode = error;
-    }
-
-    public int getErrorCode() {
-        return errorCode;
+    @Override
+    public Thread newThread(Runnable r) {
+        Thread t = new Thread(null, r, namePrefix + number.getAndIncrement(), 0);
+        t.setDaemon(daemon);
+        t.setPriority(Thread.NORM_PRIORITY);
+        return t;
     }
 }

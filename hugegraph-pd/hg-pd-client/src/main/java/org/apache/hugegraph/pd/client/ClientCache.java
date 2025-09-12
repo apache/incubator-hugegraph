@@ -61,7 +61,9 @@ public class ClientCache {
         if ((graph = caches.get(graphName)) == null) {
             synchronized (caches) {
                 if ((graph = caches.get(graphName)) == null) {
-                    graph = new GraphCache();
+                    Metapb.Graph.Builder builder = Metapb.Graph.newBuilder().setGraphName(graphName);
+                    Metapb.Graph g = builder.build();
+                    graph = new GraphCache(g);
                     caches.put(graphName, graph);
                 }
             }
