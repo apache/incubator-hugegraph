@@ -188,6 +188,9 @@ public class GraphStoreIterator<T> extends AbstractSelectIterator
     }
 
     public ArrayList<T> convert() {
+        if (data == null || data.isEmpty()) {
+            return new ArrayList<>(0);
+        }
         ArrayList result = new ArrayList(data.size());
         for (int i = 0; i < data.size(); i++) {
             result.add(select(data.get(i)));
