@@ -15,41 +15,15 @@
  * limitations under the License.
  */
 
-syntax = "proto3";
+package org.apache.hugegraph.pd.consts;
 
-option java_multiple_files = true;
-option java_package = "org.apache.hugegraph.pd.grpc.common";
-option java_outer_classname = "HgPdCommonProto";
+public class PoolNames {
 
-message RequestHeader {
-  uint64 cluster_id = 1;
-  uint64 sender_id = 2;
-}
+    public static final String GRPC = "hg-grpc";
+    public static final String SCAN = "hg-scan";
+    public static final String I_JOB = "hg-i-job";
+    public static final String U_JOB = "hg-u-job";
+    public static final String COMPACT = "hg-compact";
+    public static final String HEARTBEAT = "hg-heartbeat";
 
-message ResponseHeader {
-  // cluster_id is the ID of the cluster which sent the response.
-  uint64 cluster_id = 1;
-  Error error = 2;
-}
-
-enum ErrorType {
-  OK = 0;
-  UNKNOWN = 1;
-  STORE_NON_EXIST = 101;
-  STORE_TOMBSTONE = 103;
-  ALREADY_BOOTSTRAPPED = 4;
-  INCOMPATIBLE_VERSION = 5;
-  PARTITION_NOT_FOUND = 6;
-
-  ETCD_READ_ERROR = 1000;
-  ETCD_WRITE_ERROR = 1001;
-}
-
-message Error {
-  ErrorType type = 1;
-  string message = 2;
-}
-
-message NoArg{
-    RequestHeader header = 1;
 }
