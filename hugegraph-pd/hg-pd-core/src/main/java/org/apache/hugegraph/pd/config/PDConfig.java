@@ -63,6 +63,9 @@ public class PDConfig {
     @Value("${license.license-path}")
     private String licensePath;
     @Autowired
+    private JobConfig jobConfig;
+
+    @Autowired
     private ThreadPoolGrpc threadPoolGrpc;
     @Autowired
     private Raft raft;
@@ -281,4 +284,23 @@ public class PDConfig {
         private int heartbeatOutTimes = 3;
     }
 
+    @Data
+    @Configuration
+    public class JobConfig {
+
+        @Value("${job.interruptableThreadPool.core:0}")
+        private int core;
+        @Value("${job.interruptableThreadPool.max:256}")
+        private int max;
+        @Value("${job.interruptableThreadPool.queue:" + Integer.MAX_VALUE + "}")
+        private int queueSize;
+        @Value("${job.start-time:19}")
+        private int startTime;
+        @Value("${job.uninterruptibleThreadPool.core:0}")
+        private int uninterruptibleCore;
+        @Value("${job.uninterruptibleThreadPool.max:256}")
+        private int uninterruptibleMax;
+        @Value("${job.uninterruptibleThreadPool.queue:" + Integer.MAX_VALUE + "}")
+        private int uninterruptibleQueueSize;
+    }
 }
