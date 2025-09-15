@@ -19,54 +19,49 @@ package org.apache.hugegraph.pd.client;
 
 import java.util.LinkedList;
 
-import io.grpc.stub.AbstractBlockingStub;
-import io.grpc.stub.AbstractStub;
+import org.apache.hugegraph.pd.grpc.PDGrpc;
 
-public class AbstractClientStubProxy {
+public class StubProxy {
 
-    private LinkedList<String> hostList = new LinkedList<>();
-    private AbstractBlockingStub blockingStub;
-    private AbstractStub stub;
+    private volatile PDGrpc.PDBlockingStub stub;
+    private LinkedList<String> hosts = new LinkedList<>();
+    private String leader;
 
-    public AbstractClientStubProxy(String[] hosts) {
+    public StubProxy(String[] hosts) {
         for (String host : hosts) {
             if (!host.isEmpty()) {
-                hostList.offer(host);
+                this.hosts.offer(host);
             }
         }
     }
 
-    public LinkedList<String> getHostList() {
-        return hostList;
-    }
-
     public String nextHost() {
-        String host = hostList.poll();
-        hostList.offer(host);
+        String host = hosts.poll();
+        hosts.offer(host);
         return host;
     }
 
-    public AbstractBlockingStub getBlockingStub() {
-        return this.blockingStub;
+    public void set(PDGrpc.PDBlockingStub stub) {
+        this.stub = stub;
     }
 
-    public void setBlockingStub(AbstractBlockingStub stub) {
-        this.blockingStub = stub;
+    public PDGrpc.PDBlockingStub get() {
+        return this.stub;
     }
 
     public String getHost() {
-        return hostList.peek();
+        return hosts.peek();
     }
 
     public int getHostCount() {
-        return hostList.size();
+        return hosts.size();
     }
 
-    public AbstractStub getStub() {
-        return stub;
+    public String getLeader() {
+        return leader;
     }
 
-    public void setStub(AbstractStub stub) {
-        this.stub = stub;
+    public void setLeader(String leader) {
+        this.leader = leader;
     }
 }
