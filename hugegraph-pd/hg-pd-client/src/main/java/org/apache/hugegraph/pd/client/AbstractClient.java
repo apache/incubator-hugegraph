@@ -105,8 +105,7 @@ public abstract class AbstractClient implements Closeable {
                     String host = resetStub();
                     if (host.isEmpty()) {
                         throw new PDException(Pdpb.ErrorType.PD_UNREACHABLE_VALUE,
-                                              "PD unreachable, pd.peers=" +
-                                              config.getServerHost());
+                                              "PD unreachable, pd.peers=" + config.getServerHost());
                     }
                 }
             }
