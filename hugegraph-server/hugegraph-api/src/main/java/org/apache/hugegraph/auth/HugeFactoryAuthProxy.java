@@ -633,10 +633,8 @@ public final class HugeFactoryAuthProxy {
         try {
             clazz = Class.forName(className);
         } catch (ClassNotFoundException e) {
-            LOG.debug(
-                    "Internal class {} not found in this JDK implementation, skipping filter " +
-                    "registration",
-                    className, e);
+            LOG.debug("Internal class {} not found in this JDK implementation, skipping filter " +
+                      "registration", className, e);
         }
         if (clazz != null) {
             Reflection.registerMethodsToFilter(clazz, methodNames);
