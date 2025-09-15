@@ -15,31 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd;
 
-import org.apache.hugegraph.pd.BaseTest;
-import org.junit.After;
-import org.junit.BeforeClass;
-import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.apache.hugegraph.pd.client.PDConfig;
 
-@RunWith(MockitoJUnitRunner.class)
-public class BaseClientTest extends BaseTest {
+public class BaseTest {
 
-    public static PDClient pdClient;
-    public final String storeAddr = "localhost";
-    public final String graphName = "default/hugegraph/g";
-    public long storeId = 0;
+    protected static String pdGrpcAddr = "10.108.17.32:8686";
+    protected static String pdRestAddr = "http://10.108.17.32:8620";
+    protected static String user = "store";
+    protected static String pwd = "$2a$04$9ZGBULe2vc73DMj7r/iBKeQB1SagtUXPrDbMmNswRkTwlWQURE/Jy";
+    protected static String key = "Authorization";
+    protected static String value = "Basic c3RvcmU6YWRtaW4=";
 
-    @BeforeClass
-    public static void beforeClass() {
-        PDConfig config = PDConfig.of(pdGrpcAddr).setAuthority(user, pwd);
-        config.setEnableCache(true);
-        pdClient = PDClient.create(config);
-    }
-
-    @After
-    public void teardown() {
-        // pass
+    protected PDConfig getPdConfig() {
+        return PDConfig.of(pdGrpcAddr).setAuthority(user, pwd);
     }
 }
