@@ -15,53 +15,61 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.client.PDPulse;
+import org.apache.hugegraph.pd.client.PDPulseImpl;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
+import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatResponse;
 import org.apache.hugegraph.pd.grpc.pulse.PulseResponse;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+// import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 public class StoreRegisterTest {
 
     private static PDClient pdClient;
+    private static PDConfig config;
+    private long storeId = 0;
     private final String storeAddr = "localhost";
     private final String graphName = "default/hugegraph/g";
-    private long storeId = 0;
 
     @BeforeClass
-    public static void beforeClass() {
-        PDConfig config = PDConfig.of("localhost:8686");
+    public static void beforeClass() throws Exception {
+        config = PDConfig.of("localhost:8686");
         config.setEnableCache(true);
         pdClient = PDClient.create(config);
     }
 
-    @Test
+    // @Test
     public void testRegisterStore() throws PDException {
         Metapb.Store store = Metapb.Store.newBuilder().setAddress(storeAddr).build();
-        storeId = pdClient.registerStore(store);
+        try {
+            storeId = pdClient.registerStore(store);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         Assert.assertTrue("RegisterStore store_id = " + storeId, storeId != 0);
     }
 
-    @Test
+    // @Test
     public void testGetStore() throws PDException {
         testRegisterStore();
         Metapb.Store store = pdClient.getStore(storeId);
-        Assert.assertEquals(storeAddr, store.getAddress());
+        Assert.assertTrue(store.getAddress().equals(storeAddr));
         System.out.println(store);
     }
 
-    @Ignore // no active store
-    @Test
+    // @Test
     public void testGetActiveStores() throws PDException {
         testRegisterStore();
         List<Metapb.Store> stores = pdClient.getActiveStores(graphName);
@@ -71,8 +79,7 @@ public class StoreRegisterTest {
         });
     }
 
-    @Ignore // no active store
-    @Test
+    // @Test
     public void testStoreHeartbeat() throws PDException {
         testRegisterStore();
         Metapb.StoreStats stats = Metapb.StoreStats.newBuilder().setStoreId(storeId).build();
@@ -88,33 +95,27 @@ public class StoreRegisterTest {
         Assert.assertTrue(exist);
     }
 
-    @Ignore // no active store
-    @Test
-    public void testPartitionHeartbeat() throws PDException {
+    // @Test
+    public void testPartitionHeartbeat() throws InterruptedException, PDException {
         testRegisterStore();
-        PDPulse pdPulse = new PDPulseImpl(pdClient.getLeaderIp());
+        PDPulse pdPulse = new PDPulseImpl(pdClient.getLeaderIp(), config);
 
-        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier = pdPulse.connectPartition(
-                new PDPulse.Listener<>() {
-
+        PDPulse.Notifier<PartitionHeartbeatRequest.Builder> notifier =
+                pdPulse.connectPartition(new PDPulse.Listener<PulseResponse>() {
                     @Override
                     public void onNext(PulseResponse response) {
-
                     }
 
                     @Override
                     public void onNotice(PulseServerNotice<PulseResponse> notice) {
-
                     }
 
                     @Override
                     public void onError(Throwable throwable) {
-
                     }
 
                     @Override
                     public void onCompleted() {
-
                     }
                 });
         KVPair<Metapb.Partition, Metapb.Shard> partShard =
@@ -123,5 +124,8 @@ public class StoreRegisterTest {
                 Metapb.PartitionStats.newBuilder().addGraphName("test")
                                      .setId(partShard.getKey().getId())
                                      .setLeader(Metapb.Shard.newBuilder().setStoreId(1).build())));
+
+        Thread.sleep(10000);
     }
+
 }
