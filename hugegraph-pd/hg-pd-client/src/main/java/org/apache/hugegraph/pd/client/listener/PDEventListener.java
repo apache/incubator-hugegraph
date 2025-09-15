@@ -15,16 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.watch;
+package org.apache.hugegraph.pd.client.listener;
 
-enum WatchType {
+import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
+import org.apache.hugegraph.pd.watch.NodeEvent;
+import org.apache.hugegraph.pd.watch.PartitionEvent;
 
-    PARTITION_CHANGE(10);
+public interface PDEventListener {
 
-    private int value;
+    void onStoreChanged(NodeEvent event);
 
-    private WatchType(int value) {
-        this.value = value;
+    void onPartitionChanged(PartitionEvent event);
+
+    void onGraphChanged(WatchResponse event);
+
+    default void onShardGroupChanged(WatchResponse event) {
     }
-
 }

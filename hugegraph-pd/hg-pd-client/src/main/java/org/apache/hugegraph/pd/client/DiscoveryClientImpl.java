@@ -27,17 +27,19 @@ import org.apache.hugegraph.pd.grpc.discovery.RegisterType;
 @Useless("discovery related")
 public class DiscoveryClientImpl extends DiscoveryClient {
 
-    private final String id;
-    private final RegisterType type;
-    private final String version;
-    private final String appName;
-    private final int times;
-    private final String address;
-    private final Map labels;
-    private final Consumer registerConsumer;
+    private volatile String id;
+    private RegisterType type;
+    private String version;
+    private String appName;
+    private int times;
+    private String address;
+    private Map labels;
+    private Consumer registerConsumer;
+    private PDConfig conf;
+
 
     private DiscoveryClientImpl(Builder builder) {
-        super(builder.centerAddress, builder.delay);
+        super(builder.centerAddress, builder.delay, builder.conf);
         period = builder.delay;
         id = builder.id;
         type = builder.type;
@@ -78,6 +80,7 @@ public class DiscoveryClientImpl extends DiscoveryClient {
         private String appName;
         private int times;
         private Consumer registerConsumer;
+        private PDConfig conf;
 
         private Builder() {
         }
@@ -124,6 +127,11 @@ public class DiscoveryClientImpl extends DiscoveryClient {
 
         public Builder setTimes(int val) {
             times = val;
+            return this;
+        }
+
+        public Builder setPdConfig(PDConfig val) {
+            this.conf = val;
             return this;
         }
 
