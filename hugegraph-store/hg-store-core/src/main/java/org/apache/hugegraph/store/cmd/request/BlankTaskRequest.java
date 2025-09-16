@@ -15,23 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
-import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
-import lombok.Data;
-
-@Data
-@Deprecated
-public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
-
-    private int startKey;
-    private int endKey;
-
-    private Metapb.PartitionState workState;
+/**
+ * @date 2023/8/21
+ **/
+public class BlankTaskRequest extends HgCmdBase.BaseRequest {
 
     @Override
     public byte magic() {
-        return HgCmdBase.RAFT_UPDATE_PARTITION;
+        return HgCmdBase.BLANK_TASK;
     }
 }

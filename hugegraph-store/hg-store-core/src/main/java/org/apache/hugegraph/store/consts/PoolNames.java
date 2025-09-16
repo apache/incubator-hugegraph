@@ -15,23 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.consts;
 
-import org.apache.hugegraph.pd.grpc.Metapb;
+/**
+ * @date 2023/10/30
+ **/
+public class PoolNames {
 
-import lombok.Data;
+    public static final String GRPC = "hg-grpc";
+    public static final String SCAN = "hg-scan";
+    public static final String SCAN_V2 = "hg-scan-v2";
+    public static final String I_JOB = "hg-i-job";
+    public static final String U_JOB = "hg-u-job";
+    public static final String COMPACT = "hg-compact";
+    public static final String HEARTBEAT = "hg-heartbeat";
+    public static final String P_HEARTBEAT = "hg-p-heartbeat";
 
-@Data
-@Deprecated
-public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
-
-    private int startKey;
-    private int endKey;
-
-    private Metapb.PartitionState workState;
-
-    @Override
-    public byte magic() {
-        return HgCmdBase.RAFT_UPDATE_PARTITION;
-    }
 }

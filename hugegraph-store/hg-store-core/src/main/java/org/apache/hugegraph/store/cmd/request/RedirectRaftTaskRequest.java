@@ -15,23 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
-import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
 import lombok.Data;
 
 @Data
-@Deprecated
-public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
+public class RedirectRaftTaskRequest extends HgCmdBase.BaseRequest {
 
-    private int startKey;
-    private int endKey;
+    final byte raftOp;
 
-    private Metapb.PartitionState workState;
+    private Object data;
+
+    public RedirectRaftTaskRequest(String graph, Integer partitionId, byte raftOp, Object data) {
+        this.raftOp = raftOp;
+        this.data = data;
+        setGraphName(graph);
+        setPartitionId(partitionId);
+    }
 
     @Override
     public byte magic() {
-        return HgCmdBase.RAFT_UPDATE_PARTITION;
+        return HgCmdBase.REDIRECT_RAFT_TASK;
     }
 }

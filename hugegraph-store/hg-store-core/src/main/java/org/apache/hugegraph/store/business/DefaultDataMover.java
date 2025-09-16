@@ -29,12 +29,12 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
-import org.apache.hugegraph.store.cmd.BatchPutRequest;
-import org.apache.hugegraph.store.cmd.BatchPutResponse;
-import org.apache.hugegraph.store.cmd.CleanDataRequest;
+import org.apache.hugegraph.store.cmd.request.BatchPutRequest;
+import org.apache.hugegraph.store.cmd.response.BatchPutResponse;
 import org.apache.hugegraph.store.cmd.HgCmdClient;
-import org.apache.hugegraph.store.cmd.UpdatePartitionRequest;
-import org.apache.hugegraph.store.cmd.UpdatePartitionResponse;
+import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
+import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
+import org.apache.hugegraph.store.cmd.request.CleanDataRequest;
 import org.apache.hugegraph.store.term.Bits;
 
 import com.alipay.sofa.jraft.Status;
@@ -42,6 +42,7 @@ import com.alipay.sofa.jraft.Status;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Deprecated
 public class DefaultDataMover implements DataMover {
 
     public static int Batch_Put_Size = 2000;
@@ -178,7 +179,8 @@ public class DefaultDataMover implements DataMover {
     @Override
     public UpdatePartitionResponse updatePartitionState(Metapb.Partition partition,
                                                         Metapb.PartitionState state) {
-        // When the partition splits, it actively needs to find the leader to synchronize information.
+        // When the partition splits, it actively needs to find the leader to synchronize
+        // information.
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setWorkState(state);
         request.setPartitionId(partition.getId());
@@ -189,7 +191,8 @@ public class DefaultDataMover implements DataMover {
     @Override
     public UpdatePartitionResponse updatePartitionRange(Metapb.Partition partition, int startKey,
                                                         int endKey) {
-        // When the partition splits, it actively needs to find the leader for information synchronization.
+        // When the partition splits, it actively needs to find the leader for information
+        // synchronization.
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setStartKey(startKey);
         request.setEndKey(endKey);

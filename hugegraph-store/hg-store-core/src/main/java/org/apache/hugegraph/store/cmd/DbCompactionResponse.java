@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.store.cmd;
 
+@Deprecated
 public class DbCompactionResponse extends HgCmdBase.BaseResponse {
 
 }

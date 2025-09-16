@@ -15,17 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.response;
 
-import lombok.Data;
+import org.apache.hugegraph.store.cmd.HgCmdBase.BaseResponse;
 
-@Data
-public class DbCompactionRequest extends HgCmdBase.BaseRequest {
+/**
+ * @date 2023/8/21
+ **/
+public class DefaultResponse extends BaseResponse {
 
-    private String tableName;
-
-    @Override
-    public byte magic() {
-        return HgCmdBase.ROCKSDB_COMPACTION;
-    }
 }

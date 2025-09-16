@@ -23,56 +23,56 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.cmd.HgCmdClient;
 import org.apache.hugegraph.store.cmd.request.BatchPutRequest;
 import org.apache.hugegraph.store.cmd.request.CleanDataRequest;
-import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
+import org.apache.hugegraph.store.meta.PartitionManager;
 
 import com.alipay.sofa.jraft.Status;
 
 /**
- * Data transfer interface, implementing partition splitting and merging, supporting
- * cross-machine data transfer.
+ * Data management interface implementing partitioned data management, split and merge
+ * operations, with support for cross-machine data transfer
  */
-@Deprecated
-public interface DataMover {
+public interface DataManager {
 
     void setBusinessHandler(BusinessHandler handler);
 
-    void setCmdClient(HgCmdClient client);
+    void setMetaManager(PartitionManager metaManager);
+
+    void setCmdClient(HgCmdClient cmdClient);
 
     /**
-     * Copy the data within the partition source to other partitions targets
-     * One partition, migrating to multiple partitions
+     * Copy data from source to multiple partitions
      *
      * @param source  source partition
      * @param targets target partitions
      * @return execution status
      * @throws Exception execution exception
      */
-    Status moveData(Metapb.Partition source, List<Metapb.Partition> targets) throws Exception;
+    Status move(Metapb.Partition source, List<Metapb.Partition> targets) throws Exception;
 
     /**
-     * Copy all data from source to target.
-     * Migrate from one partition to another partition
+     * Copy all data from source partition to target partition
      *
      * @param source source partition
      * @param target target partition
      * @return execution result
      * @throws Exception execution exception
      */
-    Status moveData(Metapb.Partition source, Metapb.Partition target) throws Exception;
+    Status move(Metapb.Partition source, Metapb.Partition target) throws Exception;
 
-    // Synchronize the partition state between replicas
-    UpdatePartitionResponse updatePartitionState(Metapb.Partition partition,
-                                                 Metapb.PartitionState state);
+    //UpdatePartitionResponse updatePartitionState(Metapb.Partition partition, Metapb
+    // .PartitionState state);
+    //
 
-    // Synchronization of the range of partitions between replicas
-    UpdatePartitionResponse updatePartitionRange(Metapb.Partition partition, int startKey,
-                                                 int endKey);
+    //UpdatePartitionResponse updatePartitionRange(Metapb.Partition partition, int startKey, int
+    // endKey);
 
-    // Clean up invalid data within the partitionpartition
+    // Clear useless data in partition
     void cleanData(Metapb.Partition partition);
 
     // Write data
-    void doWriteData(BatchPutRequest request);
+    void write(BatchPutRequest request);
 
-    void doCleanData(CleanDataRequest request);
+    void clean(CleanDataRequest request);
+
+    Status doBuildIndex(Metapb.BuildIndexParam param, Metapb.Partition partition) throws Exception;
 }

@@ -15,23 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.response;
 
-import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
-import lombok.Data;
+public class BatchPutResponse extends HgCmdBase.BaseResponse {
 
-@Data
-@Deprecated
-public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
-
-    private int startKey;
-    private int endKey;
-
-    private Metapb.PartitionState workState;
-
-    @Override
-    public byte magic() {
-        return HgCmdBase.RAFT_UPDATE_PARTITION;
-    }
 }
