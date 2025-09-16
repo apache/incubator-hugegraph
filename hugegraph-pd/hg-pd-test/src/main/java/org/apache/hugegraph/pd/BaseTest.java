@@ -21,12 +21,12 @@ import org.apache.hugegraph.pd.client.PDConfig;
 
 public class BaseTest {
 
-    protected static String pdGrpcAddr = "10.108.17.32:8686";
-    protected static String pdRestAddr = "http://10.108.17.32:8620";
-    protected static String user = "store";
-    protected static String pwd = "$2a$04$9ZGBULe2vc73DMj7r/iBKeQB1SagtUXPrDbMmNswRkTwlWQURE/Jy";
-    protected static String key = "Authorization";
-    protected static String value = "Basic c3RvcmU6YWRtaW4=";
+    protected static String pdGrpcAddr = System.getenv("PD_GRPC_ADDR");
+    protected static String pdRestAddr = System.getenv("PD_REST_ADDR");
+    protected static String user = System.getenv("PD_USER");
+    protected static String pwd = System.getenv("PD_PWD");
+    protected static String key = System.getenv("PD_AUTH_KEY");
+    protected static String value = System.getenv("PD_AUTH_VALUE");
 
     protected PDConfig getPdConfig() {
         return PDConfig.of(pdGrpcAddr).setAuthority(user, pwd);

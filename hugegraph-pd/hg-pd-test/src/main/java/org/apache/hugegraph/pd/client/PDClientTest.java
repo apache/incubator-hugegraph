@@ -339,7 +339,7 @@ public class PDClientTest extends BaseClientTest {
         try {
             pdClient.balancePartition();
         } catch (PDException e) {
-
+            e.printStackTrace();
         }
     }
 
