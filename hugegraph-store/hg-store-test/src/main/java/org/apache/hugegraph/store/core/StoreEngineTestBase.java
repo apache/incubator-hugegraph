@@ -24,7 +24,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
 import org.apache.hugegraph.store.UnitTestBase;
-import org.apache.hugegraph.store.business.DefaultDataMover;
+import org.apache.hugegraph.store.business.DataManagerImpl;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.ShardGroup;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
@@ -38,7 +38,8 @@ import com.alipay.sofa.jraft.util.StorageOptionsFactory;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Use FakePd and FakePdOptions to initialize HgStoreEngine, the getMetric functions of this class are available.
+ * Use FakePd and FakePdOptions to initialize HgStoreEngine, the getMetric functions of this
+ * class are available.
  */
 @Slf4j
 public class StoreEngineTestBase {
@@ -59,7 +60,7 @@ public class StoreEngineTestBase {
         }});
         options.setGrpcAddress("127.0.0.1:6511");
         options.setRaftAddress("127.0.0.1:6510");
-        options.setDataTransfer(new DefaultDataMover());
+        options.setDataTransfer(new DataManagerImpl());
 
         options.setFakePdOptions(new HgStoreEngineOptions.FakePdOptions() {{
             setStoreList("127.0.0.1");
@@ -92,7 +93,8 @@ public class StoreEngineTestBase {
     }
 
     /**
-     * Create partition 0's partition engine. The partition has 1 shard, as the leader, graph name: graph0.
+     * Create partition 0's partition engine. The partition has 1 shard, as the leader, graph
+     * name: graph0.
      *
      * @return
      */
