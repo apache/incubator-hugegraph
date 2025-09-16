@@ -40,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -198,6 +199,23 @@ public class PartitionAPI {
         List<String> ret = new ArrayList<>();
         ret.add("Arthas started successfully");
         return okMap("arthasstart", ret);
+    }
+
+    @PostMapping("/compat")
+    public Map<String, Object> compact(@RequestParam(value = "id") int id) {
+        boolean submitted =
+                nodeService.getStoreEngine().getBusinessHandler().blockingCompact("", id);
+        Map<String, Object> map = new HashMap<>();
+        if (submitted) {
+            map.put("code", "OK");
+            map.put("msg",
+                    "compaction was successfully submitted. See the log for more information");
+        } else {
+            map.put("code", "Failed");
+            map.put("msg",
+                    "compaction task fail to submit, and there could be another task in progress");
+        }
+        return map;
     }
 
     public Map<String, Object> okMap(String k, Object v) {
