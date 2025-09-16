@@ -1287,6 +1287,27 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     @Override
+    public boolean cleanTtl(String graph, int partId, String table, List<ByteString> ids) {
+
+        try (RocksDBSession dbSession = getSession(graph, table, partId)) {
+            SessionOperator op = dbSession.sessionOp();
+            try {
+                op.prepare();
+                for (ByteString bs : ids) {
+                    byte[] targetKey = keyCreator.getKey(partId, graph, bs.toByteArray());
+                    op.delete(table, targetKey);
+                }
+                op.commit();
+            } catch (Exception e) {
+                log.error("Graph: " + graph + " cleanTTL exception", e);
+                op.rollback();
+                throw new HgStoreException(HgStoreException.EC_RKDB_DODEL_FAIL, e.toString());
+            }
+        }
+        return true;
+    }
+
+    @Override
     public boolean existsTable(String graph, int partId, String table) {
         try (RocksDBSession session = getSession(graph, partId)) {
             return session.tableIsExist(table);
@@ -1330,15 +1351,127 @@ public class BusinessHandlerImpl implements BusinessHandler {
      * Perform compaction on RocksDB
      */
     @Override
-    public boolean dbCompaction(String graphName, int partitionId, String tableName) {
-        try (RocksDBSession session = getSession(graphName, partitionId)) {
-            SessionOperator op = session.sessionOp();
-            if (tableName.isEmpty()) {
-                op.compactRange();
-            } else {
-                op.compactRange(tableName);
+    public boolean dbCompaction(String graphName, int id, String tableName) {
+        try {
+            compactionPool.submit(() -> {
+                try {
+                    String path = getLockPath(id);
+                    try (RocksDBSession session = getSession(graphName, id)) {
+                        SessionOperator op = session.sessionOp();
+                        pathLock.putIfAbsent(path, new AtomicInteger(compactionCanStart));
+                        compactionState.putIfAbsent(id, new AtomicInteger(0));
+                        log.info("Partition {} dbCompaction started", id);
+                        if (tableName.isEmpty()) {
+                            lock(path);
+                            setState(id, doing);
+                            log.info("Partition {}-{} got lock, dbCompaction start", id, path);
+                            op.compactRange();
+                            setState(id, compactionDone);
+                            log.info("Partition {} dbCompaction end and start to do snapshot", id);
+                            PartitionEngine pe = HgStoreEngine.getInstance().getPartitionEngine(id);
+                            // find leader and send blankTask, after execution
+                            if (pe.isLeader()) {
+                                RaftClosure bc = (closure) -> {
+                                };
+                                pe.addRaftTask(RaftOperation.create(RaftOperation.SYNC_BLANK_TASK),
+                                               bc);
+                            } else {
+                                HgCmdClient client = HgStoreEngine.getInstance().getHgCmdClient();
+                                BlankTaskRequest request = new BlankTaskRequest();
+                                request.setGraphName("");
+                                request.setPartitionId(id);
+                                client.tryInternalCallSyncWithRpc(request);
+                            }
+                            setAndNotifyState(id, compactionDone);
+                        } else {
+                            op.compactRange(tableName);
+                        }
+                    }
+                    log.info("Partition {}-{} dbCompaction end", id, path);
+                } catch (Exception e) {
+                    log.error("do dbCompaction with error: ", e);
+                } finally {
+                    try {
+                        semaphore.release();
+                    } catch (Exception e) {
+
+                    }
+                }
+            });
+        } catch (Exception e) {
+
+        }
+        return true;
+    }
+
+    @Override
+    public void lock(String path) throws InterruptedException, TimeoutException {
+        long start = System.currentTimeMillis();
+        while (!compareAndSetLock(path)) {
+            AtomicInteger lock = pathLock.get(path);
+            synchronized (lock) {
+                lock.wait(1000);
+                if (System.currentTimeMillis() - start > timeoutMillis) {
+                    throw new TimeoutException("wait compaction start timeout");
+                }
             }
         }
+    }
+
+    @Override
+    public void unlock(String path) {
+        AtomicInteger l = pathLock.get(path);
+        l.set(compactionCanStart);
+        synchronized (l) {
+            l.notifyAll();
+        }
+    }
+
+    private boolean compareAndSetLock(String path) {
+        AtomicInteger l = pathLock.get(path);
+        return l.compareAndSet(compactionCanStart, doing);
+    }
+
+    @Override
+    public void awaitAndSetLock(int id, int expectedValue, int value) throws InterruptedException,
+                                                                             TimeoutException {
+        long start = System.currentTimeMillis();
+        while (!compareAndSetState(id, expectedValue, value)) {
+            AtomicInteger state = compactionState.get(id);
+            synchronized (state) {
+                state.wait(500);
+                if (System.currentTimeMillis() - start > timeoutMillis) {
+                    throw new TimeoutException("wait compaction start timeout");
+                }
+            }
+        }
+    }
+
+    @Override
+    public void setAndNotifyState(int id, int state) {
+        AtomicInteger l = compactionState.get(id);
+        l.set(state);
+        synchronized (l) {
+            l.notifyAll();
+        }
+    }
+
+    @Override
+    public AtomicInteger getState(int id) {
+        AtomicInteger l = compactionState.get(id);
+        return l;
+    }
+
+    private AtomicInteger setState(int id, int state) {
+        AtomicInteger l = compactionState.get(id);
+        l.set(state);
+        return l;
+    }
+
+    private boolean compareAndSetState(int id, int expectedState, int newState) {
+        AtomicInteger l = compactionState.get(id);
+        return l.compareAndSet(expectedState, newState);
+    }
 
     @Override
     public String getLockPath(int partitionId) {
