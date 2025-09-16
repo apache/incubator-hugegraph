@@ -15,20 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store;
+package org.apache.hugegraph.store.listener;
 
-import java.util.List;
-
-import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
+import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
 import org.apache.hugegraph.store.meta.Partition;
-import org.apache.hugegraph.store.meta.PartitionRole;
-@Deprecated
-public interface PartitionStateListener {
 
-    // Partition role changed
-    void partitionRoleChanged(Partition partition, PartitionRole newRole);
+/**
+ * @date 2023/9/11
+ * Partition object modification message
+ **/
+public interface PartitionChangedListener {
 
-    // Partition has changed
-    void partitionShardChanged(Partition partition, List<Metapb.Shard> oldShards,
-                               List<Metapb.Shard> newShards);
+    void onChanged(Partition partition);
+
+    UpdatePartitionResponse rangeOrStateChanged(UpdatePartitionRequest request);
 }
