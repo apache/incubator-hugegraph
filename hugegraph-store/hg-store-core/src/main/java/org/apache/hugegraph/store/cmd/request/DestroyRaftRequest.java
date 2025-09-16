@@ -15,23 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
-import org.apache.hugegraph.pd.grpc.Metapb;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
 import lombok.Data;
 
 @Data
-@Deprecated
-public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
+public class DestroyRaftRequest extends HgCmdBase.BaseRequest {
 
-    private int startKey;
-    private int endKey;
+    private List<String> graphNames = new ArrayList<>();
 
-    private Metapb.PartitionState workState;
+    public void addGraphName(String graphName) {
+        graphNames.add(graphName);
+    }
 
     @Override
     public byte magic() {
-        return HgCmdBase.RAFT_UPDATE_PARTITION;
+        return HgCmdBase.DESTROY_RAFT;
     }
 }

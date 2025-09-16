@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.store.cmd;
 
+@Deprecated
 public class BatchPutResponse extends HgCmdBase.BaseResponse {
 
 }
