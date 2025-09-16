@@ -17,10 +17,10 @@
 
 package org.apache.hugegraph.pd.client;
 
+import org.apache.hugegraph.pd.common.Useless;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.pulse.PartitionHeartbeatRequest;
 import org.apache.hugegraph.pd.pulse.PulseServerNotice;
-import org.apache.hugegraph.pd.client.test.HgPDTestUtil;
 import org.junit.BeforeClass;
 import org.junit.Test;
 // import org.junit.Test;
@@ -29,6 +29,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+@Useless("used for development")
 public class PDPulseTest {
 
     private static PDClient pdClient;

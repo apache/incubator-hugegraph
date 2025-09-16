@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client.test;
+package org.apache.hugegraph.pd.client;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

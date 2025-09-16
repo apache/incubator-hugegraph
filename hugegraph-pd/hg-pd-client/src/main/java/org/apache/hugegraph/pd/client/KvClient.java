@@ -143,16 +143,6 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
     private StreamObserver<WatchResponse> getObserver(String key, Consumer<T> consumer,
                                                       BiConsumer<String, Consumer> listenWrapper,
                                                       long client) {
-        // StreamObserver<WatchResponse> observer;
-        // if ((observer = observers.get(client)) == null) {
-        //    synchronized (this) {
-        //        if ((observer = observers.get(client)) == null) {
-        //            observer = getObserver(key, consumer, listenWrapper);
-        //            observers.put(client, observer);
-        //        }
-        //    }
-        // }
-        // return observer;
         StreamObserver<WatchResponse> observer = getObserver(key, consumer, listenWrapper);
         observers.add(observer);
         return observer;

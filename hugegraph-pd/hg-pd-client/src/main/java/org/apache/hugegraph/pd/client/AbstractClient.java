@@ -283,8 +283,7 @@ public abstract class AbstractClient implements Closeable {
                 continue;
             }
         } catch (Exception e) {
-            log.info("Close channel with error : {}.", e);
-        } finally {
+            log.info("Close channel with error :.", e);
         }
     }
 }
