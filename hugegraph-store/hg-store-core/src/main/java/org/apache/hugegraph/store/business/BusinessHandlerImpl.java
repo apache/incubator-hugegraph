@@ -17,28 +17,48 @@
 
 package org.apache.hugegraph.store.business;
 
-import static org.apache.hugegraph.store.util.HgStoreConst.EMPTY_BYTES;
+import static org.apache.hugegraph.store.business.MultiPartitionIterator.EMPTY_BYTES;
+import static org.apache.hugegraph.store.constant.HugeServerTables.INDEX_TABLE;
+import static org.apache.hugegraph.store.constant.HugeServerTables.IN_EDGE_TABLE;
+import static org.apache.hugegraph.store.constant.HugeServerTables.OUT_EDGE_TABLE;
+import static org.apache.hugegraph.store.constant.HugeServerTables.VERTEX_TABLE;
 import static org.apache.hugegraph.store.util.HgStoreConst.SCAN_ALL_PARTITIONS_ID;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hugegraph.HugeGraphSupplier;
+import org.apache.hugegraph.SchemaGraph;
+import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.OptionSpace;
+import org.apache.hugegraph.id.EdgeId;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.common.PartitionUtils;
 import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.DBStoreException;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
@@ -47,52 +67,83 @@ import org.apache.hugegraph.rocksdb.access.RocksDBOptions;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.apache.hugegraph.rocksdb.access.SessionOperator;
+import org.apache.hugegraph.serializer.BinaryElementSerializer;
+import org.apache.hugegraph.serializer.BytesBuffer;
+import org.apache.hugegraph.serializer.DirectBinarySerializer;
 import org.apache.hugegraph.store.HgStoreEngine;
-import org.apache.hugegraph.store.cmd.CleanDataRequest;
+import org.apache.hugegraph.store.PartitionEngine;
+import org.apache.hugegraph.store.business.itrv2.BatchGetIterator;
+import org.apache.hugegraph.store.business.itrv2.InAccurateIntersectionIterator;
+import org.apache.hugegraph.store.business.itrv2.InAccurateUnionFilterIterator;
+import org.apache.hugegraph.store.business.itrv2.IntersectionFilterIterator;
+import org.apache.hugegraph.store.business.itrv2.IntersectionWrapper;
+import org.apache.hugegraph.store.business.itrv2.MapJoinIterator;
+import org.apache.hugegraph.store.business.itrv2.MapLimitIterator;
+import org.apache.hugegraph.store.business.itrv2.MapUnionIterator;
+import org.apache.hugegraph.store.business.itrv2.MultiListIterator;
+import org.apache.hugegraph.store.business.itrv2.TypeTransIterator;
+import org.apache.hugegraph.store.business.itrv2.UnionFilterIterator;
+import org.apache.hugegraph.store.business.itrv2.io.SortShuffleSerializer;
+import org.apache.hugegraph.store.cmd.HgCmdClient;
+import org.apache.hugegraph.store.cmd.request.BlankTaskRequest;
+import org.apache.hugegraph.store.cmd.request.CleanDataRequest;
+import org.apache.hugegraph.store.consts.PoolNames;
 import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest;
 import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.Request;
 import org.apache.hugegraph.store.grpc.Graphpb.ScanPartitionRequest.ScanType;
+import org.apache.hugegraph.store.grpc.query.DeDupOption;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.PartitionManager;
 import org.apache.hugegraph.store.meta.asynctask.AsyncTaskState;
 import org.apache.hugegraph.store.meta.asynctask.CleanTask;
 import org.apache.hugegraph.store.metric.HgStoreMetric;
+import org.apache.hugegraph.store.pd.DefaultPdProvider;
 import org.apache.hugegraph.store.pd.PdProvider;
+import org.apache.hugegraph.store.query.QueryTypeParam;
+import org.apache.hugegraph.store.raft.RaftClosure;
+import org.apache.hugegraph.store.raft.RaftOperation;
 import org.apache.hugegraph.store.term.Bits;
 import org.apache.hugegraph.store.term.HgPair;
+import org.apache.hugegraph.store.util.ExecutorUtil;
 import org.apache.hugegraph.store.util.HgStoreException;
+import org.apache.hugegraph.structure.BaseElement;
+import org.apache.hugegraph.util.Bytes;
 import org.rocksdb.Cache;
 import org.rocksdb.MemoryUsageType;
 
 import com.alipay.sofa.jraft.util.Utils;
+import com.google.protobuf.ByteString;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BusinessHandlerImpl implements BusinessHandler {
 
+    private static final Map<String, HugeGraphSupplier> GRAPH_SUPPLIER_CACHE =
+            new ConcurrentHashMap<>();
     private static final int batchSize = 10000;
+    private static Long indexDataSize = 50 * 1024L;
     private static final RocksDBFactory factory = RocksDBFactory.getInstance();
     private static final HashMap<ScanType, String> tableMapping = new HashMap<>() {{
-        put(ScanType.SCAN_VERTEX, tableVertex);
-        put(ScanType.SCAN_EDGE, tableOutEdge);
+        put(ScanType.SCAN_VERTEX, VERTEX_TABLE);
+        put(ScanType.SCAN_EDGE, OUT_EDGE_TABLE);
     }};
     private static final Map<Integer, String> dbNames = new ConcurrentHashMap<>();
-
-    static {
-        int code = tableUnknown.hashCode();
-        code = tableVertex.hashCode();
-        code = tableOutEdge.hashCode();
-        code = tableInEdge.hashCode();
-        code = tableIndex.hashCode();
-        code = tableTask.hashCode();
-        code = tableTask.hashCode();
-        log.debug("init table code:{}", code);
-    }
-
+    private static HugeGraphSupplier mockGraphSupplier = null;
+    private static final int compactionThreadCount = 64;
+    private static final ConcurrentMap<String, AtomicInteger> pathLock = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<Integer, AtomicInteger> compactionState =
+            new ConcurrentHashMap<>();
+    private static final ThreadPoolExecutor compactionPool =
+            ExecutorUtil.createExecutor(PoolNames.COMPACT, compactionThreadCount,
+                                        compactionThreadCount * 4, Integer.MAX_VALUE);
+    private static final int timeoutMillis = 6 * 3600 * 1000;
+    private final BinaryElementSerializer serializer = BinaryElementSerializer.getInstance();
+    private final DirectBinarySerializer directBinarySerializer = new DirectBinarySerializer();
     private final PartitionManager partitionManager;
     private final PdProvider provider;
     private final InnerKeyCreator keyCreator;
+    private final Semaphore semaphore = new Semaphore(1);
 
     public BusinessHandlerImpl(PartitionManager partitionManager) {
         this.partitionManager = partitionManager;
@@ -122,12 +173,33 @@ public class BusinessHandlerImpl implements BusinessHandler {
         // Register rocksdb configuration
         OptionSpace.register("rocksdb", "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
         RocksDBOptions.instance();
-        HugeConfig hConfig = new HugeConfig(new MapConfiguration(rocksdbConfig));
+        HugeConfig hConfig = new HugeConfig(rocksdbConfig);
         factory.setHugeConfig(hConfig);
         if (listener != null) {
             factory.addRocksdbChangedListener(listener);
         }
         return hConfig;
+    }
+
+    public static void setIndexDataSize(long dataSize) {
+        if (dataSize > 0) {
+            indexDataSize = dataSize;
+        }
+    }
+
+    /**
+     * FNV hash method
+     *
+     * @param key hash input
+     * @return a long hash value
+     */
+    public static Long fnvHash(byte[] key) {
+        long rv = 0xcbf29ce484222325L;
+        for (var b : key) {
+            rv ^= b;
+            rv *= 0x100000001b3L;
+        }
+        return rv;
     }
 
     public static String getDbName(int partId) {
@@ -140,6 +212,40 @@ public class BusinessHandlerImpl implements BusinessHandler {
         return dbName;
     }
 
+    public static ThreadPoolExecutor getCompactionPool() {
+        return compactionPool;
+    }
+
+    /**
+     * used for testing, setting fake graph supplier
+     *
+     * @param supplier
+     */
+    public static void setMockGraphSupplier(HugeGraphSupplier supplier) {
+        mockGraphSupplier = supplier;
+    }
+
+    public static HugeGraphSupplier getGraphSupplier(String graph) {
+        if (mockGraphSupplier != null) {
+            return mockGraphSupplier;
+        }
+
+        if (GRAPH_SUPPLIER_CACHE.get(graph) == null) {
+            synchronized (BusinessHandlerImpl.class) {
+                if (GRAPH_SUPPLIER_CACHE.get(graph) == null) {
+                    var config =
+                            PDConfig.of(HgStoreEngine.getInstance().getOption().getPdAddress());
+                    config.setAuthority(DefaultPdProvider.name, DefaultPdProvider.authority);
+                    String[] parts = graph.split("/");
+                    assert (parts.length > 1);
+                    GRAPH_SUPPLIER_CACHE.put(graph, new SchemaGraph(parts[0], parts[1], config));
+                }
+            }
+        }
+
+        return GRAPH_SUPPLIER_CACHE.get(graph);
+    }
+
     @Override
     public void doPut(String graph, int code, String table, byte[] key, byte[] value) throws
                                                                                       HgStoreException {
@@ -149,7 +255,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             SessionOperator op = dbSession.sessionOp();
             try {
                 op.prepare();
-                byte[] targetKey = keyCreator.getKey(partId, graph, code, key);
+                byte[] targetKey = keyCreator.getKeyOrCreate(partId, graph, code, key);
                 op.put(table, targetKey, value);
                 op.commit();
             } catch (Exception e) {
@@ -163,6 +269,9 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public byte[] doGet(String graph, int code, String table, byte[] key) throws HgStoreException {
         int partId = provider.getPartitionByCode(graph, code).getId();
+        if (!partitionManager.hasPartition(graph, partId)) {
+            return null;
+        }
 
         try (RocksDBSession dbSession = getSession(graph, table, partId)) {
             byte[] targetKey = keyCreator.getKey(partId, graph, code, key);
@@ -232,6 +341,76 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     /**
+     * Merge ID scans into a single list, and invoke the scan function for others
+     *
+     * @param graph       graph
+     * @param table       table
+     * @param params      primary scan params
+     * @param dedupOption de-duplicate option, 0: none, 1: none-exactly 2: exactly
+     * @return an iterator
+     * @throws HgStoreException when get db session fail
+     */
+    @Override
+    public ScanIterator scan(String graph, String table, List<QueryTypeParam> params,
+                             DeDupOption dedupOption) throws HgStoreException {
+
+        var iterator = scan(graph, table, params);
+
+        if (!(iterator instanceof MultiListIterator)) {
+            return iterator;
+        }
+
+        switch (dedupOption) {
+            case NONE:
+                return iterator;
+            case DEDUP:
+                return new InAccurateUnionFilterIterator<>(iterator,
+                                                           BusinessHandlerImpl::getColumnByteHash);
+            case LIMIT_DEDUP:
+                return new MapLimitIterator<>(iterator);
+            case PRECISE_DEDUP:
+                // todo: optimize?
+                var wrapper =
+                        new IntersectionWrapper<>(iterator, BusinessHandlerImpl::getColumnByteHash);
+                wrapper.proc();
+                // Scan again
+                return new UnionFilterIterator<>(scan(graph, table, params), wrapper,
+                                                 (o1, o2) -> Arrays.compare(o1.name, o2.name),
+                                                 SortShuffleSerializer.ofBackendColumnSerializer());
+            default:
+                return null;
+        }
+    }
+
+    private ScanIterator scan(String graph, String table, List<QueryTypeParam> params) throws
+                                                                                       HgStoreException {
+        //put id scan in to a single list
+        var idList = params.stream().filter(QueryTypeParam::isIdScan).collect(Collectors.toList());
+
+        var itr = new MultiListIterator();
+        for (var param : params) {
+            if (param.isPrefixScan()) {
+                // prefix scan
+                itr.addIterator(scanPrefix(graph, param.getCode(), table, param.getStart(),
+                                           param.getBoundary()));
+            } else if (param.isRangeScan()) {
+                // ranged scan
+                itr.addIterator(
+                        scan(graph, param.getCode(), table, param.getStart(), param.getEnd(),
+                             param.getBoundary()));
+            }
+        }
+
+        if (!idList.isEmpty()) {
+            itr.addIterator(new BatchGetIterator(idList.iterator(),
+                                                 idParam -> doGet(graph, idParam.getCode(), table,
+                                                                  idParam.getStart())));
+        }
+
+        return itr.getIterators().size() == 1 ? itr.getIterators().get(0) : itr;
+    }
+
+    /**
      * According to keyCode range return data, left closed right open.
      *
      * @param graph
@@ -281,6 +460,396 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public GraphStoreIterator scan(ScanPartitionRequest spr) throws HgStoreException {
         return new GraphStoreIterator(scanOriginal(spr), spr);
+    }
+
+    private ToLongFunction<BaseElement> getBaseElementHashFunction() {
+        return value -> fnvHash(value.id().asBytes());
+    }
+
+    @Override
+    public ScanIterator scanIndex(String graph, String table, List<List<QueryTypeParam>> params,
+                                  DeDupOption dedupOption, boolean lookupBack, boolean transKey,
+                                  boolean filterTTL, int limit) throws HgStoreException {
+
+        ScanIterator result;
+
+        boolean onlyPrimary =
+                params.stream().allMatch(sub -> sub.size() == 1 && !sub.get(0).isIndexScan());
+
+        boolean needLookup = lookupBack && !onlyPrimary;
+
+        if (params.size() == 1) {
+            // no union operation
+            result = indexIntersection(graph, table, params.get(0), dedupOption, onlyPrimary,
+                                       filterTTL, needLookup, limit);
+        } else {
+            // Multiple Index
+            var sub = params.stream()
+                            .map(p2 -> indexIntersection(graph, table, p2, dedupOption, onlyPrimary,
+                                                         filterTTL, needLookup, limit))
+                            .collect(Collectors.toList());
+
+            switch (dedupOption) {
+                case NONE:
+                    result = new MultiListIterator(sub);
+                    break;
+                case DEDUP:
+                    result = new InAccurateUnionFilterIterator<>(new MultiListIterator(sub),
+                                                                 BusinessHandlerImpl::getColumnByteHash);
+                    break;
+                case LIMIT_DEDUP:
+                    result = new MapLimitIterator<>(new MultiListIterator(sub));
+                    break;
+                case PRECISE_DEDUP:
+                    if (limit > 0) {
+                        // map limit 去重
+                        result = new MapLimitIterator<RocksDBSession.BackendColumn>(
+                                new MultiListIterator(sub));
+                    } else {
+                        // union operation
+                        var fileSize = getQueryFileSize(graph, table, getLeaderPartitionIds(graph),
+                                                        params);
+                        if (fileSize < indexDataSize * params.size()) {
+                            // using map
+                            result = new MapUnionIterator<RocksDBSession.BackendColumn, String>(sub,
+                                                                                                col -> Arrays.toString(
+                                                                                                        col.name));
+                        } else {
+                            result = new MultiListIterator(sub);
+                            var wrapper = new IntersectionWrapper<>(result,
+                                                                    BusinessHandlerImpl::getColumnByteHash);
+                            wrapper.proc();
+
+                            var round2 = new MultiListIterator();
+                            for (int i = 0; i < params.size(); i++) {
+                                var itr = sub.get(i);
+                                if (itr instanceof MapJoinIterator) {
+                                    // It's in memory, no need to recalculate
+                                    ((MapJoinIterator<?, ?>) itr).reset();
+                                    round2.addIterator(itr);
+                                } else {
+                                    round2.addIterator(
+                                            indexIntersection(graph, table, params.get(i),
+                                                              dedupOption, onlyPrimary, filterTTL,
+                                                              needLookup, limit));
+                                }
+                            }
+                            result = new UnionFilterIterator<>(round2, wrapper,
+                                                               (o1, o2) -> Arrays.compare(o1.name,
+                                                                                          o2.name),
+                                                               SortShuffleSerializer.ofBackendColumnSerializer());
+                        }
+                    }
+                    break;
+                default:
+                    throw new HgStoreException("deduplication option not supported");
+            }
+        }
+
+        if (needLookup) {
+            // query the original table
+            result =
+                    new TypeTransIterator<RocksDBSession.BackendColumn,
+                            RocksDBSession.BackendColumn>(
+                            result, column -> {
+                        if (column != null && column.name != null) {
+                            // var id = KeyUtil.getOwnerKey(table, backendColumn.name);
+                            var value =
+                                    doGet(graph, PartitionUtils.calcHashcode(column.value), table,
+                                          column.name);
+                            if (value != null && value.length > 0) {
+                                return RocksDBSession.BackendColumn.of(column.name, value);
+                            }
+                        }
+                        return null;
+                    }, "lookup-back-table");
+        }
+        return result;
+    }
+
+    /**
+     * for no scan:
+     * case 1: count case， multi param + no dedup + no transElement
+     * case 2: transElement， one param + dedup + transElement
+     */
+    @Override
+    public ScanIterator scanIndex(String graph, List<List<QueryTypeParam>> params,
+                                  DeDupOption dedupOption, boolean transElement,
+                                  boolean filterTTL) throws HgStoreException {
+        // case 1
+        if (!transElement) {
+            if (params.size() == 1) {
+                var param = params.get(0).get(0);
+                if (param.isRangeIndexScan()) {
+                    return scan(graph, param.getCode(), "g+index", param.getStart(), param.getEnd(),
+                                param.getBoundary());
+                } else {
+                    return scanPrefix(graph, param.getCode(), "g+index", param.getStart(),
+                                      param.getBoundary());
+                }
+            } else {
+                // todo: change multiListIterator of MultiPartition to ? ,
+                //  combine multi id?
+                var result = new MultiListIterator();
+                params.forEach(sub -> {
+                    var param = sub.get(0);
+                    if (param.isRangeIndexScan()) {
+                        result.addIterator(scan(graph, param.getCode(), "g+index", param.getStart(),
+                                                param.getEnd(), param.getBoundary()));
+                    } else {
+                        result.addIterator(
+                                scanPrefix(graph, param.getCode(), "g+index", param.getStart(),
+                                           param.getBoundary()));
+                    }
+                });
+                return result;
+            }
+        }
+
+        // case 2
+        var param = params.get(0).get(0);
+        var result = scanIndexToBaseElement(graph, param, filterTTL);
+
+        switch (dedupOption) {
+            case NONE:
+                return result;
+            case DEDUP:
+                return new InAccurateUnionFilterIterator<>(result, getBaseElementHashFunction());
+            case LIMIT_DEDUP:
+                return new MapLimitIterator<>(result);
+            case PRECISE_DEDUP:
+                var wrapper = new IntersectionWrapper<>(result, getBaseElementHashFunction());
+                wrapper.proc();
+                return new UnionFilterIterator<>(scanIndexToBaseElement(graph, param, filterTTL),
+                                                 wrapper,
+                                                 (o1, o2) -> Arrays.compare(o1.id().asBytes(),
+                                                                            o2.id().asBytes()),
+                                                 SortShuffleSerializer.ofBaseElementSerializer());
+            default:
+                return null;
+        }
+    }
+
+    public ScanIterator indexIntersection(String graph, String table, List<QueryTypeParam> params,
+                                          DeDupOption dedupOption, boolean onlyPrimary,
+                                          boolean filterTTL, boolean lookup, int limit) throws
+                                                                                        HgStoreException {
+
+        // Primary key queries do not require deduplication and only support a single primary key,
+        // For other index queries, deduplication should be performed based on BackendColumn,
+        // removing the value.
+        if (params.size() == 1 && !params.get(0).isIndexScan()) {
+            var iterator = scan(graph, table, params);
+            // need to remove value and index to dedup
+            return onlyPrimary ? iterator : new TypeTransIterator<>(iterator,
+                                                                    (Function<RocksDBSession.BackendColumn, RocksDBSession.BackendColumn>) column -> {
+                                                                        // todo: from key
+                                                                        //  to owner key
+                                                                        BaseElement element;
+                                                                        try {
+                                                                            if (IN_EDGE_TABLE.equals(
+                                                                                    table) ||
+                                                                                OUT_EDGE_TABLE.equals(
+                                                                                        table)) {
+                                                                                element =
+                                                                                        serializer.parseEdge(
+                                                                                                getGraphSupplier(
+                                                                                                        graph),
+                                                                                                BackendColumn.of(
+                                                                                                        column.name,
+                                                                                                        column.value),
+                                                                                                null,
+                                                                                                false);
+                                                                            } else {
+                                                                                element =
+                                                                                        serializer.parseVertex(
+                                                                                                getGraphSupplier(
+                                                                                                        graph),
+                                                                                                BackendColumn.of(
+                                                                                                        column.name,
+                                                                                                        column.value),
+                                                                                                null);
+                                                                            }
+                                                                        } catch (Exception e) {
+                                                                            log.error("parse " +
+                                                                                      "element " +
+                                                                                      "error, " +
+                                                                                      "graph" +
+                                                                                      " " +
+                                                                                      "{}, table," +
+                                                                                      " {}", graph,
+                                                                                      table, e);
+                                                                            return null;
+                                                                        }
+                                                                        // column.value =
+                                                                        // KeyUtil
+                                                                        // .idToBytes
+                                                                        // (BinaryElementSerializer.ownerId
+                                                                        // (element));
+                                                                        column.value =
+                                                                                BinaryElementSerializer.ownerId(
+                                                                                                               element)
+                                                                                                       .asBytes();
+                                                                        return column;
+                                                                    }, "replace-pk");
+        }
+
+        var iterators =
+                params.stream().map(param -> scanIndexToElementId(graph, param, filterTTL, lookup))
+                      .collect(Collectors.toList());
+
+        // Reduce iterator hierarchy
+        ScanIterator result =
+                params.size() == 1 ? iterators.get(0) : new MultiListIterator(iterators);
+
+        if (dedupOption == DeDupOption.NONE) {
+            return result;
+        } else if (dedupOption == DeDupOption.DEDUP) {
+            return params.size() == 1 ? new InAccurateUnionFilterIterator<>(result,
+                                                                            BusinessHandlerImpl::getColumnByteHash) :
+                   new InAccurateIntersectionIterator<>(result,
+                                                        BusinessHandlerImpl::getColumnByteHash);
+        } else if (dedupOption == DeDupOption.PRECISE_DEDUP && limit > 0 ||
+                   dedupOption == DeDupOption.LIMIT_DEDUP) {
+            // Exact deduplication with limit using map-based deduplication
+            return new MapLimitIterator<RocksDBSession.BackendColumn>(result);
+        } else {
+            // todo: single index need not to deduplication
+            var ids = this.getLeaderPartitionIds(graph);
+            var sizes = params.stream().map(param -> getQueryFileSize(graph, "g+v", ids, param))
+                              .collect(Collectors.toList());
+
+            log.debug("queries: {} ,sizes : {}", params, sizes);
+            Long minSize = Long.MAX_VALUE;
+            int loc = -1;
+            for (int i = 0; i < sizes.size(); i++) {
+                if (sizes.get(i) < minSize) {
+                    minSize = sizes.get(i);
+                    loc = i;
+                }
+            }
+
+            if (minSize < indexDataSize) {
+                return new MapJoinIterator<RocksDBSession.BackendColumn, String>(iterators, loc,
+                                                                                 col -> Arrays.toString(
+                                                                                         col.name));
+            } else {
+                var wrapper =
+                        new IntersectionWrapper<>(result, BusinessHandlerImpl::getColumnByteHash,
+                                                  true);
+                wrapper.proc();
+
+                var r2 = multiIndexIterator(graph, params, filterTTL, lookup);
+                return params.size() == 1 ? new UnionFilterIterator<>(r2, wrapper,
+                                                                      (o1, o2) -> Arrays.compare(
+                                                                              o1.name, o2.name),
+                                                                      SortShuffleSerializer.ofBackendColumnSerializer()) :
+                       new IntersectionFilterIterator(r2, wrapper, params.size());
+            }
+        }
+    }
+
+    private long getQueryFileSize(String graph, String table, List<Integer> partitions,
+                                  List<List<QueryTypeParam>> params) {
+        long total = 0;
+        for (var sub : params) {
+            var size = sub.stream().map(param -> getQueryFileSize(graph,
+                                                                  param.isIndexScan() ? "g+index" :
+                                                                  table, partitions, param))
+                          .min(Long::compareTo);
+            total += size.get();
+        }
+        return total;
+    }
+
+    private long getQueryFileSize(String graph, String table, List<Integer> partitions,
+                                  QueryTypeParam param) {
+        long total = 0;
+        for (int partId : partitions) {
+            try (RocksDBSession dbSession = getSession(graph, partId)) {
+                total += dbSession.getApproximateDataSize(table, param.getStart(), param.getEnd());
+            }
+        }
+        return total;
+    }
+
+    private ScanIterator multiIndexIterator(String graph, List<QueryTypeParam> params,
+                                            boolean filterTTL, boolean lookup) {
+        var iterators =
+                params.stream().map(param -> scanIndexToElementId(graph, param, filterTTL, lookup))
+                      .collect(Collectors.toList());
+        return params.size() == 1 ? iterators.get(0) : new MultiListIterator(iterators);
+    }
+
+    private ScanIterator scanIndexToElementId(String graph, QueryTypeParam param, boolean filterTTL,
+                                              boolean lookup) {
+        long now = System.currentTimeMillis();
+        return new TypeTransIterator<RocksDBSession.BackendColumn, RocksDBSession.BackendColumn>(
+                param.isRangeIndexScan() ?
+                scan(graph, param.getCode(), INDEX_TABLE, param.getStart(), param.getEnd(),
+                     param.getBoundary()) :
+                scanPrefix(graph, param.getCode(), INDEX_TABLE, param.getStart(),
+                           param.getBoundary()), column -> {
+            if (filterTTL && isIndexExpire(column, now)) {
+                return null;
+            }
+
+            // todo : 后面使用 parseIndex(BackendColumn indexCol)
+            var index = serializer.parseIndex(getGraphSupplier(graph),
+                                              BackendColumn.of(column.name, column.value), null);
+
+            if (param.getIdPrefix() != null &&
+                !Bytes.prefixWith(index.elementId().asBytes(), param.getIdPrefix())) {
+                return null;
+            }
+
+            Id elementId = index.elementId();
+            if (elementId instanceof EdgeId) {
+                column.name = new BytesBuffer().writeEdgeId(elementId).bytes();
+            } else {
+                column.name = new BytesBuffer().writeId(elementId).bytes();
+            }
+
+            if (lookup) {
+                // 存放的 owner key
+                column.value = BinaryElementSerializer.ownerId(index).asBytes();
+                // column.value = KeyUtil.idToBytes(BinaryElementSerializer.ownerId(index));
+            }
+            return column;
+        }, "trans-index-to-element-id");
+    }
+
+    private ScanIterator scanIndexToBaseElement(String graph, QueryTypeParam param,
+                                                boolean filterTTL) {
+
+        long now = System.currentTimeMillis();
+        return new TypeTransIterator<RocksDBSession.BackendColumn, BaseElement>(
+                param.isRangeIndexScan() ?
+                scan(graph, param.getCode(), INDEX_TABLE, param.getStart(), param.getEnd(),
+                     param.getBoundary()) :
+                scanPrefix(graph, param.getCode(), INDEX_TABLE, param.getStart(),
+                           param.getBoundary()), column -> {
+            if (filterTTL && isIndexExpire(column, now)) {
+                return null;
+            }
+
+            var e = serializer.index2Element(getGraphSupplier(graph),
+                                             BackendColumn.of(column.name, column.value));
+
+            if (param.getIdPrefix() != null &&
+                !Bytes.prefixWith(e.id().asBytes(), param.getIdPrefix())) {
+                return null;
+            }
+
+            return e;
+            // return new BaseVertex(IdUtil.readLong(String.valueOf(random.nextLong())),
+            // VertexLabel.GENERAL);
+        }, "trans-index-to-base-element");
+    }
+
+    private boolean isIndexExpire(RocksDBSession.BackendColumn column, long now) {
+        var e = directBinarySerializer.parseIndex(column.name, column.value);
+        return e.expiredTime() > 0 && e.expiredTime() < now;
     }
 
     @Override
@@ -439,7 +1008,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public void truncate(String graphName, int partId) throws HgStoreException {
-        // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is rocksdb + partId
+        // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is
+        // rocksdb + partId
         try (RocksDBSession dbSession = getSession(graphName, partId)) {
             dbSession.sessionOp().deleteRange(keyCreator.getStartKey(partId, graphName),
                                               keyCreator.getEndKey(partId, graphName));
@@ -458,6 +1028,11 @@ public class BusinessHandlerImpl implements BusinessHandler {
                 }
             }
         });
+    }
+
+    @Override
+    public void closeDB(int partId) {
+        factory.releaseGraphDB(getDbName(partId));
     }
 
     @Override
@@ -480,6 +1055,11 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public List<Integer> getLeaderPartitionIds(String graph) {
         return partitionManager.getLeaderPartitionIds(graph);
+    }
+
+    @Override
+    public Set<Integer> getLeaderPartitionIdSet() {
+        return partitionManager.getLeaderPartitionIdSet();
     }
 
     @Override
@@ -574,7 +1154,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     /**
      * Clean up partition data, delete data not belonging to this partition.
-     * Traverse all keys of partId, read code, if code >= splitKey generate a new key, write to newPartId
+     * Traverse all keys of partId, read code, if code >= splitKey generate a new key, write to
+     * newPartId
      */
     private boolean cleanPartition(Partition partition,
                                    Function<Integer, Boolean> belongsFunction) {
@@ -671,8 +1252,15 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public RocksDBSession getSession(int partId) throws HgStoreException {
-        // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is rocksdb + partId
+        // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is
+        // rocksdb + partId
         String dbName = getDbName(partId);
+        if (HgStoreEngine.getInstance().isClosing().get()) {
+            HgStoreException closeException =
+                    new HgStoreException(HgStoreException.EC_CLOSE, "store is closing", dbName);
+            log.error("get session with error:", closeException);
+            throw closeException;
+        }
         RocksDBSession dbSession = factory.queryGraphDB(dbName);
         if (dbSession == null) {
             long version = HgStoreEngine.getInstance().getCommittedIndex(partId);
@@ -691,10 +1279,6 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     private void deleteGraphDatabase(String graph, int partId) throws IOException {
         truncate(graph, partId);
-    }
-
-    private PartitionManager getPartManager() {
-        return this.partitionManager;
     }
 
     @Override
@@ -756,7 +1340,28 @@ public class BusinessHandlerImpl implements BusinessHandler {
             }
         }
 
-        log.info("Partition {}-{} dbCompaction end", graphName, partitionId);
+    @Override
+    public String getLockPath(int partitionId) {
+        String dataPath = partitionManager.getDbDataPath(partitionId);
+        File file = FileUtils.getFile(dataPath);
+        File pf = file.getParentFile();
+        return pf.getAbsolutePath();
+    }
+
+    @Override
+    public List<Integer> getPartitionIds(String graph) {
+        return partitionManager.getPartitionIds(graph);
+    }
+
+    @Override
+    public boolean blockingCompact(String graphName, int partitionId) {
+        //FIXME acquire semaphore here but release in dbCompaction
+        boolean locked = semaphore.tryAcquire();
+        if (locked) {
+            dbCompaction(graphName, partitionId, "");
+        } else {
+            return false;
+        }
         return true;
     }
 
@@ -768,7 +1373,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
      */
     @Override
     public void destroyGraphDB(String graphName, int partId) throws HgStoreException {
-        // Each graph each partition corresponds to a rocksdb instance, so the rocksdb instance name is rocksdb + partId
+        // Each graph each partition corresponds to a rocksdb instance, so the rocksdb instance
+        // name is rocksdb + partId
         String dbName = getDbName(partId);
 
         factory.destroyGraphDB(dbName);
@@ -804,6 +1410,14 @@ public class BusinessHandlerImpl implements BusinessHandler {
             }
         }).collect(Collectors.summingLong(l -> l));
         return all;
+    }
+
+    public InnerKeyCreator getKeyCreator() {
+        return keyCreator;
+    }
+
+    public static Long getColumnByteHash(RocksDBSession.BackendColumn column) {
+        return fnvHash(column.name);
     }
 
     @NotThreadSafe
@@ -904,7 +1518,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
             return new Tx() {
                 @Override
                 public void commit() throws HgStoreException {
-                    op.commit();  // After an exception occurs in commit, rollback must be called, otherwise it will cause the lock not to be released.
+                    op.commit();  // After an exception occurs in commit, rollback must be
+                    // called, otherwise it will cause the lock not to be released.
                     dbSession.close();
                 }
 
