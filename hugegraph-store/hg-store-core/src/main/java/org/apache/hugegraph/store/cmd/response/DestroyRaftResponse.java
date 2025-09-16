@@ -15,12 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.response;
 
-public class GetStoreInfoRequest extends HgCmdBase.BaseRequest {
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
-    @Override
-    public byte magic() {
-        return HgCmdBase.GET_STORE_INFO;
-    }
+public class DestroyRaftResponse extends HgCmdBase.BaseResponse {
+
 }

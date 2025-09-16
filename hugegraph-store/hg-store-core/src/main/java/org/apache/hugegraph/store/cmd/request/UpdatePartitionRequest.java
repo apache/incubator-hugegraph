@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
 import lombok.Data;
 
 @Data
-@Deprecated
 public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
 
     private int startKey;

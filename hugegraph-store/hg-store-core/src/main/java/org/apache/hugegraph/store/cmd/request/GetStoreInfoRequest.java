@@ -15,24 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
-import java.util.ArrayList;
-import java.util.List;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
-import lombok.Data;
-
-@Data
-public class DestroyRaftRequest extends HgCmdBase.BaseRequest {
-
-    private final List<String> graphNames = new ArrayList<>();
-
-    public void addGraphName(String graphName) {
-        graphNames.add(graphName);
-    }
+public class GetStoreInfoRequest extends HgCmdBase.BaseRequest {
 
     @Override
     public byte magic() {
-        return HgCmdBase.DESTROY_RAFT;
+        return HgCmdBase.GET_STORE_INFO;
     }
 }

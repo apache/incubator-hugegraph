@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.request;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
 
 import com.alipay.sofa.jraft.conf.Configuration;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -28,7 +29,6 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Deprecated
 public class CreateRaftRequest extends HgCmdBase.BaseRequest {
 
     List<byte[]> values = new ArrayList<>();

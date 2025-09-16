@@ -22,6 +22,23 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.store.HgStoreEngine;
+import org.apache.hugegraph.store.PartitionEngine;
+import org.apache.hugegraph.store.cmd.request.BatchPutRequest;
+import org.apache.hugegraph.store.cmd.request.BlankTaskRequest;
+import org.apache.hugegraph.store.cmd.request.CleanDataRequest;
+import org.apache.hugegraph.store.cmd.request.CreateRaftRequest;
+import org.apache.hugegraph.store.cmd.request.DestroyRaftRequest;
+import org.apache.hugegraph.store.cmd.request.GetStoreInfoRequest;
+import org.apache.hugegraph.store.cmd.request.RedirectRaftTaskRequest;
+import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
+import org.apache.hugegraph.store.cmd.response.BatchPutResponse;
+import org.apache.hugegraph.store.cmd.response.CleanDataResponse;
+import org.apache.hugegraph.store.cmd.response.CreateRaftResponse;
+import org.apache.hugegraph.store.cmd.response.DefaultResponse;
+import org.apache.hugegraph.store.cmd.response.DestroyRaftResponse;
+import org.apache.hugegraph.store.cmd.response.GetStoreInfoResponse;
+import org.apache.hugegraph.store.cmd.response.RedirectRaftTaskResponse;
+import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.raft.RaftClosure;
 import org.apache.hugegraph.store.raft.RaftOperation;
@@ -56,6 +73,8 @@ public class HgCmdProcessor<T extends HgCmdBase.BaseRequest> implements RpcProce
         rpcServer.registerProcessor(new HgCmdProcessor<>(UpdatePartitionRequest.class, engine));
         rpcServer.registerProcessor(new HgCmdProcessor<>(CreateRaftRequest.class, engine));
         rpcServer.registerProcessor(new HgCmdProcessor<>(DestroyRaftRequest.class, engine));
+        rpcServer.registerProcessor(new HgCmdProcessor<>(BlankTaskRequest.class, engine));
+        rpcServer.registerProcessor(new HgCmdProcessor<>(ProcessBuilder.Redirect.class, engine));
     }
 
     @Override
@@ -91,6 +110,17 @@ public class HgCmdProcessor<T extends HgCmdBase.BaseRequest> implements RpcProce
             case HgCmdBase.DESTROY_RAFT: {
                 response = new DestroyRaftResponse();
                 handleDestroyRaft((DestroyRaftRequest) request, (DestroyRaftResponse) response);
+                break;
+            }
+            case HgCmdBase.BLANK_TASK: {
+                response = new DefaultResponse();
+                addBlankTask((BlankTaskRequest) request, (DefaultResponse) response);
+                break;
+            }
+            case HgCmdBase.REDIRECT_RAFT_TASK: {
+                response = new RedirectRaftTaskResponse();
+                handleRedirectRaftTask((RedirectRaftTaskRequest) request,
+                                       (RedirectRaftTaskResponse) response);
                 break;
             }
             default: {
@@ -138,6 +168,39 @@ public class HgCmdProcessor<T extends HgCmdBase.BaseRequest> implements RpcProce
         response.setStatus(Status.OK);
     }
 
+    public void handleRedirectRaftTask(RedirectRaftTaskRequest request,
+                                       RedirectRaftTaskResponse response) {
+        log.info("RedirectRaftTaskNode rpc call received, {}", request.getPartitionId());
+        raftSyncTask(request.getGraphName(), request.getPartitionId(), request.getRaftOp(),
+                     request.getData(), response);
+        response.setStatus(Status.OK);
+    }
+
+    public void addBlankTask(BlankTaskRequest request, DefaultResponse response) {
+        try {
+            int partitionId = request.getPartitionId();
+            PartitionEngine pe = engine.getPartitionEngine(partitionId);
+            if (pe.isLeader()) {
+                CountDownLatch latch = new CountDownLatch(1);
+                RaftClosure closure = s -> {
+                    if (s.isOk()) {
+                        response.setStatus(Status.OK);
+                    } else {
+                        log.error("doBlankTask in cmd with error: {}", s.getErrorMsg());
+                        response.setStatus(Status.EXCEPTION);
+                    }
+                    latch.countDown();
+                };
+                pe.addRaftTask(RaftOperation.create(RaftOperation.SYNC_BLANK_TASK), closure);
+                latch.await();
+            } else {
+                response.setStatus(Status.LEADER_REDIRECT);
+            }
+        } catch (Exception e) {
+            response.setStatus(Status.EXCEPTION);
+        }
+    }
+
     /**
      * raft notify replica synchronization execution
      *
@@ -147,9 +210,14 @@ public class HgCmdProcessor<T extends HgCmdBase.BaseRequest> implements RpcProce
      */
     private void raftSyncTask(HgCmdBase.BaseRequest request, HgCmdBase.BaseResponse response,
                               final byte op) {
+        raftSyncTask(request.getGraphName(), request.getPartitionId(), op, request, response);
+    }
+
+    private void raftSyncTask(String graph, int partId, byte op, Object raftReq,
+                              HgCmdBase.BaseResponse response) {
         CountDownLatch latch = new CountDownLatch(1);
-        engine.addRaftTask(request.getGraphName(), request.getPartitionId(),
-                           RaftOperation.create(op, request), new RaftClosure() {
+        engine.addRaftTask(graph, partId,
+                           RaftOperation.create(op, raftReq), new RaftClosure() {
                     @Override
                     public void run(com.alipay.sofa.jraft.Status status) {
                         Status responseStatus = Status.UNKNOWN;

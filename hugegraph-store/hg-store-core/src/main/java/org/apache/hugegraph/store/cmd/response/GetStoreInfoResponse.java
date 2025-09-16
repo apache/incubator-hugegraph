@@ -15,23 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store.cmd;
+package org.apache.hugegraph.store.cmd.response;
 
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.cmd.HgCmdBase;
+import org.apache.hugegraph.store.meta.Store;
 
-import lombok.Data;
+import com.google.protobuf.InvalidProtocolBufferException;
 
-@Data
-@Deprecated
-public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
+import lombok.extern.slf4j.Slf4j;
 
-    private int startKey;
-    private int endKey;
+@Slf4j
+public class GetStoreInfoResponse extends HgCmdBase.BaseResponse {
 
-    private Metapb.PartitionState workState;
+    private byte[] store;
 
-    @Override
-    public byte magic() {
-        return HgCmdBase.RAFT_UPDATE_PARTITION;
+    public Store getStore() {
+        try {
+            return new Store(Metapb.Store.parseFrom(this.store));
+        } catch (InvalidProtocolBufferException e) {
+            log.error("GetStoreResponse parse exception {}", e);
+        }
+        return null;
+    }
+
+    public void setStore(Store store) {
+        this.store = store.getProtoObj().toByteArray();
     }
 }
