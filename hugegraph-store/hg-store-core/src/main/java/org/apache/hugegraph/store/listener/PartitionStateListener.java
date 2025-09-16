@@ -15,20 +15,20 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store;
+package org.apache.hugegraph.store.listener;
 
 import java.util.List;
 
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.PartitionRole;
-@Deprecated
+
 public interface PartitionStateListener {
 
-    // Partition role changed
+    // Partition role change occurred
     void partitionRoleChanged(Partition partition, PartitionRole newRole);
 
-    // Partition has changed
+    // Partition change occurred
     void partitionShardChanged(Partition partition, List<Metapb.Shard> oldShards,
                                List<Metapb.Shard> newShards);
 }
