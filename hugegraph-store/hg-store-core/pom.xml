@@ -30,6 +30,10 @@
     <artifactId>hg-store-core</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-struct</artifactId>
+        </dependency>
         <!-- generic -->
         <dependency>
             <groupId>org.projectlombok</groupId>
