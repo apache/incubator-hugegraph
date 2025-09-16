@@ -27,7 +27,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.apache.hugegraph.store.HgStoreEngine;
-import org.apache.hugegraph.store.business.DefaultDataMover;
+import org.apache.hugegraph.store.business.DataManagerImpl;
 import org.apache.hugegraph.store.grpc.session.BatchReq;
 import org.apache.hugegraph.store.grpc.session.CleanReq;
 import org.apache.hugegraph.store.grpc.session.GraphReq;
@@ -116,7 +116,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
         options.getLabels().put("rest.port", Integer.toString(appConfig.getRestPort()));
         log.info("HgStoreEngine init {}", options);
         options.setTaskHandler(this);
-        options.setDataTransfer(new DefaultDataMover());
+        options.setDataTransfer(new DataManagerImpl());
         storeEngine = HgStoreEngine.getInstance();
         storeEngine.init(options);
 
