@@ -328,4 +328,8 @@ public class ClientCache {
             }
         }
     }
+
+    public List getLeaderStoreAddresses() {
+        return null;
+    }
 }

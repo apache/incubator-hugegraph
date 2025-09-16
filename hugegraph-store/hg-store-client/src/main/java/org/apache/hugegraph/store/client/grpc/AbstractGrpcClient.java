@@ -37,9 +37,9 @@ import io.grpc.stub.AbstractStub;
 
 public abstract class AbstractGrpcClient {
 
-    private static Map<String, ManagedChannel[]> channels = new ConcurrentHashMap<>();
+    protected static Map<String, ManagedChannel[]> channels = new ConcurrentHashMap<>();
     private static int n = 5;
-    private static int concurrency = 1 << n;
+    protected static int concurrency = 1 << n;
     private static AtomicLong counter = new AtomicLong(0);
     private static long limit = Long.MAX_VALUE >> 1;
     private static HgStoreClientConfig config = HgStoreClientConfig.of();
@@ -69,7 +69,7 @@ public abstract class AbstractGrpcClient {
                             int fi = i;
                             executor.execute(() -> {
                                 try {
-                                    value[fi] = getManagedChannel(target);
+                                    value[fi] = createChannel(target);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 } finally {
@@ -162,14 +162,14 @@ public abstract class AbstractGrpcClient {
 
     }
 
-    private AbstractStub setStubOption(AbstractStub value) {
+    protected AbstractStub setStubOption(AbstractStub value) {
         return value.withMaxInboundMessageSize(
                             config.getGrpcMaxInboundMessageSize())
                     .withMaxOutboundMessageSize(
                             config.getGrpcMaxOutboundMessageSize());
     }
 
-    private ManagedChannel getManagedChannel(String target) {
+    protected ManagedChannel createChannel(String target) {
         return ManagedChannelBuilder.forTarget(target).usePlaintext().build();
     }
 

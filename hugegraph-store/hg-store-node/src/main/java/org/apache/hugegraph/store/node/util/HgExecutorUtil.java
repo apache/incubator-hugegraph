@@ -33,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  * 2022/03/04
  */
 @Slf4j
+@Deprecated
 public final class HgExecutorUtil {
 
     private final static Map<String, ThreadPoolExecutor> threadPoolMap = new ConcurrentHashMap<>();
