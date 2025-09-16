@@ -63,8 +63,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RaftEngine {
 
-    private static final RaftEngine INSTANCE = new RaftEngine();
-    private final RaftStateMachine stateMachine;
+    private volatile static RaftEngine instance = new RaftEngine();
+    private RaftStateMachine stateMachine;
+    private String groupId = "pd_raft";
     private PDConfig.Raft config;
     private RaftGroupService raftGroupService;
     private RpcServer rpcServer;
@@ -76,10 +77,10 @@ public class RaftEngine {
     }
 
     public static RaftEngine getInstance() {
-        return INSTANCE;
+        return instance;
     }
 
-    public boolean init(PDConfig.Raft config) {
+    public synchronized boolean init(PDConfig.Raft config) {
         if (this.raftNode != null) {
             return false;
         }
@@ -88,7 +89,6 @@ public class RaftEngine {
         raftRpcClient = new RaftRpcClient();
         raftRpcClient.init(new RpcOptions());
 
-        String groupId = "pd_raft";
         String raftPath = config.getDataPath() + "/" + groupId;
         new File(raftPath).mkdirs();
 
@@ -96,8 +96,10 @@ public class RaftEngine {
         Configuration initConf = new Configuration();
         initConf.parse(config.getPeersList());
         if (config.isEnable() && config.getPeersList().length() < 3) {
-            log.error("The RaftEngine parameter is incorrect." +
-                      " When RAFT is enabled, the number of peers " + "cannot be less than 3");
+            log.error(
+                    "The RaftEngine parameter is incorrect." +
+                    " When RAFT is enabled, the number of peers " +
+                    "cannot be less than 3");
         }
         // Set node parameters, including the log storage path and state machine instance
         NodeOptions nodeOptions = new NodeOptions();
@@ -241,17 +243,23 @@ public class RaftEngine {
                             .getGrpcAddress();
     }
 
+    /**
+     * Obtain local member information
+     *
+     * @return Constructor for local member information object {@link Metapb.Member}
+     */
     public Metapb.Member getLocalMember() {
         Metapb.Member.Builder builder = Metapb.Member.newBuilder();
         builder.setClusterId(config.getClusterId());
         builder.setRaftUrl(config.getAddress());
         builder.setDataPath(config.getDataPath());
         builder.setGrpcUrl(config.getGrpcAddress());
+        builder.setRestUrl(config.getHost() + ":" + config.getPort());
         builder.setState(Metapb.StoreState.Up);
         return builder.build();
     }
 
-    public List<Metapb.Member> getMembers() {
+    public List<Metapb.Member> getMembers() throws ExecutionException, InterruptedException {
         List<Metapb.Member> members = new ArrayList<>();
 
         List<PeerId> peers = raftNode.listPeers();
@@ -265,7 +273,7 @@ public class RaftEngine {
                     raftRpcClient.getGrpcAddress(peerId.getEndpoint().toString());
 
             Metapb.ShardRole role = Metapb.ShardRole.Follower;
-            if (peerEquals(peerId, raftNode.getLeaderId())) {
+            if (PeerUtil.isPeerEquals(peerId, raftNode.getLeaderId())) {
                 role = Metapb.ShardRole.Leader;
             } else if (learners.contains(peerId)) {
                 role = Metapb.ShardRole.Learner;
@@ -319,7 +327,7 @@ public class RaftEngine {
             });
             latch.await();
         } catch (Exception e) {
-            log.error("failed to changePeerList to {}", peerList, e);
+            log.error("failed to changePeerList to {},{}", peerList, e);
             result.set(new Status(-1, e.getMessage()));
         }
         return result.get();

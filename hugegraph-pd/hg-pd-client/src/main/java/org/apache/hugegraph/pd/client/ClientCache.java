@@ -357,9 +357,10 @@ public class ClientCache {
 
     public List<String> getLeaderStoreAddresses() throws PDException {
         initCache();
-        var storeIds = this.groups.values().stream().
-                                  map(shardGroupShardKVPair -> shardGroupShardKVPair.getValue()
-                                                                                    .getStoreId())
+        var storeIds = this.groups.values().stream()
+                                  .map(KVPair::getValue)
+                                  .filter(java.util.Objects::nonNull)
+                                  .map(Shard::getStoreId)
                                   .collect(Collectors.toSet());
         return this.stores.values().stream()
                           .filter(store -> storeIds.contains(store.getId()))
