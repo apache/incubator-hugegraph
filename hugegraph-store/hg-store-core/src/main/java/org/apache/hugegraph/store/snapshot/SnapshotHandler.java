@@ -24,6 +24,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.Checksum;
 
 import org.apache.commons.io.FileUtils;
@@ -41,9 +42,8 @@ import com.alipay.sofa.jraft.util.CRC64;
 
 import lombok.extern.slf4j.Slf4j;
 
-@Deprecated
 @Slf4j
-public class HgSnapshotHandler {
+public class SnapshotHandler {
 
     private static final String SHOULD_NOT_LOAD = "should_not_load";
     private static final String SNAPSHOT_DATA_PATH = "data";
@@ -51,7 +51,7 @@ public class HgSnapshotHandler {
     private final PartitionEngine partitionEngine;
     private final BusinessHandler businessHandler;
 
-    public HgSnapshotHandler(PartitionEngine partitionEngine) {
+    public SnapshotHandler(PartitionEngine partitionEngine) {
         this.partitionEngine = partitionEngine;
         this.businessHandler = partitionEngine.getStoreEngine().getBusinessHandler();
     }
@@ -92,11 +92,15 @@ public class HgSnapshotHandler {
      */
     public void onSnapshotSave(final SnapshotWriter writer) throws HgStoreException {
         final String snapshotDir = writer.getPath();
-
         if (partitionEngine != null) {
+            Integer groupId = partitionEngine.getGroupId();
+            AtomicInteger state = businessHandler.getState(groupId);
+            if (state != null && state.get() == BusinessHandler.doing) {
+                return;
+            }
             // rocks db snapshot
             final String graphSnapshotDir = snapshotDir + File.separator + SNAPSHOT_DATA_PATH;
-            businessHandler.saveSnapshot(graphSnapshotDir, "", partitionEngine.getGroupId());
+            businessHandler.saveSnapshot(graphSnapshotDir, "", groupId);
 
             List<String> files = new ArrayList<>();
             File dir = new File(graphSnapshotDir);
@@ -166,13 +170,13 @@ public class HgSnapshotHandler {
                                                                                  HgStoreException {
         final String snapshotDir = reader.getPath();
 
-        // Locally saved snapshots do not need to be loaded
+        // 本地保存的快照没必要加载
         if (shouldNotLoad(reader)) {
             log.info("skip to load snapshot because of should_not_load flag");
             return;
         }
 
-        // Directly use snapshot
+        // 直接使用 snapshot
         final String graphSnapshotDir = snapshotDir + File.separator + SNAPSHOT_DATA_PATH;
         log.info("Raft {} begin loadSnapshot, {}", partitionEngine.getGroupId(), graphSnapshotDir);
         businessHandler.loadSnapshot(graphSnapshotDir, "", partitionEngine.getGroupId(),
