@@ -67,6 +67,10 @@ public class PDConfig {
 
     @Autowired
     private ThreadPoolGrpc threadPoolGrpc;
+
+    @Value("${auth.secret-key: 'FXQXbJtbCLxODc6tGci732pkH1cyf8Qg'}")
+    private String secretKey;
+
     @Autowired
     private Raft raft;
     @Autowired
@@ -169,8 +173,8 @@ public class PDConfig {
         @Value("${store.max-down-time:1800}")
         private long maxDownTime = 1800;
 
-        @Value("${store.monitor_data_enabled:true}")
-        private boolean monitorDataEnabled = true;
+        @Value("${store.monitor_data_enabled:false}")
+        private boolean monitorDataEnabled = false;
 
         @Value("${store.monitor_data_interval: 1 minute}")
         private String monitorDataInterval = "1 minute";

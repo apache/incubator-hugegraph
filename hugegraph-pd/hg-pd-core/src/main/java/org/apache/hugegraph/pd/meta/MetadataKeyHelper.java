@@ -178,7 +178,7 @@ public class MetadataKeyHelper {
         String key = StringBuilderHelper.get()
                                         .append(PARTITION_STATUS)
                                         .append(DELIMITER)
-                                        .append(graphName).append(DELIMITER)
+                                        // .append(graphName).append(DELIMITER)
                                         .append(id).append(DELIMITER)
                                         .toString();
         return key.getBytes(Charset.defaultCharset());
@@ -310,7 +310,7 @@ public class MetadataKeyHelper {
     }
 
     public static byte[] getLogKeyPrefix(String action, long time) {
-        //LOG_RECORD/{action}/{time}/
+        //LOG_DATA_SPLIT/{time}/{GraphName}
         StringBuilder builder = StringBuilderHelper.get()
                                                    .append(LOG_RECORD)
                                                    .append(DELIMITER)
