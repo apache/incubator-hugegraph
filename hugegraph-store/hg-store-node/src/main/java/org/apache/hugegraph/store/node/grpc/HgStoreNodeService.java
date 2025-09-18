@@ -129,7 +129,8 @@ public class HgStoreNodeService implements RaftTaskHandler {
     /**
      * Add raft task, forward data to raft
      *
-     * @return true means the data has been submitted, false means not submitted, used to reduce batch splitting for single-replica storage
+     * @return true means the data has been submitted, false means not submitted, used to reduce
+     * batch splitting for single-replica storage
      */
     public <Req extends com.google.protobuf.GeneratedMessageV3>
     void addRaftTask(byte methodId, String graphName, Integer partitionId, Req req,

@@ -17,12 +17,10 @@
 
 package org.apache.hugegraph.store.node.task.ttl;
 
-import java.util.LinkedList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
-
+import com.alipay.sofa.jraft.Status;
+import com.alipay.sofa.jraft.error.RaftError;
+import com.google.protobuf.ByteString;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hugegraph.pd.grpc.kv.V;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
@@ -34,11 +32,11 @@ import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.apache.hugegraph.store.raft.RaftClosure;
 import org.apache.hugegraph.store.raft.RaftOperation;
 
-import com.alipay.sofa.jraft.Status;
-import com.alipay.sofa.jraft.error.RaftError;
-import com.google.protobuf.ByteString;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.LinkedList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @date 2024/5/7
@@ -58,7 +56,7 @@ public class RaftTaskSubmitter extends TaskSubmitter {
         try {
             TTLCleanRequest cleanRequest =
                     TTLCleanRequest.newBuilder().addAllIds(all).setGraph(graph).setPartitionId(id)
-                                   .setTable(table).build();
+                            .setTable(table).build();
             tableCounter.getAndAdd(all.size());
             CountDownLatch latch = new CountDownLatch(1);
             GrpcClosure c = new GrpcClosure<V>() {

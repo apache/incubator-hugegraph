@@ -17,22 +17,16 @@
 
 package org.apache.hugegraph.store.node.controller;
 
-import javax.servlet.http.HttpServletRequest;
-
+import com.alipay.sofa.jraft.option.RpcOptions;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
 import org.apache.hugegraph.store.node.entry.PartitionRequest;
 import org.apache.hugegraph.store.node.entry.RestResult;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.alipay.sofa.jraft.option.RpcOptions;
-
-import lombok.extern.slf4j.Slf4j;
+import javax.servlet.http.HttpServletRequest;
 
 @RestController
 @Slf4j
@@ -40,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class RaftAPI {
 
     @PostMapping(value = "/options", consumes = MediaType.APPLICATION_JSON_VALUE,
-                 produces = MediaType.APPLICATION_JSON_VALUE)
+            produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestResult options(@RequestBody PartitionRequest body, HttpServletRequest request) {
         RestResult result = new RestResult();

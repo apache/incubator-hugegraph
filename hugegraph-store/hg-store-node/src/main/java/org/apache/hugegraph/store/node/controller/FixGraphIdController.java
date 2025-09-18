@@ -49,6 +49,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -77,7 +78,7 @@ public class FixGraphIdController {
         return buf;
     }
 
-    @GetMapping(value = "/update_next_id/{partition_id}/{graph_id}", produces = "application/json")
+    @PutMapping(value = "/update_next_id/{partition_id}/{graph_id}", produces = "application/json")
     public String updateMaxGraphId(@PathVariable(value = "partition_id") int pid, @PathVariable(
             "graph_id") long graphId) throws IOException {
         var businessHandler = nodeService.getStoreEngine().getBusinessHandler();
@@ -280,6 +281,7 @@ public class FixGraphIdController {
                                                    newCol, isVertex);
                     success++;
                 } catch (Exception e) {
+                    log.warn("failed to parse column: {} for graph: {}", newCol, graph, e);
                 }
             }
             if (success > total * 0.8) {
@@ -319,6 +321,7 @@ public class FixGraphIdController {
                                                    newCol, true);
                     success++;
                 } catch (Exception e) {
+                    log.warn("failed to parse entry: {}", newCol, e);
                 }
             }
             if (success < total1 * 0.9) {
@@ -335,6 +338,7 @@ public class FixGraphIdController {
                                                     newCol, false);
                     success2++;
                 } catch (Exception e) {
+                    log.warn("failed to parse entry: {}", newCol, e);
                 }
             }
 
@@ -361,6 +365,7 @@ public class FixGraphIdController {
                     String graphName = new String(col.name).replace("HUGEGRAPH/GRAPH_ID/", "");
                     graphs.put(graphId, graphName);
                 } catch (InvalidProtocolBufferException e) {
+                    log.warn("failed to parse graphId: {}", col.value, e);
                 }
             }
         }
@@ -378,6 +383,7 @@ public class FixGraphIdController {
                     int graphId = (int) Int64Value.parseFrom(col.value).getValue();
                     result.add(graphId);
                 } catch (InvalidProtocolBufferException e) {
+                    log.warn("failed to parse graphId: {}", col.value, e);
                 }
             }
         }

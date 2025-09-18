@@ -228,7 +228,8 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
                         GraphMode graphMode = graphState.getMode();
                         if (graphMode != null &&
                             graphMode.getNumber() == GraphMode.ReadOnly_VALUE) {
-                            // When in read-only state, getMetric the latest graph state from pd, the graph's read-only state will be updated in pd's notification.
+                            // When in read-only state, getMetric the latest graph state from pd,
+                            // the graph's read-only state will be updated in pd's notification.
                             Metapb.Graph pdGraph =
                                     pd.getPDClient().getGraph(graph);
                             Metapb.GraphState pdGraphState =
@@ -237,13 +238,15 @@ public class HgStoreSessionImpl extends HgStoreSessionGrpc.HgStoreSessionImplBas
                                 pdGraphState.getMode() != null &&
                                 pdGraphState.getMode().getNumber() ==
                                 GraphMode.ReadOnly_VALUE) {
-                                // Confirm that the current state stored in pd is also read-only, then inserting data is not allowed.
+                                // Confirm that the current state stored in pd is also read-only,
+                                // then inserting data is not allowed.
                                 throw new PDException(-1,
                                                       "the graph space size " +
                                                       "has " +
                                                       "reached the threshold");
                             }
-                            // pd status is inconsistent with local cache, update local cache to the status in pd
+                            // pd status is inconsistent with local cache, update local cache to
+                            // the status in pd
                             managerGraph.setProtoObj(pdGraph);
                         }
                     }

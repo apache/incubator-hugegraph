@@ -143,20 +143,7 @@ public class HgTestController {
             });
             return "OK";
         } catch (Exception e) {
-            log.error("pulse reset error: ", e);
-            return e.getMessage();
-        }
-    }
-
-    @GetMapping(value = "/no_vote", produces = MediaType.APPLICATION_JSON_VALUE)
-    public String noVote() {
-        try {
-            nodeService.getStoreEngine().getPartitionEngines().values().forEach(engine -> {
-                engine.getRaftNode().disableVote();
-            });
-            return "OK";
-        } catch (Exception e) {
-            log.error("pulse reset error: ", e);
+            log.error("transfer leaders error: ", e);
             return e.getMessage();
         }
     }
@@ -168,7 +155,7 @@ public class HgTestController {
                        .forEach(PartitionEngine::restartRaftNode);
             return "OK";
         } catch (Exception e) {
-            log.error("pulse reset error: ", e);
+            log.error("restart raft error: ", e);
             return e.getMessage();
         }
     }
@@ -184,7 +171,7 @@ public class HgTestController {
                                   .allMatch(i -> engine.getPartitionEngine(i) != null);
             return flag ? "OK" : "NO";
         } catch (Exception e) {
-            log.error("pulse reset error: ", e);
+            log.error("raft status check error: ", e);
             return e.getMessage();
         }
     }
