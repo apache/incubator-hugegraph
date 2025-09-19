@@ -31,7 +31,7 @@ import org.apache.hugegraph.structure.BaseElement;
 import com.google.protobuf.ByteString;
 
 /**
- * 提取聚合函数所需字段
+ * Extract fields required by aggregation functions
  */
 public class ExtractAggFieldStage implements QueryStage {
 
@@ -43,13 +43,13 @@ public class ExtractAggFieldStage implements QueryStage {
     private boolean isVertex;
 
     /**
-     * 初始化函数，用于初始化对象
+     * Initialization function for initializing objects
      *
-     * @param objects 对象数组
+     * @param objects object array
      */
     @Override
     public void init(Object... objects) {
-        // group by 按照 property 的顺序，方便后面的剪裁
+        // Group by follows the order of properties, facilitating subsequent pruning
         this.groupBys = QueryUtil.fromStringBytes((List<ByteString>) objects[0]);
         this.fields = QueryUtil.fromStringBytes((List<ByteString>) objects[1]);
         this.groupByElementSchemaId = (boolean) objects[2];
@@ -57,10 +57,10 @@ public class ExtractAggFieldStage implements QueryStage {
     }
 
     /**
-     * 重写父类方法 handle，用于处理 PipelineResult 结果
+     * Override parent class method handle for processing PipelineResult results
      *
-     * @param result PipelineResult 结果对象
-     * @return 返回处理后的 PipelineResult 结果对象
+     * @param result PipelineResult result object
+     * @return return the processed PipelineResult result object
      */
     @Override
     public PipelineResult handle(PipelineResult result) {

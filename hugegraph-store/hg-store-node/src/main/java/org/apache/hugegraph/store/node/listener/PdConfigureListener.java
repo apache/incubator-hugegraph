@@ -68,22 +68,7 @@ public class PdConfigureListener implements
         MutablePropertySources sources = event.getEnvironment().getPropertySources();
         String pdAddress = event.getEnvironment().getProperty("pdserver.address");
         pdConfFile = new File(configFilePath);
-        // String[] defaultProfiles = event.getEnvironment().getDefaultProfiles();
-        // String defaultProfile = defaultProfiles[0];
-        // PropertySource<?> appSource = null;
-        // for (PropertySource<?> source : sources) {
-        //    log.info("source name:{},{}", source.getName(), source.getSource());
-        //    boolean applicationConfig = source.getName().contains("application.yml");
-        //    if (applicationConfig) {
-        //        appSource = source;
-        //        break;
-        //    }
-        // }
-        // Map<String, OriginTrackedValue> appSourceMap = (Map<String, OriginTrackedValue>)
-        // appSource
-        // .getSource();
-        // OriginTrackedValue pdTrackedValue = appSourceMap.getMetric("pdserver.address");
-        // String pdAddress = pdTrackedValue.getValue().toString();
+
         KvClient client = new KvClient(PDConfig.of(pdAddress));
         try {
             ScanPrefixResponse response = client.scanPrefix(CONFIG_PREFIX);

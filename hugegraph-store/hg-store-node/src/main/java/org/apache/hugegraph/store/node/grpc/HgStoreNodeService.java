@@ -51,7 +51,7 @@ import com.google.protobuf.CodedOutputStream;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * @projectName: raft task executor
+ * raft task executor
  */
 @Slf4j
 @Service

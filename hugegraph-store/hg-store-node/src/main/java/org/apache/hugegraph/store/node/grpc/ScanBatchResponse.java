@@ -224,7 +224,7 @@ public class ScanBatchResponse implements StreamObserver<ScanStreamBatchReq> {
                     try {
                         this.sender.onError(e);
                     } catch (Exception ex) {
-
+                        log.warn("Error when call sender.onError {}", e.getMessage());
                     }
                 }
             }

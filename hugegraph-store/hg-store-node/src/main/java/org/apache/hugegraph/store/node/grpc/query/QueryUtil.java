@@ -72,8 +72,7 @@ public class QueryUtil {
             new HashSet<>(List.of(VERTEX_TABLE, OLAP_TABLE, TASK_TABLE));
 
     /**
-     * 要求有语意和顺序关系
-     * <a href="https://ku.baidu-int.com/knowledge/HFVrC7hq1Q/pKzJfZczuc/s_2oxmmDFf/kYq5DJapBA4XCV">implementation<a>
+     * Requires semantic and sequential relationships
      *
      * @param request query request
      * @return query plan
@@ -82,7 +81,7 @@ public class QueryUtil {
         QueryPlan plan = new QueryPlan();
 
         if (request.getSampleFactor() == 0.0) {
-            // 全不抽样
+            // No sampling at all
             plan.addStage(QueryStages.ofStopStage());
             return plan;
         }
@@ -198,10 +197,10 @@ public class QueryUtil {
     }
 
     /**
-     * 判断是否需要反序列化。
+     * Determine whether deserialization is needed.
      *
-     * @param request 查询请求对象。
-     * @return 如果需要反序列化则返回 true，否则返回 false。
+     * @param request query request object.
+     * @return true if deserialization is needed, false otherwise.
      */
     private static boolean needDeserialize(QueryRequest request) {
         return !isEmpty(request.getOrderByList()) || !isEmpty(request.getPropertyList())
@@ -210,10 +209,10 @@ public class QueryUtil {
     }
 
     /**
-     * 获取一个扫描迭代器。
+     * Get a scan iterator.
      *
-     * @param request 查询请求对象。
-     * @return 查询迭代器。
+     * @param request query request object.
+     * @return query iterator.
      */
     public static ScanIterator getIterator(QueryRequest request) {
 
@@ -225,14 +224,14 @@ public class QueryUtil {
 
             case PRIMARY_SCAN:
                 // id scan
-                // todo: 多个主键查询 + 精确去重+limit 的情况，考虑使用 map 做一部分的精确
+                // todo: For multiple primary key queries + exact deduplication + limit scenarios, consider using map for partial exact processing
                 return handler.scan(request.getGraph(), request.getTable(),
                                     toQTP(request.getScanTypeParamList()),
                                     request.getDedupOption());
 
             case NO_SCAN:
-                // no scan 不需要反查：
-                // 1. 能够直接解析，不需要反查。2. 不需要消重，直接取 count
+                // no scan - no need for reverse lookup:
+                // 1. Can be parsed directly, no reverse lookup needed. 2. No deduplication needed, get count directly
                 return handler.scanIndex(request.getGraph(),
                                          request.getIndexesList().stream()
                                                 .map(x -> toQTP(x.getParamsList()))
@@ -260,8 +259,8 @@ public class QueryUtil {
     }
 
     /**
-     * 1. no scan/ 不需要回表
-     * 2. 只有一个索引，
+     * 1. no scan/ no need to go back to table
+     * 2. only one index,
      *
      * @param request
      * @return
@@ -307,7 +306,7 @@ public class QueryUtil {
     }
 
     /**
-     * 一次的顶点序列化 - 反序列化
+     * One-time vertex serialization - deserialization
      *
      * @param vertexColumn vertex
      * @param olap         olap vertex
@@ -357,10 +356,10 @@ public class QueryUtil {
     }
 
     /**
-     * 判断表是否为顶点表
+     * Determine whether the table is a vertex table
      *
-     * @param table 待判断的表名
-     * @return 如果是顶点表，返回 true；否则返回 false。
+     * @param table table name to be determined
+     * @return true if it is a vertex table, false otherwise.
      */
     public static boolean isVertex(String table) {
         return vertexTables.contains(table);

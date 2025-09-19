@@ -276,7 +276,7 @@ public class JRaftMetrics {
 
         name = name.toLowerCase();
 
-        //Adapted a counter to be a gauge.
+        // Adapted a counter to be a gauge.
         Gauge.builder(PREFIX + "." + name + ".count", counter, Counter::getCount)
              .tags(tags).register(registry);
     }

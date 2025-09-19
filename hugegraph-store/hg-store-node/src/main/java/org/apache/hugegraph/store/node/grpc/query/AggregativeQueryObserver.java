@@ -102,7 +102,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
 
     @Override
     public void onError(Throwable t) {
-        // 通道有问题的时候，停止计算
+        // Stop calculating when channel got error
         this.clientCanceled.set(true);
         log.error("AggregativeQueryService, query id: {},  got error", this.queryId, t);
     }
@@ -203,7 +203,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
                                 } catch (Exception e) {
                                     exception.set(e);
                                 } finally {
-                                    // MultiPartitionIterator 的 close 不生效。
+                                    // MultiPartitionIterator close() not working
                                     itr2.close();
                                     latch.countDown();
                                 }
@@ -317,7 +317,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
     }
 
     /**
-     * 用于并行化处理
+     * Used for parallelized  process
      *
      * @param itr input iterator
      */
@@ -332,7 +332,7 @@ public class AggregativeQueryObserver implements StreamObserver<QueryRequest> {
                     throw new RuntimeException("execution timeout");
                 }
             } catch (EarlyStopException ignore) {
-                // limit stage 会抛一个异常，提前中止运行
+                // The limit stage will throw an exception to abort the execution early
                 // log.warn("query id: {}, early stop: {}", this.queryId, e.getMessage());
                 break;
             }

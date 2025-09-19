@@ -30,7 +30,7 @@ import org.apache.hugegraph.store.node.grpc.query.model.PipelineResultType;
 import com.google.protobuf.ByteString;
 
 /**
- * 剪裁
+ * Pruning
  */
 public class ProjectionStage implements QueryStage {
 

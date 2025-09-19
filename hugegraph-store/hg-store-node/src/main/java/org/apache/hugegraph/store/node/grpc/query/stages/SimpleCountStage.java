@@ -27,7 +27,7 @@ import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 import org.apache.hugegraph.store.util.MultiKv;
 
 /**
- * 简单的count计数
+ * Simple count counting
  */
 public class SimpleCountStage implements QueryStage {
 
