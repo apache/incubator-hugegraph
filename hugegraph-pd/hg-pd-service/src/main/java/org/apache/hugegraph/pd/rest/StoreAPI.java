@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.pd.rest;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -235,6 +236,19 @@ public class StoreAPI extends API {
         }
     }
 
+    /**
+     * Retrieve shard group cache information
+     * This interface obtains shard group cache information via a GET request and returns a
+     * JSON-formatted string
+     *
+     * @return JSON string containing shard group cache information
+     */
+    @GetMapping(value = "/shardGroupsCache", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public String getShardGroupsCache() {
+        return toJSON(new ArrayList<>(pdRestService.getShardGroupCache().values()), "shardGroups");
+    }
+
     @Data
     class Partition {
 
@@ -262,7 +276,7 @@ public class StoreAPI extends API {
     class StoreStatistics {
 
         // store statistics
-        long storeId;
+        String storeId;
         String address;
         String raftAddress;
         String version;
@@ -286,7 +300,7 @@ public class StoreAPI extends API {
 
         StoreStatistics(Metapb.Store store) {
             if (store != null) {
-                storeId = store.getId();
+                storeId = String.valueOf(store.getId());
                 address = store.getAddress();
                 raftAddress = store.getRaftAddress();
                 state = String.valueOf(store.getState());
@@ -357,4 +371,16 @@ public class StoreAPI extends API {
         }
     }
 
+    /**
+     * Check Service Health Status
+     * This interface is used to check the health status of the service by accessing the /health
+     * path via a GET request.
+     *
+     * @return Returns a string indicating the service's health status. Typically, an empty
+     * string indicates the service is healthy.
+     */
+    @GetMapping(value = "/health", produces = MediaType.TEXT_PLAIN_VALUE)
+    public Serializable checkHealthy() {
+        return "";
+    }
 }
