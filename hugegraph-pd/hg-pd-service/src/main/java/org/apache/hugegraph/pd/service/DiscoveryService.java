@@ -46,8 +46,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @GRpcService
 public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplBase implements
-                                                                                    ServiceGrpc,
-                                                                                    RaftStateListener {
+                                                                                    ServiceGrpc {
 
     static final AtomicLong id = new AtomicLong();
     private static final String CORES = "cores";
@@ -55,7 +54,6 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
     //LicenseVerifierService licenseVerifierService;
     @Autowired
     private PDConfig pdConfig;
-    private ManagedChannel channel;
 
     @PostConstruct
     public void init() throws PDException {
@@ -76,7 +74,7 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
     @Override
     public void register(NodeInfo request, io.grpc.stub.StreamObserver<RegisterInfo> observer) {
         if (!isLeader()) {
-            redirectToLeader(null, DiscoveryServiceGrpc.getRegisterMethod(), request, observer);
+            redirectToLeader(DiscoveryServiceGrpc.getRegisterMethod(), request, observer);
             return;
         }
         int outTimes = pdConfig.getDiscovery().getHeartbeatOutTimes();
@@ -129,20 +127,21 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
         observer.onCompleted();
     }
 
-    @Override
     public void getNodes(Query request, io.grpc.stub.StreamObserver<NodeInfos> responseObserver) {
         if (!isLeader()) {
-            redirectToLeader(null, DiscoveryServiceGrpc.getGetNodesMethod(), request,
-                             responseObserver);
+            redirectToLeader(DiscoveryServiceGrpc.getGetNodesMethod(), request, responseObserver);
             return;
         }
         responseObserver.onNext(register.getNodes(request));
         responseObserver.onCompleted();
     }
 
-    @Override
     public boolean isLeader() {
         return RaftEngine.getInstance().isLeader();
     }
 
+    @Override
+    public void onRaftLeaderChanged() {
+
+    }
 }

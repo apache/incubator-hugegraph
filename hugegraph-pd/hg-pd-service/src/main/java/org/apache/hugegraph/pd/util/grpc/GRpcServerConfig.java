@@ -29,17 +29,17 @@ import io.grpc.ServerBuilder;
 public class GRpcServerConfig extends GRpcServerBuilderConfigurer {
 
     public static final String EXECUTOR_NAME = "hg-grpc";
+    public static final int MAX_INBOUND_MESSAGE_SIZE = 1024 * 1024 * 1024;
     @Autowired
     private PDConfig pdConfig;
 
     @Override
     public void configure(ServerBuilder<?> serverBuilder) {
+        PDConfig.ThreadPoolGrpc poolGrpc = pdConfig.getThreadPoolGrpc();
         serverBuilder.executor(
-                HgExecutorUtil.createExecutor(EXECUTOR_NAME,
-                                              pdConfig.getThreadPoolGrpc().getCore(),
-                                              pdConfig.getThreadPoolGrpc().getMax(),
-                                              pdConfig.getThreadPoolGrpc().getQueue())
-        );
+                HgExecutorUtil.createExecutor(EXECUTOR_NAME, poolGrpc.getCore(), poolGrpc.getMax(),
+                                              poolGrpc.getQueue()));
+        serverBuilder.maxInboundMessageSize(MAX_INBOUND_MESSAGE_SIZE);
     }
 
 }

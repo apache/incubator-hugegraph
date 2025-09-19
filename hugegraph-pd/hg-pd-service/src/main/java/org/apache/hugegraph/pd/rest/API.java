@@ -118,25 +118,27 @@ public class API {
     }
 
     public String toJSON(PDException exception) {
-        String builder = "{" +
-                         QUOTATION + STATUS_KEY + QUOTATION + COLON +
-                         exception.getErrorCode() + COMMA +
-                         QUOTATION + ERROR_KEY + QUOTATION + COLON +
-                         QUOTATION + exception.getMessage() + QUOTATION +
-                         "}";
+        StringBuilder builder = new StringBuilder();
+        builder.append("{")
+               .append(QUOTATION).append(STATUS_KEY).append(QUOTATION).append(COLON)
+               .append(exception.getErrorCode()).append(COMMA)
+               .append(QUOTATION).append(ERROR_KEY).append(QUOTATION).append(COLON)
+               .append(QUOTATION).append(exception.getMessage()).append(QUOTATION);
+        builder.append("}");
 
-        return builder;
+        return builder.toString();
     }
 
-    public String toJSON(Exception exception) {
-        String builder = "{" +
-                         QUOTATION + STATUS_KEY + QUOTATION + COLON + "-1" +
-                         COMMA +
-                         QUOTATION + ERROR_KEY + QUOTATION + COLON +
-                         QUOTATION + exception.getMessage() + QUOTATION +
-                         "}";
+    public String toJSON(Throwable exception) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{")
+               .append(QUOTATION).append(STATUS_KEY).append(QUOTATION).append(COLON).append("-1")
+               .append(COMMA)
+               .append(QUOTATION).append(ERROR_KEY).append(QUOTATION).append(COLON)
+               .append(QUOTATION).append(exception.getMessage()).append(QUOTATION);
+        builder.append("}");
 
-        return builder;
+        return builder.toString();
     }
 
     public String toJSON(Object object) {
