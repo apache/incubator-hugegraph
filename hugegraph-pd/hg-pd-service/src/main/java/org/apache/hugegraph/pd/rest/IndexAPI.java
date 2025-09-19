@@ -50,6 +50,15 @@ public class IndexAPI extends API {
     @Autowired
     PDRestService pdRestService;
 
+    /**
+     * Get brief system statistics
+     * This interface uses a GET request to obtain brief system statistics, including leader addresses, cluster status, storage size, number of graphs, and number of partitions.
+     *
+     * @return A BriefStatistics object containing the system's brief statistical information
+     * @throws PDException If an exception occurs while retrieving statistical information, a PDException exception is thrown
+     * @throws ExecutionException If a task execution exception occurs, an ExecutionException exception is thrown
+     * @throws InterruptedException If a thread is interrupted while waiting, an InterruptedException exception is thrown
+     */
     @GetMapping(value = "/", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public BriefStatistics index() throws PDException, ExecutionException, InterruptedException {
@@ -64,6 +73,16 @@ public class IndexAPI extends API {
 
     }
 
+    /**
+     * Get cluster statistics
+     * Obtain various statistics about the cluster by calling related services, including node status, member list, storage information, graph information, etc.,
+     * and return them as a Statistics object.
+     *
+     * @return A RestApiResponse object containing cluster statistics
+     * @throws InterruptedException If the thread is interrupted while waiting, this exception is thrown
+     * @throws ExecutionException If an exception occurs during task execution, this exception is thrown
+     * @throws PDException If an exception occurs while processing cluster statistics, such as service call failure or data processing errors, a PDException exception is thrown
+     */
     @GetMapping(value = "/v1/cluster", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestApiResponse cluster() throws InterruptedException, ExecutionException {

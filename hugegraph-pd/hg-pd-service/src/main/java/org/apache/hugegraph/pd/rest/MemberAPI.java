@@ -61,6 +61,15 @@ public class MemberAPI extends API {
     @Autowired
     PDService pdService;
 
+    /**
+     * Get member information
+     * <p>
+     * Retrieves all member information for the current PD cluster via an HTTP GET request and returns it in JSON format.
+     *
+     * @return A RestApiResponse object containing member information
+     * @throws InterruptedException If the thread is interrupted while waiting, this exception is thrown
+     * @throws ExecutionException If the task execution fails, this exception is thrown
+     */
     @GetMapping(value = "/members", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestApiResponse getMembers() throws InterruptedException, ExecutionException {
@@ -95,6 +104,15 @@ public class MemberAPI extends API {
         return new RestApiResponse(resultMap, Pdpb.ErrorType.OK, Pdpb.ErrorType.OK.name());
     }
 
+    /**
+     * Change the Peer list in the PD cluster
+     * Receive a request body containing the Peer list to be changed via an HTTP POST request, and call the corresponding service to change the Peer list in the PD cluster
+     *
+     * @param body    Request body containing the list of Peers to be modified, of type PeerRestRequest
+     * @param request HTTP request object, of type HttpServletRequest
+     * @return Returns a JSON string containing the modification results
+     * @throws Exception If an exception occurs during request processing, service invocation, or Peer list modification, it is captured and returned as the JSON representation of the exception
+     */
     @PostMapping(value = "/members/change", consumes = MediaType.APPLICATION_JSON_VALUE,
                  produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
