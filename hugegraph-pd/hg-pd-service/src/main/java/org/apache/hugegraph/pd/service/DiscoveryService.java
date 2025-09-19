@@ -34,6 +34,7 @@ import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
 import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.apache.hugegraph.pd.grpc.discovery.RegisterInfo;
+import org.apache.hugegraph.pd.license.LicenseVerifierService;
 import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
 import org.lognet.springboot.grpc.GRpcService;
@@ -51,7 +52,7 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
     static final AtomicLong id = new AtomicLong();
     private static final String CORES = "cores";
     RegistryService register = null;
-    //LicenseVerifierService licenseVerifierService;
+    LicenseVerifierService licenseVerifierService;
     @Autowired
     private PDConfig pdConfig;
 
@@ -61,7 +62,7 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
         RaftEngine.getInstance().init(pdConfig.getRaft());
         RaftEngine.getInstance().addStateListener(this);
         register = new RegistryService(pdConfig);
-        //licenseVerifierService = new LicenseVerifierService(pdConfig);
+        licenseVerifierService = new LicenseVerifierService(pdConfig);
     }
 
     private Pdpb.ResponseHeader newErrorHeader(PDException e) {
@@ -98,7 +99,7 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
                     throw new PDException(-1, "core count can not be null");
                 }
                 int core = Integer.parseInt(coreCount);
-                //licenseVerifierService.verify(core, nodeCount);
+                licenseVerifierService.verify(core, nodeCount);
             }
             register.register(request, outTimes);
             String valueId = request.getId();

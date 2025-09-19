@@ -79,6 +79,7 @@ import org.apache.hugegraph.pd.grpc.watch.NodeEventType;
 import org.apache.hugegraph.pd.grpc.watch.WatchGraphResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchType;
+import org.apache.hugegraph.pd.license.LicenseVerifierService;
 import org.apache.hugegraph.pd.pulse.PDPulseSubject;
 import org.apache.hugegraph.pd.pulse.PulseListener;
 import org.apache.hugegraph.pd.raft.PeerUtil;
@@ -120,7 +121,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
     private IdService idService;
     private ConfigService configService;
     private LogService logService;
-    //private LicenseVerifierService licenseVerifierService;
+    private LicenseVerifierService licenseVerifierService;
     private StoreMonitorDataService storeMonitorDataService;
 
     private Pdpb.ResponseHeader newErrorHeader(int errorCode, String errorMsg) {
@@ -160,9 +161,9 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
         return logService;
     }
 
-    //public LicenseVerifierService getLicenseVerifierService() {
-    //    return licenseVerifierService;
-    //}
+    public LicenseVerifierService getLicenseVerifierService() {
+        return licenseVerifierService;
+    }
 
     @OnlyForTest
     public void setInitConfig(PDConfig pdConfig) {
@@ -187,9 +188,9 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
         idService = new IdService(pdConfig);
         logService = new LogService(pdConfig);
         storeMonitorDataService = new StoreMonitorDataService(pdConfig);
-        //if (licenseVerifierService == null) {
-        //    licenseVerifierService = new LicenseVerifierService(pdConfig);
-        //}
+        if (licenseVerifierService == null) {
+            licenseVerifierService = new LicenseVerifierService(pdConfig);
+        }
         RaftEngine.getInstance().addStateListener(partitionService);
         pdConfig.setIdService(idService);
 
@@ -479,7 +480,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
                     }
                 }
                 try {
-                    //licenseVerifierService.verify(cores, nodeCount);
+                    licenseVerifierService.verify(cores, nodeCount);
                 } catch (Exception e) {
                     Metapb.Store store = Metapb.Store.newBuilder(request.getStore())
                                                      .setState(Metapb.StoreState.Pending).build();
@@ -1334,11 +1335,10 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
     public synchronized void onRaftLeaderChanged() {
         log.info("onLeaderChanged");
         // channel = null;
-        // TODO: uncomment later
-        //if (licenseVerifierService == null) {
-        //    licenseVerifierService = new LicenseVerifierService(pdConfig);
-        //}
-        //licenseVerifierService.init();
+        if (licenseVerifierService == null) {
+            licenseVerifierService = new LicenseVerifierService(pdConfig);
+        }
+        licenseVerifierService.init();
 
         try {
             PDWatchSubject.notifyNodeChange(NodeEventType.NODE_EVENT_TYPE_PD_LEADER_CHANGE,
