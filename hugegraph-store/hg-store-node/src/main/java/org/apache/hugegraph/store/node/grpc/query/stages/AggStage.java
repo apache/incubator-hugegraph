@@ -43,7 +43,7 @@ import org.apache.hugegraph.store.util.MultiKv;
 import org.apache.hugegraph.store.util.SortShuffle;
 
 /**
- * 聚合计算
+ * Aggregation calculation
  */
 public class AggStage implements QueryStage {
 
@@ -65,9 +65,9 @@ public class AggStage implements QueryStage {
     }
 
     /**
-     * 初始化方法，用于初始化聚合函数元数据列表和路径。
+     * Initialization method for initializing aggregation function metadata list and path.
      *
-     * @param objects 参数数组，第一个参数为聚合函数元数据的列表。
+     * @param objects parameter array, the first parameter is the list of aggregation function metadata.
      */
     @Override
     public void init(Object... objects) {
@@ -78,10 +78,10 @@ public class AggStage implements QueryStage {
     }
 
     /**
-     * 将迭代器中的数据进行处理，并返回结果的迭代器
+     * Process data in the iterator and return the result iterator
      *
-     * @param result 数据结果对象
-     * @return 返回处理后的迭代器
+     * @param result data result object
+     * @return return the processed iterator
      */
     @Override
     public Iterator<PipelineResult> handleIterator(PipelineResult result) {
@@ -130,7 +130,7 @@ public class AggStage implements QueryStage {
     }
 
     /**
-     * avg 函数的隐式转换
+     * Implicit conversion for avg function
      *
      * @param clz   the class type of the value
      * @param value value
@@ -160,9 +160,9 @@ public class AggStage implements QueryStage {
     }
 
     /**
-     * 生成函数列表。
+     * Generate function list.
      *
-     * @return 聚合函数列表。
+     * @return aggregation function list.
      */
     private List<AggregationFunction> generateFunctions() {
 

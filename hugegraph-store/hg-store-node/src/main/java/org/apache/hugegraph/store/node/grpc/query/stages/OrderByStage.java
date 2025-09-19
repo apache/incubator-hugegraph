@@ -39,7 +39,7 @@ import com.google.protobuf.ByteString;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 排序
+ * Sorting
  */
 @Slf4j
 public class OrderByStage implements QueryStage {
@@ -120,8 +120,9 @@ public class OrderByStage implements QueryStage {
                 var ret = iterator.hasNext();
                 if (!ret) {
                     sortShuffle.close();
-                    // sort shuffle close，会 clear list，造成 size 和 cursor 不一致返回 true
-                    // 仅仅针对 小数据量不使用 file 的情况
+                    // sort shuffle close，will clear list，causing size and cursor are not
+                    // consistent  true
+                    // Only for small data scenarios that do not use file
                     closeFlag = true;
                 }
                 return ret && !closeFlag;

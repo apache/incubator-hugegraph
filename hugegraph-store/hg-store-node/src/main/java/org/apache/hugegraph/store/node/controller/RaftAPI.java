@@ -17,16 +17,22 @@
 
 package org.apache.hugegraph.store.node.controller;
 
-import com.alipay.sofa.jraft.option.RpcOptions;
-import lombok.extern.slf4j.Slf4j;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
 import org.apache.hugegraph.store.node.entry.PartitionRequest;
 import org.apache.hugegraph.store.node.entry.RestResult;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
+import com.alipay.sofa.jraft.option.RpcOptions;
+
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @Slf4j
@@ -34,18 +40,25 @@ import javax.servlet.http.HttpServletRequest;
 public class RaftAPI {
 
     @PostMapping(value = "/options", consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
+                 produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     public RestResult options(@RequestBody PartitionRequest body, HttpServletRequest request) {
         RestResult result = new RestResult();
         try {
-            if (body.getId() != null) {
-                PartitionEngine pe = HgStoreEngine.getInstance().getPartitionEngine(body.getId());
-                if (pe != null) {
-                    RpcOptions options = pe.getRaftGroupService().getNodeOptions();
-                    result.setData(options.toString());
-                }
+            if (body.getId() == null) {
+                result.setState(RestResult.ERR);
+                result.setMessage("partition id could not be null");
+                return result;
             }
+            PartitionEngine pe =
+                    HgStoreEngine.getInstance().getPartitionEngine(body.getId());
+            if (pe == null) {
+                result.setState(RestResult.ERR);
+                result.setMessage("partition engine is null!");
+                return result;
+            }
+            RpcOptions options = pe.getRaftGroupService().getNodeOptions();
+            result.setData(options.toString());
             result.setState(RestResult.OK);
         } catch (Exception e) {
             result.setState(RestResult.ERR);

@@ -40,7 +40,7 @@ import com.google.protobuf.ByteString;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * OLAP 查询
+ * OLAP query
  */
 @Slf4j
 public class OlapStage implements QueryStage {
@@ -70,7 +70,7 @@ public class OlapStage implements QueryStage {
                     PartitionUtils.calcHashcode(BinaryElementSerializer.ownerId(element).asBytes());
 
             for (Id property : properties) {
-                // 构建 key
+                // Build key
                 var key = getOlapKey(property, element.id());
                 var values = handler.doGet(this.graph, code, OLAP_TABLE, key);
                 if (values != null) {
@@ -85,7 +85,7 @@ public class OlapStage implements QueryStage {
                         serializer.parseVertex(null, BackendColumn.of(column.name, null), null);
                 var code = PartitionUtils.calcHashcode(
                         BinaryElementSerializer.ownerId(vertexOnlyId).asBytes());
-                // todo: 等 structure 改成 byte[] 操作的
+                // todo: Wait for structure to change to byte[] operations
                 var list = new ArrayList<BackendColumn>();
                 for (Id property : properties) {
                     var key = getOlapKey(property, vertexOnlyId.id());

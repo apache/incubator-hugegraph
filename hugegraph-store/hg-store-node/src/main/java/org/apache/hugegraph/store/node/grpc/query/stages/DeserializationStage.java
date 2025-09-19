@@ -26,7 +26,7 @@ import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 反序列化
+ * Deserialization
  */
 @Slf4j
 public class DeserializationStage implements QueryStage {
@@ -41,10 +41,10 @@ public class DeserializationStage implements QueryStage {
     }
 
     /**
-     * 将 PipelineResult 处理为 PipelineResult，将查询结果转换为图元素。
+     * Process PipelineResult to PipelineResult, converting query results to graph elements.
      *
-     * @param result 查询结果
-     * @return 转换后的 PipelineResult，如果查询结果为空则返回 null。
+     * @param result query result
+     * @return converted PipelineResult, returns null if query result is empty.
      */
     @Override
     public PipelineResult handle(PipelineResult result) {

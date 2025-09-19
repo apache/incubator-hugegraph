@@ -112,7 +112,7 @@ public class TTLCleaner implements Runnable {
         }
         LocalDateTime next = now.withHour(startTime).withMinute(0).withSecond(0).withNano(0);
         Duration between = Duration.between(now, next);
-        long delay = between.getSeconds(); // 计算开始的时间，凌晨开始比较合适
+        long delay = between.getSeconds(); // It's better to start the calculation in the early morning
         if (delay < 0) {
             delay += 3600 * 24;
         }

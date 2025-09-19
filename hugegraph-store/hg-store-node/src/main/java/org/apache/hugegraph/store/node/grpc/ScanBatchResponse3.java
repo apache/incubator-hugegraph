@@ -184,10 +184,6 @@ public class ScanBatchResponse3 {
             if (log.isDebugEnabled()) {
                 log.debug("Receiving finished request.");
             }
-/*            if (this.state.value > OrderState.NEW.value
-                    && this.state.value < OrderState.COMPLETE.value) {
-                this.state = OrderState.COMPLETE;
-            }*/
             this.breakdown();
         }
 
