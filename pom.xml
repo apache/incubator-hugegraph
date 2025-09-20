@@ -251,6 +251,14 @@
                         </compilerArgs>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <artifactId>maven-remote-resources-plugin</artifactId>
+                    <version>3.3.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.6.1</version>
+                </plugin>
             </plugins>
         </pluginManagement>
 
