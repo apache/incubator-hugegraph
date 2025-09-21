@@ -53,7 +53,8 @@ public class CleanTask extends AbstractAsyncTask {
                 CleanDataRequest request = (CleanDataRequest) getExtra();
                 var partition = storeEngine.getPartitionManager()
                                            .getPartition(getGraphName(), getPartitionId());
-                // Only allow cleaning data outside of this partition. Tasks such as shrinking can cause interference, and the partition cannot be deleted.
+                // Only allow cleaning data outside of this partition. Tasks such as shrinking
+                // can cause interference, and the partition cannot be deleted.
                 if (request.getKeyEnd() == partition.getStartKey() &&
                     request.getKeyEnd() == partition.getEndKey() &&
                     request.getCleanType() == CleanType.CLEAN_TYPE_EXCLUDE_RANGE &&

@@ -48,13 +48,13 @@ public class SortShuffleSerializer<T> {
     private static final byte TYPE_HEADER_BACKEND_COLUMN = 2;
     private static final byte TYPE_HEADER_BASE_ELEMENT = 3;
 
-    private static SortShuffleSerializer<RocksDBSession.BackendColumn> backendSerializer =
+    private static final SortShuffleSerializer<RocksDBSession.BackendColumn> backendSerializer =
             new SortShuffleSerializer<>(new BackendColumnSerializer());
 
-    private static SortShuffleSerializer<MultiKv> mkv =
+    private static final SortShuffleSerializer<MultiKv> mkv =
             new SortShuffleSerializer<>(new MultiKvSerializer());
 
-    private static SortShuffleSerializer<BaseElement> element =
+    private static final SortShuffleSerializer<BaseElement> element =
             new SortShuffleSerializer<>(new BaseElementSerializer());
 
     private final ObjectSerializer<T> serializer;

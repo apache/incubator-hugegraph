@@ -281,7 +281,8 @@ public class DefaultPdProvider implements PdProvider {
             public void onNotice(PulseServerNotice<PulseResponse> response) {
                 PulseResponse content = response.getContent();
 
-                // Message consumption acknowledgment, if the message can be consumed correctly, call accept to return the status code, otherwise do not call accept.
+                // Message consumption acknowledgment, if the message can be consumed correctly,
+                // call accept to return the status code, otherwise do not call accept.
                 Consumer<Integer> consumer = integer -> {
                     LOG.debug("Partition heartbeat accept instruction: {}", content);
                     // LOG.info("accept notice id : {}, ts:{}", response.getNoticeId(), System

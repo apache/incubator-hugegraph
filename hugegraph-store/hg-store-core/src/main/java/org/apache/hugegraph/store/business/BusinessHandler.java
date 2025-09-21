@@ -55,7 +55,8 @@ public interface BusinessHandler extends DBSessionBuilder {
     int compactionDone = 1;
     int doing = -1;
 
-    void doPut(String graph, int code, String table, byte[] key, byte[] value) throws HgStoreException;
+    void doPut(String graph, int code, String table, byte[] key, byte[] value) throws
+                                                                               HgStoreException;
 
     byte[] doGet(String graph, int code, String table, byte[] key) throws HgStoreException;
 
@@ -82,12 +83,15 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     ScanIterator scanOriginal(Graphpb.ScanPartitionRequest request);
 
-    ScanIterator scanPrefix(String graph, int code, String table, byte[] prefix, int scanType) throws HgStoreException;
+    ScanIterator scanPrefix(String graph, int code, String table, byte[] prefix,
+                            int scanType) throws HgStoreException;
 
-    ScanIterator scanPrefix(String graph, int code, String table, byte[] prefix) throws HgStoreException;
+    ScanIterator scanPrefix(String graph, int code, String table, byte[] prefix) throws
+                                                                                 HgStoreException;
 
     ScanIterator scanIndex(String graph, List<List<QueryTypeParam>> param,
-                           DeDupOption dedupOption, boolean transElement, boolean filterTTL) throws HgStoreException;
+                           DeDupOption dedupOption, boolean transElement, boolean filterTTL) throws
+                                                                                             HgStoreException;
 
     ScanIterator scanIndex(String graph, String table, List<List<QueryTypeParam>> params,
                            DeDupOption dedupOption, boolean lookupBack, boolean transKey,
@@ -107,7 +111,6 @@ public interface BusinessHandler extends DBSessionBuilder {
     void closeDB(int partId);
 
     void closeAll();
-
 
     Map<MemoryUsageType, Long> getApproximateMemoryUsageByType(List<Cache> caches);
 
@@ -212,10 +215,12 @@ public interface BusinessHandler extends DBSessionBuilder {
 
     void lock(String path) throws InterruptedException,
                                   TimeoutException;
+
     void unlock(String path);
 
     void awaitAndSetLock(int id, int expectedValue, int value) throws InterruptedException,
                                                                       TimeoutException;
+
     void setAndNotifyState(int id, int state);
 
     AtomicInteger getState(int id);

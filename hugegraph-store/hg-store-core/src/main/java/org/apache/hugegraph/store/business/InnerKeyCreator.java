@@ -30,7 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 public class InnerKeyCreator {
 
     final BusinessHandler businessHandler;
-    private volatile Map<Integer, GraphIdManager> graphIdCache = new ConcurrentHashMap<>();
+    private final Map<Integer, GraphIdManager> graphIdCache = new ConcurrentHashMap<>();
 
     public InnerKeyCreator(BusinessHandler businessHandler) {
         this.businessHandler = businessHandler;

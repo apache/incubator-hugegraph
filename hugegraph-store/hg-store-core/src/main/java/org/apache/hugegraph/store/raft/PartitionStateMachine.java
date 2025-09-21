@@ -52,10 +52,10 @@ public class PartitionStateMachine extends StateMachineAdapter {
     private final AtomicLong leaderTerm = new AtomicLong(-1);
     private final SnapshotHandler snapshotHandler;
     private final Integer groupId;
-    private List<RaftTaskHandler> taskHandlers;
-    private List<RaftStateListener> stateListeners;
+    private final List<RaftTaskHandler> taskHandlers;
+    private final List<RaftStateListener> stateListeners;
 
-    private Lock lock = new ReentrantLock();
+    private final Lock lock = new ReentrantLock();
     private long committedIndex;
 
     public PartitionStateMachine(Integer groupId, SnapshotHandler snapshotHandler) {

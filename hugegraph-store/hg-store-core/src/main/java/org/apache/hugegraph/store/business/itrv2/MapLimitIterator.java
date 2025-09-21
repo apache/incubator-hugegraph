@@ -32,8 +32,8 @@ import com.alipay.sofa.jraft.util.concurrent.ConcurrentHashSet;
 public class MapLimitIterator<T> implements ScanIterator {
 
     private static final Integer SET_MAX_SIZE = 100000;
-    private ScanIterator iterator;
-    private Set<T> set;
+    private final ScanIterator iterator;
+    private final Set<T> set;
     private T current = null;
 
     public MapLimitIterator(ScanIterator iterator) {

@@ -41,7 +41,7 @@ public class UnionFilterIterator<T extends Serializable> implements ScanIterator
     protected Map<T, Integer> map;
     private Iterator<T> innerIterator;
     private SortShuffle<T> sortShuffle;
-    private SortShuffleSerializer<T> serializer;
+    private final SortShuffleSerializer<T> serializer;
     private Object current;
     private boolean isProcessed = false;
 
@@ -86,8 +86,6 @@ public class UnionFilterIterator<T extends Serializable> implements ScanIterator
                 this.current = obj;
                 return true;
             } else {
-                // System.out.println("----->" + Arrays.toString(((RocksDBSession.BackendColumn)
-                // obj).name));
                 this.map.put(obj, map.getOrDefault(obj, 0) + 1);
                 if (this.map.size() > MAP_SIZE) {
                     if (this.sortShuffle == null) {

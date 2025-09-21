@@ -26,9 +26,9 @@ import org.roaringbitmap.longlong.Roaring64Bitmap;
 public class IntersectionWrapper<T> {
 
     private Roaring64Bitmap workBitmap;
-    private Roaring64Bitmap resultBitmap;
-    private ScanIterator iterator;
-    private ToLongFunction<T> hashFunction;
+    private final Roaring64Bitmap resultBitmap;
+    private final ScanIterator iterator;
+    private final ToLongFunction<T> hashFunction;
     private boolean matchAll;
 
     public IntersectionWrapper(ScanIterator iterator, ToLongFunction<T> hashFunction) {

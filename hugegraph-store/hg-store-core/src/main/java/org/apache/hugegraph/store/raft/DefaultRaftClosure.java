@@ -25,7 +25,7 @@ import com.alipay.sofa.jraft.Status;
 public class DefaultRaftClosure implements RaftClosure {
 
     private RaftOperation operation;
-    private RaftClosure closure;
+    private final RaftClosure closure;
 
     public DefaultRaftClosure(RaftOperation op, RaftClosure closure) {
         this.operation = op;

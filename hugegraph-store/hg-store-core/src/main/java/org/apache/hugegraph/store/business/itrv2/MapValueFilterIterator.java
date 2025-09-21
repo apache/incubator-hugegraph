@@ -25,7 +25,7 @@ import java.util.function.IntPredicate;
 public class MapValueFilterIterator<K> implements Iterator<K> {
 
     Iterator<Map.Entry<K, Integer>> mapIterator;
-    private IntPredicate filter;
+    private final IntPredicate filter;
     private K value;
 
     public MapValueFilterIterator(Map<K, Integer> map, IntPredicate filter) {
