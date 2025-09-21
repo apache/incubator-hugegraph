@@ -37,8 +37,8 @@ public class IntersectionFilterIterator implements ScanIterator {
 
     private static final Integer MAX_SIZE = 100000;
     protected Map<Object, Integer> map;
-    private ScanIterator iterator;
-    private IntersectionWrapper wrapper;
+    private final ScanIterator iterator;
+    private final IntersectionWrapper wrapper;
     private boolean processed = false;
     private Iterator innerIterator;
     private SortShuffle<RocksDBSession.BackendColumn> sortShuffle;
@@ -128,7 +128,7 @@ public class IntersectionFilterIterator implements ScanIterator {
         } else {
             // need reading from a file
             var fileIterator =
-                    (Iterator<RocksDBSession.BackendColumn>) this.sortShuffle.getIterator();
+                    this.sortShuffle.getIterator();
             this.innerIterator = new ReduceIterator<>(fileIterator,
                                                       (o1, o2) -> Arrays.compare(o1.name, o2.name),
                                                       this.size);
@@ -184,11 +184,11 @@ public class IntersectionFilterIterator implements ScanIterator {
 
         private int count = 0;
 
-        private Iterator<E> iterator;
+        private final Iterator<E> iterator;
 
-        private Comparator<E> comparator;
+        private final Comparator<E> comparator;
 
-        private int adjacent;
+        private final int adjacent;
 
         public ReduceIterator(Iterator<E> iterator, Comparator<E> comparator, int adjacent) {
             this.count = 0;

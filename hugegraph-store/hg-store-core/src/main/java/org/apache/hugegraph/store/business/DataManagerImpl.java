@@ -102,7 +102,8 @@ public class DataManagerImpl implements DataManager {
         if (response.getStatus().isOK()) {
             status = move(source, targets, DataManagerImpl::findPartition);
 
-            // After successful data migration, set the new partition range and bring the new partition online
+            // After successful data migration, set the new partition range and bring the new
+            // partition online
             for (var target : targets) {
                 if (status.isOk()) {
                     if (!(metaManager.updateRange(target, (int) target.getStartKey(),

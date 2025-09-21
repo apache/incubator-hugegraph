@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class FilterIterator<T extends RocksDBSession.BackendColumn> extends
-                                                     AbstractSelectIterator
+                                                                    AbstractSelectIterator
         implements ScanIterator {
 
     private final ConditionQuery query;

@@ -32,8 +32,8 @@ public class FileObjectIterator<T> implements Iterator<T> {
 
     private FileInputStream fis = null;
     private T current;
-    private String fn;
-    private SortShuffleSerializer<T> serializer;
+    private final String fn;
+    private final SortShuffleSerializer<T> serializer;
 
     public FileObjectIterator(String filePath, SortShuffleSerializer<T> serializer) {
         this.fn = filePath;

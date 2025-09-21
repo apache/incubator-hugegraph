@@ -16,6 +16,7 @@
  */
 
 package org.apache.hugegraph.store.cmd;
+
 @Deprecated
 public class CleanDataResponse extends HgCmdBase.BaseResponse {
 

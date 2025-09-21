@@ -180,7 +180,8 @@ public class HgCmdClient {
                     } else if (HgCmdProcessor.Status.LEADER_REDIRECT == response.getStatus()
                                && response.partitionLeaders != null
                     ) {
-                        // When returning leader drift, and partitionLeaders is not empty, need to reset the leader.
+                        // When returning leader drift, and partitionLeaders is not empty, need
+                        // to reset the leader.
                         Thread.sleep(i * 1000L);
                     } else {
                         log.error(

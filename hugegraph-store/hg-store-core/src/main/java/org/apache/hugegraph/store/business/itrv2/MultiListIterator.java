@@ -32,7 +32,7 @@ public class MultiListIterator implements ScanIterator {
     /**
      * iterator list
      */
-    private List<ScanIterator> iterators;
+    private final List<ScanIterator> iterators;
 
     /**
      * iterator of iterator list
@@ -128,7 +128,7 @@ public class MultiListIterator implements ScanIterator {
 
     @Override
     public <T> T next() {
-        return (T) this.innerIterator.next();
+        return this.innerIterator.next();
     }
 
     @Override

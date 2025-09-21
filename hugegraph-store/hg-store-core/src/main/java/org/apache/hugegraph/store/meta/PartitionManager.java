@@ -55,7 +55,8 @@ import com.alipay.sofa.jraft.core.ElectionPriority;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Partition object management strategy, each modification requires cloning a copy, and the version number is incremented.
+ * Partition object management strategy, each modification requires cloning a copy, and the
+ * version number is incremented.
  */
 @Slf4j
 public class PartitionManager extends GlobalMetaStore {
@@ -124,7 +125,8 @@ public class PartitionManager extends GlobalMetaStore {
      *
      * @param detections  dir list
      * @param partitionId partition id
-     * @param checkLogDir :  whether it includes the subdirectory log (raft snapshot and log separation, further checks are needed)
+     * @param checkLogDir :  whether it includes the subdirectory log (raft snapshot and log
+     *                    separation, further checks are needed)
      * @return true if contains partition id, otherwise false
      */
     private Boolean checkPathContains(File[] detections, int partitionId, boolean checkLogDir) {
@@ -149,8 +151,10 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * According to the root directory of the profile, loop through to find the storage path of the partition.
-     * According to the agreement, db data is in the dataPath/db/partition_id directory, and raft data is in the dataPath/raft/partition_id directory.
+     * According to the root directory of the profile, loop through to find the storage path of
+     * the partition.
+     * According to the agreement, db data is in the dataPath/db/partition_id directory, and raft
+     * data is in the dataPath/raft/partition_id directory.
      * Check if the partition storage folder exists
      */
     private Boolean resetPartitionPath(int partitionId) {
@@ -229,7 +233,7 @@ public class PartitionManager extends GlobalMetaStore {
         var partIds = new HashSet<Integer>();
         for (String path : this.options.getDataPath().split(",")) {
             File[] dirs = new File(path + "/" + HgStoreEngineOptions.DB_Path_Prefix).listFiles();
-            if (dirs == null || dirs.length == 0) {
+            if (dirs == null) {
                 continue;
             }
 
@@ -282,7 +286,8 @@ public class PartitionManager extends GlobalMetaStore {
                     countOfPartition += 1;
 
                     Partition partition = new Partition(metaPart);
-                    partition.setWorkState(Metapb.PartitionState.PState_Normal);     // Start recovery work state
+                    partition.setWorkState(
+                            Metapb.PartitionState.PState_Normal);     // Start recovery work state
                     partitions.get(graph).put(partition.getId(), partition);
                     log.info("load partition : {} -{}", partition.getGraphName(),
                              partition.getId());
@@ -320,7 +325,8 @@ public class PartitionManager extends GlobalMetaStore {
 
     /**
      * Synchronize from PD and delete the extra local partitions.
-     * During the synchronization process, new partitions need to be saved locally, and the existing partition information is merged with the local data.
+     * During the synchronization process, new partitions need to be saved locally, and the
+     * existing partition information is merged with the local data.
      */
     public void syncPartitionsFromPD(Consumer<Partition> delCallback) throws PDException {
         Lock writeLock = readWriteLock.writeLock();
@@ -455,7 +461,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Find the Partition belonging to this machine, prioritize searching locally, if not found locally, inquire with pd.
+     * Find the Partition belonging to this machine, prioritize searching locally, if not found
+     * locally, inquire with pd.
      *
      * @param graph
      * @param partId
@@ -499,7 +506,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Get partition information from pd and merge it with local partition information. Leader and shardList are taken from local.
+     * Get partition information from pd and merge it with local partition information. Leader
+     * and shardList are taken from local.
      */
     public Partition getPartitionFromPD(String graph, int partId) {
         pdProvider.invalidPartitionCache(graph, partId);
@@ -510,7 +518,8 @@ public class PartitionManager extends GlobalMetaStore {
             if (partitions.containsKey(graph)) {
                 Partition local = partitions.get(graph).get(partId);
                 if (local != null) {
-                    // Update the local key range, ensuring consistency between pd and local partition information
+                    // Update the local key range, ensuring consistency between pd and local
+                    // partition information
                     local.setStartKey(partition.getStartKey());
                     local.setEndKey(partition.getEndKey());
                     savePartition(local, true, true);
@@ -601,7 +610,8 @@ public class PartitionManager extends GlobalMetaStore {
         pdProvider.updatePartitionCache(partition, changeLeader);
 
         partitionChangedListeners.forEach(listener -> {
-            listener.onChanged(partition); // Notify raft, synchronize partition information synchronization
+            listener.onChanged(
+                    partition); // Notify raft, synchronize partition information synchronization
         });
     }
 

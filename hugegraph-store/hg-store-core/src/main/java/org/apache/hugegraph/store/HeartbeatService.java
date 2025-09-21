@@ -53,16 +53,16 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     private static final int MAX_HEARTBEAT_RETRY_COUNT = 5;
     private static final int REGISTER_RETRY_INTERVAL = 1;
-    private static int processors = Runtime.getRuntime().availableProcessors();
+    private static final int processors = Runtime.getRuntime().availableProcessors();
     private final HgStoreEngine storeEngine;
     private HgStoreEngineOptions options;
     private PdProvider pdProvider;
     private Store storeInfo;
     private Metapb.ClusterStats clusterStats;
     private StoreMetadata storeMetadata;
-    private List<StoreStateListener> stateListeners;
-    private Object partitionThreadLock = new Object();
-    private Object storeThreadLock = new Object();
+    private final List<StoreStateListener> stateListeners;
+    private final Object partitionThreadLock = new Object();
+    private final Object storeThreadLock = new Object();
     private int heartbeatFailCount = 0;
     private int reportErrCount = 0;
     // Thread sleep time
@@ -315,6 +315,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                                         .entrySet()) {
                 if (entry.getValue().getWorkState() == Metapb.PartitionState.PState_Offline) {
                     partitionState = Metapb.PartitionState.PState_Offline;
+                    break;
                 }
             }
             // pd will not handle (3.7.2+)
