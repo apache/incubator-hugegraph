@@ -27,6 +27,7 @@ import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -199,7 +200,10 @@ public class LicenseVerifierService {
     public synchronized void install(String md5) {
 
     }
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                             .withZone(java.time.ZoneId.systemDefault());
 
     public HashMap getContext() throws Exception {
         try {
@@ -215,10 +219,10 @@ public class LicenseVerifierService {
             // long diff = notAfter - currentTimeMillis;
             // boolean expired = diff <= 0;
             HashMap result = mapper.fromJson(value, HashMap.class);
-            result.put("current", formatter.format(new Date()));
-            result.put("notAfter", formatter.format(notAfter));
-            result.put("issued", formatter.format(issued));
-            result.put("notBefore", formatter.format(notBefore));
+            result.put("current", FORMATTER.format(java.time.Instant.now()));
+            result.put("notAfter", FORMATTER.format(notAfter.toInstant()));
+            result.put("issued", FORMATTER.format(issued.toInstant()));
+            result.put("notBefore", FORMATTER.format(notBefore.toInstant()));
             return result;
         } catch (Exception e) {
             throw new Exception("can not find license content from storage:" + e.getMessage());
