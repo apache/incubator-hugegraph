@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 public class Processors {
 
     private final HgStoreEngine engine;
-    private Map<Class, CommandProcessor> processors = new ConcurrentHashMap<>(16);
+    private final Map<Class, CommandProcessor> processors = new ConcurrentHashMap<>(16);
 
     public Processors(HgStoreEngine engine) {
         register(new BuildIndexProcessor(engine));

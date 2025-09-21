@@ -43,7 +43,7 @@ import lombok.extern.slf4j.Slf4j;
 public class FakePdServiceProvider implements PdProvider {
 
     private static long specifyStoreId = -1L;
-    private Map<Long, Store> stores;
+    private final Map<Long, Store> stores;
     private int partitionCount = 0;
     private GraphManager graphManager = null;
     private List<Partition> partitions;
@@ -135,7 +135,8 @@ public class FakePdServiceProvider implements PdProvider {
     }
 
     /**
-     * Retrieve partition information for the specified chart and obtain partition object by partition ID
+     * Retrieve partition information for the specified chart and obtain partition object by
+     * partition ID
      *
      * @param graph  Graph name
      * @param partId Partition ID
@@ -147,8 +148,8 @@ public class FakePdServiceProvider implements PdProvider {
         Metapb.Partition partition = Metapb.Partition.newBuilder()
                                                      .setGraphName(graph)
                                                      .setId(partId)
-                                                     .setStartKey(partLength * partId)
-                                                     .setEndKey(partLength * (partId + 1))
+                                                     .setStartKey((long) partLength * partId)
+                                                     .setEndKey((long) partLength * (partId + 1))
                                                      .setState(Metapb.PartitionState.PState_Normal)
                                                      .build();
         return new Partition(partition);

@@ -51,7 +51,8 @@ import com.alipay.sofa.jraft.rpc.RpcServer;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Snapshot synchronization rpc processor, after the leader completes batch storage, reads the newly added kv based on seqnum and sends it in batches to the follower.
+ * Snapshot synchronization rpc processor, after the leader completes batch storage, reads the
+ * newly added kv based on seqnum and sends it in batches to the follower.
  *
  * @param <T>
  */

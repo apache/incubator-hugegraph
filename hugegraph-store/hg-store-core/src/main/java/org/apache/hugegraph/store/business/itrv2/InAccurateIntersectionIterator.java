@@ -24,7 +24,8 @@ import org.apache.hugegraph.rocksdb.access.ScanIterator;
 import org.roaringbitmap.longlong.Roaring64Bitmap;
 
 /**
- * Not applicable to single iterators; use the union version for individual cases (deduplication only)
+ * Not applicable to single iterators; use the union version for individual cases (deduplication
+ * only)
  *
  * @param <T>
  */

@@ -17,9 +17,7 @@
 
 package org.apache.hugegraph.store.processor;
 
-import com.google.protobuf.GeneratedMessageV3;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.function.Consumer;
 
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.pulse.MovePartition;
@@ -28,7 +26,9 @@ import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
 import org.apache.hugegraph.store.meta.Partition;
 
-import java.util.function.Consumer;
+import com.google.protobuf.GeneratedMessageV3;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @date 2023/10/10

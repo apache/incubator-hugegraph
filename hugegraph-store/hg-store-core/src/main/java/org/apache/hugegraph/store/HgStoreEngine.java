@@ -470,7 +470,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, StoreStat
                 }
                 // Send messages to other peers, create raft groups. This is an asynchronous send.
                 hgCmdClient.destroyRaftNode(store.getRaftAddress(),
-                                            Arrays.asList(new Partition[]{partition}), status -> {
+                                            Arrays.asList(partition), status -> {
                             log.info("send to {} - {} DestroyRaftNode rpc call" + " result {}",
                                      store.getRaftAddress(), partition.getId(), status);
                         });

@@ -28,11 +28,12 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.jetbrains.annotations.NotNull;
+
 //FIXME Missing shutdown method
 public class CopyOnWriteCache<K, V> implements ConcurrentMap<K, V> {
 
     // Scheduled executor service for periodically clearing the cache.
-    private ScheduledExecutorService scheduledExecutor;
+    private final ScheduledExecutorService scheduledExecutor;
 
     // The underlying map used to store key-value pairs in this cache.
     private volatile Map<K, V> map;

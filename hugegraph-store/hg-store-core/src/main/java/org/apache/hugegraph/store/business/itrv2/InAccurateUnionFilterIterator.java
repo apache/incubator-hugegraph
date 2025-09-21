@@ -41,7 +41,7 @@ public class InAccurateUnionFilterIterator<T> implements ScanIterator {
     public InAccurateUnionFilterIterator(ScanIterator iterator, ToLongFunction<T> toLongFunction) {
         this.iterator = iterator;
         this.workBitmap = new Roaring64Bitmap();
-        if (toLongFunction == null){
+        if (toLongFunction == null) {
             throw new NullPointerException("toLongFunction cannot be null");
         }
         this.toLongFunction = toLongFunction;

@@ -55,7 +55,8 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     public Store load() {
-        // For the case of multi-directory storage, pre-create folders to facilitate pd-side file storage statistics.
+        // For the case of multi-directory storage, pre-create folders to facilitate pd-side file
+        // storage statistics.
         dataLocations.forEach(path -> {
             String strPath = Paths.get(path).toAbsolutePath().toString();
             File dbFile = new File(strPath);
@@ -158,7 +159,7 @@ public class StoreMetadata extends GlobalMetaStore {
             log.info("allocate db path using partition count: db count stats: {}", counter);
         } else {
             log.info("allocate db path using free space: db size stats: {}", counter);
-            }
+        }
 
         int min = Integer.MAX_VALUE;
         String location = "";
@@ -280,7 +281,8 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     /**
-     * Get the location of the partitioned data storage, if distributed data does not exist, automatically create a new location.
+     * Get the location of the partitioned data storage, if distributed data does not exist,
+     * automatically create a new location.
      *
      * @param partitionId
      * @return

@@ -29,12 +29,12 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.pulse.CleanType;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
-import org.apache.hugegraph.store.cmd.request.BatchPutRequest;
-import org.apache.hugegraph.store.cmd.response.BatchPutResponse;
 import org.apache.hugegraph.store.cmd.HgCmdClient;
-import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
-import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
+import org.apache.hugegraph.store.cmd.request.BatchPutRequest;
 import org.apache.hugegraph.store.cmd.request.CleanDataRequest;
+import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
+import org.apache.hugegraph.store.cmd.response.BatchPutResponse;
+import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
 import org.apache.hugegraph.store.term.Bits;
 
 import com.alipay.sofa.jraft.Status;
