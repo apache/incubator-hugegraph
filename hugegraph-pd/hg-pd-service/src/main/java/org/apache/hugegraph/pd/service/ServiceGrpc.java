@@ -75,7 +75,7 @@ public interface ServiceGrpc extends RaftStateListener {
                         ManagedChannel c = ManagedChannelBuilder.forTarget(address)
                                                                 .maxInboundMessageSize(
                                                                         Integer.MAX_VALUE)
-                                                                .usePlaintext().usePlaintext()
+                                                                .usePlaintext()
                                                                 .build();
                         channels.put(address, c);
                         channel = c;

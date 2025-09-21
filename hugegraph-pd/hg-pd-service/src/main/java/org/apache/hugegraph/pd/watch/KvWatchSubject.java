@@ -140,7 +140,7 @@ public class KvWatchSubject {
             assert values.length == 4;
             String watchKey = values[2];
             String c = values[3];
-            long clientId = new Long(c);
+            long clientId = Long.parseLong(c);
             LinkedList<WatchEvent> watchEvents = new LinkedList<>();
             for (WatchKv kv : kvs) {
                 String kvKey = kv.getKey();
@@ -257,7 +257,7 @@ public class KvWatchSubject {
                     try {
                         value.onCompleted();
                     } catch (Exception e) {
-
+                        log.warn("Exception occurred while completing observer for removeClient {}: {}", clientKey, e.toString(), e);
                     }
                 }
             }

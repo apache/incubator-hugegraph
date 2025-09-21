@@ -45,7 +45,8 @@ public class SDConfig {
 
     public SDConfig setTargets(Set<String> targets) {
         if (targets != null) {
-            this.targets = targets;
+            this.targets.clear();
+            this.targets.addAll(targets);
         }
         return this;
     }
