@@ -41,19 +41,21 @@ public class SortShuffle<T extends Serializable> {
 
     private static final int FILE_SIZE = 3;
 
-    private static AtomicInteger fileSeq = new AtomicInteger(0);
+    private static final AtomicInteger fileSeq = new AtomicInteger(0);
 
-    private static String basePath = "/tmp/";
+    private static String basePath =
+            System.getProperty("java.io.tmpdir") +
+            (System.getProperty("java.io.tmpdir").endsWith(File.separator) ? "" : File.separator);
 
-    private String path;
+    private final String path;
 
-    private Queue<T> queue = new ConcurrentLinkedDeque<>();
+    private final Queue<T> queue = new ConcurrentLinkedDeque<>();
 
-    private Comparator<T> comparator;
+    private final Comparator<T> comparator;
 
-    private SortShuffleSerializer<T> serializer;
+    private final SortShuffleSerializer<T> serializer;
 
-    private Deque<String> files = new ArrayDeque<>();
+    private final Deque<String> files = new ArrayDeque<>();
 
     public SortShuffle(Comparator<T> comparator, SortShuffleSerializer<T> serializer) {
         this.comparator = comparator;
