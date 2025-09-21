@@ -118,27 +118,18 @@ public class API {
     }
 
     public String toJSON(PDException exception) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("{")
-               .append(QUOTATION).append(STATUS_KEY).append(QUOTATION).append(COLON)
-               .append(exception.getErrorCode()).append(COMMA)
-               .append(QUOTATION).append(ERROR_KEY).append(QUOTATION).append(COLON)
-               .append(QUOTATION).append(exception.getMessage()).append(QUOTATION);
-        builder.append("}");
-
-        return builder.toString();
+        Map<String, Object> m = new HashMap<>();
+        m.put(STATUS_KEY, exception.getErrorCode());
+        m.put(ERROR_KEY, exception.getMessage() == null ? "" : exception.getMessage());
+        return toJSON(m);
     }
 
     public String toJSON(Throwable exception) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("{")
-               .append(QUOTATION).append(STATUS_KEY).append(QUOTATION).append(COLON).append("-1")
-               .append(COMMA)
-               .append(QUOTATION).append(ERROR_KEY).append(QUOTATION).append(COLON)
-               .append(QUOTATION).append(exception.getMessage()).append(QUOTATION);
-        builder.append("}");
-
-        return builder.toString();
+        Map<String, Object> m = new HashMap<>();
+        m.put(STATUS_KEY, -1);
+        m.put(ERROR_KEY,
+              exception == null || exception.getMessage() == null ? "" : exception.getMessage());
+        return toJSON(m);
     }
 
     public String toJSON(Object object) {

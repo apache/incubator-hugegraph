@@ -141,8 +141,4 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
         return RaftEngine.getInstance().isLeader();
     }
 
-    @Override
-    public void onRaftLeaderChanged() {
-
-    }
 }

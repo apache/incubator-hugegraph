@@ -107,7 +107,7 @@ public class SDConfigAPI {
                 break;
             default:
         }
-        return Collections.singletonList(model);
+        return model == null ? Collections.emptyList() : Collections.singletonList(model);
     }
 
     /**

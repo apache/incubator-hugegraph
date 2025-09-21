@@ -44,7 +44,7 @@ public class PDPulseService extends HgPdPulseGrpc.HgPdPulseImplBase {
     private static Supplier<List<Metapb.QueueItem>> queueRetrieveFunction =
             () -> Collections.emptyList();
     private static Function<Metapb.QueueItem, Boolean> queueDurableFunction = (e) -> true;
-    private static Function<String, Boolean> queueRemoveFunction = (e) -> true;
+    private static final Function<String, Boolean> queueRemoveFunction = (e) -> true;
     @Autowired
     private PDConfig pdConfig;
     private QueueStore queueStore = null;
