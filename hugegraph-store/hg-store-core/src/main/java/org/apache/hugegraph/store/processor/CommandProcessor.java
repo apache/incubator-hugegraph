@@ -189,14 +189,9 @@ public abstract class CommandProcessor {
             // need to submit thread pool
             // checking prev execution state
             var partitionId = partition.getId();
-            if (!TASKS.containsKey(partitionId)) {
-                synchronized (this) {
-                    if (!TASKS.containsKey(partitionId)) {
-                        TASKS.put(partitionId, new LinkedBlockingDeque<>());
-                        TASK_STATS.put(partitionId, new AtomicBoolean(false));
-                    }
-                }
-            }
+
+            TASKS.computeIfAbsent(partitionId, k -> new LinkedBlockingDeque<>());
+            TASK_STATS.computeIfAbsent(partitionId, k -> new AtomicBoolean(false));
 
             TASKS.get(partitionId).add(() -> {
                 while (!TASK_STATS.get(partitionId).compareAndSet(false, true)) {
