@@ -304,13 +304,13 @@ public class PartitionManager extends GlobalMetaStore {
             }
 
             if (countOfPartition > 0) {
-                // 分区数据正常
+                // Partition data is normal
                 normalPartitions.add(partId);
             }
             wrapper.close(partId);
         }
 
-        // 删掉多余的分区存储路径，被迁移走的分区，有可能还会迁回来
+        // Remove redundant partition storage paths, partitions that have been migrated away may migrate back
         for (var location : storeMetadata.getPartitionStores()) {
             if (!normalPartitions.contains(location.getPartitionId())) {
                 storeMetadata.removePartitionStore(location.getPartitionId());
@@ -934,7 +934,7 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * db 存储路径
+     * DB storage path
      *
      * @return location/db
      */
@@ -972,7 +972,7 @@ public class PartitionManager extends GlobalMetaStore {
 
     public UpdatePartitionResponse updateState(Metapb.Partition partition,
                                                Metapb.PartitionState state) {
-        // 分区分裂时，主动需要查找 leader 进行同步信息
+        // During partition splitting, actively need to find leader for information synchronization
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setWorkState(state);
         request.setPartitionId(partition.getId());
@@ -982,7 +982,7 @@ public class PartitionManager extends GlobalMetaStore {
 
     public UpdatePartitionResponse updateRange(Metapb.Partition partition, int startKey,
                                                int endKey) {
-        // 分区分裂时，主动需要查找 leader 进行同步信息
+        // During partition splitting, actively need to find leader for information synchronization
         UpdatePartitionRequest request = new UpdatePartitionRequest();
         request.setStartKey(startKey);
         request.setEndKey(endKey);

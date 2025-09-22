@@ -49,7 +49,7 @@ public class MovePartitionProcessor extends CommandProcessor {
 
         PartitionEngine engine = storeEngine.getPartitionEngine(partition.getId());
         if (engine != null) {
-            // 先应答，避免超时造成pd重复发送
+            // Respond first to avoid timeout causing pd to resend
             MovePartition movePartition = (MovePartition) data;
             String graphName = partition.getGraphName();
             int partitionId = partition.getId();

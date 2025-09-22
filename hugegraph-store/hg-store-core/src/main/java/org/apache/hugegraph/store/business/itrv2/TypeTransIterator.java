@@ -113,7 +113,7 @@ public class TypeTransIterator<F, E> implements ScanIterator {
         try {
             return (T) this.data;
         } finally {
-            // 取出去之后，将data置空
+            // After taking it out, set data to null
             this.data = null;
         }
     }

@@ -170,13 +170,13 @@ public class SnapshotHandler {
                                                                                  HgStoreException {
         final String snapshotDir = reader.getPath();
 
-        // 本地保存的快照没必要加载
+        // No need to load locally saved snapshots
         if (shouldNotLoad(reader)) {
             log.info("skip to load snapshot because of should_not_load flag");
             return;
         }
 
-        // 直接使用 snapshot
+        // Use snapshot directly
         final String graphSnapshotDir = snapshotDir + File.separator + SNAPSHOT_DATA_PATH;
         log.info("Raft {} begin loadSnapshot, {}", partitionEngine.getGroupId(), graphSnapshotDir);
         businessHandler.loadSnapshot(graphSnapshotDir, "", partitionEngine.getGroupId(),
