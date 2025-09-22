@@ -62,15 +62,21 @@ public class SDConfigService {
     private PDConfig pdConfig;
     @Autowired
     private PDService pdService;
-    private RegistryService register;
+    private volatile RegistryService register;
     private HgMapCache<String, Set<String>> targetsCache =
             HgMapCache.expiredOf(24 * 60 * 60 * 1000);
 
     private RegistryService getRegister() {
-        if (this.register == null) {
-            this.register = new RegistryService(this.pdConfig);
+        RegistryService local = this.register;
+        if (local == null) {
+            synchronized (this) {
+                if (this.register == null) {
+                    this.register = new RegistryService(this.pdConfig);
+                }
+                local = this.register;
+            }
         }
-        return this.register;
+        return local;
     }
 
     public List<SDConfig> getAllTargets() {
@@ -225,9 +231,13 @@ public class SDConfigService {
                     }).filter(e -> e != null).findFirst();
 
             if (port.isPresent()) {
-                address = address.substring(0, address.indexOf(':') + 1);
-                address = address + port.get();
-
+                java.net.URI uri = address.contains("://")
+                                   ? java.net.URI.create(address)
+                                   : java.net.URI.create("http://" + address);
+                String host = uri.getHost() != null ? uri.getHost() : address;
+                String hostPart =
+                        host.contains(":") && !host.startsWith("[") ? "[" + host + "]" : host;
+                address = hostPart + ":" + port.get().trim();
             }
         } catch (Throwable t) {
             log.error("Failed to extract the REST address of store, cause by:", t);
