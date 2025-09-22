@@ -54,7 +54,7 @@ public class PartitionRangeChangeProcessor extends CommandProcessor {
                     partitionManager.getPartition(partition.getGraphName(), partition.getId());
 
             if (localPartition == null) {
-                // 如果分区数据为空，本地不会存储
+                // If partition data is empty, it will not be stored locally
                 localPartition = partitionManager.getPartitionFromPD(partition.getGraphName(),
                                                                      partition.getId());
                 log.info("onPartitionKeyRangeChanged, get from pd:{}-{} -> {}",

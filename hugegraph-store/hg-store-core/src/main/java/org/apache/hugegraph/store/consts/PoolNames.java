@@ -23,6 +23,7 @@ package org.apache.hugegraph.store.consts;
 public class PoolNames {
 
     public static final String GRPC = "hg-grpc";
+    //todo Unify SCAN and SCAN_V2
     public static final String SCAN = "hg-scan";
     public static final String SCAN_V2 = "hg-scan-v2";
     public static final String I_JOB = "hg-i-job";

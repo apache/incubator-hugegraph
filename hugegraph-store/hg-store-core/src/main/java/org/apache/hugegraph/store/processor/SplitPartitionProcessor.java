@@ -49,7 +49,7 @@ public class SplitPartitionProcessor extends CommandProcessor {
         PartitionEngine engine = storeEngine.getPartitionEngine(partition.getId());
 
         if (engine != null) {
-            // 先应答，避免超时造成pd重复发送
+            // Respond first to avoid timeout causing pd to resend
             String graphName = partition.getGraphName();
             int partitionId = partition.getId();
             SplitPartition splitPartition = (SplitPartition) data;

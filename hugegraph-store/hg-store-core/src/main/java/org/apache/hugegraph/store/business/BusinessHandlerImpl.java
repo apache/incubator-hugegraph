@@ -384,7 +384,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     private ScanIterator scan(String graph, String table, List<QueryTypeParam> params) throws
                                                                                        HgStoreException {
-        //put id scan in to a single list
+        // put id scan in to a single list
         var idList = params.stream().filter(QueryTypeParam::isIdScan).collect(Collectors.toList());
 
         var itr = new MultiListIterator();
@@ -502,7 +502,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                     break;
                 case PRECISE_DEDUP:
                     if (limit > 0) {
-                        // map limit 去重
+                        // Map limit deduplication
                         result = new MapLimitIterator<RocksDBSession.BackendColumn>(
                                 new MultiListIterator(sub));
                     } else {
@@ -794,7 +794,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                 return null;
             }
 
-            // todo : 后面使用 parseIndex(BackendColumn indexCol)
+            // todo: Use parseIndex(BackendColumn indexCol) later
             var index = serializer.parseIndex(getGraphSupplier(graph),
                                               BackendColumn.of(column.name, column.value), null);
 
@@ -811,7 +811,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             }
 
             if (lookup) {
-                // 存放的 owner key
+                // Store the owner key
                 column.value = BinaryElementSerializer.ownerId(index).asBytes();
                 // column.value = KeyUtil.idToBytes(BinaryElementSerializer.ownerId(index));
             }

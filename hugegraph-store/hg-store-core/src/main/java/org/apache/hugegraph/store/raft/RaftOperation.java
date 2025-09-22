@@ -51,7 +51,7 @@ public class RaftOperation {
     private static final Logger LOG = LoggerFactory.getLogger(RaftOperation.class);
     private byte[] values;     // req serialized result, used for transmitting to other raft nodes
     private Object req;
-            // Original object, used for native processing, reducing one deserialization operation
+    // Original object, used for native processing, reducing one deserialization operation
     private byte op;         // operation type
 
     public static RaftOperation create(final byte op) {
