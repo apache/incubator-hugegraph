@@ -63,11 +63,11 @@ public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBa
     }
 
     /**
-     * 生成错误响应。
+     * Generate error response.
      *
-     * @param queryId 查询标识符
-     * @param t       异常对象
-     * @return 查询响应对象
+     * @param queryId query identifier
+     * @param t       exception object
+     * @return query response object
      */
     public static QueryResponse errorResponse(QueryResponse.Builder builder, String queryId,
                                               Throwable t) {
@@ -111,10 +111,10 @@ public class AggregativeQueryService extends QueryServiceGrpc.QueryServiceImplBa
     }
 
     /**
-     * 查询数据条数
+     * Query data count
      *
-     * @param request  查询请求对象
-     * @param observer Observer 对象，用于接收查询响应结果
+     * @param request  query request object
+     * @param observer Observer object for receiving query response results
      */
     @Override
     public void count(QueryRequest request, StreamObserver<QueryResponse> observer) {

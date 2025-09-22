@@ -24,7 +24,7 @@ import org.apache.hugegraph.store.node.grpc.query.QueryStage;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 
 /**
- * 限制N
+ * Limit N
  */
 public class LimitStage implements QueryStage {
 

@@ -123,7 +123,8 @@ public class FixGraphIdController {
     }
 
     /**
-     * 统计整个表中 graph id 对应对 count 以及随机抽样 100 条 (精确的数字）
+     * Count the graph id corresponding count and randomly sample 100 records in the entire table
+     * (accurate numbers)
      *
      * @param op    op
      * @param table table
@@ -172,7 +173,7 @@ public class FixGraphIdController {
     }
 
     /**
-     * 效率优化，只查前 10 万条
+     * Performance optimization, only query the first 100,000 records
      *
      * @param op
      * @param table
@@ -214,7 +215,8 @@ public class FixGraphIdController {
     }
 
     /**
-     * 性能优化版，按照 graph id 去扫描，根据预估文件大小，决定是否要扫这个分区
+     * Performance optimization version, scan by graph id, decide whether to scan this partition
+     * based on estimated file size
      *
      * @param session
      * @return
@@ -293,7 +295,7 @@ public class FixGraphIdController {
     }
 
     /**
-     * 要同时满足能够解析定点和边
+     * Must be able to parse both vertices and edges
      *
      * @param list1 vertex list
      * @param list2 edge list

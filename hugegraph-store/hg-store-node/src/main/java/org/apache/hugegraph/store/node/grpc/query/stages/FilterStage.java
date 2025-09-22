@@ -22,7 +22,7 @@ import org.apache.hugegraph.store.node.grpc.query.QueryStage;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 
 /**
- * 过滤
+ * Filter
  */
 public class FilterStage implements QueryStage {
 

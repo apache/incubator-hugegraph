@@ -21,7 +21,7 @@ import org.apache.hugegraph.store.node.grpc.query.QueryStage;
 import org.apache.hugegraph.store.node.grpc.query.model.PipelineResult;
 
 /**
- * sample = 0 的特殊阶段
+ * Special stage for sample = 0
  */
 public class StopStage implements QueryStage {
 

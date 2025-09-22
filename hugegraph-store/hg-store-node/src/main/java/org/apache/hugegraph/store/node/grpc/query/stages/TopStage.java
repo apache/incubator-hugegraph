@@ -47,7 +47,7 @@ public class TopStage implements QueryStage {
         this.limit = (int) objects[0];
         this.isAsc = (boolean) objects[2];
 
-        // 需要构建一个相反的堆
+        // Need to build a reverse heap
         this.comparator =
                 new BaseElementComparator(QueryUtil.fromStringBytes((List<ByteString>) objects[1]),
                                           !isAsc);
