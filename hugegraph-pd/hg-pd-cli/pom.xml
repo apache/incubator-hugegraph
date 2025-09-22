@@ -31,7 +31,7 @@
     <artifactId>hg-pd-cli</artifactId>
 
     <properties>
-        <jackson.version>2.12.1</jackson.version>
+        <jackson.version>2.15.2</jackson.version>
     </properties>
 
     <dependencies>
@@ -78,7 +78,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.28</version>
+            <version>1.33</version>
             <scope>test</scope>
         </dependency>
         <dependency>

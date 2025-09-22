@@ -21,6 +21,8 @@ import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.common.PDException;
 
+import java.util.regex.Pattern;
+
 public abstract class Command {
 
     protected static String error =
@@ -39,15 +41,21 @@ public abstract class Command {
             throw new PDException(-1, error);
         }
         Parameter parameter = new Parameter();
-        parameter.setCmd(args[0]);
-        parameter.setPd(args[1]);
+        parameter.setPd(args[0]);
+        parameter.setCmd(args[1]);
         if (args.length == 3) {
-            parameter.setParams(new String[]{args[2]});
+            parameter.setParams(new String[]{args[2].trim()});
         } else {
             String t = args[3];
-            if (t != null && t.length() > 0) {
-                parameter.setParams(args[2].split(t));
+            if (t != null && !t.isEmpty()) {
+                String[] raw = args[2].split(Pattern.quote(t));
+                for (int i = 0; i < raw.length; i++) {
+                    raw[i] = raw[i].trim();
+                }
+                parameter.setParams(raw);
                 parameter.setSeparator(t);
+            } else {
+                parameter.setParams(new String[]{args[2].trim()});
             }
         }
         return parameter;
