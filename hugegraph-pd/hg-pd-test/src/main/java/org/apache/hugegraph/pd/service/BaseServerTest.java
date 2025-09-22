@@ -19,6 +19,7 @@ package org.apache.hugegraph.pd.service;
 
 import java.io.File;
 import java.net.http.HttpClient;
+import java.time.Duration;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.BaseTest;
@@ -32,7 +33,7 @@ public class BaseServerTest extends BaseTest {
 
     @BeforeClass
     public static void init() {
-        client = HttpClient.newHttpClient();
+        client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
     }
 
     public static PDConfig getConfig() {

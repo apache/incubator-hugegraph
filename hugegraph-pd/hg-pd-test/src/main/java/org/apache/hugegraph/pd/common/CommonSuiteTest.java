@@ -17,7 +17,7 @@
 
 package org.apache.hugegraph.pd.common;
 
-import org.apache.hugegraph.pd.core.meta.MetadataKeyHelperTest;
+import org.apache.hugegraph.pd.common.MetadataKeyHelperTest;
 import org.apache.hugegraph.pd.service.IdServiceTest;
 import org.apache.hugegraph.pd.service.KvServiceTest;
 import lombok.extern.slf4j.Slf4j;

@@ -74,7 +74,7 @@ public class DiscoveryClientTest extends BaseTest {
                                        .build();
             discoveryClient.scheduleTask();
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new AssertionError("Failed to build DiscoveryClient", e);
         }
 
         return discoveryClient;

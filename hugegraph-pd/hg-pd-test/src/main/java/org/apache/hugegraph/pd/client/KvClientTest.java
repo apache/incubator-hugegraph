@@ -51,10 +51,10 @@ public class KvClientTest extends BaseClientTest {
         // Run the test
         try {
             final AbstractStub result = client.createStub();
+            assertThat(result).isNotNull();
         } catch (Exception e) {
-
+            org.junit.Assert.fail("createStub exception: " + e);
         } finally {
-
         }
     }
 
@@ -64,10 +64,10 @@ public class KvClientTest extends BaseClientTest {
         // Run the test
         try {
             final AbstractBlockingStub result = client.createBlockingStub();
+            assertThat(result).isNotNull();
         } catch (Exception e) {
-
+            org.junit.Assert.fail("createBlockingStub exception: " + e);
         } finally {
-
         }
     }
 
