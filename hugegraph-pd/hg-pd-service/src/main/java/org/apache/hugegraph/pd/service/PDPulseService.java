@@ -47,7 +47,7 @@ public class PDPulseService extends HgPdPulseGrpc.HgPdPulseImplBase {
     private static final Function<String, Boolean> queueRemoveFunction = (e) -> true;
     @Autowired
     private PDConfig pdConfig;
-    private QueueStore queueStore = null;
+    private volatile QueueStore queueStore;
 
     public PDPulseService() {
         PDPulseSubject.setQueueRetrieveFunction(() -> getQueue());
@@ -107,9 +107,16 @@ public class PDPulseService extends HgPdPulseGrpc.HgPdPulseImplBase {
     }
 
     private QueueStore getQueueStore() {
-        if (this.queueStore == null) {
-            this.queueStore = MetadataFactory.newQueueStore(pdConfig);
+        QueueStore local = this.queueStore;
+        if (local == null) {
+            synchronized (this) {
+                local = this.queueStore;
+                if (local == null) {
+                    local = MetadataFactory.newQueueStore(pdConfig);
+                    this.queueStore = local;
+                }
+            }
         }
-        return this.queueStore;
+        return local;
     }
 }
