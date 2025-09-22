@@ -17,17 +17,17 @@
 
 package org.apache.hugegraph.store.cmd.request;
 
-import java.io.Serializable;
-import java.util.List;
-
+import lombok.Data;
 import org.apache.hugegraph.store.cmd.HgCmdBase;
 
-import lombok.Data;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class BatchPutRequest extends HgCmdBase.BaseRequest {
 
-    private List<KV> entries;
+    private List<KV> entries = new ArrayList<>();
 
     @Override
     public byte magic() {
