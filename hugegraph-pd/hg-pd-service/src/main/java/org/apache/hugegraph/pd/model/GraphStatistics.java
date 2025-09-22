@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.service.PDRestService;
@@ -33,6 +35,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Data
+@Slf4j
 public class GraphStatistics {
 
     @Getter(AccessLevel.NONE)
@@ -86,7 +89,15 @@ public class GraphStatistics {
         }
         partitions = resultPartitionList;
         // remove the /g /m /s behind the graph name
-        final int postfixLength = 2;
-        graphName = graphName.substring(0, graphName.length() - postfixLength);
+        if (graphName != null && graphName.length() >= 2) {
+            String suf = graphName.substring(graphName.length() - 2);
+            if ("/g".equals(suf) || "/m".equals(suf) || "/s".equals(suf)) {
+                graphName = graphName.substring(0, graphName.length() - 2);
+            } else {
+                log.error("invalid graph name in GraphStatistics: {}", graphName);
+            }
+        } else {
+            log.error("invalid graph name in GraphStatistics: {}", graphName);
+        }
     }
 }
