@@ -43,13 +43,14 @@ public class CliApplication {
                     command = new CheckPeers(parameter.getPd());
                     break;
                 default:
-                    log.error("Invalid command");
+                    log.error("Invalid command: {}. Supported: config|change_raft|check_peers",
+                              parameter.getCmd());
                     return;
             }
             command.action(parameter.getParams());
         } catch (Exception e) {
             log.error("main thread error:", e);
-            System.exit(0);
+            System.exit(1);
         } finally {
 
         }

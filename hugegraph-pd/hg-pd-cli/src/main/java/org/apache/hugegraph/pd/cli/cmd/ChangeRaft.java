@@ -27,6 +27,11 @@ public class ChangeRaft extends Command {
 
     @Override
     public void action(String[] params) throws PDException {
+        if (params == null || params.length < 1 || params[0] == null ||
+            params[0].trim().isEmpty()) {
+            System.err.println("Usage: change_raft <new_peers>");
+            return;
+        }
         pdClient.updatePdRaft(params[0]);
     }
 }
