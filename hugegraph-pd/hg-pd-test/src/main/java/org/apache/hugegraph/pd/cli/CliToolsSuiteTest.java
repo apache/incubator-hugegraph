@@ -15,20 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd.client;
+package org.apache.hugegraph.pd.cli;
 
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 import lombok.extern.slf4j.Slf4j;
 
+
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        PDClientTest.class,
-        KvClientTest.class,
-        DiscoveryClientTest.class
+        MainTest.class
 })
+
 @Slf4j
-public class PDClientSuiteTest {
+public class CliToolsSuiteTest {
+
 
 }

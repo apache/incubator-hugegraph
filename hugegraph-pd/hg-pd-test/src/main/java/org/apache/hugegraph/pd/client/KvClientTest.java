@@ -38,13 +38,11 @@ import io.grpc.stub.AbstractStub;
 
 public class KvClientTest extends BaseClientTest {
 
-    String key = "key";
-    String value = "value";
     private KvClient<WatchResponse> client;
 
     @Before
     public void setUp() {
-        this.client = new KvClient<>(PDConfig.of("localhost:8686"));
+        client = new KvClient<>(getPdConfig());
     }
 
     @Test
@@ -52,12 +50,12 @@ public class KvClientTest extends BaseClientTest {
         // Setup
         // Run the test
         try {
-            final AbstractStub result = this.client.createStub();
+            final AbstractStub result = client.createStub();
+            assertThat(result).isNotNull();
         } catch (Exception e) {
-
+            org.junit.Assert.fail("createStub exception: " + e);
+        } finally {
         }
-
-        // Verify the results
     }
 
     @Test
@@ -65,52 +63,57 @@ public class KvClientTest extends BaseClientTest {
         // Setup
         // Run the test
         try {
-            final AbstractBlockingStub result = this.client.createBlockingStub();
+            final AbstractBlockingStub result = client.createBlockingStub();
+            assertThat(result).isNotNull();
         } catch (Exception e) {
-
+            org.junit.Assert.fail("createBlockingStub exception: " + e);
+        } finally {
         }
     }
+
+    String key = "key";
+    String value = "value";
 
     @Test
     public void testPutAndGet() throws Exception {
         // Run the test
         try {
-            this.client.put(this.key, this.value);
+            client.put(key, value);
             // Run the test
-            KResponse result = this.client.get(this.key);
+            KResponse result = client.get(key);
 
             // Verify the results
-            assertThat(result.getValue()).isEqualTo(this.value);
-            this.client.delete(this.key);
-            result = this.client.get(this.key);
+            assertThat(result.getValue()).isEqualTo(value);
+            client.delete(key);
+            result = client.get(key);
             assertThat(StringUtils.isEmpty(result.getValue()));
-            this.client.deletePrefix(this.key);
-            this.client.put(this.key + "1", this.value);
-            this.client.put(this.key + "2", this.value);
-            ScanPrefixResponse response = this.client.scanPrefix(this.key);
+            client.deletePrefix(key);
+            client.put(key + "1", value);
+            client.put(key + "2", value);
+            ScanPrefixResponse response = client.scanPrefix(key);
             assertThat(response.getKvsMap().size() == 2);
-            this.client.putTTL(this.key + "3", this.value, 1000);
-            this.client.keepTTLAlive(this.key + "3");
+            client.putTTL(key + "3", value, 1000);
+            client.keepTTLAlive(key + "3");
             final Consumer<WatchResponse> mockConsumer = mock(Consumer.class);
 
             // Run the test
-            this.client.listen(this.key + "3", mockConsumer);
-            this.client.listenPrefix(this.key + "4", mockConsumer);
+            client.listen(key + "3", mockConsumer);
+            client.listenPrefix(key + "4", mockConsumer);
             WatchResponse r = WatchResponse.newBuilder().addEvents(
                                                    WatchEvent.newBuilder().setCurrent(
-                                                           WatchKv.newBuilder().setKey(this.key).setValue("value")
+                                                           WatchKv.newBuilder().setKey(key).setValue("value")
                                                                   .build()).setType(WatchType.Put).build())
                                            .setClientId(0L)
                                            .setState(WatchState.Starting)
                                            .build();
-            this.client.getWatchList(r);
-            this.client.getWatchMap(r);
-            this.client.lock(this.key, 3000L);
-            this.client.isLocked(this.key);
-            this.client.unlock(this.key);
-            this.client.lock(this.key, 3000L);
-            this.client.keepAlive(this.key);
-            this.client.close();
+            client.getWatchList(r);
+            client.getWatchMap(r);
+            client.lock(key, 3000L);
+            client.isLocked(key);
+            client.unlock(key);
+            client.lock(key, 3000L);
+            client.keepAlive(key);
+            client.close();
         } catch (Exception e) {
 
         }

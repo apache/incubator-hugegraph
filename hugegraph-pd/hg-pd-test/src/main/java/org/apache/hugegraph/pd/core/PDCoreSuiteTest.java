@@ -35,7 +35,8 @@ import lombok.extern.slf4j.Slf4j;
         PartitionServiceTest.class,
         StoreMonitorDataServiceTest.class,
         StoreServiceTest.class,
-        TaskScheduleServiceTest.class
+        TaskScheduleServiceTest.class,
+        StoreNodeServiceTest.class,
 })
 @Slf4j
 public class PDCoreSuiteTest {
