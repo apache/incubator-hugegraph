@@ -469,6 +469,7 @@ public class FixGraphIdController {
         for (var table : tables) {
             op.deleteRange(table, start, end);
         }
+        op.commit();
         return "OK";
     }
 
