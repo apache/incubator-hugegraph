@@ -28,7 +28,12 @@ public class Config extends Command {
 
     @Override
     public void action(String[] params) throws PDException {
-        String param = params[0];
+        if (params == null || params.length < 1 || params[0] == null ||
+            params[0].trim().isEmpty()) {
+            System.err.println("Usage: config <key>[=<value>] (keys: shardCount, enableBatchLoad)");
+            return;
+        }
+        String param = params[0].trim();
         String[] pair = param.split("=");
         String key = pair[0].trim();
         Object value = null;
@@ -49,16 +54,31 @@ public class Config extends Command {
             System.out.println("Get config " + key + "=" + value);
         } else {
             Metapb.PDConfig.Builder builder = Metapb.PDConfig.newBuilder();
+            boolean changed = false;
             switch (key) {
                 case "enableBatchLoad":
                     //   builder.setEnableBatchLoad(Boolean.valueOf((String)value));
                     break;
                 case "shardCount":
-                    builder.setShardCount(Integer.valueOf((String) value));
+                    try {
+                        builder.setShardCount(Integer.valueOf((String) value));
+                        changed = true;
+                    } catch (NumberFormatException nfe) {
+                        System.err.println("Invalid integer for shardCount: " + value);
+                        return;
+                    }
                     break;
+                default:
+                    System.err.println(
+                            "Unknown key: " + key + " (supported: shardCount, enableBatchLoad)");
+                    return;
             }
-            pdClient.setPDConfig(builder.build());
-            System.out.println("Set config " + key + "=" + value);
+            if (changed) {
+                pdClient.setPDConfig(builder.build());
+                System.out.println("Set config " + key + "=" + value);
+            } else {
+                System.err.println("No change applied");
+            }
         }
     }
 }
