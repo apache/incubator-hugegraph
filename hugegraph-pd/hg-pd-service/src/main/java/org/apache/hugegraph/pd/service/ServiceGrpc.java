@@ -35,7 +35,7 @@ import io.grpc.MethodDescriptor;
 
 public interface ServiceGrpc extends RaftStateListener {
 
-    ConcurrentHashMap<String, ManagedChannel> channels = new ConcurrentHashMap();
+    ConcurrentHashMap<String, ManagedChannel> channels = new ConcurrentHashMap<>();
     ManagedChannel channel = null;
     Logger log = LoggerFactory.getLogger(ServiceGrpc.class);
     int deadline = 60;
@@ -64,24 +64,26 @@ public interface ServiceGrpc extends RaftStateListener {
                                                 io.grpc.stub.StreamObserver<RespT> observer) {
         try {
             String address = RaftEngine.getInstance().getLeaderGrpcAddress();
-            if ((channel = channels.get(address)) == null || channel.isTerminated() ||
-                channel.isShutdown()) {
-                synchronized (this) {
-                    if ((channel = channels.get(address)) == null || channel.isTerminated() ||
-                        channel.isShutdown()) {
-                        while (channel != null && channel.isShutdown() && !channel.isTerminated()) {
-                            channel.awaitTermination(50, TimeUnit.MILLISECONDS);
-                        }
-                        ManagedChannel c = ManagedChannelBuilder.forTarget(address)
-                                                                .maxInboundMessageSize(
-                                                                        Integer.MAX_VALUE)
-                                                                .usePlaintext()
-                                                                .build();
-                        channels.put(address, c);
-                        channel = c;
-                    }
+            channel = channels.compute(address, (addr, existingChannel) -> {
+
+                if (existingChannel != null && !existingChannel.isTerminated() && !existingChannel.isShutdown()) {
+                    return existingChannel;
                 }
-            }
+
+                try {
+                    while(existingChannel != null && existingChannel.isShutdown() && !existingChannel.isTerminated()){
+                        existingChannel.awaitTermination(50, TimeUnit.MILLISECONDS);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("Interrupted while waiting for channel termination", e);
+                }
+
+                return ManagedChannelBuilder.forTarget(addr)
+                                            .maxInboundMessageSize(Integer.MAX_VALUE)
+                                            .usePlaintext()
+                                            .build();
+            });
             CallOptions callOptions =
                     CallOptions.DEFAULT.withDeadlineAfter(deadline, TimeUnit.SECONDS);
             io.grpc.stub.ClientCalls.asyncUnaryCall(channel.newCall(method, callOptions), req,
@@ -89,7 +91,6 @@ public interface ServiceGrpc extends RaftStateListener {
         } catch (Exception e) {
             log.warn("redirect to leader with error:", e);
         }
-
     }
 
     default <ReqT, RespT> void redirectToLeader(MethodDescriptor<ReqT, RespT> method,
