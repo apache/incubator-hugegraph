@@ -142,10 +142,11 @@ public class PartitionAPI extends API {
                         partition2DataSize.getOrDefault(resultPartition.partitionId, 0L);
                 for (ShardStats shard : resultPartition.shards) {
                     // Assign values to the address and partition information of the replica
-                    shard.address = storesMap.get(shard.storeId).getAddress();
-                    shard.partitionId = partition.getId();
-                    if (shard.getRole().equalsIgnoreCase(Metapb.ShardRole.Leader.name())) {
-                        resultPartition.leaderAddress = shard.address;
+                    Metapb.Store s = storesMap.get(shard.storeId);
+                    shard.address = (s != null) ? s.getAddress() : "";
+                    if (s == null) {
+                        log.error("store not found for shard storeId={}, partitionId={}",
+                                 shard.storeId, partition.getId());
                     }
                 }
                 resultPartitionsMap.put(partition.getId(), resultPartition);
