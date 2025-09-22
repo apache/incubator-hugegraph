@@ -54,6 +54,12 @@ class Partition {
             workState = String.valueOf(pt.getState());
             graphName = pt.getGraphName();
             final int postfixLength = 2;
+            if (graphName != null && graphName.length() > postfixLength) {
+                graphName = graphName.substring(0, graphName.length() - postfixLength);
+            } else {
+                log.error("Partition graphName '{}' too short to trim postfixLength={}", graphName,
+                         postfixLength);
+            }
             graphName = graphName.substring(0, graphName.length() - postfixLength);
             if (stats != null) {
                 List<Metapb.ShardStats> shardStatsList = stats.getShardStatsList();

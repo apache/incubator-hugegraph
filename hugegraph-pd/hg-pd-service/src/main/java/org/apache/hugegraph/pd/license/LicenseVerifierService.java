@@ -116,7 +116,13 @@ public class LicenseVerifierService {
                             this.checkIpAndMac(param);
                             // Retrieve the validity period, set the expiry time, notify the leader, and save the content to...
                             Date notAfter = content.getNotAfter();
-                            long ttl = notAfter.getTime() - System.currentTimeMillis();
+                            long ttl =
+                                    Math.max(0L, notAfter.getTime() - System.currentTimeMillis());
+                            if (ttl == 0L) {
+                                throw new PDRuntimeException(
+                                        Pdpb.ErrorType.LICENSE_VERIFY_ERROR_VALUE,
+                                        "License already expired");
+                            }
                             final TTLResponse[] info = {null};
                             if (!isLeader()) {
                                 while (RaftEngine.getInstance().getLeader() == null) {
