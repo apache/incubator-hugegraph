@@ -64,7 +64,7 @@ public class MapLimitIterator<T> implements ScanIterator {
             }
         }
 
-        // 控制set的大小
+        // Control the size of the set
         if (current != null && set.size() <= SET_MAX_SIZE) {
             set.add(current);
         }

@@ -22,7 +22,6 @@ import java.util.concurrent.CompletableFuture;
 import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Status;
 
-@Deprecated
 public class FutureClosureAdapter<T> implements Closure {
 
     public final CompletableFuture<T> future = new CompletableFuture<>();

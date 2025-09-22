@@ -118,9 +118,9 @@ public class StoreMetadata extends GlobalMetaStore {
     }
 
     /**
-     * 删除指定分区对应的存储元数据。
+     * Delete the storage metadata corresponding to the specified partition.
      *
-     * @param partitionId 分区ID。
+     * @param partitionId Partition ID.
      */
     public void removePartitionStore(int partitionId) {
         byte[] key = MetadataKeyHelper.getPartitionStoreKey(partitionId);

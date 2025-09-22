@@ -132,15 +132,6 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         partitionManager = storeEngine.getPartitionManager();
         stateListeners = Collections.synchronizedList(new ArrayList());
     }
-//    public static ThreadPoolExecutor getRaftLogWriteExecutor() {
-//        if (raftLogWriteExecutor == null) {
-//            synchronized (PartitionEngine.class) {
-//                if (raftLogWriteExecutor == null)
-//                    raftLogWriteExecutor = RocksDBSegmentLogStorage.createDefaultWriteExecutor();
-//            }
-//        }
-//        return raftLogWriteExecutor;
-//    }
 
     /**
      * Record the partition information using this raft.
@@ -231,12 +222,12 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         });
         // Initial cluster
         nodeOptions.setInitialConf(initConf);
-        // 快照时间间隔
+        // Snapshot time interval
         nodeOptions.setSnapshotIntervalSecs(raft.getSnapshotIntervalSecs());
         //todo soya fix
-        //nodeOptions.setSnapShotDownloadingThreads(raft.getSnapshotDownloadingThreads());
+        // nodeOptions.setSnapShotDownloadingThreads(raft.getSnapshotDownloadingThreads());
 
-        //nodeOptions.setSnapshotLogIndexMargin(options.getRaftOptions()
+        // nodeOptions.setSnapshotLogIndexMargin(options.getRaftOptions()
         // .getSnapshotLogIndexMargin());
 
         nodeOptions.setRpcConnectTimeoutMs(raft.getRpcConnectTimeoutMs());
@@ -771,7 +762,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 HashSet<String> hashSet = new HashSet<>(peers);
 
                 try {
-                    // 任务中有相同的 peers，说明任务本身有错误，任务忽略
+                    // If there are duplicate peers in the task, it indicates the task itself has errors, ignore the task
                     if (peers.size() != hashSet.size()) {
                         log.info("Raft {} doChangeShard peer is repeat, peers:{}", getGroupId(),
                                  peers);
@@ -780,7 +771,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     Status result = changePeers(peers, null);
 
                     if (result.getCode() == HgRaftError.TASK_CONTINUE.getNumber()) {
-                        // 需要重新发送一个 request
+                        // Need to resend a request
                         storeEngine.addRaftTask(task.getPartition().getGraphName(),
                                                 task.getPartition().getId(), RaftOperation.create(
                                         RaftOperation.SYNC_PARTITION_TASK, task), status -> {
@@ -1143,7 +1134,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         } catch (Exception e) {
             Integer groupId = getGroupId();
             // String msg = String.format("Partition %s blank task done with error：", groupId);
-            //log.error(msg, e);
+            // log.error(msg, e);
             if (done != null) {
                 done.run(new Status(-1, e.getMessage()));
             }
@@ -1211,7 +1202,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         @Override
         public void onError(PeerId peer, Status status) {
-            //  log.info("Raft {} Replicator onError {} {}", getGroupId(), peer, status);
+            // log.info("Raft {} Replicator onError {} {}", getGroupId(), peer, status);
         }
 
         @Override
