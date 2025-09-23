@@ -670,6 +670,8 @@ public class TaskScheduleService {
                 case Clean_Partition:
                     partitionService.handleCleanPartitionTask(task);
                     break;
+                case Ingest_SSTFile:
+                    partitionService.handleBulkloadTask(task);
                 default:
                     break;
             }
