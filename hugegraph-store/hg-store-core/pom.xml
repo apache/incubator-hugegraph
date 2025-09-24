@@ -33,6 +33,7 @@
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-struct</artifactId>
+            <version>${revision}</version>
         </dependency>
         <!-- generic -->
         <dependency>
@@ -117,6 +118,11 @@
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-common</artifactId>
             <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.roaringbitmap</groupId>
+            <artifactId>RoaringBitmap</artifactId>
+            <version>0.9.38</version>
         </dependency>
 
         <!-- tinkerpop -->
