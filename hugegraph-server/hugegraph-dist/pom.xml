@@ -104,6 +104,11 @@
             <artifactId>hugegraph-hstore</artifactId>
             <version>${revision}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.hugegraph</groupId>
+            <artifactId>hugegraph-vector</artifactId>
+            <version>${revision}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>

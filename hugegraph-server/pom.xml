@@ -72,6 +72,7 @@
         <module>hugegraph-hbase</module>
         <module>hugegraph-postgresql</module>
         <module>hugegraph-hstore</module>
+        <module>hugegraph-vector</module>
     </modules>
 
     <dependencyManagement>
