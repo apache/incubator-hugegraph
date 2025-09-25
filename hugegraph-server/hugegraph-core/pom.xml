@@ -44,6 +44,7 @@
         <eclipse-collections.version>11.1.0</eclipse-collections.version>
         <fastutil.version>8.5.9</fastutil.version>
         <jjwt.version>0.11.5</jjwt.version>
+        <jvector.version>4.0.0-rc.2</jvector.version>
     </properties>
 
     <dependencies>
@@ -283,6 +284,13 @@
                     <artifactId>grpc-core</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/io.github.jbellis/jvector -->
+        <dependency>
+            <groupId>io.github.jbellis</groupId>
+            <artifactId>jvector</artifactId>
+            <version>${jvector.version}</version>
         </dependency>
     </dependencies>
 
