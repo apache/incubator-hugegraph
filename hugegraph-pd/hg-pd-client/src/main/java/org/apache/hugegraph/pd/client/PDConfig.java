@@ -1,34 +1,30 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.apache.hugegraph.pd.client;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.util.Base64;
+import org.apache.commons.lang3.StringUtils;
+
+import com.baidu.hugegraph.pd.client.interceptor.AuthenticationException;
+
+import lombok.Getter;
+import lombok.Setter;
+
 public final class PDConfig {
-
-    // TODO: multi-server
+    //TODO multi-server
     private String serverHost = "localhost:9000";
-
-    // The timeout period for grpc call is 10 seconds
-    private long grpcTimeOut = 60000;
-
-    // Whether to receive asynchronous PD notifications
-    private boolean enablePDNotify = false;
-
+    private long grpcTimeOut = 60000;   // grpc调用超时时间 10秒
+    private boolean enablePDNotify = false; // 是否接收PD异步通知
     private boolean enableCache = false;
+    private String authority;
+    private String userName = "";
+    private static final int GRPC_DEFAULT_MAX_INBOUND_MESSAGE_SIZE = 1024 * 1024 * 1024;
+    private static final int GRPC_DEFAULT_MAX_OUTBOUND_MESSAGE_SIZE = 1024 * 1024 * 1024;
+    private static int inboundMessageSize = GRPC_DEFAULT_MAX_INBOUND_MESSAGE_SIZE;
+    private static int outboundMessageSize = GRPC_DEFAULT_MAX_OUTBOUND_MESSAGE_SIZE;
+    @Getter
+    @Setter
+    private boolean autoGetPdServers = false;
 
     private PDConfig() {
     }
@@ -61,6 +57,7 @@ public final class PDConfig {
     @Deprecated
     public PDConfig setEnablePDNotify(boolean enablePDNotify) {
         this.enablePDNotify = enablePDNotify;
+        // TODO 临时代码，hugegraph修改完后删除
         this.enableCache = enablePDNotify;
         return this;
     }
@@ -76,8 +73,39 @@ public final class PDConfig {
 
     @Override
     public String toString() {
-        return "PDConfig{" +
-               "serverHost='" + serverHost + '\'' +
-               '}';
+        return "PDConfig{ serverHost='" + serverHost + '\'' + '}';
+    }
+
+    public PDConfig setAuthority(String userName, String pwd) {
+        this.userName = userName;
+        String auth = userName + ':' + pwd;
+        this.authority = new String(Base64.getEncoder().encode(auth.getBytes(UTF_8)));
+        return this;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public String getAuthority() {
+        if (StringUtils.isEmpty(this.authority)){
+            throw new AuthenticationException("invalid basic authentication info");
+        }
+        return authority;
+    }
+    public static int getInboundMessageSize() {
+        return inboundMessageSize;
+    }
+
+    public static void setInboundMessageSize(int inboundMessageSize) {
+        PDConfig.inboundMessageSize = inboundMessageSize;
+    }
+
+    public static int getOutboundMessageSize() {
+        return outboundMessageSize;
+    }
+
+    public static void setOutboundMessageSize(int outboundMessageSize) {
+        PDConfig.outboundMessageSize = outboundMessageSize;
     }
 }

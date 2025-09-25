@@ -127,6 +127,10 @@ public class JRaftMetrics {
 
     }
 
+    private static HistogramWrapper toWrapper(com.codahale.metrics.Histogram histogram) {
+        return new HistogramWrapper(histogram);
+    }
+
     private static String refineMetrics(String name, List<Tag> tags) {
         if (name == null || name.isEmpty()) {
             return name;
@@ -168,33 +172,35 @@ public class JRaftMetrics {
 
         String baseName = PREFIX + "." + name.toLowerCase();
 
-        Gauge.builder(baseName + ".median", histogram, h -> h.getSnapshot().getMedian())
+        HistogramWrapper wrapper = toWrapper(histogram);
+
+        Gauge.builder(baseName + ".median", wrapper, (d) -> d.getSnapshot().getMedian())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".min", histogram, h -> h.getSnapshot().getMin())
+        Gauge.builder(baseName + ".min", wrapper, (d) -> d.getSnapshot().getMin())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".max", histogram, h -> h.getSnapshot().getMax())
+        Gauge.builder(baseName + ".max", wrapper, (d) -> d.getSnapshot().getMax())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".mean", histogram, h -> h.getSnapshot().getMean())
+        Gauge.builder(baseName + ".mean", wrapper, (d) -> d.getSnapshot().getMean())
              .tags(tags).register(registry);
 
         baseName = baseName + ".summary";
-        Gauge.builder(baseName, histogram, h -> h.getSnapshot().getMedian())
+        Gauge.builder(baseName, wrapper, (d) -> d.getSnapshot().getMedian())
              .tags(tags).tag(LABELS, LABEL_50).register(registry);
-        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get75thPercentile())
+        Gauge.builder(baseName, wrapper, (d) -> d.getSnapshot().get75thPercentile())
              .tags(tags).tag(LABELS, LABEL_75).register(registry);
-        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get95thPercentile())
+        Gauge.builder(baseName, wrapper, (d) -> d.getSnapshot().get95thPercentile())
              .tags(tags).tag(LABELS, LABEL_95).register(registry);
-        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get98thPercentile())
+        Gauge.builder(baseName, wrapper, (d) -> d.getSnapshot().get98thPercentile())
              .tags(tags).tag(LABELS, LABEL_98).register(registry);
-        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get99thPercentile())
+        Gauge.builder(baseName, wrapper, (d) -> d.getSnapshot().get99thPercentile())
              .tags(tags).tag(LABELS, LABEL_99).register(registry);
-        Gauge.builder(baseName, histogram, h -> h.getSnapshot().get999thPercentile())
+        Gauge.builder(baseName, wrapper, (d) -> d.getSnapshot().get999thPercentile())
              .tags(tags).tag(LABELS, LABEL_999).register(registry);
 
-        Gauge.builder(baseName + ".sum", histogram,
-                      h -> Arrays.stream(h.getSnapshot().getValues()).sum())
+        Gauge.builder(baseName + ".sum", wrapper,
+                      (d) -> Arrays.stream(d.getSnapshot().getValues()).sum())
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".count", histogram, h -> h.getSnapshot().size())
+        Gauge.builder(baseName + ".count", wrapper, (d) -> d.getSnapshot().size())
              .tags(tags).register(registry);
 
     }
@@ -208,36 +214,18 @@ public class JRaftMetrics {
 
         String baseName = PREFIX + "." + name.toLowerCase();
 
-        Gauge.builder(baseName + ".count", timer, t -> t.getCount())
+        Gauge.builder(baseName + ".count", timer, Timer::getCount)
              .tags(tags).register(registry);
-        Gauge.builder(baseName + ".min", timer, t -> t.getSnapshot().getMin())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".max", timer, t -> t.getSnapshot().getMax())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".mean", timer, t -> t.getSnapshot().getMean())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".stddev", timer, t -> t.getSnapshot().getStdDev())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".p50", timer, t -> t.getSnapshot().getMedian())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".p75", timer, t -> t.getSnapshot().get75thPercentile())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".p95", timer, t -> t.getSnapshot().get95thPercentile())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".p98", timer, t -> t.getSnapshot().get98thPercentile())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".p99", timer, t -> t.getSnapshot().get99thPercentile())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".p999", timer, t -> t.getSnapshot().get999thPercentile())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".m1_rate", timer, t -> t.getOneMinuteRate())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".m5_rate", timer, t -> t.getFiveMinuteRate())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".m15_rate", timer, t -> t.getFifteenMinuteRate())
-             .tags(tags).register(registry);
-        Gauge.builder(baseName + ".mean_rate", timer, t -> t.getMeanRate())
-             .tags(tags).register(registry);
+
+        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
+             .tags(tags).tag("rate", "1m").register(registry);
+        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
+             .tags(tags).tag("rate", "5m").register(registry);
+        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
+             .tags(tags).tag("rate", "15m").register(registry);
+        Gauge.builder(baseName + ".timer", timer, Timer::getCount)
+             .tags(tags).tag("rate", "mean").register(registry);
+
     }
 
     private static void registerMeter(String group, String name, com.codahale.metrics.Meter meter) {
@@ -302,5 +290,26 @@ public class JRaftMetrics {
                  .tag("str.gauge", String.valueOf(gauge.getValue())).register(registry);
         }
 
+    }
+
+    private static class HistogramWrapper {
+
+        private final com.codahale.metrics.Histogram histogram;
+
+        private Snapshot snapshot;
+        private long ts = System.currentTimeMillis();
+
+        HistogramWrapper(com.codahale.metrics.Histogram histogram) {
+            this.histogram = histogram;
+            this.snapshot = this.histogram.getSnapshot();
+        }
+
+        Snapshot getSnapshot() {
+            if (System.currentTimeMillis() - this.ts > 30_000) {
+                this.snapshot = this.histogram.getSnapshot();
+                this.ts = System.currentTimeMillis();
+            }
+            return this.snapshot;
+        }
     }
 }

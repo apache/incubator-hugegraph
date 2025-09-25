@@ -30,6 +30,7 @@ import java.util.Objects;
 
 import lombok.Getter;
 
+@Deprecated
 class ProcFileHandler {
 
     // Cache duration in milliseconds

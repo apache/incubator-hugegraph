@@ -1284,6 +1284,21 @@ public class PDClient {
         handleResponseError(response.getHeader());
     }
 
+    public void forceReconnect() {
+        //todo soya
+    }
+
+    public PDPulse getPulse() {
+        //todo soya
+        return null;
+    }
+
+    public ShardGroup getShardGroupDirect(int partId) throws PDException {
+        //todo soya
+        return null;
+        //return this.pdApi.getShardGroupDirect(partId);
+    }
+
     public interface PDEventListener {
 
         void onStoreChanged(NodeEvent event);

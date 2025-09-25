@@ -22,6 +22,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import lombok.Data;
 
 @Data
+@Deprecated
 public class UpdatePartitionRequest extends HgCmdBase.BaseRequest {
 
     private int startKey;

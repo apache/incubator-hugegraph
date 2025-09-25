@@ -18,7 +18,9 @@
 package org.apache.hugegraph.store.node.util;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +28,8 @@ import java.util.regex.Pattern;
  * created on 2022/03/07
  */
 public class HgRegexUtil {
+
+    private static final Map<String, Pattern> patternMap = new LinkedHashMap<>();
 
     public static String getGroupValue(String regex, String source, int groupId) {
         if (regex == null || "".equals(regex) || source == null || "".equals(source)) {
@@ -52,7 +56,8 @@ public class HgRegexUtil {
             return null;
         }
 
-        Pattern p = Pattern.compile(regex);
+        Pattern p = patternMap.computeIfAbsent(regex, key -> Pattern.compile(regex));
+        // Pattern p = Pattern.compile(regex);
         Matcher m = p.matcher(source);
 
         List<String> list = null;
