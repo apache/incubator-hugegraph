@@ -20,6 +20,7 @@ package org.apache.hugegraph.rocksdb.access;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -1043,7 +1044,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
      * A wrapper for RocksIterator that convert RocksDB results to std Iterator
      */
 
-    public static class BackendColumn implements Comparable<BackendColumn> {
+    public static class BackendColumn implements Comparable<BackendColumn>, Serializable {
 
         public byte[] name;
         public byte[] value;

@@ -66,6 +66,7 @@ public abstract class AbstractClient implements Closeable {
         this.proxy = new AbstractClientStubProxy(hosts);
         this.header = Pdpb.RequestHeader.getDefaultInstance();
         this.config = config;
+        resetStub();
     }
 
     public static Pdpb.ResponseHeader newErrorHeader(int errorCode, String errorMsg) {
@@ -137,7 +138,10 @@ public abstract class AbstractClient implements Closeable {
         Exception ex = null;
         for (int i = 0; i < proxy.getHostCount(); i++) {
             String host = proxy.nextHost();
-            close();
+            if (channel != null) {
+                close();
+            }
+
             channel = ManagedChannelBuilder.forTarget(host).usePlaintext().build();
             PDBlockingStub blockingStub =
                     setBlockingParams(PDGrpc.newBlockingStub(channel), config);
