@@ -107,7 +107,7 @@ public class IntersectionFilterIterator implements ScanIterator {
                 if (this.map.size() >= MAX_SIZE) {
                     if (this.sortShuffle == null) {
                         this.sortShuffle =
-                                new SortShuffle<>((o1, o2) -> Arrays.compare(o1.name, o2.name),
+                                new SortShuffle<RocksDBSession.BackendColumn>((o1, o2) -> Arrays.compare(o1.name, o2.name),
                                                   SortShuffleSerializer.ofBackendColumnSerializer());
                     }
                     saveElements();

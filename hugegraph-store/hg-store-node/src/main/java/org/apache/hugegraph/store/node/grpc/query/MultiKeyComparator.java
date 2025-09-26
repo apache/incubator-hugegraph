@@ -46,7 +46,7 @@ public class MultiKeyComparator implements Comparator<MultiKv> {
             var index = this.orders.get(i);
             var v1 = key1.size() > index ? key1.get(index) : null;
             var v2 = key2.size() > index ? key2.get(index) : null;
-            int ret = compareV(v1, v2);
+            int ret = compareV((Comparable) v1, (Comparable) v2);
             if (ret != 0) {
                 return ret;
             }

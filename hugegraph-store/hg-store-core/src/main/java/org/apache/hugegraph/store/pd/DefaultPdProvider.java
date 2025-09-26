@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.client.PDPulse;
+import org.apache.hugegraph.pd.client.listener.PDEventListener;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
@@ -61,7 +62,6 @@ public class DefaultPdProvider implements PdProvider {
     private final String pdServerAddress;
     private final PDPulse pulseClient;
     private Consumer<Throwable> hbOnError = null;
-    private List<PartitionInstructionListener> partitionCommandListeners;
     private PDPulse.Notifier<PartitionHeartbeatRequest.Builder> pdPulse;
     private Processors processors;
     private GraphManager graphManager = null;
@@ -69,7 +69,7 @@ public class DefaultPdProvider implements PdProvider {
     public static String name = "store";
     public static String authority = "default";
 
-    PDClient.PDEventListener listener = new PDClient.PDEventListener() {
+    PDEventListener listener = new PDEventListener() {
         // Listening to pd change information listener
         @Override
         public void onStoreChanged(NodeEvent event) {
