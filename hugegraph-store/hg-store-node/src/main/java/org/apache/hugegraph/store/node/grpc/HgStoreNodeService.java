@@ -61,7 +61,7 @@ public class HgStoreNodeService implements RaftTaskHandler {
     public static final byte TABLE_OP = 0x13;
     public static final byte GRAPH_OP = 0x14;
     public static final byte CLEAN_OP = 0x15;
-
+    public static final byte TTL_CLEAN_OP = 0x16;
     public static final byte MAX_OP = 0x59;
     private final AppConfig appConfig;
     @Autowired

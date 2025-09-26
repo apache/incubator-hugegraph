@@ -35,6 +35,7 @@ public class RestApiTest extends BaseServerTest {
         String url = pdRestAddr + "/v1/cluster";
         HttpRequest request = HttpRequest.newBuilder()
                                          .uri(new URI(url))
+                                         .header("Authorization", "Basic c3RvcmU6MTIz")
                                          .GET()
                                          .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -48,6 +49,7 @@ public class RestApiTest extends BaseServerTest {
         String url = pdRestAddr + "/v1/members";
         HttpRequest request = HttpRequest.newBuilder()
                                          .uri(new URI(url))
+                                         .header("Authorization", "Basic c3RvcmU6MTIz")
                                          .GET()
                                          .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -61,6 +63,7 @@ public class RestApiTest extends BaseServerTest {
         String url = pdRestAddr + "/v1/stores";
         HttpRequest request = HttpRequest.newBuilder()
                                          .uri(new URI(url))
+                                         .header("Authorization", "Basic c3RvcmU6MTIz")
                                          .GET()
                                          .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -74,6 +77,7 @@ public class RestApiTest extends BaseServerTest {
         String url = pdRestAddr + "/v1/graphs";
         HttpRequest request = HttpRequest.newBuilder()
                                          .uri(new URI(url))
+                                         .header("Authorization", "Basic c3RvcmU6MTIz")
                                          .GET()
                                          .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -87,6 +91,7 @@ public class RestApiTest extends BaseServerTest {
         String url = pdRestAddr + "/v1/highLevelPartitions";
         HttpRequest request = HttpRequest.newBuilder()
                                          .uri(new URI(url))
+                                         .header("Authorization", "Basic c3RvcmU6MTIz")
                                          .GET()
                                          .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -100,6 +105,7 @@ public class RestApiTest extends BaseServerTest {
         String url = pdRestAddr + "/v1/partitions";
         HttpRequest request = HttpRequest.newBuilder()
                                          .uri(new URI(url))
+                                         .header("Authorization", "Basic c3RvcmU6MTIz")
                                          .GET()
                                          .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -112,6 +118,7 @@ public class RestApiTest extends BaseServerTest {
         String url = pdRestAddr + "/v1/shards";
         HttpRequest request = HttpRequest.newBuilder()
                                          .uri(new URI(url))
+                                         .header("Authorization", "Basic c3RvcmU6MTIz")
                                          .GET()
                                          .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());

@@ -213,6 +213,22 @@ public class BinaryElementSerializer {
         return vertex;
     }
 
+    public Id parseLabelFromCol(BackendColumn col, boolean isVertex) {
+        BytesBuffer buffer;
+        if (isVertex) {
+            buffer = BytesBuffer.wrap(col.value);
+            // next buffer.readId() is the label id of vertex
+        } else {
+            buffer = BytesBuffer.wrap(col.name);
+            Id ownerVertexId = buffer.readId();
+            E.checkState(buffer.remaining() > 0, "Missing column type");
+            byte type = buffer.read();
+            Id labelId = buffer.readId();
+            // next buffer.readId() is the sub-label id of edge
+        }
+        return buffer.readId();
+    }
+
     public BaseEdge parseEdge(HugeGraphSupplier graph, BackendColumn edgeCol,
                               BaseVertex ownerVertex,
                               boolean withEdgeProperties) {

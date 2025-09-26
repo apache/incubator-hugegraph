@@ -78,8 +78,15 @@ public class ClientCache {
         try {
             GraphCache graph = initGraph(graphName);
             Partition partition = graph.getPartition(partId);
-            Shard shard = groups.get(partId).getValue();
-            if (partition == null || shard == null) {
+            if (partition == null) {
+                return null;
+            }
+            KVPair<ShardGroup, Shard> group = groups.get(partId);
+            if (group == null) {
+                return null;
+            }
+            Shard shard = group.getValue();
+            if (shard == null) {
                 return null;
             }
             return new KVPair<>(partition, shard);

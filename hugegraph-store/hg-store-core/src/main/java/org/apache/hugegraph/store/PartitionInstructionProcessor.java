@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.store;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -310,6 +311,8 @@ public class PartitionInstructionProcessor implements PartitionInstructionListen
                 LOG.info("onPartitionKeyRangeChanged: {}, update to pd", newPartition);
                 partitionManager.updatePartitionToPD(List.of(newPartition));
             } catch (PDException e) {
+                throw new RuntimeException(e);
+            } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
