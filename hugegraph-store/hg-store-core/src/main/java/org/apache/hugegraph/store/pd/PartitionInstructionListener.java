@@ -19,6 +19,7 @@ package org.apache.hugegraph.store.pd;
 
 import java.util.function.Consumer;
 
+import org.apache.hugegraph.pd.grpc.pulse.BulkloadInfo;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
 import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
 import org.apache.hugegraph.pd.grpc.pulse.DbCompaction;
@@ -51,4 +52,7 @@ public interface PartitionInstructionListener {
     void onPartitionKeyRangeChanged(long taskId, Partition partition,
                                     PartitionKeyRange partitionKeyRange,
                                     Consumer<Integer> consumer);
+    void onPartitionBulkload(long taskId, Partition partition,
+                             BulkloadInfo bulkloadInfo,
+                             Consumer<Integer> consumer) ;
 }
