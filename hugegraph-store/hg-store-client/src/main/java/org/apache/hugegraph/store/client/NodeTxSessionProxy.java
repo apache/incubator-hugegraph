@@ -39,20 +39,26 @@ import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.hugegraph.HugeGraphSupplier;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.store.HgKvEntry;
 import org.apache.hugegraph.store.HgKvIterator;
 import org.apache.hugegraph.store.HgKvOrderedIterator;
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgScanQuery;
+import org.apache.hugegraph.store.HgSessionConfig;
 import org.apache.hugegraph.store.HgStoreSession;
 import org.apache.hugegraph.store.client.grpc.KvBatchScanner;
 import org.apache.hugegraph.store.client.grpc.KvCloseableIterator;
+import org.apache.hugegraph.store.client.query.QueryExecutor;
 import org.apache.hugegraph.store.client.util.HgAssert;
 import org.apache.hugegraph.store.client.util.HgStoreClientConst;
 import org.apache.hugegraph.store.client.util.HgStoreClientUtil;
 import org.apache.hugegraph.store.grpc.stream.ScanStreamReq.Builder;
+import org.apache.hugegraph.store.query.StoreQueryParam;
 import org.apache.hugegraph.store.term.HgPair;
 import org.apache.hugegraph.store.term.HgTriple;
+import org.apache.hugegraph.structure.BaseElement;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -65,12 +71,13 @@ import lombok.extern.slf4j.Slf4j;
 @NotThreadSafe
 class NodeTxSessionProxy implements HgStoreSession {
 
+    private final HgSessionConfig sessionConfig;
     private final HgStoreNodeManager nodeManager;
     private final HgStoreNodePartitioner nodePartitioner;
     private final String graphName;
     private final NodeTxExecutor txExecutor;
 
-    NodeTxSessionProxy(String graphName, HgStoreNodeManager nodeManager) {
+    public NodeTxSessionProxy(String graphName, HgStoreNodeManager nodeManager) {
         this.nodeManager = nodeManager;
         this.graphName = graphName;
         this.nodePartitioner = this.nodeManager.getNodePartitioner();
@@ -78,6 +85,19 @@ class NodeTxSessionProxy implements HgStoreSession {
 
         isFalse(this.nodePartitioner == null,
                 "Failed to retrieve the node-partitioner from node-manager.");
+        sessionConfig = new HgSessionConfig();
+    }
+
+    public NodeTxSessionProxy(String graphName, HgStoreNodeManager nodeManager,
+                              HgSessionConfig config) {
+        this.nodeManager = nodeManager;
+        this.graphName = graphName;
+        this.nodePartitioner = this.nodeManager.getNodePartitioner();
+        this.txExecutor = NodeTxExecutor.graphOf(this.graphName, this);
+
+        isFalse(this.nodePartitioner == null,
+                "Failed to retrieve the node-partitioner from node-manager.");
+        sessionConfig = config;
     }
 
     @Override
@@ -504,17 +524,6 @@ class NodeTxSessionProxy implements HgStoreSession {
     }
 
     @Override
-    public long count(String table) {
-        return this.toNodeTkvList(table)
-                   .parallelStream()
-                   .map(
-                           e -> this.getStoreNode(e.getNodeId()).openSession(this.graphName)
-                                    .count(e.getTable())
-                   )
-                   .collect(Collectors.summingLong(l -> l));
-    }
-
-    @Override
     public List<HgKvIterator<HgKvEntry>> scanBatch(HgScanQuery scanQuery) {
         HgAssert.isArgumentNotNull(scanQuery, "scanQuery");
 
@@ -884,4 +893,19 @@ class NodeTxSessionProxy implements HgStoreSession {
         return hgPairs;
     }
 
+    @Override
+    public List<HgKvIterator<BaseElement>> query(StoreQueryParam query,
+                                                 HugeGraphSupplier supplier) throws
+                                                                             PDException {
+        long current = System.nanoTime();
+        QueryExecutor planner = new QueryExecutor(this.nodePartitioner, supplier,
+                                                  this.sessionConfig.getQueryPushDownTimeout());
+        query.checkQuery();
+        var iteratorList = planner.getIterators(query);
+        log.debug("[time_stat] query id: {}, size {},  get Iterator cost: {} ms",
+                  query.getQueryId(),
+                  iteratorList.size(),
+                  (System.nanoTime() - current) * 1.0 / 1000_000);
+        return iteratorList;
+    }
 }

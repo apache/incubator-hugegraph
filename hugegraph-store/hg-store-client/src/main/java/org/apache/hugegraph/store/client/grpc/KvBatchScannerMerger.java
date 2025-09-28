@@ -233,7 +233,7 @@ public class KvBatchScannerMerger implements KvCloseableIterator<HgKvIterator<Hg
             super(splitter);
             queue.add(() -> {
                 // Perform merge sort on the store's return result
-                return new HgKvIterator<>() {
+                return new HgKvIterator<HgKvEntry>() {
                     private ScannerDataQueue iterator;
                     private int currentSN = 0;
                     private HgKvEntry entry;

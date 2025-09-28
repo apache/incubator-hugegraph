@@ -38,6 +38,7 @@ import org.apache.hugegraph.store.grpc.Graphpb.ScanResponse;
 
 import com.google.protobuf.Descriptors;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
@@ -45,11 +46,11 @@ import lombok.extern.slf4j.Slf4j;
 public class ScanResponseObserver<T> implements
                                      StreamObserver<ScanPartitionRequest> {
 
-    private static final int BATCH_SIZE = 100000;
     private static final int MAX_PAGE = 8; //
     private static final Error ok = Error.newBuilder().setType(ErrorType.OK).build();
     private static final ResponseHeader okHeader =
             ResponseHeader.newBuilder().setError(ok).build();
+    private static int batchSize = 100000;
     private final BusinessHandler handler;
     private final AtomicInteger nextSeqNo = new AtomicInteger(0);
     private final AtomicInteger cltSeqNo = new AtomicInteger(0);
@@ -81,7 +82,8 @@ public class ScanResponseObserver<T> implements
      * November 2, 2022
      * 1. Read the thread of rocksdb iterator read
      * 2. Perform data conversion and send to the blocking queue thread offer
-     * 3. Thread for reading data from the blocking queue and sending, including waking up the reading and sending threads when no data is read
+     * 3. Thread for reading data from the blocking queue and sending, including waking up the
+     * reading and sending threads when no data is read
      * */
 
     public ScanResponseObserver(StreamObserver<ScanResponse> sender,
@@ -90,6 +92,23 @@ public class ScanResponseObserver<T> implements
         this.sender = sender;
         this.handler = handler;
         this.executor = executor;
+    }
+
+    private void sendException(Exception e) {
+        if (sendTask != null) {
+            sendTask.cancel(true);
+        }
+        try {
+            packages.clear();
+        } catch (Exception e1) {
+
+        }
+        try {
+            iter.close();
+        } catch (Exception e1) {
+
+        }
+        sender.onError(Status.NOT_FOUND.withDescription(e.getMessage()).asException());
     }
 
     private boolean readCondition() {
@@ -148,12 +167,17 @@ public class ScanResponseObserver<T> implements
         if (scanReq.hasScanRequest() && !scanReq.hasReplyRequest()) {
             this.scanReq = scanReq;
             Request request = scanReq.getScanRequest();
+            batchSize = request.getBatchSize() > 0 ? request.getBatchSize() : 100000;
             long rl = request.getLimit();
             leftCount = rl > 0 ? rl : Long.MAX_VALUE;
             iter = handler.scan(scanReq);
             if (!iter.hasNext()) {
-                close();
-                sender.onCompleted();
+                if (iter.getStopCause() != null) {
+                    sendException(iter.getStopCause());
+                } else {
+                    close();
+                    sender.onCompleted();
+                }
             } else {
                 readTask = executor.submit(rr);
             }
@@ -184,7 +208,16 @@ public class ScanResponseObserver<T> implements
                 readTask.cancel(true);
             }
             readOver.set(true);
-            iter.close();
+            try {
+                packages.clear();
+            } catch (Exception e) {
+
+            }
+            try {
+                iter.close();
+            } catch (Exception e) {
+
+            }
         } catch (Exception e) {
             log.warn("on Complete with error:", e);
         }
@@ -200,22 +233,25 @@ public class ScanResponseObserver<T> implements
                             Request r = scanReq.getScanRequest();
                             ScanType t = r.getScanType();
                             boolean isVertex = t.equals(ScanType.SCAN_VERTEX);
-                            ArrayList<T> data = new ArrayList<>(BATCH_SIZE);
+                            ArrayList<T> data = new ArrayList<>(batchSize);
                             int count = 0;
                             while (iter.hasNext() && leftCount > -1) {
                                 count++;
                                 leftCount--;
                                 T next = (T) iter.next();
                                 data.add(next);
-                                if (count >= BATCH_SIZE) {
+                                if (count >= batchSize) {
                                     offer(data, isVertex);
                                     // data.clear();
                                     break;
                                 }
                             }
+                            if (iter.getStopCause() != null) {
+                                throw iter.getStopCause();
+                            }
                             if (!(iter.hasNext() && leftCount > -1)) {
                                 if (data.size() > 0 &&
-                                    data.size() < BATCH_SIZE) {
+                                    data.size() < batchSize) {
                                     offer(data, isVertex);
                                 }
                                 readOver.set(true);
@@ -239,6 +275,16 @@ public class ScanResponseObserver<T> implements
             ScanResponse response;
             try {
                 if (readOver.get()) {
+                    if (iter.getStopCause() != null) {
+                        try {
+                            packages.clear();
+                            iter.close();
+                        } catch (Exception e) {
+
+                        }
+                        sender.onError(iter.getStopCause());
+                        return;
+                    }
                     if ((response = packages.poll()) == null) {
                         sender.onCompleted();
                     } else {

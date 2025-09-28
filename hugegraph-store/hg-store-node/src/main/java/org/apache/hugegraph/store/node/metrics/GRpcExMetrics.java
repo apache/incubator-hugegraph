@@ -19,7 +19,7 @@ package org.apache.hugegraph.store.node.metrics;
 
 import java.util.concurrent.ThreadPoolExecutor;
 
-import org.apache.hugegraph.store.node.grpc.GRpcServerConfig;
+import org.apache.hugegraph.store.consts.PoolNames;
 import org.apache.hugegraph.store.node.util.HgExecutorUtil;
 
 import io.micrometer.core.instrument.Gauge;
@@ -72,7 +72,7 @@ public class GRpcExMetrics {
 
         void init() {
             if (this.pool == null) {
-                pool = HgExecutorUtil.getThreadPoolExecutor(GRpcServerConfig.EXECUTOR_NAME);
+                pool = HgExecutorUtil.getThreadPoolExecutor(PoolNames.GRPC);
             }
         }
 

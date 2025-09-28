@@ -17,17 +17,26 @@
 
 package org.apache.hugegraph.store.node.metrics;
 
+import java.util.concurrent.ExecutorService;
+
+import org.apache.hugegraph.store.node.grpc.HgStoreStreamImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 
 /**
  * 2021/11/24
  */
 @Configuration
 public class MetricsConfig {
+
+    @Autowired
+    HgStoreStreamImpl stream;
 
     @Bean
     public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags() {
@@ -37,6 +46,7 @@ public class MetricsConfig {
     @Bean
     public MeterRegistryCustomizer<MeterRegistry> registerMeters() {
         return (registry) -> {
+            scanService(registry);
             StoreMetrics.init(registry);
             RocksDBMetrics.init(registry);
             JRaftMetrics.init(registry);
@@ -45,4 +55,11 @@ public class MetricsConfig {
         };
     }
 
+    @Bean
+    public ExecutorService scanService(MeterRegistry registry) {
+        ExecutorService service =
+                ExecutorServiceMetrics.monitor(registry, stream.getExecutor(), "scan",
+                                               Tags.of("hg", "store"));
+        return service;
+    }
 }
