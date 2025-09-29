@@ -34,7 +34,6 @@ public class VectorFeatures implements BackendFeatures {
         return false;
     }
 
-
     public boolean supportsDistributed() {
         return false;
     }

@@ -67,7 +67,12 @@ public final class CachedGraphTransaction extends GraphTransaction {
     private EventListener cacheEventListener;
 
     public CachedGraphTransaction(HugeGraphParams graph, BackendStore store) {
-        super(graph, store);
+        this(graph, store, null);
+    }
+
+    public CachedGraphTransaction(HugeGraphParams graph, BackendStore store,
+                                  BackendStore vectorStore) {
+        super(graph, store, vectorStore);
 
         HugeConfig conf = graph.configuration();
 

@@ -28,6 +28,11 @@ public abstract class IndexableTransaction extends AbstractTransaction {
         super(graph, store);
     }
 
+    public IndexableTransaction(HugeGraphParams graph, BackendStore store,
+                                BackendStore vectorStore) {
+        super(graph, store, vectorStore);
+    }
+
     @Override
     public boolean hasUpdate() {
         AbstractTransaction indexTx = this.indexTransaction();

@@ -62,12 +62,18 @@ public abstract class AbstractTransaction implements Transaction {
 
     private final HugeGraphParams graph;
     private final BackendStore store;
+    private final BackendStore vectorStore;
 
     private BackendMutation mutation;
 
     protected final AbstractSerializer serializer;
 
-    public AbstractTransaction(HugeGraphParams graph, BackendStore store) {
+    public AbstractTransaction(HugeGraphParams graph, BackendStore store){
+        this(graph, store, null);
+    }
+
+    public AbstractTransaction(HugeGraphParams graph, BackendStore store,
+                               BackendStore vectorStore) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(store, "store");
 
@@ -75,6 +81,7 @@ public abstract class AbstractTransaction implements Transaction {
         this.serializer = this.graph.serializer();
 
         this.store = store;
+        this.vectorStore = vectorStore;
         this.reset();
 
         store.open(this.graph.configuration());

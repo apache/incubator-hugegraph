@@ -533,7 +533,7 @@ public class IndexLabelBuilder extends AbstractBuilder
         }
 
         // Vector index must build on float list
-        if(this.indexType.isVector()){
+        if (this.indexType.isVector()) {
             E.checkArgument(fields.size() == 1,
                             "vector index can only build on " +
                             "one field, but got %s fields: '%s'",

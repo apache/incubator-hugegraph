@@ -146,7 +146,11 @@ public class GraphTransaction extends IndexableTransaction {
             new ConcurrentHashMap<>();
 
     public GraphTransaction(HugeGraphParams graph, BackendStore store) {
-        super(graph, store);
+        this(graph, store, null);
+    }
+
+    public GraphTransaction(HugeGraphParams graph, BackendStore store, BackendStore vectorStore) {
+        super(graph, store, vectorStore);
 
         this.indexTx = new GraphIndexTransaction(graph, store);
         assert !this.indexTx.autoCommit();

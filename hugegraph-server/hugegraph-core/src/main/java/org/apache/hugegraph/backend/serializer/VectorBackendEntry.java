@@ -33,16 +33,16 @@ import org.apache.hugegraph.type.HugeType;
  */
 public class VectorBackendEntry implements BackendEntry {
 
-    // 基础字段（实现BackendEntry接口）
+    // Basic fields (implementing BackendEntry interface)
     private final HugeType type;           // VECTOR_INDEX
-    private final Id id;                   // 索引ID
-    private final Id subId;                // 顶点ID
+    private final Id id;                   // index ID
+    private final Id subId;                // vertex ID
     
-    // 向量核心字段
-    private final String vectorId;         // 向量唯一标识
-    private final float[] vector;          // 向量数据
-    private final String metricType;       // 度量类型 (L2, COSINE, DOT)
-    private final Integer dimension;       // 向量维度
+    // Vector core fields
+    private final String vectorId;         // vector id
+    private final float[] vector;          // vector data
+    private final String metricType;       // metric type (L2, COSINE, DOT)
+    private final Integer dimension;       // vector dimension
     
     public VectorBackendEntry(HugeType type, Id id, Id subId, 
                              String vectorId, float[] vector, 
@@ -56,7 +56,7 @@ public class VectorBackendEntry implements BackendEntry {
         this.dimension = dimension;
     }
     
-    // 实现BackendEntry接口
+    // BackendEntry interface implementation
     @Override
     public HugeType type() { 
         return this.type; 
@@ -79,15 +79,15 @@ public class VectorBackendEntry implements BackendEntry {
     
     @Override
     public long ttl() { 
-        return 0L;  // 向量索引不过期
+        return 0L;  // Vector index doesn't expire
     }
     
     @Override
     public boolean olap() { 
-        return false;  // 向量索引不是OLAP数据
+        return false;  // Vector index is not OLAP data
     }
     
-    // 向量特有方法
+    // Vector-specific methods
     public String vectorId() { 
         return this.vectorId; 
     }
@@ -104,7 +104,7 @@ public class VectorBackendEntry implements BackendEntry {
         return this.dimension; 
     }
     
-    // 为了兼容BackendEntry接口，提供columns方法
+    // For BackendEntry interface compatibility, provide columns method
     @Override
     public Collection<BackendColumn> columns() {
         List<BackendColumn> cols = new ArrayList<>();
@@ -128,7 +128,7 @@ public class VectorBackendEntry implements BackendEntry {
     
     @Override
     public void columns(Collection<BackendColumn> columns) {
-        // 向量索引不支持动态添加列
+        // Vector index doesn't support dynamic column addition
         throw new UnsupportedOperationException("VectorBackendEntry doesn't support dynamic columns");
     }
     
@@ -144,7 +144,7 @@ public class VectorBackendEntry implements BackendEntry {
     
     @Override
     public boolean mergeable(BackendEntry other) {
-        return false;  // 向量索引不支持合并
+        return false;  // Vector index doesn't support merging
     }
     
     @Override
@@ -154,7 +154,7 @@ public class VectorBackendEntry implements BackendEntry {
     
     @Override
     public boolean belongToMe(BackendColumn column) {
-        // 向量索引的列都属于自己
+        // All columns of vector index belong to itself
         return true;
     }
     
