@@ -25,10 +25,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.tinkerpop.gremlin.process.traversal.PBiPredicate;
 import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.structure.HugeProperty;
@@ -51,7 +51,7 @@ public abstract class Condition {
         NOT
     }
 
-    public enum RelationType implements BiPredicate<Object, Object> {
+    public enum RelationType implements PBiPredicate<Object, Object> {
 
         EQ("==", RelationType::equals),
 
