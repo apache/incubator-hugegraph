@@ -15,11 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.backend.store.rocksdb;
+package org.apache.hugegraph.backend.store.jvector;
 
 import org.apache.hugegraph.backend.store.BackendFeatures;
 
-public class RocksDBFeatures implements BackendFeatures {
+/**
+ * Vector backend features
+ */
+public class VectorFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsSharedStorage() {
@@ -27,13 +30,22 @@ public class RocksDBFeatures implements BackendFeatures {
     }
 
     @Override
-    public boolean supportsSnapshot() {
+    public boolean supportsScanToken() {
+        return false;
+    }
+
+    public boolean supportsDistributed() {
+        return false;
+    }
+
+
+    public boolean supportsScan() {
         return true;
     }
 
-    @Override
-    public boolean supportsScanToken() {
-        return false;
+
+    public boolean supportsScanKey() {
+        return true;
     }
 
     @Override
@@ -48,13 +60,11 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsQuerySchemaByName() {
-        // No index in RocksDB
         return false;
     }
 
     @Override
     public boolean supportsQueryByLabel() {
-        // No index in RocksDB
         return false;
     }
 
@@ -65,23 +75,21 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsQueryWithRangeCondition() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean supportsQueryWithOrderBy() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean supportsQueryWithContains() {
-        // TODO: Need to traversal all items
         return false;
     }
 
     @Override
     public boolean supportsQueryWithContainsKey() {
-        // TODO: Need to traversal all items
         return false;
     }
 
@@ -92,18 +100,16 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsQuerySortByInputIds() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean supportsDeleteEdgeByLabel() {
-        // No index in RocksDB
         return false;
     }
 
     @Override
     public boolean supportsUpdateVertexProperty() {
-        // Vertex properties are stored in a cell(column value)
         return false;
     }
 
@@ -114,14 +120,12 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsUpdateEdgeProperty() {
-        // Edge properties are stored in a cell(column value)
         return false;
     }
 
     @Override
     public boolean supportsTransaction() {
-        // Supports tx with WriteBatch
-        return true;
+        return false;
     }
 
     @Override
@@ -141,11 +145,11 @@ public class RocksDBFeatures implements BackendFeatures {
 
     @Override
     public boolean supportsOlapProperties() {
-        return true;
+        return false;
     }
 
     @Override
     public boolean supportsVectorIndex() {
-        return false;
+        return true;
     }
 }

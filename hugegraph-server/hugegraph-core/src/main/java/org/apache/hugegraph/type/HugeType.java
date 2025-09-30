@@ -64,6 +64,7 @@ public enum HugeType implements SerialEnum {
     SEARCH_INDEX(170, "AI"),
     SHARD_INDEX(175, "HI"),
     UNIQUE_INDEX(178, "UI"),
+    VECTOR_INDEX(180, "VI"),
 
     TASK(180, "TASK"),
     SERVER(181, "SERVER"),
@@ -128,7 +129,8 @@ public enum HugeType implements SerialEnum {
                this == SECONDARY_INDEX || this == SEARCH_INDEX ||
                this == RANGE_INT_INDEX || this == RANGE_FLOAT_INDEX ||
                this == RANGE_LONG_INDEX || this == RANGE_DOUBLE_INDEX ||
-               this == SHARD_INDEX || this == UNIQUE_INDEX;
+               this == SHARD_INDEX || this == UNIQUE_INDEX ||
+               this == VECTOR_INDEX;
     }
 
     public boolean isStringIndex() {
@@ -196,5 +198,9 @@ public enum HugeType implements SerialEnum {
 
     public boolean isLabelIndex() {
         return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX;
+    }
+
+    public boolean isVectorIndex() {
+        return this == VECTOR_INDEX;
     }
 }

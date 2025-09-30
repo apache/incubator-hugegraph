@@ -80,4 +80,8 @@ public interface BackendFeatures {
     boolean supportsTtl();
 
     boolean supportsOlapProperties();
+
+    default boolean supportsVectorIndex() {
+        return false;
+    }
 }

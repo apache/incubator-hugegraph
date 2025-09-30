@@ -710,4 +710,18 @@ public class CoreOptions extends OptionHolder {
             nonNegativeInt(),
             8L
     );
+
+    public static final ConfigOption<Boolean> VECTOR_ENABLED = new ConfigOption<>(
+            "vector.enabled",
+            "Whether to enable vector index",
+            disallowEmpty(),
+            false
+    );
+
+    public static final ConfigOption<String> VECTOR_BACKEND = new ConfigOption<>(
+            "vector.backend",
+            "vector index backend",
+            disallowEmpty(),
+            "jvector"
+    );
 }

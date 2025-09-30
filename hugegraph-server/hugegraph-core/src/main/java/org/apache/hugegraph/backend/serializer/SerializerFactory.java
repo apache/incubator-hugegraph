@@ -40,6 +40,8 @@ public class SerializerFactory {
                 return new BinaryScatterSerializer(config);
             case "text":
                 return new TextSerializer(config);
+            case "vector":
+                return new VectorSerializer(config);
             default:
         }
 

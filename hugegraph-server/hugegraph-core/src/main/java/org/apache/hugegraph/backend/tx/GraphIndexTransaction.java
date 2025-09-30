@@ -56,6 +56,7 @@ import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
+import org.apache.hugegraph.backend.serializer.VectorSerializer;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.config.CoreOptions;
@@ -120,6 +121,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
         LOG.info("Remove left index: {}, query: {}", element, query);
         RemoveLeftIndexJob job = new RemoveLeftIndexJob(query, element);
         this.params().submitEphemeralJob(job);
+    }
+
+    /**
+     * Get vector serializer for vector index operations
+     */
+    private VectorSerializer getVectorSerializer() {
+        // Create VectorSerializer using the same pattern as the main serializer
+        HugeConfig config = this.params().configuration();
+        return new VectorSerializer(config);
     }
 
     @Watched(prefix = "index")
@@ -307,6 +317,23 @@ public class GraphIndexTransaction extends AbstractTransaction {
                 }
                 this.updateIndex(indexLabel, value, element.id(),
                                  expiredTime, removed);
+                break;
+            case VECTOR:
+                // Handle vector index update
+                E.checkState(nnPropValues.size() == 1,
+                             "Expect only one property in vector index");
+                HugeIndex vectorIndex = new HugeIndex(this.graph(), indexLabel);
+                vectorIndex.fieldValues(allPropValues);  // 向量数据
+                vectorIndex.elementIds(element.id(), expiredTime);
+                
+                // Get vector serializer
+                VectorSerializer vectorSerializer = this.getVectorSerializer();
+                
+                if (removed) {
+                    this.doEliminate(vectorSerializer.writeIndex(vectorIndex));
+                } else {
+                    this.doAppend(vectorSerializer.writeIndex(vectorIndex));
+                }
                 break;
             default:
                 throw new AssertionError(String.format(
