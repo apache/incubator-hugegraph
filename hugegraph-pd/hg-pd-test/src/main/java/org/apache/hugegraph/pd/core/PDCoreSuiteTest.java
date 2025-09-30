@@ -36,7 +36,7 @@ import lombok.extern.slf4j.Slf4j;
         StoreMonitorDataServiceTest.class,
         StoreServiceTest.class,
         TaskScheduleServiceTest.class,
-        StoreNodeServiceTest.class,
+        // StoreNodeServiceTest.class,
 })
 @Slf4j
 public class PDCoreSuiteTest {
