@@ -137,6 +137,12 @@ public abstract class Condition {
             return true;
         });
 
+        private static final Set<RelationType> RANGE_TYPES =
+                ImmutableSet.of(GT, GTE, LT, LTE);
+
+        private static final Set<RelationType> UNFLATTEN_TYPES =
+                ImmutableSet.of(IN, NOT_IN, TEXT_CONTAINS_ANY);
+
         private final String operator;
         private final BiFunction<Object, Object, Boolean> tester;
         private final Class<?> v1Class;
@@ -261,7 +267,7 @@ public abstract class Condition {
         }
 
         public boolean isRangeType() {
-            return ImmutableSet.of(GT, GTE, LT, LTE).contains(this);
+            return RANGE_TYPES.contains(this);
         }
 
         public boolean isSearchType() {
@@ -628,10 +634,6 @@ public abstract class Condition {
         // The value serialized(code/string) by backend store.
         protected Object serialValue;
 
-        protected static final Set<RelationType> UNFLATTEN_RELATION_TYPES =
-                ImmutableSet.of(RelationType.IN, RelationType.NOT_IN,
-                                RelationType.TEXT_CONTAINS_ANY);
-
         @Override
         public ConditionType type() {
             return ConditionType.RELATION;
@@ -672,7 +674,7 @@ public abstract class Condition {
 
         @Override
         public boolean isFlattened() {
-            return !UNFLATTEN_RELATION_TYPES.contains(this.relation);
+            return !RelationType.UNFLATTEN_TYPES.contains(this.relation);
         }
 
         @Override

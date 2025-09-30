@@ -24,8 +24,10 @@ import java.util.Random;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.slf4j.Logger;
 
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 
@@ -33,6 +35,8 @@ import com.datastax.driver.core.exceptions.NoHostAvailableException;
  * Perf test for: vertex without properties
  */
 public class PerfExample2 extends PerfExampleBase {
+
+    private static final Logger LOG = Log.logger(PerfExample2.class);
 
     public static void main(String[] args) throws Exception {
         PerfExample2 tester = new PerfExample2();
