@@ -153,6 +153,12 @@
                     <execution>
                         <id>unit-test</id>
                         <configuration>
+                            <!--
+                            Java 17+ compatibility: allow reflection access to java.util internals
+                            for CollectionFactoryTest. Follows TinkerPop's approach for deep reflection.
+                            Reference: https://github.com/apache/tinkerpop/blob/384e9a730c735cd386812d463c6f6922da847988/pom.xml#L214
+                            -->
+                            <argLine>--add-opens java.base/java.util=ALL-UNNAMED</argLine>
                             <testSourceDirectory>${basedir}/src/main/java/
                             </testSourceDirectory>
                             <testClassesDirectory>${basedir}/target/classes/
