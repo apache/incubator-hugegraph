@@ -117,11 +117,16 @@ public class GremlinApiTest extends BaseApiTest {
                "  def admin = auth.findUser('admin');" +
                "  graph.clearBackend();" +
                "  graph.initBackend();" +
-               "  auth.createUser(admin);\"," +
+               "  try {" +
+               "    auth.createUser(admin);" +
+               "  } catch(Exception e) {" +
+               "  }" +
+               "\"," +
                "\"bindings\":{}," +
                "\"language\":\"gremlin-groovy\"," +
                "\"aliases\":{\"graph\":\"DEFAULT-hugegraph\"," +
                "\"g\":\"__g_DEFAULT-hugegraph\"}}";
+
         assertResponseStatus(200, client().post(path, body));
 
         body = "{" +
@@ -134,15 +139,25 @@ public class GremlinApiTest extends BaseApiTest {
         assertResponseStatus(200, client().post(path, body));
     }
 
+    //FIXME: non-pd will not delete admin, but pd mode will
     @Test
     public void testTruncate() {
-        String body = "{" +
-                      "\"gremlin\":\"try {graph.truncateBackend()} " +
-                      "catch (UnsupportedOperationException e) {}\"," +
-                      "\"bindings\":{}," +
-                      "\"language\":\"gremlin-groovy\"," +
-                      "\"aliases\":{\"graph\":\"DEFAULT-hugegraph\"," +
-                      "\"g\":\"__g_DEFAULT-hugegraph\"}}";
+        String body = "{"
+                      + "\"gremlin\":\""
+                      + "  def auth = graph.hugegraph().authManager();"
+                      + "  def admin = auth.findUser('admin');"
+                      + "  graph.truncateBackend();"
+                      + "  def after = auth.findUser('admin');"
+                      + "  if (after == null) {"
+                      + "    auth.createUser(admin);"
+                      + "  }"
+                      + "\","
+                      + "\"bindings\":{},"
+                      + "\"language\":\"gremlin-groovy\","
+                      + "\"aliases\":{\"graph\":\"DEFAULT-hugegraph\","
+                      + "\"g\":\"__g_DEFAULT-hugegraph\"}"
+                      + "}";
+
         assertResponseStatus(200, client().post(path, body));
     }
 

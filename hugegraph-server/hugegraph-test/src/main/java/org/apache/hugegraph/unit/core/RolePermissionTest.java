@@ -43,7 +43,7 @@ public class RolePermissionTest {
     @Test
     public void testBuiltinAdmin() {
         RolePermission admin = RolePermission.admin();
-        RolePermission role1 = RolePermission.role("admin", HugePermission.ANY);
+        RolePermission role1 = RolePermission.role("admin", HugePermission.ADMIN);
         Assert.assertEquals(admin, role1);
         Assert.assertSame(admin, RolePermission.builtin(admin));
         Assert.assertSame(admin, RolePermission.builtin(role1));
@@ -400,14 +400,14 @@ public class RolePermissionTest {
         HugeResource vlPrefix = new HugeResource(ResourceType.VERTEX_LABEL,
                                                  "p-.*", null);
 
-        ResourceObject<?> r3 = ResourceObject.of("g1",
+        ResourceObject<?> r3 = ResourceObject.of("DEFAULT", "g1",
                                                  ResourceType.VERTEX_LABEL,
                                                  NameObject.of("test"));
         Assert.assertTrue(all.filter(r3));
         Assert.assertTrue(schema.filter(r3));
         Assert.assertFalse(vlPrefix.filter(r3));
 
-        ResourceObject<?> r4 = ResourceObject.of("g1",
+        ResourceObject<?> r4 = ResourceObject.of("DEFAULT", "g1",
                                                  ResourceType.VERTEX_LABEL,
                                                  NameObject.of("p-test"));
         Assert.assertTrue(all.filter(r4));
@@ -419,7 +419,7 @@ public class RolePermissionTest {
         VertexLabel vl1 = fo.newVertexLabel(IdGenerator.of("id1"), "person",
                                             IdStrategy.PRIMARY_KEY,
                                             IdGenerator.of("1"));
-        ResourceObject<?> r5 = ResourceObject.of("g1", vl1);
+        ResourceObject<?> r5 = ResourceObject.of("DEFAULT", "g1", vl1);
         Assert.assertTrue(all.filter(r5));
         Assert.assertTrue(schema.filter(r5));
         Assert.assertFalse(vlPrefix.filter(r5));
