@@ -20,6 +20,7 @@ package org.apache.hugegraph.auth;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +47,6 @@ import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
 import org.slf4j.Logger;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import io.jsonwebtoken.Claims;
@@ -75,6 +75,8 @@ public class StandardAuthManager implements AuthManager {
 
     private final TokenGenerator tokenGenerator;
     private final long tokenExpire;
+
+    private final String defaultGraphSpace = "DEFAULT";
 
     private Set<String> ipWhiteList;
 
@@ -118,7 +120,9 @@ public class StandardAuthManager implements AuthManager {
      * Maybe can define an proxy class to choose forward or call local
      */
     public static boolean isLocal(AuthManager authManager) {
-        return authManager instanceof StandardAuthManager;
+        return authManager instanceof StandardAuthManager ||
+               //FIXME: The judgment of v2 is best placed in the islocal of v2
+               authManager instanceof StandardAuthManagerV2;
     }
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,
@@ -407,10 +411,16 @@ public class StandardAuthManager implements AuthManager {
             HugeResource resource = new HugeResource(ResourceType.PROJECT,
                                                      project.name(),
                                                      null);
+            //FIXME: project api
+            Map<String, List<HugeResource>> defaultResources = new LinkedHashMap<>();
+            List<HugeResource> resources = new ArrayList<>();
+            resources.add(resource);
+            defaultResources.put(defaultGraphSpace, resources);
+
             HugeTarget target = new HugeTarget(targetName,
-                                               this.graph.spaceGraphName(),
+                                               this.graph.name(),
                                                "localhost:8080",
-                                               ImmutableList.of(resource));
+                                               defaultResources);
             // Ditto
             target.creator(project.creator());
             Id targetId = this.targets.add(target);
@@ -611,6 +621,7 @@ public class StandardAuthManager implements AuthManager {
         // Collect accesses by user
         List<HugeAccess> accesses = new ArrayList<>();
         List<HugeBelong> belongs = this.listBelongByUser(user.id(), -1);
+
         for (HugeBelong belong : belongs) {
             accesses.addAll(this.listAccessByGroup(belong.target(), -1));
         }
@@ -729,6 +740,76 @@ public class StandardAuthManager implements AuthManager {
     @Override
     public void enabledWhiteIpList(boolean status) {
         this.ipWhiteListEnabled = status;
+    }
+
+    @Override
+    public Id createSpaceManager(String graphSpace, String owner) {
+        return null;
+    }
+
+    @Override
+    public void deleteSpaceManager(String graphSpace, String owner) {
+
+    }
+
+    @Override
+    public List<String> listSpaceManager(String graphSpace) {
+        return List.of();
+    }
+
+    @Override
+    public boolean isSpaceManager(String owner) {
+        return false;
+    }
+
+    @Override
+    public boolean isSpaceManager(String graphSpace, String owner) {
+        return false;
+    }
+
+    @Override
+    public Id createSpaceMember(String graphSpace, String user) {
+        return null;
+    }
+
+    @Override
+    public void deleteSpaceMember(String graphSpace, String user) {
+
+    }
+
+    @Override
+    public List<String> listSpaceMember(String graphSpace) {
+        return List.of();
+    }
+
+    @Override
+    public boolean isSpaceMember(String graphSpace, String user) {
+        return false;
+    }
+
+    @Override
+    public Id createAdminManager(String user) {
+        return null;
+    }
+
+    @Override
+    public void deleteAdminManager(String user) {
+
+    }
+
+    @Override
+    public List<String> listAdminManager() {
+        return List.of();
+    }
+
+    @Override
+    public boolean isAdminManager(String user) {
+        return false;
+    }
+
+    @Override
+    public HugeGroup findGroup(String name) {
+        return null;
     }
 
     public <R> R commit(Callable<R> callable) {
