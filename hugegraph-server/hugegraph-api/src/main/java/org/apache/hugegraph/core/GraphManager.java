@@ -51,6 +51,7 @@ import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeAuthenticator.User;
 import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
+import org.apache.hugegraph.auth.HugeUser;
 import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.cache.Cache;
@@ -116,6 +117,7 @@ import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
+import org.apache.hugegraph.util.StringEncoding;
 import org.apache.hugegraph.util.collection.CollectionFactory;
 import org.apache.hugegraph.version.CoreVersion;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
@@ -356,6 +358,7 @@ public final class GraphManager {
 
         this.initMetaManager(conf);
         this.initK8sManagerIfNeeded(conf);
+        this.initAdminUserIfNeeded(conf.get(ServerOptions.ADMIN_PA));
 
         this.createDefaultGraphSpaceIfNeeded(conf);
 
@@ -365,6 +368,25 @@ public final class GraphManager {
         this.loadServices();
 
         this.loadGraphsFromMeta(this.graphConfigs());
+    }
+
+    public void initAdminUserIfNeeded(String password) {
+        HugeUser user = new HugeUser("admin");
+        user.nickname("超级管理员");
+        user.password(StringEncoding.hashPassword(password));
+        user.creator(HugeAuthenticator.USER_SYSTEM);
+        user.phone("18888886666");
+        user.email("admin@hugegraph.com");
+        user.description("None");
+        user.update(new Date());
+        user.create(new Date());
+        user.avatar("/image.png");
+        try {
+            this.metaManager.createUser(user);
+            this.metaManager.initDefaultGraphSpace();
+        } catch (Exception e) {
+            LOG.info(e.getMessage());
+        }
     }
 
     public static void prepareSchema(HugeGraph graph, String gremlin) {

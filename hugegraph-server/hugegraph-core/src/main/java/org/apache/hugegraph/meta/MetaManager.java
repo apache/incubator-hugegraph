@@ -32,6 +32,7 @@ import org.apache.hugegraph.auth.HugeAccess;
 import org.apache.hugegraph.auth.HugeBelong;
 import org.apache.hugegraph.auth.HugeGroup;
 import org.apache.hugegraph.auth.HugePermission;
+import org.apache.hugegraph.auth.HugeProject;
 import org.apache.hugegraph.auth.HugeRole;
 import org.apache.hugegraph.auth.HugeTarget;
 import org.apache.hugegraph.auth.HugeUser;
@@ -88,6 +89,7 @@ public class MetaManager {
     public static final String META_PATH_TARGET = "TARGET";
     public static final String META_PATH_BELONG = "BELONG";
     public static final String META_PATH_ACCESS = "ACCESS";
+    public static final String META_PATH_PROJECT = "PROJECT";
     public static final String META_PATH_K8S_BINDINGS = "BINDING";
     public static final String META_PATH_REST_PROPERTIES = "REST_PROPERTIES";
     public static final String META_PATH_GREMLIN_YAML = "GREMLIN_YAML";
@@ -1045,6 +1047,13 @@ public class MetaManager {
         return this.authMetaManager.listAccessByRole(graphSpace, role, limit);
     }
 
+    public List<HugeAccess> listAccessByGroup(String graphSpace,
+                                              Id group, long limit)
+            throws IOException,
+                   ClassNotFoundException {
+        return this.authMetaManager.listAccessByGroup(graphSpace, group, limit);
+    }
+
     public String targetFromAccess(String accessKey) {
         return this.authMetaManager.targetFromAccess(accessKey);
     }
@@ -1059,6 +1068,31 @@ public class MetaManager {
                    ClassNotFoundException {
         return this.authMetaManager.listAccessByTarget(graphSpace, target,
                                                        limit);
+    }
+
+    public Id createProject(String graphSpace, HugeProject project)
+            throws IOException {
+        return this.authMetaManager.createProject(graphSpace, project);
+    }
+
+    public HugeProject updateProject(String graphSpace, HugeProject project)
+            throws IOException {
+        return this.authMetaManager.updateProject(graphSpace, project);
+    }
+
+    public HugeProject deleteProject(String graphSpace, Id id)
+            throws IOException, ClassNotFoundException {
+        return this.authMetaManager.deleteProject(graphSpace, id);
+    }
+
+    public HugeProject getProject(String graphSpace, Id id)
+            throws IOException, ClassNotFoundException {
+        return this.authMetaManager.getProject(graphSpace, id);
+    }
+
+    public List<HugeProject> listAllProjects(String graphSpace, long limit)
+            throws IOException, ClassNotFoundException {
+        return this.authMetaManager.listAllProjects(graphSpace, limit);
     }
 
     public List<String> listGraphSpace() {
