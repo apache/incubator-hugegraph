@@ -22,50 +22,62 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.auth.SchemaDefine.Entity;
 import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-
-import com.google.common.collect.ImmutableList;
+import org.apache.tinkerpop.shaded.jackson.core.type.TypeReference;
 
 public class HugeTarget extends Entity {
 
     private static final long serialVersionUID = -3361487778656878418L;
 
     private String name;
+    public static final Map<String, List<HugeResource>> EMPTY = new HashMap<>();
     private String graph;
     private String description;
     private String url;
-    private List<HugeResource> resources;
-
-    private static final List<HugeResource> EMPTY = ImmutableList.of();
+    private String graphSpace = "DEFAULT";
+    private Map<String, List<HugeResource>> resources;
 
     public HugeTarget(Id id) {
         this(id, null, null, null, EMPTY);
     }
 
     public HugeTarget(String name, String url) {
-        this(null, name, name, url, EMPTY);
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name, name, url, EMPTY);
     }
 
     public HugeTarget(String name, String graph, String url) {
-        this(null, name, graph, url, EMPTY);
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name, graph, url, EMPTY);
     }
 
     public HugeTarget(String name, String graph, String url,
-                      List<HugeResource> resources) {
-        this(null, name, graph, url, resources);
+                      Map<String, List<HugeResource>> resources) {
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name, graph, url,
+             resources);
+    }
+
+    public HugeTarget(Map<String, List<HugeResource>> resources, String name, String graph,
+                      String graphSpace
+    ) {
+        this.resources = resources;
+        this.name = name;
+        this.graph = graph;
+        this.graphSpace = graphSpace;
+        this.id = IdGenerator.of(name);
     }
 
     private HugeTarget(Id id, String name, String graph, String url,
-                       List<HugeResource> resources) {
+                       Map<String, List<HugeResource>> resources) {
         this.id = id;
         this.name = name;
         this.graph = graph;
@@ -86,6 +98,10 @@ public class HugeTarget extends Entity {
     @Override
     public String name() {
         return this.name;
+    }
+
+    public String graphSpace() {
+        return this.graphSpace;
     }
 
     public String graph() {
@@ -112,7 +128,7 @@ public class HugeTarget extends Entity {
         this.url = url;
     }
 
-    public List<HugeResource> resources() {
+    public Map<String, List<HugeResource>> resources() {
         return this.resources;
     }
 
@@ -125,7 +141,7 @@ public class HugeTarget extends Entity {
         }
     }
 
-    public void resources(List<HugeResource> resources) {
+    public void resources(Map<String, List<HugeResource>> resources) {
         E.checkNotNull(resources, "resources");
         this.resources = resources;
     }
@@ -151,7 +167,21 @@ public class HugeTarget extends Entity {
                 this.url = (String) value;
                 break;
             case P.RESS:
-                this.resources = HugeResource.parseResources((String) value);
+                if (value instanceof String) {
+                    this.resources = JsonUtil.fromJson(
+                            (String) value,
+                            new TypeReference<Map<String,
+                                    List<HugeResource>>>() {
+                            });
+                } else {
+                    // Handle case where value is already a Map or other object
+                    this.resources =
+                            JsonUtil.fromJson(
+                                    JsonUtil.toJson(value),
+                                    new TypeReference<Map<String,
+                                            List<HugeResource>>>() {
+                                    });
+                }
                 break;
             default:
                 throw new AssertionError("Unsupported key: " + key);
@@ -178,7 +208,7 @@ public class HugeTarget extends Entity {
         list.add(P.URL);
         list.add(this.url);
 
-        if (this.resources != null && this.resources != EMPTY) {
+        if (!this.isResourceEmpty()) {
             list.add(P.RESS);
             list.add(JsonUtil.toJson(this.resources));
         }
@@ -186,10 +216,13 @@ public class HugeTarget extends Entity {
         return super.asArray(list);
     }
 
+    public boolean isResourceEmpty() {
+        return this.resources == null || this.resources == EMPTY;
+    }
+
     @Override
     public Map<String, Object> asMap() {
         E.checkState(this.name != null, "Target name can't be null");
-        E.checkState(this.url != null, "Target url can't be null");
 
         Map<String, Object> map = new HashMap<>();
 

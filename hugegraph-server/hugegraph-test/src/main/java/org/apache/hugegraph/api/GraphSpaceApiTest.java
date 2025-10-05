@@ -28,7 +28,6 @@ import org.junit.Test;
 
 import jakarta.ws.rs.core.Response;
 
-//todo: auth test
 public class GraphSpaceApiTest extends BaseApiTest {
 
     private static final String PATH = "graphspaces";

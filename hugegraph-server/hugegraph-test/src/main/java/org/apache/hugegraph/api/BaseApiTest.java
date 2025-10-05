@@ -95,6 +95,10 @@ public class BaseApiTest {
         BaseApiTest.clearData();
     }
 
+    public static String baseUrl() {
+        return BASE_URL;
+    }
+
     public RestClient client() {
         return client;
     }

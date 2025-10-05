@@ -136,4 +136,32 @@ public interface AuthManager {
     boolean getWhiteIpStatus();
 
     void enabledWhiteIpList(boolean status);
+
+    Id createSpaceManager(String graphSpace, String owner);
+
+    void deleteSpaceManager(String graphSpace, String owner);
+
+    List<String> listSpaceManager(String graphSpace);
+
+    boolean isSpaceManager(String owner);
+
+    boolean isSpaceManager(String graphSpace, String owner);
+
+    Id createSpaceMember(String graphSpace, String user);
+
+    void deleteSpaceMember(String graphSpace, String user);
+
+    List<String> listSpaceMember(String graphSpace);
+
+    boolean isSpaceMember(String graphSpace, String user);
+
+    Id createAdminManager(String user);
+
+    void deleteAdminManager(String user);
+
+    List<String> listAdminManager();
+
+    boolean isAdminManager(String user);
+
+    HugeGroup findGroup(String name);
 }

@@ -241,33 +241,29 @@ public class API {
         }
     }
 
-    //todo: auth
-    //public static boolean hasAdminPerm(GraphManager manager, String user) {
-    //    return manager.authManager().isAdminManager(user);
-    //}
-    //
-    //public static boolean hasSpaceManagerPerm(GraphManager manager,
-    //                                          String graphSpace,
-    //                                          String user) {
-    //    return manager.authManager().isSpaceManager(graphSpace, user);
-    //}
+    public static boolean hasAdminPerm(GraphManager manager, String user) {
+        return manager.authManager().isAdminManager(user);
+    }
 
-    //public static boolean hasAnySpaceManagerPerm(GraphManager manager,
-    //                                             String user) {
-    //    return manager.authManager().isSpaceManager(user);
-    //}
-    //
-    //public static boolean hasAdminOrSpaceManagerPerm(GraphManager manager,
-    //                                                 String graphSpace,
-    //                                                 String user) {
-    //    return hasAdminPerm(manager, user) ||
-    //           hasSpaceManagerPerm(manager, graphSpace, user);
-    //}
+    public static boolean hasSpaceManagerPerm(GraphManager manager,
+                                              String graphSpace,
+                                              String user) {
+        return manager.authManager().isSpaceManager(graphSpace, user);
+    }
+
+    public static boolean hasAdminOrSpaceManagerPerm(GraphManager manager,
+                                                     String graphSpace,
+                                                     String user) {
+        return hasAdminPerm(manager, user) ||
+               hasSpaceManagerPerm(manager, graphSpace, user);
+    }
 
     public static void validPermission(boolean hasPermission, String user,
                                        String action) {
-        E.checkArgument(hasPermission, "The user [%s] has no permission to [%s].",
-                        user, action);
+        if (!hasPermission) {
+            throw new jakarta.ws.rs.ForbiddenException(
+                    String.format("The user [%s] has no permission to [%s].", user, action));
+        }
     }
 
     public static class ApiMeasurer {

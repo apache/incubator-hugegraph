@@ -17,14 +17,12 @@
 
 package org.apache.hugegraph.api.profile;
 
-import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.security.RolesAllowed;
-import jakarta.inject.Singleton;
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.SecurityContext;
+import java.io.File;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
@@ -43,11 +41,25 @@ import org.apache.hugegraph.util.Log;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import com.codahale.metrics.annotation.Timed;
+import com.google.common.collect.ImmutableMap;
+
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
+import jakarta.inject.Singleton;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.NotSupportedException;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("graphspaces/{graphspace}/graphs")
 @Singleton
@@ -73,7 +85,7 @@ public class GraphsAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$dynamic"})
+    @RolesAllowed({"space_member", "$dynamic"})
     public Object list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
                        @Context SecurityContext sc) {
@@ -109,7 +121,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"space_member", "$owner=$name"})
     public Object get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("name") String name) {
@@ -123,7 +135,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space"})
     public void drop(@Context GraphManager manager,
                      @PathParam("graphspace") String graphSpace,
                      @PathParam("name") String name,
@@ -162,7 +174,7 @@ public class GraphsAPI extends API {
     @StatusFilter.Status(StatusFilter.Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space"})
     public Object create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
                          @PathParam("name") String name,
@@ -205,9 +217,9 @@ public class GraphsAPI extends API {
 
     @GET
     @Timed
-    @Path("{graphspace}/{name}/conf")
+    @Path("{name}/conf")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"space"})
     public File getConf(@Context GraphManager manager,
                         @PathParam("graphspace") String graphSpace,
                         @PathParam("name") String name) {
@@ -226,9 +238,9 @@ public class GraphsAPI extends API {
 
     @DELETE
     @Timed
-    @Path("{graphspace}/{name}/clear")
+    @Path("{name}/clear")
     @Consumes(APPLICATION_JSON)
-    @RolesAllowed("admin")
+    @RolesAllowed({"space"})
     public void clear(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
                       @PathParam("name") String name,
@@ -243,9 +255,9 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{graphspace}/{name}/snapshot_create")
+    @Path("{name}/snapshot_create")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"space", "$owner=$name"})
     public Object createSnapshot(@Context GraphManager manager,
                                  @PathParam("graphspace") String graphSpace,
                                  @PathParam("name") String name) {
@@ -258,9 +270,9 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{graphspace}/{name}/snapshot_resume")
+    @Path("{name}/snapshot_resume")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"space", "$owner=$name"})
     public Object resumeSnapshot(@Context GraphManager manager,
                                  @PathParam("graphspace") String graphSpace,
                                  @PathParam("name") String name) {
@@ -273,10 +285,10 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{graphspace}/{name}/compact")
+    @Path("{name}/compact")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space"})
     public String compact(@Context GraphManager manager,
                           @PathParam("graphspace") String graphSpace,
                           @PathParam("name") String name) {
@@ -288,10 +300,10 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{graphspace}/{name}/mode")
+    @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"space", "$owner=$name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("graphspace") String graphSpace,
                                        @PathParam("name") String name,
@@ -306,10 +318,10 @@ public class GraphsAPI extends API {
 
     @GET
     @Timed
-    @Path("{graphspace}/{name}/mode")
+    @Path("{name}/mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"space_member", "$owner=$name"})
     public Map<String, GraphMode> mode(@Context GraphManager manager,
                                        @PathParam("graphspace") String graphSpace,
                                        @PathParam("name") String name) {
@@ -321,10 +333,10 @@ public class GraphsAPI extends API {
 
     @PUT
     @Timed
-    @Path("{graphspace}/{name}/graph_read_mode")
+    @Path("{name}/graph_read_mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed("admin")
+    @RolesAllowed({"space"})
     public Map<String, GraphReadMode> graphReadMode(
             @Context GraphManager manager,
             @PathParam("graphspace") String graphSpace,
@@ -346,10 +358,10 @@ public class GraphsAPI extends API {
 
     @GET
     @Timed
-    @Path("{graphspace}/{name}/graph_read_mode")
+    @Path("{name}/graph_read_mode")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin", "$owner=$name"})
+    @RolesAllowed({"space_member", "$owner=$name"})
     public Map<String, GraphReadMode> graphReadMode(
             @Context GraphManager manager,
             @PathParam("graphspace") String graphSpace,

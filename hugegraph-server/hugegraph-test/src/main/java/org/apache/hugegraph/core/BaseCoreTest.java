@@ -48,6 +48,8 @@ public class BaseCoreTest {
     private static boolean registered = false;
     private static HugeGraph graph = null;
 
+    public static final String DEFAULT_GRAPH_SPACE = "DEFAULT";
+
     public static HugeGraph graph() {
         Assert.assertNotNull(graph);
         //Assert.assertFalse(graph.closed());
@@ -157,9 +159,21 @@ public class BaseCoreTest {
             schema.edgeLabel(elem.name()).remove();
         });
 
+        try {
+            Thread.sleep(100); // wait schema task finished
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
         schema.getVertexLabels().forEach(elem -> {
             schema.vertexLabel(elem.name()).remove();
         });
+
+        try {
+            Thread.sleep(100); // wait schema task finished
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
         schema.getPropertyKeys().forEach(elem -> {
             schema.propertyKey(elem.name()).remove();

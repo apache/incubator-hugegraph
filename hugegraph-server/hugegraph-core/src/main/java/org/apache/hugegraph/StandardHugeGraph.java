@@ -33,6 +33,7 @@ import org.apache.hugegraph.analyzer.Analyzer;
 import org.apache.hugegraph.analyzer.AnalyzerFactory;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.auth.StandardAuthManager;
+import org.apache.hugegraph.auth.StandardAuthManagerV2;
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.LocalCounter;
 import org.apache.hugegraph.backend.cache.Cache;
@@ -263,7 +264,11 @@ public class StandardHugeGraph implements HugeGraph {
             SnowflakeIdGenerator.init(this.params);
 
             this.taskManager.addScheduler(this.params);
-            this.authManager = new StandardAuthManager(this.params);
+            if (isHstore()) {
+                this.authManager = new StandardAuthManagerV2((this.params));
+            } else {
+                this.authManager = new StandardAuthManager(this.params);
+            }
             this.variables = null;
         } catch (Exception e) {
             this.storeProvider.close();
