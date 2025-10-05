@@ -472,11 +472,11 @@ public final class TaskManager {
 
     private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
 
-    static void setContext(String context) {
+    public static void setContext(String context) {
         CONTEXTS.set(context);
     }
 
-    static void resetContext() {
+    public static void resetContext() {
         CONTEXTS.remove();
     }
 
