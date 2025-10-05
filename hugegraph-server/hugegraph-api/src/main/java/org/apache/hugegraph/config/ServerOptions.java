@@ -469,6 +469,16 @@ public class ServerOptions extends OptionHolder {
                     ""
             );
 
+    public static final ConfigOption<String> ADMIN_PA =
+            new ConfigOption<>(
+                    "auth.admin_pa",
+                    "The class path of authenticator implementation. " +
+                    "e.g., org.apache.hugegraph.auth.StandardAuthenticator, " +
+                    "or org.apache.hugegraph.auth.ConfigAuthenticator.",
+                    null,
+                    "pa"
+            );
+
     public static final ConfigOption<String> AUTH_ADMIN_TOKEN =
             new ConfigOption<>(
                     "auth.admin_token",

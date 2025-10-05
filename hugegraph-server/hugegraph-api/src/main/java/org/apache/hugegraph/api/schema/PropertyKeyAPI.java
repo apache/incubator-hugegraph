@@ -74,7 +74,7 @@ public class PropertyKeyAPI extends API {
     @Status(Status.ACCEPTED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+    @RolesAllowed({"space_member", "$graphspace=$graphspace $owner=$graph " +
                             "$action=property_key_write"})
     @RedirectFilter.RedirectMasterRole
     public String create(@Context GraphManager manager,
@@ -96,7 +96,7 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+    @RolesAllowed({"space_member", "$graphspace=$graphspace $owner=$graph " +
                             "$action=property_key_write"})
     @RedirectFilter.RedirectMasterRole
     public String update(@Context GraphManager manager,
@@ -139,7 +139,7 @@ public class PropertyKeyAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+    @RolesAllowed({"space_member", "$graphspace=$graphspace $owner=$graph " +
                             "$action=property_key_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
@@ -169,7 +169,7 @@ public class PropertyKeyAPI extends API {
     @Timed
     @Path("{name}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+    @RolesAllowed({"space_member", "$graphspace=$graphspace $owner=$graph " +
                             "$action=property_key_read"})
     public String get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
@@ -188,7 +188,7 @@ public class PropertyKeyAPI extends API {
     @Path("{name}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+    @RolesAllowed({"space_member", "$graphspace=$graphspace $owner=$graph " +
                             "$action=property_key_delete"})
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> delete(@Context GraphManager manager,

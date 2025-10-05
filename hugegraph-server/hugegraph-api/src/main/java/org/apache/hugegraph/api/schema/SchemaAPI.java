@@ -49,7 +49,7 @@ public class SchemaAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$graph " +
+    @RolesAllowed({"space_member", "$graphspace=$graphspace $owner=$graph " +
                             "$action=schema_read"})
     public String list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,

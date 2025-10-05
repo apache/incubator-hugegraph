@@ -115,6 +115,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     private static final Logger LOG = Log.logger(HugeGraphAuthProxy.class);
     private static final ThreadLocal<Context> CONTEXTS = new InheritableThreadLocal<>();
+    private static final ThreadLocal<String> REQUEST_GRAPH_SPACE = new ThreadLocal<>();
 
     static {
         HugeGraph.registerTraversalStrategies(HugeGraphAuthProxy.class);
@@ -153,6 +154,27 @@ public final class HugeGraphAuthProxy implements HugeGraph {
 
     public static void resetContext() {
         CONTEXTS.remove();
+        REQUEST_GRAPH_SPACE.remove();
+    }
+
+    public static void resetSpaceContext() {
+        CONTEXTS.remove();
+        REQUEST_GRAPH_SPACE.remove();
+    }
+
+    /**
+     * Get the graph space from current request URL path
+     */
+    public static String getRequestGraphSpace() {
+        return REQUEST_GRAPH_SPACE.get();
+    }
+
+    /**
+     * Set the graph space from current request URL path
+     * This is used for permission check when operating global resources like User/Group
+     */
+    public static void setRequestGraphSpace(String graphSpace) {
+        REQUEST_GRAPH_SPACE.set(graphSpace);
     }
 
     public static Context setAdmin() {
@@ -161,7 +183,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return old;
     }
 
-    private static Context getContext() {
+    public static Context getContext() {
         // Return task context first
         String taskContext = TaskManager.getContext();
         User user = User.fromJson(taskContext);
@@ -833,7 +855,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         try {
             this.hugegraph.truncateBackend();
         } finally {
-            if (admin != null && StandardAuthManager.isLocal(userManager)) {
+            if (admin != null && userManager.findUser(HugeAuthenticator.USER_ADMIN) == null &&
+                StandardAuthManager.isLocal(userManager)) {
                 // Restore admin user to continue to do any operation
                 userManager.createUser(admin);
             }
@@ -937,7 +960,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     private void verifyAdminPermission() {
-        verifyPermission(HugePermission.ANY, ResourceType.ROOT);
+        verifyPermission(HugePermission.ADMIN, ResourceType.ROOT);
     }
 
     private void verifyStatusPermission() {
@@ -956,9 +979,20 @@ public final class HugeGraphAuthProxy implements HugeGraph {
          * hugegraph.properties/store must be the same if enable auth.
          */
         verifyResPermission(actionPerm, true, () -> {
-            String graph = this.hugegraph.spaceGraphName();
+            String graph = this.hugegraph.name();
+
+            // For global resources like USER_GROUP, use request graph space from HugeGraphAuthProxy
+            // instead of the graph space where authManager is located
+            String graphSpace = this.graphSpace();
+            String requestGraphSpace = HugeGraphAuthProxy.getRequestGraphSpace();
+
+            if (requestGraphSpace != null) {
+                graphSpace = requestGraphSpace;
+                LOG.debug("Using requestGraphSpace: {}", graphSpace);
+            }
+
             Nameable elem = HugeResource.NameObject.ANY;
-            return ResourceObject.of(graph, resType, elem);
+            return ResourceObject.of(graphSpace, graph, resType, elem);
         });
     }
 
@@ -986,11 +1020,26 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             boolean throwIfNoPerm,
             Supplier<V> elementFetcher) {
         return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
-            String graph = this.hugegraph.spaceGraphName();
+            String graph = this.hugegraph.name();
             V elem = elementFetcher.get();
+
+            // For global resources like USER_GROUP, use request graph space from HugeGraphAuthProxy
+            // instead of the graph space where authManager is located
+            String graphSpace = this.graphSpace();
+            String requestGraphSpace = HugeGraphAuthProxy.getRequestGraphSpace();
+
+            LOG.debug(
+                    "verifyUserPermission: elem.type()={}, graphSpace={}, requestGraphSpace={}, " +
+                    "isGrantOrUser={}",
+                    elem.type(), graphSpace, requestGraphSpace, elem.type().isGrantOrUser());
+
+            if (requestGraphSpace != null) {
+                graphSpace = requestGraphSpace;
+                LOG.debug("Using requestGraphSpace: {}", graphSpace);
+            }
+            
             @SuppressWarnings("unchecked")
-            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
-                                                                        elem);
+            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graphSpace, graph, elem);
             return r;
         });
     }
@@ -1019,10 +1068,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             boolean throwIfNoPerm,
             Supplier<V> elementFetcher) {
         return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
-            String graph = this.hugegraph.spaceGraphName();
+            String graph = this.hugegraph.name();
             HugeElement elem = (HugeElement) elementFetcher.get();
             @SuppressWarnings("unchecked")
-            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
+            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(this.graphSpace(), graph,
                                                                         elem);
             return r;
         });
@@ -1035,9 +1084,19 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     private void verifyNamePermission(HugePermission actionPerm,
                                       ResourceType resType, String name) {
         verifyResPermission(actionPerm, true, () -> {
-            String graph = this.hugegraph.spaceGraphName();
+            String graph = this.hugegraph.name();
             Nameable elem = HugeResource.NameObject.of(name);
-            return ResourceObject.of(graph, resType, elem);
+
+            // For global resources like USER_GROUP, use request graph space from HugeGraphAuthProxy
+            // instead of the graph space where authManager is located
+            String graphSpace = this.graphSpace();
+            String requestGraphSpace = HugeGraphAuthProxy.getRequestGraphSpace();
+
+            if (requestGraphSpace != null) {
+                graphSpace = requestGraphSpace;
+            }
+
+            return ResourceObject.of(graphSpace, graph, resType, elem);
         });
     }
 
@@ -1070,10 +1129,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             boolean throwIfNoPerm,
             Supplier<V> schemaFetcher) {
         return verifyResPermission(actionPerm, throwIfNoPerm, () -> {
-            String graph = this.hugegraph.spaceGraphName();
+            String graph = this.hugegraph.name();
             SchemaElement elem = schemaFetcher.get();
             @SuppressWarnings("unchecked")
-            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(graph,
+            ResourceObject<V> r = (ResourceObject<V>) ResourceObject.of(this.graphSpace(), graph,
                                                                         elem);
             return r;
         });
@@ -1145,7 +1204,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         return result;
     }
 
-    static class Context {
+    public static class Context {
 
         private static final Context ADMIN = new Context(User.ADMIN);
 
@@ -1366,10 +1425,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
                                                      boolean throwIfNoPerm,
                                                      HugeTask<V> task) {
             Object r = verifyResPermission(actionPerm, throwIfNoPerm, () -> {
-                String graph = HugeGraphAuthProxy.this.hugegraph.spaceGraphName();
+                String graph = HugeGraphAuthProxy.this.hugegraph.name();
                 String name = task.id().toString();
                 Nameable elem = HugeResource.NameObject.of(name);
-                return ResourceObject.of(graph, ResourceType.TASK, elem);
+                return ResourceObject.of(graphSpace(), graph, ResourceType.TASK, elem);
             }, () -> {
                 return hasTaskPermission(task);
             });
@@ -1434,7 +1493,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Invalid user name '%s'", user.name());
             this.updateCreator(user);
-            verifyUserPermission(HugePermission.WRITE, user);
             return this.authManager.createUser(user);
         }
 
@@ -1443,8 +1501,10 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             String username = currentUsername();
             HugeUser user = this.authManager.getUser(updatedUser.id());
             if (!user.name().equals(username)) {
+                E.checkArgument(HugeAuthenticator.USER_ADMIN.equals(username),
+                                "Only the user themselves or the admin can change this user",
+                                user.name());
                 this.updateCreator(updatedUser);
-                verifyUserPermission(HugePermission.WRITE, user);
             }
             this.invalidRoleCache();
             return this.authManager.updateUser(updatedUser);
@@ -1455,7 +1515,8 @@ public final class HugeGraphAuthProxy implements HugeGraph {
             HugeUser user = this.authManager.getUser(id);
             E.checkArgument(!HugeAuthenticator.USER_ADMIN.equals(user.name()),
                             "Can't delete user '%s'", user.name());
-            verifyUserPermission(HugePermission.DELETE, user);
+            E.checkArgument(HugeAuthenticator.USER_ADMIN.equals(currentUsername()),
+                            "only admin can delete user", user.name());
             HugeGraphAuthProxy.this.auditLimiters.invalidate(user.id());
             this.invalidRoleCache();
             return this.authManager.deleteUser(id);
@@ -1464,10 +1525,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public HugeUser findUser(String name) {
             HugeUser user = this.authManager.findUser(name);
-            String username = currentUsername();
-            if (!user.name().equals(username)) {
-                verifyUserPermission(HugePermission.READ, user);
-            }
             return user;
         }
 
@@ -1807,6 +1864,115 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         @Override
         public void enabledWhiteIpList(boolean status) {
             this.authManager.enabledWhiteIpList(status);
+        }
+
+        @Override
+        public Id createSpaceManager(String graphSpace, String owner) {
+            // Set context before calling V2 AuthManager
+            String username = currentUsername();
+            if (username != null) {
+                TaskManager.setContext(
+                        String.format("{\"username\":\"%s\"}", username));
+            }
+            try {
+                return this.authManager.createSpaceManager(graphSpace, owner);
+            } finally {
+                if (username != null) {
+                    TaskManager.resetContext();
+                }
+            }
+        }
+
+        @Override
+        public void deleteSpaceManager(String graphSpace, String owner) {
+            this.authManager.deleteSpaceManager(graphSpace, owner);
+            this.invalidRoleCache();
+        }
+
+        @Override
+        public List<String> listSpaceManager(String graphSpace) {
+            return this.authManager.listSpaceManager(graphSpace);
+        }
+
+        @Override
+        public boolean isSpaceManager(String owner) {
+            return this.authManager.isSpaceManager(owner);
+        }
+
+        @Override
+        public boolean isSpaceManager(String graphSpace, String owner) {
+            return this.authManager.isSpaceManager(graphSpace, owner);
+        }
+
+        @Override
+        public Id createSpaceMember(String graphSpace, String user) {
+            // Set context before calling V2 AuthManager
+            String username = currentUsername();
+            if (username != null) {
+                TaskManager.setContext(
+                        String.format("{\"username\":\"%s\"}", username));
+            }
+            try {
+                return this.authManager.createSpaceMember(graphSpace, user);
+            } finally {
+                if (username != null) {
+                    TaskManager.resetContext();
+                }
+            }
+        }
+
+        @Override
+        public void deleteSpaceMember(String graphSpace, String user) {
+            this.authManager.deleteSpaceMember(graphSpace, user);
+            this.invalidRoleCache();
+        }
+
+        @Override
+        public List<String> listSpaceMember(String graphSpace) {
+            return this.authManager.listSpaceMember(graphSpace);
+        }
+
+        @Override
+        public boolean isSpaceMember(String graphSpace, String user) {
+            return this.authManager.isSpaceMember(graphSpace, user);
+        }
+
+        @Override
+        public Id createAdminManager(String user) {
+            // Set context before calling V2 AuthManager
+            String username = currentUsername();
+            if (username != null) {
+                TaskManager.setContext(
+                        String.format("{\"username\":\"%s\"}", username));
+            }
+            try {
+                return this.authManager.createAdminManager(user);
+            } finally {
+                if (username != null) {
+                    TaskManager.resetContext();
+                }
+            }
+        }
+
+        @Override
+        public void deleteAdminManager(String user) {
+            this.authManager.deleteAdminManager(user);
+            this.invalidRoleCache();
+        }
+
+        @Override
+        public List<String> listAdminManager() {
+            return this.authManager.listAdminManager();
+        }
+
+        @Override
+        public boolean isAdminManager(String user) {
+            return this.authManager.isAdminManager(user);
+        }
+
+        @Override
+        public HugeGroup findGroup(String name) {
+            return this.authManager.findGroup(name);
         }
 
         @Override
