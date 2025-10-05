@@ -65,7 +65,7 @@ public class RaftAPI extends API {
     @Path("list_peers")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space_member"})
     public Map<String, List<String>> listPeers(@Context GraphManager manager,
                                                @PathParam("graph") String graph,
                                                @PathParam("graphspace") String graphSpace,
@@ -85,7 +85,7 @@ public class RaftAPI extends API {
     @Path("get_leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space_member"})
     public Map<String, String> getLeader(@Context GraphManager manager,
                                          @PathParam("graph") String graph,
                                          @PathParam("graphspace") String graphSpace,
@@ -106,7 +106,7 @@ public class RaftAPI extends API {
     @Path("transfer_leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space_member"})
     public Map<String, String> transferLeader(@Context GraphManager manager,
                                               @PathParam("graphspace") String graphSpace,
                                               @PathParam("graph") String graph,
@@ -131,7 +131,7 @@ public class RaftAPI extends API {
     @Path("set_leader")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space_member"})
     public Map<String, String> setLeader(@Context GraphManager manager,
                                          @PathParam("graphspace") String graphSpace,
                                          @PathParam("graph") String graph,
@@ -155,7 +155,7 @@ public class RaftAPI extends API {
     @Path("add_peer")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space_member"})
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> addPeer(@Context GraphManager manager,
                                    @PathParam("graphspace") String graphSpace,
@@ -186,7 +186,7 @@ public class RaftAPI extends API {
     @Path("remove_peer")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"admin"})
+    @RolesAllowed({"space_member"})
     @RedirectFilter.RedirectMasterRole
     public Map<String, Id> removePeer(@Context GraphManager manager,
                                       @PathParam("graphspace") String graphSpace,
