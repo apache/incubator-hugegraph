@@ -15,19 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store;
+package org.apache.hugegraph.store.client.query;
 
-/**
- * created on 2022/03/11
- */
-public interface HgSeekAble {
+import org.apache.hugegraph.store.client.type.HgStoreClientException;
 
-    default byte[] position() {
-        throw new UnsupportedOperationException("HgSeekAble.position() is unsupported by default");
+import java.util.Iterator;
+
+public class ErrorMessageIterator<E> implements Iterator<E> {
+
+    private final String message;
+
+    public ErrorMessageIterator(String message) {
+        this.message = message;
     }
 
-    default void seek(byte[] position) {
-        throw new UnsupportedOperationException("HgSeekAble.seek() is unsupported by default");
+    @Override
+    public boolean hasNext() {
+        return true;
     }
 
+    @Override
+    public E next() {
+        throw new HgStoreClientException(message);
+    }
 }

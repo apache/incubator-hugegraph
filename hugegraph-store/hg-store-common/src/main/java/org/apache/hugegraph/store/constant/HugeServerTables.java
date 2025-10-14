@@ -29,10 +29,12 @@ public class HugeServerTables {
     public static final String INDEX_TABLE = "g+index";
     public static final String TASK_TABLE = "g+task";
     public static final String OLAP_TABLE = "g+olap";
+    //FIXME Is this necessary?
+    public static final String SERVER_TABLE = "g+server";
 
     public static final String[] TABLES = new String[]{UNKNOWN_TABLE, VERTEX_TABLE,
             OUT_EDGE_TABLE, IN_EDGE_TABLE,
-            INDEX_TABLE, TASK_TABLE, OLAP_TABLE};
+            INDEX_TABLE, TASK_TABLE, OLAP_TABLE, SERVER_TABLE};
 
     public static final Map<String, Integer> TABLES_MAP = Map.of(
             UNKNOWN_TABLE, 0,
@@ -41,7 +43,8 @@ public class HugeServerTables {
             IN_EDGE_TABLE, 3,
             INDEX_TABLE, 4,
             TASK_TABLE, 5,
-            OLAP_TABLE, 6
+            OLAP_TABLE, 6,
+            SERVER_TABLE,7
     );
 
     public static boolean isEdgeTable(String table) {

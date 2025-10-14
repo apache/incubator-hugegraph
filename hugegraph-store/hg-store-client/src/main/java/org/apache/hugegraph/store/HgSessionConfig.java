@@ -17,17 +17,10 @@
 
 package org.apache.hugegraph.store;
 
-/**
- * created on 2022/03/11
- */
-public interface HgSeekAble {
+import lombok.Data;
 
-    default byte[] position() {
-        throw new UnsupportedOperationException("HgSeekAble.position() is unsupported by default");
-    }
+@Data
+public class HgSessionConfig {
 
-    default void seek(byte[] position) {
-        throw new UnsupportedOperationException("HgSeekAble.seek() is unsupported by default");
-    }
-
+    private long queryPushDownTimeout = 1800_000;
 }

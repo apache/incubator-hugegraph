@@ -196,7 +196,7 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, StoreStat
                                                                                options.getRaftRpcThreadPoolSizeOfBasic()),
                                                                        JRaftUtils.createExecutor(
                                                                                "RAFT-RPC-",
-                                                                               options.getRaftRpcThreadPoolSize());
+                                                                               options.getRaftRpcThreadPoolSize()));
         HgCmdProcessor.registerProcessor(rpcServer, this);
         rpcServer.init(null);
         return rpcServer;

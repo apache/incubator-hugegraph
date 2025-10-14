@@ -37,8 +37,9 @@ public final class PDConfig {
     private boolean enablePDNotify = false;
 
     private boolean enableCache = false;
-    private String authority;
-    private String userName = "";
+    // FIXME: need to add AuthCheck
+    private String authority = "DEFAULT";
+    private String userName = "store";
     private static final int GRPC_DEFAULT_MAX_INBOUND_MESSAGE_SIZE = 1024 * 1024 * 1024;
     private static final int GRPC_DEFAULT_MAX_OUTBOUND_MESSAGE_SIZE = 1024 * 1024 * 1024;
     private static int inboundMessageSize = GRPC_DEFAULT_MAX_INBOUND_MESSAGE_SIZE;

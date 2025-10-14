@@ -15,19 +15,37 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.store;
+package org.apache.hugegraph.store.client.query;
 
 /**
- * created on 2022/03/11
+ * |---(has more result) --> IDLE
+ * |
+ * IDLE --(send req)--> WAITING --(onNext)--> INNER_BUSY |---(onCompleted)--> FINISHED
+ * |
+ * |---(error)----> ERROR
+ * |
+ * |---(processing)-> BUSY (ERROR)
  */
-public interface HgSeekAble {
+public enum ResultState {
+    // Initialized and ready for new data
+    IDLE,
+    // The state of having sent data and awaiting the server's response
+    WAITING,
+    // Reading state
+    INNER_BUSY,
+    // No more data
+    FINISHED,
+    // Error
+    ERROR;
 
-    default byte[] position() {
-        throw new UnsupportedOperationException("HgSeekAble.position() is unsupported by default");
+    private String message;
+
+    public String getMessage() {
+        return message;
     }
 
-    default void seek(byte[] position) {
-        throw new UnsupportedOperationException("HgSeekAble.seek() is unsupported by default");
+    public ResultState setMessage(String message) {
+        this.message = message;
+        return this;
     }
-
 }
