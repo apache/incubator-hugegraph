@@ -109,6 +109,14 @@ public class HgStoreNodeService implements RaftTaskHandler {
                 setPartitionCount(appConfig.getFakePdConfig().getPartitionCount());
                 setShardCount(appConfig.getFakePdConfig().getShardCount());
             }});
+            setQueryPushDownOption(new QueryPushDownOption(){{
+                setThreadPoolSize(appConfig.getQueryPushDownConfig().getThreadPoolSize());
+                setFetchBatchSize(appConfig.getQueryPushDownConfig().getFetchBatchSize());
+                setFetchTimeout(appConfig.getQueryPushDownConfig().getFetchTimeOut());
+                setMemoryLimitCount(appConfig.getQueryPushDownConfig().getMemoryLimitCount());
+                setIndexSizeLimitCount(appConfig.getQueryPushDownConfig().getIndexSizeLimitCount());
+            }});
+            setJobConfig(appConfig.getJobOptions());
         }};
 
         RaftRocksdbOptions.initRocksdbGlobalConfig(options.getRocksdbConfig());
