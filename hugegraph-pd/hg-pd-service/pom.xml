@@ -140,11 +140,6 @@
             <version>3.17.2</version>
         </dependency>
         <dependency>
-            <groupId>de.schlichtherle.truelicense</groupId>
-            <artifactId>truelicense-core</artifactId>
-            <version>1.33</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
             <version>${hugegraph-commons.version}</version>
