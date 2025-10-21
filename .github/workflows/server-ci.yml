@@ -21,13 +21,13 @@ jobs:
       HEAD_BRANCH_NAME: ${{ github.head_ref }}
       BASE_BRANCH_NAME: ${{ github.base_ref }}
       TARGET_BRANCH_NAME: ${{ github.base_ref != '' && github.base_ref || github.ref_name }}
-      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') }}
+      RELEASE_BRANCH: ${{ startsWith(github.ref_name, 'release-') || startsWith(github.ref_name, 'test-') || startsWith(github.base_ref, 'release-') }}
       RAFT_MODE: ${{ startsWith(github.head_ref, 'test') || startsWith(github.head_ref, 'raft') }}
 
     strategy:
       fail-fast: false
       matrix:
-        BACKEND: [ memory, rocksdb, hbase ]
+        BACKEND: [ memory, rocksdb, hbase, hstore ]
         JAVA_VERSION: [ '11' ]
 
     steps:
@@ -42,10 +42,6 @@ jobs:
         with:
           java-version: '8'
           distribution: 'zulu'
-
-      - name: Prepare backend environment
-        run: |
-          $TRAVIS_DIR/install-backend.sh $BACKEND && jps -l
 
       - name: Install Java ${{ matrix.JAVA_VERSION }}
         uses: actions/setup-java@v4
@@ -69,6 +65,10 @@ jobs:
       - name: Compile
         run: |
           mvn clean compile -U -Dmaven.javadoc.skip=true -ntp
+
+      - name: Prepare backend unique environment
+        run: |
+          bash .github/scripts/prepare-backend.sh $BACKEND
 
       - name: Run unit test
         run: |
