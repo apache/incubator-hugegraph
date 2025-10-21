@@ -68,6 +68,11 @@ public class HgStoreEngineOptions {
     // Data Migration Service
     private DataMover dataTransfer;
 
+    private boolean autoInitPe;
+
+    private String bulkloadDir;
+
+
     @Data
     public static class FakePdOptions {
 

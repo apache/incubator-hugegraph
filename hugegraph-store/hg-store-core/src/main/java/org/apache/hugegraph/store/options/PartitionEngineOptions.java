@@ -45,4 +45,5 @@ public class PartitionEngineOptions {
     private Configuration conf;
     // raft task processor
     private RaftTaskHandler taskHandler;
+    private String bulkloadDir;
 }

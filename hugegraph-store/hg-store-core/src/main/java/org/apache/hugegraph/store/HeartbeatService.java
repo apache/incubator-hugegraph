@@ -221,7 +221,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         }
     }
 
-    protected void storeHeartbeat() {
+    protected void storeHeartbeat() throws PDException {
         if (log.isDebugEnabled()) {
             log.debug("storeHeartbeat ... ");
         }
@@ -248,6 +248,31 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         }
 
         if (clusterStats.getState() == Metapb.ClusterState.Cluster_OK) {
+
+            if(  options.isAutoInitPe() ) {
+                List<Partition> leaderPartitions = pdProvider.getLeaderPartitionsByStore(storeInfo.getId());
+                leaderPartitions.forEach(partition -> {
+                    PartitionEngine engine = storeEngine.getPartitionEngine(partition.getGraphName(), partition.getId());
+                    try {
+                        if (engine == null) {
+                            log.debug("createPartitionGroups for {}", partition);
+                            Partition targetPartition = storeEngine.getPartitionManager().findPartition(partition.getGraphName(), partition.getId());
+                            if (targetPartition != null) {
+                                engine = storeEngine.createPartitionGroups(partition);
+                                // 可能迁移，不应该创建, 放到 synchronize体中，避免后面的
+                                if (engine != null) {
+                                    engine.waitForLeader(options.getWaitLeaderTimeout() * 1000);
+                                }
+                            }else {
+                                log.warn("partition {} not found in partitionManager", partition);
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        log.error("createPartitionGroups failed", e);
+                    }
+                });
+            }
             timerNextDelay = options.getStoreHBInterval() * 1000;
         } else {
             timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;
@@ -283,6 +308,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
         }
 
         List<PartitionEngine> partitions = storeEngine.getLeaderPartition();
+        Map<Long, Map<String, Long>> partGraphIds = storeEngine.getBusinessHandler().getGraphIds();
         final List<Metapb.PartitionStats> statsList = new ArrayList<>(partitions.size());
 
         Metapb.Shard localLeader = Metapb.Shard.newBuilder()
@@ -299,7 +325,15 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             stats.setLeaderTerm(partition.getLeaderTerm());
             stats.setConfVer(partition.getShardGroup().getConfVersion());
             stats.setLeader(localLeader);
-
+            Metapb.GraphIdMap.Builder builder = Metapb.GraphIdMap.newBuilder();
+            partGraphIds.forEach((k, v) -> {
+                if (k == (long)partition.getGroupId()) {
+                    v.forEach((k1, v1) -> {
+                        builder.putGraphidMap(k1, v1);
+                    });
+                }
+            });
+            stats.putGraphIds(partition.getGroupId(), builder.build());
             stats.addAllShard(partition.getShardGroup().getMetaPbShard());
 
             // shard status

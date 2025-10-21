@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +37,7 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
+import org.apache.hugegraph.pd.grpc.pulse.BulkloadInfo;
 import org.apache.hugegraph.pd.grpc.pulse.ChangeShard;
 import org.apache.hugegraph.pd.grpc.pulse.CleanPartition;
 import org.apache.hugegraph.pd.grpc.pulse.CleanType;
@@ -63,6 +66,7 @@ public class PartitionService implements RaftStateListener {
     private final PDConfig pdConfig;
     // Partition command listening
     private final List<PartitionInstructionListener> instructionListeners;
+    private final ConcurrentHashMap<Integer, StatusInfo> statusMap = new ConcurrentHashMap<>();
 
     // Partition status listeners
     private final List<PartitionStatusListener> statusListeners;
@@ -263,6 +267,39 @@ public class PartitionService implements RaftStateListener {
         return partition;
     }
 
+
+    public synchronized void newAllPartitions(String graphName) throws PDException {
+        if (partitionMeta.getGraphPartitionCount(graphName) == 0) {
+            Metapb.Graph graph = partitionMeta.getAndCreateGraph(graphName);
+            int partitionSize = PartitionUtils.MAX_VALUE / pdConfig.getPartition().getTotalCount();
+            if (PartitionUtils.MAX_VALUE % pdConfig.getPartition().getTotalCount() != 0) {
+                partitionSize++;
+            }
+
+            for (int partitionId = 0; partitionId < pdConfig.getPartition().getTotalCount();
+                 partitionId++) {
+                long startKey = (long) partitionSize * partitionId;
+                long endKey = (long) partitionSize * (partitionId + 1);
+                Metapb.Partition partition = partitionMeta.getPartitionById(graphName, partitionId);
+                if (partition == null) {
+                    storeService.allocShards(partitionId);
+                    partition = Metapb.Partition.newBuilder()
+                                                .setId(partitionId)
+                                                .setVersion(0)
+                                                .setState(Metapb.PartitionState.PState_Normal)
+                                                .setStartKey(startKey)
+                                                .setEndKey(endKey)
+                                                .setGraphName(graphName)
+                                                .build();
+
+                    partitionMeta.updatePartition(partition);
+                    log.info("Create newPartition {},graphName = {}", partition, graphName);
+                }
+            }
+        }
+
+    }
+
     /**
      * compute graph partition id, partition gap * store group id + offset
      *
@@ -421,7 +458,15 @@ public class PartitionService implements RaftStateListener {
     public synchronized Metapb.Graph updateGraph(Metapb.Graph graph) throws PDException {
         Metapb.Graph lastGraph = partitionMeta.getAndCreateGraph(graph.getGraphName());
         log.info("updateGraph graph: {}, last: {}", graph, lastGraph);
+        if (lastGraph.getGraphName().equals(graph.getGraphName()) &&
+            lastGraph.getPartitionCount() == graph.getPartitionCount() &&
+            lastGraph.getStateValue() == graph.getStateValue()) {
+            log.info("no need to  updateGraph graph: {}, last: {}, two graph is equals", graph,
+                     lastGraph);
+            return lastGraph;
+        }
 
+        newAllPartitions(graph.getGraphName());
         int partCount =
                 (graph.getGraphName().endsWith("/s") || graph.getGraphName().endsWith("/m")) ?
                 1 : pdConfig.getPartition().getTotalCount();
@@ -761,6 +806,59 @@ public class PartitionService implements RaftStateListener {
                                           task.getSplitPartition());
             }
         }
+    }
+
+    public MetaTask.TaskState getBulkloadStatus(String graphName) throws PDException {
+        var taskInfoMeta = storeService.getTaskInfoMeta();
+        List<MetaTask.Task> tasks = taskInfoMeta.scanBulkloadTask(graphName);
+        for (MetaTask.Task task : tasks) {
+            MetaTask.TaskState state = task.getState();
+            if (state != MetaTask.TaskState.Task_Success) {
+                return state;
+
+            }
+        }
+        return MetaTask.TaskState.Task_Success;
+    }
+
+    public synchronized void bulkloadPartitions(String graphName, String tableName,
+                                                Map<Integer, String> parseHdfsPathMap,
+                                                Integer maxDownloadRate) throws
+                                                                                       PDException {
+        var taskInfoMeta = storeService.getTaskInfoMeta();
+
+        parseHdfsPathMap.entrySet().forEach(
+                entry -> {
+                    try {
+                        Metapb.Partition partition = getPartitionById(graphName,
+                                                                      entry.getKey());
+                        BulkloadInfo bulkloadInfo =
+                                BulkloadInfo.newBuilder().setHdfsPath(entry.getValue())
+                                            .setTableName(tableName).setMaxDownloadRate(maxDownloadRate).build();
+                        log.info("Bulkload partition {} with hdfs path {},", partition,
+                                 bulkloadInfo);
+                        fireBulkloadPartition(partition, bulkloadInfo);
+                        var task = MetaTask.Task.newBuilder().setPartition(partition)
+                                                .setBulkloadInfo(bulkloadInfo)
+                                                .build();
+                        taskInfoMeta.addBulkloadTask(entry.getKey(), task.getPartition());
+                    } catch (PDException e) {
+                        log.error("Bulkload partition {} exception {}", entry.getKey(), e);
+                    }
+                });
+
+    }
+
+    protected void fireBulkloadPartition(Metapb.Partition partition, BulkloadInfo bulkloadInfo) {
+        log.info("fireBulkloadPartition partition: {}-{}， BulkloadInfo :{}",
+                 partition.getGraphName(), partition.getId(), bulkloadInfo);
+        instructionListeners.forEach(cmd -> {
+            try {
+                cmd.bulkloadPartition(partition, bulkloadInfo);
+            } catch (Exception e) {
+                log.error("fireBulkloadPartition", e);
+            }
+        });
     }
 
     /**
@@ -1154,6 +1252,89 @@ public class PartitionService implements RaftStateListener {
                 }
             }
         }
+    }
+
+    public void updateStatus(Integer id, MetaTask.TaskState state) {
+        statusMap.compute(id, (key, statusInfo) -> {
+            if (statusInfo == null) {
+                statusInfo = new StatusInfo();
+            }
+            if (state == MetaTask.TaskState.Task_Success) {
+                int count = statusInfo.successCount.incrementAndGet();
+                if (count >= 3) {
+                    statusInfo.state = MetaTask.TaskState.Task_Success;
+                }
+            }
+            else if (state == MetaTask.TaskState.Task_Failure) {
+                statusInfo.state = MetaTask.TaskState.Task_Failure;
+            }
+            return statusInfo;
+        });
+    }
+
+
+    public synchronized void handleBulkloadTask(MetaTask.Task task) throws PDException {
+        log.info("handle report bulkload task, graph:{}, pid : {}, task: {}",
+                 task.getPartition().getGraphName(), task.getPartition().getId(), task);
+
+        var taskInfoMeta = storeService.getTaskInfoMeta();
+        var partition = task.getPartition();
+        MetaTask.Task pdMetaTask =
+                taskInfoMeta.getBulkloadTask(partition.getGraphName(), partition.getId());
+
+        MetaTask.TaskState state = task.getState();
+
+        log.info("report bulkload task, graph:{}, pid : {}, state: {}",
+                 task.getPartition().getGraphName(),
+                 task.getPartition().getId(),
+                 task.getState());
+
+        updateStatus(partition.getId(), state);
+
+        if (statusMap.get(partition.getId()).state != null &&
+            statusMap.get(partition.getId()).state != MetaTask.TaskState.Task_Ready) {
+            var newTask =
+                    pdMetaTask.toBuilder().setState(statusMap.get(partition.getId()).state).build();
+
+            taskInfoMeta.updateBulkloadTask(newTask);
+            log.info("taskInfoMeta update bulkload task, graph:{}, newTask: {}",
+                     partition.getGraphName(), newTask);
+
+            List<MetaTask.Task> subTasks = taskInfoMeta.scanBulkloadTask(partition.getGraphName());
+            log.info("scan bulkload task, graph:{}, subTasks: {}", partition.getGraphName(),
+                     subTasks);
+
+            var finished = subTasks.stream().peek(t -> log.info("task:{}", t)).allMatch(t ->
+
+                                                                                                t.getState() ==
+                                                                                                MetaTask.TaskState.Task_Success ||
+                                                                                                t.getState() ==
+                                                                                                MetaTask.TaskState.Task_Failure
+
+            );
+            log.info("finished: {}", finished);
+            if (finished) {
+                var allSuccess = subTasks.stream().allMatch(
+                        t -> t.getState() == MetaTask.TaskState.Task_Success);
+
+                if (allSuccess) {
+                    log.info("graph:{} bulkload task all success!", partition.getGraphName());
+                    handleBulkloadTaskAllFinished(partition.getGraphName(), taskInfoMeta);
+                } else {
+                    log.info("graph:{} bulkload task failed!", partition.getGraphName());
+                    handleBulkloadTaskAllFinished(partition.getGraphName(), taskInfoMeta);
+                }
+                log.info("clear bulkload task status record, graph:{}, statusMap: {}",
+                         partition.getGraphName(), statusMap);
+                statusMap.clear();
+            }
+
+        }
+    }
+
+    private void handleBulkloadTaskAllFinished(String graphName,
+                                               TaskInfoMeta taskInfoMeta) throws PDException {
+        taskInfoMeta.removeMoveTaskPrefix(graphName);
     }
 
     /**
@@ -1554,5 +1735,19 @@ public class PartitionService implements RaftStateListener {
 
     public void updateShardGroupCache(Metapb.ShardGroup group) {
         partitionMeta.getPartitionCache().updateShardGroup(group);
+    }
+
+    private static class StatusInfo {
+
+        AtomicInteger successCount = new AtomicInteger(0);
+        MetaTask.TaskState state = MetaTask.TaskState.Task_Ready;
+
+        @Override
+        public String toString() {
+            return "StatusInfo{" +
+                   "successCount=" + successCount +
+                   ", state=" + state +
+                   '}';
+        }
     }
 }

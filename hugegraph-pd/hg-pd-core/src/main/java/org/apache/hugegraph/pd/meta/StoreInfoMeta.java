@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StoreInfoMeta extends MetadataRocksDBStore {
 
-
     public StoreInfoMeta(PDConfig pdConfig) {
         super(pdConfig);
         //   this.timeout = pdConfig.getDiscovery().getHeartbeatOutTimes();

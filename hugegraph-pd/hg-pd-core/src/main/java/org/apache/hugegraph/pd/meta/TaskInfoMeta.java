@@ -35,6 +35,18 @@ public class TaskInfoMeta extends MetadataRocksDBStore {
         super(pdConfig);
     }
 
+    public void addBulkloadTask(int groupID, Metapb.Partition partition)
+            throws PDException {
+        byte[] key = MetadataKeyHelper.getBulkloadTaskKey(partition.getGraphName(), groupID);
+        MetaTask.Task task = MetaTask.Task.newBuilder()
+                                          .setType(MetaTask.TaskType.Ingest_SSTFile)
+                                          .setState(MetaTask.TaskState.Task_Doing)
+                                          .setStartTimestamp(System.currentTimeMillis())
+                                          .setPartition(partition)
+                                          .build();
+        put(key, task.toByteString().toByteArray());
+    }
+
     /**
      * Add a partition splitting task
      */
@@ -59,6 +71,18 @@ public class TaskInfoMeta extends MetadataRocksDBStore {
 
     public MetaTask.Task getSplitTask(String graphName, int groupID) throws PDException {
         byte[] key = MetadataKeyHelper.getSplitTaskKey(graphName, groupID);
+        return getOne(MetaTask.Task.parser(), key);
+    }
+
+    public void updateBulkloadTask(MetaTask.Task task) throws PDException {
+        var partition = task.getPartition();
+        byte[] key =
+                MetadataKeyHelper.getBulkloadTaskKey(partition.getGraphName(), partition.getId());
+        put(key, task.toByteString().toByteArray());
+    }
+
+    public MetaTask.Task getBulkloadTask(String graphName, int groupID) throws PDException {
+        byte[] key = MetadataKeyHelper.getBulkloadTaskKey(graphName, groupID);
         return getOne(MetaTask.Task.parser(), key);
     }
 
@@ -111,6 +135,11 @@ public class TaskInfoMeta extends MetadataRocksDBStore {
 
     public List<MetaTask.Task> scanMoveTask(String graphName) throws PDException {
         byte[] prefix = MetadataKeyHelper.getMoveTaskPrefix(graphName);
+        return scanPrefix(MetaTask.Task.parser(), prefix);
+    }
+
+    public List<MetaTask.Task> scanBulkloadTask(String graphName) throws PDException {
+        byte[] prefix = MetadataKeyHelper.getBulkloadTaskPrefix(graphName);
         return scanPrefix(MetaTask.Task.parser(), prefix);
     }
 

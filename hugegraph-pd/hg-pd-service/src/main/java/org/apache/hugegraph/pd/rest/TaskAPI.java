@@ -17,21 +17,30 @@
 
 package org.apache.hugegraph.pd.rest;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.pd.common.HdfsUtils;
 import org.apache.hugegraph.pd.common.KVPair;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.model.BulkloadRestRequest;
+import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.web.client.RestTemplate;
 
 @RestController
 @Slf4j
@@ -40,6 +49,13 @@ public class TaskAPI extends API {
 
     @Autowired
     PDRestService pdRestService;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    public boolean isLeader() {
+        return RaftEngine.getInstance().isLeader();
+    }
 
     @GetMapping(value = "/patrolStores", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
@@ -87,6 +103,34 @@ public class TaskAPI extends API {
             e.printStackTrace();
             return toJSON(e);
         }
+    }
+
+    @PostMapping(value = "/bulkload")
+    public Map<String,String> bulkload(@RequestBody BulkloadRestRequest request) throws PDException {
+        if (isLeader()) {
+            return handleBulkload(request);
+        } else {
+            String leaderAddress = RaftEngine.getInstance().getLeader().getIp();
+            String url = "http://" + leaderAddress+":8620" + "/v1/task/bulkload";
+            ResponseEntity<Map> mapResponseEntity = restTemplate.postForEntity(url, request, Map.class);
+            return mapResponseEntity.getBody();
+        }
+    }
+
+    private Map<String,String> handleBulkload(BulkloadRestRequest request)  {
+        Map<Integer, String> parseHdfsPathMap = null;
+        Map<String,String> resMap = new HashMap<>();
+        try (HdfsUtils hdfsUtils = new HdfsUtils(request.getHdfsPath())) {
+            parseHdfsPathMap = hdfsUtils.parseHdfsPath(request.getHdfsPath());
+            boolean result = pdRestService.bulkload(request.getGraphName(),
+                                                    request.getTableName(), parseHdfsPathMap,
+                                                    request.getMaxDownloadRate());
+            resMap.put("status", result?"success":"failed");
+        } catch (Exception e) {
+            log.info("bulkload failed,error:{}", toJSON(e));
+            resMap.put("message", e.getMessage());
+        }
+        return resMap;
     }
 
     @GetMapping(value = "/balanceLeaders")

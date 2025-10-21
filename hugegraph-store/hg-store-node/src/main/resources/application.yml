@@ -19,6 +19,10 @@ pdserver:
   # PD service address, multiple PD addresses separated by commas
   address: localhost:8686
 
+pe:
+  # 是否在集群状态 ClusterState=Cluster_OK 时，自动初始化leader是本store的partitionEngine，默认是true
+  auto-init-pe: true
+
 grpc:
   # grpc service address
   host: 127.0.0.1
@@ -37,6 +41,7 @@ server:
 app:
   # Storage path, support multiple paths, separated by commas
   data-path: ./storage
+  bulkload-dir: /bulkload/
 
 spring:
   profiles:
