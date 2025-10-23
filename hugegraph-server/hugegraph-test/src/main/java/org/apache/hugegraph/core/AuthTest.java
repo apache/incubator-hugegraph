@@ -131,6 +131,9 @@ public class AuthTest extends BaseCoreTest {
         for (HugeTarget target : authManager.listAllTargets(-1)) {
             authManager.deleteTarget(target.id());
         }
+        for (HugeBelong belong : authManager.listAllBelong(-1)) {
+            authManager.deleteBelong(belong.id());
+        }
 
         //FIXME: support project in hstore
         boolean isHstore = Objects.equals("hstore", System.getProperty("backend")) ||
@@ -710,12 +713,11 @@ public class AuthTest extends BaseCoreTest {
         Map<String, Object> expected = new HashMap<>();
         expected.putAll(ImmutableMap.of("id", belong.id(),
                                         "user", user,
-                                        "graphspace", "*",
+                                        "graphspace", "DEFAULT",
                                         "group", group1));
         expected.putAll(ImmutableMap.of("belong_creator", "admin",
                                         "belong_create", belong.create(),
                                         "belong_update", belong.update()));
-        expected.put("role", null);
         expected.put("link", "ug");
         Assert.assertEquals(expected, belong.asMap());
 
@@ -728,12 +730,11 @@ public class AuthTest extends BaseCoreTest {
         expected = new HashMap<>();
         expected.putAll(ImmutableMap.of("id", belong.id(),
                                         "user", user,
-                                        "graphspace", "*",
+                                        "graphspace", "DEFAULT",
                                         "group", group2));
         expected.putAll(ImmutableMap.of("belong_creator", "admin",
                                         "belong_create", belong.create(),
                                         "belong_update", belong.update()));
-        expected.put("role", null);
         expected.put("link", "ug");
         Assert.assertEquals(expected, belong.asMap());
 
@@ -760,13 +761,12 @@ public class AuthTest extends BaseCoreTest {
         expected = new HashMap<>();
         expected.putAll(ImmutableMap.of("id", belong.id(),
                                         "user", user1,
-                                        "graphspace", "*",
+                                        "graphspace", "DEFAULT",
                                         "group", group1));
         expected.putAll(ImmutableMap.of("belong_description", "something2",
                                         "belong_creator", "admin",
                                         "belong_create", belong.create(),
                                         "belong_update", belong.update()));
-        expected.put("role", null);
         expected.put("link", "ug");
         Assert.assertEquals(expected, belong.asMap());
 
