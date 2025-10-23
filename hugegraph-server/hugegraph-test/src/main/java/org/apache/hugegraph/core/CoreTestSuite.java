@@ -20,6 +20,7 @@ package org.apache.hugegraph.core;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
+import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.util.Log;
 import org.junit.AfterClass;
@@ -74,6 +75,21 @@ public class CoreTestSuite {
         graph.clearBackend();
         graph.initBackend();
         graph.serverStarted(GlobalMasterInfo.master("server-test"));
+
+        // Initialize DEFAULT graphspace for V2 tests
+        try {
+            MetaManager metaManager =
+                    MetaManager.instance();
+            if (metaManager.isReady()) {
+                metaManager.initDefaultGraphSpace();
+            }
+        } catch (Exception e) {
+            // MetaManager may not be initialized for non-hstore backends
+            LOG.debug(
+                    "Failed to initialize default graphspace (expected for non-hstore backends): " +
+                    "{}",
+                    e.getMessage());
+        }
     }
 
     @AfterClass

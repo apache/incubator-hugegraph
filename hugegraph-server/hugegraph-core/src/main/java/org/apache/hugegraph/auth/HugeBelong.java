@@ -40,6 +40,7 @@ public class HugeBelong extends Relationship {
     public static final String GR = "gr";
     public static final String ALL = "*";
     private static final long serialVersionUID = -7242751631755533423L;
+    public static final String DEFAULT_GRAPH_SPACE = "DEFAULT";
 
     private String graphSpace;
     private Id user;
@@ -49,7 +50,7 @@ public class HugeBelong extends Relationship {
     private String link;
 
     public HugeBelong(Id user, Id group) {
-        this("*", user, group, null, UG);
+        this(DEFAULT_GRAPH_SPACE, user, group, null, UG);
     }
 
     public HugeBelong(String graphSpace, Id user, Id role) {

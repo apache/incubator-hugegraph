@@ -313,26 +313,6 @@
             </properties>
         </profile>
         <profile>
-            <id>cassandra</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>cassandra</backend>
-                <serializer>cassandra</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>scylladb</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>scylladb</backend>
-                <serializer>scylladb</serializer>
-            </properties>
-        </profile>
-        <profile>
             <id>rocksdb</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -343,26 +323,6 @@
             </properties>
         </profile>
         <profile>
-            <id>mysql</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>mysql</backend>
-                <serializer>mysql</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>palo</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>palo</backend>
-                <serializer>palo</serializer>
-            </properties>
-        </profile>
-        <profile>
             <id>hbase</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
@@ -370,16 +330,6 @@
             <properties>
                 <backend>hbase</backend>
                 <serializer>hbase</serializer>
-            </properties>
-        </profile>
-        <profile>
-            <id>postgresql</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <properties>
-                <backend>postgresql</backend>
-                <serializer>postgresql</serializer>
             </properties>
         </profile>
         <profile>
