@@ -30,24 +30,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.apache.hugegraph.util.CollectionUtil;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
-import org.eclipse.collections.api.tuple.primitive.IntObjectPair;
-import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaLabel;
 import org.apache.hugegraph.serializer.BytesBuffer;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
 import org.apache.hugegraph.type.GraphType;
 import org.apache.hugegraph.type.Idfiable;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.HugeKeys;
+import org.apache.hugegraph.util.CollectionUtil;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.collection.CollectionFactory;
+import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
+import org.eclipse.collections.api.tuple.primitive.IntObjectPair;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
+import org.slf4j.Logger;
 
 
 public abstract class BaseElement implements GraphType, Idfiable, Serializable {

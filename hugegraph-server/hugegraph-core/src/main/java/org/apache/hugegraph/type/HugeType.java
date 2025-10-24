@@ -121,7 +121,8 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isVertex() {
-        return this == HugeType.VERTEX || this == HugeType.TASK || this == HugeType.SERVER;
+        return this == HugeType.VERTEX || this == HugeType.TASK || this == HugeType.SERVER ||
+               this == HugeType.VARIABLE;
     }
 
     public boolean isEdge() {
@@ -131,7 +132,6 @@ public enum HugeType implements SerialEnum {
     public boolean isEdgeLabel() {
         return this == EDGE_LABEL;
     }
-
 
     public boolean isIndex() {
         return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX ||

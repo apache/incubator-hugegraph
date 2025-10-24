@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.schema;
+package org.apache.hugegraph.struct.schema;
 
 import java.util.HashMap;
 import java.util.Map;

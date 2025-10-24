@@ -34,6 +34,7 @@ public enum HugeType implements SerialEnum {
     PROPERTY_KEY(3, "PK"),
     INDEX_LABEL(4, "IL"),
 
+    META(40, "M"),
     COUNTER(50, "C"),
 
     /* Data types */
@@ -69,7 +70,7 @@ public enum HugeType implements SerialEnum {
     TASK(180, "T"),
     SERVER(181, "SERVER"),
 
-    VARIABLE(185,"VA"),
+    VARIABLE(185, "VA"),
 
     KV_TYPE(200, "KV"),
     KV_RAW(201, "KVR"),
@@ -80,7 +81,7 @@ public enum HugeType implements SerialEnum {
     MAX_TYPE(255, "~");
 
     private byte type = 0;
-    private String name;
+    private final String name;
 
     private static final Map<String, HugeType> ALL_NAME = new HashMap<>();
 
@@ -118,13 +119,13 @@ public enum HugeType implements SerialEnum {
     }
 
     public boolean isGraph() {
-        return this.isVertex() || this.isEdge() ;
+        return this.isVertex() || this.isEdge();
     }
 
     public boolean isVertex() {
         // Consider task vertex variable as the same, all used to store HugeVertex structure
         return this == HugeType.VERTEX || this == HugeType.TASK ||
-               this == HugeType.VARIABLE;
+               this == HugeType.VARIABLE || this == HugeType.SERVER;
     }
 
     public boolean isEdge() {
@@ -134,7 +135,6 @@ public enum HugeType implements SerialEnum {
     public boolean isEdgeLabel() {
         return this == EDGE_LABEL;
     }
-
 
     public boolean isIndex() {
         return this == VERTEX_LABEL_INDEX || this == EDGE_LABEL_INDEX ||

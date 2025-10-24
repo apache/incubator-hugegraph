@@ -19,24 +19,24 @@
 
 package org.apache.hugegraph.structure;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.id.EdgeId;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.SplicingIdGenerator;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.SchemaLabel;
-import org.apache.hugegraph.schema.VertexLabel;
 import org.apache.hugegraph.serializer.BytesBuffer;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.HugeKeys;
-import com.google.common.collect.ImmutableList;
-
 import org.apache.hugegraph.util.E;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.ImmutableList;
 
 /* Only as basic data container, id generation logic relies on upper layer encapsulation*/
 public class BaseEdge extends BaseElement implements Cloneable {

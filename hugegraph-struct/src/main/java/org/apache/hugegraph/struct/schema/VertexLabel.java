@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.schema;
+package org.apache.hugegraph.struct.schema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.builder.SchemaBuilder;
+import org.apache.hugegraph.struct.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -57,7 +57,7 @@ public class VertexLabel extends SchemaLabel {
     public static final String GENERAL_VL = "~general_vl";
 
     private IdStrategy idStrategy;
-    private List<Id> primaryKeys;
+    private final List<Id> primaryKeys;
 
     public VertexLabel(final HugeGraphSupplier graph, Id id, String name) {
         super(graph, id, name);

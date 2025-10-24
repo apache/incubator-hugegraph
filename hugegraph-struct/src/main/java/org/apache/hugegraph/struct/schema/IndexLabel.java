@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.schema;
+package org.apache.hugegraph.struct.schema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,12 +28,12 @@ import java.util.stream.Collectors;
 import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.builder.SchemaBuilder;
+import org.apache.hugegraph.struct.schema.builder.SchemaBuilder;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.type.define.SchemaStatus;
-import org.apache.hugegraph.type.HugeType;
-import org.apache.hugegraph.util.GraphUtils;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.GraphUtils;
 
 import com.google.common.base.Objects;
 
@@ -42,7 +42,7 @@ public class IndexLabel extends SchemaElement {
     private HugeType baseType;
     private Id baseValue;
     private IndexType indexType;
-    private List<Id> indexFields;
+    private final List<Id> indexFields;
 
     public IndexLabel(final HugeGraphSupplier graph, Id id, String name) {
         super(graph, id, name);

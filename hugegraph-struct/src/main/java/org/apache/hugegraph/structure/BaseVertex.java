@@ -19,23 +19,22 @@
 
 package org.apache.hugegraph.structure;
 
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.hugegraph.perf.PerfUtil;
-import org.apache.hugegraph.util.E;
-
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.SplicingIdGenerator;
-import org.apache.hugegraph.schema.SchemaLabel;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.perf.PerfUtil;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.type.define.IdStrategy;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.collection.CollectionFactory;
+
 import com.google.common.collect.ImmutableList;
 
 public class BaseVertex extends BaseElement implements Cloneable {

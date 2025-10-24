@@ -19,7 +19,13 @@
 
 package org.apache.hugegraph.serializer;
 
-import com.google.common.primitives.Longs;
+import static org.apache.hugegraph.struct.schema.SchemaElement.UNDEF;
+
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Map;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.hugegraph.HugeGraphSupplier;
@@ -29,11 +35,15 @@ import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.id.EdgeId;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.schema.VertexLabel;
-import org.apache.hugegraph.structure.*;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.VertexLabel;
+import org.apache.hugegraph.structure.BaseEdge;
+import org.apache.hugegraph.structure.BaseElement;
+import org.apache.hugegraph.structure.BaseProperty;
+import org.apache.hugegraph.structure.BaseVertex;
+import org.apache.hugegraph.structure.Index;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.EdgeLabelType;
@@ -43,12 +53,7 @@ import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.StringEncoding;
 import org.slf4j.Logger;
 
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.Map;
-
-import static org.apache.hugegraph.schema.SchemaElement.UNDEF;
+import com.google.common.primitives.Longs;
 
 public class BinaryElementSerializer {
     static final BinaryElementSerializer INSTANCE =

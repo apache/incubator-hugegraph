@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.schema;
+package org.apache.hugegraph.struct.schema;
+
+import static org.apache.hugegraph.type.define.WriteType.OLAP_COMMON;
+import static org.apache.hugegraph.type.define.WriteType.OLAP_RANGE;
+import static org.apache.hugegraph.type.define.WriteType.OLAP_SECONDARY;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,16 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 import org.apache.hugegraph.HugeGraphSupplier;
-
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.builder.SchemaBuilder;
+import org.apache.hugegraph.struct.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
-
 import org.apache.hugegraph.type.Propfiable;
 import org.apache.hugegraph.type.define.AggregateType;
 import org.apache.hugegraph.type.define.Cardinality;
@@ -45,10 +46,6 @@ import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.GraphUtils;
 import org.apache.hugegraph.util.LongEncoding;
-
-import static org.apache.hugegraph.type.define.WriteType.OLAP_COMMON;
-import static org.apache.hugegraph.type.define.WriteType.OLAP_RANGE;
-import static org.apache.hugegraph.type.define.WriteType.OLAP_SECONDARY;
 
 public class PropertyKey extends SchemaElement implements Propfiable {
 
