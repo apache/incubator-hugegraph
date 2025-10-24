@@ -30,12 +30,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Log;
-import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
-import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.id.Id;
@@ -47,15 +41,20 @@ import org.apache.hugegraph.pd.grpc.kv.ScanPrefixResponse;
 import org.apache.hugegraph.pd.grpc.kv.WatchEvent;
 import org.apache.hugegraph.pd.grpc.kv.WatchResponse;
 import org.apache.hugegraph.pd.grpc.kv.WatchType;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
 
 public class SchemaDriver {
-    private static Logger log = Log.logger(SchemaDriver.class);
+    private static final Logger log = Log.logger(SchemaDriver.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static final String DELIMITER = "-";
@@ -81,7 +80,7 @@ public class SchemaDriver {
     // Client for accessing PD
     private final KvClient<WatchResponse> client;
 
-    private SchemaCaches caches;
+    private final SchemaCaches caches;
 
     private SchemaDriver(PDConfig pdConfig, int cacheSize,
                          long expiration) {
@@ -731,7 +730,7 @@ public class SchemaDriver {
         private final long expiration;
         private final Timer timer;
 
-        private ConcurrentHashMap<String, ConcurrentHashMap<String,
+        private final ConcurrentHashMap<String, ConcurrentHashMap<String,
                 SchemaElement>> caches;
 
         public SchemaCaches(int limit, long expiration) {

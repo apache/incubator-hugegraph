@@ -19,28 +19,29 @@
 
 package org.apache.hugegraph;
 
-import org.apache.hugegraph.HugeGraphSupplier;
-import org.apache.hugegraph.SchemaDriver;
-import org.apache.hugegraph.id.Id;
-import org.apache.hugegraph.pd.client.PDConfig;
-import org.apache.hugegraph.schema.*;
-
-import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.MapConfiguration;
-import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.util.E;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.VertexLabel;
+import org.apache.hugegraph.util.E;
 
 public class SchemaGraph implements HugeGraphSupplier {
 
     private final String graphSpace;
     private final String graph;
     private final PDConfig pdConfig;
-    private HugeConfig config;
+    private final HugeConfig config;
 
     private final SchemaDriver schemaDriver;
 

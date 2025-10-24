@@ -22,13 +22,13 @@ package org.apache.hugegraph.serializer;
 import java.util.Arrays;
 import java.util.Base64;
 
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.struct.schema.PropertyKey;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
-import org.apache.hugegraph.id.Id;
-import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.PropertyKey;
 import com.google.common.primitives.Longs;
 
 public class DirectBinarySerializer {
@@ -36,8 +36,8 @@ public class DirectBinarySerializer {
     protected static final Logger LOG = Log.logger(DirectBinarySerializer.class);
 
     public static class DirectHugeElement {
-        private Id id;
-        private long expiredTime;
+        private final Id id;
+        private final long expiredTime;
 
         public DirectHugeElement(Id id, long expiredTime) {
             this.id = id;

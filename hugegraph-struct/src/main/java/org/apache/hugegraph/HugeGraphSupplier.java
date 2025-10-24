@@ -23,55 +23,54 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.util.DateUtil;
 
-import org.apache.hugegraph.id.Id;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.VertexLabel;
-
 /**
- * Acturally, it would be better if this interface be called
+ * Actually, it would be better if this interface be called
  * "HugeGraphSchemaSupplier".
  */
 public interface HugeGraphSupplier {
 
-    public List<String> mapPkId2Name(Collection<Id> ids);
+    List<String> mapPkId2Name(Collection<Id> ids);
 
-    public List<String> mapIlId2Name(Collection<Id> ids);
+    List<String> mapIlId2Name(Collection<Id> ids);
 
-    public PropertyKey propertyKey(Id key);
+    PropertyKey propertyKey(Id key);
 
-    public Collection<PropertyKey> propertyKeys();
+    Collection<PropertyKey> propertyKeys();
 
-    public VertexLabel vertexLabelOrNone(Id id);
+    VertexLabel vertexLabelOrNone(Id id);
 
-    public boolean existsLinkLabel(Id vertexLabel);
+    boolean existsLinkLabel(Id vertexLabel);
 
-    public VertexLabel vertexLabel(Id label);
+    VertexLabel vertexLabel(Id label);
 
-    public VertexLabel vertexLabel(String label);
+    VertexLabel vertexLabel(String label);
 
 
-    public default EdgeLabel edgeLabelOrNone(Id id) {
+    default EdgeLabel edgeLabelOrNone(Id id) {
         EdgeLabel el = this.edgeLabel(id);
         if (el == null) {
             el = EdgeLabel.undefined(this, id);
         }
         return el;
     }
-    public EdgeLabel edgeLabel(Id label);
+    EdgeLabel edgeLabel(Id label);
 
-    public EdgeLabel edgeLabel(String label);
+    EdgeLabel edgeLabel(String label);
 
-    public IndexLabel indexLabel(Id id);
+    IndexLabel indexLabel(Id id);
 
-    public Collection<IndexLabel> indexLabels();
+    Collection<IndexLabel> indexLabels();
 
-    public String name();
+    String name();
 
-    public HugeConfig configuration();
+    HugeConfig configuration();
 
     default long now() {
         return DateUtil.now().getTime();

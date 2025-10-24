@@ -24,29 +24,29 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.InsertionOrderUtil;
-import org.apache.hugegraph.util.NumericUtil;
-
 import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.Id.IdType;
 import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.id.SplicingIdGenerator;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.SchemaElement;
 import org.apache.hugegraph.serializer.BytesBuffer;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.SchemaElement;
 import org.apache.hugegraph.type.GraphType;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.DataType;
+import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.InsertionOrderUtil;
+import org.apache.hugegraph.util.NumericUtil;
+
 import com.google.common.collect.ImmutableSet;
 
 public class Index implements GraphType, Cloneable {
 
     private final HugeGraphSupplier graph;
     private Object fieldValues;
-    private IndexLabel indexLabel;
+    private final IndexLabel indexLabel;
     /*
      * Index read use elementIds, Index write always one element, use
      * elementId
@@ -310,8 +310,8 @@ public class Index implements GraphType, Cloneable {
 
     public static class IdWithExpiredTime {
 
-        private Id id;
-        private long expiredTime;
+        private final Id id;
+        private final long expiredTime;
 
         public IdWithExpiredTime(Id id, long expiredTime) {
             this.id = id;

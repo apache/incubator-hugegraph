@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.schema;
+package org.apache.hugegraph.struct.schema;
 
 import java.util.Collections;
 import java.util.Map;
 
 import org.apache.hugegraph.HugeGraphSupplier;
-
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
@@ -29,11 +28,9 @@ import org.apache.hugegraph.type.Namifiable;
 import org.apache.hugegraph.type.Typifiable;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.E;
-
+import org.apache.hugegraph.util.GraphUtils;
 
 import com.google.common.base.Objects;
-
-import org.apache.hugegraph.util.GraphUtils;
 
 public abstract class SchemaElement implements Namifiable, Typifiable,
                                                Cloneable {
@@ -189,7 +186,7 @@ public abstract class SchemaElement implements Namifiable, Typifiable,
     public static class TaskWithSchema {
 
         private SchemaElement schemaElement;
-        private Id task;
+        private final Id task;
 
         public TaskWithSchema(SchemaElement schemaElement, Id task) {
             E.checkNotNull(schemaElement, "schema element");

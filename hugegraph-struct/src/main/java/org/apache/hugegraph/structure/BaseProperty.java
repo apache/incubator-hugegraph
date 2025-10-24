@@ -19,12 +19,12 @@
 
 package org.apache.hugegraph.structure;
 
-import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.PropertyKey;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 
 public class BaseProperty<V> {
-    private PropertyKey propertyKey;
+    private final PropertyKey propertyKey;
 
     protected V value;
 

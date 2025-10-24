@@ -54,7 +54,10 @@ fi
 
 echo "Initializing HugeGraph Store..."
 
-CP=$(find "${LIB}" "${PLUGINS}" -name "*.jar"  | tr "\n" ":")
+# Build classpath with hugegraph*.jar first to avoid class loading conflicts
+CP=$(find -L "${LIB}" -name 'hugegraph*.jar' | sort | tr '\n' ':')
+CP="$CP":$(find -L "${LIB}" -name '*.jar' \! -name 'hugegraph*' | sort | tr '\n' ':')
+CP="$CP":$(find -L "${PLUGINS}" -name '*.jar' | sort | tr '\n' ':')
 $JAVA -cp $CP ${DEFAULT_JAVA_OPTIONS} \
 org.apache.hugegraph.cmd.InitStore "${CONF}"/rest-server.properties
 

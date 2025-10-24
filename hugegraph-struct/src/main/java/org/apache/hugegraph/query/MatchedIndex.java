@@ -24,8 +24,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
 
 public class MatchedIndex {
 

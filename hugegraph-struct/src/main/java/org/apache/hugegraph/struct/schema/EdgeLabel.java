@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.schema;
+package org.apache.hugegraph.struct.schema;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.builder.SchemaBuilder;
+import org.apache.hugegraph.struct.schema.builder.SchemaBuilder;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Directions;
 import org.apache.hugegraph.type.define.EdgeLabelType;
@@ -49,7 +49,7 @@ public class EdgeLabel extends SchemaLabel {
     private Id sourceLabel = NONE_ID;
     private Id targetLabel = NONE_ID;
     private Frequency frequency;
-    private List<Id> sortKeys;
+    private final List<Id> sortKeys;
 
     private EdgeLabelType edgeLabelType = EdgeLabelType.NORMAL;
     private Id fatherId;

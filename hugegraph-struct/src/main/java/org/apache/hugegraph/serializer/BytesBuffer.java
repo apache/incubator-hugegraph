@@ -33,7 +33,7 @@ import org.apache.hugegraph.id.EdgeId;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.Id.IdType;
 import org.apache.hugegraph.id.IdGenerator;
-import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.PropertyKey;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
@@ -69,7 +69,7 @@ public class BytesBuffer extends OutputStream {
     public static final byte STRING_ENDING_BYTE = (byte) 0x00;
     public static final byte STRING_ENDING_BYTE_FF = (byte) 0xff;
     public static final int STRING_LEN_MAX = UINT16_MAX;
-    public static final long BLOB_LEN_MAX = 1 * Bytes.GB;
+    public static final long BLOB_LEN_MAX = Bytes.GB;
 
     // The value must be in range [8, ID_LEN_MAX]
     public static final int INDEX_HASH_ID_THRESHOLD = 32;
@@ -268,7 +268,7 @@ public class BytesBuffer extends OutputStream {
     }
 
     public boolean readBoolean() {
-        return this.buffer.get() == 0 ? false : true;
+        return this.buffer.get() != 0;
     }
 
     public char readChar() {
@@ -952,7 +952,7 @@ public class BytesBuffer extends OutputStream {
                 value |= this.readUInt16();
                 break;
             case 2:
-                value |= this.readUInt8() << 16 | this.readUInt16();
+                value |= (long) this.readUInt8() << 16 | this.readUInt16();
                 break;
             case 3:
                 value |= this.readUInt32();

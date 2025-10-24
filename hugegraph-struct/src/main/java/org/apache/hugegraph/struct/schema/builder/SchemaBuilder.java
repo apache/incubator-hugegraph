@@ -17,26 +17,26 @@
  * under the License.
  */
 
-package org.apache.hugegraph.schema.builder;
+package org.apache.hugegraph.struct.schema.builder;
 
 import org.apache.hugegraph.id.Id;
-import org.apache.hugegraph.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaElement;
 
 public interface SchemaBuilder<T extends SchemaElement> {
 
-    public SchemaBuilder<T> id(long id);
+    SchemaBuilder<T> id(long id);
 
-    public T build();
+    T build();
 
-    public T create();
+    T create();
 
-    public T append();
+    T append();
 
-    public T eliminate();
+    T eliminate();
 
-    public Id remove();
+    Id remove();
 
-    public SchemaBuilder<T> ifNotExist();
+    SchemaBuilder<T> ifNotExist();
 
-    public SchemaBuilder<T> checkExist(boolean checkExist);
+    SchemaBuilder<T> checkExist(boolean checkExist);
 }
