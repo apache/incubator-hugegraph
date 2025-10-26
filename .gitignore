@@ -89,3 +89,25 @@ hs_err_pid*
 
 # docker volumes ignore
 hugegraph-server/hugegraph-dist/docker/data/
+
+# AI-IDE prompt files (We only keep AGENTS.md, other files could soft-linked it when needed)
+# Claude Projects
+CLAUDE.md
+CLAUDE_*.md
+# Gemini/Google
+GEMINI.md
+# GitHub Copilot / Microsoft
+copilot-instructions.md
+.copilot-instructions.md
+# Cursor IDE
+cursor-instructions.md
+.cursor-instructions.md
+cursor.md
+# Windsurf/Codeium
+windsurf.md
+windsurf-instructions.md
+codeium.md
+codeium-instructions.md
+# Other AI coding assistants
+.ai-instructions.md
+*.ai-prompt.md
