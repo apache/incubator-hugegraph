@@ -20,6 +20,7 @@ package org.apache.hugegraph.auth;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
@@ -135,10 +136,9 @@ public interface HugeAuthenticator extends Authenticator {
         ClassLoader cl = conf.getClass().getClassLoader();
         try {
             authenticator = (HugeAuthenticator) cl.loadClass(authClass)
-                                                  .newInstance();
+                                                  .getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new HugeException("Failed to load authenticator: '%s'",
-                                    authClass, e);
+            throw new HugeException("Failed to load authenticator: '%s'", authClass, e);
         }
 
         authenticator.setup(conf);
@@ -290,7 +290,7 @@ public interface HugeAuthenticator extends Authenticator {
             }
             for (Map.Entry<HugePermission, Object> e : perms.entrySet()) {
                 HugePermission permission = e.getKey();
-                // May be required = ANY
+                // Maybe required = ANY
                 if (action.match(permission) ||
                     action.equals(HugePermission.EXECUTE)) {
                     // Return matched resource of corresponding action
@@ -324,12 +324,13 @@ public interface HugeAuthenticator extends Authenticator {
 
         public static boolean match(Object role, HugePermission required,
                                     ResourceObject<?> resourceObject) {
-            if (RolePermission.isAdmin((RolePermission) role)) {
-                return true;
-            }
             if (role == null || ROLE_NONE.equals(role)) {
                 return false;
             }
+            if (RolePermission.isAdmin((RolePermission) role)) {
+                return true;
+            }
+
             RolePerm rolePerm = RolePerm.fromJson(role);
             // Check if user is space manager（member cannot operate auth api)
             if (rolePerm.matchSpace(resourceObject.graphSpace(), "space")) {
@@ -340,11 +341,12 @@ public interface HugeAuthenticator extends Authenticator {
 
         public static boolean match(Object role, RolePermission grant,
                                     ResourceObject<?> resourceObject) {
-            if (RolePermission.isAdmin((RolePermission) role)) {
-                return true;
-            }
             if (role == null || ROLE_NONE.equals(role)) {
                 return false;
+            }
+
+            if (RolePermission.isAdmin((RolePermission) role)) {
+                return true;
             }
 
             if (resourceObject != null) {
@@ -427,8 +429,7 @@ public interface HugeAuthenticator extends Authenticator {
 
             // * or {graph}
             String owner = requiredResource.graph();
-            for (Map.Entry<String, Map<HugePermission, Object>> e :
-                    innerRoles.entrySet()) {
+            for (Map.Entry<String, Map<HugePermission, Object>> e : innerRoles.entrySet()) {
                 if (!matchedPrefix(e.getKey(), owner)) {
                     continue;
                 }
@@ -445,12 +446,10 @@ public interface HugeAuthenticator extends Authenticator {
                     continue;
                 }
 
-                Map<String, List<HugeResource>> ressMap = (Map<String,
-                        List<HugeResource>>) permission;
+                var ressMap = (Map<String, List<HugeResource>>) permission;
 
                 ResourceType requiredType = requiredResource.type();
-                for (Map.Entry<String, List<HugeResource>> entry :
-                        ressMap.entrySet()) {
+                for (Map.Entry<String, List<HugeResource>> entry : ressMap.entrySet()) {
                     String[] typeLabel = entry.getKey().split(POUND_SEPARATOR);
                     ResourceType type = ResourceType.valueOf(typeLabel[0]);
                     /* assert one type can match but not equal to other only
@@ -463,33 +462,28 @@ public interface HugeAuthenticator extends Authenticator {
                     }
 
                     // check label
-                    String requiredLabel = null;
+                    String requiredLabel;
                     if (requiredType.isSchema()) {
-                        requiredLabel =
-                                ((Nameable) requiredResource.operated()).name();
+                        requiredLabel = ((Nameable) requiredResource.operated()).name();
                     } else if (requiredType.isGraph()) {
                         if (requiredResource.operated() instanceof HugeElement) {
-                            requiredLabel =
-                                    ((HugeElement) requiredResource.operated()).label();
+                            requiredLabel = ((HugeElement) requiredResource.operated()).label();
                         } else {
-                            requiredLabel =
-                                    ((Nameable) requiredResource.operated()).name();
-
+                            requiredLabel = ((Nameable) requiredResource.operated()).name();
                         }
                     } else {
                         return true;
                     }
                     String label = typeLabel[1];
-                    if (!(ANY.equals(label) || "null".equals(label)
-                          || requiredLabel.matches(label))) {
+                    if (!(ANY.equals(label) ||
+                          "null".equals(label) || matchLabel(requiredLabel, label))) {
                         continue;
                     } else if (requiredType.isSchema()) {
                         return true;
                     }
 
                     // check properties
-                    List<HugeResource> ress =
-                            ressMap.get(type + POUND_SEPARATOR + label);
+                    List<HugeResource> ress = ressMap.get(type + POUND_SEPARATOR + label);
 
                     for (HugeResource res : ress) {
                         if (res.filter(requiredResource)) {
@@ -499,6 +493,28 @@ public interface HugeAuthenticator extends Authenticator {
                 }
             }
             return false;
+        }
+
+        /**
+         * Safely match a label pattern against the required label.
+         * Prevents ReDoS attacks by using controlled wildcard matching instead of
+         * arbitrary regex patterns.
+         *
+         * @param requiredLabel the label to match against
+         * @param pattern the pattern (may contain * and ? wildcards)
+         * @return true if the label matches the pattern
+         */
+        private static boolean matchLabel(String requiredLabel, String pattern) {
+            // Use simple wildcard matching instead of arbitrary regex
+            if (pattern.contains("*") || pattern.contains("?")) {
+                // Convert pattern to safe regex: escape special chars, then convert wildcards
+                String regex = Pattern.quote(pattern)
+                                      .replace("\\*", ".*")
+                                      .replace("\\?", ".");
+                return Pattern.matches(regex, requiredLabel);
+            }
+            // Simple equality check if no wildcards
+            return requiredLabel.equals(pattern);
         }
     }
 
@@ -592,7 +608,7 @@ public interface HugeAuthenticator extends Authenticator {
             int offset = action.lastIndexOf('_');
             if (0 < offset && ++offset < action.length()) {
                 /*
-                 * In order to be compatible with the old permission mechanism,
+                 * To be compatible with the old permission mechanism,
                  * here is only to provide pre-control by extract the
                  * resource_action {vertex/edge/schema}_{read/write},
                  * resource_action like vertex_read.
@@ -604,20 +620,17 @@ public interface HugeAuthenticator extends Authenticator {
             this.action = HugePermission.valueOf(action.toUpperCase());
         }
 
-        public static String roleFor(String graphSpace, String owner,
-                                     HugePermission perm) {
+        public static String roleFor(String graphSpace, String owner, HugePermission perm) {
             /*
-             * Construct required permission such as:
+             * Construct required permission such as
              *  $owner=graph1 $action=read
              *  (means required read permission of any one resource)
              *
              * In the future maybe also support:
              *  $owner=graph1 $action=vertex_read
              */
-            return String.format("%s=%s %s=%s %s=%s",
-                                 KEY_GRAPHSPACE, graphSpace,
-                                 KEY_OWNER, owner,
-                                 KEY_ACTION, perm.string());
+            return String.format("%s=%s %s=%s %s=%s", KEY_GRAPHSPACE, graphSpace,
+                                 KEY_OWNER, owner, KEY_ACTION, perm.string());
         }
 
         public static RequiredPerm fromJson(String json) {
@@ -626,8 +639,7 @@ public interface HugeAuthenticator extends Authenticator {
 
         public ResourceObject<?> resourceObject() {
             Nameable elem = HugeResource.NameObject.ANY;
-            return ResourceObject.of(this.graphSpace, this.owner,
-                                     this.resource, elem);
+            return ResourceObject.of(this.graphSpace, this.owner, this.resource, elem);
         }
     }
 }
