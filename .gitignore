@@ -66,6 +66,8 @@ output/
 tree.txt
 *.versionsBackup
 .flattened-pom.xml
+**/dependency-reduced-pom.xml
+install-dist/dist.sh
 
 
 # eclipse ignore

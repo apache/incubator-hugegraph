@@ -60,11 +60,12 @@
                                     md5sum $root_path/target/${final.name}.tar.gz
                                     echo -n "hugegraph tar.gz available at: "
                                     echo "$root_path/target/${final.name}.tar.gz"
-                                    rm -f ${project.basedir}/dist.sh
                                 </echo>
                                 <exec executable="${shell-executable}" dir="${project.basedir}" failonerror="true">
                                     <arg line="./dist.sh"/>
                                 </exec>
+                                <!-- Ensure dist.sh is always deleted after execution -->
+                                <delete file="${project.basedir}/dist.sh" quiet="true"/>
                             </tasks>
                         </configuration>
                     </execution>
@@ -83,6 +84,14 @@
                         </fileset>
                         <fileset>
                             <directory>${project.basedir}/../${final.name}</directory>
+                        </fileset>
+                        <!-- Clean up dist.sh if it exists -->
+                        <fileset>
+                            <directory>${project.basedir}</directory>
+                            <includes>
+                                <include>dist.sh</include>
+                            </includes>
+                            <followSymlinks>false</followSymlinks>
                         </fileset>
                     </filesets>
                 </configuration>

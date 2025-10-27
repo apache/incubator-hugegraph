@@ -207,6 +207,7 @@
                             <!-- Maven -->
                             <exclude>.repository/**</exclude>
                             <exclude>**/.flattened-pom.xml</exclude>
+                            <exclude>**/install-dist/dist.sh</exclude>
                             <!-- Test generated data -->
                             <exclude>**/rocksdb-*/**</exclude>
                             <exclude>**/hbase-*/**</exclude>
