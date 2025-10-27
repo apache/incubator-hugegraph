@@ -92,12 +92,16 @@ public final class ZipUtils {
              final CheckedInputStream cis = new CheckedInputStream(fis, checksum);
              final ZipInputStream zis = new ZipInputStream(new BufferedInputStream(cis))) {
             ZipEntry entry;
+            final String canonicalOutputPath = new File(outputDir).getCanonicalPath();
             while ((entry = zis.getNextEntry()) != null) {
                 final String fileName = entry.getName();
-                if (fileName.contains("..")) {
-                    throw new IOException("Entry with an illegal path: " + fileName);
-                }
                 final File entryFile = new File(Paths.get(outputDir, fileName).toString());
+                final String canonicalEntryPath = entryFile.getCanonicalPath();
+                
+                // Validate that the entry is within the output directory
+                if (!canonicalEntryPath.startsWith(canonicalOutputPath + File.separator)) {
+                    throw new IOException("Entry is outside of the target dir: " + fileName);
+                }
                 FileUtils.forceMkdir(entryFile.getParentFile());
                 try (final FileOutputStream fos = new FileOutputStream(entryFile);
                      final BufferedOutputStream bos = new BufferedOutputStream(fos)) {
