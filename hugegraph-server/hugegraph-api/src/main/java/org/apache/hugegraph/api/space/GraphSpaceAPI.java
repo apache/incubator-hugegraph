@@ -103,7 +103,7 @@ public class GraphSpaceAPI extends API {
 
         jsonGraphSpace.checkCreate(false);
 
-        String creator = "test";
+        String creator = "admin";
         GraphSpace exist = manager.graphSpace(jsonGraphSpace.name);
         E.checkArgument(exist == null, "The graph space '%s' has existed",
                         jsonGraphSpace.name);
@@ -370,17 +370,17 @@ public class GraphSpaceAPI extends API {
             graphSpace.computeMemoryLimit(this.computeMemoryLimit);
             graphSpace.operatorImagePath(this.operatorImagePath);
             graphSpace.internalAlgorithmImageUrl(this.internalAlgorithmImageUrl);
-
-            graphSpace.configs(this.configs);
-
+            if (this.configs != null) {
+                graphSpace.configs(this.configs);
+            }
             return graphSpace;
         }
 
         public String toString() {
             return String.format("JsonGraphSpace{name=%s, description=%s, " +
                                  "cpuLimit=%s, memoryLimit=%s, " +
-                                 "storageLimit=%s, oltpNamespace=%s" +
-                                 "olapNamespace=%s, storageNamespace=%s" +
+                                 "storageLimit=%s, oltpNamespace=%s," +
+                                 "olapNamespace=%s, storageNamespace=%s," +
                                  "maxGraphNumber=%s, maxRoleNumber=%s, " +
                                  "configs=%s, operatorImagePath=%s, " +
                                  "internalAlgorithmImageUrl=%s}", this.name,

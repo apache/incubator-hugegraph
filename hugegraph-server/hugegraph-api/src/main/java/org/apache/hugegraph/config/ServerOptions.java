@@ -292,7 +292,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> SERVER_K8S_CA =
             new ConfigOption<>(
                     "server.k8s_ca",
-                    "The ca file of ks8 api server.",
+                    "The ca file of k8s api server.",
                     null,
                     ""
             );

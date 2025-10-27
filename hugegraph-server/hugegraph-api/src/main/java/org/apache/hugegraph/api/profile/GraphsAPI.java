@@ -186,6 +186,18 @@ public class GraphsAPI extends API {
         HugeGraph graph;
         E.checkArgumentNotNull(gs, "Not existed graph space: '%s'", graphSpace);
 
+        // Check required parameters for creating graph
+        if (StringUtils.isEmpty(clone)) {
+            // Only check required parameters when creating new graph, not when cloning
+            E.checkArgument(configs != null, "Config parameters cannot be null");
+            String[] requiredKeys = {"backend", "serializer", "store"};
+            for (String key : requiredKeys) {
+                Object value = configs.get(key);
+                E.checkArgument(value instanceof String && !StringUtils.isEmpty((String) value),
+                                "Required parameter '%s' is missing or empty", key);
+            }
+        }
+
         // todo: auth get actual user info
         String creator = "admin";
 
@@ -198,10 +210,6 @@ public class GraphsAPI extends API {
             graph = manager.createGraph(graphSpace, name, creator,
                     convConfig(configs), true);
         }
-        //if (gs.auth()) {
-        //    manager.authManager().createGraphDefaultRole(graphSpace,
-        //                                                 graph.nickname());
-        //}
         String description = (String) configs.get(GRAPH_DESCRIPTION);
         if (description == null) {
             description = Strings.EMPTY;

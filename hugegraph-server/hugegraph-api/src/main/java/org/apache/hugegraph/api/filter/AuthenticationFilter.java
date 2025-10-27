@@ -330,6 +330,7 @@ public class AuthenticationFilter implements ContainerRequestFilter, ContainerRe
             if (!valid &&
                 !required.equals(HugeAuthenticator.USER_ADMIN)) {
                 LOG.info(
+                        "Permission denied for user '{}', action '{}', resource '{}'",
                         user.userId().asString(),
                         requiredPerm.action().string(),
                         requiredPerm.resourceObject());
