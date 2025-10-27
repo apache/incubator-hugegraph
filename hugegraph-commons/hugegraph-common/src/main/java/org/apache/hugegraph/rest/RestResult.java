@@ -37,6 +37,7 @@ public class RestResult {
 
     static {
         MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        // NOTE: jackson will synchronize DateFormat
         MAPPER.setDateFormat(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS"));
     }
 

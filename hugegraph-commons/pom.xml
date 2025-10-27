@@ -90,7 +90,8 @@
 
     <properties>
         <!-- Note: We need also update the version in CommonVersion.java & RpcVersion.java now -->
-        <revision>1.5.0</revision>
+        <!-- TODO: Remove the revision property below after verifying parent POM inheritance works correctly -->
+        <revision>1.7.0</revision>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <top.level.dir>${project.basedir}/..</top.level.dir>
         <compiler.source>1.8</compiler.source>
