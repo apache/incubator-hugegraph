@@ -19,37 +19,52 @@ package org.apache.hugegraph.pd.service.interceptor;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.pd.KvService;
-import org.apache.hugegraph.pd.common.Cache;
-import org.apache.hugegraph.pd.config.PDConfig;
-import org.apache.hugegraph.pd.util.TokenUtil;
-import org.apache.hugegraph.util.StringEncoding;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Component;
 
+/**
+ * Simple internal authentication component for PD service.
+ * <p>
+ * <b>WARNING:</b> This class currently implements only basic internal authentication
+ * validation for internal modules (hg, store, hubble, vermeer). The authentication mechanism
+ * is designed for internal service-to-service communication only.
+ * </p>
+ *
+ * <p><b>Important SEC Considerations:</b></p>
+ * <ul>
+ *   <li><b>DO NOT expose RPC interfaces to external networks</b> - This authentication is NOT
+ *       designed for public-facing services and should only be used in trusted internal networks.</li>
+ *   <li><b>Production Environment Best Practices:</b> It is STRONGLY RECOMMENDED to configure
+ *       IP whitelisting and network-level access control policies (e.g., firewall rules,
+ *       security groups) to restrict access to trusted sources only.</li>
+ *   <li><b>Future Improvements:</b> This authentication mechanism will be enhanced in future
+ *       versions with more robust security features. Do not rely on this as the sole security
+ *       measure for production deployments.</li>
+ * </ul>
+ *
+ * <p>
+ * For production deployments, ensure proper network isolation and implement defense-in-depth
+ * strategies including but not limited to:
+ * - VPC isolation
+ * - IP whitelisting
+ * - TLS/mTLS encryption,
+ * and regular security audits.
+ * </p>
+ */
 @Component
 public class Authentication {
-
-    @Autowired
-    private KvService kvService;
-    @Autowired
-    private PDConfig pdConfig;
-
-    private static final Cache<String> TOKEN_CACHE = new Cache<>();
-    private static volatile TokenUtil util;
-    private static String invalidMsg =
-            "invalid token and invalid user name or password, access denied";
-    private static String invalidBasicInfo = "invalid basic authentication info";
+    private static final Set<String> innerModules = Set.of("hg", "store", "hubble", "vermeer");
 
     protected <T> T authenticate(String authority, String token, Function<String, T> tokenCall,
                                  Supplier<T> call) {
         try {
+            String invalidBasicInfo = "invalid basic authentication info";
             if (StringUtils.isEmpty(authority)) {
                 throw new BadCredentialsException(invalidBasicInfo);
             }
@@ -60,51 +75,14 @@ public class Authentication {
             if (delim == -1) {
                 throw new BadCredentialsException(invalidBasicInfo);
             }
+
             String name = info.substring(0, delim);
-            String pwd = info.substring(delim + 1);
-            if (!"store".equals(name)) {
-                if (util == null) {
-                    synchronized (this) {
-                        if (util == null) {
-                            util = new TokenUtil(pdConfig.getSecretKey());
-                        }
-                    }
-                }
-                String[] i = util.getInfo(name);
-                if (i == null) {
-                    throw new AccessDeniedException("invalid service name");
-                }
-                if (!StringUtils.isEmpty(token)) {
-                    String value = TOKEN_CACHE.get(name);
-                    if (StringUtils.isEmpty(value)) {
-                        synchronized (i) {
-                            value = kvService.get(getTokenKey(name));
-                        }
-                    }
-                    if (!StringUtils.isEmpty(value) && token.equals(value)) {
-                        return call.get();
-                    }
-                }
-                if (StringUtils.isEmpty(pwd) || !StringEncoding.checkPassword(i[2], pwd)) {
-                    throw new AccessDeniedException(invalidMsg);
-                }
-                token = util.getToken(name);
-                String tokenKey = getTokenKey(name);
-                String dbToken = kvService.get(tokenKey);
-                if (StringUtils.isEmpty(dbToken)) {
-                    synchronized (i) {
-                        dbToken = kvService.get(tokenKey);
-                        if (StringUtils.isEmpty(dbToken)) {
-                            kvService.put(tokenKey, token,
-                                          TokenUtil.AUTH_TOKEN_EXPIRE);
-                            TOKEN_CACHE.put(name, token,
-                                            TokenUtil.AUTH_TOKEN_EXPIRE);
-                            return tokenCall.apply(token);
-                        }
-                    }
-                }
+            //String pwd = info.substring(delim + 1);
+            if (innerModules.contains(name)) {
+                return call.get();
+            } else {
+                throw new AccessDeniedException("invalid service name");
             }
-            return call.get();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

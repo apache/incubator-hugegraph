@@ -53,6 +53,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
+import org.apache.hugegraph.constant.ServiceConstant;
 import org.apache.hugegraph.pd.client.DiscoveryClient;
 import org.apache.hugegraph.pd.client.DiscoveryClientImpl;
 import org.apache.hugegraph.pd.client.PDConfig;
@@ -88,7 +89,7 @@ public class PdRegister implements IServiceRegister {
     }
 
     public static PdRegister getInstance() {
-        return getInstance("hg", "$2a$04$i10KooNg6wLvIPVDh909n.RBYlZ/4pJo978nFK86nrqQiGIKV4UGS");
+        return getInstance(ServiceConstant.SERVICE_NAME, ServiceConstant.AUTHORITY);
     }
 
     //FIXME: pd auth:use this method to replace getInstance()

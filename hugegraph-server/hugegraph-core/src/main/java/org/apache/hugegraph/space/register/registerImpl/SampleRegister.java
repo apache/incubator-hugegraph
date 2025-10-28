@@ -22,6 +22,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.hugegraph.constant.ServiceConstant;
 import org.apache.hugegraph.pd.client.DiscoveryClient;
 import org.apache.hugegraph.pd.client.DiscoveryClientImpl;
 import org.apache.hugegraph.pd.client.PDConfig;
@@ -41,8 +42,7 @@ public class SampleRegister implements IServiceRegister {
         RegisterConfig config = new RegisterConfig();
         Gson gson = new Gson();
         ServiceDTO serviceDTO = gson.fromJson(configMap, ServiceDTO.class);
-        config.setNodePort(
-                serviceDTO.getSpec().getPorts().get(0).getNodePort().toString());
+        config.setNodePort(serviceDTO.getSpec().getPorts().get(0).getNodePort().toString());
         config.setNodeName(serviceDTO.getSpec().getClusterIP());
         config.setPodIp("127.0.0.1");
         config.setPodPort("8080");
@@ -51,23 +51,19 @@ public class SampleRegister implements IServiceRegister {
 
     public String init(String appName) throws Exception {
         File file = new File("/home/scorpiour/HugeGraph/hugegraph-plugin/example/k8s-service.json");
-        FileInputStream input = new FileInputStream(file);
-        System.out.printf("load file: %s%n", file.toPath());
 
-        try {
-            Long fileLength = file.length();
-            byte[] bytes = new byte[fileLength.intValue()];
+        try (FileInputStream input = new FileInputStream(file)) {
+            System.out.printf("load file: %s%n", file.toPath());
+            long fileLength = file.length();
+            byte[] bytes = new byte[(int) fileLength];
             input.read(bytes);
             String configMap = new String(bytes);
             RegisterConfig config = this.decodeConfigMap(configMap);
             config.setGrpcAddress("127.0.0.1:8686");
             config.setAppName(appName);
             System.out.printf("load file: %s%n", file.toPath());
-            String var8 = this.registerService(config);
-            return var8;
-        } catch (IOException var12) {
-        } finally {
-            input.close();
+            return this.registerService(config);
+        } catch (IOException ignored) {
         }
 
         return "";
@@ -84,8 +80,8 @@ public class SampleRegister implements IServiceRegister {
 
         try {
             PDConfig pdConfig = PDConfig.of(config.getGrpcAddress());
-            pdConfig.setAuthority("hg",
-                                  "$2a$04$i10KooNg6wLvIPVDh909n.RBYlZ/4pJo978nFK86nrqQiGIKV4UGS");
+            pdConfig.setAuthority(ServiceConstant.SERVICE_NAME,
+                                  ServiceConstant.AUTHORITY);
             DiscoveryClient client = DiscoveryClientImpl.newBuilder().setPdConfig(pdConfig)
                                                         .setCenterAddress(config.getGrpcAddress())
                                                         .setAddress(address)
