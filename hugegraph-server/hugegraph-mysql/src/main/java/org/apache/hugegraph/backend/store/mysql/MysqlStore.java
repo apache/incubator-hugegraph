@@ -223,6 +223,7 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.checkOpened();
 
         this.truncateTables();
+        this.init();
         LOG.debug("Store truncated: {}", this.store);
     }
 
