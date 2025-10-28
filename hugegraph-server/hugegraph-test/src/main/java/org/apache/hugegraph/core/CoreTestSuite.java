@@ -18,9 +18,11 @@
 package org.apache.hugegraph.core;
 
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.constant.ServiceConstant;
 import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.meta.MetaManager;
+import org.apache.hugegraph.meta.PdMetaDriver;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.util.Log;
 import org.junit.AfterClass;
@@ -71,6 +73,8 @@ public class CoreTestSuite {
 
     @BeforeClass
     public static void init() {
+        PdMetaDriver.PDAuthConfig.setAuthority(ServiceConstant.SERVICE_NAME,
+                                               ServiceConstant.AUTHORITY);
         graph = Utils.open();
         graph.clearBackend();
         graph.initBackend();

@@ -374,6 +374,11 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
+    public synchronized void started(boolean started) {
+        this.started = started;
+    }
+
+    @Override
     public boolean closed() {
         if (this.closed && !this.tx.closed()) {
             LOG.warn("The tx is not closed while graph '{}' is closed", this);

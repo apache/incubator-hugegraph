@@ -241,6 +241,8 @@ public interface HugeGraph extends Graph {
 
     boolean started();
 
+    void started(boolean started);
+
     boolean closed();
 
     <T> T metadata(HugeType type, String meta, Object... args);

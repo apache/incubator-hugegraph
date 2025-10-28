@@ -31,7 +31,9 @@ import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.constant.ServiceConstant;
 import org.apache.hugegraph.dist.RegisterUtil;
+import org.apache.hugegraph.meta.PdMetaDriver.PDAuthConfig;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
@@ -72,6 +74,10 @@ public class InitStore {
         RegisterUtil.registerServer();
 
         HugeConfig restServerConfig = new HugeConfig(restConf);
+        PDAuthConfig.setAuthority(
+                ServiceConstant.SERVICE_NAME,
+                ServiceConstant.AUTHORITY);
+
         String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
         Map<String, String> graph2ConfigPaths = ConfigUtil.scanGraphsDir(graphsDir);
 

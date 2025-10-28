@@ -786,6 +786,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public void started(boolean started) {
+        this.verifyAdminPermission();
+        this.hugegraph.started(started);
+    }
+
+    @Override
     public boolean closed() {
         this.verifyAdminPermission();
         return this.hugegraph.closed();

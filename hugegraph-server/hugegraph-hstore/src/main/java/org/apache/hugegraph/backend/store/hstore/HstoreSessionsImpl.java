@@ -39,6 +39,7 @@ import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.meta.PdMetaDriver.PDAuthConfig;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.pd.common.PDException;
@@ -111,6 +112,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
             synchronized (this) {
                 if (!initializedNode) {
                     PDConfig pdConfig = PDConfig.of(config.get(CoreOptions.PD_PEERS))
+                                                .setAuthority(PDAuthConfig.service(), PDAuthConfig.token())
                                                 .setEnableCache(true);
                     defaultPdClient = PDClient.create(pdConfig);
                     hgStoreClient = HgStoreClient.create(defaultPdClient);
