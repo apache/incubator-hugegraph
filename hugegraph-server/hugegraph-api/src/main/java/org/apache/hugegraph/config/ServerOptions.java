@@ -260,8 +260,7 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "service.access_pd_token",
                     "Service token for server to access pd service.",
-                    disallowEmpty(),
-                    "$2a$04$i10KooNg6wLvIPVDh909n.RBYlZ/4pJo978nFK86nrqQiGIKV4UGS"
+                    ""
             );
 
     public static final ConfigOption<String> SERVER_URLS_TO_PD =

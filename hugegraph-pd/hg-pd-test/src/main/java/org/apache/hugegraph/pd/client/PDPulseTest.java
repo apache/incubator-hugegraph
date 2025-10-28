@@ -40,12 +40,12 @@ public class PDPulseTest {
     private String storeAddress = "localhost";
     private String graphName = "graph1";
 
+    private static final String SERVICE_NAME = "store";
+    private static final String AUTHORITY = "";
+
     @BeforeClass
     public static void beforeClass() throws Exception {
-        pdConfig = PDConfig.of("localhost:8686").setAuthority("store",
-                                                              "$2a$04$9ZGBULe2vc73DMj7r" +
-                                                              "/iBKeQB1SagtUXPrDbMmNswRkTwlWQURE" +
-                                                              "/Jy");
+        pdConfig = PDConfig.of("localhost:8686").setAuthority(SERVICE_NAME, AUTHORITY);
 //        pdConfig.setEnableCache(true);
 //        pdClient = PDClient.create(pdConfig);
 //        pdClient.getLeader();

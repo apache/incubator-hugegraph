@@ -15,20 +15,15 @@
  * limitations under the License.
  */
 
-package org.apache.hugegraph.pd;
+package org.apache.hugegraph.constant;
 
-import org.apache.hugegraph.pd.client.PDConfig;
-
-public class BaseTest {
-
-    protected static String pdGrpcAddr = "127.0.0.1:8686";
-    protected static String pdRestAddr = "http://127.0.0.1:8620";
-    protected static String user = "store";
-    protected static String pwd = "";
-    protected static String key = "Authorization";
-    protected static String value = "Basic c3RvcmU6YWRtaW4=";
-
-    protected PDConfig getPdConfig() {
-        return PDConfig.of(pdGrpcAddr).setAuthority(user, pwd);
-    }
+/**
+ * TODO:
+ *  Strictly prohibited from external exposure; network IP whitelisting must be
+ *  configured in production environments.
+ *  refer: src/main/java/org/apache/hugegraph/pd/service/interceptor/Authentication.java
+ */
+public class ServiceConstant {
+    public static final String SERVICE_NAME = "hg";
+    public static final String AUTHORITY = "";
 }
