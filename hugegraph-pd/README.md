@@ -15,7 +15,7 @@ HugeGraph PD (Placement Driver) is a meta server that provides cluster managemen
 - **Node Scheduling**: Intelligent scheduling and load balancing of graph operations
 - **Health Monitoring**: Continuous health checks and failure detection via heartbeat mechanism
 
-PD uses [Apache JRaft](https://github.com/sofastack/sofa-jraft) for Raft consensus and RocksDB for persistent metadata storage, ensuring high availability and consistency in distributed environments.
+PD uses [sofa-jraft](https://github.com/sofastack/sofa-jraft) for Raft consensus and RocksDB for persistent metadata storage, ensuring high availability and consistency in distributed environments.
 
 ## Architecture
 
