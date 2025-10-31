@@ -103,7 +103,7 @@ public final class PDConfig {
     public PDConfig setAuthority(String userName, String pwd) {
         this.userName = userName;
         String auth = userName + ':' + pwd;
-        this.authority = new String(Base64.getEncoder().encode(auth.getBytes(UTF_8)));
+        this.authority = Base64.getEncoder().encodeToString(auth.getBytes(UTF_8));
         return this;
     }
 
