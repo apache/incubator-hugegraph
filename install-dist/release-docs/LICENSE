@@ -571,8 +571,8 @@ The text of each license is also included in licenses/LICENSE-[project].txt.
     https://central.sonatype.com/artifact/com.addthis.metrics/reporter-config-base/3.0.3 -> Apache 2.0
     https://central.sonatype.com/artifact/org.opencypher/rewriting-9.0/9.0.20190305 -> Apache 2.0
     https://central.sonatype.com/artifact/org.rocksdb/rocksdbjni/6.29.5 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.rocksdb/rocksdbjni/7.2.2 -> Apache 2.0
     https://central.sonatype.com/artifact/org.rocksdb/rocksdbjni/7.7.3 -> Apache 2.0
+    https://central.sonatype.com/artifact/org.rocksdb/rocksdbjni/8.10.2 -> Apache 2.0
     https://central.sonatype.com/artifact/org.fusesource/sigar/1.6.4 -> Apache 2.0
     https://central.sonatype.com/artifact/io.prometheus/simpleclient/0.10.0 -> Apache 2.0
     https://central.sonatype.com/artifact/io.prometheus/simpleclient_common/0.10.0 -> Apache 2.0
