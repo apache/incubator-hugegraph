@@ -79,7 +79,7 @@ public class AggregationFunctions {
                         ((AtomicFloat) buffer).getAndAdd((Float) record);
                         break;
                     default:
-                        // throw new Exception ?
+                        // throw new Exception
                         throw new IllegalStateException(
                                 "Unsupported buffer type: " + buffer.getClass().getName() +
                                 ". Supported types: AtomicLong, AtomicInteger, AtomicDouble, AtomicFloat"
