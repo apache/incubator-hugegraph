@@ -80,7 +80,10 @@ public class AggregationFunctions {
                         break;
                     default:
                         // throw new Exception ?
-                        break;
+                        throw new IllegalStateException(
+                                "Unsupported buffer type: " + buffer.getClass().getName() +
+                                ". Supported types: AtomicLong, AtomicInteger, AtomicDouble, AtomicFloat"
+                        );
                 }
             }
         }
