@@ -96,7 +96,6 @@ public class PathFilter implements ContainerRequestFilter {
         context.setProperty(REQUEST_TIME, System.currentTimeMillis());
 
         List<PathSegment> segments = context.getUriInfo().getPathSegments();
-        context.setProperty("RequestTime", System.currentTimeMillis());
         E.checkArgument(segments.size() > 0, "Invalid request uri '%s'",
                         context.getUriInfo().getPath());
         String rootPath = segments.get(0).getPath();
