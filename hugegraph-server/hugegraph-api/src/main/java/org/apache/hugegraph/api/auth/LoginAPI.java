@@ -20,7 +20,6 @@ package org.apache.hugegraph.api.auth;
 import javax.security.sasl.AuthenticationException;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.AuthenticationFilter;
 import org.apache.hugegraph.api.filter.StatusFilter.Status;
@@ -51,7 +50,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 
-@Path("graphspaces/{graphspace}/graphs/{graph}/auth")
+@Path("graphspaces/{graphspace}/auth")
 @Singleton
 @Tag(name = "LoginAPI")
 public class LoginAPI extends API {
@@ -66,16 +65,14 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String login(@Context GraphManager manager,
                         @PathParam("graphspace") String graphSpace,
-                        @PathParam("graph") String graph,
                         JsonLogin jsonLogin) {
-        LOG.debug("Graph [{}] user login: {}", graph, jsonLogin);
+        LOG.debug("GraphSpace [{}] user login: {}", graphSpace, jsonLogin);
         checkCreatingBody(jsonLogin);
 
         try {
             String token = manager.authManager()
                                   .loginUser(jsonLogin.name, jsonLogin.password, jsonLogin.expire);
-            HugeGraph g = graph(manager, graphSpace, graph);
-            return manager.serializer(g).writeMap(ImmutableMap.of("token", token));
+            return manager.serializer().writeMap(ImmutableMap.of("token", token));
         } catch (AuthenticationException e) {
             throw new NotAuthorizedException(e.getMessage(), e);
         }
@@ -87,11 +84,12 @@ public class LoginAPI extends API {
     @Status(Status.OK)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public void logout(@Context GraphManager manager, @PathParam("graph") String graph,
+    public void logout(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
         E.checkArgument(StringUtils.isNotEmpty(auth),
                         "Request header Authorization must not be null");
-        LOG.debug("Graph [{}] user logout: {}", graph, auth);
+        LOG.debug("GraphSpace [{}] user logout: {}", graphSpace, auth);
 
         if (!auth.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException("Only HTTP Bearer authentication is supported");
@@ -109,11 +107,10 @@ public class LoginAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String verifyToken(@Context GraphManager manager,
                               @PathParam("graphspace") String graphSpace,
-                              @PathParam("graph") String graph,
                               @HeaderParam(HttpHeaders.AUTHORIZATION) String token) {
         E.checkArgument(StringUtils.isNotEmpty(token),
                         "Request header Authorization must not be null");
-        LOG.debug("Graph [{}] get user: {}", graph, token);
+        LOG.debug("GraphSpace [{}] get user: {}", graphSpace, token);
 
         if (!token.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException("Only HTTP Bearer authentication is supported");
@@ -122,8 +119,7 @@ public class LoginAPI extends API {
         token = token.substring(AuthenticationFilter.BEARER_TOKEN_PREFIX.length());
         UserWithRole userWithRole = manager.authManager().validateUser(token);
 
-        HugeGraph g = graph(manager, graphSpace, graph);
-        return manager.serializer(g)
+        return manager.serializer()
                       .writeMap(ImmutableMap.of(AuthConstant.TOKEN_USER_NAME,
                                                 userWithRole.username(),
                                                 AuthConstant.TOKEN_USER_ID,

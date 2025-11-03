@@ -19,7 +19,6 @@ package org.apache.hugegraph.api.auth;
 
 import java.util.List;
 
-import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.StatusFilter.Status;
 import org.apache.hugegraph.auth.HugeGroup;
@@ -49,7 +48,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphspaces/{graphspace}/graphs/{graph}/auth/groups")
+@Path("graphspaces/{graphspace}/auth/groups")
 @Singleton
 @Tag(name = "GroupAPI")
 public class GroupAPI extends API {
@@ -63,15 +62,13 @@ public class GroupAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String create(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
-                         @PathParam("graph") String graph,
                          JsonGroup jsonGroup) {
-        LOG.debug("Graph [{}] create group: {}", graph, jsonGroup);
+        LOG.debug("GraphSpace [{}] create group: {}", graphSpace, jsonGroup);
         checkCreatingBody(jsonGroup);
 
-        HugeGraph g = graph(manager, graphSpace, graph);
         HugeGroup group = jsonGroup.build();
         group.id(manager.authManager().createGroup(group));
-        return manager.serializer(g).writeAuthElement(group);
+        return manager.serializer().writeAuthElement(group);
     }
 
     @PUT
@@ -81,13 +78,11 @@ public class GroupAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String update(@Context GraphManager manager,
                          @PathParam("graphspace") String graphSpace,
-                         @PathParam("graph") String graph,
                          @PathParam("id") String id,
                          JsonGroup jsonGroup) {
-        LOG.debug("Graph [{}] update group: {}", graph, jsonGroup);
+        LOG.debug("GraphSpace [{}] update group: {}", graphSpace, jsonGroup);
         checkUpdatingBody(jsonGroup);
 
-        HugeGraph g = graph(manager, graphSpace, graph);
         HugeGroup group;
         try {
             group = manager.authManager().getGroup(UserAPI.parseId(id));
@@ -96,7 +91,7 @@ public class GroupAPI extends API {
         }
         group = jsonGroup.build(group);
         manager.authManager().updateGroup(group);
-        return manager.serializer(g).writeAuthElement(group);
+        return manager.serializer().writeAuthElement(group);
     }
 
     @GET
@@ -104,13 +99,11 @@ public class GroupAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String list(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
-                       @PathParam("graph") String graph,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("Graph [{}] list groups", graph);
+        LOG.debug("GraphSpace [{}] list groups", graphSpace);
 
-        HugeGraph g = graph(manager, graphSpace, graph);
         List<HugeGroup> groups = manager.authManager().listAllGroups(limit);
-        return manager.serializer(g).writeAuthElements("groups", groups);
+        return manager.serializer().writeAuthElements("groups", groups);
     }
 
     @GET
@@ -119,13 +112,11 @@ public class GroupAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graphspace") String graphSpace,
-                      @PathParam("graph") String graph,
                       @PathParam("id") String id) {
-        LOG.debug("Graph [{}] get group: {}", graph, id);
+        LOG.debug("GraphSpace [{}] get group: {}", graphSpace, id);
 
-        HugeGraph g = graph(manager, graphSpace, graph);
         HugeGroup group = manager.authManager().getGroup(IdGenerator.of(id));
-        return manager.serializer(g).writeAuthElement(group);
+        return manager.serializer().writeAuthElement(group);
     }
 
     @DELETE
@@ -134,12 +125,9 @@ public class GroupAPI extends API {
     @Consumes(APPLICATION_JSON)
     public void delete(@Context GraphManager manager,
                        @PathParam("graphspace") String graphSpace,
-                       @PathParam("graph") String graph,
                        @PathParam("id") String id) {
-        LOG.debug("Graph [{}] delete group: {}", graph, id);
+        LOG.debug("GraphSpace [{}] delete group: {}", graphSpace, id);
 
-        @SuppressWarnings("unused") // just check if the graph exists
-        HugeGraph g = graph(manager, graphSpace, graph);
         try {
             manager.authManager().deleteGroup(IdGenerator.of(id));
         } catch (NotFoundException e) {
