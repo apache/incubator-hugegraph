@@ -103,7 +103,7 @@ public class AccessAPI extends API {
                        @QueryParam("group") String group,
                        @QueryParam("target") String target,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("GraphSpace [{}] list belongs by group {} or target {}",
+        LOG.debug("GraphSpace [{}] list accesses by group {} or target {}",
                   graphSpace, group, target);
         E.checkArgument(group == null || target == null,
                         "Can't pass both group and target at the same time");
