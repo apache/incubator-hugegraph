@@ -35,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -48,7 +49,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphspaces/{graphspace}/auth/groups")
+@Path("/auth/groups")
 @Singleton
 @Tag(name = "GroupAPI")
 public class GroupAPI extends API {
@@ -60,10 +61,10 @@ public class GroupAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
     public String create(@Context GraphManager manager,
-                         @PathParam("graphspace") String graphSpace,
                          JsonGroup jsonGroup) {
-        LOG.debug("GraphSpace [{}] create group: {}", graphSpace, jsonGroup);
+        LOG.debug("create group: {}", jsonGroup);
         checkCreatingBody(jsonGroup);
 
         HugeGroup group = jsonGroup.build();
@@ -76,11 +77,11 @@ public class GroupAPI extends API {
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
     public String update(@Context GraphManager manager,
-                         @PathParam("graphspace") String graphSpace,
                          @PathParam("id") String id,
                          JsonGroup jsonGroup) {
-        LOG.debug("GraphSpace [{}] update group: {}", graphSpace, jsonGroup);
+        LOG.debug("update group: {}", jsonGroup);
         checkUpdatingBody(jsonGroup);
 
         HugeGroup group;
@@ -97,10 +98,10 @@ public class GroupAPI extends API {
     @GET
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
     public String list(@Context GraphManager manager,
-                       @PathParam("graphspace") String graphSpace,
                        @QueryParam("limit") @DefaultValue("100") long limit) {
-        LOG.debug("GraphSpace [{}] list groups", graphSpace);
+        LOG.debug("list groups");
 
         List<HugeGroup> groups = manager.authManager().listAllGroups(limit);
         return manager.serializer().writeAuthElements("groups", groups);
@@ -110,10 +111,10 @@ public class GroupAPI extends API {
     @Timed
     @Path("{id}")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
     public String get(@Context GraphManager manager,
-                      @PathParam("graphspace") String graphSpace,
                       @PathParam("id") String id) {
-        LOG.debug("GraphSpace [{}] get group: {}", graphSpace, id);
+        LOG.debug("get group: {}", id);
 
         HugeGroup group = manager.authManager().getGroup(IdGenerator.of(id));
         return manager.serializer().writeAuthElement(group);
@@ -123,10 +124,10 @@ public class GroupAPI extends API {
     @Timed
     @Path("{id}")
     @Consumes(APPLICATION_JSON)
+    @RolesAllowed({"admin"})
     public void delete(@Context GraphManager manager,
-                       @PathParam("graphspace") String graphSpace,
                        @PathParam("id") String id) {
-        LOG.debug("GraphSpace [{}] delete group: {}", graphSpace, id);
+        LOG.debug("delete group: {}", id);
 
         try {
             manager.authManager().deleteGroup(IdGenerator.of(id));

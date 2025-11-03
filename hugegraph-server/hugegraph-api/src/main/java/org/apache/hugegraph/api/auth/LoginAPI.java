@@ -50,7 +50,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 
-@Path("graphspaces/{graphspace}/auth")
+@Path("/auth")
 @Singleton
 @Tag(name = "LoginAPI")
 public class LoginAPI extends API {
@@ -64,9 +64,8 @@ public class LoginAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String login(@Context GraphManager manager,
-                        @PathParam("graphspace") String graphSpace,
                         JsonLogin jsonLogin) {
-        LOG.debug("GraphSpace [{}] user login: {}", graphSpace, jsonLogin);
+        LOG.debug("user login: {}", jsonLogin);
         checkCreatingBody(jsonLogin);
 
         try {

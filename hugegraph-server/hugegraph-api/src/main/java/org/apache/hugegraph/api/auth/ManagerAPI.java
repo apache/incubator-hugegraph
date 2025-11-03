@@ -268,8 +268,6 @@ public class ManagerAPI extends API {
         private String user;
         @JsonProperty("type")
         private HugePermission type;
-        @JsonProperty("graphspace")
-        private String graphSpace = "";
 
         @Override
         public void checkCreate(boolean isBatch) {
