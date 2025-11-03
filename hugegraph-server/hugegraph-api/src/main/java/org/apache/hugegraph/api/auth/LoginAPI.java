@@ -45,7 +45,6 @@ import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.NotAuthorizedException;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
@@ -84,11 +83,10 @@ public class LoginAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public void logout(@Context GraphManager manager,
-                       @PathParam("graphspace") String graphSpace,
                        @HeaderParam(HttpHeaders.AUTHORIZATION) String auth) {
         E.checkArgument(StringUtils.isNotEmpty(auth),
                         "Request header Authorization must not be null");
-        LOG.debug("GraphSpace [{}] user logout: {}", graphSpace, auth);
+        LOG.debug("user logout: {}", auth);
 
         if (!auth.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException("Only HTTP Bearer authentication is supported");
@@ -105,11 +103,10 @@ public class LoginAPI extends API {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String verifyToken(@Context GraphManager manager,
-                              @PathParam("graphspace") String graphSpace,
                               @HeaderParam(HttpHeaders.AUTHORIZATION) String token) {
         E.checkArgument(StringUtils.isNotEmpty(token),
                         "Request header Authorization must not be null");
-        LOG.debug("GraphSpace [{}] get user: {}", graphSpace, token);
+        LOG.debug("get user: {}", token);
 
         if (!token.startsWith(AuthenticationFilter.BEARER_TOKEN_PREFIX)) {
             throw new BadRequestException("Only HTTP Bearer authentication is supported");
