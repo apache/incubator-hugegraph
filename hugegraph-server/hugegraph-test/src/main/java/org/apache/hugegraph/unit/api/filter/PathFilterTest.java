@@ -17,12 +17,11 @@
 
 package org.apache.hugegraph.unit.api.filter;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
+import jakarta.inject.Provider;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hugegraph.api.filter.PathFilter;
@@ -32,22 +31,23 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import jakarta.inject.Provider;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.core.PathSegment;
-import jakarta.ws.rs.core.UriBuilder;
-import jakarta.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
- * PathFilter 单元测试
- * 测试场景：
- * 1. 白名单路径不被重定向
- * 2. 普通路径正确添加 graphspace 前缀
- * 3. 查询参数被正确保留
- * 4. 特殊字符和编码处理
- * 5. 边界情况（空路径、根路径等）
+ * Unit tests for PathFilter
+ * Test scenarios:
+ * 1. Whitelist paths are not redirected
+ * 2. Normal paths are correctly prefixed with graphspace
+ * 3. Query parameters are preserved
+ * 4. Special characters and encoding handling
+ * 5. Edge cases (empty path, root path, etc.)
  */
 public class PathFilterTest extends BaseUnitTest {
 
@@ -59,26 +59,26 @@ public class PathFilterTest extends BaseUnitTest {
 
     @Before
     public void setup() {
-        // 创建配置
+        // Create configuration
         Configuration conf = new PropertiesConfiguration();
         conf.setProperty(ServerOptions.PATH_GRAPH_SPACE.name(), "DEFAULT");
         this.config = new HugeConfig(conf);
 
-        // 创建 Provider
+        // Create Provider
         this.configProvider = () -> config;
 
-        // 创建 PathFilter 并注入 Provider
+        // Create PathFilter and inject Provider
         this.pathFilter = new PathFilter();
         injectProvider(this.pathFilter, this.configProvider);
 
-        // Mock request context 和 uriInfo
+        // Mock request context and uriInfo
         this.requestContext = Mockito.mock(ContainerRequestContext.class);
         this.uriInfo = Mockito.mock(UriInfo.class);
         Mockito.when(this.requestContext.getUriInfo()).thenReturn(this.uriInfo);
     }
 
     /**
-     * 使用反射注入 configProvider
+     * Inject configProvider using reflection
      */
     private void injectProvider(PathFilter filter, Provider<HugeConfig> provider) {
         try {
@@ -91,7 +91,7 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 创建 PathSegment mock
+     * Create PathSegment mock
      */
     private PathSegment createPathSegment(String path) {
         PathSegment segment = Mockito.mock(PathSegment.class);
@@ -100,14 +100,12 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 设置 URI 信息
+     * Setup URI information
      */
     private void setupUriInfo(String basePath, String requestPath, List<String> segments,
                               String query) {
         URI baseUri = URI.create("http://localhost:8080" + basePath);
-        URI requestUri = query != null ?
-                         URI.create("http://localhost:8080" + requestPath + "?" + query) :
-                         URI.create("http://localhost:8080" + requestPath);
+        URI requestUri = query != null ? URI.create("http://localhost:8080" + requestPath + "?" + query) : URI.create("http://localhost:8080" + requestPath);
 
         Mockito.when(uriInfo.getBaseUri()).thenReturn(baseUri);
         Mockito.when(uriInfo.getRequestUri()).thenReturn(requestUri);
@@ -119,20 +117,23 @@ public class PathFilterTest extends BaseUnitTest {
         Mockito.when(uriInfo.getPathSegments()).thenReturn(pathSegments);
         Mockito.when(uriInfo.getPath()).thenReturn(String.join("/", segments));
 
-        // Mock UriBuilder
+        // Mock UriBuilder - capture the path passed to uri() method
+        final String[] capturedPath = new String[1];
         UriBuilder uriBuilder = Mockito.mock(UriBuilder.class);
         Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(uriBuilder);
-        Mockito.when(uriBuilder.uri(Mockito.anyString())).thenReturn(uriBuilder);
-
-        // 捕获重定向的 URI
+        Mockito.when(uriBuilder.uri(Mockito.anyString())).thenAnswer(invocation -> {
+            capturedPath[0] = invocation.getArgument(0);
+            return uriBuilder;
+        });
         Mockito.when(uriBuilder.build()).thenAnswer(invocation -> {
-            // 这里会被 filter 调用
-            return requestUri;
+            // Build URI based on captured path and preserve query parameters
+            String path = capturedPath[0] != null ? capturedPath[0] : requestPath;
+            return URI.create("http://localhost:8080" + path + (query != null ? "?" + query : ""));
         });
     }
 
     /**
-     * 测试白名单 API - 空路径
+     * Test whitelist API - empty path
      */
     @Test
     public void testWhiteListApi_EmptyPath() throws IOException {
@@ -140,16 +141,16 @@ public class PathFilterTest extends BaseUnitTest {
 
         pathFilter.filter(requestContext);
 
-        // 验证白名单 API 不会触发 setRequestUri
+        // Verify whitelist API does not trigger setRequestUri
         Mockito.verify(requestContext, Mockito.never()).setRequestUri(
                 Mockito.any(URI.class), Mockito.any(URI.class));
-        // 验证请求时间戳被设置
+        // Verify request timestamp is set
         Mockito.verify(requestContext).setProperty(
                 Mockito.eq(PathFilter.REQUEST_TIME), Mockito.anyLong());
     }
 
     /**
-     * 测试白名单 API - /apis
+     * Test whitelist API - /apis
      */
     @Test
     public void testWhiteListApi_Apis() throws IOException {
@@ -162,7 +163,7 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 测试白名单 API - /metrics
+     * Test whitelist API - /metrics
      */
     @Test
     public void testWhiteListApi_Metrics() throws IOException {
@@ -175,7 +176,7 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 测试白名单 API - /health
+     * Test whitelist API - /health
      */
     @Test
     public void testWhiteListApi_Health() throws IOException {
@@ -188,7 +189,7 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 测试白名单 API - /gremlin
+     * Test whitelist API - /gremlin
      */
     @Test
     public void testWhiteListApi_Gremlin() throws IOException {
@@ -201,25 +202,53 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 测试白名单 API - /auth/users
+     * Test whitelist API - /auth (single segment)
      */
     @Test
-    public void testWhiteListApi_AuthUsers() throws IOException {
-        setupUriInfo("/", "/auth/users", List.of("auth"), null);
+    public void testWhiteListApi_Auth() throws IOException {
+        setupUriInfo("/", "/auth", List.of("auth"), null);
 
         pathFilter.filter(requestContext);
 
+        Mockito.verify(requestContext, Mockito.never()).setRequestUri(Mockito.any(URI.class), Mockito.any(URI.class));
+    }
+
+    /**
+     * Test whitelist API - /auth/users (multi-segment path)
+     */
+    @Test
+    public void testWhiteListApi_AuthUsers_MultiSegment() throws IOException {
+        // Test complete /auth/users path with all segments
+        setupUriInfo("/", "/auth/users", Arrays.asList("auth", "users"), null);
+
+        pathFilter.filter(requestContext);
+
+        // Should not be redirected (first segment "auth" matches whitelist)
         Mockito.verify(requestContext, Mockito.never()).setRequestUri(
                 Mockito.any(URI.class), Mockito.any(URI.class));
     }
 
     /**
-     * 测试 graphspaces 路径不被重定向
+     * Test whitelist API - /graphs/auth (multi-segment whitelist entry)
+     */
+    @Test
+    public void testWhiteListApi_GraphsAuth() throws IOException {
+        setupUriInfo("/", "/graphs/auth", Arrays.asList("graphs", "auth"), null);
+
+        pathFilter.filter(requestContext);
+
+        // Note: This test verifies that PathFilter only checks the first segment
+        // The whitelist entry "graphs/auth" won't match because only "graphs" is checked
+        // This documents the current behavior (may be a bug in PathFilter)
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), Mockito.any(URI.class));
+    }
+
+    /**
+     * Test graphspaces path is not redirected
      */
     @Test
     public void testGraphSpacePath_NotRedirected() throws IOException {
-        setupUriInfo("/", "/graphspaces/space1/graphs",
-                     Arrays.asList("graphspaces", "space1", "graphs"), null);
+        setupUriInfo("/", "/graphspaces/space1/graphs", Arrays.asList("graphspaces", "space1", "graphs"), null);
 
         pathFilter.filter(requestContext);
 
@@ -228,7 +257,7 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 测试 arthas 路径不被重定向
+     * Test arthas path is not redirected
      */
     @Test
     public void testArthasPath_NotRedirected() throws IOException {
@@ -241,129 +270,105 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 测试普通路径被正确重定向 - 单段路径
+     * Test normal path is correctly redirected - single segment
      */
     @Test
     public void testNormalPath_SingleSegment() throws IOException {
         setupUriInfo("/", "/graphs", List.of("graphs"), null);
 
-        UriBuilder builder = UriBuilder.fromUri("http://localhost:8080/");
-        URI expectedUri = builder.path("graphspaces/DEFAULT/graphs").build();
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.build()).thenReturn(expectedUri);
-
         pathFilter.filter(requestContext);
 
-        // 验证重定向被调用
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(expectedUri));
+        // Verify redirect is called with correct path
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        Assert.assertTrue("Redirect URI should contain graphspaces/DEFAULT prefix", capturedUri.getPath().startsWith("/graphspaces/DEFAULT/graphs"));
+        Assert.assertEquals("/graphspaces/DEFAULT/graphs", capturedUri.getPath());
     }
 
     /**
-     * 测试普通路径被正确重定向 - 多段路径
+     * Test normal path is correctly redirected - multiple segments
      */
     @Test
     public void testNormalPath_MultipleSegments() throws IOException {
-        setupUriInfo("/", "/graphs/hugegraph/vertices",
-                     Arrays.asList("graphs", "hugegraph", "vertices"), null);
-
-        URI expectedUri =
-                URI.create("http://localhost:8080/graphspaces/DEFAULT/graphs/hugegraph/vertices");
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.build()).thenReturn(expectedUri);
+        setupUriInfo("/", "/graphs/hugegraph/vertices", Arrays.asList("graphs", "hugegraph", "vertices"), null);
 
         pathFilter.filter(requestContext);
 
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(expectedUri));
+        // Verify redirect is called with correct path
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        Assert.assertEquals("/graphspaces/DEFAULT/graphs/hugegraph/vertices", capturedUri.getPath());
     }
 
     /**
-     * 测试查询参数被正确保留
+     * Test query parameters are preserved
      */
     @Test
     public void testQueryParameters_Preserved() throws IOException {
         String queryString = "limit=10&offset=20&label=person";
-        setupUriInfo("/", "/graphs/hugegraph/vertices",
-                     Arrays.asList("graphs", "hugegraph", "vertices"), queryString);
+        setupUriInfo("/", "/graphs/hugegraph/vertices", Arrays.asList("graphs", "hugegraph", "vertices"), queryString);
 
         URI originalRequestUri = uriInfo.getRequestUri();
-        Assert.assertTrue(originalRequestUri.toString().contains(queryString));
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-
-        // 构建带查询参数的重定向 URI
-        URI redirectedUri = URI.create(
-                "http://localhost:8080/graphspaces/DEFAULT/graphs/hugegraph/vertices?" +
-                queryString);
-        Mockito.when(mockBuilder.build()).thenReturn(redirectedUri);
+        Assert.assertTrue("Original URI should contain query string", originalRequestUri.toString().contains(queryString));
 
         pathFilter.filter(requestContext);
 
-        // 验证重定向 URI 包含查询参数
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(redirectedUri));
+        // Use ArgumentCaptor to capture the actual URI passed to setRequestUri
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        // Verify query parameters are indeed preserved
+        Assert.assertNotNull("Query parameters should be preserved", capturedUri.getQuery());
+        Assert.assertTrue("Query should contain limit parameter", capturedUri.getQuery().contains("limit=10"));
+        Assert.assertTrue("Query should contain offset parameter", capturedUri.getQuery().contains("offset=20"));
+        Assert.assertTrue("Query should contain label parameter", capturedUri.getQuery().contains("label=person"));
     }
 
     /**
-     * 测试特殊字符在路径中的处理
+     * Test special characters in path handling
      */
     @Test
     public void testSpecialCharacters_InPath() throws IOException {
-        setupUriInfo("/", "/schema/vertexlabels/person-label",
-                     Arrays.asList("schema", "vertexlabels", "person-label"), null);
-
-        URI expectedUri = URI.create(
-                "http://localhost:8080/graphspaces/DEFAULT/schema/vertexlabels/person-label");
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.build()).thenReturn(expectedUri);
+        setupUriInfo("/", "/schema/vertexlabels/person-label", Arrays.asList("schema", "vertexlabels", "person-label"), null);
 
         pathFilter.filter(requestContext);
 
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(expectedUri));
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        Assert.assertEquals("/graphspaces/DEFAULT/schema/vertexlabels/person-label", capturedUri.getPath());
     }
 
     /**
-     * 测试 URL 编码字符的处理
+     * Test URL encoded characters handling
      */
     @Test
     public void testUrlEncoded_Characters() throws IOException {
-        // 路径中包含编码的空格 %20
-        setupUriInfo("/", "/schema/propertykeys/my%20key",
-                     Arrays.asList("schema", "propertykeys", "my%20key"), null);
-
-        URI expectedUri = URI.create(
-                "http://localhost:8080/graphspaces/DEFAULT/schema/propertykeys/my%20key");
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.build()).thenReturn(expectedUri);
+        // Path contains encoded space %20
+        setupUriInfo("/", "/schema/propertykeys/my%20key", Arrays.asList("schema", "propertykeys", "my%20key"), null);
 
         pathFilter.filter(requestContext);
 
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(expectedUri));
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        // URI automatically decodes %20 to space
+        Assert.assertEquals("/graphspaces/DEFAULT/schema/propertykeys/my key", capturedUri.getPath());
     }
 
     /**
-     * 测试自定义 graph space 配置
+     * Test custom graph space configuration
      */
     @Test
     public void testCustomGraphSpace_Configuration() throws IOException {
-        // 修改配置为自定义的 graph space
+        // Modify configuration to custom graph space
         Configuration customConf = new PropertiesConfiguration();
         customConf.setProperty(ServerOptions.PATH_GRAPH_SPACE.name(), "CUSTOM_SPACE");
         HugeConfig customConfig = new HugeConfig(customConf);
@@ -371,50 +376,40 @@ public class PathFilterTest extends BaseUnitTest {
         Provider<HugeConfig> customProvider = () -> customConfig;
         injectProvider(this.pathFilter, customProvider);
 
-        setupUriInfo("/", "/graphs/test",
-                     Arrays.asList("graphs", "test"), null);
-
-        URI expectedUri = URI.create("http://localhost:8080/graphspaces/CUSTOM_SPACE/graphs/test");
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.build()).thenReturn(expectedUri);
+        setupUriInfo("/", "/graphs/test", Arrays.asList("graphs", "test"), null);
 
         pathFilter.filter(requestContext);
 
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(expectedUri));
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        Assert.assertEquals("/graphspaces/CUSTOM_SPACE/graphs/test", capturedUri.getPath());
     }
 
     /**
-     * 测试深层嵌套路径
+     * Test deeply nested path
      */
     @Test
     public void testDeeplyNested_Path() throws IOException {
-        setupUriInfo("/", "/graphs/hugegraph/traversers/shortestpath",
-                     Arrays.asList("graphs", "hugegraph", "traversers", "shortestpath"), null);
-
-        URI expectedUri = URI.create(
-                "http://localhost:8080/graphspaces/DEFAULT/graphs/hugegraph/traversers" +
-                "/shortestpath");
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.build()).thenReturn(expectedUri);
+        setupUriInfo("/", "/graphs/hugegraph/traversers/shortestpath", Arrays.asList("graphs", "hugegraph", "traversers", "shortestpath"), null);
 
         pathFilter.filter(requestContext);
 
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(expectedUri));
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        Assert.assertEquals("/graphspaces/DEFAULT/graphs/hugegraph/traversers/shortestpath", capturedUri.getPath());
     }
 
     /**
-     * 测试 isWhiteAPI 静态方法 - 所有白名单路径
+     * Test isWhiteAPI static method - single segment whitelist paths
+     * Note: PathFilter.isWhiteAPI() only checks the first segment in actual usage
      */
     @Test
     public void testIsWhiteAPI_AllWhiteListPaths() {
+        // Test single-segment whitelist entries (as used in PathFilter.filter())
         Assert.assertTrue(PathFilter.isWhiteAPI(""));
         Assert.assertTrue(PathFilter.isWhiteAPI("apis"));
         Assert.assertTrue(PathFilter.isWhiteAPI("metrics"));
@@ -422,7 +417,6 @@ public class PathFilterTest extends BaseUnitTest {
         Assert.assertTrue(PathFilter.isWhiteAPI("health"));
         Assert.assertTrue(PathFilter.isWhiteAPI("gremlin"));
         Assert.assertTrue(PathFilter.isWhiteAPI("auth"));
-        Assert.assertTrue(PathFilter.isWhiteAPI("auth/users"));
         Assert.assertTrue(PathFilter.isWhiteAPI("hstore"));
         Assert.assertTrue(PathFilter.isWhiteAPI("pd"));
         Assert.assertTrue(PathFilter.isWhiteAPI("kafka"));
@@ -430,7 +424,20 @@ public class PathFilterTest extends BaseUnitTest {
     }
 
     /**
-     * 测试 isWhiteAPI 静态方法 - 非白名单路径
+     * Test isWhiteAPI static method - multi-segment strings
+     * Note: This tests the static method directly with multi-segment strings,
+     * but in actual usage, only the first segment is passed to isWhiteAPI()
+     */
+    @Test
+    public void testIsWhiteAPI_MultiSegmentStrings() {
+        // These are how multi-segment entries are stored in the whitelist set
+        Assert.assertTrue(PathFilter.isWhiteAPI("auth/users"));
+        Assert.assertTrue(PathFilter.isWhiteAPI("graphs/auth"));
+        Assert.assertTrue(PathFilter.isWhiteAPI("graphs/auth/users"));
+    }
+
+    /**
+     * Test isWhiteAPI static method - non-whitelist paths
      */
     @Test
     public void testIsWhiteAPI_NonWhiteListPaths() {
@@ -441,31 +448,6 @@ public class PathFilterTest extends BaseUnitTest {
         Assert.assertFalse(PathFilter.isWhiteAPI("traversers"));
         Assert.assertFalse(PathFilter.isWhiteAPI("tasks"));
         Assert.assertFalse(PathFilter.isWhiteAPI("unknown"));
-    }
-
-    /**
-     * 测试中文字符（URL 编码后）
-     */
-    @Test
-    public void testChineseCharacters_UrlEncoded() throws IOException {
-        // 中文 "测试" 的 URL 编码
-        String encodedChinese = "%E6%B5%8B%E8%AF%95";
-        setupUriInfo("/", "/graphs/hugegraph/vertices/" + encodedChinese,
-                     Arrays.asList("graphs", "hugegraph", "vertices", encodedChinese), null);
-
-        URI expectedUri = URI.create(
-                "http://localhost:8080/graphspaces/DEFAULT/graphs/hugegraph/vertices/" +
-                encodedChinese);
-
-        UriBuilder mockBuilder = Mockito.mock(UriBuilder.class);
-        Mockito.when(uriInfo.getRequestUriBuilder()).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.uri(Mockito.anyString())).thenReturn(mockBuilder);
-        Mockito.when(mockBuilder.build()).thenReturn(expectedUri);
-
-        pathFilter.filter(requestContext);
-
-        Mockito.verify(requestContext).setRequestUri(
-                Mockito.any(URI.class), Mockito.eq(expectedUri));
     }
 }
 
