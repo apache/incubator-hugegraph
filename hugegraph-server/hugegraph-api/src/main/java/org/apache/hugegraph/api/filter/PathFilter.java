@@ -52,7 +52,7 @@ public class PathFilter implements ContainerRequestFilter {
     public static final String REQUEST_TIME = "request_time";
     public static final String REQUEST_PARAMS_JSON = "request_params_json";
 
-    private static final String DELIMETER = "/";
+    private static final String DELIMITER = "/";
     private static final Set<String> WHITE_API_LIST = ImmutableSet.of(
             "",
             "apis",
@@ -97,15 +97,8 @@ public class PathFilter implements ContainerRequestFilter {
                         context.getUriInfo().getPath());
         String rootPath = segments.get(0).getPath();
 
-        if (isWhiteAPI(rootPath)) {
-            return;
-        }
-
-        if (GRAPH_SPACE.equals(rootPath)) {
-            return;
-        }
-
-        if (ARTHAS_START.equals(rootPath)) {
+        if (isWhiteAPI(rootPath) || GRAPH_SPACE.equals(rootPath) ||
+            ARTHAS_START.equals(rootPath)) {
             return;
         }
 
@@ -113,9 +106,9 @@ public class PathFilter implements ContainerRequestFilter {
         String defaultPathSpace =
                 this.configProvider.get().get(ServerOptions.PATH_GRAPH_SPACE);
         String path = uriInfo.getBaseUri().getPath() +
-                      String.join(DELIMETER, GRAPH_SPACE, defaultPathSpace);
+                      String.join(DELIMITER, GRAPH_SPACE, defaultPathSpace);
         for (PathSegment segment : segments) {
-            path = String.join(DELIMETER, path, segment.getPath());
+            path = String.join(DELIMITER, path, segment.getPath());
         }
         LOG.debug("Redirect request uri from {} to {}",
                   uriInfo.getRequestUri().getPath(), path);
