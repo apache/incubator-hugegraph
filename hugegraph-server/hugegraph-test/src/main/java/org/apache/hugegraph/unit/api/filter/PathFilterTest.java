@@ -106,7 +106,9 @@ public class PathFilterTest extends BaseUnitTest {
     private void setupUriInfo(String basePath, String requestPath, List<String> segments,
                               String query) {
         URI baseUri = URI.create("http://localhost:8080" + basePath);
-        URI requestUri = query != null ? URI.create("http://localhost:8080" + requestPath + "?" + query) : URI.create("http://localhost:8080" + requestPath);
+        URI requestUri =
+                query != null ? URI.create("http://localhost:8080" + requestPath + "?" + query) :
+                URI.create("http://localhost:8080" + requestPath);
 
         Mockito.when(uriInfo.getBaseUri()).thenReturn(baseUri);
         Mockito.when(uriInfo.getRequestUri()).thenReturn(requestUri);
@@ -163,7 +165,6 @@ public class PathFilterTest extends BaseUnitTest {
                 Mockito.any(URI.class), Mockito.any(URI.class));
     }
 
-
     /**
      * Test whitelist API - /gremlin
      */
@@ -186,7 +187,8 @@ public class PathFilterTest extends BaseUnitTest {
 
         pathFilter.filter(requestContext);
 
-        Mockito.verify(requestContext, Mockito.never()).setRequestUri(Mockito.any(URI.class), Mockito.any(URI.class));
+        Mockito.verify(requestContext, Mockito.never())
+               .setRequestUri(Mockito.any(URI.class), Mockito.any(URI.class));
     }
 
     /**
@@ -209,7 +211,8 @@ public class PathFilterTest extends BaseUnitTest {
      */
     @Test
     public void testGraphSpacePath_NotRedirected() throws IOException {
-        setupUriInfo("/", "/graphspaces/space1/graphs", Arrays.asList("graphspaces", "space1", "graphs"), null);
+        setupUriInfo("/", "/graphspaces/space1/graphs",
+                     Arrays.asList("graphspaces", "space1", "graphs"), null);
 
         pathFilter.filter(requestContext);
 
@@ -244,7 +247,8 @@ public class PathFilterTest extends BaseUnitTest {
         Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
 
         URI capturedUri = uriCaptor.getValue();
-        Assert.assertTrue("Redirect URI should contain graphspaces/DEFAULT prefix", capturedUri.getPath().startsWith("/graphspaces/DEFAULT/graphs"));
+        Assert.assertTrue("Redirect URI should contain graphspaces/DEFAULT prefix",
+                          capturedUri.getPath().startsWith("/graphspaces/DEFAULT/graphs"));
         Assert.assertEquals("/graphspaces/DEFAULT/graphs", capturedUri.getPath());
     }
 
@@ -253,7 +257,8 @@ public class PathFilterTest extends BaseUnitTest {
      */
     @Test
     public void testNormalPath_MultipleSegments() throws IOException {
-        setupUriInfo("/", "/graphs/hugegraph/vertices", Arrays.asList("graphs", "hugegraph", "vertices"), null);
+        setupUriInfo("/", "/graphs/hugegraph/vertices",
+                     Arrays.asList("graphs", "hugegraph", "vertices"), null);
 
         pathFilter.filter(requestContext);
 
@@ -262,7 +267,8 @@ public class PathFilterTest extends BaseUnitTest {
         Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
 
         URI capturedUri = uriCaptor.getValue();
-        Assert.assertEquals("/graphspaces/DEFAULT/graphs/hugegraph/vertices", capturedUri.getPath());
+        Assert.assertEquals("/graphspaces/DEFAULT/graphs/hugegraph/vertices",
+                            capturedUri.getPath());
     }
 
     /**
@@ -271,10 +277,12 @@ public class PathFilterTest extends BaseUnitTest {
     @Test
     public void testQueryParameters_Preserved() throws IOException {
         String queryString = "limit=10&offset=20&label=person";
-        setupUriInfo("/", "/graphs/hugegraph/vertices", Arrays.asList("graphs", "hugegraph", "vertices"), queryString);
+        setupUriInfo("/", "/graphs/hugegraph/vertices",
+                     Arrays.asList("graphs", "hugegraph", "vertices"), queryString);
 
         URI originalRequestUri = uriInfo.getRequestUri();
-        Assert.assertTrue("Original URI should contain query string", originalRequestUri.toString().contains(queryString));
+        Assert.assertTrue("Original URI should contain query string",
+                          originalRequestUri.toString().contains(queryString));
 
         pathFilter.filter(requestContext);
 
@@ -285,9 +293,12 @@ public class PathFilterTest extends BaseUnitTest {
         URI capturedUri = uriCaptor.getValue();
         // Verify query parameters are indeed preserved
         Assert.assertNotNull("Query parameters should be preserved", capturedUri.getQuery());
-        Assert.assertTrue("Query should contain limit parameter", capturedUri.getQuery().contains("limit=10"));
-        Assert.assertTrue("Query should contain offset parameter", capturedUri.getQuery().contains("offset=20"));
-        Assert.assertTrue("Query should contain label parameter", capturedUri.getQuery().contains("label=person"));
+        Assert.assertTrue("Query should contain limit parameter",
+                          capturedUri.getQuery().contains("limit=10"));
+        Assert.assertTrue("Query should contain offset parameter",
+                          capturedUri.getQuery().contains("offset=20"));
+        Assert.assertTrue("Query should contain label parameter",
+                          capturedUri.getQuery().contains("label=person"));
     }
 
     /**
@@ -295,7 +306,8 @@ public class PathFilterTest extends BaseUnitTest {
      */
     @Test
     public void testSpecialCharacters_InPath() throws IOException {
-        setupUriInfo("/", "/schema/vertexlabels/person-label", Arrays.asList("schema", "vertexlabels", "person-label"), null);
+        setupUriInfo("/", "/schema/vertexlabels/person-label",
+                     Arrays.asList("schema", "vertexlabels", "person-label"), null);
 
         pathFilter.filter(requestContext);
 
@@ -303,7 +315,8 @@ public class PathFilterTest extends BaseUnitTest {
         Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
 
         URI capturedUri = uriCaptor.getValue();
-        Assert.assertEquals("/graphspaces/DEFAULT/schema/vertexlabels/person-label", capturedUri.getPath());
+        Assert.assertEquals("/graphspaces/DEFAULT/schema/vertexlabels/person-label",
+                            capturedUri.getPath());
     }
 
     /**
@@ -312,7 +325,8 @@ public class PathFilterTest extends BaseUnitTest {
     @Test
     public void testUrlEncoded_Characters() throws IOException {
         // Path contains encoded space %20
-        setupUriInfo("/", "/schema/propertykeys/my%20key", Arrays.asList("schema", "propertykeys", "my%20key"), null);
+        setupUriInfo("/", "/schema/propertykeys/my%20key",
+                     Arrays.asList("schema", "propertykeys", "my%20key"), null);
 
         pathFilter.filter(requestContext);
 
@@ -321,7 +335,8 @@ public class PathFilterTest extends BaseUnitTest {
 
         URI capturedUri = uriCaptor.getValue();
         // URI automatically decodes %20 to space
-        Assert.assertEquals("/graphspaces/DEFAULT/schema/propertykeys/my key", capturedUri.getPath());
+        Assert.assertEquals("/graphspaces/DEFAULT/schema/propertykeys/my key",
+                            capturedUri.getPath());
     }
 
     /**
@@ -353,7 +368,8 @@ public class PathFilterTest extends BaseUnitTest {
      */
     @Test
     public void testDeeplyNested_Path() throws IOException {
-        setupUriInfo("/", "/graphs/hugegraph/traversers/shortestpath", Arrays.asList("graphs", "hugegraph", "traversers", "shortestpath"), null);
+        setupUriInfo("/", "/graphs/hugegraph/traversers/shortestpath",
+                     Arrays.asList("graphs", "hugegraph", "traversers", "shortestpath"), null);
 
         pathFilter.filter(requestContext);
 
@@ -361,7 +377,8 @@ public class PathFilterTest extends BaseUnitTest {
         Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), uriCaptor.capture());
 
         URI capturedUri = uriCaptor.getValue();
-        Assert.assertEquals("/graphspaces/DEFAULT/graphs/hugegraph/traversers/shortestpath", capturedUri.getPath());
+        Assert.assertEquals("/graphspaces/DEFAULT/graphs/hugegraph/traversers/shortestpath",
+                            capturedUri.getPath());
     }
 
     /**
