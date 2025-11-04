@@ -661,6 +661,28 @@ public class BaseApiTest {
         return createGraph(graphSpace, name, name);
     }
 
+    public static Response createGraphInRocksDB(String graphSpace, String name) {
+        return createGraphInRocksDB(graphSpace, name, name);
+    }
+
+    public static Response createGraphInRocksDB(String graphSpace, String name,
+                                                String nickname) {
+        String config = "{\n" +
+                        "  \"gremlin.graph\": \"org.apache.hugegraph.HugeFactory\",\n" +
+                        "  \"backend\": \"rocksdb\",\n" +
+                        "  \"serializer\": \"binary\",\n" +
+                        "  \"store\": \"%s\",\n" +
+                        "  \"nickname\": \"%s\",\n" +
+                        "  \"rocksdb.data_path\": \"rocksdbtest-data-%s\",\n" +
+                        "  \"rocksdb.wal_path\": \"rocksdbtest-data-%s\",\n" +
+                        "  \"search.text_analyzer\": \"jieba\",\n" +
+                        "  \"search.text_analyzer_mode\": \"INDEX\"\n" +
+                        "}";
+        String path = String.format("graphspaces/%s/graphs/%s", graphSpace,
+                                    name);
+        return client.post(path, Entity.json(String.format(config, name, nickname, name, name)));
+    }
+
     public static Response createGraph(String graphSpace, String name,
                                        String nickname) {
         String config = "{\n" +
