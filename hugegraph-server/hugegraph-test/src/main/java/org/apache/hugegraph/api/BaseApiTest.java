@@ -74,6 +74,15 @@ public class BaseApiTest {
     private static final String GRAPH_EDGE = "/graph/edges";
     private static final String BATCH = "/batch";
 
+    private static final String ROCKSDB_CONFIG_TEMPLATE =
+            "{ \"gremlin.graph\": \"org.apache.hugegraph.HugeFactory\"," +
+            "\"backend\": \"rocksdb\", \"serializer\": \"binary\"," +
+            "\"store\": \"%s\", \"nickname\": \"%s\"," +
+            "\"rocksdb.data_path\": \"rocksdbtest-data-%s\"," +
+            "\"rocksdb.wal_path\": \"rocksdbtest-data-%s\"," +
+            "\"search.text_analyzer\": \"jieba\"," +
+            "\"search.text_analyzer_mode\": \"INDEX\" }";
+
     protected static RestClient client;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -667,20 +676,9 @@ public class BaseApiTest {
 
     public static Response createGraphInRocksDB(String graphSpace, String name,
                                                 String nickname) {
-        String config = "{\n" +
-                        "  \"gremlin.graph\": \"org.apache.hugegraph.HugeFactory\",\n" +
-                        "  \"backend\": \"rocksdb\",\n" +
-                        "  \"serializer\": \"binary\",\n" +
-                        "  \"store\": \"%s\",\n" +
-                        "  \"nickname\": \"%s\",\n" +
-                        "  \"rocksdb.data_path\": \"rocksdbtest-data-%s\",\n" +
-                        "  \"rocksdb.wal_path\": \"rocksdbtest-data-%s\",\n" +
-                        "  \"search.text_analyzer\": \"jieba\",\n" +
-                        "  \"search.text_analyzer_mode\": \"INDEX\"\n" +
-                        "}";
-        String path = String.format("graphspaces/%s/graphs/%s", graphSpace,
-                                    name);
-        return client.post(path, Entity.json(String.format(config, name, nickname, name, name)));
+        String path = String.format("graphspaces/%s/graphs/%s", graphSpace, name);
+        String config = String.format(ROCKSDB_CONFIG_TEMPLATE, name, nickname, name, name);
+        return client.post(path, Entity.json(config));
     }
 
     public static Response createGraph(String graphSpace, String name,

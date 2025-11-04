@@ -104,7 +104,7 @@ public class GraphSpaceAPI extends API {
 
         jsonGraphSpace.checkCreate(false);
 
-        String creator = HugeGraphAuthProxy.getContext().user().getName();
+        String creator = HugeGraphAuthProxy.getContext().user().username();
         GraphSpace exist = manager.graphSpace(jsonGraphSpace.name);
         E.checkArgument(exist == null, "The graph space '%s' has existed",
                         jsonGraphSpace.name);

@@ -1324,7 +1324,7 @@ public final class GraphManager {
 
         Date timeStamp = new Date();
 
-        configs.putIfAbsent("nickname", nickname);
+        // Note: nickname was already extracted and removed from configs earlier
         configs.putIfAbsent("creator", creator);
         configs.putIfAbsent("create_time", timeStamp);
         configs.putIfAbsent("update_time", timeStamp);
@@ -1547,7 +1547,7 @@ public final class GraphManager {
     }
 
     private String defaultSpaceGraphName(String graphName) {
-        return "DEFAULT-" + graphName;
+        return spaceGraphName("DEFAULT", graphName);
     }
 
     private void loadGraph(String name, String graphConfPath) {
@@ -2153,8 +2153,9 @@ public final class GraphManager {
                               GraphReadMode readMode) {
 
         if (!usePD()) {
-            HugeGraph g = this.graph(graphSpace + "-" + graphName);
+            HugeGraph g = this.graph(spaceGraphName(graphSpace, graphName));
             g.readMode(readMode);
+            return;
         }
 
         try {
