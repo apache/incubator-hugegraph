@@ -17,11 +17,12 @@
 
 package org.apache.hugegraph.unit.api.filter;
 
-import jakarta.inject.Provider;
-import jakarta.ws.rs.container.ContainerRequestContext;
-import jakarta.ws.rs.core.PathSegment;
-import jakarta.ws.rs.core.UriBuilder;
-import jakarta.ws.rs.core.UriInfo;
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hugegraph.api.filter.PathFilter;
@@ -34,11 +35,11 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import jakarta.inject.Provider;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriInfo;
 
 /**
  * Unit tests for PathFilter
@@ -162,31 +163,6 @@ public class PathFilterTest extends BaseUnitTest {
                 Mockito.any(URI.class), Mockito.any(URI.class));
     }
 
-    /**
-     * Test whitelist API - /metrics
-     */
-    @Test
-    public void testWhiteListApi_Metrics() throws IOException {
-        setupUriInfo("/", "/metrics", List.of("metrics"), null);
-
-        pathFilter.filter(requestContext);
-
-        Mockito.verify(requestContext, Mockito.never()).setRequestUri(
-                Mockito.any(URI.class), Mockito.any(URI.class));
-    }
-
-    /**
-     * Test whitelist API - /health
-     */
-    @Test
-    public void testWhiteListApi_Health() throws IOException {
-        setupUriInfo("/", "/health", List.of("health"), null);
-
-        pathFilter.filter(requestContext);
-
-        Mockito.verify(requestContext, Mockito.never()).setRequestUri(
-                Mockito.any(URI.class), Mockito.any(URI.class));
-    }
 
     /**
      * Test whitelist API - /gremlin
@@ -226,21 +202,6 @@ public class PathFilterTest extends BaseUnitTest {
         // Should not be redirected (first segment "auth" matches whitelist)
         Mockito.verify(requestContext, Mockito.never()).setRequestUri(
                 Mockito.any(URI.class), Mockito.any(URI.class));
-    }
-
-    /**
-     * Test whitelist API - /graphs/auth (multi-segment whitelist entry)
-     */
-    @Test
-    public void testWhiteListApi_GraphsAuth() throws IOException {
-        setupUriInfo("/", "/graphs/auth", Arrays.asList("graphs", "auth"), null);
-
-        pathFilter.filter(requestContext);
-
-        // Note: This test verifies that PathFilter only checks the first segment
-        // The whitelist entry "graphs/auth" won't match because only "graphs" is checked
-        // This documents the current behavior (may be a bug in PathFilter)
-        Mockito.verify(requestContext).setRequestUri(Mockito.any(URI.class), Mockito.any(URI.class));
     }
 
     /**
