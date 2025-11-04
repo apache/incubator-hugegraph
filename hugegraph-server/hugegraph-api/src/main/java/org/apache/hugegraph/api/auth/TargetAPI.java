@@ -174,6 +174,17 @@ public class TargetAPI extends API {
         }
 
         @Override
+        public String toString() {
+            return "JsonTarget{" +
+                   "name='" + name + '\'' +
+                   ", graph='" + graph + '\'' +
+                   ", url='" + url + '\'' +
+                   ", resources=" + resources +
+                   '}';
+        }
+
+
+        @Override
         public void checkCreate(boolean isBatch) {
             E.checkArgumentNotNull(this.name,
                                    "The name of target can't be null");
