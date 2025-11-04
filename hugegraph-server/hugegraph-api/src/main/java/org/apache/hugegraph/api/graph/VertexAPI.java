@@ -94,7 +94,7 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graphSpace, graph);
         Vertex vertex = commit(g, () -> g.addVertex(jsonVertex.properties()));
 
-        return manager.serializer(g).writeVertex(vertex);
+        return manager.serializer().writeVertex(vertex);
     }
 
     @POST
@@ -121,7 +121,7 @@ public class VertexAPI extends BatchAPI {
             for (JsonVertex vertex : jsonVertices) {
                 ids.add((Id) g.addVertex(vertex.properties()).id());
             }
-            return manager.serializer(g).writeIds(ids);
+            return manager.serializer().writeIds(ids);
         });
     }
 
@@ -178,7 +178,7 @@ public class VertexAPI extends BatchAPI {
             });
 
             // If return ids, the ids.size() maybe different with the origins'
-            return manager.serializer(g).writeVertices(vertices.iterator(), false);
+            return manager.serializer().writeVertices(vertices.iterator(), false);
         });
     }
 
@@ -215,7 +215,7 @@ public class VertexAPI extends BatchAPI {
 
         commit(g, () -> updateProperties(vertex, jsonVertex, append));
 
-        return manager.serializer(g).writeVertex(vertex);
+        return manager.serializer().writeVertex(vertex);
     }
 
     @GET
@@ -272,7 +272,7 @@ public class VertexAPI extends BatchAPI {
         }
 
         try {
-            return manager.serializer(g).writeVertices(traversal, page != null);
+            return manager.serializer().writeVertices(traversal, page != null);
         } finally {
             if (g.tx().isOpen()) {
                 g.tx().close();
@@ -295,7 +295,7 @@ public class VertexAPI extends BatchAPI {
         HugeGraph g = graph(manager, graphSpace, graph);
         try {
             Vertex vertex = g.vertex(id);
-            return manager.serializer(g).writeVertex(vertex);
+            return manager.serializer().writeVertex(vertex);
         } finally {
             if (g.tx().isOpen()) {
                 g.tx().close();
