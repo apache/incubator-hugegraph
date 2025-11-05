@@ -34,7 +34,8 @@ COPY --from=build /pkg/hugegraph-server/apache-hugegraph-server-incubating-*/ /h
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
-ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XshowSettings:vm" \
+# Note: --add-exports is required for Java 11+ to access jdk.internal.reflect for auth proxy
+ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XshowSettings:vm --add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED" \
     HUGEGRAPH_HOME="hugegraph-server"
 
 #COPY . /hugegraph/hugegraph-server
