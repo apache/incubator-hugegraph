@@ -46,7 +46,10 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.*;
 
 public class StandardTaskScheduler implements TaskScheduler {
@@ -242,7 +245,6 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public synchronized <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        this.checkOnMasterNode("cancel");
 
         if (task.completed() || task.cancelling()) {
             return;
@@ -250,114 +252,25 @@ public class StandardTaskScheduler implements TaskScheduler {
 
         LOG.info("Cancel task '{}' in status {}", task.id(), task.status());
 
-        if (task.server() == null) {
-            // The task not scheduled to workers, set canceled immediately
-            assert task.status().code() < TaskStatus.QUEUED.code();
-            if (task.status(TaskStatus.CANCELLED)) {
-                this.save(task);
-                return;
-            }
-        } else if (task.status(TaskStatus.CANCELLING)) {
-            // The task scheduled to workers, let the worker node to cancel
+        HugeTask<?> memTask = this.tasks.get(task.id());
+        if (memTask != null) {
+            boolean cancelled = memTask.cancel(true);
+            LOG.info("Task '{}' cancel result: {}", task.id(), cancelled);
+            return;
+        }
+
+        if (task.status(TaskStatus.CANCELLED)) {
             this.save(task);
-            assert task.server() != null : task;
-            assert this.serverManager().selfIsMaster();
-            if (!task.server().equals(this.serverManager().selfNodeId())) {
-                /*
-                 * Remove the task from memory if it's running on worker node,
-                 * but keep the task in memory if it's running on master node.
-                 * Cancel-scheduling will read the task from backend store, if
-                 * removed this instance from memory, there will be two task
-                 * instances with the same id, and can't cancel the real task that
-                 * is running but removed from memory.
-                 */
-                this.remove(task);
-            }
-            // Notify master server to schedule and execute immediately
-            TaskManager.instance().notifyNewTask(task);
             return;
         }
 
         throw new HugeException("Can't cancel task '%s' in status %s",
-                                task.id(), task.status());
+                task.id(), task.status());
     }
 
     @Override
     public ServerInfoManager serverManager() {
         return this.serverManager;
-    }
-
-    protected synchronized void scheduleTasksOnMaster() {
-        // Master server schedule all scheduling tasks to suitable worker nodes
-        Collection<HugeServerInfo> serverInfos = this.serverManager().allServerInfos();
-        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
-        do {
-            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULING, PAGE_SIZE, page);
-            while (tasks.hasNext()) {
-                HugeTask<?> task = tasks.next();
-                if (task.server() != null) {
-                    // Skip if already scheduled
-                    continue;
-                }
-
-                if (!this.serverManager.selfIsMaster()) {
-                    return;
-                }
-
-                HugeServerInfo server = this.serverManager().pickWorkerNode(serverInfos, task);
-                if (server == null) {
-                    LOG.info("The master can't find suitable servers to " +
-                             "execute task '{}', wait for next schedule", task.id());
-                    continue;
-                }
-
-                // Found suitable server, update task status
-                assert server.id() != null;
-                task.server(server.id());
-                task.status(TaskStatus.SCHEDULED);
-                this.save(task);
-
-                // Update server load in memory, it will be saved at the ending
-                server.increaseLoad(task.load());
-
-                LOG.info("Scheduled task '{}' to server '{}'", task.id(), server.id());
-            }
-            if (page != null) {
-                page = PageInfo.pageInfo(tasks);
-            }
-        } while (page != null);
-
-        // Save to store
-        this.serverManager().updateServerInfos(serverInfos);
-    }
-
-    protected void executeTasksOnWorker(Id server) {
-        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
-        do {
-            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.SCHEDULED, PAGE_SIZE, page);
-            while (tasks.hasNext()) {
-                HugeTask<?> task = tasks.next();
-                this.initTaskCallable(task);
-                Id taskServer = task.server();
-                if (taskServer == null) {
-                    LOG.warn("Task '{}' may not be scheduled", task.id());
-                    continue;
-                }
-                HugeTask<?> memTask = this.tasks.get(task.id());
-                if (memTask != null) {
-                    assert memTask.status().code() > task.status().code();
-                    continue;
-                }
-                if (taskServer.equals(server)) {
-                    task.status(TaskStatus.QUEUED);
-                    this.save(task);
-                    this.submitTask(task);
-                }
-            }
-            if (page != null) {
-                page = PageInfo.pageInfo(tasks);
-            }
-        } while (page != null);
     }
 
     protected void cancelTasksOnWorker(Id server) {
