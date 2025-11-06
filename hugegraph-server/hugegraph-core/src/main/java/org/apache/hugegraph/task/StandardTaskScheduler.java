@@ -17,18 +17,7 @@
 
 package org.apache.hugegraph.task;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeoutException;
-
+import com.google.common.collect.ImmutableMap;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -57,7 +46,8 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.*;
+import java.util.concurrent.*;
 
 public class StandardTaskScheduler implements TaskScheduler {
 
@@ -211,30 +201,9 @@ public class StandardTaskScheduler implements TaskScheduler {
             return this.submitTask(task);
         }
 
-        // Check this is on master for normal task schedule
-        this.checkOnMasterNode("schedule");
-        if (this.serverManager().onlySingleNode() && !task.computer()) {
-            /*
-             * Speed up for single node, submit the task immediately,
-             * this code can be removed without affecting code logic
-             */
-            task.status(TaskStatus.QUEUED);
-            task.server(this.serverManager().selfNodeId());
-            this.save(task);
-            return this.submitTask(task);
-        } else {
-            /*
-             * Just set the SCHEDULING status and save the task,
-             * it will be scheduled by periodic scheduler worker
-             */
-            task.status(TaskStatus.SCHEDULING);
-            this.save(task);
-
-            // Notify master server to schedule and execute immediately
-            TaskManager.instance().notifyNewTask(task);
-
-            return task;
-        }
+        task.status(TaskStatus.QUEUED);
+        this.save(task);
+        return this.submitTask(task);
     }
 
     private <V> Future<?> submitTask(HugeTask<V> task) {
