@@ -28,13 +28,7 @@ import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.*;
 
 /**
  * Central task management system that coordinates task scheduling and execution.
@@ -224,14 +218,6 @@ public final class TaskManager {
         }
     }
 
-    public void pauseScheduledThreadPool() {
-        this.schedulerExecutor.pauseSchedule();
-    }
-
-    public void resumeScheduledThreadPool() {
-        this.schedulerExecutor.resumeSchedule();
-    }
-
     public TaskScheduler getScheduler(HugeGraphParams graph) {
         return this.schedulers.get(graph);
     }
@@ -377,35 +363,6 @@ public final class TaskManager {
             LOG.error("Exception occurred when change to worker role", e);
             throw e;
         }
-    }
-
-    void notifyNewTask(HugeTask<?> task) {
-        Queue<Runnable> queue = this.schedulerExecutor
-                .getQueue();
-        if (queue.size() <= 1) {
-            /*
-             * Notify to schedule tasks initiatively when have new task
-             * It's OK to not notify again if there are more than one task in
-             * queue(like two, one is timer task, one is immediate task),
-             * we don't want too many immediate tasks to be inserted into queue,
-             * one notify will cause all the tasks to be processed.
-             */
-            this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
-        }
-    }
-
-    private void scheduleOrExecuteJob() {
-        //// Called by scheduler timer
-        //try {
-        //    for (TaskScheduler entry : this.schedulers.values()) {
-        //        // Maybe other threads close&remove scheduler at the same time
-        //        synchronized (entry) {
-        //            this.scheduleOrExecuteJobForGraph(entry);
-        //        }
-        //    }
-        //} catch (Throwable e) {
-        //    LOG.error("Exception occurred when schedule job", e);
-        //}
     }
 
     private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
