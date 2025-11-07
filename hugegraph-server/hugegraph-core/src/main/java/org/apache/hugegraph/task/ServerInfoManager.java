@@ -17,14 +17,7 @@
 
 package org.apache.hugegraph.task;
 
-import static org.apache.hugegraph.backend.query.Query.NO_LIMIT;
-
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-
+import com.google.common.collect.ImmutableMap;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -35,7 +28,6 @@ import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.exception.ConnectionException;
-import org.apache.hugegraph.iterator.ListIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.schema.PropertyKey;
@@ -50,7 +42,12 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import com.google.common.collect.ImmutableMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+
+import static org.apache.hugegraph.backend.query.Query.NO_LIMIT;
 
 public class ServerInfoManager {
 
@@ -64,7 +61,7 @@ public class ServerInfoManager {
 
     private volatile GlobalMasterInfo globalNodeInfo;
 
-    private volatile boolean onlySingleNode;
+    private final boolean onlySingleNode;
     private volatile boolean closed;
 
     public ServerInfoManager(HugeGraphParams graph, ExecutorService dbExecutor) {
@@ -228,48 +225,6 @@ public class ServerInfoManager {
         return !this.closed && this.graph.started() && this.graph.initialized();
     }
 
-    protected synchronized HugeServerInfo pickWorkerNode(Collection<HugeServerInfo> servers,
-                                                         HugeTask<?> task) {
-        HugeServerInfo master = null;
-        HugeServerInfo serverWithMinLoad = null;
-        int minLoad = Integer.MAX_VALUE;
-        boolean hasWorkerNode = false;
-        long now = DateUtil.now().getTime();
-
-        // Iterate servers to find suitable one
-        for (HugeServerInfo server : servers) {
-            if (!server.alive()) {
-                continue;
-            }
-            if (server.role().master()) {
-                master = server;
-                continue;
-            }
-            hasWorkerNode = true;
-            if (!server.suitableFor(task, now)) {
-                continue;
-            }
-            if (server.load() < minLoad) {
-                minLoad = server.load();
-                serverWithMinLoad = server;
-            }
-        }
-
-        boolean singleNode = !hasWorkerNode;
-        if (singleNode != this.onlySingleNode) {
-            LOG.info("Switch only_single_node to {}", singleNode);
-            this.onlySingleNode = singleNode;
-        }
-
-        // Only schedule to master if there are no workers and master are suitable
-        if (!hasWorkerNode) {
-            if (master != null && master.suitableFor(task, now)) {
-                serverWithMinLoad = master;
-            }
-        }
-        return serverWithMinLoad;
-    }
-
     private GraphTransaction tx() {
         assert Thread.currentThread().getName().contains("server-info-db-worker");
         return this.graph.systemTransaction();
@@ -296,33 +251,6 @@ public class ServerInfoManager {
             // Add or update server info in backend store
             vertex = this.tx().addVertex(vertex);
             return vertex.id();
-        });
-    }
-
-    private int save(Collection<HugeServerInfo> serverInfos) {
-        return this.call(() -> {
-            if (serverInfos.isEmpty()) {
-                return 0;
-            }
-            HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
-            if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
-                throw new HugeException("Schema is missing for %s", HugeServerInfo.P.SERVER);
-            }
-            // Save server info in batch
-            GraphTransaction tx = this.tx();
-            int updated = 0;
-            for (HugeServerInfo server : serverInfos) {
-                if (!server.updated()) {
-                    continue;
-                }
-                HugeVertex vertex = tx.constructVertex(false, server.asArray());
-                tx.addVertex(vertex);
-                updated++;
-            }
-            // NOTE: actually it is auto-commit, to be improved
-            tx.commitOrRollback();
-
-            return updated;
         });
     }
 
@@ -386,24 +314,6 @@ public class ServerInfoManager {
             this.tx().removeVertex((HugeVertex) vertex);
             return HugeServerInfo.fromVertex(vertex);
         });
-    }
-
-    protected void updateServerInfos(Collection<HugeServerInfo> serverInfos) {
-        this.save(serverInfos);
-    }
-
-    protected Collection<HugeServerInfo> allServerInfos() {
-        Iterator<HugeServerInfo> infos = this.serverInfos(NO_LIMIT, null);
-        try (ListIterator<HugeServerInfo> iter = new ListIterator<>(
-                MAX_SERVERS, infos)) {
-            return iter.list();
-        } catch (Exception e) {
-            throw new HugeException("Failed to close server info iterator", e);
-        }
-    }
-
-    protected Iterator<HugeServerInfo> serverInfos(String page) {
-        return this.serverInfos(ImmutableMap.of(), PAGE_SIZE, page);
     }
 
     protected Iterator<HugeServerInfo> serverInfos(long limit, String page) {
