@@ -118,11 +118,9 @@ public class StandardTaskScheduler implements TaskScheduler {
         // NOTE: only the owner thread can access task tx
         if (this.taskTx == null) {
             /*
-             * NOTE: don't synchronized(this) due to scheduler thread hold
-             * this lock through scheduleTasks(), then query tasks and wait
-             * for db-worker thread after call(), the tx may not be initialized
-             * but can't catch this lock, then cause deadlock.
-             * We just use this.serverManager as a monitor here
+             * NOTE: don't synchronized(this) to avoid potential deadlock
+             * when multiple threads are accessing task transaction.
+             * We use this.serverManager as a monitor here for thread safety.
              */
             synchronized (this.serverManager) {
                 if (this.taskTx == null) {
@@ -139,9 +137,9 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     @Override
     public <V> void restoreTasks() {
-        Id selfServer = this.serverManager().selfNodeId();
         List<HugeTask<V>> taskList = new ArrayList<>();
         // Restore 'RESTORING', 'RUNNING' and 'QUEUED' tasks in order.
+        // Single-node mode: restore all pending tasks without server filtering
         for (TaskStatus status : TaskStatus.PENDING_STATUSES) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
             do {
@@ -149,9 +147,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 for (iter = this.findTask(status, PAGE_SIZE, page);
                      iter.hasNext(); ) {
                     HugeTask<V> task = iter.next();
-                    if (selfServer.equals(task.server())) {
-                        taskList.add(task);
-                    }
+                    taskList.add(task);
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(iter);
@@ -273,55 +269,11 @@ public class StandardTaskScheduler implements TaskScheduler {
         return this.serverManager;
     }
 
-    protected void cancelTasksOnWorker(Id server) {
-        String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
-        do {
-            Iterator<HugeTask<Object>> tasks = this.tasks(TaskStatus.CANCELLING, PAGE_SIZE, page);
-            while (tasks.hasNext()) {
-                HugeTask<?> task = tasks.next();
-                Id taskServer = task.server();
-                if (taskServer == null) {
-                    LOG.warn("Task '{}' may not be scheduled", task.id());
-                    continue;
-                }
-                if (!taskServer.equals(server)) {
-                    continue;
-                }
-                /*
-                 * Task may be loaded from backend store and not initialized.
-                 * like: A task is completed but failed to save in the last
-                 * step, resulting in the status of the task not being
-                 * updated to storage, the task is not in memory, so it's not
-                 * initialized when canceled.
-                 */
-                HugeTask<?> memTask = this.tasks.get(task.id());
-                if (memTask != null) {
-                    task = memTask;
-                } else {
-                    this.initTaskCallable(task);
-                }
-                boolean cancelled = task.cancel(true);
-                LOG.info("Server '{}' cancel task '{}' with cancelled={}",
-                         server, task.id(), cancelled);
-            }
-            if (page != null) {
-                page = PageInfo.pageInfo(tasks);
-            }
-        } while (page != null);
-    }
-
     @Override
     public void taskDone(HugeTask<?> task) {
         this.remove(task);
-
-        Id selfServerId = this.serverManager().selfNodeId();
-        try {
-            this.serverManager().decreaseLoad(task.load());
-        } catch (Throwable e) {
-            LOG.error("Failed to decrease load for task '{}' on server '{}'",
-                      task.id(), selfServerId, e);
-        }
-        LOG.debug("Task '{}' done on server '{}'", task.id(), selfServerId);
+        // Single-node mode: no need to manage load
+        LOG.debug("Task '{}' done", task.id());
     }
 
     protected void remove(HugeTask<?> task) {
@@ -621,9 +573,7 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     private void checkOnMasterNode(String op) {
-        if (!this.serverManager().selfIsMaster()) {
-            throw new HugeException("Can't %s task on non-master server", op);
-        }
+        // Single-node mode: all operations are allowed, no role check needed
     }
 
     private boolean supportsPaging() {
