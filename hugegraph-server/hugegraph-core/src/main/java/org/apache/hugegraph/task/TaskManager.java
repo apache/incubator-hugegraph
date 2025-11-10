@@ -69,8 +69,6 @@ public final class TaskManager {
     private final ExecutorService ephemeralTaskExecutor;
     private final PausableScheduledThreadPool distributedSchedulerExecutor;
 
-    private boolean enableRoleElected = false;
-
     public static TaskManager instance() {
         return MANAGER;
     }
@@ -327,10 +325,6 @@ public final class TaskManager {
             size += scheduler.pendingTasks();
         }
         return size;
-    }
-
-    public void enableRoleElection() {
-        this.enableRoleElected = true;
     }
 
     public void onAsRoleMaster() {
