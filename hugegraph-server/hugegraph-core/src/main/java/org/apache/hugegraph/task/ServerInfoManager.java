@@ -61,7 +61,6 @@ public class ServerInfoManager {
 
     private volatile GlobalMasterInfo globalNodeInfo;
 
-    private final boolean onlySingleNode;
     private volatile boolean closed;
 
     public ServerInfoManager(HugeGraphParams graph, ExecutorService dbExecutor) {
@@ -73,7 +72,6 @@ public class ServerInfoManager {
 
         this.globalNodeInfo = null;
 
-        this.onlySingleNode = false;
         this.closed = false;
     }
 
@@ -112,11 +110,11 @@ public class ServerInfoManager {
             try {
                 Thread.sleep(existed.expireTime() - now + 1);
             } catch (InterruptedException e) {
-               throw new HugeException("Interrupted when waiting for server info expired", e);
+                throw new HugeException("Interrupted when waiting for server info expired", e);
             }
         }
         E.checkArgument(existed == null || !existed.alive(),
-                        "The server with name '%s' already in cluster", serverId);
+                "The server with name '%s' already in cluster", serverId);
 
         if (nodeInfo.nodeRole().master()) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
@@ -125,8 +123,8 @@ public class ServerInfoManager {
                 while (servers.hasNext()) {
                     existed = servers.next();
                     E.checkArgument(!existed.role().master() || !existed.alive(),
-                                    "Already existed master '%s' in current cluster",
-                                    existed.id());
+                            "Already existed master '%s' in current cluster",
+                            existed.id());
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(servers);
@@ -173,11 +171,6 @@ public class ServerInfoManager {
         return this.selfNodeRole() != null && this.selfNodeRole().master();
     }
 
-    public boolean onlySingleNode() {
-        // Only exists one node in the whole master
-        return this.onlySingleNode;
-    }
-
     public synchronized void heartbeat() {
         assert this.graphIsReady();
 
@@ -209,13 +202,6 @@ public class ServerInfoManager {
         assert serverInfo != null;
     }
 
-    public synchronized void decreaseLoad(int load) {
-        assert load > 0 : load;
-        HugeServerInfo serverInfo = this.selfServerInfo();
-        serverInfo.increaseLoad(-load);
-        this.save(serverInfo);
-    }
-
     public int calcMaxLoad() {
         // TODO: calc max load based on CPU and Memory resources
         return 10000;
@@ -245,7 +231,7 @@ public class ServerInfoManager {
             HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
             if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
                 throw new HugeException("Schema is missing for %s '%s'",
-                                        HugeServerInfo.P.SERVER, serverInfo);
+                        HugeServerInfo.P.SERVER, serverInfo);
             }
             HugeVertex vertex = this.tx().constructVertex(false, serverInfo.asArray());
             // Add or update server info in backend store
@@ -264,7 +250,7 @@ public class ServerInfoManager {
             return this.dbExecutor.submit(callable).get();
         } catch (Throwable e) {
             throw new HugeException("Failed to update/query server info: %s",
-                                    e, e.toString());
+                    e, e.toString());
         }
     }
 
