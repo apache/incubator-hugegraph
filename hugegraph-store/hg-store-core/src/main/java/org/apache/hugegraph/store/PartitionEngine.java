@@ -1184,7 +1184,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         try {
             var f = clz.getDeclaredField("state");
             f.setAccessible(true);
-            var state = (Replicator.State) f.get(this.raftNode);
+            var state = (Replicator.State) f.get(r);
             f.setAccessible(false);
             return state;
         } catch (NoSuchFieldException | IllegalAccessException e) {
