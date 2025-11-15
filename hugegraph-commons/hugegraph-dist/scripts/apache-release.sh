@@ -39,7 +39,7 @@ echo "In the work dir: $(pwd)"
 rm -rf dist && mkdir -p dist/apache-${REPO}
 
 # step1: package the source code
-cd ../../ || exit
+cd ../../../ || exit
 git archive --format=tar.gz \
   --output="${GROUP}-dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
   --prefix="apache-${REPO}-incubating-${RELEASE_VERSION}-src/" "${GIT_BRANCH}" || exit
@@ -48,7 +48,7 @@ cd - || exit
 
 # step2: copy the binary file (Optional)
 # Note: it's optional for project to generate binary package (skip this step if not need)
-cp -v ../../target/apache-${REPO}-incubating-"${RELEASE_VERSION}".tar.gz \
+cp -v ../../../target/apache-${REPO}-incubating-"${RELEASE_VERSION}".tar.gz \
   dist/apache-${REPO} || exit
 
 # step3: sign + hash
