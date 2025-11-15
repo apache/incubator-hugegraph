@@ -101,6 +101,10 @@ public final class PDConfig {
     }
 
     public PDConfig setAuthority(String userName, String pwd) {
+        // If userName is null or empty, keep default values for test environment
+        if (StringUtils.isEmpty(userName)) {
+            return this;
+        }
         this.userName = userName;
         String auth = userName + ':' + pwd;
         this.authority = Base64.getEncoder().encodeToString(auth.getBytes(UTF_8));
