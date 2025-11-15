@@ -18,7 +18,7 @@
 
 GROUP="hugegraph"
 # current repository name
-REPO="${GROUP}-commons"
+REPO="${GROUP}"
 # release version (input by committer)
 RELEASE_VERSION=$1
 USERNAME=$2
