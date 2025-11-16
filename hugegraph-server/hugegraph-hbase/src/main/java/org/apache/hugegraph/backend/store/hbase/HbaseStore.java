@@ -402,6 +402,8 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                     "Failed to truncate table for '%s' store", e, this.store);
         }
 
+        this.init();
+
         LOG.debug("Store truncated: {}", this.store);
     }
 
