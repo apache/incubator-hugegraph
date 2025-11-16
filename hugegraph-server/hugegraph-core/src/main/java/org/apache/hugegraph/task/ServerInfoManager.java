@@ -172,8 +172,18 @@ public class ServerInfoManager {
         return this.globalNodeInfo.nodeRole();
     }
 
-    public boolean selfIsMaster() {
-        return this.selfNodeRole() != null && this.selfNodeRole().master();
+    public boolean selfIsMasterOrSingleComputer() {
+        boolean isMaster=this.selfNodeRole() != null && this.selfNodeRole().master();
+        boolean isSingleComputer=isStandAloneComputer();
+        return isMaster||isSingleComputer;
+    }
+
+    public boolean selfIsComputer() {
+        return this.selfNodeRole() != null && this.selfNodeRole().computer();
+    }
+
+    public boolean isStandAloneComputer(){
+        return this.onlySingleNode() && this.selfIsComputer();
     }
 
     public boolean onlySingleNode() {
@@ -198,7 +208,7 @@ public class ServerInfoManager {
             LOG.info("ServerInfo is missing: {}, may not be initialized yet", this.selfNodeId());
             return;
         }
-        if (this.selfIsMaster()) {
+        if (this.selfIsMasterOrSingleComputer()) {
             // On the master node, just wait for ServerInfo re-init
             LOG.warn("ServerInfo is missing: {}, may be cleared before", this.selfNodeId());
             return;
@@ -226,6 +236,32 @@ public class ServerInfoManager {
 
     protected boolean graphIsReady() {
         return !this.closed && this.graph.started() && this.graph.initialized();
+    }
+
+    protected synchronized void updateIsSingleNode(){
+        Collection<HugeServerInfo> servers=this.allServerInfos();
+        boolean hasWorkerNode = false;
+        long now = DateUtil.now().getTime();
+        int computerNodeCount=0;
+
+        // Iterate servers to find suitable one
+        for (HugeServerInfo server : servers) {
+            if (!server.alive()) {
+                continue;
+            }
+            if (server.role().master()) {
+                continue;
+            }else if (server.role().computer()){
+                computerNodeCount++;
+            }
+            hasWorkerNode = true;
+        }
+
+        boolean singleNode = !hasWorkerNode||computerNodeCount==1;
+        if (singleNode != this.onlySingleNode) {
+            LOG.info("Switch only_single_node 02 to {}", singleNode);
+            this.onlySingleNode = singleNode;
+        }
     }
 
     protected synchronized HugeServerInfo pickWorkerNode(Collection<HugeServerInfo> servers,
