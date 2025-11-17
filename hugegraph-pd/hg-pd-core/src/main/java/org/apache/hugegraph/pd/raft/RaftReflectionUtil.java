@@ -60,8 +60,8 @@ public class RaftReflectionUtil {
             return null;
         }
         else {
+            Replicator r = (Replicator)threadId.lock();
             try {
-                Replicator r = (Replicator)threadId.lock();
                 if (r == null) {
                     return Replicator.State.Probe;
                 }
