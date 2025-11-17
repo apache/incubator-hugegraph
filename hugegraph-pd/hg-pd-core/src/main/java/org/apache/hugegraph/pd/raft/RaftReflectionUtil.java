@@ -85,8 +85,7 @@ public class RaftReflectionUtil {
                     result = null;
                 }
                 return result;
-            }
-            finally {
+            } finally {
                 threadId.unlock();
             }
         }
