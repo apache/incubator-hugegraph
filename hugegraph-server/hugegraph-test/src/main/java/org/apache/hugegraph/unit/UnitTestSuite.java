@@ -46,6 +46,8 @@ import org.apache.hugegraph.unit.id.EdgeIdTest;
 import org.apache.hugegraph.unit.id.IdTest;
 import org.apache.hugegraph.unit.id.IdUtilTest;
 import org.apache.hugegraph.unit.id.SplicingIdGeneratorTest;
+import org.apache.hugegraph.unit.mysql.BaseMysqlUnitTest;
+import org.apache.hugegraph.unit.mysql.MysqlTest;
 import org.apache.hugegraph.unit.mysql.MysqlUtilTest;
 import org.apache.hugegraph.unit.mysql.WhereBuilderTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBCountersTest;
@@ -130,6 +132,8 @@ import org.junit.runners.Suite;
         /* mysql */
         MysqlUtilTest.class,
         WhereBuilderTest.class,
+        BaseMysqlUnitTest.class,
+        MysqlTest.class,
 
         /* rocksdb */
         RocksDBSessionsTest.class,

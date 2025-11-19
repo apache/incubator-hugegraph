@@ -54,7 +54,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
 
     private final Map<HugeType, MysqlTable> tables;
-
     private MysqlSessions sessions;
 
     public MysqlStore(final BackendStoreProvider provider,
@@ -338,6 +337,9 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     protected void truncateTables() {
         Session session = this.sessions.session();
         for (MysqlTable table : this.tables()) {
+            if (table instanceof MysqlTables.Meta || table instanceof MysqlTables.Counters){
+                continue;
+            }
             table.truncate(session);
         }
     }

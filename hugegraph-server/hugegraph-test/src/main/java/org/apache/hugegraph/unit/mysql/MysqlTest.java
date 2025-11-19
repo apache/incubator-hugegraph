@@ -19,37 +19,24 @@
 
 package org.apache.hugegraph.unit.mysql;
 
+import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.testutil.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class MysqlTest extends BaseMysqlUnitTest{
-    private static final String GRAPH_NAME = "test_graph";
-
     @Before
     public void setUp(){
-        this.provider.open(GRAPH_NAME);
-        this.provider.init();
-    }
-
-    @After
-    public void teardown(){
-        if (this.store != null) {
-            this.store.close();
-        }
-        if (this.provider != null) {
-            this.provider.close();
-        }
+        super.setup();
     }
 
     @Test
     public void testMysqlMetaVersion(){
-        // init store
-        this.store.init();
-        String beforeVersion = this.store.storedVersion();
-        this.store.truncate();
-        String afterInitVersion = this.store.storedVersion();
+        BackendStore systemStore = this.provider.loadSystemStore(config);
+        String beforeVersion = systemStore.storedVersion();
+        this.provider.truncate();
+        String afterInitVersion = systemStore.storedVersion();
         Assert.assertNotNull(beforeVersion);
         Assert.assertNotNull(afterInitVersion);
         Assert.assertEquals(beforeVersion, afterInitVersion);
