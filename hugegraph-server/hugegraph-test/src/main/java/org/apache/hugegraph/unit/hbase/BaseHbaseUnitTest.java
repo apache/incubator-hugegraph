@@ -19,44 +19,38 @@
 
 package org.apache.hugegraph.unit.hbase;
 
-import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.commons.configuration2.Configuration;
 import org.apache.hugegraph.backend.store.hbase.HbaseStoreProvider;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.unit.BaseUnitTest;
-import org.apache.hugegraph.unit.FakeObjects;
 import org.junit.After;
-import org.junit.Before;
 
 public class BaseHbaseUnitTest extends BaseUnitTest{
 
-    protected BackendStore store;
+    private static final String GRAPH_NAME = "test_graph";
 
     protected HugeConfig config;
     protected HbaseStoreProvider provider;
 
-    @Before
     public void setup() {
-        this.config = FakeObjects.newConfig();
-
+        Configuration conf = Utils.getConf();
+        this.config = new HugeConfig(conf);
         this.provider = new HbaseStoreProvider();
-
-        this.store = this.provider.loadSystemStore(config);
+        this.provider.open(GRAPH_NAME);
+        this.provider.loadSystemStore(config).open(config);
+        this.provider.loadGraphStore(config).open(config);
+        this.provider.loadSchemaStore(config).open(config);
+        this.provider.init();
     }
 
     @After
     public void down(){
-        if (this.store != null) {
-            try {
-                this.store.close();
-            } catch (Exception e) {
-                // pass
-            }
-        }
         if (this.provider != null) {
             try {
                 this.provider.close();
             } catch (Exception e) {
-                // pass
+                LOG.warn("Failed to close provider",e);
             }
         }
     }

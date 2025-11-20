@@ -114,6 +114,14 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                           .collect(Collectors.toList());
     }
 
+    protected List<String> truncatedTableNames() {
+        return this.tables.values().stream()
+                          .filter(table -> !(table instanceof HbaseTables.Meta ||
+                                           table instanceof HbaseTables.Counters))
+                          .map(BackendTable::table)
+                          .collect(Collectors.toList());
+    }
+
     public String namespace() {
         return this.namespace;
     }
@@ -371,7 +379,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         };
 
         // Truncate tables
-        List<String> tables = this.tableNames();
+        List<String> tables = this.truncatedTableNames();
         Map<String, Future<Void>> futures = new HashMap<>(tables.size());
 
         try {
@@ -401,9 +409,6 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
             throw new BackendException(
                     "Failed to truncate table for '%s' store", e, this.store);
         }
-
-        this.init();
-
         LOG.debug("Store truncated: {}", this.store);
     }
 
