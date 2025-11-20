@@ -20,15 +20,12 @@
 package org.apache.hugegraph.unit.mysql;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.store.hbase.HbaseStoreProvider;
 import org.apache.hugegraph.backend.store.mysql.MysqlStoreProvider;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.junit.After;
-import org.junit.Before;
 
 public class BaseMysqlUnitTest extends BaseUnitTest {
 

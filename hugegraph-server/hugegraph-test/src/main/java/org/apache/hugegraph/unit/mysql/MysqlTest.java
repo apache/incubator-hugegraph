@@ -21,7 +21,6 @@ package org.apache.hugegraph.unit.mysql;
 
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.testutil.Assert;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
