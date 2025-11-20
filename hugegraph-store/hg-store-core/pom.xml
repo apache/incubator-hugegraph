@@ -181,8 +181,6 @@
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-pd-core</artifactId>
-            <version>1.7.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
     <build>
