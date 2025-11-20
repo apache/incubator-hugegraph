@@ -47,7 +47,7 @@ public class RaftReflectionUtil {
             }
         }
         catch (NoSuchFieldException | IllegalAccessException e) {
-            log.info("getReplicatorGroup: error {}", e.getMessage());
+            log.warn("Failed to get replicator state via reflection: {}", e.getMessage(), e);
             return null;
         }
 
@@ -75,13 +75,15 @@ public class RaftReflectionUtil {
                     f.setAccessible(true);
                     try {
                         result = (Replicator.State)f.get(r);
+                    }catch (Exception e){
+                        log.warn("Failed to get replicator state for peerId: {}, error: {}", peerId, e.getMessage());
                     }
                     finally {
                         f.setAccessible(false);
                     }
                 }
-                catch (NoSuchFieldException | IllegalAccessException e) {
-                    log.info("getReplicatorState: error {}", e.getMessage());
+                catch (NoSuchFieldException e) {
+                    log.warn("Failed to get replicator state via reflection: {}", e.getMessage(), e);
                     result = null;
                 }
                 return result;
