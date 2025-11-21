@@ -187,10 +187,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
         // Return task context first
         String taskContext = TaskManager.getContext();
 
-        if (taskContext == null) {
-            return null;
-        }
-
         User user = User.fromJson(taskContext);
         if (user != null) {
             return new Context(user);
