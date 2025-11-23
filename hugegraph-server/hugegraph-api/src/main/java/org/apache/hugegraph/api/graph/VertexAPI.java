@@ -227,13 +227,14 @@ public class VertexAPI extends BatchAPI {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     @RolesAllowed({"admin", "$owner=$graph $action=vertex_read"})
     public String annSearch(@Context GraphManager manager,
+                            @PathParam("graphspace") String graphSpace,
                             @PathParam("graph") String graph,
                             AnnSearchRequest searchRequest) {
         LOG.debug("Graph [{}] ANN search with request: {}", graph, searchRequest);
 
         AnnSearchRequest.checkRequest(searchRequest);
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager,graphSpace, graph);
 
         // Check if vertex label exists
         VertexLabel vertexLabel = g.vertexLabel(searchRequest.vertex_label);
