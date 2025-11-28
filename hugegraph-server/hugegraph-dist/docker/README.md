@@ -4,7 +4,7 @@
 >
 > 1. The docker image of hugegraph is a convenience release, not official distribution artifacts from ASF. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
 >
-> 2. Recommend to use `release tag` (like `1.3.0`/`1.5.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> 2. Recommend to use `release tag` (like `1.5.0`/`1.7.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
 
 ## 1. Deploy
 
