@@ -222,7 +222,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         this.checkOpened();
 
         this.truncateTables();
-        this.init();
         LOG.debug("Store truncated: {}", this.store);
     }
 
@@ -337,9 +336,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     protected void truncateTables() {
         Session session = this.sessions.session();
         for (MysqlTable table : this.tables()) {
-            if (table instanceof MysqlTables.Meta || table instanceof MysqlTables.Counters){
-                continue;
-            }
             table.truncate(session);
         }
     }
@@ -509,7 +505,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
         @Override
         protected Collection<MysqlTable> tables() {
             List<MysqlTable> tables = new ArrayList<>(super.tables());
-            tables.add(this.meta);
             return tables;
         }
     }

@@ -20,11 +20,11 @@
 package org.apache.hugegraph.unit.mysql;
 
 import org.apache.commons.configuration2.Configuration;
+import org.apache.hugegraph.backend.store.mysql.MysqlSessions;
 import org.apache.hugegraph.backend.store.mysql.MysqlStoreProvider;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.unit.BaseUnitTest;
-import org.apache.hugegraph.unit.FakeObjects;
 import org.junit.After;
 
 public class BaseMysqlUnitTest extends BaseUnitTest {
@@ -33,20 +33,19 @@ public class BaseMysqlUnitTest extends BaseUnitTest {
 
     protected HugeConfig config;
     protected MysqlStoreProvider provider;
+    protected MysqlSessions sessions;
 
-    public void setup() {
-        try {
-            Configuration conf = Utils.getConf();
-            this.config = new HugeConfig(conf);
-        } catch (Exception e) {
-            this.config = FakeObjects.newConfig();
-        }
+    public void setup() throws Exception {
+        Configuration conf = Utils.getConf();
+        this.config = new HugeConfig(conf);
         this.provider = new MysqlStoreProvider();
         this.provider.open(GRAPH_NAME);
         this.provider.loadSystemStore(config).open(config);
         this.provider.loadGraphStore(config).open(config);
         this.provider.loadSchemaStore(config).open(config);
         this.provider.init();
+        this.sessions = new MysqlSessions(config, GRAPH_NAME, this.provider.loadGraphStore(config).store());
+        this.sessions.open();
     }
 
     @After
@@ -55,7 +54,7 @@ public class BaseMysqlUnitTest extends BaseUnitTest {
             try {
                 this.provider.close();
             } catch (Exception e) {
-                // pass
+                LOG.warn("Mysql provider close failed",e);
             }
         }
     }
