@@ -20,11 +20,14 @@
 package org.apache.hugegraph.unit.hbase;
 
 import org.apache.commons.configuration2.Configuration;
+import org.apache.hugegraph.backend.store.hbase.HbaseSessions;
 import org.apache.hugegraph.backend.store.hbase.HbaseStoreProvider;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.junit.After;
+
+import java.io.IOException;
 
 public class BaseHbaseUnitTest extends BaseUnitTest{
 
@@ -32,8 +35,9 @@ public class BaseHbaseUnitTest extends BaseUnitTest{
 
     protected HugeConfig config;
     protected HbaseStoreProvider provider;
+    protected HbaseSessions sessions;
 
-    public void setup() {
+    public void setup() throws IOException {
         Configuration conf = Utils.getConf();
         this.config = new HugeConfig(conf);
         this.provider = new HbaseStoreProvider();
@@ -42,6 +46,8 @@ public class BaseHbaseUnitTest extends BaseUnitTest{
         this.provider.loadGraphStore(config).open(config);
         this.provider.loadSchemaStore(config).open(config);
         this.provider.init();
+        this.sessions = new HbaseSessions(config,GRAPH_NAME, this.provider.loadGraphStore(config).store());
+        this.sessions.open();
     }
 
     @After

@@ -115,10 +115,9 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
     }
 
     protected List<String> truncatedTableNames() {
-        return this.tables.values().stream()
-                          .filter(table -> !(table instanceof HbaseTables.Meta ||
-                                           table instanceof HbaseTables.Counters))
-                          .map(BackendTable::table)
+        return this.tables.entrySet().stream()
+                          .filter(e -> !(HugeType.META == e.getKey()))
+                          .map(e -> e.getValue().table())
                           .collect(Collectors.toList());
     }
 
@@ -409,6 +408,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
             throw new BackendException(
                     "Failed to truncate table for '%s' store", e, this.store);
         }
+
         LOG.debug("Store truncated: {}", this.store);
     }
 
