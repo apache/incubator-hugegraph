@@ -475,6 +475,4 @@ HugeGraph Store is licensed under the [Apache License 2.0](https://www.apache.or
 
 ---
 
-**Status**: BETA (from v1.5.0+)
-
-HugeGraph Store is under active development. While suitable for production use, APIs and configurations may evolve. Please report issues via GitHub or the mailing list.
+HugeGraph Store is under active development. Please report issues via GitHub or the mailing list.
