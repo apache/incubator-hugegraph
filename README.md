@@ -39,7 +39,7 @@ HugeGraph supports both **standalone** and **distributed** deployments:
 | [hugegraph-server](hugegraph-server)   | Core graph engine with REST API, Gremlin/Cypher support, and pluggable backends (RocksDB default)         |
 | [hugegraph-pd](hugegraph-pd)           | Placement Driver for distributed mode - handles meta storage, partition management and cluster scheduling |
 | [hugegraph-store](hugegraph-store)     | Distributed storage with Raft consensus for high availability and horizontal scaling                      |
-| [hugegraph-commons](hugegraph-commons) | shared utilities, RPC framework and common components                                                     |
+| [hugegraph-commons](hugegraph-commons) | Shared utilities, RPC framework and common components                                                     |
 
 - **Standalone**: HugeGraph Server + RocksDB (for all-in-one deployment)
 - **Distributed**: HugeGraph Server + PD + Store (Raft + RocksDB by default)
@@ -68,7 +68,7 @@ the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details.
 Visit [Download Page](https://hugegraph.apache.org/docs/download/download/) and refer the [doc](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#32-download-the-binary-tar-tarball)
 to download the latest release package and start the server.
 
-**Note:** if you want to use it in the production environment or expose it to the public network, you must enable the [AuthSystem](https://hugegraph.apache.org/docs/config/config-authentication/) to ensure safe.
+**Note:** if you want to use it in the production environment or expose it to the public network, you must enable the [AuthSystem](https://hugegraph.apache.org/docs/config/config-authentication/) to ensure safety.
 
 ### 3. Build From Source
 
