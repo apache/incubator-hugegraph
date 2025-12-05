@@ -30,6 +30,20 @@ achieved through the powerful [Gremlin](https://tinkerpop.apache.org/gremlin.htm
 - Integration with `Flink/Spark/HDFS`, and friendly to connect other big data platforms
 - Complete graph ecosystem (including both in/out-memory `Graph Computing` + `Graph Visualization & Tools` + `Graph Learning & AI`, see [here](#3-build-from-source))
 
+## Architecture
+
+HugeGraph supports both **standalone** and **distributed** deployments:
+
+| Module                                 | Description                                                                                               |
+|----------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| [hugegraph-server](hugegraph-server)   | Core graph engine with REST API, Gremlin/Cypher support, and pluggable backends (RocksDB default)         |
+| [hugegraph-pd](hugegraph-pd)           | Placement Driver for distributed mode - handles meta storage, partition management and cluster scheduling |
+| [hugegraph-store](hugegraph-store)     | Distributed storage with Raft consensus for high availability and horizontal scaling                      |
+| [hugegraph-commons](hugegraph-commons) | shared utilities, RPC framework and common components                                                     |
+
+- **Standalone**: HugeGraph Server + RocksDB (for all-in-one deployment)
+- **Distributed**: HugeGraph Server + PD + Store (Raft + RocksDB by default)
+
 ## Quick Start
 
 ### 1. Docker (For Test)
@@ -39,7 +53,7 @@ Use Docker to quickly start a HugeGraph server with `RocksDB` (in the background
 ```
 # (Optional) 
 # - add "-e PRELOAD=true" to auto-load a sample graph
-docker run -itd --name=graph -e PASSWORD=xxx -p 8080:8080 hugegraph/hugegraph:1.5.0
+docker run -itd --name=graph -e PASSWORD=xxx -p 8080:8080 hugegraph/hugegraph:1.7.0
 ```
 
 Please visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy) or
@@ -54,7 +68,7 @@ the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details.
 Visit [Download Page](https://hugegraph.apache.org/docs/download/download/) and refer the [doc](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#32-download-the-binary-tar-tarball)
 to download the latest release package and start the server.
 
-**Note:** if you want to use it in the production environment or expose it to the public network, must enable the [AuthSystem](https://hugegraph.apache.org/docs/config/config-authentication/) to ensure safe.
+**Note:** if you want to use it in the production environment or expose it to the public network, you must enable the [AuthSystem](https://hugegraph.apache.org/docs/config/config-authentication/) to ensure safe.
 
 ### 3. Build From Source
 
@@ -64,7 +78,9 @@ steps to build the source code and start the server.
 The project [doc page](https://hugegraph.apache.org/docs/) contains more information on HugeGraph
 and provides detailed documentation for users. (Structure / Usage / API / Configs...)
 
-And here are links of other **HugeGraph** component/repositories:
+## Ecosystem
+
+Other **HugeGraph** components/repositories:
 
 1. [hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-client)**)
 2. [hugegraph-computer](https://github.com/apache/hugegraph-computer) (integrated **graph computing** system)
