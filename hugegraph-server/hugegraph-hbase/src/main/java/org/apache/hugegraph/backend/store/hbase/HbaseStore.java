@@ -114,7 +114,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
                           .collect(Collectors.toList());
     }
 
-    protected List<String> truncatedTableNames() {
+    protected List<String> getTableNamesExcludingMeta() {
         // Exclude meta table to preserve system metadata during graph clear
         return this.tables.entrySet().stream()
                           .filter(e -> !(HugeType.META == e.getKey()))
@@ -379,7 +379,7 @@ public abstract class HbaseStore extends AbstractBackendStore<HbaseSessions.Sess
         };
 
         // Truncate tables
-        List<String> tables = this.truncatedTableNames();
+        List<String> tables = this.getTableNamesExcludingMeta();
         Map<String, Future<Void>> futures = new HashMap<>(tables.size());
 
         try {

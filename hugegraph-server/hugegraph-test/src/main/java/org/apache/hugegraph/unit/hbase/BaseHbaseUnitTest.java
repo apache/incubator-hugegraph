@@ -41,14 +41,21 @@ public class BaseHbaseUnitTest extends BaseUnitTest {
         Configuration conf = Utils.getConf();
         this.config = new HugeConfig(conf);
         this.provider = new HbaseStoreProvider();
-        this.provider.open(GRAPH_NAME);
-        this.provider.loadSystemStore(config).open(config);
-        this.provider.loadGraphStore(config).open(config);
-        this.provider.loadSchemaStore(config).open(config);
-        this.provider.init();
-        this.sessions =
-                new HbaseSessions(config, GRAPH_NAME, this.provider.loadGraphStore(config).store());
-        this.sessions.open();
+        try {
+            this.provider.open(GRAPH_NAME);
+            this.provider.loadSystemStore(config).open(config);
+            this.provider.loadGraphStore(config).open(config);
+            this.provider.loadSchemaStore(config).open(config);
+            // ensure back is clear
+            this.provider.truncate();
+            this.provider.init();
+            this.sessions = new HbaseSessions(config, GRAPH_NAME, this.provider.loadGraphStore(config).store());
+            this.sessions.open();
+        } catch (Exception e) {
+            tearDown();
+            LOG.warn("Failed to init Hbasetest ", e);
+        }
+
     }
 
     @After
@@ -60,11 +67,13 @@ public class BaseHbaseUnitTest extends BaseUnitTest {
                 LOG.warn("Failed to close sessions ", e);
             }
         }
-        if (this.provider != null){
+        if (this.provider != null) {
+            // ensure back is clear
+            this.provider.truncate();
             try {
                 this.provider.close();
-            }catch (Exception e){
-                LOG.warn("Failed to close provider ",e);
+            } catch (Exception e) {
+                LOG.warn("Failed to close provider ", e);
             }
         }
     }

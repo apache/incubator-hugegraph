@@ -52,9 +52,12 @@ public class HbaseUnitTest extends BaseHbaseUnitTest {
 
         // Verify data insertion success
         try (
-                BackendIterator<Result> vIterator = testsession.get("g_v", "f".getBytes(StandardCharsets.UTF_8), "row_trunc_v".getBytes(StandardCharsets.UTF_8));
-                BackendIterator<Result> oeIterator = testsession.get("g_oe", "f".getBytes(StandardCharsets.UTF_8), "row_trunc_oe".getBytes(StandardCharsets.UTF_8));
-                BackendIterator<Result> ieIterator = testsession.get("g_ie", "f".getBytes(StandardCharsets.UTF_8), "row_trunc_ie".getBytes(StandardCharsets.UTF_8));
+                BackendIterator<Result> vIterator = testsession.get("g_v", "f".getBytes(
+                        StandardCharsets.UTF_8), "row_trunc_v".getBytes(StandardCharsets.UTF_8));
+                BackendIterator<Result> oeIterator = testsession.get("g_oe", "f".getBytes(
+                        StandardCharsets.UTF_8), "row_trunc_oe".getBytes(StandardCharsets.UTF_8));
+                BackendIterator<Result> ieIterator = testsession.get("g_ie", "f".getBytes(
+                        StandardCharsets.UTF_8), "row_trunc_ie".getBytes(StandardCharsets.UTF_8));
         ) {
             Assert.assertTrue("data should exist", vIterator.hasNext());
             Assert.assertTrue("data should exist", oeIterator.hasNext());
@@ -66,13 +69,17 @@ public class HbaseUnitTest extends BaseHbaseUnitTest {
         // Verify system version remains unchanged after truncation
         String afterVersion = systemStore.storedVersion();
         Assert.assertNotNull("System metadata version should exist", afterVersion);
-        Assert.assertEquals("System metadata version should remain unchanged after truncation", beforeVersion, afterVersion);
+        Assert.assertEquals("System metadata version should remain unchanged after truncation",
+                            beforeVersion, afterVersion);
 
         // Verify data has been cleared
         try (
-                BackendIterator<Result> vIterator = testsession.get("g_v", "f".getBytes(StandardCharsets.UTF_8), "row_trunc_v".getBytes(StandardCharsets.UTF_8));
-                BackendIterator<Result> oeIterator = testsession.get("g_oe", "f".getBytes(StandardCharsets.UTF_8), "row_trunc_oe".getBytes(StandardCharsets.UTF_8));
-                BackendIterator<Result> ieIterator = testsession.get("g_ie", "f".getBytes(StandardCharsets.UTF_8), "row_trunc_ie".getBytes(StandardCharsets.UTF_8));
+                BackendIterator<Result> vIterator = testsession.get("g_v", "f".getBytes(
+                        StandardCharsets.UTF_8), "row_trunc_v".getBytes(StandardCharsets.UTF_8));
+                BackendIterator<Result> oeIterator = testsession.get("g_oe", "f".getBytes(
+                        StandardCharsets.UTF_8), "row_trunc_oe".getBytes(StandardCharsets.UTF_8));
+                BackendIterator<Result> ieIterator = testsession.get("g_ie", "f".getBytes(
+                        StandardCharsets.UTF_8), "row_trunc_ie".getBytes(StandardCharsets.UTF_8));
         ) {
             Assert.assertFalse("data should not exist", vIterator.hasNext());
             Assert.assertFalse("data should not exist", oeIterator.hasNext());
