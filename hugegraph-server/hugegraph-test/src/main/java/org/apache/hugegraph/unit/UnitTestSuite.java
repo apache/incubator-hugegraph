@@ -43,6 +43,7 @@ import org.apache.hugegraph.unit.core.SecurityManagerTest;
 import org.apache.hugegraph.unit.core.SerialEnumTest;
 import org.apache.hugegraph.unit.core.SystemSchemaStoreTest;
 import org.apache.hugegraph.unit.core.TraversalUtilTest;
+import org.apache.hugegraph.unit.hbase.HbaseUnitTest;
 import org.apache.hugegraph.unit.id.EdgeIdTest;
 import org.apache.hugegraph.unit.id.IdTest;
 import org.apache.hugegraph.unit.id.IdUtilTest;
@@ -139,6 +140,9 @@ import org.junit.runners.Suite;
         RocksDBSessionsTest.class,
         RocksDBSessionTest.class,
         RocksDBCountersTest.class,
+
+        /* hbase */
+        HbaseUnitTest.class,
 
         /* utils */
         VersionTest.class,
