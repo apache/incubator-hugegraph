@@ -99,3 +99,4 @@ and we are looking forward to working with you to build an excellent open-source
 - WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
 
  <img src="https://github.com/apache/hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="300"/>
+
