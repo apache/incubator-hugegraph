@@ -173,6 +173,21 @@ public final class CompressUtil {
         return normalizePath;
     }
 
+    private static Path zipSlipProtect(ZipEntry entry, Path targetDir)
+            throws IOException {
+        Path targetDirResolved = targetDir.resolve(entry.getName());
+        /*
+         * Make sure normalized file still has targetDir as its prefix,
+         * else throws exception
+         */
+        Path normalizePath = targetDirResolved.normalize();
+        if (!normalizePath.startsWith(targetDir.normalize())) {
+            throw new IOException(String.format("Bad entry: %s",
+                                                entry.getName()));
+        }
+        return normalizePath;
+    }
+
     public static void compressZip(String inputDir, String outputFile,
                                    Checksum checksum) throws IOException {
         String rootDir = Paths.get(inputDir).toAbsolutePath().getParent().toString();
@@ -220,9 +235,7 @@ public final class CompressUtil {
              ZipInputStream zis = new ZipInputStream(bis)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                String fileName = entry.getName();
-                File entryFile = new File(Paths.get(outputDir, fileName)
-                                               .toString());
+                File entryFile = new File(zipSlipProtect(entry, Paths.get(outputDir)).toString());
                 FileUtils.forceMkdir(entryFile.getParentFile());
                 try (FileOutputStream fos = new FileOutputStream(entryFile);
                      BufferedOutputStream bos = new BufferedOutputStream(fos)) {

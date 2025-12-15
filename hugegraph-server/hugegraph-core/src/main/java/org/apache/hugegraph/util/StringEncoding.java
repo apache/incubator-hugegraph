@@ -140,7 +140,7 @@ public final class StringEncoding {
     }
 
     public static String hashPassword(String password) {
-        return BCrypt.hashpw(password, BCrypt.gensalt(4));
+        return BCrypt.hashpw(password, BCrypt.gensalt(12));
     }
 
     public static boolean checkPassword(String candidatePassword, String dbPassword) {

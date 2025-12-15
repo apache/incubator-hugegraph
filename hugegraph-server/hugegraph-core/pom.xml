@@ -32,7 +32,7 @@
         <jraft.version>1.3.11</jraft.version>
         <ohc.version>0.7.4</ohc.version>
         <jna.version>5.12.1</jna.version>
-        <lz4.version>1.8.0</lz4.version>
+        <lz4.version>1.9.0</lz4.version>
         <mmseg4j-core.version>1.10.0</mmseg4j-core.version>
         <jcseg.version>2.6.2</jcseg.version>
         <hanlp.version>portable-1.8.3</hanlp.version>
@@ -198,7 +198,7 @@
             <version>${commons-compress.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.lz4</groupId>
+            <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
             <version>${lz4.version}</version>
         </dependency>
