@@ -197,6 +197,8 @@
             <artifactId>commons-compress</artifactId>
             <version>${commons-compress.version}</version>
         </dependency>
+        <!-- LZ4 version update from 1.8.0 to 1.8.1. For details on the specific changes, please refer to:
+        https://sites.google.com/sonatype.com/vulnerabilities/cve-2025-12183 -->
         <dependency>
             <groupId>org.lz4</groupId>
             <artifactId>lz4-java</artifactId>

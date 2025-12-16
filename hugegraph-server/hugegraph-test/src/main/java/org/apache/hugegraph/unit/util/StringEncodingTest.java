@@ -23,6 +23,7 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.Bytes;
 import org.apache.hugegraph.util.StringEncoding;
 import org.junit.Test;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class StringEncodingTest {
 
@@ -179,5 +180,20 @@ public class StringEncodingTest {
 
         buf = Bytes.fromHex("80");
         Assert.assertEquals("", StringEncoding.readAsciiString(buf, 0));
+    }
+
+    @Test
+    public void testCheckPasswordSupportsOldAndNewCost() {
+        // oldWorkFactor
+        String oldPassword = BCrypt.hashpw("123456", BCrypt.gensalt(4));
+        // newWorkFactor
+        String newPassword = BCrypt.hashpw("123456", BCrypt.gensalt(12));
+
+        Assert.assertTrue(StringEncoding.checkPassword("123456", oldPassword));
+        Assert.assertTrue(StringEncoding.checkPassword("123456", newPassword));
+
+        // 反向校验，确保不接受错误口令
+        Assert.assertFalse(StringEncoding.checkPassword("bad-pass", oldPassword));
+        Assert.assertFalse(StringEncoding.checkPassword("bad-pass", newPassword));
     }
 }
