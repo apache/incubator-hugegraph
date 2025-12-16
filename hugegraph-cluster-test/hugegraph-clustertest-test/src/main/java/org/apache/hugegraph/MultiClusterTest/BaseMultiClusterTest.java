@@ -54,6 +54,7 @@ public class BaseMultiClusterTest {
     public static void initEnv() {
         env = new MultiNodeEnv();
         env.startCluster();
+        clients.clear();
         for (String addr : env.getServerRestAddrs()) {
             clients.add(new RestClient(BASE_URL + addr));
         }
