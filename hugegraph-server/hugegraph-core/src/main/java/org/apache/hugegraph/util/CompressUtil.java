@@ -139,7 +139,7 @@ public final class CompressUtil {
             ArchiveEntry entry;
             while ((entry = tis.getNextEntry()) != null) {
                 // Create a new path, zip slip validate
-                Path newPath = zipSlipProtect(entry, target);
+                Path newPath = zipSlipProtect(entry.getName(), target);
                 if (entry.isDirectory()) {
                     Files.createDirectories(newPath);
                 } else {
@@ -158,9 +158,9 @@ public final class CompressUtil {
         }
     }
 
-    private static Path zipSlipProtect(ArchiveEntry entry, Path targetDir)
+    private static Path zipSlipProtect(String fileName, Path targetDir)
             throws IOException {
-        Path targetDirResolved = targetDir.resolve(entry.getName());
+        Path targetDirResolved = targetDir.resolve(fileName);
         /*
          * Make sure normalized file still has targetDir as its prefix,
          * else throws exception
@@ -168,22 +168,7 @@ public final class CompressUtil {
         Path normalizePath = targetDirResolved.normalize();
         if (!normalizePath.startsWith(targetDir.normalize())) {
             throw new IOException(String.format("Bad entry: %s",
-                                                entry.getName()));
-        }
-        return normalizePath;
-    }
-
-    private static Path zipSlipProtect(ZipEntry entry, Path targetDir)
-            throws IOException {
-        Path targetDirResolved = targetDir.resolve(entry.getName());
-        /*
-         * Make sure normalized file still has targetDir as its prefix,
-         * else throws exception
-         */
-        Path normalizePath = targetDirResolved.normalize();
-        if (!normalizePath.startsWith(targetDir.normalize())) {
-            throw new IOException(String.format("Bad entry: %s",
-                                                entry.getName()));
+                                                fileName));
         }
         return normalizePath;
     }
@@ -235,7 +220,7 @@ public final class CompressUtil {
              ZipInputStream zis = new ZipInputStream(bis)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                File entryFile = new File(zipSlipProtect(entry, Paths.get(outputDir)).toString());
+                File entryFile = new File(zipSlipProtect(entry.getName(), Paths.get(outputDir)).toString());
                 FileUtils.forceMkdir(entryFile.getParentFile());
                 try (FileOutputStream fos = new FileOutputStream(entryFile);
                      BufferedOutputStream bos = new BufferedOutputStream(fos)) {
