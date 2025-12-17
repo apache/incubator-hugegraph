@@ -192,7 +192,6 @@ public class StringEncodingTest {
         Assert.assertTrue(StringEncoding.checkPassword("123456", oldPassword));
         Assert.assertTrue(StringEncoding.checkPassword("123456", newPassword));
 
-        // 反向校验，确保不接受错误口令
         Assert.assertFalse(StringEncoding.checkPassword("bad-pass", oldPassword));
         Assert.assertFalse(StringEncoding.checkPassword("bad-pass", newPassword));
     }

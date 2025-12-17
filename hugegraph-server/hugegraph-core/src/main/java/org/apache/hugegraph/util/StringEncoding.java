@@ -140,6 +140,7 @@ public final class StringEncoding {
     }
 
     public static String hashPassword(String password) {
+        // OWASP suggest 10 as minimum and 12-14 as production default
         return BCrypt.hashpw(password, BCrypt.gensalt(12));
     }
 
