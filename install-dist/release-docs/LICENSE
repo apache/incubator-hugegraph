@@ -649,8 +649,6 @@ The text of each license is also included in licenses/LICENSE-[project].txt.
     https://central.sonatype.com/artifact/org.lionsoul/jcseg-core/2.2.0 -> Apache 2.0
     https://central.sonatype.com/artifact/org.lionsoul/jcseg-core/2.6.2 -> Apache 2.0
     https://central.sonatype.com/artifact/org.lz4/lz4-java/1.4.0 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.lz4/lz4-java/1.7.1 -> Apache 2.0
-    https://central.sonatype.com/artifact/org.lz4/lz4-java/1.8.0 -> Apache 2.0
     https://central.sonatype.com/artifact/org.lz4/lz4-java/1.8.1 -> Apache 2.0
     https://central.sonatype.com/artifact/org.nlpcn/nlp-lang/1.7.7 -> Apache 2.0
     https://central.sonatype.com/artifact/org.objenesis/objenesis/2.6 -> Apache 2.0
