@@ -165,8 +165,9 @@ public final class StringEncoding {
     }
 
     public static String hashPassword(String password) {
-        // OWASP suggest 10 as minimum and 12-14 as production default
-        return BCrypt.hashpw(password, BCrypt.gensalt(12));
+        // OWASP suggests 10 as a minimum and 12–14 for production;
+        // workFactor 12 is not used by default due to its 200+ ms cost.
+        return BCrypt.hashpw(password, BCrypt.gensalt(10));
     }
 
     public static boolean checkPassword(String candidatePassword,

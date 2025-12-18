@@ -184,15 +184,20 @@ public class StringEncodingTest {
 
     @Test
     public void testCheckPasswordSupportsOldAndNewCost() {
-        // oldWorkFactor
-        String oldPassword = BCrypt.hashpw("123456", BCrypt.gensalt(4));
-        // newWorkFactor
-        String newPassword = BCrypt.hashpw("123456", BCrypt.gensalt(12));
+        String testPassword = "test123!@#";
 
-        Assert.assertTrue(StringEncoding.checkPassword("123456", oldPassword));
-        Assert.assertTrue(StringEncoding.checkPassword("123456", newPassword));
+        // Test old work factor (4)
+        String oldPassword = BCrypt.hashpw(testPassword, BCrypt.gensalt(4));
+        Assert.assertTrue(StringEncoding.checkPassword(testPassword, oldPassword));
+        Assert.assertFalse(StringEncoding.checkPassword("wrong", oldPassword));
 
-        Assert.assertFalse(StringEncoding.checkPassword("bad-pass", oldPassword));
-        Assert.assertFalse(StringEncoding.checkPassword("bad-pass", newPassword));
+        // Test new work factor (10)
+        String newPassword = BCrypt.hashpw(testPassword, BCrypt.gensalt(10));
+        Assert.assertTrue(StringEncoding.checkPassword(testPassword, newPassword));
+        Assert.assertFalse(StringEncoding.checkPassword("wrong", newPassword));
+
+        // Test that hashPassword uses the new cost factor
+        String hashedPassword = StringEncoding.hashPassword(testPassword);
+        Assert.assertTrue(StringEncoding.checkPassword(testPassword, hashedPassword));
     }
 }

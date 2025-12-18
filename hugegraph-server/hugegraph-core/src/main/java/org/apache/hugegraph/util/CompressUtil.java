@@ -139,7 +139,7 @@ public final class CompressUtil {
             ArchiveEntry entry;
             while ((entry = tis.getNextEntry()) != null) {
                 // Create a new path, zip slip validate
-                Path newPath = zipSlipProtect(entry.getName(), target);
+                Path newPath = zipSlipProtect(entry, target);
                 if (entry.isDirectory()) {
                     Files.createDirectories(newPath);
                 } else {
@@ -158,17 +158,28 @@ public final class CompressUtil {
         }
     }
 
-    private static Path zipSlipProtect(String fileName, Path targetDir)
+    private static Path zipSlipProtect(ArchiveEntry entry, Path targetDir)
             throws IOException {
-        Path targetDirResolved = targetDir.resolve(fileName);
+        return zipSlipProtect(entry.getName(), targetDir);
+    }
+
+    private static Path zipSlipProtect(ZipEntry entry, Path targetDir)
+            throws IOException {
+        return zipSlipProtect(entry.getName(), targetDir);
+    }
+
+    private static Path zipSlipProtect(String entryName, Path targetDir)
+            throws IOException {
+
+        Path targetDirResolved = targetDir.resolve(entryName);
+
         /*
          * Make sure normalized file still has targetDir as its prefix,
          * else throws exception
          */
         Path normalizePath = targetDirResolved.normalize();
         if (!normalizePath.startsWith(targetDir.normalize())) {
-            throw new IOException(String.format("Bad entry: %s",
-                                                fileName));
+            throw new IOException(String.format("Bad entry: %s", entryName));
         }
         return normalizePath;
     }
@@ -220,7 +231,8 @@ public final class CompressUtil {
              ZipInputStream zis = new ZipInputStream(bis)) {
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
-                File entryFile = new File(zipSlipProtect(entry.getName(), Paths.get(outputDir)).toString());
+                Path entryPath = zipSlipProtect(entry, Paths.get(outputDir));
+                File entryFile = new File(entryPath.toString());
                 FileUtils.forceMkdir(entryFile.getParentFile());
                 try (FileOutputStream fos = new FileOutputStream(entryFile);
                      BufferedOutputStream bos = new BufferedOutputStream(fos)) {
