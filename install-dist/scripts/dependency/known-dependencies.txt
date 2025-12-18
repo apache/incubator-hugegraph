@@ -226,6 +226,7 @@ java-cup-runtime-11b-20160615.jar
 javapoet-1.8.0.jar
 javassist-3.21.0-GA.jar
 javassist-3.24.0-GA.jar
+javassist-3.25.0-GA.jar
 javassist-3.28.0-GA.jar
 javatuples-1.2.jar
 javax-websocket-client-impl-9.4.46.v20220331.jar

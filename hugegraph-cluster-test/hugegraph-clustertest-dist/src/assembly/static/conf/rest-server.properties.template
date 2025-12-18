@@ -36,7 +36,12 @@ arthas.disabled_commands=jad
 # authentication configs
 # choose 'org.apache.hugegraph.auth.StandardAuthenticator' or
 # 'org.apache.hugegraph.auth.ConfigAuthenticator'
-#auth.authenticator=
+auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator
+# true if using hstore mode
+usePD=true
+
+# default password
+auth.admin_pa=pa
 
 # for StandardAuthenticator mode
 #auth.graph_store=hugegraph
