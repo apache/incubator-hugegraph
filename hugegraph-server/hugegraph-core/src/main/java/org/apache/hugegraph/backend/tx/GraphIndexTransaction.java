@@ -322,6 +322,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                  * This column only stores the vector-id → vertex-id mapping and tracks the state.
                  * Entries are removed only after the actual vector index is deleted in JVector.
                  * The column is garbage-collected once the data has been flushed to disk.
+                 * generate new vector id from the context
                  */
                 byte[] vectorId = HashUtil.hash(elementId.asBytes());
                 this.updateVectorIndex(indexLabel, HugeIndex.bytes2number(vectorId, DataType.INT.clazz()),

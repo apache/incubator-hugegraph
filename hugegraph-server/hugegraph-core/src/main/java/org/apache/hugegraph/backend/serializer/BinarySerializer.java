@@ -428,7 +428,7 @@ public class BinarySerializer extends AbstractSerializer {
         for (BackendColumn col : entry.columns()) {
             BytesBuffer buffer = BytesBuffer.wrap(col.name);
 
-            // dirty_prefix(1byte) + index id(4bytes) + sequence(8byte)
+            // dirty_prefix(1byte) + indexlabelid(4bytes) + sequence(8byte)
             buffer.read(vectorIndexMap.sequenceId().length()+1);
             Object fieldValue = buffer.readInt();
             vectorIndexMap.fieldValues(fieldValue);

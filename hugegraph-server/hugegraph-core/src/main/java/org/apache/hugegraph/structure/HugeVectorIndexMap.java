@@ -85,8 +85,7 @@ public class HugeVectorIndexMap extends HugeIndex{
         return formatDirtyLabelId(indexLabelId());
     }
 
-
-    public Id formatSequenceId(Id indexLabelId, long sequence){
+    public static Id formatSequenceId(Id indexLabelId, long sequence){
         // notDirtyPrefix(1byte) + indexlabelId(4byte) + sequence(8byte)
         int length = 1 + 4 + 8;
         BytesBuffer buffer = BytesBuffer.allocate(length);
