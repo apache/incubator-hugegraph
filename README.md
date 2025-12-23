@@ -64,6 +64,19 @@ steps to build the source code and start the server.
 The project [doc page](https://hugegraph.apache.org/docs/) contains more information on HugeGraph
 and provides detailed documentation for users. (Structure / Usage / API / Configs...)
 
+## Repository Structure
+
+- hugegraph-server/: Server module (see module README for details)
+- hugegraph-store/: Distributed storage backend for HugeGraph (see module README for details)
+- hugegraph-pd/: Placement Driver for cluster coordination and metadata management (see module README for details)
+- hugegraph-commons/: Shared common utilities used across HugeGraph components (see module README for details)
+- hugegraph-struct/: Shared data structures and type definitions used across modules (see module README for details)
+- hugegraph-cluster-test/: Cluster-related integration and testing modules
+- docker/: Docker-related deployment files
+- install-dist/: Installation and distribution-related scripts
+- style/: Code style and formatting configuration
+
+
 And here are links of other **HugeGraph** component/repositories:
 
 1. [hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-client)**)
