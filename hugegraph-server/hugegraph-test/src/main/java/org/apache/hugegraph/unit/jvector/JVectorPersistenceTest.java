@@ -33,6 +33,7 @@ import io.github.jbellis.jvector.disk.SimpleMappedReader;
 import io.github.jbellis.jvector.graph.GraphIndexBuilder;
 import io.github.jbellis.jvector.graph.GraphSearcher;
 import io.github.jbellis.jvector.graph.MapRandomAccessVectorValues;
+import io.github.jbellis.jvector.graph.OnHeapGraphIndex;
 import io.github.jbellis.jvector.graph.RandomAccessVectorValues;
 import io.github.jbellis.jvector.graph.SearchResult;
 import io.github.jbellis.jvector.graph.disk.OnDiskGraphIndex;
@@ -44,8 +45,6 @@ import io.github.jbellis.jvector.vector.types.VectorTypeSupport;
 
 /**
  * Test JVector OnDiskGraphIndex persistence
- *
- * Run: mvn test -Dtest=JVectorPersistenceTest -pl hugegraph-core
  */
 public class JVectorPersistenceTest {
 
@@ -96,6 +95,9 @@ public class JVectorPersistenceTest {
                 1.2f,   // neighborOverflow
                 1.2f    // alpha
         );
+
+        OnHeapGraphIndex graph = builder.getGraph();  // 从 GraphIndexBuilder 获取
+        int upperBound = graph.getIdUpperBound();
 
         for (int i = 0; i < vectorCount; i++) {
             builder.addGraphNode(i, ravv);

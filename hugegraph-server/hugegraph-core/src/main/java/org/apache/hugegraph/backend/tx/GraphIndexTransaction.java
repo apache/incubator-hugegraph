@@ -325,6 +325,7 @@ public class GraphIndexTransaction extends AbstractTransaction {
                  * generate new vector id from the context
                  */
                 byte[] vectorId = HashUtil.hash(elementId.asBytes());
+
                 this.updateVectorIndex(indexLabel, HugeIndex.bytes2number(vectorId, DataType.INT.clazz()),
                                        elementId, expiredTime, removed);
                 break;

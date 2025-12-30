@@ -60,10 +60,13 @@ public abstract class AbstractVectorRuntime<Id> implements VectorIndexRuntime<Id
 
         final Id indexLabelId;
 
+        // for jvector
         final RandomAccessVectorValues vectors; // per-index RAVV
         final GraphIndexBuilder builder;        // owns the mutable OnHeapGraphIndex
         VectorSimilarityFunction similarityFunction;
         int dimension;
+
+        // for recover and update
         IndexContextMetaData metaData;
 
         IndexContext(Id indexLabelId,
