@@ -71,7 +71,7 @@ public class BaseMultiClusterTest {
 
     protected static void initGraph() {
         BaseSimpleTest.RestClient client = clients.get(0);
-        Response r = clients.get(0).get(URL_PREFIX);
+        Response r = client.get(URL_PREFIX);
         if (r.getStatus() != 200) {
             String body = "{\n" +
                           "  \"backend\": \"hstore\",\n" +
