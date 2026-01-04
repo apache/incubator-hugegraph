@@ -73,7 +73,7 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
         }
     }
 
-    private static void addCpJarsToClasspath(File directory, List<String> classpath) {
+    private static void addOrderedJarsToClasspath(File directory, List<String> classpath) {
         // Add jar starts with hugegraph in proper order
         String path = directory.getAbsolutePath();
         for (String jar : hgJars) {
@@ -115,7 +115,7 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
             }
 
             List<String> classpath = new ArrayList<>();
-            addCpJarsToClasspath(new File(workPath + LIB_DIR), classpath);
+            addOrderedJarsToClasspath(new File(workPath + LIB_DIR), classpath);
             addJarsToClasspath(new File(workPath + EXT_DIR), classpath);
             addJarsToClasspath(new File(workPath + PLUGINS_DIR), classpath);
             String storeClassPath = String.join(":", classpath);

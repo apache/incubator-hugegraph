@@ -82,8 +82,9 @@ public class BaseMultiClusterTest {
                           "}";
             r = client.post(URL_PREFIX, body);
             if (r.getStatus() != 201) {
-                throw new HugeException("Failed to create graph: " + GRAPH +
-                                        r.readEntity(String.class));
+                throw new HugeException(String.format(
+                        "Failed to initialize graph %s %s",GRAPH, r.readEntity(String.class)
+                ));
             }
         }
     }
