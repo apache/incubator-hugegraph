@@ -48,10 +48,6 @@ auth.admin_pa=pa
 # auth client config
 #auth.remote_url=127.0.0.1:8899,127.0.0.1:8898,127.0.0.1:8897
 
-# for ConfigAuthenticator mode
-#auth.admin_token=
-#auth.user_tokens=[]
-
 # rpc server configs for multi graph-servers or raft-servers
 rpc.server_host=127.0.0.1
 rpc.server_port=$RPC_PORT$

@@ -186,6 +186,7 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public static Context getContext() {
         // Return task context first
         String taskContext = TaskManager.getContext();
+
         User user = User.fromJson(taskContext);
         if (user != null) {
             return new Context(user);
@@ -951,6 +952,14 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public void updateTime(Date updateTime) {
         this.verifyAnyPermission();
         this.hugegraph.updateTime(updateTime);
+    }
+
+    public static String username() {
+        Context context = HugeGraphAuthProxy.getContext();
+        if (context == null) {
+            return "anonymous";
+        }
+        return context.user.username();
     }
 
     private <V> Cache<Id, V> cache(String prefix, long capacity,
