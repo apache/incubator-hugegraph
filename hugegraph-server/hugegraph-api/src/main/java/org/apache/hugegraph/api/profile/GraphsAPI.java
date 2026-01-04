@@ -199,7 +199,7 @@ public class GraphsAPI extends API {
             }
         }
 
-        String creator = HugeGraphAuthProxy.getContext().user().username();
+        String creator = HugeGraphAuthProxy.username();
 
         if (StringUtils.isNotEmpty(clone)) {
             // Clone from existing graph
