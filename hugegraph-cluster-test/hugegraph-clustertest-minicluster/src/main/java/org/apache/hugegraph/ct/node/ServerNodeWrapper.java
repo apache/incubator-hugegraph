@@ -43,11 +43,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class ServerNodeWrapper extends AbstractNodeWrapper {
 
-    private static List<String> hgJars = new ArrayList<>();
+    private static List<String> hgJars = loadHgJarsOnce();
     public ServerNodeWrapper(int clusterIndex, int index) {
         super(clusterIndex, index);
         this.fileNames = new ArrayList<>(
@@ -59,7 +60,6 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
         this.startLine = "INFO: [HttpServer] Started.";
         createNodeDir(Paths.get(SERVER_PACKAGE_PATH), getNodePath());
         createLogDir();
-        loadHgJars();
     }
 
     private static void addJarsToClasspath(File directory, List<String> classpath) {
@@ -91,16 +91,18 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
         }
     }
 
-    private void loadHgJars(){
+    private static List<String> loadHgJarsOnce(){
+        ArrayList<String> jars = new ArrayList<>();
         try (InputStream is = ServerNodeWrapper.class.getResourceAsStream("/jar.txt");
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                hgJars.add(line);
+                jars.add(line);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
+        return Collections.unmodifiableList(jars);
     }
 
     @Override
