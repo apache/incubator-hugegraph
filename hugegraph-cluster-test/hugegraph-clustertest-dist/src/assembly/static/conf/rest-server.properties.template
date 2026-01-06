@@ -34,10 +34,14 @@ arthas.ip=127.0.0.1
 arthas.disabled_commands=jad
 
 # authentication configs
-# choose 'org.apache.hugegraph.auth.StandardAuthenticator' or a custom implementation
-#auth.authenticator=
-# for admin password, By default, it is pa and takes effect upon the first startup
-#auth.admin_pa=pa
+# choose 'org.apache.hugegraph.auth.StandardAuthenticator' or
+# 'org.apache.hugegraph.auth.ConfigAuthenticator'
+auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator
+# true if using hstore mode
+usePD=true
+
+# default password
+auth.admin_pa=pa
 
 # for StandardAuthenticator mode
 #auth.graph_store=hugegraph
