@@ -1615,9 +1615,9 @@ public final class GraphManager {
             if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
                 if (this.requireAuthentication()) {
-                    String token = config.get(ServerOptions.AUTH_ADMIN_TOKEN);
+                    String adminPassword = config.get(ServerOptions.ADMIN_PA);
                     try {
-                        this.authenticator().initAdminUser(token);
+                        this.authenticator().initAdminUser(adminPassword);
                     } catch (Exception e) {
                         throw new BackendException(
                                 "The backend store of '%s' can't " +
