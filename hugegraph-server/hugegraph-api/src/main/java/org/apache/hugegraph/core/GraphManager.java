@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -1637,10 +1638,12 @@ public final class GraphManager {
     private void initNodeRole() {
         String id = config.get(ServerOptions.SERVER_ID);
         String role = config.get(ServerOptions.SERVER_ROLE);
-        E.checkArgument(StringUtils.isNotEmpty(id),
-                        "The server name can't be null or empty");
-        E.checkArgument(StringUtils.isNotEmpty(role),
-                        "The server role can't be null or empty");
+
+        // Auto-generate server.id if not configured (for single-node mode)
+        if (StringUtils.isEmpty(id)) {
+            id = "server-" + UUID.randomUUID().toString().substring(0, 8);
+            LOG.info("Auto-generated server.id: {}", id);
+        }
 
         NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
         boolean supportRoleElection = !nodeRole.computer() &&
