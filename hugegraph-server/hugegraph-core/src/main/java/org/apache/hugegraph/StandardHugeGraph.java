@@ -176,7 +176,6 @@ public class StandardHugeGraph implements HugeGraph {
     private final BackendStoreProvider storeProvider;
     private final TinkerPopTransaction tx;
     private final RamTable ramtable;
-    private final String schedulerType;
     private volatile boolean started;
     private volatile boolean closed;
     private volatile GraphMode mode;
@@ -229,7 +228,6 @@ public class StandardHugeGraph implements HugeGraph {
         this.closed = false;
         this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.OLTP_ONLY;
-        this.schedulerType = config.get(CoreOptions.SCHEDULER_TYPE);
 
         LockUtil.init(this.spaceGraphName());
 
@@ -315,6 +313,7 @@ public class StandardHugeGraph implements HugeGraph {
         return this.storeProvider.type();
     }
 
+    @Override
     public BackendStoreInfo backendStoreInfo() {
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
         // TODO: pass storeProvider.metaStore()
@@ -465,6 +464,7 @@ public class StandardHugeGraph implements HugeGraph {
         this.updateTime = updateTime;
     }
 
+    @Override
     public void waitStarted() {
         // Just for trigger Tx.getOrNewTransaction, then load 3 stores
         this.schemaTransaction();
@@ -1629,7 +1629,8 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public String schedulerType() {
-            return StandardHugeGraph.this.schedulerType;
+            // Use distributed scheduler for hstore backend, otherwise use local
+            return StandardHugeGraph.this.isHstore() ? "distributed" : "local";
         }
     }
 
