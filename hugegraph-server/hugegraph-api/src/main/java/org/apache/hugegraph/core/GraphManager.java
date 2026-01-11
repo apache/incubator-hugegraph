@@ -196,7 +196,14 @@ public final class GraphManager {
     public GraphManager(HugeConfig conf, EventHub hub) {
         LOG.info("Init graph manager");
         E.checkArgumentNotNull(conf, "The config can't be null");
+
+        // Auto-generate server.id if not configured
         String server = conf.get(ServerOptions.SERVER_ID);
+        if (StringUtils.isEmpty(server)) {
+            server = "server-" + UUID.randomUUID().toString().substring(0, 8);
+            LOG.info("Auto-generated server.id: {}", server);
+            conf.setProperty(ServerOptions.SERVER_ID.name(), server);
+        }
         String role = conf.get(ServerOptions.SERVER_ROLE);
 
         this.config = conf;
@@ -207,10 +214,6 @@ public final class GraphManager {
                 conf.get(ServerOptions.SERVER_DEPLOY_IN_K8S);
         this.startIgnoreSingleGraphError = conf.get(
                 ServerOptions.SERVER_START_IGNORE_SINGLE_GRAPH_ERROR);
-        E.checkArgument(server != null && !server.isEmpty(),
-                        "The server name can't be null or empty");
-        E.checkArgument(role != null && !role.isEmpty(),
-                        "The server role can't be null or empty");
         this.graphsDir = conf.get(ServerOptions.GRAPHS);
         this.cluster = conf.get(ServerOptions.CLUSTER);
         this.graphSpaces = new ConcurrentHashMap<>();
@@ -1638,12 +1641,6 @@ public final class GraphManager {
     private void initNodeRole() {
         String id = config.get(ServerOptions.SERVER_ID);
         String role = config.get(ServerOptions.SERVER_ROLE);
-
-        // Auto-generate server.id if not configured (for single-node mode)
-        if (StringUtils.isEmpty(id)) {
-            id = "server-" + UUID.randomUUID().toString().substring(0, 8);
-            LOG.info("Auto-generated server.id: {}", id);
-        }
 
         NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
         boolean supportRoleElection = !nodeRole.computer() &&
