@@ -225,7 +225,7 @@ mvn test -pl hugegraph-server/hugegraph-test -am -P core-test,memory -Dtest=Your
 
 ### Working with Distributed Components
 
-The distributed architecture (PD + Store) is in BETA. For distributed development:
+For distributed development:
 1. Build struct module first: `mvn install -pl hugegraph-struct -am -DskipTests`
 2. Build PD: `mvn clean package -pl hugegraph-pd -am -DskipTests`
 3. Build Store: `mvn clean package -pl hugegraph-store -am -DskipTests`

@@ -39,8 +39,10 @@ if [[ ! -e "$SERVER_DIR/ikanalyzer-2012_u6.jar" ]]; then
 fi
 
 # config rest-server
-sed -i 's/#auth.authenticator=/auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator/' $REST_SERVER_CONF
-sed -i 's/#auth.admin_token=/auth.admin_token=pa/' $REST_SERVER_CONF
+sed -i '/^#*auth\.authenticator=/d' $REST_SERVER_CONF
+sed -i '/^#*auth\.admin_token=/d' $REST_SERVER_CONF
+echo "auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator" >> $REST_SERVER_CONF
+echo "auth.admin_token=pa" >> $REST_SERVER_CONF
 
 # config hugegraph.properties
 sed -i 's/gremlin.graph=.*/gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy/' $CONF
