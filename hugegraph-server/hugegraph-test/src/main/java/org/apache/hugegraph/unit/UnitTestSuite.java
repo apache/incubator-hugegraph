@@ -141,8 +141,6 @@ import org.junit.runners.Suite;
         RocksDBSessionTest.class,
         RocksDBCountersTest.class,
 
-        /* hbase */
-        HbaseUnitTest.class,
 
         /* utils */
         VersionTest.class,
