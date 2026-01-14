@@ -692,23 +692,30 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
 
         SchemaManager schema = graph().schema();
 
-        // Create label with TTL
+        schema.propertyKey("born").asDate().ifNotExist().create();
+
+        // Create label with TTL and ttlStartTime
         VertexLabel person = schema.vertexLabel("person")
-                                   .properties("name", "age", "city")
+                                   .properties("name", "age", "city", "born")
                                    .ttl(86400L)
+                                   .ttlStartTime("born")
                                    .create();
 
         Assert.assertNotNull(person);
         Assert.assertEquals(86400L, person.ttl());
+        Assert.assertNotNull(person.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(person.ttlStartTime()), "born");
 
         // Append property WITHOUT specifying ttl
         person = schema.vertexLabel("person")
                        .nullableKeys("city")
                        .append();
 
-        // TTL should remain unchanged
+        // Both TTL and ttlStartTime should remain unchanged
         Assert.assertNotNull(person);
         Assert.assertEquals(86400L, person.ttl());
+        Assert.assertNotNull(person.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(person.ttlStartTime()), "born");
     }
 
     @Test

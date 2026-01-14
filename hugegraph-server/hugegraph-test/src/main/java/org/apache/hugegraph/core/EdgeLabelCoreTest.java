@@ -642,6 +642,8 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
 
         SchemaManager schema = graph().schema();
 
+        schema.propertyKey("date").asDate().ifNotExist().create();
+
         schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
@@ -653,23 +655,28 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
               .primaryKeys("name")
               .create();
 
-        // Create edge label with TTL
+        // Create edge label with TTL and ttlStartTime
         EdgeLabel read = schema.edgeLabel("read").link("person", "book")
-                               .properties("time", "weight")
+                               .properties("date", "weight")
                                .ttl(86400L)
+                               .ttlStartTime("date")
                                .create();
 
         Assert.assertNotNull(read);
         Assert.assertEquals(86400L, read.ttl());
+        Assert.assertNotNull(read.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(read.ttlStartTime()), "date");
 
         // Append property WITHOUT specifying ttl
         read = schema.edgeLabel("read")
                      .nullableKeys("weight")
                      .append();
 
-        // TTL should remain unchanged
+        // Both TTL and ttlStartTime should remain unchanged
         Assert.assertNotNull(read);
         Assert.assertEquals(86400L, read.ttl());
+        Assert.assertNotNull(read.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(read.ttlStartTime()), "date");
     }
 
     @Test
