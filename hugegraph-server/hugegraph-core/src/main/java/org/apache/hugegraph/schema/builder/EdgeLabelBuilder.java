@@ -122,11 +122,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
         }
         edgeLabel.frequency(this.frequency == Frequency.DEFAULT ?
                             Frequency.SINGLE : this.frequency);
-        edgeLabel.ttl(this.ttl);
-        if (this.ttlStartTime != null) {
-            edgeLabel.ttlStartTime(this.graph().propertyKey(
-                    this.ttlStartTime).id());
-        }
+        this.updateTTL(edgeLabel);
         edgeLabel.enableLabelIndex(this.enableLabelIndex == null ||
                                    this.enableLabelIndex);
         for (String key : this.properties) {
@@ -209,7 +205,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
             this.checkSortKeys();
             this.checkNullableKeys(Action.INSERT);
             Userdata.check(this.userdata, Action.INSERT);
-            this.checkTtl();
+            this.checkTTL();
             this.checkUserdata(Action.INSERT);
 
             edgeLabel = this.build();
@@ -312,6 +308,7 @@ public class EdgeLabelBuilder extends AbstractBuilder
             PropertyKey propertyKey = this.graph().propertyKey(key);
             edgeLabel.nullableKey(propertyKey.id());
         }
+        this.updateTTL(edgeLabel);
         edgeLabel.userdata(this.userdata);
         this.graph().updateEdgeLabel(edgeLabel);
         return edgeLabel;
@@ -670,7 +667,16 @@ public class EdgeLabelBuilder extends AbstractBuilder
         }
     }
 
-    private void checkTtl() {
+    private void updateTTL(EdgeLabel edgeLabel) {
+        if (this.ttl > 0L) {
+            edgeLabel.ttl(this.ttl);
+            if (this.ttlStartTime != null) {
+                edgeLabel.ttlStartTime(this.graph().propertyKey(this.ttlStartTime).id());
+            }
+        }
+    }
+
+    private void checkTTL() {
         E.checkArgument(this.ttl >= 0,
                         "The ttl must be >= 0, but got: %s", this.ttl);
         if (this.ttl == 0L) {

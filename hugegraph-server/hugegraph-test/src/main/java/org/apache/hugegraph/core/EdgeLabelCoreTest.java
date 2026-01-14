@@ -480,7 +480,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddEdgeLabelWithTtl() {
+    public void testAddEdgeLabelWithTTL() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();
@@ -559,6 +559,44 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(86400L, write.ttl());
         Assert.assertNotNull(write.ttlStartTime());
         assertContainsPk(ImmutableSet.of(write.ttlStartTime()), "date");
+    }
+
+    @Test
+    public void testAppendEdgeLabelWithTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("date").asDate().ifNotExist().create();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        // Create an edge label without TTL
+        EdgeLabel read = schema.edgeLabel("read").link("person", "book")
+                               .properties("date", "weight")
+                               .create();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(0L, read.ttl());
+
+        // Update the edge label with TTL via append
+        read = schema.edgeLabel("read")
+                     .ttl(86400L)
+                     .append();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(86400L, read.ttl());
     }
 
     @Test
