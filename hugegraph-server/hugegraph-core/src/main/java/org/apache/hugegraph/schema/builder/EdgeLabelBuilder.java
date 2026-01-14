@@ -667,12 +667,21 @@ public class EdgeLabelBuilder extends AbstractBuilder
         }
     }
 
+    /**
+     * Update TTL in two cases:
+     * 1) ttl > 0L: set or change a positive TTL
+     * 2) ttl == 0L and existing ttl > 0L: explicitly clear an existing TTL
+     * This allows removing TTL from a label that previously had TTL configured.
+     */
     private void updateTTL(EdgeLabel edgeLabel) {
         if (this.ttl > 0L) {
             edgeLabel.ttl(this.ttl);
             if (this.ttlStartTime != null) {
                 edgeLabel.ttlStartTime(this.graph().propertyKey(this.ttlStartTime).id());
             }
+        } else if (this.ttl == 0L && edgeLabel.ttl() > 0L) {
+            edgeLabel.ttl(0L);
+            edgeLabel.ttlStartTime(IdGenerator.ZERO);
         }
     }
 

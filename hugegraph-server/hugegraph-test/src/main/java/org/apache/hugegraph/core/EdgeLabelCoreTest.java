@@ -600,6 +600,43 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAppendEdgeLabelResetTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        // Create an edge label with TTL
+        EdgeLabel read = schema.edgeLabel("read").link("person", "book")
+                               .properties("time", "weight")
+                               .ttl(86400L)
+                               .create();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(86400L, read.ttl());
+
+        // Reset TTL to 0 via append
+        read = schema.edgeLabel("read")
+                     .ttl(0L)
+                     .append();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(0L, read.ttl());
+    }
+
+    @Test
     public void testAppendEdgeLabelWithUndefinedNullableKeys() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();

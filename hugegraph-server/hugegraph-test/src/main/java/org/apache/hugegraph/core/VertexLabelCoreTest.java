@@ -661,6 +661,32 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testAppendVertexLabelResetTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        // Create a vertex label with TTL
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .ttl(86400L)
+                                   .create();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(86400L, person.ttl());
+
+        // Reset TTL to 0 via append
+        person = schema.vertexLabel("person")
+                       .ttl(0L)
+                       .append();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(0L, person.ttl());
+    }
+
+    @Test
     public void testAppendVertexLabelWithUndefinedNullableKeys() {
         super.initPropertyKeys();
         SchemaManager schema = graph().schema();
