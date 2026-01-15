@@ -315,7 +315,11 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
         // Task not running locally, update status to CANCELLING
         // for cronSchedule() or other nodes to handle
-        this.updateStatus(task.id(), null, TaskStatus.CANCELLING);
+        TaskStatus currentStatus = task.status();
+        if (!this.updateStatus(task.id(), currentStatus, TaskStatus.CANCELLING)) {
+            LOG.info("Failed to cancel task '{}', status may have changed from {}",
+                     task.id(), currentStatus);
+        }
     }
 
     @Override
@@ -340,9 +344,6 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     @Override
     public <V> HugeTask<V> delete(Id id, boolean force) {
         HugeTask<?> task = this.taskWithoutResult(id);
-        if (task == null) {
-            return null;
-        }
 
         if (!force) {
             // Check task status: can't delete running tasks without force
@@ -515,11 +516,6 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     protected boolean updateStatus(Id id, TaskStatus prestatus,
                                    TaskStatus status) {
         HugeTask<Object> task = this.taskWithoutResult(id);
-        if (task == null) {
-            // Task was already deleted by cronSchedule or another thread
-            LOG.info("Task '{}' not found, may have been deleted", id);
-            return false;
-        }
         initTaskParams(task);
         if (prestatus == null || task.status() == prestatus) {
             task.overwriteStatus(status);
