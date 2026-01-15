@@ -371,7 +371,9 @@ public class HugeTask<V> extends FutureTask<V> {
     protected void set(V v) {
         String result = JsonUtil.toJson(v);
         checkPropertySize(result, P.RESULT);
-        assert this.result(TaskStatus.SUCCESS, result) || this.completed();
+        if (!this.result(TaskStatus.SUCCESS, result)) {
+            assert this.completed();
+        }
         // Will call done() and may cause to save to store
         super.set(v);
     }
