@@ -436,17 +436,15 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         long passes = seconds * 1000 / intervalMs;
         HugeTask<V> task = null;
         for (long pass = 0; ; pass++) {
-            HugeTask<V> previousTask = task;
-            task = this.taskWithoutResult(id);
-            if (task == null) {
-                // Task not found in DB
-                if (previousTask != null && previousTask.completed()) {
-                    // Task was completed and then deleted (ephemeral task case)
-                    assert previousTask.id().asLong() < 0L : previousTask.id();
+            try {
+                task = this.taskWithoutResult(id);
+            } catch (NotFoundException e) {
+                if (task != null && task.completed()) {
+                    assert task.id().asLong() < 0L : task.id();
                     sleep(intervalMs);
-                    return previousTask;
+                    return task;
                 }
-                throw new NotFoundException("Can't find task with id '%s'", id);
+                throw e;
             }
             if (task.completed()) {
                 // Wait for task result being set after status is completed

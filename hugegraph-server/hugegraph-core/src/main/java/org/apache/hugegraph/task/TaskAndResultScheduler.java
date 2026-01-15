@@ -219,6 +219,10 @@ public abstract class TaskAndResultScheduler implements TaskScheduler {
             return HugeTask.fromVertex(vertex);
         });
 
+        if (result == null) {
+            throw new NotFoundException("Can't find task with id '%s'", id);
+        }
+
         return result;
     }
 
