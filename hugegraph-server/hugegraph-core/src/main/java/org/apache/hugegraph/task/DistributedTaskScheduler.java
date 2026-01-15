@@ -295,6 +295,12 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         }
     }
 
+    /**
+     * Note: This method will update the status of the input task.
+     *
+     * @param task
+     * @param <V>
+     */
     @Override
     public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
@@ -309,6 +315,9 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         HugeTask<?> runningTask = this.runningTasks.get(task.id());
         if (runningTask != null) {
             boolean cancelled = runningTask.cancel(true);
+            if (cancelled) {
+                task.overwriteStatus(TaskStatus.CANCELLED);
+            }
             LOG.info("Cancel local running task '{}' result: {}", task.id(), cancelled);
             return;
         }
@@ -319,6 +328,8 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         if (!this.updateStatus(task.id(), currentStatus, TaskStatus.CANCELLING)) {
             LOG.info("Failed to cancel task '{}', status may have changed from {}",
                      task.id(), currentStatus);
+        } else {
+            task.overwriteStatus(TaskStatus.CANCELLING);
         }
     }
 
