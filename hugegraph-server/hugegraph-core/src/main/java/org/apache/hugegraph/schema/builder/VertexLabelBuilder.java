@@ -558,6 +558,8 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
 
     private void checkTTL() {
         if (this.ttl == null) {
+            E.checkArgument(this.ttlStartTime == null,
+                            "Can't set ttl start time if ttl is not set");
             return;
         }
         E.checkArgument(this.ttl >= 0,
