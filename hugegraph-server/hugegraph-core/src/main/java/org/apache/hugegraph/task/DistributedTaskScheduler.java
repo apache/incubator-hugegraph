@@ -19,7 +19,9 @@ package org.apache.hugegraph.task;
 
 import java.util.Iterator;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -117,6 +119,11 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     public void cronSchedule() {
         // Perform periodic scheduling tasks
+
+        // Check closed flag first to exit early
+        if (this.closed.get()) {
+            return;
+        }
 
         if (!this.graph.started() || this.graph.closed()) {
             return;
@@ -253,6 +260,10 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             return this.ephemeralTaskExecutor.submit(task);
         }
 
+        // Validate task state before saving to ensure correct exception type
+        E.checkState(task.type() != null, "Task type can't be null");
+        E.checkState(task.name() != null, "Task name can't be null");
+
         // Process schema task
         // Handle gremlin task
         // Handle OLAP calculation tasks
@@ -286,13 +297,25 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     @Override
     public <V> void cancel(HugeTask<V> task) {
-        // Update status to CANCELLING
-        if (!task.completed()) {
-            // Task not completed, can only execute status not CANCELLING
-            this.updateStatus(task.id(), null, TaskStatus.CANCELLING);
-        } else {
-            LOG.info("cancel task({}) error, task has completed", task.id());
+        E.checkArgumentNotNull(task, "Task can't be null");
+
+        if (task.completed() || task.cancelling()) {
+            return;
         }
+
+        LOG.info("Cancel task '{}' in status {}", task.id(), task.status());
+
+        // Check if task is running locally, cancel it directly if so
+        HugeTask<?> runningTask = this.runningTasks.get(task.id());
+        if (runningTask != null) {
+            boolean cancelled = runningTask.cancel(true);
+            LOG.info("Cancel local running task '{}' result: {}", task.id(), cancelled);
+            return;
+        }
+
+        // Task not running locally, update status to CANCELLING
+        // for cronSchedule() or other nodes to handle
+        this.updateStatus(task.id(), null, TaskStatus.CANCELLING);
     }
 
     @Override
@@ -316,14 +339,25 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     @Override
     public <V> HugeTask<V> delete(Id id, boolean force) {
-        if (!force) {
-            // Change status to DELETING, perform the deletion operation through automatic
-            // scheduling.
-            this.updateStatus(id, null, TaskStatus.DELETING);
+        HugeTask<?> task = this.taskWithoutResult(id);
+        if (task == null) {
             return null;
-        } else {
-            return this.deleteFromDB(id);
         }
+
+        if (!force) {
+            // Check task status: can't delete running tasks without force
+            if (!task.completed() && task.status() != TaskStatus.DELETING) {
+                throw new IllegalArgumentException(
+                        String.format("Can't delete incomplete task '%s' in status %s, " +
+                                      "Please try to cancel the task first",
+                                      id, task.status()));
+            }
+            // Already in DELETING status, delete directly from DB
+            // Completed tasks can also be deleted directly
+        }
+
+        // Delete from DB directly for completed/DELETING tasks or force=true
+        return this.deleteFromDB(id);
     }
 
     @Override
@@ -353,6 +387,18 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             cronFuture.cancel(false);
         }
 
+        // Wait for cron task to complete to ensure all transactions are closed
+        try {
+            cronFuture.get(schedulePeriod + 5, TimeUnit.SECONDS);
+        } catch (CancellationException e) {
+            // Task was cancelled, this is expected
+            LOG.debug("Cron task was cancelled");
+        } catch (TimeoutException e) {
+            LOG.warn("Cron task did not complete in time when closing scheduler");
+        } catch (ExecutionException | InterruptedException e) {
+            LOG.warn("Exception while waiting for cron task to complete", e);
+        }
+
         if (!this.taskDbExecutor.isShutdown()) {
             this.call(() -> {
                 try {
@@ -363,7 +409,10 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                 this.graph.closeTx();
             });
         }
-        return true;
+
+        //todo: serverInfoManager section should be removed in the future.
+        return this.serverManager().close();
+        //return true;
     }
 
     @Override
@@ -387,15 +436,17 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         long passes = seconds * 1000 / intervalMs;
         HugeTask<V> task = null;
         for (long pass = 0; ; pass++) {
-            try {
-                task = this.taskWithoutResult(id);
-            } catch (NotFoundException e) {
-                if (task != null && task.completed()) {
-                    assert task.id().asLong() < 0L : task.id();
+            HugeTask<V> previousTask = task;
+            task = this.taskWithoutResult(id);
+            if (task == null) {
+                // Task not found in DB
+                if (previousTask != null && previousTask.completed()) {
+                    // Task was completed and then deleted (ephemeral task case)
+                    assert previousTask.id().asLong() < 0L : previousTask.id();
                     sleep(intervalMs);
-                    return task;
+                    return previousTask;
                 }
-                throw e;
+                throw new NotFoundException("Can't find task with id '%s'", id);
             }
             if (task.completed()) {
                 // Wait for task result being set after status is completed
@@ -466,6 +517,11 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     protected boolean updateStatus(Id id, TaskStatus prestatus,
                                    TaskStatus status) {
         HugeTask<Object> task = this.taskWithoutResult(id);
+        if (task == null) {
+            // Task was already deleted by cronSchedule or another thread
+            LOG.info("Task '{}' not found, may have been deleted", id);
+            return false;
+        }
         initTaskParams(task);
         if (prestatus == null || task.status() == prestatus) {
             task.overwriteStatus(status);

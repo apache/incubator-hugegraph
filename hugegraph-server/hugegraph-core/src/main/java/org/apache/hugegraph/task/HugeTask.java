@@ -371,9 +371,7 @@ public class HugeTask<V> extends FutureTask<V> {
     protected void set(V v) {
         String result = JsonUtil.toJson(v);
         checkPropertySize(result, P.RESULT);
-        if (!this.result(TaskStatus.SUCCESS, result)) {
-            assert this.completed();
-        }
+        assert this.result(TaskStatus.SUCCESS, result) || this.completed();
         // Will call done() and may cause to save to store
         super.set(v);
     }
@@ -742,19 +740,26 @@ public class HugeTask<V> extends FutureTask<V> {
 
     public void syncWait() {
         // This method is just called by tests
+        /*
+         * For ephemeral tasks (negative ID), directly wait on the Future.
+         * Ephemeral tasks are not saved to DB, so we can't query them by ID.
+         * Since HugeTask extends FutureTask, we can directly wait for completion.
+         */
+        if (this.id().asLong() < 0) {
+            try {
+                this.get();
+            } catch (Exception e) {
+                throw new HugeException("Failed to wait for task '%s' completed",
+                                        e, this.id);
+            }
+            return;
+        }
+
+        // For normal tasks, wait through scheduler
         HugeTask<?> task = null;
         try {
             task = this.scheduler().waitUntilTaskCompleted(this.id());
         } catch (Throwable e) {
-            if (this.callable() instanceof EphemeralJob &&
-                e.getClass() == NotFoundException.class &&
-                e.getMessage().contains("Can't find task with id")) {
-                /*
-                 * The task with EphemeralJob won't saved in backends and
-                 * will be removed from memory when completed
-                 */
-                return;
-            }
             throw new HugeException("Failed to wait for task '%s' completed",
                                     e, this.id);
         }
