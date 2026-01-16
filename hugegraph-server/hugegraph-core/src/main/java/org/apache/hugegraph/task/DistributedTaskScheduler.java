@@ -357,14 +357,10 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     public <V> HugeTask<V> delete(Id id, boolean force) {
         HugeTask<?> task = this.taskWithoutResult(id);
 
-        if (!force) {
+        if (!force && !task.completed() && task.status() != TaskStatus.DELETING) {
             // Check task status: can't delete running tasks without force
-            if (!task.completed() && task.status() != TaskStatus.DELETING) {
-                throw new IllegalArgumentException(
-                        String.format("Can't delete incomplete task '%s' in status %s, " +
-                                      "Please try to cancel the task first",
-                                      id, task.status()));
-            }
+            this.updateStatus(id, null, TaskStatus.DELETING);
+            return null;
             // Already in DELETING status, delete directly from DB
             // Completed tasks can also be deleted directly
         }

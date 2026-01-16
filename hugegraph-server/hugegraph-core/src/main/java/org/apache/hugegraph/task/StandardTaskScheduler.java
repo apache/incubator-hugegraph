@@ -578,6 +578,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
     }
 
+    @Deprecated
     private void checkOnMasterNode(String op) {
         // Single-node mode: all operations are allowed, no role check needed
     }
