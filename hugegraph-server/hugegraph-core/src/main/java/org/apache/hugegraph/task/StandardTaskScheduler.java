@@ -28,7 +28,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -56,6 +55,8 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
+
+import com.google.common.collect.ImmutableMap;
 
 public class StandardTaskScheduler implements TaskScheduler {
 
@@ -266,7 +267,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         }
 
         throw new HugeException("Can't cancel task '%s' in status %s",
-                task.id(), task.status());
+                                task.id(), task.status());
     }
 
     @Override

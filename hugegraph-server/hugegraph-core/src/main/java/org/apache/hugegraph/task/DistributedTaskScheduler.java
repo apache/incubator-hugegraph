@@ -50,6 +50,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 public class DistributedTaskScheduler extends TaskAndResultScheduler {
+
     private static final Logger LOG = Log.logger(DistributedTaskScheduler.class);
     private final long schedulePeriod;
     private final ExecutorService taskDbExecutor;
