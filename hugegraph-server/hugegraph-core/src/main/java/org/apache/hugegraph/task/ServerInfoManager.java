@@ -17,7 +17,13 @@
 
 package org.apache.hugegraph.task;
 
-import com.google.common.collect.ImmutableMap;
+import static org.apache.hugegraph.backend.query.Query.NO_LIMIT;
+
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+
 import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
@@ -42,12 +48,7 @@ import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-
-import static org.apache.hugegraph.backend.query.Query.NO_LIMIT;
+import com.google.common.collect.ImmutableMap;
 
 public class ServerInfoManager {
 
@@ -114,7 +115,7 @@ public class ServerInfoManager {
             }
         }
         E.checkArgument(existed == null || !existed.alive(),
-                "The server with name '%s' already in cluster", serverId);
+                        "The server with name '%s' already in cluster", serverId);
 
         if (nodeInfo.nodeRole().master()) {
             String page = this.supportsPaging() ? PageInfo.PAGE_NONE : null;
@@ -123,8 +124,8 @@ public class ServerInfoManager {
                 while (servers.hasNext()) {
                     existed = servers.next();
                     E.checkArgument(!existed.role().master() || !existed.alive(),
-                            "Already existed master '%s' in current cluster",
-                            existed.id());
+                                    "Already existed master '%s' in current cluster",
+                                    existed.id());
                 }
                 if (page != null) {
                     page = PageInfo.pageInfo(servers);
@@ -231,7 +232,7 @@ public class ServerInfoManager {
             HugeServerInfo.Schema schema = HugeServerInfo.schema(this.graph);
             if (!schema.existVertexLabel(HugeServerInfo.P.SERVER)) {
                 throw new HugeException("Schema is missing for %s '%s'",
-                        HugeServerInfo.P.SERVER, serverInfo);
+                                        HugeServerInfo.P.SERVER, serverInfo);
             }
             HugeVertex vertex = this.tx().constructVertex(false, serverInfo.asArray());
             // Add or update server info in backend store
@@ -250,7 +251,7 @@ public class ServerInfoManager {
             return this.dbExecutor.submit(callable).get();
         } catch (Throwable e) {
             throw new HugeException("Failed to update/query server info: %s",
-                    e, e.toString());
+                                    e, e.toString());
         }
     }
 
