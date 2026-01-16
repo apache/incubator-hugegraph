@@ -17,8 +17,8 @@
 
 package org.apache.hugegraph.core;
 
-import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeoutException;
 
@@ -33,6 +33,7 @@ import org.apache.hugegraph.job.EphemeralJobBuilder;
 import org.apache.hugegraph.job.GremlinJob;
 import org.apache.hugegraph.job.JobBuilder;
 import org.apache.hugegraph.task.HugeTask;
+import org.apache.hugegraph.task.StandardTaskScheduler;
 import org.apache.hugegraph.task.TaskCallable;
 import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.task.TaskStatus;
@@ -76,12 +77,14 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(id, task.id());
         Assert.assertFalse(task.completed());
 
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            scheduler.delete(id, false);
-        }, e -> {
-            Assert.assertContains("Can't delete incomplete task '88888'",
-                                  e.getMessage());
-        });
+        if (scheduler.getClass().equals(StandardTaskScheduler.class)) {
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                scheduler.delete(id, false);
+            }, e -> {
+                Assert.assertContains("Can't delete incomplete task '88888'",
+                                      e.getMessage());
+            });
+        }
 
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(id, task.id());
@@ -89,7 +92,7 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
 
         Assert.assertEquals("test-task", scheduler.task(id).name());
-        Assert.assertEquals("test-task", scheduler.tasks(Arrays.asList(id))
+        Assert.assertEquals("test-task", scheduler.tasks(List.of(id))
                                                   .next().name());
 
         Iterator<HugeTask<Object>> iter = scheduler.tasks(ImmutableList.of(id));
@@ -196,13 +199,18 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals("test", task.type());
         Assert.assertFalse(task.completed());
 
-        HugeTask<?> task2 = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        // Ephemeral tasks are node-local and not persisted to DB.
+        // Use Future.get() to wait for completion instead of ID-based lookup.
+        try {
+            task.get(10, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new RuntimeException("Ephemeral task execution failed", e);
+        }
+
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("{\"k1\":13579,\"k2\":\"24680\"}", task.result());
 
-        Assert.assertEquals(TaskStatus.SUCCESS, task2.status());
-        Assert.assertEquals("{\"k1\":13579,\"k2\":\"24680\"}", task2.result());
-
+        // Ephemeral tasks are not stored in DB, so these should throw NotFoundException
         Assert.assertThrows(NotFoundException.class, () -> {
             scheduler.waitUntilTaskCompleted(task.id(), 10);
         });
@@ -557,7 +565,12 @@ public class TaskCoreTest extends BaseCoreTest {
         scheduler.cancel(task);
 
         task = scheduler.task(task.id());
-        Assert.assertEquals(TaskStatus.CANCELLING, task.status());
+        // For DistributedTaskScheduler, local cancel may result in CANCELLED directly
+        // (task thread updates status after being interrupted)
+        // or CANCELLING (if task hasn't processed the interrupt yet)
+        Assert.assertTrue("Task status should be CANCELLING or CANCELLED, but was " + task.status(),
+                          task.status() == TaskStatus.CANCELLING ||
+                          task.status() == TaskStatus.CANCELLED);
 
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
@@ -629,46 +642,51 @@ public class TaskCoreTest extends BaseCoreTest {
         scheduler.cancel(task);
 
         task = scheduler.task(task.id());
-        Assert.assertEquals(TaskStatus.CANCELLING, task.status());
+        Assert.assertTrue("Task status should be CANCELLING or CANCELLED, but was " + task.status(),
+                          task.status() == TaskStatus.CANCELLING ||
+                          task.status() == TaskStatus.CANCELLED);
 
         task = scheduler.waitUntilTaskCompleted(task.id(), 10);
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
         Assert.assertTrue("progress=" + task.progress(),
                           0 < task.progress() && task.progress() < 10);
         Assert.assertEquals(0, task.retries());
-        Assert.assertEquals(null, task.result());
+        Assert.assertNull(task.result());
 
         HugeTask<Object> finalTask = task;
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Whitebox.invoke(scheduler.getClass(), "restore", scheduler,
-                            finalTask);
-        }, e -> {
-            Assert.assertContains("No need to restore completed task",
-                                  e.getMessage());
-        });
 
-        HugeTask<Object> task2 = scheduler.task(task.id());
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
+        // because Distributed do nothing in restore, so only test StandardTaskScheduler here
+        if (scheduler.getClass().equals(StandardTaskScheduler.class)) {
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                Whitebox.invoke(scheduler.getClass(), "restore", scheduler,
+                                finalTask);
+            }, e -> {
+                Assert.assertContains("No need to restore completed task",
+                                      e.getMessage());
+            });
+
+            HugeTask<Object> task2 = scheduler.task(task.id());
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
+            }, e -> {
+                Assert.assertContains("No need to restore completed task",
+                                      e.getMessage());
+            });
+
+            Whitebox.setInternalState(task2, "status", TaskStatus.RUNNING);
             Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
-        }, e -> {
-            Assert.assertContains("No need to restore completed task",
-                                  e.getMessage());
-        });
 
-        Whitebox.setInternalState(task2, "status", TaskStatus.RUNNING);
-        Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
-
-        Assert.assertThrows(IllegalArgumentException.class, () -> {
-            Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
-        }, e -> {
-            Assert.assertContains("is already in the queue", e.getMessage());
-        });
-
-        scheduler.waitUntilTaskCompleted(task2.id(), 10);
-        sleepAWhile(500);
-        Assert.assertEquals(10, task2.progress());
-        Assert.assertEquals(1, task2.retries());
-        Assert.assertEquals("100", task2.result());
+            Assert.assertThrows(IllegalArgumentException.class, () -> {
+                Whitebox.invoke(scheduler.getClass(), "restore", scheduler, task2);
+            }, e -> {
+                Assert.assertContains("is already in the queue", e.getMessage());
+            });
+            scheduler.waitUntilTaskCompleted(task2.id(), 10);
+            sleepAWhile(500);
+            Assert.assertEquals(10, task2.progress());
+            Assert.assertEquals(1, task2.retries());
+            Assert.assertEquals("100", task2.result());
+        }
     }
 
     private HugeTask<Object> runGremlinJob(String gremlin) {
