@@ -25,6 +25,7 @@ import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Assume;
 
 import java.io.IOException;
 
@@ -39,6 +40,10 @@ public class BaseHbaseUnitTest extends BaseUnitTest {
     @Before
     public void setup() throws IOException {
         Configuration conf = Utils.getConf();
+        String backend = conf.getString("backend", "memory");
+        // Only run HBase related tests when backend is hbase
+        Assume.assumeTrue("Skip HBase tests when backend is not hbase",
+                          "hbase".equalsIgnoreCase(backend));
         this.config = new HugeConfig(conf);
         this.provider = new HbaseStoreProvider();
         try {
