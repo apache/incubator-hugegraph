@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.apache.hugegraph.backend.BackendException;
 import org.apache.hugegraph.backend.id.Id;
@@ -54,7 +55,6 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
     private final BackendStoreProvider provider;
 
     private final Map<HugeType, MysqlTable> tables;
-
     private MysqlSessions sessions;
 
     public MysqlStore(final BackendStoreProvider provider,
@@ -336,13 +336,21 @@ public abstract class MysqlStore extends AbstractBackendStore<Session> {
 
     protected void truncateTables() {
         Session session = this.sessions.session();
-        for (MysqlTable table : this.tables()) {
+        for (MysqlTable table : this.getTruncatedTables()) {
             table.truncate(session);
         }
     }
 
     protected Collection<MysqlTable> tables() {
         return this.tables.values();
+    }
+
+    protected Collection<MysqlTable> getTruncatedTables() {
+        // Exclude meta table to preserve system metadata during graph clear
+        return this.tables.entrySet().stream()
+                          .filter(e -> !(HugeType.META == e.getKey()))
+                          .map(Map.Entry::getValue)
+                          .collect(Collectors.toList());
     }
 
     @Override
