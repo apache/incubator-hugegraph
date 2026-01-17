@@ -132,7 +132,6 @@ import org.junit.runners.Suite;
         /* mysql */
         MysqlUtilTest.class,
         WhereBuilderTest.class,
-        BaseMysqlUnitTest.class,
         MysqlTest.class,
 
         /* rocksdb */

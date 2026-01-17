@@ -24,6 +24,7 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.junit.After;
+import org.junit.Assume;
 
 public class BaseMysqlUnitTest extends BaseUnitTest {
 
@@ -35,6 +36,10 @@ public class BaseMysqlUnitTest extends BaseUnitTest {
 
     public void setup() throws Exception {
         Configuration conf = Utils.getConf();
+        String backend = conf.getString("backend", "memory");
+        // Only run mysql related tests when backend is mysql
+        Assume.assumeTrue("Skip MySQL tests when backend is not mysql",
+                          "mysql".equalsIgnoreCase(backend));
         this.config = new HugeConfig(conf);
         this.provider = new MysqlStoreProvider();
         this.provider.open(GRAPH_NAME);
