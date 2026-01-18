@@ -51,8 +51,6 @@ public class BaseHbaseUnitTest extends BaseUnitTest {
             this.provider.loadSystemStore(config).open(config);
             this.provider.loadGraphStore(config).open(config);
             this.provider.loadSchemaStore(config).open(config);
-            // ensure back is clear
-            this.provider.truncate();
             this.provider.init();
             this.sessions = new HbaseSessions(config, GRAPH_NAME, this.provider.loadGraphStore(config).store());
             this.sessions.open();
