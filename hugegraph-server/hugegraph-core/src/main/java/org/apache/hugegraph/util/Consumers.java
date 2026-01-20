@@ -104,10 +104,25 @@ public final class Consumers<V> {
         LOG.info("Starting {} workers[{}] with queue size {}...",
                  this.workers, name, this.queueSize);
         for (int i = 0; i < this.workers; i++) {
-            this.runningFutures.add(
-                    this.executor.submit(new ContextCallable<>(this::runAndDone)));
+            this.runningFutures.add(this.executor.submit(this::safeRun));
         }
+
     }
+    private Void safeRun() {
+        try {
+            new ContextCallable<>(this::runAndDone).call();
+        } catch (Throwable e) {
+            LOG.error("Worker failed before runAndDone()", e);
+            if (this.exception == null) {
+                this.exception = e;
+            }
+            exceptionHandle(e);
+        } finally {
+            this.latch.countDown();
+        }
+        return null;
+    }
+
 
     private Void runAndDone() {
         try {
@@ -124,7 +139,6 @@ public final class Consumers<V> {
             exceptionHandle(e);
         } finally {
             this.done();
-            this.latch.countDown();
         }
         return null;
     }
