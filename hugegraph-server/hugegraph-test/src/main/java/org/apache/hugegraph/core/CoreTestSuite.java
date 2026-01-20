@@ -26,7 +26,6 @@ import org.apache.hugegraph.meta.PdMetaDriver;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.util.Log;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -55,8 +54,11 @@ public class CoreTestSuite {
     private static HugeGraph graph = null;
 
     public static HugeGraph graph() {
-        Assert.assertNotNull(graph);
         //Assert.assertFalse(graph.closed());
+        if (graph == null) {
+            initEnv();
+            init();
+        }
         return graph;
     }
 
