@@ -123,7 +123,6 @@ public final class Consumers<V> {
         return null;
     }
 
-
     private Void runAndDone() {
         try {
             this.run();
