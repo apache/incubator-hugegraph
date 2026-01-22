@@ -101,22 +101,32 @@ public final class Consumers<V> {
         if (this.executor == null) {
             return;
         }
+
         LOG.info("Starting {} workers[{}] with queue size {}...",
                  this.workers, name, this.queueSize);
-        for (int i = 0; i < this.workers; i++) {
-            this.runningFutures.add(this.executor.submit(this::safeRun));
-        }
 
+        for (int i = 0; i < this.workers; i++) {
+            // capture submission thread context HERE
+            ContextCallable<Void> task = new ContextCallable<>(this::runAndDone);
+
+            // wrapper ensures latch always decremented even if ContextCallable fails
+            this.runningFutures.add(this.executor.submit(() -> this.safeRun(task)));
+        }
     }
-    private Void safeRun() {
+
+    private Void safeRun(ContextCallable<Void> task) {
         try {
-            new ContextCallable<>(this::runAndDone).call();
-        } catch (Throwable e) {
-            LOG.error("Worker failed before runAndDone()", e);
+            return task.call(); // may fail before/after runAndDone()
+        } catch (Exception e) {
+            // This exception is from ContextCallable wrapper (setContext/resetContext/delegate dispatch),
+            // not from runAndDone() business logic (that one is handled inside runAndDone()).
             if (this.exception == null) {
                 this.exception = e;
+                LOG.error("Consumer worker failed in ContextCallable wrapper", e);
+            } else {
+                LOG.warn("Additional worker failure in ContextCallable wrapper; first exception already recorded", e);
             }
-            exceptionHandle(e);
+            this.exceptionHandle(e);
         } finally {
             this.latch.countDown();
         }
@@ -126,16 +136,19 @@ public final class Consumers<V> {
     private Void runAndDone() {
         try {
             this.run();
-        } catch (Throwable e) {
+        } catch (Exception e) {
             if (e instanceof StopExecution) {
                 this.queue.clear();
                 putQueueEnd();
             } else {
-                // Only the first exception to one thread can be stored
-                this.exception = e;
-                LOG.error("Error when running task", e);
+                if (this.exception == null) {
+                    this.exception = e;
+                    LOG.error("Unhandled exception in consumer task", e);
+                } else {
+                    LOG.warn("Additional exception in consumer task; first exception already recorded", e);
+                }
             }
-            exceptionHandle(e);
+            this.exceptionHandle(e);
         } finally {
             this.done();
         }
