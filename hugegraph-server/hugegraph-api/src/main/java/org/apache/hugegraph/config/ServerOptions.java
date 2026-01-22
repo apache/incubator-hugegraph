@@ -389,7 +389,7 @@ public class ServerOptions extends OptionHolder {
                     "batch.max_vertices_per_batch",
                     "The maximum number of vertices submitted per batch.",
                     positiveInt(),
-                    500
+                    2500
             );
 
     public static final ConfigOption<Integer> MAX_EDGES_PER_BATCH =
@@ -397,7 +397,7 @@ public class ServerOptions extends OptionHolder {
                     "batch.max_edges_per_batch",
                     "The maximum number of edges submitted per batch.",
                     positiveInt(),
-                    500
+                    2500
             );
 
     public static final ConfigOption<Integer> MAX_WRITE_RATIO =
@@ -406,7 +406,7 @@ public class ServerOptions extends OptionHolder {
                     "The maximum thread ratio for batch writing, " +
                     "only take effect if the batch.max_write_threads is 0.",
                     rangeInt(0, 100),
-                    50
+                    70
             );
 
     public static final ConfigOption<Integer> MAX_WRITE_THREADS =
