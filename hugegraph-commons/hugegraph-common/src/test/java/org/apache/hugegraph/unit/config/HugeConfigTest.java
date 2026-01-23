@@ -32,6 +32,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.configuration2.AbstractConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.convert.DisabledListDelimiterHandler;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
+import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.config.ConfigConvOption;
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.config.ConfigListConvOption;
@@ -42,15 +51,6 @@ import org.apache.hugegraph.config.OptionHolder;
 import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
-import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.configuration2.AbstractConfiguration;
-import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.MapConfiguration;
-import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.convert.DisabledListDelimiterHandler;
-import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.commons.configuration2.io.FileHandler;
-import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -429,6 +429,45 @@ public class HugeConfigTest extends BaseUnitTest {
         Assert.assertTrue(values.contains("b"));
     }
 
+    @Test
+    public void testUrlOptionNormalizeAddsDefaultScheme() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("restserver.url", "127.0.0.1:8080");
+        map.put("gremlinserver.url", "127.0.0.1:8182");
+        map.put("server.urls_to_pd", "0.0.0.0:8080");
+        map.put("server.k8s_url", "127.0.0.1:8888");
+
+        HugeConfig config = new HugeConfig(map);
+
+        Assert.assertEquals("http://127.0.0.1:8080",
+                            config.get(UrlOptions.restUrl));
+        Assert.assertEquals("http://127.0.0.1:8182",
+                            config.get(UrlOptions.gremlinUrl));
+        Assert.assertEquals("http://0.0.0.0:8080",
+                            config.get(UrlOptions.urlsToPd));
+
+        // critical corner case: must NOT downgrade to http
+        Assert.assertEquals("https://127.0.0.1:8888",
+                            config.get(UrlOptions.k8sUrl));
+    }
+
+    @Test
+    public void testUrlOptionNormalizeKeepsExistingScheme() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("restserver.url", "https://127.0.0.1:8080");
+        map.put("gremlinserver.url", "http://127.0.0.1:8182");
+        map.put("server.k8s_url", "http://127.0.0.1:8888");
+
+        HugeConfig config = new HugeConfig(map);
+
+        Assert.assertEquals("https://127.0.0.1:8080",
+                            config.get(UrlOptions.restUrl));
+        Assert.assertEquals("http://127.0.0.1:8182",
+                            config.get(UrlOptions.gremlinUrl));
+        Assert.assertEquals("http://127.0.0.1:8888",
+                            config.get(UrlOptions.k8sUrl));
+    }
+
     public static class TestOptions extends OptionHolder {
 
         private static volatile TestOptions instance;
@@ -583,6 +622,54 @@ public class HugeConfigTest extends BaseUnitTest {
                         "description of group1.textsub",
                         disallowEmpty(),
                         "textsub-value"
+                );
+    }
+
+    /**
+     * Added: URL option holder to test HugeConfig URL normalization logic.
+     */
+    public static class UrlOptions extends OptionHolder {
+
+        private static volatile UrlOptions instance;
+
+        public static synchronized UrlOptions instance() {
+            if (instance == null) {
+                instance = new UrlOptions();
+                instance.registerOptions();
+            }
+            return instance;
+        }
+
+        public static final ConfigOption<String> restUrl =
+                new ConfigOption<>(
+                        "restserver.url",
+                        "rest url",
+                        disallowEmpty(),
+                        "http://127.0.0.1:8080"
+                );
+
+        public static final ConfigOption<String> gremlinUrl =
+                new ConfigOption<>(
+                        "gremlinserver.url",
+                        "gremlin url",
+                        disallowEmpty(),
+                        "http://127.0.0.1:8182"
+                );
+
+        public static final ConfigOption<String> urlsToPd =
+                new ConfigOption<>(
+                        "server.urls_to_pd",
+                        "urls to pd",
+                        disallowEmpty(),
+                        "http://0.0.0.0:8080"
+                );
+
+        public static final ConfigOption<String> k8sUrl =
+                new ConfigOption<>(
+                        "server.k8s_url",
+                        "k8s url",
+                        disallowEmpty(),
+                        "https://127.0.0.1:8888"
                 );
     }
 

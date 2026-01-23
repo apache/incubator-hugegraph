@@ -88,8 +88,12 @@ public class HugeConfig extends PropertiesConfiguration {
     public <T, R> R get(TypedOption<T, R> option) {
         Object value = this.getProperty(option.name());
         if (value == null) {
-            return option.defaultValue();
+            value = option.defaultValue();
         }
+
+        // Normalize URL options if needed (add scheme like http://)
+        value = normalizeUrlOptionIfNeeded(option.name(), value);
+
         return (R) value;
     }
 
@@ -212,5 +216,56 @@ public class HugeConfig extends PropertiesConfiguration {
             throw new ConfigException("Unable to load config: '%s'",
                                       e, configFile);
         }
+    }
+
+    private static Object normalizeUrlOptionIfNeeded(String key, Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        String scheme = defaultSchemeFor(key);
+        if (scheme == null) {
+            return value;
+        }
+
+        // URL options are defined as ConfigOption<String> and normalized here.
+        if (value instanceof String) {
+            return prefixSchemeIfMissing((String) value, scheme);
+        }
+
+        // If it ever hits here, it means config storage returned a non-string type;
+        // leave it unchanged (safer than forcing toString()).
+        return value;
+    }
+
+    private static String defaultSchemeFor(String key) {
+        switch (key) {
+            case "restserver.url":
+            case "gremlinserver.url":
+            case "server.urls_to_pd":
+                return "http://";
+            case "server.k8s_url":
+                return "https://";
+            default:
+                return null;
+        }
+    }
+
+    private static String prefixSchemeIfMissing(String raw, String scheme) {
+        if (raw == null) {
+            return null;
+        }
+        String s = raw.trim();
+        if (s.isEmpty()) {
+            return s;
+        }
+
+        // Keep original string if scheme already exists
+        String lower = s.toLowerCase();
+        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            return s;
+        }
+
+        return scheme + s;
     }
 }
