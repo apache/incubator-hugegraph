@@ -13,7 +13,7 @@ numeric or collection util classes to simplify the development of HugeGraph and 
 
 ## Components
 
-- Lock: atomic lock, key lock, lock group and lock manger
+- Lock: atomic lock, key lock, lock group and lock manager
 - Config: register and load config option with security check
 - Event: listening and notification, do something asynchronously
 - Iterator: some iterators with extra functions, map, filter, extend, etc.
