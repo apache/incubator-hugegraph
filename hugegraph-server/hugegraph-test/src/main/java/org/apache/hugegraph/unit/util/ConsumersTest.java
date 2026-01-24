@@ -27,7 +27,7 @@ import org.junit.Test;
 
 public class ConsumersTest {
 
-    @Test(timeout = 5000)
+    @Test(timeout = 1000)
     public void testStartProvideAwaitNormal() throws Throwable {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
@@ -50,7 +50,35 @@ public class ConsumersTest {
         }
     }
 
-    @Test(timeout = 5000)
+    /**
+     * Regression test for deadlock:
+     *
+     * ContextCallable fails before entering runAndDone().
+     * await() must still return because latch is decremented in safeRun().
+     */
+    @Test(timeout = 1000)
+    public void testAwaitDoesNotHangWhenContextCallableFails() throws Throwable {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Consumers<Integer> consumers = new Consumers<>(executor, v -> {
+                // Never reached
+            });
+
+            /*
+             * start() creates ContextCallable internally.
+             * If ContextCallable.call() fails before runAndDone(),
+             * safeRun().finally MUST count down the latch.
+             */
+            consumers.start("test");
+
+            // If the fix is missing, this call hangs forever.
+            consumers.await();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test(timeout = 1000)
     public void testAwaitThrowsWhenConsumerThrows() throws Throwable {
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {
