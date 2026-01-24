@@ -58,21 +58,23 @@ public class ConsumersTest {
      */
     @Test(timeout = 1000)
     public void testAwaitDoesNotHangWhenContextCallableFails() throws Throwable {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newFixedThreadPool(1);
         try {
+            // Use AssertionError to bypass the inner catch(Exception) loop in runAndDone()
+            // This simulates a scenario where an exception escapes the task logic
+            // (similar to how a ContextCallable failure would behave from safeRun's perspective)
             Consumers<Integer> consumers = new Consumers<>(executor, v -> {
-                // Never reached
+                throw new AssertionError("Simulated fatal error (OOM/StackOverflow/etc)");
             });
-
-            /*
-             * start() creates ContextCallable internally.
-             * If ContextCallable.call() fails before runAndDone(),
-             * safeRun().finally MUST count down the latch.
-             */
-            consumers.start("test");
-
-            // If the fix is missing, this call hangs forever.
+            consumers.start("test-fatal-error");
+            consumers.provide(1);
+            // Verification:
+            // Without the fix, the latch would never be decremented (because runAndDone crashes), causing await() to hang.
+            // With the fix (safeRun wrapper), the finally block ensures latch.countDown() is called.
             consumers.await();
+
+            // Note: consumer.exception will be null because safeRun only catches Exception, not Error.
+            // This is acceptable behavior for fatal errors, as long as it doesn't deadlock.
         } finally {
             executor.shutdownNow();
         }
