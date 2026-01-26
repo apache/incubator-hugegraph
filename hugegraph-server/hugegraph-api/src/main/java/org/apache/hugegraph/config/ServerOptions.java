@@ -439,7 +439,7 @@ public class ServerOptions extends OptionHolder {
                     "arthas.ip",
                     "arthas bound ip",
                     disallowEmpty(),
-                    "0.0.0.0"
+                    "127.0.0.1"
             );
 
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =

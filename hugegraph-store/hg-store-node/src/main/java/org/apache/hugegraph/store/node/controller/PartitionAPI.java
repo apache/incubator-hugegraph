@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
@@ -44,6 +45,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.util.Endpoint;
@@ -189,6 +192,16 @@ public class PartitionAPI {
     @GetMapping(value = "/arthasstart", produces = "application/json")
     public Map<String, Object> arthasstart(
             @RequestParam(required = false, defaultValue = "") String flags) {
+        String remoteAddr = ((ServletRequestAttributes) Objects.requireNonNull(
+                RequestContextHolder.getRequestAttributes())).getRequest().getRemoteAddr();
+
+        boolean isLocalRequest = "127.0.0.1".equals(remoteAddr) ||
+                                 "[0:0:0:0:0:0:0:1]".equals(remoteAddr);
+        if (!isLocalRequest){
+            List<String> ret = new ArrayList<>();
+            ret.add("Arthas start is ONLY allowed from localhost.");
+            return forbiddenMap("arthasstart", ret);
+        }
         HashMap<String, String> configMap = new HashMap<>();
         configMap.put("arthas.telnetPort", appConfig.getArthasConfig().getTelnetPort());
         configMap.put("arthas.httpPort", appConfig.getArthasConfig().getHttpPort());
@@ -222,6 +235,13 @@ public class PartitionAPI {
         Map<String, Object> map = new HashMap<>();
         map.put("status", 0);
         map.put(k, v);
+        return map;
+    }
+
+    public Map<String, Object> forbiddenMap(String k, Object v){
+        HashMap<String, Object> map = new HashMap<>();
+        map.put("status", 403);
+        map.put(k,v);
         return map;
     }
 
