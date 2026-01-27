@@ -68,7 +68,7 @@ public class HugeConfigTest extends BaseUnitTest {
     @BeforeClass
     public static void init() {
         OptionSpace.register("test", TestOptions.class.getName());
-        UrlOptions.instance();
+        OptionSpace.register("url-test", UrlOptions.class.getName());
     }
 
     @Test
@@ -464,7 +464,7 @@ public class HugeConfigTest extends BaseUnitTest {
         conf = new PropertiesConfiguration();
         conf.setProperty("restserver.url", "HTTP://127.0.0.1:8080");
         config = new HugeConfig(conf);
-        Assert.assertEquals("HTTP://127.0.0.1:8080",
+        Assert.assertEquals("http://127.0.0.1:8080",
                             config.get(UrlOptions.restUrl));
 
         // IPv6

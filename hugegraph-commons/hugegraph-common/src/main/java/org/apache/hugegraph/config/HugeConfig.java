@@ -266,9 +266,8 @@ public class HugeConfig extends PropertiesConfiguration {
         // Keep original string if scheme already exists
         String lower = s.toLowerCase();
         if (lower.startsWith("http://") || lower.startsWith("https://")) {
-            return s;
+            return lower;  // Return LOWERCASE version
         }
-
-        return scheme + s;
+        return scheme + lower;  // Return scheme + LOWERCASE input
     }
 }
