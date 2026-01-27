@@ -447,7 +447,7 @@ public class ServerOptions extends OptionHolder {
                     "arthas.disabledCommands",
                     "arthas disabled commands",
                     disallowEmpty(),
-                    "jad"
+                    "jad,ognl,vmtool"
             );
 
     public static final ConfigOption<Boolean> ALLOW_TRACE =
