@@ -54,12 +54,23 @@ public class CoreTestSuite {
     private static volatile HugeGraph graph = null;
 
     public static HugeGraph graph() {
-        //Assert.assertFalse(graph.closed());
         if (graph == null) {
-            synchronized (CoreTestSuite.class){
+            synchronized (CoreTestSuite.class) {
                 if (graph == null) {
-                    initEnv();
-                    init();
+                    try {
+                        initEnv();
+                        init();
+                    } catch (Throwable e) {
+                        LOG.error("Failed to initialize HugeGraph instance", e);
+                        graph = null;
+                        throw new RuntimeException("Failed to initialize HugeGraph instance", e);
+                    }
+                    if (graph == null) {
+                        String msg = "HugeGraph instance is null after initialization. " +
+                                     "Please check Utils.open() configuration.";
+                        LOG.error(msg);
+                        throw new IllegalStateException(msg);
+                    }
                 }
             }
         }
