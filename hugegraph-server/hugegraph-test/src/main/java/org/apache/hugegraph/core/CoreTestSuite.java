@@ -51,13 +51,17 @@ import org.slf4j.Logger;
 public class CoreTestSuite {
 
     private static boolean registered = false;
-    private static HugeGraph graph = null;
+    private static volatile HugeGraph graph = null;
 
     public static HugeGraph graph() {
         //Assert.assertFalse(graph.closed());
         if (graph == null) {
-            initEnv();
-            init();
+            synchronized (CoreTestSuite.class){
+                if (graph == null) {
+                    initEnv();
+                    init();
+                }
+            }
         }
         return graph;
     }
