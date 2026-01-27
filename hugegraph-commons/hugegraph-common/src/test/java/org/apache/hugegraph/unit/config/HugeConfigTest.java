@@ -68,6 +68,7 @@ public class HugeConfigTest extends BaseUnitTest {
     @BeforeClass
     public static void init() {
         OptionSpace.register("test", TestOptions.class.getName());
+        UrlOptions.instance();
     }
 
     @Test
