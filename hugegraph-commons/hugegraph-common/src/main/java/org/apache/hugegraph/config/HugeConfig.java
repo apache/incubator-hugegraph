@@ -87,12 +87,16 @@ public class HugeConfig extends PropertiesConfiguration {
     @SuppressWarnings("unchecked")
     public <T, R> R get(TypedOption<T, R> option) {
         Object value = this.getProperty(option.name());
+        boolean fromDefault = false;
+
         if (value == null) {
             value = option.defaultValue();
+            fromDefault = true;
         }
 
-        // Normalize URL options if needed (add scheme like http://)
-        value = normalizeUrlOptionIfNeeded(option.name(), value);
+        if (!fromDefault) {
+            value = normalizeUrlOptionIfNeeded(option.name(), value);
+        }
 
         return (R) value;
     }
@@ -228,7 +232,8 @@ public class HugeConfig extends PropertiesConfiguration {
             return value;
         }
 
-        // URL options are defined as ConfigOption<String> and normalized here.
+        // Normalize URL config values by adding default scheme if missing.
+        // Only applies to allowlisted URL options (see defaultSchemeFor()).
         if (value instanceof String) {
             return prefixSchemeIfMissing((String) value, scheme);
         }
@@ -239,16 +244,14 @@ public class HugeConfig extends PropertiesConfiguration {
     }
 
     private static String defaultSchemeFor(String key) {
-        switch (key) {
-            case "restserver.url":
-            case "gremlinserver.url":
-            case "server.urls_to_pd":
-                return "http://";
-            case "server.k8s_url":
-                return "https://";
-            default:
-                return null;
+        TypedOption<?, ?> option = OptionSpace.get(key);
+        if (option instanceof ConfigOption) {
+            ConfigOption<?> configOption = (ConfigOption<?>) option;
+            if (configOption.needsUrlNormalization()) {
+                return configOption.getDefaultScheme();
+            }
         }
+        return null;
     }
 
     private static String prefixSchemeIfMissing(String raw, String scheme) {
@@ -263,7 +266,7 @@ public class HugeConfig extends PropertiesConfiguration {
         // Keep original string if scheme already exists
         String lower = s.toLowerCase();
         if (lower.startsWith("http://") || lower.startsWith("https://")) {
-            return s;
+            return lower;
         }
 
         return scheme + s;

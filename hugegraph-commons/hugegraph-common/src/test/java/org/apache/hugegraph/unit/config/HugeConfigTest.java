@@ -1,3 +1,4 @@
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
@@ -32,15 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.configuration2.AbstractConfiguration;
-import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.MapConfiguration;
-import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.configuration2.convert.DisabledListDelimiterHandler;
-import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.commons.configuration2.io.FileHandler;
-import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.config.ConfigConvOption;
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.config.ConfigListConvOption;
@@ -51,6 +43,15 @@ import org.apache.hugegraph.config.OptionHolder;
 import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.configuration2.AbstractConfiguration;
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.MapConfiguration;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.convert.DisabledListDelimiterHandler;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
+import org.apache.commons.io.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -466,6 +467,35 @@ public class HugeConfigTest extends BaseUnitTest {
                             config.get(UrlOptions.gremlinUrl));
         Assert.assertEquals("http://127.0.0.1:8888",
                             config.get(UrlOptions.k8sUrl));
+    }
+
+    @Test
+    public void testUrlNormalizationEdgeCases() {
+        Map<String, Object> map = new HashMap<>();
+
+        // Whitespace handling
+        map.put("restserver.url", "  127.0.0.1:8080  ");
+        HugeConfig config = new HugeConfig(map);
+        Assert.assertEquals("http://127.0.0.1:8080",
+                            config.get(UrlOptions.restUrl));
+
+        // Mixed case scheme preservation
+        map.put("restserver.url", "HTTP://127.0.0.1:8080");
+        config = new HugeConfig(map);
+        Assert.assertEquals("http://127.0.0.1:8080",
+                            config.get(UrlOptions.restUrl));
+
+        // IPv6
+        map.put("restserver.url", "[::1]:8080");
+        config = new HugeConfig(map);
+        Assert.assertEquals("http://[::1]:8080",
+                            config.get(UrlOptions.restUrl));
+
+        // 5. Malformed URLs
+        map.put("restserver.url", "://invalid");
+        config = new HugeConfig(map);
+        Assert.assertEquals("http://://invalid",
+                            config.get(UrlOptions.restUrl));
     }
 
     public static class TestOptions extends OptionHolder {
