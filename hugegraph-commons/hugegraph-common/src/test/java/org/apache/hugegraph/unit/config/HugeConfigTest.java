@@ -653,7 +653,7 @@ public class HugeConfigTest extends BaseUnitTest {
                         "rest url",
                         disallowEmpty(),
                         "http://127.0.0.1:8080"
-                );
+                ).withUrlNormalization("http://");
 
         public static final ConfigOption<String> gremlinUrl =
                 new ConfigOption<>(
@@ -661,7 +661,7 @@ public class HugeConfigTest extends BaseUnitTest {
                         "gremlin url",
                         disallowEmpty(),
                         "http://127.0.0.1:8182"
-                );
+                ).withUrlNormalization("http://");
 
         public static final ConfigOption<String> urlsToPd =
                 new ConfigOption<>(
@@ -669,7 +669,7 @@ public class HugeConfigTest extends BaseUnitTest {
                         "urls to pd",
                         disallowEmpty(),
                         "http://0.0.0.0:8080"
-                );
+                ).withUrlNormalization("http://");
 
         public static final ConfigOption<String> k8sUrl =
                 new ConfigOption<>(
@@ -677,7 +677,7 @@ public class HugeConfigTest extends BaseUnitTest {
                         "k8s url",
                         disallowEmpty(),
                         "https://127.0.0.1:8888"
-                );
+                ).withUrlNormalization("https://");
     }
 
     public static class TestOptionsWithTypeError extends OptionHolder {
