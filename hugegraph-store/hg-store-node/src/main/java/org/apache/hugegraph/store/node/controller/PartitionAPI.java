@@ -113,11 +113,11 @@ public class PartitionAPI {
             rafts.add(raft);
         }
 
-        return ResponseEntity.status(HttpStatus.OK).body(okMap("partitions", rafts));
+        return ok("partitions", rafts);
     }
 
     @GetMapping(value = "/partition/{id}", produces = "application/json")
-    public Raft getPartition(@PathVariable(value = "id") int id) {
+    public ResponseEntity<Map<String, Object>> getPartition(@PathVariable(value = "id") int id) {
 
         HgStoreEngine storeEngine = nodeService.getStoreEngine();
 
@@ -142,8 +142,7 @@ public class PartitionAPI {
             raft.getPartitions().add(partition);
         }
 
-        return raft;
-        //return okMap("partition", rafts);
+        return ok("raft", raft);
     }
 
     /**
@@ -172,7 +171,7 @@ public class PartitionAPI {
             }
             cfIterator.close();
         });
-        return ResponseEntity.status(HttpStatus.OK).body(okMap("ok", null));
+        return ok("ok", null);
     }
 
     /**
@@ -187,29 +186,24 @@ public class PartitionAPI {
         storeEngine.getPartitionEngine(id).getPartitions().forEach((graph, partition) -> {
             handler.cleanPartition(graph, id);
         });
-        return ResponseEntity.status(HttpStatus.OK).body(okMap("ok", null));
+        return ok("ok", null);
     }
 
     @GetMapping(value = "/arthasstart", produces = "application/json")
     public ResponseEntity<Map<String, Object>> arthasstart(
             @RequestParam(required = false, defaultValue = "") String flags,
             HttpServletRequest request) {
-        if (request == null) {
-            log.error("Security Alert: HttpServletRequest is NULL when accessing /arthasstart. " +
-                      "Access denied.");
-            Map<String, Object> err = new HashMap<>();
-            err.put("status", "ERROR");
-            err.put("message", "Internal Error: Cannot determine client IP.");
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
-        }
-        String remoteAddr = getClientIp(request);
+        // Ignore proxy headers to prevent IP spoofing.
+        // NOTE: If behind a reverse proxy (e.g., Nginx), getRemoteAddr() returns the proxy's IP.
+        // Ensure the proxy is configured to block untrusted external access.
+        String remoteAddr = getCleanIp(request.getRemoteAddr());
         boolean isLocalRequest =
-                "127.0.0.1".equals(remoteAddr) || "[0:0:0:0:0:0:0:1]".equals(remoteAddr);
+                "127.0.0.1".equals(remoteAddr) || "0:0:0:0:0:0:0:1".equals(remoteAddr) ||
+                "::1".equals(remoteAddr);
         if (!isLocalRequest) {
             List<String> ret = new ArrayList<>();
             ret.add("Arthas start is ONLY allowed from localhost.");
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                                 .body(forbiddenMap("arthasstart", ret));
+            return forbidden("arthasstart", ret);
         }
         HashMap<String, String> configMap = new HashMap<>();
         configMap.put("arthas.telnetPort", appConfig.getArthasConfig().getTelnetPort());
@@ -220,7 +214,7 @@ public class PartitionAPI {
 //        DashResponse retPose = new DashResponse();
         List<String> ret = new ArrayList<>();
         ret.add("Arthas started successfully");
-        return ResponseEntity.status(HttpStatus.OK).body(okMap("arthasstart", ret));
+        return ok("arthasstart", ret);
     }
 
     @PostMapping("/compat")
@@ -237,42 +231,28 @@ public class PartitionAPI {
             map.put("msg",
                     "compaction task fail to submit, and there could be another task in progress");
         }
-        return ResponseEntity.status(HttpStatus.OK).body(map);
+        return ok("body", map);
     }
 
-    public Map<String, Object> okMap(String k, Object v) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("status", 0);
-        map.put(k, v);
-        return map;
+    public ResponseEntity<Map<String, Object>> ok(String k, Object v) {
+        return ResponseEntity.ok(Map.of("status", 200, k, v));
     }
 
-    public Map<String, Object> forbiddenMap(String k, Object v) {
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("status", 403);
-        map.put(k, v);
-        return map;
+    public ResponseEntity<Map<String, Object>> forbidden(String k, Object v) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                             .body(Map.of("status", 403, k, v));
     }
 
-    private String getClientIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("Proxy-Client-IP");
+    private String getCleanIp(String remoteAddr) {
+        if (remoteAddr != null) {
+            if (remoteAddr.startsWith("[")) {
+                remoteAddr = remoteAddr.substring(1);
+            }
+            if (remoteAddr.endsWith("]")) {
+                remoteAddr = remoteAddr.substring(0, remoteAddr.length() - 1);
+            }
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("WL-Proxy-Client-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
-        }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-
-        if (ip != null && ip.contains(",")) {
-            ip = ip.split(",")[0].trim();
-        }
-        return ip;
+        return remoteAddr;
     }
 
     @Data
