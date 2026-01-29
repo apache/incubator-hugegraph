@@ -22,7 +22,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
@@ -38,15 +39,15 @@ import org.apache.hugegraph.store.node.AppConfig;
 import org.apache.hugegraph.store.node.grpc.HgStoreNodeService;
 import org.apache.hugegraph.util.Bytes;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.util.Endpoint;
@@ -67,7 +68,7 @@ public class PartitionAPI {
     AppConfig appConfig;
 
     @GetMapping(value = "/partitions", produces = "application/json")
-    public Map<String, Object> getPartitions(
+    public ResponseEntity<Map<String, Object>> getPartitions(
             @RequestParam(required = false, defaultValue = "") String flags) {
 
         boolean accurate = false;
@@ -112,7 +113,7 @@ public class PartitionAPI {
             rafts.add(raft);
         }
 
-        return okMap("partitions", rafts);
+        return ResponseEntity.status(HttpStatus.OK).body(okMap("partitions", rafts));
     }
 
     @GetMapping(value = "/partition/{id}", produces = "application/json")
@@ -149,8 +150,8 @@ public class PartitionAPI {
      * Print all keys in the partition
      */
     @GetMapping(value = "/partition/dump/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> dumpPartition(@PathVariable(value = "id") int id) throws
-                                                                                 PDException {
+    public ResponseEntity<Map<String, Object>> dumpPartition(
+            @PathVariable(value = "id") int id) throws PDException {
         HgStoreEngine storeEngine = nodeService.getStoreEngine();
         BusinessHandler handler = storeEngine.getBusinessHandler();
         InnerKeyCreator innerKeyCreator = new InnerKeyCreator(handler);
@@ -171,36 +172,44 @@ public class PartitionAPI {
             }
             cfIterator.close();
         });
-        return okMap("ok", null);
+        return ResponseEntity.status(HttpStatus.OK).body(okMap("ok", null));
     }
 
     /**
      * Print all keys in the partition
      */
     @GetMapping(value = "/partition/clean/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Map<String, Object> cleanPartition(@PathVariable(value = "id") int id) throws
-                                                                                  PDException {
+    public ResponseEntity<Map<String, Object>> cleanPartition(
+            @PathVariable(value = "id") int id) throws PDException {
         HgStoreEngine storeEngine = nodeService.getStoreEngine();
         BusinessHandler handler = storeEngine.getBusinessHandler();
 
         storeEngine.getPartitionEngine(id).getPartitions().forEach((graph, partition) -> {
             handler.cleanPartition(graph, id);
         });
-        return okMap("ok", null);
+        return ResponseEntity.status(HttpStatus.OK).body(okMap("ok", null));
     }
 
     @GetMapping(value = "/arthasstart", produces = "application/json")
-    public Map<String, Object> arthasstart(
-            @RequestParam(required = false, defaultValue = "") String flags) {
-        String remoteAddr = ((ServletRequestAttributes) Objects.requireNonNull(
-                RequestContextHolder.getRequestAttributes())).getRequest().getRemoteAddr();
-
-        boolean isLocalRequest = "127.0.0.1".equals(remoteAddr) ||
-                                 "[0:0:0:0:0:0:0:1]".equals(remoteAddr);
-        if (!isLocalRequest){
+    public ResponseEntity<Map<String, Object>> arthasstart(
+            @RequestParam(required = false, defaultValue = "") String flags,
+            HttpServletRequest request) {
+        if (request == null) {
+            log.error("Security Alert: HttpServletRequest is NULL when accessing /arthasstart. " +
+                      "Access denied.");
+            Map<String, Object> err = new HashMap<>();
+            err.put("status", "ERROR");
+            err.put("message", "Internal Error: Cannot determine client IP.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(err);
+        }
+        String remoteAddr = getClientIp(request);
+        boolean isLocalRequest =
+                "127.0.0.1".equals(remoteAddr) || "[0:0:0:0:0:0:0:1]".equals(remoteAddr);
+        if (!isLocalRequest) {
             List<String> ret = new ArrayList<>();
             ret.add("Arthas start is ONLY allowed from localhost.");
-            return forbiddenMap("arthasstart", ret);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                                 .body(forbiddenMap("arthasstart", ret));
         }
         HashMap<String, String> configMap = new HashMap<>();
         configMap.put("arthas.telnetPort", appConfig.getArthasConfig().getTelnetPort());
@@ -211,11 +220,11 @@ public class PartitionAPI {
 //        DashResponse retPose = new DashResponse();
         List<String> ret = new ArrayList<>();
         ret.add("Arthas started successfully");
-        return okMap("arthasstart", ret);
+        return ResponseEntity.status(HttpStatus.OK).body(okMap("arthasstart", ret));
     }
 
     @PostMapping("/compat")
-    public Map<String, Object> compact(@RequestParam(value = "id") int id) {
+    public ResponseEntity<Map<String, Object>> compact(@RequestParam(value = "id") int id) {
         boolean submitted =
                 nodeService.getStoreEngine().getBusinessHandler().blockingCompact("", id);
         Map<String, Object> map = new HashMap<>();
@@ -228,7 +237,7 @@ public class PartitionAPI {
             map.put("msg",
                     "compaction task fail to submit, and there could be another task in progress");
         }
-        return map;
+        return ResponseEntity.status(HttpStatus.OK).body(map);
     }
 
     public Map<String, Object> okMap(String k, Object v) {
@@ -238,11 +247,32 @@ public class PartitionAPI {
         return map;
     }
 
-    public Map<String, Object> forbiddenMap(String k, Object v){
+    public Map<String, Object> forbiddenMap(String k, Object v) {
         HashMap<String, Object> map = new HashMap<>();
         map.put("status", 403);
-        map.put(k,v);
+        map.put(k, v);
         return map;
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        return ip;
     }
 
     @Data
