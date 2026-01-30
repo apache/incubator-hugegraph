@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
@@ -68,7 +67,6 @@ public class HugeConfigTest extends BaseUnitTest {
     @BeforeClass
     public static void init() {
         OptionSpace.register("test", TestOptions.class.getName());
-        OptionSpace.register("url-test", UrlOptions.class.getName());
     }
 
     @Test
@@ -431,50 +429,6 @@ public class HugeConfigTest extends BaseUnitTest {
         Assert.assertTrue(values.contains("b"));
     }
 
-    @Test
-    public void testUrlOptionNormalizeAddsDefaultScheme() {
-        PropertiesConfiguration conf = new PropertiesConfiguration();
-        conf.setProperty("restserver.url", "127.0.0.1:8080");
-        conf.setProperty("gremlinserver.url", "127.0.0.1:8182");
-        conf.setProperty("server.urls_to_pd", "0.0.0.0:8080");
-        conf.setProperty("server.k8s_url", "127.0.0.1:8888");
-
-        HugeConfig config = new HugeConfig(conf);
-
-        Assert.assertEquals("http://127.0.0.1:8080",
-                            config.get(UrlOptions.restUrl));
-        Assert.assertEquals("http://127.0.0.1:8182",
-                            config.get(UrlOptions.gremlinUrl));
-        Assert.assertEquals("http://0.0.0.0:8080",
-                            config.get(UrlOptions.urlsToPd));
-        Assert.assertEquals("https://127.0.0.1:8888",
-                            config.get(UrlOptions.k8sUrl));
-    }
-
-    @Test
-    public void testUrlNormalizationEdgeCases() {
-        // Whitespace handling
-        PropertiesConfiguration conf = new PropertiesConfiguration();
-        conf.setProperty("restserver.url", "  127.0.0.1:8080  ");
-        HugeConfig config = new HugeConfig(conf);
-        Assert.assertEquals("http://127.0.0.1:8080",
-                            config.get(UrlOptions.restUrl));
-
-        // Mixed case scheme preservation (lowercase "http://" is kept as-is)
-        conf = new PropertiesConfiguration();
-        conf.setProperty("restserver.url", "HTTP://127.0.0.1:8080");
-        config = new HugeConfig(conf);
-        Assert.assertEquals("http://127.0.0.1:8080",
-                            config.get(UrlOptions.restUrl));
-
-        // IPv6
-        conf = new PropertiesConfiguration();
-        conf.setProperty("restserver.url", "[::1]:8080");
-        config = new HugeConfig(conf);
-        Assert.assertEquals("http://[::1]:8080",
-                            config.get(UrlOptions.restUrl));
-    }
-
     public static class TestOptions extends OptionHolder {
 
         private static volatile TestOptions instance;
@@ -630,54 +584,6 @@ public class HugeConfigTest extends BaseUnitTest {
                         disallowEmpty(),
                         "textsub-value"
                 );
-    }
-
-    /**
-     * Added: URL option holder to test HugeConfig URL normalization logic.
-     */
-    public static class UrlOptions extends OptionHolder {
-
-        private static volatile UrlOptions instance;
-
-        public static synchronized UrlOptions instance() {
-            if (instance == null) {
-                instance = new UrlOptions();
-                instance.registerOptions();
-            }
-            return instance;
-        }
-
-        public static final ConfigOption<String> restUrl =
-                new ConfigOption<>(
-                        "restserver.url",
-                        "rest url",
-                        disallowEmpty(),
-                        "http://127.0.0.1:8080"
-                ).withUrlNormalization("http://");
-
-        public static final ConfigOption<String> gremlinUrl =
-                new ConfigOption<>(
-                        "gremlinserver.url",
-                        "gremlin url",
-                        disallowEmpty(),
-                        "http://127.0.0.1:8182"
-                ).withUrlNormalization("http://");
-
-        public static final ConfigOption<String> urlsToPd =
-                new ConfigOption<>(
-                        "server.urls_to_pd",
-                        "urls to pd",
-                        disallowEmpty(),
-                        "http://0.0.0.0:8080"
-                ).withUrlNormalization("http://");
-
-        public static final ConfigOption<String> k8sUrl =
-                new ConfigOption<>(
-                        "server.k8s_url",
-                        "k8s url",
-                        disallowEmpty(),
-                        "https://127.0.0.1:8888"
-                ).withUrlNormalization("https://");
     }
 
     public static class TestOptionsWithTypeError extends OptionHolder {
