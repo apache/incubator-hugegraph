@@ -19,7 +19,9 @@ package org.apache.hugegraph.task;
 
 import java.util.Iterator;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -48,6 +50,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.slf4j.Logger;
 
 public class DistributedTaskScheduler extends TaskAndResultScheduler {
+
     private static final Logger LOG = Log.logger(DistributedTaskScheduler.class);
     private final long schedulePeriod;
     private final ExecutorService taskDbExecutor;
@@ -117,6 +120,11 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     public void cronSchedule() {
         // Perform periodic scheduling tasks
+
+        // Check closed flag first to exit early
+        if (this.closed.get()) {
+            return;
+        }
 
         if (!this.graph.started() || this.graph.closed()) {
             return;
@@ -253,6 +261,10 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             return this.ephemeralTaskExecutor.submit(task);
         }
 
+        // Validate task state before saving to ensure correct exception type
+        E.checkState(task.type() != null, "Task type can't be null");
+        E.checkState(task.name() != null, "Task name can't be null");
+
         // Process schema task
         // Handle gremlin task
         // Handle OLAP calculation tasks
@@ -284,14 +296,41 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         }
     }
 
+    /**
+     * Note: This method will update the status of the input task.
+     *
+     * @param task
+     * @param <V>
+     */
     @Override
     public <V> void cancel(HugeTask<V> task) {
-        // Update status to CANCELLING
-        if (!task.completed()) {
-            // Task not completed, can only execute status not CANCELLING
-            this.updateStatus(task.id(), null, TaskStatus.CANCELLING);
+        E.checkArgumentNotNull(task, "Task can't be null");
+
+        if (task.completed() || task.cancelling()) {
+            return;
+        }
+
+        LOG.info("Cancel task '{}' in status {}", task.id(), task.status());
+
+        // Check if task is running locally, cancel it directly if so
+        HugeTask<?> runningTask = this.runningTasks.get(task.id());
+        if (runningTask != null) {
+            boolean cancelled = runningTask.cancel(true);
+            if (cancelled) {
+                task.overwriteStatus(TaskStatus.CANCELLED);
+            }
+            LOG.info("Cancel local running task '{}' result: {}", task.id(), cancelled);
+            return;
+        }
+
+        // Task not running locally, update status to CANCELLING
+        // for cronSchedule() or other nodes to handle
+        TaskStatus currentStatus = task.status();
+        if (!this.updateStatus(task.id(), currentStatus, TaskStatus.CANCELLING)) {
+            LOG.info("Failed to cancel task '{}', status may have changed from {}",
+                     task.id(), currentStatus);
         } else {
-            LOG.info("cancel task({}) error, task has completed", task.id());
+            task.overwriteStatus(TaskStatus.CANCELLING);
         }
     }
 
@@ -316,14 +355,18 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
 
     @Override
     public <V> HugeTask<V> delete(Id id, boolean force) {
-        if (!force) {
-            // Change status to DELETING, perform the deletion operation through automatic
-            // scheduling.
+        HugeTask<?> task = this.taskWithoutResult(id);
+
+        if (!force && !task.completed() && task.status() != TaskStatus.DELETING) {
+            // Check task status: can't delete running tasks without force
             this.updateStatus(id, null, TaskStatus.DELETING);
             return null;
-        } else {
-            return this.deleteFromDB(id);
+            // Already in DELETING status, delete directly from DB
+            // Completed tasks can also be deleted directly
         }
+
+        // Delete from DB directly for completed/DELETING tasks or force=true
+        return this.deleteFromDB(id);
     }
 
     @Override
@@ -353,6 +396,18 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             cronFuture.cancel(false);
         }
 
+        // Wait for cron task to complete to ensure all transactions are closed
+        try {
+            cronFuture.get(schedulePeriod + 5, TimeUnit.SECONDS);
+        } catch (CancellationException e) {
+            // Task was cancelled, this is expected
+            LOG.debug("Cron task was cancelled");
+        } catch (TimeoutException e) {
+            LOG.warn("Cron task did not complete in time when closing scheduler");
+        } catch (ExecutionException | InterruptedException e) {
+            LOG.warn("Exception while waiting for cron task to complete", e);
+        }
+
         if (!this.taskDbExecutor.isShutdown()) {
             this.call(() -> {
                 try {
@@ -363,7 +418,10 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
                 this.graph.closeTx();
             });
         }
-        return true;
+
+        //todo: serverInfoManager section should be removed in the future.
+        return this.serverManager().close();
+        //return true;
     }
 
     @Override
