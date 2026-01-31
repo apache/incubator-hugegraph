@@ -87,9 +87,17 @@ public class HugeConfig extends PropertiesConfiguration {
     @SuppressWarnings("unchecked")
     public <T, R> R get(TypedOption<T, R> option) {
         Object value = this.getProperty(option.name());
+        boolean fromDefault = false;
+
         if (value == null) {
-            return option.defaultValue();
+            value = option.defaultValue();
+            fromDefault = true;
         }
+
+        if (!fromDefault) {
+            value = normalizeUrlOptionIfNeeded(option.name(), value);
+        }
+
         return (R) value;
     }
 
@@ -212,5 +220,54 @@ public class HugeConfig extends PropertiesConfiguration {
             throw new ConfigException("Unable to load config: '%s'",
                                       e, configFile);
         }
+    }
+
+    private static Object normalizeUrlOptionIfNeeded(String key, Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        String scheme = defaultSchemeFor(key);
+        if (scheme == null) {
+            return value;
+        }
+
+        // Normalize URL config values by adding default scheme if missing.
+        // Only applies to allowlisted URL options (see defaultSchemeFor()).
+        if (value instanceof String) {
+            return prefixSchemeIfMissing((String) value, scheme);
+        }
+
+        // If it ever hits here, it means config storage returned a non-string type;
+        // leave it unchanged (safer than forcing toString()).
+        return value;
+    }
+
+    private static String defaultSchemeFor(String key) {
+        TypedOption<?, ?> option = OptionSpace.get(key);
+        if (option instanceof ConfigOption) {
+            ConfigOption<?> configOption = (ConfigOption<?>) option;
+            if (configOption.needsUrlNormalization()) {
+                return configOption.getDefaultScheme();
+            }
+        }
+        return null;
+    }
+
+    private static String prefixSchemeIfMissing(String raw, String scheme) {
+        if (raw == null) {
+            return null;
+        }
+        String s = raw.trim();
+        if (s.isEmpty()) {
+            return s;
+        }
+
+        // Keep original string if scheme already exists
+        String lower = s.toLowerCase();
+        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            return lower;  // Return LOWERCASE version
+        }
+        return scheme + lower;  // Return scheme + LOWERCASE input
     }
 }
