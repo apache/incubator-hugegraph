@@ -83,7 +83,6 @@ HugeGraph supports both **standalone** and **distributed** deployments:
 │  │      RocksDB        │  │   │  │    HugeGraph-PD       │  │   │  MySQL │ PostgreSQL    │
 │  │    (embedded)       │  │   │  │  (Raft, 3-5 nodes)    │  │   │  Cassandra              │
 │  └─────────────────────┘  │   │  │     :8620/:8686       │  │   │  HBase (≤v1.7)          │
-│  └─────────────────────┘  │   │  │     :8620/:8686       │  │   │                         │
 │                           │   │  └───────────┬───────────┘  │   └─────────────────────────┘
 │  Use Case:                │   │              │              │
 │  Development/Testing      │   │  ┌───────────▼───────────┐  │
@@ -329,7 +328,7 @@ For detailed architecture and development guidance, see [AGENTS.md](AGENTS.md).
 2. **Set Up Your Environment**
    - Install Java 11+ and Maven 3.5+
    - Follow [BUILDING.md](BUILDING.md) for build instructions
-   - Import `hugegraph-style.xml` into your IDE for code style
+   - Configure your IDE to use `.editorconfig` for code style and `style/checkstyle.xml` for Checkstyle rules
 
 3. **Find Your First Issue**
    - Browse [Good First Issues](https://github.com/apache/hugegraph/issues?q=label%3A%22good+first+issue%22)
@@ -359,7 +358,7 @@ For detailed architecture and development guidance, see [AGENTS.md](AGENTS.md).
 Welcome to contribute to HugeGraph!
 
 - **How to Contribute**: See [CONTRIBUTING.md](CONTRIBUTING.md) and [Contribution Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/)
-- **Code Style**: Import `hugegraph-style.xml` into your IDE
+- **Code Style**: Configure your IDE to use `.editorconfig` for code style and `style/checkstyle.xml` for Checkstyle rules
 - **PR Tool**: [GitHub Desktop](https://desktop.github.com/) is recommended for simpler workflow
 
 Thank you to all the contributors who have helped make HugeGraph better!
