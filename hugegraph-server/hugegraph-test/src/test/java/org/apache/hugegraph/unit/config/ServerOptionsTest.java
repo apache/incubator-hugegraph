@@ -55,22 +55,68 @@ public class ServerOptionsTest {
 
     @Test
     public void testUrlNormalizationEdgeCases() {
+        // Whitespace trimming
         PropertiesConfiguration conf = new PropertiesConfiguration();
         conf.setProperty("restserver.url", "  127.0.0.1:8080  ");
         HugeConfig config = new HugeConfig(conf);
         Assert.assertEquals("http://127.0.0.1:8080",
                             config.get(ServerOptions.REST_SERVER_URL));
 
+        // Case normalization
         conf = new PropertiesConfiguration();
         conf.setProperty("restserver.url", "HTTP://127.0.0.1:8080");
         config = new HugeConfig(conf);
         Assert.assertEquals("http://127.0.0.1:8080",
                             config.get(ServerOptions.REST_SERVER_URL));
 
+        // IPv6 without scheme
         conf = new PropertiesConfiguration();
         conf.setProperty("restserver.url", "[::1]:8080");
         config = new HugeConfig(conf);
         Assert.assertEquals("http://[::1]:8080",
+                            config.get(ServerOptions.REST_SERVER_URL));
+
+        // IPv6 with existing scheme
+        conf = new PropertiesConfiguration();
+        conf.setProperty("restserver.url", "http://[::1]:8080");
+        config = new HugeConfig(conf);
+        Assert.assertEquals("http://[::1]:8080",
+                            config.get(ServerOptions.REST_SERVER_URL));
+    }
+
+    @Test
+    public void testUrlNormalizationPreservesHostnameCase() {
+        // Uppercase scheme + mixed-case hostname
+        PropertiesConfiguration conf = new PropertiesConfiguration();
+        conf.setProperty("restserver.url", "HTTP://MyServer:8080");
+        HugeConfig config = new HugeConfig(conf);
+        // Should lowercase ONLY the scheme, preserve "MyServer"
+        Assert.assertEquals("http://MyServer:8080",
+                            config.get(ServerOptions.REST_SERVER_URL));
+
+        // Use server.k8s_url for HTTPS test (it defaults to https://)
+        conf = new PropertiesConfiguration();
+        conf.setProperty("server.k8s_url", "HTTPS://MyHost:8888");
+        config = new HugeConfig(conf);
+        Assert.assertEquals("https://MyHost:8888",
+                            config.get(ServerOptions.SERVER_K8S_URL));
+    }
+
+    @Test
+    public void testUrlNormalizationPreservesPathCase() {
+        PropertiesConfiguration conf = new PropertiesConfiguration();
+        conf.setProperty("restserver.url", "http://127.0.0.1:8080/SomePath/CaseSensitive");
+        HugeConfig config = new HugeConfig(conf);
+        Assert.assertEquals("http://127.0.0.1:8080/SomePath/CaseSensitive",
+                            config.get(ServerOptions.REST_SERVER_URL));
+    }
+
+    @Test
+    public void testHttpsSchemeIsNotDowngraded() {
+        PropertiesConfiguration conf = new PropertiesConfiguration();
+        conf.setProperty("restserver.url", "https://127.0.0.1:8080");
+        HugeConfig config = new HugeConfig(conf);
+        Assert.assertEquals("https://127.0.0.1:8080",
                             config.get(ServerOptions.REST_SERVER_URL));
     }
 }
