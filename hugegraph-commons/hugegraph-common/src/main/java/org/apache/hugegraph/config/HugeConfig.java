@@ -43,10 +43,8 @@ public class HugeConfig extends PropertiesConfiguration {
 
     private static final Logger LOG = Log.logger(HugeConfig.class);
 
-    // Cache for url normalization metadata
-    // Populated lazily on first use to ensure OptionSpace is already registered
+    // Cache for URL normalization metadata (populated lazily per key)
     private static final Map<String, String> URL_NORMALIZATIONS = new HashMap<>();
-    private static volatile boolean cacheInitialized = false;
 
     private String configPath;
 
@@ -256,28 +254,32 @@ public class HugeConfig extends PropertiesConfiguration {
     }
 
     private static String defaultSchemeFor(String key) {
-        ensureCacheInitialized();
-        return URL_NORMALIZATIONS.get(key);
-    }
+        // Check if we already cached this key's scheme
+        if (URL_NORMALIZATIONS.containsKey(key)) {
+            return URL_NORMALIZATIONS.get(key);
+        }
 
-    private static void ensureCacheInitialized() {
-        if (!cacheInitialized) {
-            synchronized (URL_NORMALIZATIONS) {
-                if (!cacheInitialized) {
-                    // Populate cache from OptionSpace
-                    for (String optionKey : OptionSpace.keys()) {
-                        TypedOption<?, ?> option = OptionSpace.get(optionKey);
-                        if (option instanceof ConfigOption) {
-                            ConfigOption<?> configOption = (ConfigOption<?>) option;
-                            if (configOption.needsUrlNormalization()) {
-                                URL_NORMALIZATIONS.put(optionKey,
-                                                       configOption.getDefaultScheme());
-                            }
-                        }
-                    }
-                    cacheInitialized = true;
+        // We don't know yet - look it up NOW from OptionSpace
+        synchronized (URL_NORMALIZATIONS) {
+            // Double-check after acquiring lock
+            if (URL_NORMALIZATIONS.containsKey(key)) {
+                return URL_NORMALIZATIONS.get(key);
+            }
+
+            // Look up the option from OptionSpace
+            TypedOption<?, ?> option = OptionSpace.get(key);
+            String scheme = null;
+
+            if (option instanceof ConfigOption) {
+                ConfigOption<?> configOption = (ConfigOption<?>) option;
+                if (configOption.needsUrlNormalization()) {
+                    scheme = configOption.getDefaultScheme();
                 }
             }
+
+            // Cache it for next time (even if null)
+            URL_NORMALIZATIONS.put(key, scheme);
+            return scheme;
         }
     }
 
