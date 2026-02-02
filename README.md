@@ -94,7 +94,7 @@ HugeGraph supports both **standalone** and **distributed** deployments:
                               │  Use Case:                    │
                               │  Production/HA/Cluster        │
                               │                               │
-                              │  Data Scale: 100GB+           │
+                              │  Data Scale: < 1000 TB        │
                               └───────────────────────────────┘
 ```
 
@@ -103,7 +103,7 @@ HugeGraph supports both **standalone** and **distributed** deployments:
 | Mode | Components | Use Case | Data Scale | High Availability |
 |------|------------|----------|------------|-------------------|
 | **Standalone** | Server + RocksDB | Development, Testing, Single Node | < 1TB | Basic |
-| **Distributed** | Server + PD (3-5 nodes) + Store (3+ nodes) | Production, HA, Horizontal Scaling | 100GB+ | Yes |
+| **Distributed** | Server + PD (3-5 nodes) + Store (3+ nodes) | Production, HA, Horizontal Scaling | < 1000 TB | Yes |
 
 ### Module Overview
 
