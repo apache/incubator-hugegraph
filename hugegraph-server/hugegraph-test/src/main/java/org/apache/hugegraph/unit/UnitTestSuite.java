@@ -18,6 +18,7 @@
 package org.apache.hugegraph.unit;
 
 import org.apache.hugegraph.core.RoleElectionStateMachineTest;
+import org.apache.hugegraph.unit.api.filter.PathFilterTest;
 import org.apache.hugegraph.unit.cache.CacheManagerTest;
 import org.apache.hugegraph.unit.cache.CacheTest;
 import org.apache.hugegraph.unit.cache.CachedGraphTransactionTest;
@@ -71,11 +72,17 @@ import org.apache.hugegraph.unit.util.collection.Int2IntsMapTest;
 import org.apache.hugegraph.unit.util.collection.IntMapTest;
 import org.apache.hugegraph.unit.util.collection.IntSetTest;
 import org.apache.hugegraph.unit.util.collection.ObjectIntMappingTest;
+import org.apache.hugegraph.unit.vectorIndex.AbstractVectorRuntimeTest;
+import org.apache.hugegraph.unit.vectorIndex.VectorIndexManagerTest;
+import org.apache.hugegraph.unit.vectorIndex.VectorRecordTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        /* api filter */
+        PathFilterTest.class,
+
         /* cache */
         CacheTest.RamCacheTest.class,
         CacheTest.OffheapCacheTest.class,
@@ -153,7 +160,11 @@ import org.junit.runners.Suite;
         IntSetTest.class,
 
         /* store */
-        RamIntObjectMapTest.class
+        RamIntObjectMapTest.class,
+        /* vectorindex */
+        VectorRecordTest.class,
+        VectorIndexManagerTest.class,
+        AbstractVectorRuntimeTest.class,
 })
 public class UnitTestSuite {
 
