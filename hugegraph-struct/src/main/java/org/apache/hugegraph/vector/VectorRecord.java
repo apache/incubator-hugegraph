@@ -31,11 +31,11 @@ public class VectorRecord {
         this.sequence = seq;
     }
 
-    float[] getVectorData(){return vector;}
+    public float[] getVectorData(){return vector;}
 
-    boolean isDeleted(){return deleted;}
+    public boolean isDeleted(){return deleted;}
 
-    long getSequence(){return sequence;}
+    public long getSequence(){return sequence;}
 
-    int getVectorId(){return vectorId;}
+    public int getVectorId(){return vectorId;}
 }

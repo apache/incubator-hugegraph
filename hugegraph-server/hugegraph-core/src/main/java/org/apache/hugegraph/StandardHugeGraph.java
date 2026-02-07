@@ -108,6 +108,7 @@ import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.LockUtil;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.variables.HugeVariables;
+import org.apache.hugegraph.vector.VectorIndexManager;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -190,6 +191,7 @@ public class StandardHugeGraph implements HugeGraph {
     private Date createTime;
     private Date updateTime;
     private KvStore kvStore;
+    private VectorIndexManager<Id> vectorIndexManager;
 
     public StandardHugeGraph(HugeConfig config) {
         this.params = new StandardHugeGraphParams();
@@ -1241,6 +1243,11 @@ public class StandardHugeGraph implements HugeGraph {
         RaftBackendStoreProvider provider =
                 ((RaftBackendStoreProvider) this.storeProvider);
         return provider.raftNodeManager();
+    }
+
+    @Override
+    public VectorIndexManager<Id> vectorIndexManager() {
+        return this.vectorIndexManager;
     }
 
     @Override

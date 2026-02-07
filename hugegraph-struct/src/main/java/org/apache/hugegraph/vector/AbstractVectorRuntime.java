@@ -27,7 +27,7 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
@@ -37,7 +37,6 @@ import org.apache.hugegraph.util.JsonUtilCommon;
 
 import io.github.jbellis.jvector.graph.GraphIndex;
 import io.github.jbellis.jvector.graph.GraphIndexBuilder;
-import io.github.jbellis.jvector.graph.RandomAccessVectorValues;
 import io.github.jbellis.jvector.graph.disk.OnDiskGraphIndex;
 import io.github.jbellis.jvector.vector.VectorSimilarityFunction;
 
@@ -53,7 +52,7 @@ public abstract class AbstractVectorRuntime<Id> implements VectorIndexRuntime<Id
     protected final ConcurrentMap<Id, IndexContext<Id>> vectorMap = new ConcurrentHashMap<>();
 
     public AbstractVectorRuntime(String basePath) {
-        basePath = basePath;
+        this.basePath = basePath;
     }
 
     public static class IndexContext<Id> {
@@ -61,63 +60,92 @@ public abstract class AbstractVectorRuntime<Id> implements VectorIndexRuntime<Id
         final Id indexLabelId;
 
         // for jvector
-        final RandomAccessVectorValues vectors; // per-index RAVV
-        final GraphIndexBuilder builder;        // owns the mutable OnHeapGraphIndex
+        public final UpdatableRandomAccessVectorValues vectors; // per-index RAVV
+        public final GraphIndexBuilder builder;        // owns the mutable OnHeapGraphIndex
         VectorSimilarityFunction similarityFunction;
         int dimension;
 
         // for recover and update
         IndexContextMetaData metaData;
 
-        IndexContext(Id indexLabelId,
-                     RandomAccessVectorValues vectors,
-                     GraphIndexBuilder builder,
-                     long watermark,
-                     int dimension,
-                     VectorSimilarityFunction similarityFunction) {
+        public IndexContext(Id indexLabelId,
+                            UpdatableRandomAccessVectorValues vectors,
+                            GraphIndexBuilder builder,
+                            long watermark,
+                            int dimension,
+                            VectorSimilarityFunction similarityFunction) {
             this.indexLabelId = indexLabelId;
             this.vectors = vectors;
             this.builder = builder;
             this.similarityFunction = similarityFunction;
             this.dimension = dimension;
-            this.metaData = new IndexContextMetaData(0, watermark, null);
+            this.metaData = new IndexContextMetaData(0, watermark, false);
         }
 
         GraphIndex graphView() {
             return builder.getGraph();
         }
 
-        IndexContextMetaData metaData() { return metaData; }
+        public IndexContextMetaData metaData() { return metaData; }
 
         void setMetaData(IndexContextMetaData metaData) { this.metaData = metaData; }
 
         public static class IndexContextMetaData {
-            private final int nextOrd;
-            private final long watermark;
-            private final List<Integer> freeOrd;
 
-            IndexContextMetaData(int nextOrd, long watermark, List<Integer> freeOrd) {
-                this.nextOrd = nextOrd;
+            private int nextVectorId;
+            private final long watermark;
+            private long currentMaxSequence;
+            private boolean isUpdateFromLog;
+
+            public IndexContextMetaData(int nextVectorId, long watermark, boolean isUpdateFromLog) {
+                this.nextVectorId = nextVectorId;
                 this.watermark = watermark;
-                this.freeOrd = freeOrd;
+                this.isUpdateFromLog = isUpdateFromLog;
             }
 
-            int getNextOrd() { return nextOrd; }
+            int getNextVectorId() {
+                this.nextVectorId++;
+                return nextVectorId;
+            }
 
-            long getWatermark() { return watermark; }
+            void setNextVectorId(int nextVectorId) {
+                this.nextVectorId = nextVectorId;
+            }
 
-            List<Integer> getFreeOrd() { return freeOrd; }
+            void setCurrentMaxSequence(long currentMaxSequence) {
+                this.currentMaxSequence = currentMaxSequence;
+            }
+
+            long getCurrentMaxSequence() {
+                this.currentMaxSequence++;
+                return this.currentMaxSequence;
+            }
+
+            public long getWatermark() { return watermark; }
+
+            public boolean isUpdateFromLog() {
+                return isUpdateFromLog;
+            }
+
+            public void setUpdateFromLog(boolean isUpdateFromLog) {
+                this.isUpdateFromLog = isUpdateFromLog;
+            }
         }
     }
 
     @Override
     public void init() {
+    //   read the properties
 
     }
 
     @Override
-    public void stop() {
-        //    TODO: 1. flush all the context to disk
+    public void stop() throws IOException {
+        // flush all the context to disk
+        for (Map.Entry<Id, IndexContext<Id>> e : vectorMap.entrySet()) {
+            Id indexLabelId = e.getKey();
+            flush(indexLabelId);
+        }
     }
 
     @Override
@@ -157,6 +185,8 @@ public abstract class AbstractVectorRuntime<Id> implements VectorIndexRuntime<Id
             System.err.println("Atomic save failed: " + e.getMessage());
             throw e;
         }
+
+        vectorMap.clear();
     }
 
     private void forceSyncDirectory(Path directory) throws IOException {
@@ -183,7 +213,7 @@ public abstract class AbstractVectorRuntime<Id> implements VectorIndexRuntime<Id
     }
 
     @Override
-    public long getCurrentSequence(Id indexlabelId) {
+    public long getCurrentWaterMark(Id indexlabelId) {
         if (!this.vectorMap.containsKey(indexlabelId)) {
             return -1;
         }
@@ -195,21 +225,42 @@ public abstract class AbstractVectorRuntime<Id> implements VectorIndexRuntime<Id
         if (!this.vectorMap.containsKey(indexlabelId)) {
             return -1;
         }
-        return vectorMap.get(indexlabelId).metaData().getNextOrd();
+        return vectorMap.get(indexlabelId).metaData().getNextVectorId();
     }
 
-    protected final IndexContext<Id> obtainContext(Id indexlabelId) {
+    @Override
+    public long getNextSequence(Id indexLabelId) {
+        if (!this.vectorMap.containsKey(indexLabelId)) {
+            return -1;
+        }
+        return vectorMap.get(indexLabelId).metaData().getCurrentMaxSequence();
+    }
+
+    @Override
+    public void updateMetaData(Id indexLabelId, int vectorId, long sequence) {
+        if (!this.vectorMap.containsKey(indexLabelId)) {
+            // warning to log?
+            return;
+        }
+        IndexContext<Id> context = obtainContext(indexLabelId);
+        context.metaData.setNextVectorId(vectorId);
+        context.metaData.setCurrentMaxSequence(sequence);
+        context.metaData.setUpdateFromLog(true);
+    }
+
+    public IndexContext<Id> obtainContext(Id indexlabelId) {
         // TODO:add the function that update the ord and sequence in the context
         IndexContext<Id> context = getContext(indexlabelId);
         if (context != null) {
             return context;
         }
+        // If the IndexLabelId invalid when create New Context will throw error
         return createNewContext(indexlabelId);
     }
 
     protected abstract IndexContext<Id> createNewContext(Id indexlabelId);
 
-    IndexContext<Id> getContext(Id indexlabelId) {
+    protected IndexContext<Id> getContext(Id indexlabelId) {
         if (this.vectorMap.containsKey(indexlabelId)) {
             return vectorMap.get(indexlabelId);
         }

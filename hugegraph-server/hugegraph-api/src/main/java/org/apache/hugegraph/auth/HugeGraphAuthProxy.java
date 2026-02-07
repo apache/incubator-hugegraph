@@ -87,6 +87,7 @@ import org.apache.hugegraph.type.define.GraphReadMode;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.RateLimiter;
+import org.apache.hugegraph.vector.VectorIndexManager;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode;
 import org.apache.tinkerpop.gremlin.process.traversal.Bytecode.Instruction;
@@ -832,6 +833,11 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     public RaftGroupManager raftGroupManager() {
         this.verifyAdminPermission();
         return this.hugegraph.raftGroupManager();
+    }
+
+    @Override
+    public VectorIndexManager<Id> vectorIndexManager() {
+        return this.hugegraph.vectorIndexManager();
     }
 
     @Override

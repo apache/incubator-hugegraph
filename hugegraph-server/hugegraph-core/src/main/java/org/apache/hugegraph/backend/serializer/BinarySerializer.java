@@ -392,7 +392,7 @@ public class BinarySerializer extends AbstractSerializer {
                                   HugeIndex index, Object fieldValues) {
         boolean isVectorIndex = index.type() != HugeType.VECTOR_INDEX_MAP;
         for (BackendColumn col : entry.columns()) {
-            if(isVectorIndex && isVectorDleted(col.value) ||
+            if((isVectorIndex && isVectorDleted(col.value)) ||
                 indexFieldValuesUnmatched(col.value, fieldValues)){
                 // Skip if field-values is not matched (just the same hash)
                 continue;

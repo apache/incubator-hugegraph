@@ -29,4 +29,8 @@ public interface VectorIndexStateStore<Id> {
 
     Set<Id> getVertex(Id indexLabelId, Iterator<Integer> vectorIds);
 
+    int getCurrentMaxVectorId(Id indexLabelId, int currentMaxVectorId);
+
+    long getCurrentMaxSequence(Id indexLabelId, long currentMaxSeq);
+
 }

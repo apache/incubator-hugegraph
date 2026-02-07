@@ -81,12 +81,10 @@ import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.task.EphemeralJobQueue;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
-import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.type.define.IndexType;
 import org.apache.hugegraph.util.CollectionUtil;
 import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.HashUtil;
 import org.apache.hugegraph.util.InsertionOrderUtil;
 import org.apache.hugegraph.util.LockUtil;
 import org.apache.hugegraph.util.LongEncoding;
@@ -324,11 +322,15 @@ public class GraphIndexTransaction extends AbstractTransaction {
                  * The column is garbage-collected once the data has been flushed to disk.
                  * generate new vector id from the context
                  */
-                byte[] vectorId = HashUtil.hash(elementId.asBytes());
 
-                this.updateVectorIndex(indexLabel, HugeIndex.bytes2number(vectorId, DataType.INT.clazz()),
-                                       elementId, expiredTime, removed);
-                break;
+                try(HugeGraph graph = this.graph()){
+                    int vectorId = graph.vectorIndexManager().getNextVectorId(indexLabel.id());
+                    this.updateVectorIndex(indexLabel, vectorId, elementId, expiredTime, removed);
+                    break;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+
             default:
                 throw new AssertionError(String.format(
                         "Unknown index type '%s'", indexLabel.indexType()));
@@ -340,11 +342,18 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         HugeVectorIndexMap indexMap = new HugeVectorIndexMap(this.graph(), indexLabel, removed);
         indexMap.fieldValues(vectorId);
-        indexMap.elementIds(elementId, expiredTime);
 
-        this.doAppend(this.serializer.writeIndex(indexMap));
-        // writeIndex
-        this.doAppend(this.serializer.writeVectorSequence(indexMap));
+        try(HugeGraph graph = this.graph()){
+            vectorIndexChanges.get().put(indexLabel.id(), true);
+            long sequence = graph.vectorIndexManager().getNextSequence(indexLabel.id());
+            indexMap.sequence(sequence);
+            indexMap.elementIds(elementId, expiredTime);
+            this.doAppend(this.serializer.writeIndex(indexMap));
+            // writeIndex
+            this.doAppend(this.serializer.writeVectorSequence(indexMap));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void updateIndex(IndexLabel indexLabel, Object propValue,

@@ -23,17 +23,23 @@ import java.util.Iterator;
 // this module implement the logic of managing the vector index structure in memory
 public interface VectorIndexRuntime<Id> {
 
-    void update(Id indexlabelId, Iterator<VectorRecord> records);
+    void update(Id indexLabelId, Iterator<VectorRecord> records);
 
     void init();
 
-    void stop();
+    void stop() throws IOException;
 
-    void flush(Id indexlabelId) throws IOException;
+    void flush(Id indexLabelId) throws IOException;
 
-    Iterator<Integer> search(Id indexlabelId, float[] queryVector, int topK);
+    Iterator<Integer> search(Id indexLabelId, float[] queryVector, int topK);
 
-    long getCurrentSequence(Id indexlabelId);
+    long getCurrentWaterMark(Id indexLabelId);
 
-    int getNextVectorId(Id indexlabelId);
+    int getNextVectorId(Id indexLabelId);
+
+    long getNextSequence(Id indexLabelId);
+
+    boolean isUpdateMetaData(Id indexLabelId);
+
+    void updateMetaData(Id indexLabelId, int vectorId, long sequence);
 }

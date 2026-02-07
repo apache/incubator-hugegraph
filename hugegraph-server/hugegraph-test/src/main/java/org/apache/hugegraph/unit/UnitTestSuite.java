@@ -72,6 +72,9 @@ import org.apache.hugegraph.unit.util.collection.Int2IntsMapTest;
 import org.apache.hugegraph.unit.util.collection.IntMapTest;
 import org.apache.hugegraph.unit.util.collection.IntSetTest;
 import org.apache.hugegraph.unit.util.collection.ObjectIntMappingTest;
+import org.apache.hugegraph.unit.vectorIndex.AbstractVectorRuntimeTest;
+import org.apache.hugegraph.unit.vectorIndex.VectorIndexManagerTest;
+import org.apache.hugegraph.unit.vectorIndex.VectorRecordTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -157,7 +160,11 @@ import org.junit.runners.Suite;
         IntSetTest.class,
 
         /* store */
-        RamIntObjectMapTest.class
+        RamIntObjectMapTest.class,
+        /* vectorindex */
+        VectorRecordTest.class,
+        VectorIndexManagerTest.class,
+        AbstractVectorRuntimeTest.class,
 })
 public class UnitTestSuite {
 

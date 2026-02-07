@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.vector;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -38,7 +39,7 @@ public class VectorIndexManager<Id> {
         this.runtime.init();
     }
 
-    public void stop() {
+    public void stop() throws IOException {
         this.runtime.stop();
         this.stateStore.stop();
     }
@@ -49,7 +50,7 @@ public class VectorIndexManager<Id> {
 
     private void processIndex(Id indexLableId) {
 
-        long currentSequence = this.runtime.getCurrentSequence(indexLableId);
+        long currentSequence = this.runtime.getCurrentWaterMark(indexLableId);
 
         Iterator<VectorRecord> it =
                 stateStore.scanDeltas(indexLableId, currentSequence < 0 ? 0 : currentSequence)
@@ -63,4 +64,31 @@ public class VectorIndexManager<Id> {
         result = stateStore.getVertex(indexLableId, runtime.search(indexLableId, vector, topK));
         return result;
     }
+
+    public int getNextVectorId(Id indexLableId) {
+        //    check if the runtime context update the vectorId and sequence?
+        //     we could use the runtime function to return id
+        if (runtime.isUpdateMetaData(indexLableId)) {
+            return runtime.getNextVectorId(indexLableId);
+        }
+        int currentMaxVectorId = runtime.getNextVectorId(indexLableId);
+        long currentSequence = this.runtime.getNextSequence(indexLableId);
+        runtime.updateMetaData(indexLableId,
+                               stateStore.getCurrentMaxVectorId(indexLableId, currentMaxVectorId)+1,
+                               stateStore.getCurrentMaxSequence(indexLableId, currentSequence)+1);
+        return runtime.getNextVectorId(indexLableId);
+    }
+
+    public long getNextSequence(Id indexLableId) {
+        if (runtime.isUpdateMetaData(indexLableId)) {
+            return runtime.getNextSequence(indexLableId);
+        }
+        int currentMaxVectorId = runtime.getNextVectorId(indexLableId);
+        long currentSequence = this.runtime.getNextSequence(indexLableId);
+        runtime.updateMetaData(indexLableId,
+                               stateStore.getCurrentMaxVectorId(indexLableId, currentMaxVectorId+1),
+                               stateStore.getCurrentMaxSequence(indexLableId, currentSequence)+1);
+        return runtime.getNextSequence(indexLableId);
+    }
+
 }

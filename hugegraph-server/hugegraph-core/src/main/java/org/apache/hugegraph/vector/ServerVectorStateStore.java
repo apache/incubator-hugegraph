@@ -50,13 +50,14 @@ public class ServerVectorStateStore implements VectorIndexStateStore<Id> {
 
     private HugeGraphParams graphParams = null;
 
-    ServerVectorStateStore(HugeGraphParams graphParams) {
+    public ServerVectorStateStore(HugeGraphParams graphParams) {
         E.checkNotNull(graphParams, "graphParams");
         this.graphParams = graphParams;
     }
 
     @Override
     public void stop() {
+    // delete the deleting record
 
     }
 
@@ -98,16 +99,76 @@ public class ServerVectorStateStore implements VectorIndexStateStore<Id> {
             conditionQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabelId);
             conditionQuery.eq(HugeKeys.FIELD_VALUES, vectorId);
             HugeIndex index = ConvertVectorIndex(indexLabelId, results.iterator(), conditionQuery);
-        //    TODO: transform the element id to set<ID>
-            vertexIds.add(index.elementId());
+            if (index != null) vertexIds.add(index.elementId());
         }
         return vertexIds;
+    }
+
+    @Override
+    public int getCurrentMaxVectorId(Id indexLabelId, int currentMaxVectorId) {
+
+        // construct the Prefix with non vectorId
+        // construct the start with current max vectorId BytesBuffer prefixBuffer = BytesBuffer.allocate(5);
+        BytesBuffer prefixBuffer = BytesBuffer.allocate(5);
+        prefixBuffer.write(0);
+        prefixBuffer.writeInt(SchemaElement.schemaId(indexLabelId));
+
+        Id prefix = prefixBuffer.asId();
+        Id start = HugeVectorIndexMap.formatSequenceId(indexLabelId,  + 1L);
+
+        Query query = new IdPrefixQuery(HugeType.VECTOR_INDEX_MAP,
+                                        null, start, true, prefix);
+        // get query and fetch the max vectorId
+
+        QueryResults<BackendEntry> resultEntries =
+                this.graphParams.graphTransaction().query(query);
+        Iterator<BackendEntry> entries = resultEntries.iterator();
+        int maxVectorId = currentMaxVectorId;
+
+        while(entries.hasNext()){
+            BackendEntry entry = entries.next();
+            ConditionQuery conditionQuery = new ConditionQuery(HugeType.VECTOR_INDEX_MAP);
+            conditionQuery.eq(HugeKeys.INDEX_LABEL_ID, indexLabelId);
+            HugeIndex map =
+                    graphParams.serializer().readIndex(graphParams.graph(), conditionQuery, entry);
+            maxVectorId = Math.max(maxVectorId, (int)map.fieldValues());
+        }
+
+        return maxVectorId;
+    }
+
+    @Override
+    public long getCurrentMaxSequence(Id indexLabelId, long currentMaxSeq) {
+        BytesBuffer prefixBuffer = BytesBuffer.allocate(5);
+        prefixBuffer.write(0);
+        prefixBuffer.writeInt(SchemaElement.schemaId(indexLabelId));
+
+        Id prefix = prefixBuffer.asId();
+        Id start = HugeVectorIndexMap.formatSequenceId(indexLabelId, currentMaxSeq + 1L);
+        Query query = new IdPrefixQuery(HugeType.VECTOR_SEQUENCE,
+                                        null, start, true, prefix);
+
+        QueryResults<BackendEntry> resultEntries =
+                this.graphParams.graphTransaction().query(query);
+        Iterator<BackendEntry> entries = resultEntries.iterator();
+        long maxSequence = currentMaxSeq;
+        while(entries.hasNext()){
+            BackendEntry entry = entries.next();
+            HugeVectorIndexMap map =
+                    graphParams.serializer().readVectorSequence(graphParams.graph(), null,
+                                                                entry);
+            maxSequence = Math.max(maxSequence, map.sequence());
+        }
+
+        return maxSequence;
     }
 
     HugeIndex ConvertVectorIndex(Id indexLabelId, Iterator<BackendEntry> entries,
                                  ConditionQuery query) {
         while (entries.hasNext()) {
             BackendEntry entry = entries.next();
+            // In the read index, columns that have been deleted are filtered out; only indexes
+            // in a normal status will assign a value to the element id.
             HugeIndex index = graphParams.serializer().readIndex(graphParams.graph(), query, entry);
             if(index.elementId() != null) {
                 // if the state not equal deleting, the element id would not be set

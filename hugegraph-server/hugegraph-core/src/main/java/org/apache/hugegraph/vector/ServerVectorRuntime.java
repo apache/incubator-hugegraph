@@ -36,7 +36,6 @@ import io.github.jbellis.jvector.disk.ReaderSupplier;
 import io.github.jbellis.jvector.disk.SimpleMappedReader;
 import io.github.jbellis.jvector.graph.GraphIndexBuilder;
 import io.github.jbellis.jvector.graph.GraphSearcher;
-import io.github.jbellis.jvector.graph.MapRandomAccessVectorValues;
 import io.github.jbellis.jvector.graph.RandomAccessVectorValues;
 import io.github.jbellis.jvector.graph.SearchResult;
 import io.github.jbellis.jvector.graph.disk.OnDiskGraphIndex;
@@ -71,8 +70,8 @@ public class ServerVectorRuntime extends AbstractVectorRuntime<Id> {
     }
 
     @Override
-    public Iterator<Integer> search(Id indexlabelId, float[] queryVector, int topK) {
-        IndexContext<Id> context = obtainContext(indexlabelId);
+    public Iterator<Integer> search(Id indexLabelId, float[] queryVector, int topK) {
+        IndexContext<Id> context = obtainContext(indexLabelId);
         VectorTypeSupport vectorTypeSupport =
                 VectorizationProvider.getInstance().getVectorTypeSupport();
         VectorFloat<?> vector = vectorTypeSupport.createFloatVector(queryVector);
@@ -89,6 +88,12 @@ public class ServerVectorRuntime extends AbstractVectorRuntime<Id> {
         return Arrays.stream(sr.getNodes()).mapToInt(c -> c.node).iterator();
     }
 
+    @Override
+    public boolean isUpdateMetaData(Id indexLabelId) {
+        IndexContext<Id> context = obtainContext(indexLabelId);
+        return context.metaData.isUpdateFromLog();
+    }
+
     private void handleDelete(VectorRecord record, IndexContext<Id> context) {
         // now just mark the record deleted
         // TODO： add the counter to save the deleted count
@@ -101,44 +106,48 @@ public class ServerVectorRuntime extends AbstractVectorRuntime<Id> {
     private void handleBuilding(VectorRecord record, IndexContext<Id> context) {
 
         if (context.vectors.getVector(record.getVectorId()) != null) {
-            context.builder.markNodeDeleted(record.getVectorId());
-        } else {
-            VectorTypeSupport vectorTypeSupport =
-                    VectorizationProvider.getInstance().getVectorTypeSupport();
-            VectorFloat<?> vector = vectorTypeSupport.createFloatVector(record.getVectorData());
-            context.builder.addGraphNode(record.getVectorId(), vector);
+            return;
         }
+
+        VectorTypeSupport vectorTypeSupport =
+                VectorizationProvider.getInstance().getVectorTypeSupport();
+        VectorFloat<?> vector = vectorTypeSupport.createFloatVector(record.getVectorData());
+
+        context.builder.addGraphNode(record.getVectorId(), vector);
+
     }
 
     @Override
-    protected IndexContext<Id> createNewContext(Id indexlabelId) {
+    public IndexContext<Id> createNewContext(Id indexLabelId) {
 
-        if (!checkPathValid(indexlabelId)) {
-            return getNewContext(indexlabelId, null);
+        if (!checkPathValid(indexLabelId)) {
+            return getNewContext(indexLabelId, null);
         }
         // construct the dataPath to read the index and sequence
         Path currentPathDir = null;
         try {
-            currentPathDir = getOnDiskIndexDirPath(indexlabelId);
+            currentPathDir = getOnDiskIndexDirPath(indexLabelId);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to resolve index dir for " + indexlabelId.asString(), e);
+            throw new RuntimeException("Failed to resolve index dir for " + indexLabelId.asString(), e);
         }
         // get the index and json
         try (ReaderSupplier rs = new SimpleMappedReader.Supplier(currentPathDir.resolve(INDEX_FILE_NAME));
              OnDiskGraphIndex index = OnDiskGraphIndex.load(rs)) {
             RandomAccessVectorValues ravv = index.getView();
-            IndexContext<Id> context = getNewContext(indexlabelId, ravv);
-            vectorMap.put(indexlabelId, context);
+            IndexContext<Id> context = getNewContext(indexLabelId, ravv);
             Path currentJsonPath = currentPathDir.resolve(META_FILE_NAME);
             String jsonMetaData = Files.readString(currentJsonPath);
+            // get the metaData from disk but not update from rocksdb
             IndexContext.IndexContextMetaData metaData = JsonUtilCommon.fromJson(jsonMetaData,
                                                               IndexContext.IndexContextMetaData.class);
+            metaData.setUpdateFromLog(false);
             context.setMetaData(metaData);
+            vectorMap.put(indexLabelId, context);
             return context;
         } catch (FileNotFoundException e) {
             System.err.println("Index file not found: " + currentPathDir);
-            IndexContext<Id> empty = getNewContext(indexlabelId, null);
-            vectorMap.put(indexlabelId, empty);
+            IndexContext<Id> empty = getNewContext(indexLabelId, null);
+            vectorMap.put(indexLabelId, empty);
             return empty;
         } catch (IOException e) {
             throw new RuntimeException("Read index failed: " + currentPathDir, e);
@@ -146,7 +155,7 @@ public class ServerVectorRuntime extends AbstractVectorRuntime<Id> {
     }
 
     @Override
-    protected String idToString(Id id) {
+    public String idToString(Id id) {
         return id.asString();
     }
 
@@ -161,7 +170,8 @@ public class ServerVectorRuntime extends AbstractVectorRuntime<Id> {
         int dimension = (int) userData.get("dimension");
         VectorSimilarityFunction similarityFunction =
                 getSimilarityFunction((String) userData.get("similarityFunction"));
-
+        /* use the magic number first
+        * TODO: use the config to set */
         int M = userData.containsKey("M") ? (int) userData.get("M") : 16;
         int beamWidth = userData.containsKey("beamWidth") ? (int) userData.get("beamWidthM") : 100;
         float neighborOverflow = userData.containsKey("neighborOverflow") ?
@@ -169,16 +179,16 @@ public class ServerVectorRuntime extends AbstractVectorRuntime<Id> {
         float alpha = userData.containsKey("alpha") ? (float) userData.get("alpha") : (float) 1.2;
 
         RandomAccessVectorValues vectorValueMap = ravv != null ? ravv:
-                new MapRandomAccessVectorValues(new HashMap<>(), dimension);
+                new UpdatableRandomAccessVectorValues(new HashMap<>(), dimension);
 
         GraphIndexBuilder builder = new GraphIndexBuilder(vectorValueMap, similarityFunction,
                                                           M, beamWidth, neighborOverflow, alpha);
-
-        return new IndexContext<Id>(vectorIndexLableId, vectorValueMap, builder,0,
+        // need to test the vectorValueMap is updatable
+        return new IndexContext<Id>(vectorIndexLableId, (UpdatableRandomAccessVectorValues) vectorValueMap, builder,0,
                                     dimension, similarityFunction);
     }
 
-    VectorSimilarityFunction getSimilarityFunction(String similarityFunction) {
+    public VectorSimilarityFunction getSimilarityFunction(String similarityFunction) {
         similarityFunction = similarityFunction.toUpperCase();
         switch (similarityFunction) {
             case "EUCLIDEAN":
