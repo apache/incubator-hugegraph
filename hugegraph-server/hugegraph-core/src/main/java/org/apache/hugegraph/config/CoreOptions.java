@@ -17,13 +17,18 @@
 
 package org.apache.hugegraph.config;
 
+import static org.apache.hugegraph.backend.query.Query.COMMIT_BATCH;
+import static org.apache.hugegraph.config.OptionChecker.allowValues;
+import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
+import static org.apache.hugegraph.config.OptionChecker.nonNegativeInt;
+import static org.apache.hugegraph.config.OptionChecker.positiveInt;
+import static org.apache.hugegraph.config.OptionChecker.rangeDouble;
+import static org.apache.hugegraph.config.OptionChecker.rangeInt;
+
 import org.apache.hugegraph.backend.query.Query;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.util.Bytes;
-
-import static org.apache.hugegraph.backend.query.Query.COMMIT_BATCH;
-import static org.apache.hugegraph.config.OptionChecker.*;
 
 public class CoreOptions extends OptionHolder {
 
@@ -636,12 +641,6 @@ public class CoreOptions extends OptionHolder {
                     disallowEmpty(),
                     "./conf/resource-quota-template.yaml"
             );
-    public static final ConfigOption<String> PD_PEERS = new ConfigOption<>(
-            "pd.peers",
-            "The addresses of pd nodes, separated with commas.",
-            disallowEmpty(),
-            "127.0.0.1:8686"
-    );
     public static final ConfigOption<String> MEMORY_MODE = new ConfigOption<>(
             "memory.mode",
             "The memory mode used for query in HugeGraph.",

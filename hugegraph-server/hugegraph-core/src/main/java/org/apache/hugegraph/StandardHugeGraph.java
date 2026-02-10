@@ -247,13 +247,6 @@ public class StandardHugeGraph implements HugeGraph {
             throw new HugeException(message);
         }
 
-        if (isHstore()) {
-            // TODO: parameterize the remaining configurations
-            MetaManager.instance().connect("hg", MetaManager.MetaDriverType.PD,
-                                           "ca", "ca", "ca",
-                                           config.get(CoreOptions.PD_PEERS));
-        }
-
         try {
             this.tx = new TinkerPopTransaction(this);
             boolean supportsPersistence = this.backendStoreFeatures().supportsPersistence();
@@ -1630,6 +1623,7 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public String schedulerType() {
             // Use distributed scheduler for hstore backend, otherwise use local
+            // After the merger of rocksdb and hstore, consider whether to change this logic
             return StandardHugeGraph.this.isHstore() ? "distributed" : "local";
         }
     }
