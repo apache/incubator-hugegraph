@@ -14,6 +14,12 @@
 
 </div>
 
+---
+
+**Quick Navigation:** [Architecture](#architecture) • [Quick Start](#quick-start) • [Module Map](#module-map) • [Ecosystem](#ecosystem) • [For Contributors](#for-contributors) • [Community](#community)
+
+---
+
 ## What is Apache HugeGraph?
 
 [HugeGraph](https://hugegraph.apache.org/) is a fast and highly-scalable [graph database](https://en.wikipedia.org/wiki/Graph_database).
@@ -23,96 +29,361 @@ achieved through the powerful [Gremlin](https://tinkerpop.apache.org/gremlin.htm
 
 ## Features
 
-- Compliant to [Apache TinkerPop 3](https://tinkerpop.apache.org/), supports [Gremlin](https://tinkerpop.apache.org/gremlin.html) & [Cypher](https://en.wikipedia.org/wiki/Cypher_(query_language)) language
-- Schema Metadata Management, including VertexLabel, EdgeLabel, PropertyKey and IndexLabel
-- Multi-type Indexes, supporting exact query, range query and complex conditions combination query
-- Plug-in Backend Store Framework, mainly support `RocksDB`/`HStore` + `HBase` for now and you could choose other backends in the [legacy version](https://hugegraph.apache.org/docs/download/download/) ≤ `1.5.0` (like `MySQL/PG`/`Cassandra` ...)
-- Integration with `Flink/Spark/HDFS`, and friendly to connect other big data platforms
-- Complete graph ecosystem (including both in/out-memory `Graph Computing` + `Graph Visualization & Tools` + `Graph Learning & AI`, see [here](#3-build-from-source))
+- **Schema Metadata Management**: VertexLabel, EdgeLabel, PropertyKey, and IndexLabel
+- **Multi-type Indexes**: Exact query, range query, and complex conditions combination query
+- **Plug-in Backend Store Framework**: Mainly supports `RocksDB`/`HStore` + `HBase`; other backends available in [legacy versions](https://hugegraph.apache.org/docs/download/download/) ≤ `1.5.0` (MySQL/PostgreSQL/Cassandra...)
+- **Big Data Integration**: Seamless integration with `Flink`/`Spark`/`HDFS`
+- **Complete Graph Ecosystem**: In/out-memory Graph Computing + Graph Visualization & Tools + Graph Learning & AI
+- **Dual Query Language Support**: [Gremlin](https://tinkerpop.apache.org/gremlin.html) (via [Apache TinkerPop 3](https://tinkerpop.apache.org/)) and [Cypher](https://en.wikipedia.org/wiki/Cypher_(query_language)) (OpenCypher)
+
+## Ecosystem
+
+Complete **HugeGraph** ecosystem components:
+
+1. **[hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain)** - Graph tools suite
+   - [Loader](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-loader) - Data import tool
+   - [Dashboard](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-hubble) - Web visualization platform
+   - [Tool](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-tools) - Command-line utilities
+   - [Client](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-client) - Java/Python client SDK
+
+2. **[hugegraph-computer](https://github.com/apache/hugegraph-computer)** - Integrated **graph computing** system
+
+3. **[hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai)** - **Graph AI/LLM/Knowledge Graph** integration
+
+4. **[hugegraph-website](https://github.com/apache/hugegraph-doc)** - **Documentation & website** repository
 
 ## Architecture
 
 HugeGraph supports both **standalone** and **distributed** deployments:
 
-| Module                                 | Description                                                                                               |
-|----------------------------------------|-----------------------------------------------------------------------------------------------------------|
-| [hugegraph-server](hugegraph-server)   | Core graph engine with REST API, Gremlin/Cypher support, and pluggable backends (RocksDB default)         |
-| [hugegraph-pd](hugegraph-pd)           | Placement Driver for distributed mode - handles meta storage, partition management and cluster scheduling |
-| [hugegraph-store](hugegraph-store)     | Distributed storage with Raft consensus for high availability and horizontal scaling                      |
-| [hugegraph-commons](hugegraph-commons) | Shared utilities, RPC framework and common components                                                     |
+```
+                        ┌─────────────────────────────────────────────────────┐
+                        │                    Client Layer                     │
+                        │  Gremlin Console │ REST API │ Cypher │ SDK/Tools    │
+                        └─────────────────────────┬───────────────────────────┘
+                                                  │
+                        ┌─────────────────────────▼───────────────────────────┐
+                        │             HugeGraph Server (:8080)                │
+                        │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │
+                        │  │ REST API │  │ Gremlin  │  │   Cypher Engine  │   │
+                        │  │(Jersey 3)│  │ (TP 3.5) │  │   (OpenCypher)   │   │
+                        │  └────┬─────┘  └────┬─────┘  └────────┬─────────┘   │
+                        │       └─────────────┼─────────────────┘             │
+                        │            ┌────────▼────────┐                      │
+                        │            │  Graph Engine   │                      │
+                        │            │(hugegraph-core) │                      │
+                        │            └────────┬────────┘                      │
+                        └─────────────────────┼───────────────────────────────┘
+                                              │
+             ┌────────────────────────────────┼────────────────────────────────┐
+             │                                │                                │
+┌────────────▼────────────┐   ┌───────────────▼───────────────┐   ┌───────────▼──────────┐
+│    Standalone Mode      │   │      Distributed Mode         │   │   Legacy Backends    │
+│  ┌───────────────────┐  │   │  ┌─────────────────────────┐  │   │      (≤v1.5)         │
+│  │      RocksDB      │  │   │  │     HugeGraph-PD        │  │   │  MySQL │ PostgreSQL  │
+│  │    (embedded)     │  │   │  │   (Raft, 3-5 nodes)     │  │   │  Cassandra           │
+│  └───────────────────┘  │   │  │      :8620/:8686        │  │   │  HBase (≤v1.7)       │
+│                         │   │  └────────────┬────────────┘  │   └──────────────────────┘
+│  Use Case:              │   │               │               │
+│  Development/Testing    │   │  ┌────────────▼────────────┐  │
+│  Single Node            │   │  │    HugeGraph-Store      │  │
+│                         │   │  │    (Raft + RocksDB)     │  │
+│  Data Scale: < 1TB      │   │  │   (3+ nodes) :8520      │  │
+└─────────────────────────┘   │  └─────────────────────────┘  │
+                              │                               │
+                              │  Use Case:                    │
+                              │  Production/HA/Cluster        │
+                              │                               │
+                              │  Data Scale: < 1000 TB        │
+                              └───────────────────────────────┘
+```
 
-- **Standalone**: HugeGraph Server + RocksDB (for all-in-one deployment)
-- **Distributed**: HugeGraph Server + PD + Store (Raft + RocksDB by default)
+### Deployment Mode Comparison
+
+| Mode | Components | Use Case | Data Scale | High Availability |
+|------|------------|----------|------------|-------------------|
+| **Standalone** | Server + RocksDB | Development, Testing, Single Node | < 1TB | Basic |
+| **Distributed** | Server + PD (3-5 nodes) + Store (3+ nodes) | Production, HA, Horizontal Scaling | < 1000 TB | Yes |
+
+### Module Overview
+
+| Module | Description |
+|--------|-------------|
+| [hugegraph-server](hugegraph-server) | Core graph engine with REST API, Gremlin/Cypher support, and pluggable backends (RocksDB default) |
+| [hugegraph-pd](hugegraph-pd) | Placement Driver for distributed mode - handles meta storage, partition management and cluster scheduling |
+| [hugegraph-store](hugegraph-store) | Distributed storage with Raft consensus for high availability and horizontal scaling |
+| [hugegraph-commons](hugegraph-commons) | Shared utilities, RPC framework and common components |
+
+<details>
+<summary><b>📊 Click to view detailed architecture diagram (Mermaid)</b></summary>
+
+```mermaid
+flowchart TB
+    subgraph Clients["Client Layer"]
+        GC[Gremlin Console]
+        REST[REST Client]
+        CYPHER[Cypher Client]
+        SDK[SDK/Tools]
+    end
+
+    subgraph Server["HugeGraph Server :8080"]
+        API[REST API<br/>Jersey 3]
+        GS[Gremlin Server<br/>TinkerPop 3.5]
+        CS[Cypher Engine<br/>OpenCypher]
+        CORE[Graph Engine<br/>hugegraph-core]
+
+        API --> CORE
+        GS --> CORE
+        CS --> CORE
+    end
+
+    subgraph Storage["Storage Layer"]
+        subgraph Standalone["Standalone Mode"]
+            ROCKS[(RocksDB<br/>Embedded)]
+        end
+
+        subgraph Distributed["Distributed Mode"]
+            PD[HugeGraph-PD<br/>Raft Cluster<br/>:8620/:8686]
+            STORE[HugeGraph-Store<br/>Raft + RocksDB<br/>:8520]
+            PD <--> STORE
+        end
+
+        subgraph Legacy["Legacy Backends (≤v1.5)"]
+            MYSQL[(MySQL)]
+            PG[(PostgreSQL)]
+            CASS[(Cassandra)]
+            HBASE[(HBase, ≤v1.7)]
+        end
+    end
+
+    Clients --> Server
+    CORE --> ROCKS
+    CORE --> PD
+    CORE -.-> Legacy
+
+    style Server fill:#e1f5ff
+    style Distributed fill:#fff4e1
+    style Standalone fill:#f0f0f0
+```
+
+</details>
 
 ## Quick Start
 
-### 1. Docker (For Test)
+### 5 Minutes Quick Start
 
-Use Docker to quickly start a HugeGraph server with `RocksDB` (in the background) for **testing or development**:
+```bash
+# Start HugeGraph with Docker
+docker run -itd --name=hugegraph -p 8080:8080 hugegraph/hugegraph:1.7.0
 
+# Verify server is running
+curl http://localhost:8080/apis/version
+
+# Try a Gremlin query
+curl -X POST http://localhost:8080/gremlin \
+  -H "Content-Type: application/json" \
+  -d '{"gremlin":"g.V().limit(5)"}'
 ```
-# (Optional) 
-# - add "-e PRELOAD=true" to auto-load a sample graph
-docker run -itd --name=graph -e PASSWORD=xxx -p 8080:8080 hugegraph/hugegraph:1.7.0
+
+> **Production Note**: For production environments or public network exposure, you **must** enable the [AuthSystem](https://hugegraph.apache.org/docs/config/config-authentication/) for security.
+
+### Prerequisites
+
+- **Java 11+** (required)
+- **Maven 3.5+** (for building from source)
+
+### Option 1: Docker (Fastest)
+
+Docker is the quickest way to get started for **testing or development**:
+
+```bash
+# Basic usage
+docker run -itd --name=hugegraph -p 8080:8080 hugegraph/hugegraph:1.7.0
+
+# With sample graph preloaded
+docker run -itd --name=hugegraph -e PRELOAD=true -p 8080:8080 hugegraph/hugegraph:1.7.0
+
+# With authentication enabled
+docker run -itd --name=hugegraph -e PASSWORD=your_password -p 8080:8080 hugegraph/hugegraph:1.7.0
 ```
 
-Please visit [doc page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy) or
-the [README](hugegraph-server/hugegraph-dist/docker/README.md) for more details. ([Docker Compose](./hugegraph-server/hugegraph-dist/docker/example))
+For advanced Docker configurations, see:
+- [Docker Documentation](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#3-deploy)
+- [Docker Compose Example](./hugegraph-server/hugegraph-dist/docker/example)
+- [Docker README](hugegraph-server/hugegraph-dist/docker/README.md)
 
-> Note:
-> 1. The Docker image of HugeGraph is a convenience release, but not **official distribution** artifacts. You can find more details from [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub).
-> 2. Recommend to use `release tag` (like `1.7.0`/`1.x.0`) for the stable version. Use `latest` tag to experience the newest functions in development.
+> **Note**: Docker images are convenience releases, not **official ASF distribution artifacts**. See [ASF Release Distribution Policy](https://infra.apache.org/release-distribution.html#dockerhub) for details.
+>
+> **Version Tags**: Use release tags (`1.7.0`, `1.x.0`) for stable versions. Use `latest` for development features.
 
-### 2. Download
+<details>
+<summary><b>Option 2: Download Binary Package</b></summary>
 
-Visit [Download Page](https://hugegraph.apache.org/docs/download/download/) and refer the [doc](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#32-download-the-binary-tar-tarball)
-to download the latest release package and start the server.
+Download pre-built packages from the [Download Page](https://hugegraph.apache.org/docs/download/download/):
 
-**Note:** if you want to use it in the production environment or expose it to the public network, you must enable the [AuthSystem](https://hugegraph.apache.org/docs/config/config-authentication/) to ensure safety.
+```bash
+# Download and extract
+wget https://downloads.apache.org/incubator/hugegraph/{version}/apache-hugegraph-incubating-{version}.tar.gz
+tar -xzf apache-hugegraph-incubating-{version}.tar.gz
+cd apache-hugegraph-incubating-{version}
 
-### 3. Build From Source
+# Initialize backend storage
+bin/init-store.sh
 
-Visit [Build From Source Page](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#33-source-code-compilation) and follow the
-steps to build the source code and start the server.
+# Start server
+bin/start-hugegraph.sh
 
-The project [doc page](https://hugegraph.apache.org/docs/) contains more information on HugeGraph
-and provides detailed documentation for users. (Structure / Usage / API / Configs...)
+# Check server status
+bin/monitor-hugegraph.sh
+```
 
-## Ecosystem
+For detailed instructions, see the [Binary Installation Guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#32-download-the-binary-tar-tarball).
 
-Other **HugeGraph** components/repositories:
+</details>
 
-1. [hugegraph-toolchain](https://github.com/apache/hugegraph-toolchain) (graph tools **[loader](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-loader)/[dashboard](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-hubble)/[tool](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-tools)/[client](https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-client)**)
-2. [hugegraph-computer](https://github.com/apache/hugegraph-computer) (integrated **graph computing** system)
-3. [hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai) (integrated **Graph AI/LLM/KG** system)
-4. [hugegraph-website](https://github.com/apache/hugegraph-doc) (**doc & website** code)
+<details>
+<summary><b>Option 3: Build from Source</b></summary>
+
+Build from source for development or customization:
+
+```bash
+# Clone repository
+git clone https://github.com/apache/hugegraph.git
+cd hugegraph
+
+# Build all modules (skip tests for faster build)
+mvn clean package -DskipTests
+
+# Extract built package
+cd install-dist/target
+tar -xzf hugegraph-{version}.tar.gz
+cd hugegraph-{version}
+
+# Initialize and start
+bin/init-store.sh
+bin/start-hugegraph.sh
+```
+
+For detailed build instructions, see [BUILDING.md](BUILDING.md) and [Build from Source Guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#33-source-code-compilation).
+
+</details>
+
+<details>
+<summary><b>Verify Installation</b></summary>
+
+Once the server is running, verify the installation:
+
+```bash
+# Check server version
+curl http://localhost:8080/apis/version
+
+# Expected output:
+# {
+#   "version": "1.7.0",
+#   "core": "1.7.0",
+#   "gremlin": "3.5.1",
+#   "api": "1.7.0"
+# }
+
+# Try Gremlin console (if installed locally)
+bin/gremlin-console.sh
+
+# In Gremlin console:
+gremlin> :remote connect tinkerpop.server conf/remote.yaml
+gremlin> :> g.V().limit(5)
+```
+
+For comprehensive documentation, visit the [HugeGraph Documentation](https://hugegraph.apache.org/docs/).
+
+</details>
+
+## Module Map
+
+**Developer Navigation**: Find the right module for your task
+
+| I want to... | Module | Key Path |
+|--------------|--------|----------|
+| Understand graph operations | `hugegraph-core` | `StandardHugeGraph.java` |
+| Modify REST APIs | `hugegraph-api` | `src/.../api/` |
+| Add storage backend | `hugegraph-core` | `BackendStore.java` |
+| Develop Gremlin features | `hugegraph-core` | `src/.../traversal/` |
+| Develop Cypher features | `hugegraph-api` | `src/.../opencypher/` |
+| Work on distributed coordination | `hugegraph-pd` | `hg-pd-core/` |
+| Work on distributed storage | `hugegraph-store` | `hg-store-core/` |
+| Add backend implementations | `hugegraph-server/hugegraph-{backend}` | `hugegraph-rocksdb/`, `hugegraph-hstore/` |
+| Understand configuration | `hugegraph-dist` | `src/assembly/static/conf/` |
+| Run tests | `hugegraph-test` | Test suites with multiple profiles |
+
+For detailed architecture and development guidance, see [AGENTS.md](AGENTS.md).
+
+<details>
+<summary><b>For Contributors</b></summary>
+
+**New to HugeGraph?** Follow this path to get started:
+
+1. **Understand the Architecture**
+   - Read [AGENTS.md](AGENTS.md) for detailed module structure and development patterns
+   - Review the [Architecture Diagram](#architecture) above
+
+2. **Set Up Your Environment**
+   - Install Java 11+ and Maven 3.5+
+   - Follow [BUILDING.md](BUILDING.md) for build instructions
+   - Configure your IDE to use `.editorconfig` for code style and `style/checkstyle.xml` for Checkstyle rules
+
+3. **Find Your First Issue**
+   - Browse [Good First Issues](https://github.com/apache/hugegraph/issues?q=label%3A%22good+first+issue%22)
+   - Check [Help Wanted Issues](https://github.com/apache/hugegraph/issues?q=label%3A%22help+wanted%22)
+
+4. **Learn the Codebase**
+   - Use the [Module Map](#module-map) to navigate
+   - Try [DeepWiki](https://deepwiki.com/apache/hugegraph) for AI-powered codebase understanding
+   - Run tests to understand behavior: `mvn test -pl hugegraph-server/hugegraph-test -am -P core-test,memory`
+   - Try modifying a test and see what breaks
+
+5. **Code Standards**
+   - Line length: 100 characters
+   - Indentation: 4 spaces
+   - No star imports
+   - Commit format: `feat|fix|refactor(module): description`
+
+6. **Submit Your Contribution**
+   - Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+   - Follow the [Contribution Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/)
+   - Use [GitHub Desktop](https://desktop.github.com/) to simplify the PR process
+
+</details>
+
+## Contributing
+
+Welcome to contribute to HugeGraph!
+
+- **How to Contribute**: See [CONTRIBUTING.md](CONTRIBUTING.md) and [Contribution Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/)
+- **Code Style**: Configure your IDE to use `.editorconfig` for code style and `style/checkstyle.xml` for Checkstyle rules
+- **PR Tool**: [GitHub Desktop](https://desktop.github.com/) is recommended for simpler workflow
+
+Thank you to all the contributors who have helped make HugeGraph better!
+
+[![contributors graph](https://contrib.rocks/image?repo=apache/hugegraph)](https://github.com/apache/incubator-hugegraph/graphs/contributors)
 
 ## License
 
 HugeGraph is licensed under [Apache 2.0 License](LICENSE).
 
-## Contributing
+## Community
 
-- Welcome to contribute to HugeGraph, please see [`How to Contribute`](CONTRIBUTING.md) & [Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/) for more information.
-- Note: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to greatly simplify the PR and commit process.
-- Thank you to all the people who already contributed to HugeGraph!
+**Get Help & Stay Connected**
 
-[![contributors graph](https://contrib.rocks/image?repo=apache/hugegraph)](https://github.com/apache/incubator-hugegraph/graphs/contributors)
+- **[GitHub Issues](https://github.com/apache/hugegraph/issues)**: Report bugs and request features (quick response)
+- **Mailing List**: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscribe here](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/))
+- **Slack**: [ASF HugeGraph Channel](https://the-asf.slack.com/archives/C059UU2FJ23)
+- **WeChat**: Scan the QR code to follow Apache HugeGraph official account
+
+<p align="center">
+<img src="https://github.com/apache/hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="WeChat QR Code" width="300"/>
+</p>
 
 ## Thanks
 
-HugeGraph relies on the [TinkerPop](http://tinkerpop.apache.org) framework, we refer to the storage structure of Titan and the schema definition of DataStax.
-Thanks to TinkerPop, thanks to Titan, thanks to DataStax. Thanks to all other organizations or authors who contributed to the project.
+HugeGraph relies on the [Apache TinkerPop](http://tinkerpop.apache.org) framework. We are grateful to the TinkerPop community, Titan, and DataStax for their foundational work. Thanks to all contributors and organizations who have helped make HugeGraph possible.
 
-You are welcome to contribute to HugeGraph,
-and we are looking forward to working with you to build an excellent open-source community.
-
-## Contact Us
-
-- [GitHub Issues](https://github.com/apache/hugegraph/issues): Feedback on usage issues and functional requirements (quick response)
-- Feedback Email: [dev@hugegraph.apache.org](mailto:dev@hugegraph.apache.org) ([subscriber](https://hugegraph.apache.org/docs/contribution-guidelines/subscribe/) only)
-- Slack: [ASF Online Channel](https://the-asf.slack.com/archives/C059UU2FJ23)
-- WeChat public account: Apache HugeGraph, welcome to scan this QR code to follow us.
-
- <img src="https://github.com/apache/hugegraph-doc/blob/master/assets/images/wechat.png?raw=true" alt="QR png" width="300"/>
-
+You are welcome to contribute to HugeGraph, and we look forward to working with you to build an excellent open-source community.
