@@ -33,11 +33,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -69,6 +69,7 @@ import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.exception.ExistedException;
+import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.io.HugeGraphSONModule;
 import org.apache.hugegraph.k8s.K8sDriver;
@@ -197,7 +198,10 @@ public final class GraphManager {
         LOG.info("Init graph manager");
         E.checkArgumentNotNull(conf, "The config can't be null");
 
-        // Auto-generate server.id if not configured
+        // Auto-generate server.id if not configured.
+        // Random generation is to prevent duplicate id error reports.This id is currently
+        // meaningless and needs to be completely removed serverInfoManager in
+        // the future
         String server = conf.get(ServerOptions.SERVER_ID);
         if (StringUtils.isEmpty(server)) {
             server = "server-" + UUID.randomUUID().toString().substring(0, 8);
@@ -280,7 +284,7 @@ public final class GraphManager {
                      .replace("_", "-").toLowerCase();
     }
 
-    private boolean usePD() {
+    public boolean usePD() {
         return this.PDExist;
     }
 
@@ -1561,6 +1565,14 @@ public final class GraphManager {
         String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
         config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
                            raftGroupPeers);
+
+        // Transfer `pd.peers` from server config to graph config
+        // Only inject if not already configured in graph config
+        if (!config.containsKey("pd.peers")) {
+            String pdPeers = this.conf.get(ServerOptions.PD_PEERS);
+            config.addProperty("pd.peers", pdPeers);
+        }
+
         this.transferRoleWorkerConfig(config);
 
         Graph graph = GraphFactory.open(config);
@@ -1960,7 +1972,7 @@ public final class GraphManager {
         } else if (graph instanceof HugeGraph) {
             return (HugeGraph) graph;
         }
-        throw new NotSupportException("graph instance of %s", graph.getClass());
+        throw new NotFoundException(String.format("Graph '%s' does not exist", name));
     }
 
     public void dropGraphLocal(String name) {

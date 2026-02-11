@@ -1630,6 +1630,7 @@ public class StandardHugeGraph implements HugeGraph {
         @Override
         public String schedulerType() {
             // Use distributed scheduler for hstore backend, otherwise use local
+            // After the merger of rocksdb and hstore, consider whether to change this logic
             return StandardHugeGraph.this.isHstore() ? "distributed" : "local";
         }
     }

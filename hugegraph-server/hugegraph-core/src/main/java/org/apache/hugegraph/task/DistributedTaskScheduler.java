@@ -357,7 +357,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
     public <V> HugeTask<V> delete(Id id, boolean force) {
         HugeTask<?> task = this.taskWithoutResult(id);
 
-        if (!force && !task.completed() && task.status() != TaskStatus.DELETING) {
+        if (!force && !task.completed()) {
             // Check task status: can't delete running tasks without force
             this.updateStatus(id, null, TaskStatus.DELETING);
             return null;
