@@ -37,6 +37,7 @@ import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.meta.PdMetaDriver.PDAuthConfig;
 import org.apache.hugegraph.pd.client.PDClient;
@@ -110,10 +111,7 @@ public class HstoreSessionsImpl extends HstoreSessions {
         if (!initializedNode) {
             synchronized (this) {
                 if (!initializedNode) {
-                    // Use hardcoded string to avoid dependency on ServerOptions
-                    // The value is injected from ServerOptions.PD_PEERS by GraphManager
-                    String pdPeers = config.getString("pd.peers");
-                    PDConfig pdConfig = PDConfig.of(pdPeers)
+                    PDConfig pdConfig = PDConfig.of(config.get(CoreOptions.PD_PEERS))
                                                 .setAuthority(PDAuthConfig.service(), PDAuthConfig.token())
                                                 .setEnableCache(true);
                     defaultPdClient = PDClient.create(pdConfig);
