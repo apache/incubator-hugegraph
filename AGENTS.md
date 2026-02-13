@@ -182,7 +182,7 @@ mvn clean package -DskipTests -Dskip-assembly-hugegraph
 ## Development Workflow
 
 ### Code Style
-Import the code style configuration from `hugegraph-style.xml` in your IDE (IntelliJ IDEA recommended).
+Configure your IDE to use `.editorconfig` for code style and `style/checkstyle.xml` for Checkstyle rules
 
 ### Adding Dependencies
 
