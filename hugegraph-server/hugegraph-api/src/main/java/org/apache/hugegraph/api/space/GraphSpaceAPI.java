@@ -19,6 +19,9 @@
 
 package org.apache.hugegraph.api.space;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -26,6 +29,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.StatusFilter.Status;
+import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.define.Checkable;
@@ -52,6 +56,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.SecurityContext;
 
@@ -91,6 +96,55 @@ public class GraphSpaceAPI extends API {
         gsInfo.put("dp_username", dpUserName);
         gsInfo.put("dp_password", getDpPassWord(dpUserName));
         return gsInfo;
+    }
+
+    @GET
+    @Timed
+    @Path("profile")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"admin"})
+    public Object listProfile(@Context GraphManager manager,
+                              @QueryParam("prefix") String prefix,
+                              @Context SecurityContext sc) {
+        Set<String> spaces = manager.graphSpaces();
+        List<Map<String, Object>> spaceList = new ArrayList<>();
+        List<Map<String, Object>> result = new ArrayList<>();
+        String user = HugeGraphAuthProxy.username();
+        AuthManager authManager = manager.authManager();
+        // FIXME: defaultSpace related interface is not implemented
+        // String defaultSpace = authManager.getDefaultSpace(user);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        for (String sp : spaces) {
+            manager.getSpaceStorage(sp);
+            GraphSpace gs = space(manager, sp);
+            Map<String, Object> gsProfile = gs.info();
+            boolean isManager = verifyPermission(user, authManager, sp);
+
+            // 设置当前用户的是否允许访问该空间
+            if (gs.auth() && !isManager) {
+                gsProfile.put("authed", false);
+            } else {
+                gsProfile.put("authed", true);
+            }
+
+            gsProfile.put("create_time", format.format(gs.createTime()));
+            gsProfile.put("update_time", format.format(gs.updateTime()));
+            if (!isPrefix(gsProfile, prefix)) {
+                continue;
+            }
+
+            gsProfile.put("default", false);
+            result.add(gsProfile);
+            //boolean defaulted = StringUtils.equals(sp, defaultSpace);
+            //gsProfile.put("default", defaulted);
+            //if (defaulted) {
+            //    result.add(gsProfile);
+            //} else {
+            //    spaceList.add(gsProfile);
+            //}
+        }
+        result.addAll(spaceList);
+        return result;
     }
 
     @POST
@@ -273,6 +327,12 @@ public class GraphSpaceAPI extends API {
         return graphSpace.endsWith("gs") ?
                graphSpace.toLowerCase().substring(0, graphSpace.length() - 2) +
                "_dp" : graphSpace.toLowerCase() + "_dp";
+    }
+
+    private boolean verifyPermission(String user, AuthManager authManager, String graphSpace) {
+        return authManager.isAdminManager(user) ||
+               authManager.isSpaceManager(graphSpace, user) ||
+               authManager.isSpaceMember(graphSpace, user);
     }
 
     private static class JsonGraphSpace implements Checkable {
