@@ -71,7 +71,7 @@ vim hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/HugeFacto
 # run test locally (optional)
 mvn test -Pcore-test,memory
 ```
-Note: To be consistent with the code style easily, if you use [IDEA](https://www.jetbrains.com/idea/) as your IDE, you can directly [import](https://www.jetbrains.com/help/idea/configuring-code-style.html) our code style [configuration file](./hugegraph-style.xml). 
+Note: Code style is defined by the `.editorconfig` file at the repository root. Checkstyle rules are defined in `style/checkstyle.xml`. Configure your IDE accordingly.
 
 ##### 3.2.1 Check licenses
 If we want to add new third-party dependencies to the `HugeGraph` project, we need to do the following things:

@@ -48,9 +48,9 @@ git checkout 1.7-rebase
 
 **Code Style**:
 ```bash
-# Import code style
-# File → Settings → Editor → Code Style → Java
-# Import Scheme → hugegraph-style.xml
+# Configure IDE code style
+# Ensure EditorConfig support is enabled
+# Code style is defined in .editorconfig at repository root
 ```
 
 **Run Configuration**:
@@ -683,7 +683,7 @@ jmap -dump:format=b,file=heap.bin $(pgrep -f hugegraph-store)
 ### Code Style
 
 **Java**:
-- Follow Apache HugeGraph code style (import `hugegraph-style.xml`)
+- Follow Apache HugeGraph code style (configured via `.editorconfig`)
 - Use 4 spaces for indentation (no tabs)
 - Max line length: 120 characters
 - Braces on same line (K&R style)

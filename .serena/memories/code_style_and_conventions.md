@@ -1,9 +1,8 @@
 # Code Style and Conventions
 
 ## Code Style Configuration
-- **Import**: Use `hugegraph-style.xml` in your IDE (IntelliJ IDEA recommended)
-- **EditorConfig**: `.editorconfig` file defines style rules (validated in CI)
-- **Checkstyle**: `style/checkstyle.xml` defines additional rules
+- **EditorConfig**: `.editorconfig` file defines style rules
+- **Checkstyle**: `style/checkstyle.xml` defines additional rules and enforcement
 
 ## Core Style Rules (from .editorconfig)
 
