@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.hugegraph.util.JsonUtil;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -284,18 +285,24 @@ public class GraphSpaceApiTest extends BaseApiTest {
         Response r = this.client().get(PATH + "/profile");
         String result = assertResponseStatus(200, r);
 
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> profiles = JsonUtil.fromJson(result, List.class);
 
         // Should contain at least the DEFAULT space
-        assert profiles.size() >= 1;
+        Assert.assertTrue("Expected at least one profile", profiles.size() >= 1);
 
         // Verify profile structure
         for (Map<String, Object> profile : profiles) {
-            assert profile.containsKey("name");
-            assert profile.containsKey("authed");
-            assert profile.containsKey("create_time");
-            assert profile.containsKey("update_time");
-            assert profile.containsKey("default");
+            Assert.assertTrue("Profile should contain 'name'",
+                              profile.containsKey("name"));
+            Assert.assertTrue("Profile should contain 'authed'",
+                              profile.containsKey("authed"));
+            Assert.assertTrue("Profile should contain 'create_time'",
+                              profile.containsKey("create_time"));
+            Assert.assertTrue("Profile should contain 'update_time'",
+                              profile.containsKey("update_time"));
+            Assert.assertTrue("Profile should contain 'default'",
+                              profile.containsKey("default"));
         }
     }
 
@@ -322,8 +329,31 @@ public class GraphSpaceApiTest extends BaseApiTest {
                         + "\"configs\":{}"
                         + "}";
 
+        // Create a space that should NOT match the prefix filter
+        String space2 = "{"
+                        + "\"name\":\"other_profile_space\","
+                        + "\"nickname\":\"OtherProfileSpace\","
+                        + "\"description\":\"Other profile listing\","
+                        + "\"cpu_limit\":1000,"
+                        + "\"memory_limit\":1024,"
+                        + "\"storage_limit\":1000,"
+                        + "\"compute_cpu_limit\":0,"
+                        + "\"compute_memory_limit\":0,"
+                        + "\"oltp_namespace\":null,"
+                        + "\"olap_namespace\":null,"
+                        + "\"storage_namespace\":null,"
+                        + "\"operator_image_path\":\"test\","
+                        + "\"internal_algorithm_image_url\":\"test\","
+                        + "\"max_graph_number\":100,"
+                        + "\"max_role_number\":100,"
+                        + "\"auth\":false,"
+                        + "\"configs\":{}"
+                        + "}";
+
         // Create spaces
         Response r = this.client().post(PATH, space1);
+        assertResponseStatus(201, r);
+        r = this.client().post(PATH, space2);
         assertResponseStatus(201, r);
 
         // Test with prefix filter
@@ -331,8 +361,26 @@ public class GraphSpaceApiTest extends BaseApiTest {
                               ImmutableMap.of("prefix", "test"));
         String result = assertResponseStatus(200, r);
 
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> profiles = JsonUtil.fromJson(result, List.class);
-        assert !profiles.isEmpty();
+        Assert.assertFalse("Expected non-empty profile list with prefix filter",
+                           profiles.isEmpty());
+
+        // Verify all returned profiles match the prefix
+        for (Map<String, Object> profile : profiles) {
+            String name = Objects.toString(profile.get("name"), "");
+            String nickname = Objects.toString(profile.get("nickname"), "");
+            boolean matchesPrefix = name.startsWith("test") ||
+                                    nickname.startsWith("test") ||
+                                    nickname.startsWith("Test");
+            Assert.assertTrue(
+                    "Profile should match prefix 'test': " + profile,
+                    matchesPrefix);
+
+            // Ensure the non-matching space is excluded
+            Assert.assertNotEquals("Non-matching space should be filtered out",
+                                   "other_profile_space", name);
+        }
     }
 
     @Test
@@ -365,6 +413,7 @@ public class GraphSpaceApiTest extends BaseApiTest {
         r = this.client().get(PATH + "/profile");
         String result = assertResponseStatus(200, r);
 
+        @SuppressWarnings("unchecked")
         List<Map<String, Object>> profiles = JsonUtil.fromJson(result, List.class);
 
         // Find the auth_test_space and verify authed field
@@ -373,10 +422,13 @@ public class GraphSpaceApiTest extends BaseApiTest {
             if ("auth_test_space".equals(profile.get("name"))) {
                 found = true;
                 // Admin user should be authed
-                assert profile.containsKey("authed");
+                Assert.assertTrue("Profile should contain 'authed' field",
+                                  profile.containsKey("authed"));
+                Assert.assertEquals("Admin user should be authorized",
+                                    true, profile.get("authed"));
                 break;
             }
         }
-        assert found : "auth_test_space not found in profile list";
+        Assert.assertTrue("auth_test_space not found in profile list", found);
     }
 }
