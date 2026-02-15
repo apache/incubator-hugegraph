@@ -22,18 +22,22 @@ services:
     image: hugegraph/pd
     container_name: pd
     hostname: pd
-    network_mode: host
+    ports:
+      - "8620:8620"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8620"]
+      test: ["CMD", "curl", "-f", "http://localhost:8620/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 3
+    volumes:
+      - ./pd-conf:/hugegraph-pd/conf
 
   store:
     image: hugegraph/store
     container_name: store
     hostname: store
-    network_mode: host
+    ports:
+      - "8520:8520"
     depends_on:
       pd:
         condition: service_healthy
@@ -42,12 +46,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    volumes:
+      - ./store-conf/application.yml:/hugegraph-store/conf/application.yml
 
   server:
     image: hugegraph/server
     container_name: server
     hostname: server
-    network_mode: host
+    ports:
+      - "8080:8080"
+    environment:
+      - hugegraph.pd.peers=pd:8686
     depends_on:
       store:
         condition: service_healthy
@@ -56,3 +65,5 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    volumes:
+      - ./server-conf:/hugegraph-server/conf

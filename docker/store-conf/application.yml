@@ -1,0 +1,32 @@
+pdserver:
+  address: pd:8686
+
+grpc:
+  host: store
+  port: 8500
+  netty-server:
+    max-inbound-message-size: 1000MB
+
+raft:
+  disruptorBufferSize: 1024
+  address: store:8510
+  max-log-file-size: 600000000000
+  snapshotInterval: 1800
+
+server:
+  port: 8520
+
+app:
+  data-path: ./storage
+
+spring:
+  application:
+    name: store-node-grpc-server
+  profiles:
+    active: default
+    include: pd
+
+logging:
+  config: 'file:./conf/log4j2.xml'
+  level:
+    root: info
