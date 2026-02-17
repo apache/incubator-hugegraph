@@ -444,6 +444,7 @@ public final class TaskManager {
                 // Update server heartbeat
                 serverManager.heartbeat();
 
+                serverManager.updateIsSingleNode();
                 /*
                  * Master will schedule tasks to suitable servers.
                  * Note a Worker may become to a Master, so elected-Master also needs to
@@ -451,7 +452,7 @@ public final class TaskManager {
                  * However, when enableRoleElected=false, a Master is only set by the
                  * config assignment, assigned-Master always stays the same state.
                  */
-                if (serverManager.selfIsMaster()) {
+                if (serverManager.selfIsMasterOrSingleComputer()) {
                     standardTaskScheduler.scheduleTasksOnMaster();
                     if (!this.enableRoleElected && !serverManager.onlySingleNode()) {
                         // assigned-Master + non-single-node don't need to execute tasks
