@@ -24,6 +24,7 @@ import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.meta.PdMetaDriver;
 import org.apache.hugegraph.testutil.Utils;
+import org.apache.hugegraph.unit.hbase.HbaseUnitTest;
 import org.apache.hugegraph.util.Log;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -46,7 +47,9 @@ import org.slf4j.Logger;
         TaskCoreTest.class,
         AuthTest.class,
         MultiGraphsTest.class,
-        RamTableTest.class
+        RamTableTest.class,
+        /* hbase */
+        HbaseUnitTest.class,
 })
 public class CoreTestSuite {
 
