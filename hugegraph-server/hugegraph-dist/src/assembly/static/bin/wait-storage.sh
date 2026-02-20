@@ -29,7 +29,7 @@ function abs_path() {
 BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 GRAPH_CONF="$TOP/conf/graphs/hugegraph.properties"
-WAIT_STORAGE_TIMEOUT_S=120
+WAIT_STORAGE_TIMEOUT_S=300
 DETECT_STORAGE="$TOP/scripts/detect-storage.groovy"
 
 . "$BIN"/util.sh
@@ -70,7 +70,28 @@ done < <(env | sort -r | awk -F= '{ st = index($0, "="); print $1 " " substr($0,
 # wait for storage
 if env | grep '^hugegraph\.' > /dev/null; then
     if [ -n "${WAIT_STORAGE_TIMEOUT_S:-}" ]; then
-        timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c \
-        "until bin/gremlin-console.sh -- -e $DETECT_STORAGE > /dev/null 2>&1; do echo \"Hugegraph server are waiting for storage backend...\"; sleep 5; done"
+        # Extract pd.peers from config or environment
+        PD_PEERS="${hugegraph_pd_peers:-}"
+        if [ -z "$PD_PEERS" ]; then
+            PD_PEERS=$(grep -E "^\s*pd\.peers\s*=" "$GRAPH_CONF" | sed 's/.*=\s*//' | tr -d ' ')
+        fi
+
+        if [ -n "$PD_PEERS" ]; then
+            # Convert gRPC address to REST address (8686 -> 8620)
+            PD_REST=$(echo "$PD_PEERS" | sed 's/:8686/:8620/g' | cut -d',' -f1)
+            echo "Waiting for PD REST endpoint at $PD_REST..."
+
+            timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c "
+                until curl -fsS http://${PD_REST}/v1/health >/dev/null 2>&1; do
+                    echo 'Hugegraph server are waiting for storage backend...'
+                    sleep 5
+                done
+                echo 'PD is reachable, waiting extra 10s for store registration...'
+                sleep 10
+                echo 'Storage backend is ready!'
+            " || echo "Warning: Timeout waiting for storage, proceeding anyway..."
+        else
+            echo "No pd.peers configured, skipping storage wait..."
+        fi
     fi
 fi

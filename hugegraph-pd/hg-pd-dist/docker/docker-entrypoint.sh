@@ -67,8 +67,7 @@ SPRING_APPLICATION_JSON="$(cat <<JSON
   "raft":   { "address":    "$(json_escape "${HG_PD_RAFT_ADDRESS}")",
               "peers-list": "$(json_escape "${HG_PD_RAFT_PEERS_LIST}")" },
   "pd":     { "data-path":          "$(json_escape "${HG_PD_DATA_PATH}")",
-              "initial-store-list": "$(json_escape "${HG_PD_INITIAL_STORE_LIST}")"
-              "initial-store-count": "$(json_escape "${HG_PD_INITIAL_STORE_COUNT}")" }
+              "initial-store-list": "$(json_escape "${HG_PD_INITIAL_STORE_LIST}")" }
 }
 JSON
 )"

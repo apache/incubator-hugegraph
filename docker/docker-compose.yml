@@ -43,7 +43,6 @@ services:
       HG_PD_RAFT_PEERS_LIST: pd:8610
       HG_PD_INITIAL_STORE_LIST: store:8500
       HG_PD_DATA_PATH: /hugegraph-pd/pd_data
-#      HG_PD_INITIAL_STORE_COUNT: "1"
     ports:
       - "8620:8620"
       - "8686:8686"
@@ -54,6 +53,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+      start_period: 20s
 
   store:
     build:
@@ -68,7 +68,6 @@ services:
       pd:
         condition: service_healthy
     environment:
-      environment:
       HG_STORE_PD_ADDRESS: pd:8686
       HG_STORE_GRPC_HOST: store
       HG_STORE_GRPC_PORT: "8500"
@@ -82,10 +81,11 @@ services:
     volumes:
       - hg-store-data:/hugegraph-store/storage
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8520/v1/health >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8520/v1/health >/dev/null && curl -fsS http://pd:8620/v1/health >/dev/null || exit 1"]
       interval: 10s
-      timeout: 5s
-      retries: 12
+      timeout: 10s
+      retries: 30
+      start_period: 30s
 
   server:
     build:
@@ -109,4 +109,5 @@ services:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/versions >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 20
+      retries: 30
+      start_period: 60s
