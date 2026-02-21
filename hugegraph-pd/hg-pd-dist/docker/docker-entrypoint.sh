@@ -56,7 +56,6 @@ require_env "HG_PD_INITIAL_STORE_LIST"
 : "${HG_PD_GRPC_PORT:=8686}"
 : "${HG_PD_REST_PORT:=8620}"
 : "${HG_PD_DATA_PATH:=/hugegraph-pd/pd_data}"
-: "${HG_PD_INITIAL_STORE_COUNT:=1}"
 
 # ── Build SPRING_APPLICATION_JSON ─────────────────────────────────────
 SPRING_APPLICATION_JSON="$(cat <<JSON

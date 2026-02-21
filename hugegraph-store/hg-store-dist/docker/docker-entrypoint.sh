@@ -44,7 +44,6 @@ json_escape() {
 fail_on_deprecated "PD_ADDRESS"   "HG_STORE_PD_ADDRESS"
 fail_on_deprecated "GRPC_HOST"    "HG_STORE_GRPC_HOST"
 fail_on_deprecated "RAFT_ADDRESS" "HG_STORE_RAFT_ADDRESS"
-fail_on_deprecated "RAFT_PEERS"   "HG_PD_RAFT_PEERS_LIST"
 
 # ── Required vars ─────────────────────────────────────────────────────
 require_env "HG_STORE_PD_ADDRESS"

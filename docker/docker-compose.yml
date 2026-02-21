@@ -81,7 +81,7 @@ services:
     volumes:
       - hg-store-data:/hugegraph-store/storage
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8520/v1/health >/dev/null && curl -fsS http://pd:8620/v1/health >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8520/v1/health >/dev/null || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 30
@@ -100,7 +100,6 @@ services:
       store:
         condition: service_healthy
     environment:
-      HG_GRAPH: hugegraph
       HG_SERVER_BACKEND: hstore
       HG_SERVER_PD_PEERS: pd:8686
     ports:
