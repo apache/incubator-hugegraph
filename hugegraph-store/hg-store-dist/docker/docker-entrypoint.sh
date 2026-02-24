@@ -19,14 +19,6 @@ set -euo pipefail
 
 log() { echo "[hugegraph-store-entrypoint] $*"; }
 
-fail_on_deprecated() {
-    local old_name="$1" new_name="$2"
-    if [[ -n "${!old_name:-}" ]]; then
-        echo "ERROR: deprecated env '${old_name}' detected. Use '${new_name}' instead." >&2
-        exit 2
-    fi
-}
-
 require_env() {
     local name="$1"
     if [[ -z "${!name:-}" ]]; then
@@ -41,10 +33,18 @@ json_escape() {
 }
 
 # ── Guard deprecated vars ─────────────────────────────────────────────
-fail_on_deprecated "PD_ADDRESS"   "HG_STORE_PD_ADDRESS"
-fail_on_deprecated "GRPC_HOST"    "HG_STORE_GRPC_HOST"
-fail_on_deprecated "RAFT_ADDRESS" "HG_STORE_RAFT_ADDRESS"
+migrate_env() {
+    local old_name="$1" new_name="$2"
 
+    if [[ -n "${!old_name:-}" && -z "${!new_name:-}" ]]; then
+        log "WARN: deprecated env '${old_name}' detected; mapping to '${new_name}'"
+        export "${new_name}=${!old_name}"
+    fi
+}
+
+migrate_env "PD_ADDRESS"   "HG_STORE_PD_ADDRESS"
+migrate_env "GRPC_HOST"    "HG_STORE_GRPC_HOST"
+migrate_env "RAFT_ADDRESS" "HG_STORE_RAFT_ADDRESS"
 # ── Required vars ─────────────────────────────────────────────────────
 require_env "HG_STORE_PD_ADDRESS"
 require_env "HG_STORE_GRPC_HOST"

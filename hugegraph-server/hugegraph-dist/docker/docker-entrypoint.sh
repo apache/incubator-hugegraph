@@ -25,26 +25,31 @@ mkdir -p "${DOCKER_FOLDER}"
 
 log() { echo "[hugegraph-server-entrypoint] $*"; }
 
-fail_on_deprecated() {
-    local old_name="$1" new_name="$2"
-    if [[ -n "${!old_name:-}" ]]; then
-        echo "ERROR: deprecated env '${old_name}' detected. Use '${new_name}' instead." >&2
-        exit 2
-    fi
-}
-
 set_prop() {
     local key="$1" val="$2" file="$3"
-    if grep -q -E "^[[:space:]]*${key}[[:space:]]*=" "${file}"; then
-        sed -ri "s#^([[:space:]]*${key}[[:space:]]*=).*#\\1${val}#" "${file}"
+    local esc_key esc_val
+
+    esc_key=$(printf '%s' "$key" | sed -e 's/[][(){}.^$*+?|\\/]/\\&/g')
+    esc_val=$(printf '%s' "$val" | sed -e 's/[&|\\]/\\&/g')
+
+    if grep -qE "^[[:space:]]*${esc_key}[[:space:]]*=" "${file}"; then
+        sed -ri "s|^([[:space:]]*${esc_key}[[:space:]]*=).*|\\1${esc_val}|" "${file}"
     else
-        echo "${key}=${val}" >> "${file}"
+        printf '%s=%s\n' "$key" "$val" >> "${file}"
     fi
 }
 
-# ── Guard deprecated vars ─────────────────────────────────────────────
-fail_on_deprecated "BACKEND"  "HG_SERVER_BACKEND"
-fail_on_deprecated "PD_PEERS" "HG_SERVER_PD_PEERS"
+migrate_env() {
+    local old_name="$1" new_name="$2"
+
+    if [[ -n "${!old_name:-}" && -z "${!new_name:-}" ]]; then
+        log "WARN: deprecated env '${old_name}' detected; mapping to '${new_name}'"
+        export "${new_name}=${!old_name}"
+    fi
+}
+
+migrate_env "BACKEND"  "HG_SERVER_BACKEND"
+migrate_env "PD_PEERS" "HG_SERVER_PD_PEERS"
 
 # ── Map env → properties file ─────────────────────────────────────────
 [[ -n "${HG_SERVER_BACKEND:-}"  ]] && set_prop "backend"  "${HG_SERVER_BACKEND}"  "${GRAPH_CONF}"
@@ -77,4 +82,11 @@ else
 fi
 
 ./bin/start-hugegraph.sh -j "${JAVA_OPTS:-}"
+
+STORE_REST="${STORE_REST:-hg-store:8520}"
+export STORE_REST
+
+# Post-startup cluster stabilization check
+./bin/wait-partition.sh || log "WARN: partitions not assigned yet"
+
 tail -f /dev/null

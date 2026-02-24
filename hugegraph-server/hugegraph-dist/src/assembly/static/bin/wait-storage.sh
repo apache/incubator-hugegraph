@@ -78,7 +78,13 @@ if env | grep '^hugegraph\.' > /dev/null; then
 
         if [ -n "$PD_PEERS" ]; then
             # Convert gRPC address to REST address (8686 -> 8620)
-            PD_REST=$(echo "$PD_PEERS" | sed 's/:8686/:8620/g' | cut -d',' -f1)
+            : "${HG_SERVER_PD_REST_ENDPOINT:=}"
+
+            if [ -n "${HG_SERVER_PD_REST_ENDPOINT}" ]; then
+                PD_REST="${HG_SERVER_PD_REST_ENDPOINT}"
+            else
+                PD_REST=$(echo "$PD_PEERS" | sed 's/:8686/:8620/g' | cut -d',' -f1)
+            fi
             echo "Waiting for PD REST endpoint at $PD_REST..."
 
             timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c "

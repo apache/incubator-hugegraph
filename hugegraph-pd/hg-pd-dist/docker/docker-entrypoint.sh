@@ -19,14 +19,6 @@ set -euo pipefail
 
 log() { echo "[hugegraph-pd-entrypoint] $*"; }
 
-fail_on_deprecated() {
-    local old_name="$1" new_name="$2"
-    if [[ -n "${!old_name:-}" ]]; then
-        echo "ERROR: deprecated env '${old_name}' detected. Use '${new_name}' instead." >&2
-        exit 2
-    fi
-}
-
 require_env() {
     local name="$1"
     if [[ -z "${!name:-}" ]]; then
@@ -40,11 +32,19 @@ json_escape() {
     printf "%s" "$s"
 }
 
-# ── Guard deprecated vars ─────────────────────────────────────────────
-fail_on_deprecated "GRPC_HOST"               "HG_PD_GRPC_HOST"
-fail_on_deprecated "RAFT_ADDRESS"            "HG_PD_RAFT_ADDRESS"
-fail_on_deprecated "RAFT_PEERS"              "HG_PD_RAFT_PEERS_LIST"
-fail_on_deprecated "PD_INITIAL_STORE_LIST"   "HG_PD_INITIAL_STORE_LIST"
+migrate_env() {
+    local old_name="$1" new_name="$2"
+
+    if [[ -n "${!old_name:-}" && -z "${!new_name:-}" ]]; then
+        log "WARN: deprecated env '${old_name}' detected; mapping to '${new_name}'"
+        export "${new_name}=${!old_name}"
+    fi
+}
+
+migrate_env "GRPC_HOST"             "HG_PD_GRPC_HOST"
+migrate_env "RAFT_ADDRESS"          "HG_PD_RAFT_ADDRESS"
+migrate_env "RAFT_PEERS"            "HG_PD_RAFT_PEERS_LIST"
+migrate_env "PD_INITIAL_STORE_LIST" "HG_PD_INITIAL_STORE_LIST"
 
 # ── Required vars ─────────────────────────────────────────────────────
 require_env "HG_PD_GRPC_HOST"
@@ -52,12 +52,11 @@ require_env "HG_PD_RAFT_ADDRESS"
 require_env "HG_PD_RAFT_PEERS_LIST"
 require_env "HG_PD_INITIAL_STORE_LIST"
 
-# ── Defaults ──────────────────────────────────────────────────────────
 : "${HG_PD_GRPC_PORT:=8686}"
 : "${HG_PD_REST_PORT:=8620}"
 : "${HG_PD_DATA_PATH:=/hugegraph-pd/pd_data}"
+: "${HG_PD_INITIAL_STORE_COUNT:=1}"
 
-# ── Build SPRING_APPLICATION_JSON ─────────────────────────────────────
 SPRING_APPLICATION_JSON="$(cat <<JSON
 {
   "grpc":   { "host": "$(json_escape "${HG_PD_GRPC_HOST}")",
@@ -66,7 +65,8 @@ SPRING_APPLICATION_JSON="$(cat <<JSON
   "raft":   { "address":    "$(json_escape "${HG_PD_RAFT_ADDRESS}")",
               "peers-list": "$(json_escape "${HG_PD_RAFT_PEERS_LIST}")" },
   "pd":     { "data-path":          "$(json_escape "${HG_PD_DATA_PATH}")",
-              "initial-store-list": "$(json_escape "${HG_PD_INITIAL_STORE_LIST}")" }
+              "initial-store-list": "$(json_escape "${HG_PD_INITIAL_STORE_LIST}")" ,
+              "initial-store-count": ${HG_PD_INITIAL_STORE_COUNT} }
 }
 JSON
 )"
@@ -79,6 +79,7 @@ log "  server.port=${HG_PD_REST_PORT}"
 log "  raft.address=${HG_PD_RAFT_ADDRESS}"
 log "  raft.peers-list=${HG_PD_RAFT_PEERS_LIST}"
 log "  pd.initial-store-list=${HG_PD_INITIAL_STORE_LIST}"
+log "  pd.initial-store-count=${HG_PD_INITIAL_STORE_COUNT}"
 log "  pd.data-path=${HG_PD_DATA_PATH}"
 
 ./bin/start-hugegraph-pd.sh -j "${JAVA_OPTS:-}"
