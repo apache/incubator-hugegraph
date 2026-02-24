@@ -168,15 +168,18 @@ public final class TraversalUtil {
         Step<?, ?> step = newStep;
         do {
             step = step.getNextStep();
-            if (step instanceof HasStep) {
+            if (step instanceof HasContainerHolder) {
                 HasContainerHolder holder = (HasContainerHolder) step;
-                for (HasContainer has : holder.getHasContainers()) {
+
+                @SuppressWarnings("unchecked")
+                List<HasContainer> containers =
+                        (List<HasContainer>) holder.getHasContainers();
+
+                for (HasContainer has : containers) {
                     if (!GraphStep.processHasContainerIds(newStep, has)) {
                         newStep.addHasContainer(has);
                     }
                 }
-                TraversalHelper.copyLabels(step, step.getPreviousStep(), false);
-                traversal.removeStep(step);
             }
         } while (step instanceof HasStep || step instanceof NoOpBarrierStep);
     }
@@ -185,9 +188,14 @@ public final class TraversalUtil {
                                            Traversal.Admin<?, ?> traversal) {
         Step<?, ?> step = newStep;
         do {
-            if (step instanceof HasStep) {
+            if (step instanceof HasContainerHolder) {
                 HasContainerHolder holder = (HasContainerHolder) step;
-                for (HasContainer has : holder.getHasContainers()) {
+
+                @SuppressWarnings("unchecked")
+                List<HasContainer> containers =
+                        (List<HasContainer>) holder.getHasContainers();
+
+                for (HasContainer has : containers) {
                     newStep.addHasContainer(has);
                 }
                 TraversalHelper.copyLabels(step, step.getPreviousStep(), false);
@@ -658,8 +666,13 @@ public final class TraversalUtil {
     }
 
     public static void convHasStep(HugeGraph graph, HasStep<?> step) {
-        HasContainerHolder holder = step;
-        for (HasContainer has : holder.getHasContainers()) {
+        HasContainerHolder holder = (HasContainerHolder) step;
+
+        @SuppressWarnings("unchecked")
+        List<HasContainer> containers =
+                (List<HasContainer>) holder.getHasContainers();
+
+        for (HasContainer has : containers) {
             convPredicateValue(graph, has);
         }
     }
