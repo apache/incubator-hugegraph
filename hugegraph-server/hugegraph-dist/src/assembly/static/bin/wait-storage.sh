@@ -29,11 +29,17 @@ function abs_path() {
 BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 GRAPH_CONF="$TOP/conf/graphs/hugegraph.properties"
-WAIT_STORAGE_TIMEOUT_S=120
-DETECT_STORAGE="$TOP/scripts/detect-storage.groovy"
+WAIT_STORAGE_TIMEOUT_S=300
 
 . "$BIN"/util.sh
 
+log() {
+  echo "[wait-storage] $1"
+}
+
+# Hardcoded PD auth
+PD_AUTH_ARGS="-u store:admin"
+log "PD auth forced to store:admin"
 
 function key_exists {
     local key=$1
@@ -70,7 +76,48 @@ done < <(env | sort -r | awk -F= '{ st = index($0, "="); print $1 " " substr($0,
 # wait for storage
 if env | grep '^hugegraph\.' > /dev/null; then
     if [ -n "${WAIT_STORAGE_TIMEOUT_S:-}" ]; then
-        timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c \
-        "until bin/gremlin-console.sh -- -e $DETECT_STORAGE > /dev/null 2>&1; do echo \"Hugegraph server are waiting for storage backend...\"; sleep 5; done"
+
+        PD_PEERS="${hugegraph_pd_peers:-}"
+        if [ -z "$PD_PEERS" ]; then
+            PD_PEERS=$(grep -E "^\s*pd\.peers\s*=" "$GRAPH_CONF" | sed 's/.*=\s*//' | tr -d ' ')
+        fi
+
+        if [ -n "$PD_PEERS" ]; then
+            : "${HG_SERVER_PD_REST_ENDPOINT:=}"
+
+            if [ -n "${HG_SERVER_PD_REST_ENDPOINT}" ]; then
+                PD_REST="${HG_SERVER_PD_REST_ENDPOINT}"
+            else
+                PD_REST=$(echo "$PD_PEERS" | sed 's/:8686/:8620/g' | cut -d',' -f1)
+            fi
+
+            log "PD REST endpoint = $PD_REST"
+            log "Timeout = ${WAIT_STORAGE_TIMEOUT_S}s"
+
+            timeout "${WAIT_STORAGE_TIMEOUT_S}s" bash -c "
+
+              log() { echo '[wait-storage] '\"\$1\"; }
+
+              until curl ${PD_AUTH_ARGS} -f -s \
+                    http://${PD_REST}/v1/health >/dev/null 2>&1; do
+                log 'PD not ready, retrying in 5s'
+                sleep 5
+              done
+              log 'PD health check PASSED'
+
+              until curl ${PD_AUTH_ARGS} -f -s \
+                    http://${PD_REST}/v1/stores 2>/dev/null | \
+                    grep -qi '\"state\"[[:space:]]*:[[:space:]]*\"Up\"'; do
+                log 'No Up store yet, retrying in 5s'
+                sleep 5
+              done
+
+              log 'Store registration check PASSED'
+              log 'Storage backend is VIABLE'
+            " || { echo "[wait-storage] ERROR: Timeout waiting for storage backend"; exit 1; }
+
+        else
+            log "No pd.peers configured, skipping storage wait"
+        fi
     fi
 fi
