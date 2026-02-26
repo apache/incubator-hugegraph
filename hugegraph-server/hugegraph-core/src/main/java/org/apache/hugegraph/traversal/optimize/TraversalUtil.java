@@ -17,9 +17,6 @@
 
 package org.apache.hugegraph.traversal.optimize;
 
-//import static com.hankcs.hanlp.dictionary.other.CharType.type;
-//import static jdk.incubator.vector.Float16.negate;
-//import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal.Symbols.has;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -95,15 +92,7 @@ import org.apache.tinkerpop.gremlin.structure.PropertyType;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyGraph;
-//import org.apache.hugegraph.backend.query.Condition;
-//import org.apache.tinkerpop.gremlin.process.traversal.P;
-//import org.apache.tinkerpop.gremlin.process.traversal.step.filter.NotStep; // (if used)
-//import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;
-//import org.apache.tinkerpop.gremlin.process.traversal.util.OrP;
-//import org.apache.tinkerpop.gremlin.process.traversal.util.ConnectiveP;
-////import org.apache.tinkerpop.gremlin.process.traversal.util.NotP;
-//import org.apache.tinkerpop.gremlin.process.traversal.TextP;
-//import org.apache.tinkerpop.gremlin.process.traversal.Text;
+
 
 import com.google.common.collect.ImmutableList;
 
@@ -374,29 +363,6 @@ public final class TraversalUtil {
         }
     }
 
-    //public static Condition convHas2Condition(HasContainer has, HugeType type, HugeGraph graph) {
-    //    P<?> p = has.getPredicate();
-    //    E.checkArgument(p != null, "The predicate of has(%s) is null", has);
-    //    BiPredicate<?, ?> bp = p.getBiPredicate();
-    //    Condition condition;
-    //    if (keyForContainsKeyOrValue(has.getKey())) {
-    //        condition = convContains2Relation(graph, has);
-    //    } else if (bp instanceof Compare) {
-    //        condition = convCompare2Relation(graph, type, has);
-    //    } else if (bp instanceof Condition.RelationType) {
-    //        condition = convRelationType2Relation(graph, type, has);
-    //    } else if (bp instanceof Contains) {
-    //        condition = convIn2Relation(graph, type, has);
-    //    } else if (p instanceof AndP) {
-    //        condition = convAnd(graph, type, has);
-    //    } else if (p instanceof OrP) {
-    //        condition = convOr(graph, type, has);
-    //    } else {
-    //        // TODO: deal with other Predicate
-    //        throw newUnsupportedPredicate(p);
-    //    }
-    //    return condition;
-    //}
 
     public static Condition convHas2Condition(HasContainer has,
                                               HugeType type,
@@ -406,7 +372,6 @@ public final class TraversalUtil {
         E.checkArgument(p != null,
                         "The predicate of has(%s) is null", has);
 
-        // 🔴 Handle NOT FIRST (3.8 correct way)
         if (p instanceof NotP) {
 
             P<?> inner = p.negate();
@@ -420,17 +385,14 @@ public final class TraversalUtil {
             return Condition.not(innerCondition);
         }
 
-        // 🔵 2️⃣ Handle AND
         if (p instanceof AndP) {
             return convAnd(graph, type, has);
         }
 
-        // 🔵 3️⃣ Handle OR
         if (p instanceof OrP) {
             return convOr(graph, type, has);
         }
 
-        // 🟢 4️⃣ Leaf predicates
         BiPredicate<?, ?> bp = p.getBiPredicate();
 
         if (keyForContainsKeyOrValue(has.getKey())) {
@@ -665,10 +627,6 @@ public final class TraversalUtil {
     private static Condition.RelationType convertPredicateToRelation(P<?> predicate) {
         boolean negated = false;
 
-        //if (predicate instanceof NotP) {
-        //    negated = true;
-        //    predicate = ((NotP<?>) predicate).getPredicate();
-        //}
 
 
         if (predicate instanceof ConditionP) {
