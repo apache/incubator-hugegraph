@@ -143,9 +143,7 @@ public class RaftEngine {
         // Snapshot interval
         nodeOptions.setSnapshotIntervalSecs(config.getSnapshotInterval());
 
-        nodeOptions.setRpcConnectTimeoutMs(config.getRpcTimeout());
-        nodeOptions.setRpcDefaultTimeout(config.getRpcTimeout());
-        nodeOptions.setRpcInstallSnapshotTimeout(config.getRpcTimeout());
+        setRpcTimeouts(nodeOptions, config);
         // TODO: tune RaftOptions for PD (see hugegraph-store PartitionEngine for reference)
 
         final PeerId serverId = JRaftUtils.getPeerId(config.getAddress());
@@ -160,6 +158,20 @@ public class RaftEngine {
         log.info("RaftEngine start successfully: id = {}, peers list = {}", groupId,
                  nodeOptions.getInitialConf().getPeers());
         return this.raftNode != null;
+    }
+
+    /**
+     * Wire the three raft rpc timeouts from their own options. jraft pings a peer to open a
+     * connection, and a candidate does so for every peer while it holds the node lock, so a
+     * peer that accepts the connection but never answers (a stopped process, a lost host)
+     * stalls the election, and the answers to the other peers' votes, for the whole connect
+     * timeout. Installing a snapshot sends the whole store and needs far longer than a
+     * normal request.
+     */
+    static void setRpcTimeouts(NodeOptions nodeOptions, PDConfig.Raft config) {
+        nodeOptions.setRpcConnectTimeoutMs(config.getRpcConnectTimeout());
+        nodeOptions.setRpcDefaultTimeout(config.getRpcTimeout());
+        nodeOptions.setRpcInstallSnapshotTimeout(config.getRpcInstallSnapshotTimeout());
     }
 
     /**
