@@ -37,9 +37,6 @@ public class CypherModel {
     @Schema(description = "The query result")
     public Result result = new Result();
 
-    @Schema(description = "Structured errors, empty on success")
-    public List<CypherError> errors = Collections.emptyList();
-
     public static CypherModel dataOf(String requestId, List<Object> data) {
         CypherModel res = new CypherModel();
         res.requestId = requestId;
@@ -55,7 +52,8 @@ public class CypherModel {
         res.status.code = 400;
         res.status.message = message;
         if (error != null) {
-            res.errors = Collections.singletonList(error);
+            res.status.attributes = Collections.singletonMap(
+                    "errors", Collections.singletonList(error));
         }
         return res;
     }
