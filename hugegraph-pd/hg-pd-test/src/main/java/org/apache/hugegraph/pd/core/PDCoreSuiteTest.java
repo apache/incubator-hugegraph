@@ -29,6 +29,7 @@ import org.apache.hugegraph.pd.raft.RaftEngineLeaderAddressTest;
 import org.apache.hugegraph.pd.raft.RaftEngineReadIndexTest;
 import org.apache.hugegraph.pd.raft.RaftEngineReadinessTest;
 import org.apache.hugegraph.pd.raft.RaftReflectionUtilTest;
+import org.apache.hugegraph.pd.raft.RaftStateMachineSnapshotTest;
 import org.apache.hugegraph.pd.raft.ZipUtilsTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -61,6 +62,7 @@ import lombok.extern.slf4j.Slf4j;
         ZipUtilsTest.class,
         RaftKVStoreTest.class,
         RaftEngineReadIndexTest.class,
+        RaftStateMachineSnapshotTest.class,
         // StoreNodeServiceTest.class,
 })
 @Slf4j
