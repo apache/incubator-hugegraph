@@ -21,6 +21,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -37,7 +39,9 @@ public class CypherModel {
     @Schema(description = "The query result")
     public Result result = new Result();
 
-    @Schema(description = "Structured errors, empty on success")
+    @Schema(description = "Structured errors, present only on failure so that "
+                          + "older clients keep parsing successful responses")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     public List<CypherError> errors = Collections.emptyList();
 
     public static CypherModel dataOf(String requestId, List<Object> data) {

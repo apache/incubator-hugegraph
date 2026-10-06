@@ -34,12 +34,29 @@ public final class CypherErrorMapper {
     }
 
     public static CypherModel.CypherError map(Throwable e) {
-        String message = e.getMessage() != null ? e.getMessage() : e.toString();
-        // strip noisy exception class prefixes, e.g. "...driver.exception.ResponseException: "
-        message = message.replaceFirst(
+        String raw = e.getMessage() != null ? e.getMessage() : e.toString();
+        // translator/parser exception types indicate a real parse failure even
+        // when the message is generic; check class name and FULL message
+        // before the class-prefix strip below removes the evidence
+        String className = e.getClass().getName();
+        String lowerFull = raw.toLowerCase();
+        if (className.contains("SyntaxException")
+                || className.contains("ParseException")
+                || lowerFull.contains("syntaxexception")
+                || lowerFull.contains("parseexception")
+                || lowerFull.contains("no viable alternative")
+                || lowerFull.contains("mismatched input")
+                || lowerFull.contains("extraneous input")
+                || lowerFull.contains("token recognition error")) {
+            return new CypherModel.CypherError(SYNTAX_ERROR,
+                    raw.replaceFirst(
+                            "^([a-zA-Z0-9_]+\\.)+[A-Za-z0-9_]+(Exception|Error):\\s*", ""),
+                    "Check the Cypher statement near the position reported " +
+                    "in the message");
+        }
+        String message = raw.replaceFirst(
                 "^([a-zA-Z0-9_]+\\.)+[A-Za-z0-9_]+(Exception|Error):\\s*", "");
         String lower = message.toLowerCase();
-
         if (lower.contains("not defined") && lower.contains("$")) {
             return new CypherModel.CypherError(MISSING_PARAMETER, message,
                     "Provide the value via the 'parameters' query argument, " +

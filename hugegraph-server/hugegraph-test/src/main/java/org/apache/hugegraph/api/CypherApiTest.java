@@ -34,6 +34,8 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -151,6 +153,23 @@ public class CypherApiTest extends BaseApiTest {
         String content = assertResponseStatus(200, r);
         assertContains("ExecutionError", content);
         assertContains("Create the schema element", content);
+    }
+
+    @Test
+    public void testSuccessResponseKeepsLegacyShape() throws Exception {
+        Response r = client().post(PATH, QUERY);
+        String content = assertResponseStatus(200, r);
+        // hugegraph-client RestResult.readObject fails on unknown fields
+        // (FAIL_ON_UNKNOWN_PROPERTIES defaults to true), so a successful
+        // response must not carry the new "errors" key
+        org.junit.Assert.assertFalse("success response must not contain errors",
+                                     content.contains("\"errors\""));
+        ObjectMapper strict = new ObjectMapper()
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> legacy = strict.readValue(content, Map.class);
+        org.junit.Assert.assertTrue(legacy.containsKey("requestId"));
+        org.junit.Assert.assertTrue(legacy.containsKey("result"));
     }
 
     @Test
