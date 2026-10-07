@@ -102,6 +102,13 @@ public class RaftStateMachine extends StateMachineAdapter {
     }
 
     /**
+     * The term jraft last announced this node as the leader of, -1 while it is not the leader
+     */
+    long getLeaderTerm() {
+        return this.leaderTerm.get();
+    }
+
+    /**
      * The last state and leader visibility a raft callback announced, as one immutable
      * view. jraft emits no callback for candidacy or leadership transfer, so a candidate
      * reads as a follower that sees no leader.
