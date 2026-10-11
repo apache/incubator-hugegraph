@@ -67,7 +67,7 @@ public class CypherAPI extends API {
     private static final ObjectReader REQUEST_READER = new ObjectMapper()
             .readerFor(Object.class)
             .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
-    private final Base64.Decoder decoder = Base64.getUrlDecoder();
+    private final Base64.Decoder decoder = Base64.getDecoder();
     private final String basic = "Basic ";
     private final String bearer = "Bearer ";
 

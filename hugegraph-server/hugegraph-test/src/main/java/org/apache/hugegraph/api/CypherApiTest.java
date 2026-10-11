@@ -402,14 +402,17 @@ public class CypherApiTest extends BaseApiTest {
 
     @Test
     public void testBasicAuthWithColonPassword() {
+        // The group, target and access setup below uses the standalone auth API; in PD mode
+        // groups are graphspace-scoped. The header parsing under test is backend-independent.
+        assumeStandaloneMode();
         // CypherAPI parses the Basic header itself, apart from AuthenticationFilter
         String user = "cypher_colon_user";
-        String password = "a:b:c";
+        // With this user name these encode to standard Base64 containing '+' and '/'
+        Assert.assertTrue(basicCredential(user, "a:b:c~").contains("+"));
+        Assert.assertTrue(basicCredential(user, "a:b:c?").contains("/"));
         Deque<String[]> created = new ArrayDeque<>();
         RestClient noAuthClient = new RestClient(baseUrl(), false);
         try {
-            String userId = this.createAuth(created, "graphspaces/DEFAULT/auth/users", String.format(
-                    "{\"user_name\":\"%s\",\"user_password\":\"%s\"}", user, password));
             String groupId = this.createAuth(created, "auth/groups",
                                              "{\"group_name\":\"cypher_colon_group\"}");
             String targetId = this.createAuth(created, "graphspaces/DEFAULT/auth/targets",
@@ -417,26 +420,35 @@ public class CypherApiTest extends BaseApiTest {
                                               "\"target_graph\":\"hugegraph\"," +
                                               "\"target_url\":\"127.0.0.1:8080\"," +
                                               "\"target_resources\":[{\"type\":\"ALL\"}]}");
-            this.createAuth(created, "graphspaces/DEFAULT/auth/belongs", String.format(
-                    "{\"user\":\"%s\",\"group\":\"%s\"}", userId, groupId));
             for (String permission : ImmutableList.of("READ", "EXECUTE")) {
                 this.createAuth(created, "graphspaces/DEFAULT/auth/accesses", String.format(
                         "{\"group\":\"%s\",\"target\":\"%s\",\"access_permission\":\"%s\"}",
                         groupId, targetId, permission));
             }
 
-            Response r = basicAuthCypher(noAuthClient, user, password);
-            assertColumn(assertCypherSuccessData(assertResponseStatus(200, r)),
-                         "name", "marko", "peter");
+            for (String password : ImmutableList.of("a:b:c", "a:b:c~", "a:b:c?")) {
+                Deque<String[]> member = new ArrayDeque<>();
+                try {
+                    String userId = this.createAuth(member, "graphspaces/DEFAULT/auth/users",
+                                                    String.format("{\"user_name\":\"%s\"," +
+                                                                  "\"user_password\":\"%s\"}",
+                                                                  user, password));
+                    this.createAuth(member, "graphspaces/DEFAULT/auth/belongs", String.format(
+                            "{\"user\":\"%s\",\"group\":\"%s\"}", userId, groupId));
 
-            r = basicAuthCypher(noAuthClient, user, "wrong" + password);
-            assertResponseStatus(401, r);
+                    Response r = basicAuthCypher(noAuthClient, user, password);
+                    assertColumn(assertCypherSuccessData(assertResponseStatus(200, r)),
+                                 "name", "marko", "peter");
+
+                    r = basicAuthCypher(noAuthClient, user, "wrong" + password);
+                    assertResponseStatus(401, r);
+                } finally {
+                    this.deleteAuth(member);
+                }
+            }
         } finally {
             noAuthClient.close();
-            while (!created.isEmpty()) {
-                String[] entry = created.pop();
-                client().delete(entry[0], entry[1]);
-            }
+            this.deleteAuth(created);
         }
     }
 
@@ -466,12 +478,22 @@ public class CypherApiTest extends BaseApiTest {
         return id;
     }
 
+    private void deleteAuth(Deque<String[]> created) {
+        while (!created.isEmpty()) {
+            String[] entry = created.pop();
+            client().delete(entry[0], entry[1]);
+        }
+    }
+
+    private static String basicCredential(String user, String password) {
+        byte[] credential = (user + ":" + password).getBytes(StandardCharsets.UTF_8);
+        return Base64.getEncoder().encodeToString(credential);
+    }
+
     private static Response basicAuthCypher(RestClient client, String user, String password) {
         // Built by hand: Jersey's HttpAuthenticationFeature encodes the credential as ISO-8859-1
-        byte[] credential = (user + ":" + password).getBytes(StandardCharsets.UTF_8);
         MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
-        headers.add(HttpHeaders.AUTHORIZATION,
-                    "Basic " + Base64.getEncoder().encodeToString(credential));
+        headers.add(HttpHeaders.AUTHORIZATION, "Basic " + basicCredential(user, password));
         return client.target().path(PATH).queryParam("cypher", QUERY)
                      .request().headers(headers).get();
     }
