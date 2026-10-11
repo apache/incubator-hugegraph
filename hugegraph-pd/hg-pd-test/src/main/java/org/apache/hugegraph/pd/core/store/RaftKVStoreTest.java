@@ -213,7 +213,7 @@ public class RaftKVStoreTest {
         Mockito.doThrow(new PDException(Pdpb.ErrorType.ROCKSDB_WRITE_ERROR_VALUE, "disk full"))
                .when(this.store).put(KEY, VALUE);
         Iterator iter = Mockito.mock(Iterator.class);
-        Mockito.when(iter.hasNext()).thenReturn(true);
+        Mockito.when(iter.hasNext()).thenReturn(true, false);
         Mockito.when(iter.getData())
                .thenReturn(ByteBuffer.wrap(KVOperation.createPut(KEY, VALUE).toByteArray()));
 

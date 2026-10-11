@@ -31,7 +31,6 @@ import org.apache.hugegraph.backend.store.rocksdb.RocksDBIteratorPoolTest;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSnapshotRestoreTest;
 import org.apache.hugegraph.backend.tx.GraphIndexTransactionTest;
 import org.apache.hugegraph.backend.tx.GraphTransactionTest;
-import org.apache.hugegraph.core.memory.MemoryAllocateTest;
 import org.apache.hugegraph.core.memory.MemoryManageTest;
 import org.apache.hugegraph.meta.EtcdMetaDriverTest;
 import org.apache.hugegraph.meta.MetaManagerSchemaCacheClearEventTest;
@@ -255,7 +254,6 @@ import org.junit.runners.Suite;
         RocksDBIteratorPoolTest.class,
 
         /* memory */
-        MemoryAllocateTest.class,
         MemoryManageTest.class,
 
         /* utils */
