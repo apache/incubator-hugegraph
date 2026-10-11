@@ -43,14 +43,19 @@ import com.google.common.collect.ImmutableSet;
 
 /**
  * Whether this server can serve graph traffic, for a readiness probe.
- * Graphs on an embedded backend are ready as soon as the REST layer answers.
- * Graphs on a remote backend are probed through the backend's
- * "storage_readiness" metadata: on hstore at least one known Store answers a
- * cheap direct call (PD is only needed until the first Store list is known),
- * on hbase the cluster answers an admin call about one of the graph's tables. The storage is shared by every
- * hstore graph of the process, so one graph is probed and the result is
- * reused for a short TTL to keep repeated probes cheap. The body never
- * carries raw exception text, since the endpoint is unauthenticated.
+ * A configured graph that failed to load makes the server not ready
+ * whatever its backend. Graphs on an embedded backend are ready as soon as
+ * the REST layer answers. Graphs on a remote backend are probed through the
+ * backend's "storage_readiness" metadata: on hstore at least one known Store
+ * answers a cheap direct call (PD is only needed until the first Store list
+ * is known), on hbase every table of every store of the graph (schema,
+ * graph, system) is enabled and available. Graphs that share a backend
+ * configuration (hstore: the same PD peers) share one probe; every hbase
+ * graph is its own scope, since its table namespace is derived from the
+ * graph name. Independent configurations are probed side by side within one
+ * budget, and the result is reused for a short TTL to keep repeated probes
+ * cheap. The body never carries raw exception text, addresses or graph
+ * names, since the endpoint is unauthenticated.
  */
 public final class StorageReadiness {
 
@@ -109,9 +114,9 @@ public final class StorageReadiness {
             // a configured graph that did not load is not served, whatever its
             // backend: GraphManager logs and skips it, so it is absent from the
             // graphs looked at above and would otherwise read as "embedded"
-            int failed = manager.failedGraphs().size();
-            if (failed > 0) {
-                holder.add(failedBody(failed, storage));
+            Map<String, String> failedGraphs = manager.failedGraphs();
+            if (!failedGraphs.isEmpty()) {
+                holder.add(failedBody(failedGraphs.size(), storage, failedGraphs.values()));
                 return;
             }
             if (remotes.isEmpty()) {
@@ -127,13 +132,29 @@ public final class StorageReadiness {
         return holder.get(0);
     }
 
-    /** Not ready: `failed` configured graphs could not be loaded (no names, the endpoint is public). */
-    public static Map<String, Object> failedBody(int failed, String storage) {
+    /**
+     * Not ready: `failed` configured graphs could not be loaded (no names,
+     * the endpoint is public). `storage` lists the loaded graphs' backends
+     * plus the failed configs' backends ("unknown" when a config could not
+     * be read), so an all-remote failure does not read as "embedded".
+     */
+    public static Map<String, Object> failedBody(int failed, String storage,
+                                                 java.util.Collection<String> failedBackends) {
+        java.util.LinkedHashSet<String> backends = new java.util.LinkedHashSet<>();
+        if (!"embedded".equals(storage)) {
+            backends.addAll(java.util.Arrays.asList(storage.split(",")));
+        }
+        for (String b : failedBackends) {
+            backends.add(b == null || b.isEmpty() ? "unknown" : b);
+        }
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("ready", false);
-        body.put("storage", storage);
+        body.put("storage", backends.isEmpty() ? "unknown" : String.join(",", backends));
         body.put("reason", failed + " configured graph(s) failed to load");
         body.put("failed_graphs", failed);
+        body.put("failed_backends", failedBackends.stream()
+                                                  .map(b -> b == null || b.isEmpty() ? "unknown" : b)
+                                                  .distinct().sorted().collect(Collectors.toList()));
         return body;
     }
 
@@ -153,8 +174,9 @@ public final class StorageReadiness {
 
     /**
      * Readiness covers every remote backend configuration this server
-     * uses: graphs that share a configuration (the same PD peers, the same
-     * HBase hosts and namespace) share one probe; independent clusters are
+     * uses: hstore graphs with the same PD peers share one probe, every
+     * hbase graph is probed on its own (its namespace is derived from the
+     * graph name, see {@link #configKey}); independent configurations are
      * probed side by side within the common budget, and ready means all of
      * them are ready.
      */

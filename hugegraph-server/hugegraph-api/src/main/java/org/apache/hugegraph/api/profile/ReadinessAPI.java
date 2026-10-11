@@ -37,12 +37,14 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 
 /**
- * Storage-aware readiness for Kubernetes and load balancers: on hstore 200
- * while at least one known Store answers this server, 503 while none does
- * (or, before any Store list is known, while PD does not answer); on hbase
- * 200 while the cluster answers an admin call within the budget. Unauthenticated, like
- * /versions, so that an httpGet probe needs no credential; the body carries
- * no addresses and no raw exception text.
+ * Storage-aware readiness for Kubernetes and load balancers: 503 while a
+ * configured graph failed to load; on hstore 200 while at least one known
+ * Store answers this server, 503 while none does (or, before any Store list
+ * is known, while PD does not answer); on hbase 200 while every table of
+ * every store of the graph is enabled and available within the budget.
+ * Unauthenticated, like /versions, so that an httpGet probe needs no
+ * credential; the body carries no addresses, graph names or raw exception
+ * text. The contract and the options are described in the server README.
  */
 @Path("readiness")
 @Singleton

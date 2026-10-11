@@ -50,7 +50,9 @@ What ready means:
 - `hbase`: every table of the graph (schema store, graph store, system store) exists, is enabled and
   is available.
 - A configured graph that failed to load at startup makes the Server not ready whatever its backend
-  (`reason` says how many, `failed_graphs` carries the count).
+  (`reason` says how many, `failed_graphs` carries the count, `failed_backends` the backends of the
+  failed configs, and `storage` includes them). The gate holds until the Server restarts or a graph of
+  that name is created through the graphs API (which replaces the failed load).
 
 Graphs that share a backend configuration (the same `pd.peers`; for hbase every graph is its own
 scope, since the table namespace is derived from the graph name) share one probe; independent

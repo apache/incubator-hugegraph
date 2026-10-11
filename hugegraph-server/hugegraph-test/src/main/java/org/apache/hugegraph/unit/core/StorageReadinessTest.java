@@ -36,6 +36,8 @@ import org.apache.hugegraph.testutil.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.google.common.collect.ImmutableList;
 import org.mockito.Mockito;
 
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -272,11 +274,20 @@ public class StorageReadinessTest {
     /** A configured graph that failed to load makes the server not ready, remote or not. */
     @Test
     public void testFailedGraphLoadIsNotReady() {
-        Map<String, Object> body = StorageReadiness.failedBody(2, "embedded");
+        // every remote graph failed: the body names their backend, not "embedded"
+        Map<String, Object> body = StorageReadiness.failedBody(2, "embedded", ImmutableList.of("hstore", "hstore"));
         Assert.assertFalse(StorageReadiness.isReady(body));
         Assert.assertEquals("2 configured graph(s) failed to load", body.get("reason"));
         Assert.assertEquals(2, body.get("failed_graphs"));
+        Assert.assertEquals("hstore", body.get("storage"));
+        Assert.assertEquals(ImmutableList.of("hstore"), body.get("failed_backends"));
         Assert.assertFalse(body.toString().contains("hugegraph"));
+        // a mixed failure keeps the loaded graphs' backend and adds the failed one
+        body = StorageReadiness.failedBody(1, "hbase", ImmutableList.of("hstore"));
+        Assert.assertEquals("hbase,hstore", body.get("storage"));
+        // a config that could not be read
+        body = StorageReadiness.failedBody(1, "embedded", ImmutableList.of("unknown"));
+        Assert.assertEquals("unknown", body.get("storage"));
     }
 
     /** Every async probe runs as the internal admin: the auth context is a thread local. */
