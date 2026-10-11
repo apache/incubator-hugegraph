@@ -16,6 +16,19 @@ The operations page carries the walkthroughs this README links to below.
 Note that this chart requires Helm 3. `--reset-then-reuse-values`, referenced
 under Upgrading, requires Helm 3.14 or later.
 
+### Packaging
+
+`helm package helm/hugegraph` includes the runtime templates, value presets and
+schema, but excludes source diagrams and contributor test fixtures. Helm also
+stores chart files in its release Secret, which Kubernetes limits to 1 MiB;
+documentation images must stay outside that payload. The diagram below links
+to the source repository so it remains available when reading a packaged chart.
+
+CI checks the packaged archive, renders all three presets from it, and keeps
+the compressed chart below 512 KiB to leave room for values and rendered
+resources in the release. This package budget is a regression guard, not a
+replacement for validating a real Helm installation with the intended values.
+
 ## Prerequisites Details
 
 * Kubernetes 1.23+ (the chart renders `autoscaling/v2` and `policy/v1`)
@@ -34,7 +47,7 @@ under Upgrading, requires Helm 3.14 or later.
 | Server | Deployment | Gremlin and REST query layer |
 | Hubble | Deployment + optional PVC | Web UI, off by default; enable with `hubble.enabled` |
 
-![HugeGraph HStore architecture and Kubernetes workload types](images/architecture.png)
+![HugeGraph HStore architecture and Kubernetes workload types](https://raw.githubusercontent.com/apache/hugegraph/master/helm/hugegraph/images/architecture.png)
 
 A distributed HugeGraph cluster has a startup contract that this chart encodes
 so operators do not have to:
