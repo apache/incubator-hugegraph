@@ -19,6 +19,7 @@ package org.apache.hugegraph.auth;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -26,6 +27,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
@@ -171,8 +173,8 @@ public class BackendLeaseCleanupTest extends BaseCoreTest {
     }
 
     @Test
-    public void testOltpCapacityStopReturnsWorkerLeases() {
-        this.assertOltpWorkerCleanup(true, new Consumers.StopExecution("capacity reached"));
+    public void testOltpStopExecutionReturnsWorkerLeases() {
+        this.assertOltpWorkerCleanup(true, new Consumers.StopExecution("stop traversal"));
     }
 
     @Test
@@ -192,20 +194,21 @@ public class BackendLeaseCleanupTest extends BaseCoreTest {
 
     @Test
     public void testLazyBfsQueryReturnsWorkerLeases() {
-        this.assertLazyBfsWorkerCleanup(null);
+        this.assertLazyBfsWorkerCleanup(OltpTraverser.NO_LIMIT, null);
     }
 
     @Test
     public void testLazyBfsFailureReturnsWorkerLeases() {
-        this.assertLazyBfsWorkerCleanup(new IllegalStateException("BFS consumer failed"));
+        this.assertLazyBfsWorkerCleanup(OltpTraverser.NO_LIMIT,
+                                       new IllegalStateException("BFS consumer failed"));
     }
 
     @Test
     public void testLazyBfsCapacityStopReturnsWorkerLeases() {
-        this.assertLazyBfsWorkerCleanup(new Consumers.StopExecution("BFS capacity"));
+        this.assertLazyBfsWorkerCleanup(1L, null);
     }
 
-    private void assertLazyBfsWorkerCleanup(RuntimeException failure) {
+    private void assertLazyBfsWorkerCleanup(long capacity, RuntimeException failure) {
         Assume.assumeTrue("rocksdb".equals(graph().backend()));
         Id label = graph().schema().edgeLabel("lifecycle_link")
                           .sourceLabel("lifecycle").targetLabel("lifecycle")
@@ -222,7 +225,7 @@ public class BackendLeaseCleanupTest extends BaseCoreTest {
         AtomicReference<WorkerLeases> leases = new AtomicReference<>();
         AtomicInteger visited = new AtomicInteger();
         try (LeaseTraverser traverser = new LeaseTraverser(graph())) {
-            Runnable run = () -> traverser.edges(label, () -> {
+            Runnable run = () -> traverser.edges(label, capacity, () -> {
                 visited.incrementAndGet();
                 WorkerLeases observed = new WorkerLeases(Thread.currentThread().getId(),
                                                          new ArrayList<>(databases.values()));
@@ -232,10 +235,16 @@ public class BackendLeaseCleanupTest extends BaseCoreTest {
                     throw failure;
                 }
             });
-            if (failure != null && !(failure instanceof Consumers.StopExecution)) {
+            if (failure != null) {
                 Assert.assertSame(failure, Assert.assertThrows(IllegalStateException.class, run::run));
             } else {
                 run.run();
+            }
+            if (capacity != OltpTraverser.NO_LIMIT) {
+                Assert.assertEquals(capacity, traverser.edgeIterCounter.get());
+                Assert.assertNotNull(traverser.stop.get());
+            } else {
+                Assert.assertNull(traverser.stop.get());
             }
         }
         Assert.assertEquals(1, visited.get());
@@ -319,6 +328,8 @@ public class BackendLeaseCleanupTest extends BaseCoreTest {
 
     private static final class LeaseTraverser extends OltpTraverser {
 
+        private final AtomicReference<Consumers.StopExecution> stop = new AtomicReference<>();
+
         private LeaseTraverser(HugeGraph graph) {
             super(graph);
         }
@@ -333,10 +344,24 @@ public class BackendLeaseCleanupTest extends BaseCoreTest {
                                  ignored -> work.run(), "lease-batch", 1);
         }
 
-        private void edges(Id label, Runnable work) {
+        private void edges(Id label, long capacity, Runnable work) {
             this.traverseIdsByBfs(Collections.singletonList(IdGenerator.of(1L)).iterator(),
-                                   Directions.OUT, label, NO_LIMIT, NO_LIMIT,
+                                   Directions.OUT, label, NO_LIMIT, capacity,
                                    ignored -> work.run());
+        }
+
+        @Override
+        protected <K> long traverseByBatch(Iterator<Iterator<K>> sources,
+                                           Consumer<Iterator<K>> consumer,
+                                           String taskName, int concurrentWorkers) {
+            return super.traverseByBatch(sources, batch -> {
+                try {
+                    consumer.accept(batch);
+                } catch (Consumers.StopExecution stop) {
+                    this.stop.set(stop);
+                    throw stop;
+                }
+            }, taskName, concurrentWorkers);
         }
 
         private void inline(Runnable work) {
