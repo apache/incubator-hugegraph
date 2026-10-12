@@ -21,6 +21,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.RpcOptions;
@@ -39,8 +42,6 @@ import com.alipay.sofa.rpc.core.request.SofaRequest;
 import com.alipay.sofa.rpc.core.response.SofaResponse;
 import com.alipay.sofa.rpc.ext.Extension;
 import com.alipay.sofa.rpc.ext.ExtensionLoaderFactory;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class RpcConsumerConfig implements RpcServiceConfig4Client {
@@ -59,8 +60,8 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
         RpcCommonConfig.initRpcConfigs(config);
         this.conf = config;
         this.remoteUrls = remoteUrls;
-        this.configs = Maps.newHashMap();
-        this.bootstraps = Lists.newArrayList();
+        this.configs = new ConcurrentHashMap<>();
+        this.bootstraps = new CopyOnWriteArrayList<>();
     }
 
     @Override
@@ -70,10 +71,57 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
 
     @Override
     public <T> T serviceProxy(String graph, String interfaceId) {
-        ConsumerConfig<T> config = this.consumerConfig(graph, interfaceId);
-        ConsumerBootstrap<T> bootstrap = Bootstraps.from(config);
-        this.bootstraps.add(bootstrap);
-        return bootstrap.refer();
+        String serviceId = graph == null ? interfaceId : interfaceId + ":" + graph;
+        AtomicReference<T> proxy = new AtomicReference<>();
+        this.configs.compute(serviceId, (key, existing) -> {
+            @SuppressWarnings("unchecked")
+            ConsumerConfig<T> config = existing == null ? this.consumerConfig(graph, interfaceId) :
+                                       (ConsumerConfig<T>) existing;
+            ConsumerBootstrap<T> bootstrap = Bootstraps.from(config);
+            try {
+                proxy.set(bootstrap.refer());
+                this.bootstraps.add(bootstrap);
+            } catch (RuntimeException | Error failure) {
+                try {
+                    bootstrap.unRefer();
+                    if (bootstrap.getCluster() != null) {
+                        bootstrap.getCluster().destroy();
+                    }
+                } catch (RuntimeException | Error cleanup) {
+                    failure.addSuppressed(cleanup);
+                }
+                throw failure;
+            }
+            return config;
+        });
+        return proxy.get();
+    }
+
+    @Override
+    public boolean removeServiceProxy(String graph, String interfaceId, Object proxy) {
+        String serviceId = graph == null ? interfaceId : interfaceId + ":" + graph;
+        boolean[] removed = {false};
+        this.configs.computeIfPresent(serviceId, (key, config) -> {
+            for (ConsumerBootstrap<?> bootstrap : this.bootstraps) {
+                if (bootstrap.getConsumerConfig() == config && bootstrap.getProxyIns() == proxy) {
+                    try {
+                        bootstrap.unRefer();
+                    } finally {
+                        bootstrap.getCluster().destroy();
+                    }
+                    this.bootstraps.remove(bootstrap);
+                    removed[0] = true;
+                    break;
+                }
+            }
+            for (ConsumerBootstrap<?> bootstrap : this.bootstraps) {
+                if (bootstrap.getConsumerConfig() == config) {
+                    return config;
+                }
+            }
+            return null;
+        });
+        return removed[0];
     }
 
     @Override
@@ -103,15 +151,7 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
             serviceId = interfaceId;
         }
 
-        @SuppressWarnings("unchecked")
-        ConsumerConfig<T> consumerConfig = (ConsumerConfig<T>)
-                                           this.configs.get(serviceId);
-        if (consumerConfig != null) {
-            return consumerConfig;
-        }
-
-        assert consumerConfig == null;
-        consumerConfig = new ConsumerConfig<>();
+        ConsumerConfig<T> consumerConfig = new ConsumerConfig<>();
 
         HugeConfig conf = this.conf;
         String protocol = conf.get(RpcOptions.RPC_PROTOCOL);
@@ -138,7 +178,6 @@ public class RpcConsumerConfig implements RpcServiceConfig4Client {
                       .setSerialization(conf.get(RpcOptions.RPC_SERIALIZATION))
                       .setLoadBalancer(loadBalancer);
 
-        this.configs.put(serviceId, consumerConfig);
         return consumerConfig;
     }
 

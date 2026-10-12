@@ -19,6 +19,7 @@ package org.apache.hugegraph;
 
 import org.apache.hugegraph.exception.HugeException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -166,6 +167,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final EventHub schemaEventHub;
     private final EventHub graphEventHub;
     private final EventHub indexEventHub;
+    private final List<Runnable> rpcServiceCleanup = new ArrayList<>();
     private final LocalCounter localCounter;
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
@@ -1177,6 +1179,7 @@ public class StandardHugeGraph implements HugeGraph {
             // stops its context. Owner-close errors do not imply native release.
             this.closed = true;
             for (Runnable close : new Runnable[]{
+                    this::unregisterRpcServices,
                     () -> CachedGraphTransaction.closeGraph(this.params),
                     () -> CachedSchemaTransaction.closeGraph(this.params),
                     () -> CachedSchemaTransactionV2.closeGraph(this.params),
@@ -1379,26 +1382,67 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
-                                    RpcServiceConfig4Client clientConfig) {
+    public synchronized void registerRpcServices(RpcServiceConfig4Server serverConfig,
+                                                 RpcServiceConfig4Client clientConfig) {
         /*
          * Skip register cache-rpc service if it's non-shared storage,
          * because we assume cache of non-shared storage is updated by raft.
          */
+        if (!this.rpcServiceCleanup.isEmpty()) {
+            return;
+        }
         if (!this.backendStoreFeatures().supportsSharedStorage()) {
             return;
         }
+        E.checkState(!this.closed(), "Can't register RPC services for a closed graph");
+        String graph = this.spaceGraphName();
+        try {
+            GraphCacheNotifier graphProxy = clientConfig.serviceProxy(graph, GraphCacheNotifier.class);
+            this.rpcServiceCleanup.add(() -> clientConfig.removeServiceProxy(
+                    graph, GraphCacheNotifier.class.getName(), graphProxy));
+            HugeGraphCacheNotifier graphNotifier = new HugeGraphCacheNotifier(this.graphEventHub, graphProxy);
+            this.rpcServiceCleanup.add(graphNotifier::close);
+            String graphService = serverConfig.addService(graph, GraphCacheNotifier.class, graphNotifier);
+            this.rpcServiceCleanup.add(() -> serverConfig.removeService(graphService, graphNotifier));
 
-        Class<GraphCacheNotifier> clazz1 = GraphCacheNotifier.class;
-        // The proxy is sometimes unavailable (issue #664)
-        CacheNotifier proxy = clientConfig.serviceProxy(this.spaceGraphName(), clazz1);
-        serverConfig.addService(this.spaceGraphName(), clazz1, new HugeGraphCacheNotifier(
-                this.graphEventHub, proxy));
+            SchemaCacheNotifier schemaProxy = clientConfig.serviceProxy(graph, SchemaCacheNotifier.class);
+            this.rpcServiceCleanup.add(() -> clientConfig.removeServiceProxy(
+                    graph, SchemaCacheNotifier.class.getName(), schemaProxy));
+            HugeSchemaCacheNotifier schemaNotifier = new HugeSchemaCacheNotifier(this.schemaEventHub, schemaProxy);
+            this.rpcServiceCleanup.add(schemaNotifier::close);
+            String schemaService = serverConfig.addService(graph, SchemaCacheNotifier.class, schemaNotifier);
+            this.rpcServiceCleanup.add(() -> serverConfig.removeService(schemaService, schemaNotifier));
+        } catch (RuntimeException | Error failure) {
+            try {
+                this.unregisterRpcServices();
+            } catch (RuntimeException | Error cleanup) {
+                failure.addSuppressed(cleanup);
+            }
+            throw failure;
+        }
+    }
 
-        Class<SchemaCacheNotifier> clazz2 = SchemaCacheNotifier.class;
-        proxy = clientConfig.serviceProxy(this.spaceGraphName(), clazz2);
-        serverConfig.addService(this.spaceGraphName(), clazz2, new HugeSchemaCacheNotifier(
-                this.schemaEventHub, proxy));
+    @Override
+    public synchronized void unregisterRpcServices() {
+        Throwable failure = null;
+        for (int i = this.rpcServiceCleanup.size() - 1; i >= 0; i--) {
+            try {
+                this.rpcServiceCleanup.get(i).run();
+                this.rpcServiceCleanup.remove(i);
+            } catch (RuntimeException | Error error) {
+                if (failure == null) {
+                    failure = error;
+                } else if (failure != error) {
+                    failure.addSuppressed(error);
+                }
+            }
+        }
+        if (failure instanceof Error) {
+            throw (Error) failure;
+        }
+        if (failure != null) {
+            throw (RuntimeException) failure;
+        }
     }
 
     private void waitUntilAllTasksCompleted() {
@@ -1486,10 +1530,14 @@ public class StandardHugeGraph implements HugeGraph {
 
         private final EventHub hub;
         private final EventListener cacheEventListener;
+        private volatile boolean closed;
 
         public AbstractCacheNotifier(EventHub hub, CacheNotifier proxy) {
             this.hub = hub;
             this.cacheEventListener = event -> {
+                if (this.closed) {
+                    return false;
+                }
                 try {
                     LOG.info("Received event: {}", event);
                     Object[] args = event.args();
@@ -1533,6 +1581,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public void close() {
+            this.closed = true;
             this.hub.unlisten(Events.CACHE, this.cacheEventListener);
         }
 

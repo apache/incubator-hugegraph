@@ -535,3 +535,35 @@ configuration changes rather than hot reload, whose recovery is handled separate
 Deletion is not transactional: a failure after destructive cleanup needs operator
 inspection, and retry does not restore removed data. An owner-cleanup failure must not
 be treated as a successful drain; inspect it instead of force-removing the scheduler.
+
+## Local loading ownership
+
+Server keeps ordinary import ownership in memory on each graph instance. The first
+owner changes NONE to LOADING; releasing one owner leaves LOADING while others are
+active, and the last release restores NONE. Manual LOADING, RESTORING and MERGING
+cannot be adopted. Original enum setters reject every request while owners are active,
+including bare LOADING; their original behavior remains available without active owners.
+
+`GET /graphspaces/{space}/graphs/{graph}/mode/owners` returns
+`{"protocol":1,"instance":"<UUID>","epoch":0}`. `PUT` on that path accepts
+`{"action":"acquire","instance":"<UUID>","epoch":0,"token":"<import UUID>"}`;
+`release` uses the same tuple. Receipts echo protocol/instance/epoch/token and return
+`state` (`active` or `released`) and the effective `mode`. Both operations use existing
+graph-owner/STATUS WRITE permissions; the authenticated principal owns the token.
+
+Keep one tuple and identity for the whole import attempt, including uncertain acquire
+outcomes. Release after that import's workers stop. Acquire/release retries are
+idempotent. An unknown release cancels a late acquire; a released handle cannot be
+reused. Terminal records are bounded to 1024 per epoch. Epoch advancement retains
+active old handles and permanently retires all other old handles.
+
+This protection coordinates Loader processes connected directly to the same stable
+Server and graph instance. It does not fence ordinary data requests across load
+balancers, node failover, graph replacement or Server restart. There is no automatic
+expiry: after kill -9 or permanent disconnection, stop the import and its in-flight
+writes before retrying release with the same handle and identity. If that handle is
+lost, stop all related imports before reopening the graph instance.
+
+Loaders retain historical ordinary-import and restore behavior with Servers that do
+not provide this API. Concurrent owner protection applies only when this API is
+supported; RESTORING keeps its existing enum mode path.
