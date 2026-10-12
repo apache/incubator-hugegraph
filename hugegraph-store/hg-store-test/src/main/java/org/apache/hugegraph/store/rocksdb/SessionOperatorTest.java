@@ -32,6 +32,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.hugegraph.rocksdb.access.DBStoreException;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
@@ -44,6 +45,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.junit.rules.Timeout;
 
 public class SessionOperatorTest extends BaseRocksDbTest {
 
@@ -52,6 +54,10 @@ public class SessionOperatorTest extends BaseRocksDbTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    // Runs @Before, the test and @After on one thread, so a stuck CF lock fails the test
+    @Rule
+    public Timeout timeout = Timeout.seconds(60);
 
     private ExecutorService prober;
     private String dataPath;
@@ -89,10 +95,29 @@ public class SessionOperatorTest extends BaseRocksDbTest {
 
     @After
     public void tearDown() {
-        if (this.session != null) {
-            this.session.close();
+        try {
+            if (this.session != null) {
+                releaseCfReadLockHolds();
+                this.session.close();
+            }
+        } finally {
+            this.prober.shutdownNow();
         }
-        this.prober.shutdownNow();
+    }
+
+    /**
+     * A test that fails between prepare() and commit() still holds the CF read lock on this
+     * thread, and close() would then wait forever for the CF write lock.
+     */
+    private void releaseCfReadLockHolds() {
+        ReentrantReadWriteLock.ReadLock readLock = this.session.getCfHandleReadLock();
+        while (true) {
+            try {
+                readLock.unlock();
+            } catch (IllegalMonitorStateException e) {
+                return;
+            }
+        }
     }
 
     private void putAll(String... keys) {
