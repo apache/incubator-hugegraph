@@ -444,5 +444,45 @@ done
 grep -qx 'server.service_id=analytics' "${identity_conf}"
 grep -qx 'server.graphspace=team_a' "${identity_conf}"
 
+# Apply the existing graph-space naming rule to effective new and legacy input.
+graph_space_max=$(printf 'a%.0s' {1..48})
+cp "${identity_conf}" "${identity_conf}.before-invalid-graphspace"
+for graphspace_env in HG_SERVER_GRAPHSPACE GRAPH_SPACE; do
+    for graphspace in TeamA 1team team-a "${graph_space_max}a"; do
+        if (cd "${TEST_HOME}"; env "${graphspace_env}=${graphspace}" \
+            bash ./docker-entrypoint.sh > ./docker/invalid-graphspace.log 2>&1); then
+            echo "invalid ${graphspace_env} unexpectedly succeeded" >&2
+            exit 1
+        fi
+        grep -q 'HG_SERVER_GRAPHSPACE must be DEFAULT' "${TEST_HOME}/docker/invalid-graphspace.log"
+        cmp "${identity_conf}.before-invalid-graphspace" "${identity_conf}"
+    done
+    for graphspace in DEFAULT team_a "${graph_space_max}"; do
+        (cd "${TEST_HOME}"; env "${graphspace_env}=${graphspace}" bash ./docker-entrypoint.sh)
+        grep -Fxq "server.graphspace=${graphspace}" "${identity_conf}"
+    done
+    cp "${identity_conf}" "${identity_conf}.before-invalid-graphspace"
+done
+(cd "${TEST_HOME}"; HG_SERVER_GRAPHSPACE=team_a GRAPH_SPACE=TeamA bash ./docker-entrypoint.sh)
+grep -qx 'server.graphspace=team_a' "${identity_conf}"
+
+# Some installed locales make [a-z] include uppercase letters; validation owns its locale.
+for identity_locale in sk_SK.ISO8859-2 cs_CZ.ISO8859-2; do
+    case "$(LC_ALL="${identity_locale}" locale charmap 2>/dev/null)" in
+        ISO8859-2 | ISO-8859-2) ;;
+        *) continue ;;
+    esac
+    cp "${identity_conf}" "${identity_conf}.before-invalid-locale"
+    for graphspace_env in HG_SERVER_GRAPHSPACE GRAPH_SPACE; do
+        if (cd "${TEST_HOME}"; env LC_ALL="${identity_locale}" "${graphspace_env}=TeamA" \
+            bash ./docker-entrypoint.sh > ./docker/invalid-graphspace-locale.log 2>&1); then
+            echo "invalid ${graphspace_env} under ${identity_locale} unexpectedly succeeded" >&2
+            exit 1
+        fi
+        grep -q 'HG_SERVER_GRAPHSPACE must be DEFAULT' "${TEST_HOME}/docker/invalid-graphspace-locale.log"
+        cmp "${identity_conf}.before-invalid-locale" "${identity_conf}"
+    done
+done
+
 echo "PASS: Docker entrypoint configures HStore discovery and authentication"
 bash "${SCRIPT_DIR}/test/test-docker-entrypoint-process.sh"

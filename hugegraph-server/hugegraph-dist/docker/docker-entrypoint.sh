@@ -122,6 +122,16 @@ for identity_name in HG_SERVER_SERVICE_ID HG_SERVER_GRAPHSPACE; do
     fi
 done
 
+# Match the Server API graph-space naming contract after legacy migration.
+if [[ -n "${HG_SERVER_GRAPHSPACE:-}" ]] && ! (
+    export LC_ALL=C
+    [[ "${HG_SERVER_GRAPHSPACE}" =~ ^(DEFAULT|[a-z][a-z0-9_]{0,47})$ ]]
+); then
+    log "ERROR: HG_SERVER_GRAPHSPACE must be DEFAULT or a name starting with" \
+        "a lowercase letter, followed by lowercase letters, digits or underscores (1-48 characters)"
+    exit 1
+fi
+
 if [[ -n "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
     if (( $(printf '%s' "${HG_SERVER_AUTH_TOKEN_SECRET}" | LC_ALL=C wc -c) < 32 )); then
         log "ERROR: HG_SERVER_AUTH_TOKEN_SECRET must be at least 32 bytes"
