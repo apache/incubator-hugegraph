@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.id.EdgeId;
 import org.apache.hugegraph.id.Id;
@@ -116,7 +117,8 @@ public abstract class OltpTraverser extends HugeTraverser
         }
 
         Consumers<K> consumers = new Consumers<>(executors.getExecutor(),
-                                                 consumer, null);
+                                                 consumer,
+                                                 HugeFactory::closeCurrentThreadTransactions);
         consumers.start(taskName);
         long total = 0L;
         try {
@@ -229,7 +231,7 @@ public abstract class OltpTraverser extends HugeTraverser
                                                       ExecutorService executor) {
         return new Consumers<>(executor,
                                consumer,
-                               null,
+                               HugeFactory::closeCurrentThreadTransactions,
                                e -> done.set(true),
                                queueSizePerWorker);
     }
@@ -336,6 +338,8 @@ public abstract class OltpTraverser extends HugeTraverser
             Iterator<?> toClose = edgeIter;
             Throwable failure = null;
             try {
+                // Bind worker leases before a caller-created lazy query opens a session.
+                graph().tx().readWrite();
                 Iterator<E> ids = prepare(edgeIter);
                 toClose = ids != null ? ids : edgeIter;
                 long counter = 0;

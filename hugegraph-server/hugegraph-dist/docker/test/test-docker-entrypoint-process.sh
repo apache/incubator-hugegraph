@@ -52,7 +52,9 @@ with tempfile.TemporaryDirectory(prefix='hugegraph-entrypoint-process-') as dire
                            ('timeout-ignore', 1), ('partition42', 42),
                            ('partitionTERM', 143), ('partitionINT', 130),
                            ('partitiongroupTERM', 143), ('readinessTERM', 143),
-                           ('readinessINT', 130), ('readinessgroupTERM', 143)]:
+                           ('readinessINT', 130), ('readinessgroupTERM', 143),
+                           ('partitionDiagnostic42', 42), ('partitionDiagnosticTERM', 143),
+                           ('partitionDiagnosticINT', 130), ('partitionDiagnosticgroupTERM', 143)]:
         work = pathlib.Path(directory) / mode
         for name in ['bin', 'tools', 'conf/graphs', 'docker', 'logs']:
             (work / name).mkdir(parents=True)
@@ -66,6 +68,29 @@ with tempfile.TemporaryDirectory(prefix='hugegraph-entrypoint-process-') as dire
             'restserver.url=http://127.0.0.1:1\ngremlinserver.url=http://127.0.0.1:2\n')
         listener = None
         accepted, stop_http = threading.Event(), threading.Event()
+        if mode.startswith('partitionDiagnostic'):
+            listener = socket.socket()
+            listener.bind(('127.0.0.1', 0))
+            listener.listen(2)
+            port = listener.getsockname()[1]
+
+            def hold_partition_diagnostic():
+                # Real curl first receives positive readiness, then stalls on
+                # the distinct final diagnostic endpoint.
+                for _ in range(2):
+                    connection, _ = listener.accept()
+                    request = connection.recv(8192)
+                    if b' /v1/partitions ' in request:
+                        accepted.set()
+                        stop_http.wait(10)
+                        connection.close()
+                        return
+                    body = b'{"partitionCount":1}'
+                    response = b'HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n' % len(body)
+                    connection.sendall(response + body)
+                    connection.close()
+
+            threading.Thread(target=hold_partition_diagnostic, daemon=True).start()
         if mode.startswith('readiness'):
             listener = socket.socket()
             listener.bind(('127.0.0.1', 0))
@@ -95,6 +120,15 @@ with tempfile.TemporaryDirectory(prefix='hugegraph-entrypoint-process-') as dire
 case "$TEST_CHILD_MODE" in
     early* | timeout*) printf '000'; exit 28 ;;
 esac
+if [[ "$1" != '-I' && "$TEST_CHILD_MODE" == partitionDiagnostic* ]]; then
+    if [[ "$1" == '-v' ]]; then
+        echo "$$" > ./partition-curl.pid
+        echo "$PPID" > ./partition-timeout.pid
+        ps -o ppid= -p "$PPID" | tr -d ' ' > ./partition-wrapper.pid
+        touch ./partition-ran
+    fi
+    exec "$TEST_REAL_CURL" "$@"
+fi
 if [[ "$TEST_CHILD_MODE" == readiness* ]]; then
     ancestor=$$
     for index in 1 2 3 4; do
@@ -148,6 +182,9 @@ sys.exit(int((work / 'child-exit').read_text()))
                    TEST_REAL_CURL=shutil.which('curl'), NO_PROXY='127.0.0.1', no_proxy='127.0.0.1')
         if mode.startswith('readiness'):
             env['HG_SERVER_STARTUP_TIMEOUT_S'] = '60'
+        if mode.startswith('partitionDiagnostic'):
+            env['STORE_REST'] = '127.0.0.1:%d' % port
+            env['WAIT_PARTITION_TIMEOUT_S'] = '1' if mode.endswith('42') else '10'
         started = time.monotonic()
         with (work / 'output').open('wb') as output:
             process = subprocess.Popen(['bash', './entrypoint.sh'], cwd=work, env=env,
@@ -169,15 +206,18 @@ sys.exit(int((work / 'child-exit').read_text()))
                     await_file(work / 'ready-probe', process)
                     if mode.startswith('partition'):
                         await_file(work / 'partition-ran', process)
-                    if mode in ['TERM', 'INT', 'partitionTERM', 'partitionINT']:
+                    if mode.startswith('partitionDiagnostic'):
+                        assert accepted.wait(5), 'final real curl did not reach the stalled endpoint'
+                    if mode in ['TERM', 'INT', 'partitionTERM', 'partitionINT',
+                                'partitionDiagnosticTERM', 'partitionDiagnosticINT']:
                         signum = signal.SIGINT if mode.endswith('INT') else signal.SIGTERM
                         os.kill(process.pid, signum)
-                    elif mode in ['groupTERM', 'partitiongroupTERM']:
+                    elif mode in ['groupTERM', 'partitiongroupTERM', 'partitionDiagnosticgroupTERM']:
                         os.killpg(process.pid, signal.SIGTERM)
                     elif mode == 'kill137':
                         os.kill(int((work / 'bin/pid').read_text()), signal.SIGKILL)
                     else:
-                        status = 42 if mode == 'partition42' else int(mode[4:])
+                        status = 42 if mode in ['partition42', 'partitionDiagnostic42'] else int(mode[4:])
                         (work / 'child-exit').write_text(str(status))
                 actual = process.wait(timeout=5)
                 assert actual == expected, (mode, expected, actual, (work / 'output').read_text())
@@ -185,7 +225,8 @@ sys.exit(int((work / 'child-exit').read_text()))
                     assert time.monotonic() - started < 5, 'startup cleanup exceeded the deadline'
                 if mode in ['TERM', 'INT', 'groupTERM', 'partitionTERM', 'partitionINT',
                             'partitiongroupTERM', 'readinessTERM', 'readinessINT',
-                            'readinessgroupTERM']:
+                            'readinessgroupTERM', 'partitionDiagnosticTERM',
+                            'partitionDiagnosticINT', 'partitionDiagnosticgroupTERM']:
                     assert (work / 'term-observed').exists(), 'TERM did not reach the JVM substitute'
                 if not mode.startswith('timeout'):
                     owned = ([work / 'bin/pid'] + list(work.glob('partition-*.pid')) +
@@ -198,7 +239,7 @@ sys.exit(int((work / 'child-exit').read_text()))
                             pass
                         else:
                             raise AssertionError(str(pid_file) + ' survived entrypoint exit')
-                if mode == 'partition42':
+                if mode in ['partition42', 'partitionDiagnostic42']:
                     assert 'WARN: partitions not assigned yet' in (work / 'output').read_text()
                 print('PASS: ' + mode + ' -> ' + str(actual))
             finally:
@@ -226,3 +267,6 @@ sys.exit(int((work / 'child-exit').read_text()))
                     stop_http.set()
                     listener.close()
 PY
+
+# This process fixture is already invoked by the Docker/Server CI entrypoint tests.
+bash "$(dirname "${BASH_SOURCE[0]}")/test-wait-partition.sh"

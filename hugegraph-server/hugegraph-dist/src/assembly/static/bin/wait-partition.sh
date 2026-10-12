@@ -51,7 +51,8 @@ CHECK_PID=""
 echo "Partitions detected:"
 URL="http://${STORE_REST}/v1/partitions"
 echo "$URL"
-curl -v "$URL" &
+# The final diagnostic needs its own bound after partition polling succeeds.
+timeout "${WAIT_PARTITION_TIMEOUT_S:-120}s" curl -v "$URL" &
 CHECK_PID=$!
 STATUS=0
 wait "$CHECK_PID" || STATUS=$?

@@ -241,6 +241,10 @@ shutdown through the launcher using TERM, which shuts down and reaps the JVM; th
 The startup REST check still uses `HG_SERVER_STARTUP_TIMEOUT_S`, and HStore partition checks still
 run after readiness. Shutdown interrupts a stalled readiness probe or pending partition check and
 reaps its polling processes.
+The partition poll and its final `/v1/partitions` diagnostic each have a separate
+`WAIT_PARTITION_TIMEOUT_S` budget (120 seconds by default). If the JVM exits while the
+final diagnostic is stalled, the entrypoint observes its exit after that request finishes
+or reaches this bound; it does not monitor the JVM immediately during the diagnostic.
 A startup timeout requests termination and returns 1 without waiting for an
 unresponsive JVM beyond the startup deadline; container termination cleans up remaining processes.
 Graceful shutdown requires the JVM to respond to TERM; forceful OOM and orchestrator shutdown testing

@@ -41,6 +41,7 @@ import org.apache.hugegraph.unit.api.auth.LoginAPITest;
 import org.apache.hugegraph.unit.api.filter.AccessLogFilterTest;
 import org.apache.hugegraph.unit.api.filter.LoadDetectFilterTest;
 import org.apache.hugegraph.unit.api.filter.PathFilterTest;
+import org.apache.hugegraph.unit.api.filter.VertexAuthorizationTest;
 import org.apache.hugegraph.unit.api.gremlin.GremlinQueryAPITest;
 import org.apache.hugegraph.unit.api.space.GraphSpaceAPITest;
 import org.apache.hugegraph.unit.api.space.SchemaTemplateAPITest;
@@ -113,6 +114,7 @@ import org.apache.hugegraph.unit.serializer.TextSerializerTest;
 import org.apache.hugegraph.unit.store.RamIntObjectMapTest;
 import org.apache.hugegraph.unit.traversal.ShortestPathTraverserTest;
 import org.apache.hugegraph.unit.util.CompressUtilTest;
+import org.apache.hugegraph.unit.util.ConsumersTest;
 import org.apache.hugegraph.unit.util.JsonUtilTest;
 import org.apache.hugegraph.unit.util.RateLimiterTest;
 import org.apache.hugegraph.unit.util.StringEncodingTest;
@@ -133,6 +135,7 @@ import org.junit.runners.Suite;
         LoadDetectFilterTest.class,
         LoginAPITest.class,
         PathFilterTest.class,
+        VertexAuthorizationTest.class,
 
         /* api gremlin */
         GremlinQueryAPITest.class,
@@ -246,6 +249,7 @@ import org.junit.runners.Suite;
         RocksDBTableQueryByIdsTest.class,
 
         /* utils */
+        ConsumersTest.class,
         VersionTest.class,
         JsonUtilTest.class,
         StringEncodingTest.class,

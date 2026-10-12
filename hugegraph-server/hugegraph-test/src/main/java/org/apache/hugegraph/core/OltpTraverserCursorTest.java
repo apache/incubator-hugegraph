@@ -26,6 +26,12 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.io.FileUtils;
@@ -89,6 +95,41 @@ public class OltpTraverserCursorTest {
         this.checkNativeCursor("close");
     }
 
+    @Test
+    public void testAsyncCapacityStopClosesNativeCursor() throws Exception {
+        this.checkNativeCursor("async-capacity");
+    }
+
+    @Test
+    public void testAsyncCapacityStopPropagatesCloseFailure() throws Exception {
+        this.checkNativeCursor("async-capacity-close");
+    }
+
+    @Test
+    public void testAsyncCapacityStopReleasesBlockedProducer() throws Exception {
+        this.checkNativeCursor("async-capacity-producer");
+    }
+
+    @Test
+    public void testAsyncCapacityCloseFailureReleasesBlockedProducer() throws Exception {
+        this.checkNativeCursor("async-capacity-producer-close");
+    }
+
+    @Test
+    public void testAsyncConsumerFailureKeepsSuppressedCloseFailure() throws Exception {
+        this.checkNativeCursor("async-consumer-close");
+    }
+
+    @Test
+    public void testAsyncBusinessFailureReleasesBlockedProducer() throws Exception {
+        this.checkNativeCursor("async-consumer-producer-close");
+    }
+
+    @Test
+    public void testAsyncFatalErrorReleasesBlockedProducer() throws Exception {
+        this.checkNativeCursor("async-fatal-producer");
+    }
+
     private void checkNativeCursor(String outcome) throws Exception {
         Path directory = Files.createTempDirectory("oltp-cursor-");
         HugeConfig config = new HugeConfig(new MapConfiguration(Collections.emptyMap()));
@@ -130,14 +171,16 @@ public class OltpTraverserCursorTest {
             control = sessions.copy(config, "cursor-control", "g");
             control.session();
             Probe traverser = new Probe(graph);
-            RuntimeException failure = "stop".equals(outcome) ? new Consumers.StopExecution("limit") :
-                                       new IllegalStateException("business failure");
-            if ("close".equals(outcome)) {
+            Throwable failure = outcome.contains("fatal") ? new AssertionError("fatal failure") :
+                                "stop".equals(outcome) ? new Consumers.StopExecution("limit") :
+                                new IllegalStateException("business failure");
+            RuntimeException closeFailure = new IllegalStateException("close failure");
+            if (outcome.endsWith("close")) {
                 edges = new MapperIterator<Edge, Edge>(edges, edge -> edge) {
                     @Override
                     public void close() throws Exception {
                         super.close();
-                        throw new IllegalStateException("close failure");
+                        throw closeFailure;
                     }
                 };
             }
@@ -147,15 +190,46 @@ public class OltpTraverserCursorTest {
                 consumer = traverser.new EdgesConsumer<Edge, Id>(id -> Assert.fail(), OltpTraverser.NO_LIMIT) {
                     @Override
                     protected Iterator<Id> prepare(Iterator<Edge> iterator) {
-                        throw failure;
+                        if (failure instanceof Error) {
+                            throw (Error) failure;
+                        }
+                        throw (RuntimeException) failure;
                     }
                 };
             } else {
                 consumer = traverser.new OneStepEdgeIterConsumer(id -> {
-                    throw failure;
-                }, OltpTraverser.NO_LIMIT);
+                    if (!outcome.startsWith("async-capacity")) {
+                        if (failure instanceof Error) {
+                            throw (Error) failure;
+                        }
+                        throw (RuntimeException) failure;
+                    }
+                }, outcome.startsWith("async-capacity") ? 1L : OltpTraverser.NO_LIMIT);
             }
-            if ("interrupt".equals(outcome)) {
+            if (outcome.startsWith("async-")) {
+                AtomicReference<Throwable> handled = new AtomicReference<>();
+                Throwable thrown = this.consumeAsync(consumer, input, handled, outcome);
+                if (outcome.startsWith("async-capacity")) {
+                    Assert.assertEquals(501L, traverser.edgeIterCounter.get());
+                    if (outcome.endsWith("close")) {
+                        Assert.assertNotNull("Close failure must remain visible after capacity Stop", thrown);
+                        Assert.assertFalse(thrown instanceof Consumers.StopExecution);
+                        Assert.assertTrue(handled.get() instanceof Consumers.StopExecution);
+                        Assert.assertSame(handled.get().getSuppressed()[0], thrown);
+                        Assert.assertSame(closeFailure, thrown.getCause());
+                    } else {
+                        Assert.assertNull(thrown);
+                        Assert.assertTrue(handled.get() instanceof Consumers.StopExecution);
+                    }
+                } else {
+                    Assert.assertSame(failure, thrown);
+                    Assert.assertSame(failure, handled.get());
+                    Assert.assertEquals(outcome.endsWith("close") ? 1 : 0, thrown.getSuppressed().length);
+                    if (outcome.endsWith("close")) {
+                        Assert.assertSame(closeFailure, thrown.getSuppressed()[0].getCause());
+                    }
+                }
+            } else if ("interrupt".equals(outcome)) {
                 Thread.currentThread().interrupt();
                 try {
                     consumer.accept(input);
@@ -182,7 +256,7 @@ public class OltpTraverserCursorTest {
                 if (nativeCursor != null && nativeCursor.isOwningHandle()) {
                     nativeCursor.close();
                 }
-                if (edges != null && !"close".equals(outcome)) {
+                if (edges != null && !outcome.endsWith("close")) {
                     CloseableIterator.closeIterator(edges);
                 }
             } finally {
@@ -201,6 +275,81 @@ public class OltpTraverserCursorTest {
                     FileUtils.deleteDirectory(directory.toFile());
                 }
             }
+        }
+    }
+
+    private Throwable consumeAsync(OltpTraverser.EdgesConsumer<Edge, ?> consumer,
+                                   Iterator<Edge> input, AtomicReference<Throwable> handled,
+                                   String outcome) throws Exception {
+        ExecutorService worker = Executors.newFixedThreadPool(1);
+        ExecutorService waiter = Executors.newSingleThreadExecutor();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        boolean fullQueue = outcome.startsWith("async-capacity") || outcome.contains("producer");
+        try {
+            Consumers<Iterator<Edge>> consumers = new Consumers<>(worker, iterator -> {
+                entered.countDown();
+                try {
+                    if (!release.await(5L, TimeUnit.SECONDS)) {
+                        throw new AssertionError("Consumer was not released");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+                consumer.accept(iterator);
+            }, HugeFactory::closeCurrentThreadTransactions, handled::set, 1);
+            consumers.start("cursor-close-failure");
+            try {
+                consumers.provide(input);
+                Assert.assertTrue(entered.await(5L, TimeUnit.SECONDS));
+                if (fullQueue) {
+                    // One active input and two queued inputs fill the real queue.
+                    consumers.provide(Collections.emptyIterator());
+                    consumers.provide(Collections.emptyIterator());
+                }
+            } catch (Throwable failure) {
+                throw new AssertionError(failure);
+            }
+            CountDownLatch calling = new CountDownLatch(1);
+            Future<Throwable> result = waiter.submit(() -> {
+                calling.countDown();
+                Throwable failure = null;
+                try {
+                    if (outcome.contains("producer")) {
+                        consumers.provide(Collections.emptyIterator());
+                    }
+                } catch (Throwable providedFailure) {
+                    failure = providedFailure;
+                }
+                try {
+                    consumers.await();
+                } catch (Throwable awaitedFailure) {
+                    if (failure == null) {
+                        failure = awaitedFailure;
+                    }
+                }
+                return failure;
+            });
+            Assert.assertTrue(calling.await(5L, TimeUnit.SECONDS));
+            if (fullQueue) {
+                // The producer or await END enqueue must wait on the full queue.
+                org.apache.hugegraph.testutil.Assert.assertThrows(
+                        java.util.concurrent.TimeoutException.class,
+                        () -> result.get(100L, TimeUnit.MILLISECONDS));
+            }
+            release.countDown();
+            return result.get(3L, TimeUnit.SECONDS);
+        } finally {
+            release.countDown();
+            waiter.shutdownNow();
+            worker.shutdownNow();
+            // The pre-fix producer can swallow one interrupt before entering await().
+            for (int i = 0; i < 50 && !waiter.awaitTermination(100L, TimeUnit.MILLISECONDS); i++) {
+                waiter.shutdownNow();
+            }
+            Assert.assertTrue(waiter.isTerminated());
+            Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
         }
     }
 
