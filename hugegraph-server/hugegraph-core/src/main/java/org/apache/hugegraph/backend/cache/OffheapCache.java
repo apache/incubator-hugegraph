@@ -159,9 +159,19 @@ public class OffheapCache extends AbstractCache<Id, Object> {
         // Query text is a cache key, not a persistent graph ID. A large
         // request must still reach the backend when its optional cache key
         // exceeds the binary ID codec's byte limit.
-        return !(id instanceof CachedBackendStore.QueryId) ||
-               (id.length() <= BytesBuffer.ID_LEN_MAX &&
-                id.asBytes().length <= BytesBuffer.ID_LEN_MAX);
+        if (!(id instanceof CachedBackendStore.QueryId)) {
+            return true;
+        }
+        int length = id.asString().length();
+        // UTF-8 needs at most three bytes per UTF-16 code unit;
+        // a surrogate pair uses four bytes for two units.
+        if (length <= BytesBuffer.ID_LEN_MAX / 3) {
+            return true;
+        }
+        if (length > BytesBuffer.ID_LEN_MAX) {
+            return false;
+        }
+        return id.asBytes().length <= BytesBuffer.ID_LEN_MAX;
     }
 
     @Override
