@@ -463,3 +463,20 @@ Structure or Process suites must execute tests; an all-skipped report is not
 compatibility evidence. Run the read-only application examples against representative
 existing data and validate the serializers, client versions and authentication
 combinations actually used by the application.
+
+
+## Deleting a graph with local tasks
+
+Stop application writes before deletion and keep them stopped during retries. The local
+scheduler closes task admission and waits for actual executions, cancellation callbacks
+and their transaction cleanup before data or metadata is removed. If draining times out,
+the graph stays registered with its data and configuration; retry after its owners exit.
+Closing the scheduler alone leaves persistent work that has not started in storage.
+
+This is a local shutdown guarantee. For a graph shared by several Servers, stop writes
+and tasks on every Server before deletion; notification delivery is not a cluster-wide
+barrier. Do not recreate the same graph name until deletion finishes. Use a restart for
+configuration changes rather than hot reload, whose recovery is handled separately.
+Deletion is not transactional: a failure after destructive cleanup needs operator
+inspection, and retry does not restore removed data. An owner-cleanup failure must not
+be treated as a successful drain; inspect it instead of force-removing the scheduler.

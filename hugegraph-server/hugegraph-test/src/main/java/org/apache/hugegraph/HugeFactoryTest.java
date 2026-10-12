@@ -76,12 +76,12 @@ public class HugeFactoryTest {
     }
 
     @Test
-    public void testGraphCloseContinuesAfterReleasedWorkerOwnerFails() throws Exception {
+    public void testGraphCloseRetainsSchedulerAfterReleasedWorkerOwnerFails() throws Exception {
         this.checkGraphCloseAfterOwnerFailure(false);
     }
 
     @Test
-    public void testGraphCloseContinuesAfterWorkerOwnerFailsBeforeRelease() throws Exception {
+    public void testGraphCloseRetainsSchedulerAfterWorkerOwnerFailsBeforeRelease() throws Exception {
         this.checkGraphCloseAfterOwnerFailure(true);
     }
 
@@ -129,13 +129,26 @@ public class HugeFactoryTest {
             Throwable failure = Assert.assertThrows(HugeException.class, graph::close);
             Assert.assertSame(first, HugeException.rootCause(failure));
             Assert.assertTrue(Arrays.asList(failure.getSuppressed()).contains(second));
-            Assert.assertTrue(graph.closed());
-            Assert.assertNull(manager.getScheduler(params));
+            Assert.assertFalse(graph.closed());
+            Assert.assertSame(scheduler, manager.getScheduler(params));
             Assert.assertTrue((boolean) Whitebox.getInternalState(scheduler.serverManager(), "closed"));
             Assert.assertNull(scheduler.call(owners::get));
             Assert.assertNull(owners.get());
             Assert.assertEquals(1, workerClosed.get());
             Assert.assertEquals(1, callerClosed.get());
+            Assert.assertEquals(1, otherWorkerClosed.get());
+            Mockito.verify(provider, Mockito.never()).close();
+
+            // A close failure is not an ACK, even if its owner released first.
+            if (beforeRelease) {
+                scheduler.call(() -> {
+                    workerOwner.get().close();
+                    return null;
+                });
+            }
+            graph.close();
+            Assert.assertTrue(graph.closed());
+            Assert.assertNull(manager.getScheduler(params));
             Assert.assertEquals(1, otherWorkerClosed.get());
             Mockito.verify(provider).close();
         } finally {

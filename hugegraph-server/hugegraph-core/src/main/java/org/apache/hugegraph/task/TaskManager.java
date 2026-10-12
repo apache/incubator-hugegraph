@@ -127,28 +127,17 @@ public final class TaskManager {
         Throwable failure = null;
         boolean drained = scheduler == null;
         if (scheduler != null) {
-            /*
-             * Keep close+remove exclusive with scheduler iteration: in their gap
-             * a scheduler DB worker could otherwise reopen the graph transaction.
-             */
-            synchronized (scheduler) {
-                boolean stopped = false;
-                try {
-                    stopped = scheduler.close();
-                } catch (RuntimeException | Error error) {
-                    failure = error;
-                    // Standard closes its server manager in finally; Distributed
-                    // sets its dispatch-stop flag before cancellation/drain begins.
-                    stopped = true;
-                }
-                // A timeout leaves running jobs registered for the next drain attempt.
-                if (stopped && scheduler.pendingTasks() == 0) {
+            try {
+                // Distributed close waits for cron without holding its monitor.
+                if (scheduler.close() && scheduler.pendingTasks() == 0) {
                     this.schedulers.remove(graph, scheduler);
                     drained = true;
                 }
+            } catch (RuntimeException | Error error) {
+                failure = error;
             }
         }
-        if (!drained) {
+        if (!drained && (failure == null || scheduler.pendingTasks() != 0)) {
             // A running cron/job must finish before owner callbacks are queued
             // on its executor. In particular, do not rejoin a timed-out cron.
             if (failure instanceof Error) {
@@ -159,6 +148,7 @@ public final class TaskManager {
             }
             return;
         }
+        // An owner-close failure retains the scheduler, but idle workers can still clean up.
         for (Runnable close : new Runnable[]{() -> {
             if (!this.taskExecutor.isTerminated()) {
                 this.closeTaskTx(graph);
@@ -261,7 +251,8 @@ public final class TaskManager {
     }
 
     public void shutdown(long timeout) {
-        assert this.schedulers.isEmpty() : this.schedulers.size();
+        E.checkState(this.schedulers.isEmpty(),
+                     "Task schedulers are still registered: %s", this.schedulers.size());
 
         Throwable ex = null;
         boolean terminated = this.distributedSchedulerExecutor.isTerminated();
