@@ -413,6 +413,125 @@ function wait_for_startup() {
     return 1
 }
 
+# Return the remaining memory (MiB) under visible cgroup hard limits. Keep
+# missing/unlimited controllers empty so ordinary host sizing stays unchanged.
+function cgroup_free_memory() {
+    local root="${1:-/sys/fs/cgroup}"
+    local membership="${2:-/proc/self/cgroup}"
+    local mountinfo="${3:-/proc/self/mountinfo}"
+    local base="" path="" limit_file="" usage_file=""
+    local version=""
+    local id controllers member
+    if [[ -r "$membership" ]]; then
+        while IFS=: read -r id controllers member; do
+            if [[ ",$controllers," == *,memory,* ]]; then
+                base="$root/memory"
+                path="$member"
+                limit_file="memory.limit_in_bytes"
+                usage_file="memory.usage_in_bytes"
+                version="cgroup"
+                break
+            elif [[ "$id" == 0 && -z "$controllers" ]]; then
+                base="$root"
+                path="$member"
+                limit_file="memory.max"
+                usage_file="memory.current"
+                version="cgroup2"
+            fi
+        done < "$membership"
+    fi
+    [[ -n "$base" ]] || return 0
+
+    # Mount points and exposed roots need not use the conventional hierarchy.
+    # The kernel escapes whitespace/backslashes in mountinfo path fields.
+    local mount_root="" mountpoint="" mapped_path=""
+    local fallback_base="" selected_root="" selected_path=""
+    if [[ -r "$mountinfo" ]]; then
+        while read -r mount_root mountpoint; do
+            printf -v mountpoint '%b' "$mountpoint"
+            printf -v mount_root '%b' "$mount_root"
+            if [[ -z "$fallback_base" ]]; then
+                fallback_base="$mountpoint"
+            fi
+            if [[ "$mount_root" == / ]]; then
+                mapped_path="$path"
+            elif [[ "$path" == "$mount_root" ]]; then
+                mapped_path=/
+            elif [[ "$path" == "$mount_root/"* ]]; then
+                mapped_path="${path#"$mount_root"}"
+            else
+                continue
+            fi
+            [[ -d "$mountpoint$mapped_path" ]] || continue
+            # Prefer the widest visible hierarchy so a delegated bind mount
+            # cannot hide a tighter ancestor exposed by another matching mount.
+            [[ -z "$selected_root" || ${#mount_root} -lt ${#selected_root} ]] || continue
+            base="$mountpoint"
+            selected_root="$mount_root"
+            selected_path="$mapped_path"
+        done < <(awk -v version="$version" '
+            {
+                split($0, parts, " - ");
+                split(parts[2], tail, " ");
+                if (tail[1] == version && (version == "cgroup2" ||
+                    index("," tail[3] ",", ",memory,") > 0)) {
+                    print $4, $5;
+                }
+            }' "$mountinfo")
+        # Only use a namespace root after all membership mappings were tried.
+        if [[ -n "$selected_root" ]]; then
+            path="$selected_path"
+        elif [[ -n "$fallback_base" ]]; then
+            base="$fallback_base"
+            path=/
+        fi
+    fi
+
+    # A cgroup namespace can expose its own root while /proc still names a
+    # host-relative membership. Fall back to the visible mount root in that
+    # case; never follow a membership path out of the controller mount.
+    local dir="$base"
+    if [[ "$path" == /* && "$path" != *"/../"* && "$path" != */.. &&
+          -d "$base$path" ]]; then
+        dir="$base$path"
+        dir="${dir%/}"
+    fi
+    local limit usage inactive available smallest=""
+    local cache_key=inactive_file
+    [[ "$version" != cgroup ]] || cache_key=total_inactive_file
+    while :; do
+        limit=""
+        usage=0
+        [[ ! -r "$dir/$limit_file" ]] || read -r limit < "$dir/$limit_file" || true
+        [[ ! -r "$dir/$usage_file" ]] || read -r usage < "$dir/$usage_file" || true
+        if [[ "$limit" =~ ^[0-9]+$ ]]; then
+            [[ "$usage" =~ ^[0-9]+$ ]] || usage=0
+            # Inactive file cache can be reclaimed on a warm restart. For v1,
+            # use the hierarchical total so ancestor budgets include children.
+            inactive=0
+            if [[ -r "$dir/memory.stat" ]]; then
+                inactive=$(awk -v key="$cache_key" '$1 == key {print $2; exit}' "$dir/memory.stat")
+            fi
+            [[ "$inactive" =~ ^[0-9]+$ ]] || inactive=0
+            # Inconsistent snapshots receive no cache credit. awk also avoids
+            # shell integer overflow for v1's unlimited sentinel.
+            available=$(awk -v limit="$limit" -v usage="$usage" -v inactive="$inactive" 'BEGIN {
+                if (inactive > usage) inactive = 0;
+                remaining = limit - (usage - inactive);
+                printf "%.0f\n", (remaining > 0 ? int(remaining / 1048576) : 0);
+            }')
+            if [[ -z "$smallest" ]] || awk -v a="$available" -v b="$smallest" \
+                    'BEGIN {exit !(a < b)}'; then
+                smallest="$available"
+            fi
+        fi
+        [[ "$dir" != "$base" && "$dir" == "$base/"* ]] || break
+        dir="${dir%/*}"
+    done
+    [[ -z "$smallest" ]] || echo "$smallest"
+    return 0
+}
+
 function free_memory() {
     local free=""
     local os=$(uname)
@@ -426,6 +545,11 @@ function free_memory() {
         fi
         free=$(expr "$mem_free" + "$mem_buffer" + "$mem_cached")
         free=$(expr "$free" / 1024)
+        local cgroup_free=$(cgroup_free_memory)
+        if [[ -n "$cgroup_free" ]] && awk -v a="$cgroup_free" -v b="$free" \
+                'BEGIN {exit !(a < b)}'; then
+            free="$cgroup_free"
+        fi
     elif [ "$os" == "Darwin" ]; then
         local pages_free=$(vm_stat | awk '/Pages free/{print $0}' | awk -F'[:.]+' '{print $2}' | tr -d " ")
         local pages_inactive=$(vm_stat | awk '/Pages inactive/{print $0}' | awk -F'[:.]+' '{print $2}' | tr -d " ")

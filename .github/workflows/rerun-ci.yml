@@ -3,8 +3,7 @@ name: "Rerun CI"
 on:
   workflow_run:
     workflows:
-      - "Server Memory CI"
-      - "License Checker"
+      - "HugeGraph-Server CI"
     types:
       - completed
 
@@ -108,10 +107,10 @@ jobs:
             --repository "$GH_REPO" --run-id "$RUN_ID" \
             --run-attempt "$RUN_ATTEMPT" --max-reruns "$MAX_RERUNS"
 
-      - name: Rerun failed jobs
+      - name: Rerun the required job and its dependencies
         if: steps.freshness.outputs.action == 'rerun'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh run rerun ${{ github.event.workflow_run.id }} --failed
+          gh api --method POST "repos/$GH_REPO/actions/jobs/${{ steps.freshness.outputs.job_id }}/rerun"

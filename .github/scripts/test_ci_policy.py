@@ -21,6 +21,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import textwrap
 import unittest
 from unittest.mock import patch
 
@@ -196,6 +197,45 @@ class PolicyTest(unittest.TestCase):
                 "source": "alice/server", "branch": "feature", "base": "base", "head": "head",
                 "testedMergeSHA": "merge", "expected": ["server_memory", "server_rocksdb", "pd_store", "cluster"],
                 "selected": ["server", "pd", "store", "hstore", "cluster"]}
+
+    def memory_workflow_results(self, planner="success", runtime="success", build="success", selected=True):
+        workflow = Path(__file__).resolve().parents[1] / "workflows/server-ci.yml"
+        reporter = workflow.read_text().split("\n  server-memory-required:\n", 1)[1]
+        code = reporter.split("python3 - <<'PYGATE'\n", 1)[1].split("\n          PYGATE", 1)[0]
+        # Start with the actual needs keys, without generic gate aliases.
+        needs = {"memory-plan": {"result": planner, "outputs": {"server": str(selected).lower()}},
+                 "memory-java-runtime": {"result": runtime}, "build-server": {"result": build}}
+        with tempfile.TemporaryDirectory() as directory:
+            outcome = subprocess.run(["python3", "-c", textwrap.dedent(code)], cwd=directory,
+                                     env={**os.environ, "JOB_RESULTS": json.dumps(needs)},
+                                     capture_output=True, text=True)
+            if outcome.returncode:
+                return outcome, None
+            return outcome, json.loads((Path(directory) / "results.json").read_text())
+
+    def test_memory_workflow_results_feed_real_gate(self):
+        for state in ["success", "failure", "cancelled", "skipped", None]:
+            with self.subTest(build=state):
+                outcome, results = self.memory_workflow_results(build=state)
+                self.assertEqual(0, outcome.returncode, outcome.stderr)
+                if state == "success":
+                    self.assertEqual(["server_memory"], policy.gate(self.plan(), results, mode="memory")["executed"])
+                else:
+                    with self.assertRaisesRegex(policy.GateFailure, "server_memory"):
+                        policy.gate(self.plan(), results, mode="memory")
+        outcome, results = self.memory_workflow_results(runtime="skipped", build="skipped", selected=False)
+        self.assertEqual(0, outcome.returncode, outcome.stderr)
+        docs = dict(self.plan(), expected=[], selected=[])
+        self.assertEqual([], policy.gate(docs, results, mode="memory")["executed"])
+        for state in ["failure", "cancelled", "skipped"]:
+            with self.subTest(planner=state):
+                outcome, results = self.memory_workflow_results(planner=state)
+                self.assertNotEqual(0, outcome.returncode)
+                self.assertIn("CI planning failed", outcome.stderr)
+            with self.subTest(runtime=state):
+                outcome, results = self.memory_workflow_results(runtime=state)
+                self.assertNotEqual(0, outcome.returncode)
+                self.assertIn("Selected Java runtime preparation failed", outcome.stderr)
 
     def test_memory_gate_ignores_advisory_cancellation(self):
         plan = self.plan()

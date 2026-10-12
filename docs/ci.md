@@ -5,16 +5,20 @@ Selection controls what runs; branch protection controls what must pass before m
 
 | Workflow | Purpose | Merge requirement |
 | --- | --- | --- |
-| License Checker | License headers and RAT | `check-license` |
-| Server Memory CI | Memory unit, core and API tests on the project runtime | `Server memory tests` |
-| HugeGraph-Server CI | Related modules, current images and dependency audits | Advisory |
+| HugeGraph-Server CI | License headers and RAT, then Memory and related modules, images and dependency audits | `check-license`, `Server memory tests`; other product checks advisory |
 | CodeQL | Source analysis, independently selected and scheduled | Advisory |
 | Server Compatibility CI | HBase, macOS, RISC-V and published-image Compose smoke | Advisory |
 
-Each workflow can be cancelled independently. Jobs within a workflow share its cancellation
-scope. Cancelling advisory checks does not cancel Memory or license checks, and does not
-prevent CodeQL from starting. Failed advisory checks retain their real failure result
-(except the existing RISC-V job, which still uses `continue-on-error`);
+HugeGraph-Server CI runs `check-license` before both Memory and advisory planning or
+runtime preparation. A failed license check skips product jobs and fails the Memory required
+result. Both required check names stay unchanged. Memory keeps its own planner and result
+check so advisory failures cannot block a passing Memory result. Compatibility and CodeQL
+remain independently scheduled.
+
+Jobs within a workflow share its cancellation scope. Cancelling HugeGraph-Server CI also
+cancels its required validation, which must complete before merging. It does not cancel
+compatibility or prevent CodeQL from starting. Failed advisory checks retain their real failure
+result (except the existing RISC-V job, which still uses `continue-on-error`);
 maintainers decide whether they need another run or a requested change.
 
 ## Affected inputs
@@ -77,13 +81,21 @@ Plans and actual results are diagnostics, not execution credentials for later ru
 ## Protection and retries
 
 `.asf.yaml` requests only `check-license` and `Server memory tests`. Keep these required check
-names stable. The Memory workflow runs real unit, core and API tests on the project runtime
-and reports their results through `Server memory tests`. Commons tests remain advisory
+names stable. The Memory jobs run real unit, core and API tests on the project runtime
+and report their results through `Server memory tests`. Commons tests remain advisory
 and install only the Commons reactor and its upstream modules.
 `affected-module-tests` and CodeQL remain advisory. Verify live branch protection
 when changing required checks; do not forge a successful result or leave retired contexts required.
 
-Only failed push runs of License Checker and Server Memory CI automatically retry, at most
-twice. The trusted checker verifies the workflow path, attempt, repository and unchanged branch
-head before and after the delay. PRs and advisory workflows never automatically retry.
-Use a manual rerun when appropriate; a rerun retains its original commit and event.
+Push runs whose overall conclusion is `failure` keep automatic retries for license and Memory
+validation: wait 180 seconds, then retry at most twice, sharing the combined run's attempt limit.
+Whole-run `timed_out` conclusions do not trigger retries; PR retries remain paused.
+The trusted default-branch checker verifies the source workflow, failed completed attempt,
+repository and unchanged branch head before and after the delay. It selects one license or
+Memory producer with a `failure` or `timed_out` conclusion, or its failed result reporter,
+from that attempt and uses
+[GitHub's native job rerun](https://docs.github.com/en/rest/actions/workflow-runs#re-run-a-job-from-a-workflow-run),
+which also reruns dependent jobs. A Memory retry updates its required result without restarting unrelated product jobs.
+A license retry can unblock its previously skipped product dependencies. Advisory failures alone
+do not trigger automatic retries. Use a manual rerun when appropriate; it retains the original
+commit and event.
