@@ -499,11 +499,27 @@ function cgroup_free_memory() {
     local limit usage inactive available smallest=""
     local child child_min
     local cache_key=inactive_file
-    [[ "$version" != cgroup ]] || cache_key=total_inactive_file
+    local unlimited="" long_bits="" page_size=""
+    if [[ "$version" == cgroup ]]; then
+        cache_key=total_inactive_file
+        # v1 exposes PAGE_COUNTER_MAX * PAGE_SIZE instead of "max".
+        long_bits=$(getconf LONG_BIT 2>/dev/null) || true
+        page_size=$(getconf PAGESIZE 2>/dev/null) || true
+        if [[ "$page_size" =~ ^[1-9][0-9]*$ ]]; then
+            case "$long_bits" in
+                64) unlimited=$((9223372036854775807 / page_size * page_size)) ;;
+                32) unlimited=$(awk -v page="$page_size" 'BEGIN {printf "%.0f", 2147483647 * page}') ;;
+            esac
+        fi
+    fi
     while :; do
         limit=""
         usage=""
         [[ ! -r "$dir/$limit_file" ]] || read -r limit < "$dir/$limit_file" || true
+        if [[ -n "$unlimited" && "$limit" =~ ^[0-9]+$ ]] &&
+                awk -v limit="$limit" -v unlimited="$unlimited" 'BEGIN {exit !(limit >= unlimited)}'; then
+            limit=""
+        fi
         if [[ "$limit" =~ ^[0-9]+$ ]]; then
             # Unknown usage under a known limit must not fall back to host memory.
             if [[ ! -r "$dir/$usage_file" ]] || ! read -r usage < "$dir/$usage_file" ||
