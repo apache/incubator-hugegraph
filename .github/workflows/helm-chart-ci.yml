@@ -48,6 +48,9 @@ jobs:
           helm lint helm/hugegraph -f helm/hugegraph/values-single.yaml
           helm lint helm/hugegraph -f helm/hugegraph/values-cluster.yaml
 
+      - name: packaged chart regression
+        run: python3 -m unittest discover -s helm -p 'test_helm_package.py' -v
+
       - name: helm unittest
         run: |
           # v1.0.0 is the newest helm-unittest whose plugin.yaml Helm 3.16.2 can
