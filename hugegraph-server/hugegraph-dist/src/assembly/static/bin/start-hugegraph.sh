@@ -99,6 +99,24 @@ if [[ $PRELOAD == "true" ]]; then
     sed -i -e '/registerBackends/d; /serverStarted/d' "${SCRIPTS}/${EXAMPLE_SCRIPT}"
 fi
 
+function forward_signal_and_wait() {
+    local signal="$1"
+    local exit_code="$2"
+
+    # A process-group signal and the entrypoint's forwarding can arrive twice.
+    # Keep the wrapper alive until it has reaped its child in either case.
+    trap '' SIGHUP SIGINT SIGQUIT SIGTERM
+    if kill -0 "$PID" 2>/dev/null; then
+        kill "-$signal" "$PID" 2>/dev/null || true
+        # The foreground wait is interrupted before the trap runs, so retry
+        # until the child has exited and been reaped.
+        while kill -0 "$PID" 2>/dev/null; do
+            wait "$PID" 2>/dev/null || true
+        done
+    fi
+    exit "$exit_code"
+}
+
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphServer in daemon mode..."
     "${BIN}"/hugegraph-server.sh "${CONF}/${GREMLIN_SERVER_CONF}" "${CONF}"/rest-server.properties \
@@ -112,7 +130,7 @@ if [[ $DAEMON == "true" ]]; then
 
     wait_for_startup ${PID} 'HugeGraphServer' "$REST_SERVER_URL/graphs" "${SERVER_STARTUP_TIMEOUT_S}" || {
         if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-            echo "See 'docker logs' for HugeGraphServer log output." >&2
+            echo "See the container logs ('docker logs' or 'kubectl logs') for HugeGraphServer log output." >&2
         else
             echo "See $LOGS/hugegraph-server.log for HugeGraphServer log output." >&2
         fi
@@ -133,7 +151,14 @@ else
     PID="$!"
     # Write pid to file
     echo "$PID" > "$PID_FILE"
-    trap 'kill $PID; wait $PID; exit $?' SIGHUP SIGINT SIGQUIT SIGTERM
+    trap 'forward_signal_and_wait HUP 129' SIGHUP
+    # The background JVM can inherit an ignored SIGINT disposition, so use
+    # SIGTERM to guarantee that Ctrl-C shuts it down while retaining exit 130.
+    trap 'forward_signal_and_wait TERM 130' SIGINT
+    # Forward TERM instead of QUIT: the JVM only dumps threads on SIGQUIT
+    # and keeps running, which would leave the wait loop below stuck.
+    trap 'forward_signal_and_wait TERM 131' SIGQUIT
+    trap 'forward_signal_and_wait TERM 143' SIGTERM
     wait $PID
     exit $?
 fi

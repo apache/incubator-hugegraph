@@ -15,14 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# test-start-hugegraph-pd.sh — Tests for start-hugegraph-pd.sh foreground mode fix
+# test-start-hugegraph-pd.sh — Foreground mode and GC option regression tests
 #
-# Baseline (unmodified code):  Tests 1 PASS — Tests 2, 3, 4 FAIL
-# After chunk 2 fix:           All 4 tests PASS
-#
-# Usage: ./test-start-hugegraph-pd.sh [path-to-pd-dist-root]
+# Usage: ./test-start-hugegraph-pd.sh [path-to-pd-dist-root] [--gc-only]
 #   path-to-pd-dist-root: path to extracted PD dist e.g.
-#                         hugegraph-pd/apache-hugegraph-pd-1.7.0/
+#                         hugegraph-pd/apache-hugegraph-pd-1.8.0/
 #                         defaults to current directory if not provided
 
 set -uo pipefail
@@ -30,6 +27,7 @@ set -uo pipefail
 PD_ROOT="${1:-$(pwd)}"
 BIN="$PD_ROOT/bin"
 START_SCRIPT="$BIN/start-hugegraph-pd.sh"
+STOP_SCRIPT="$BIN/stop-hugegraph-pd.sh"
 PID_FILE="$BIN/pid"
 PD_URL="http://localhost:8620"
 STARTUP_WAIT=60   # seconds to wait for PD HTTP to respond
@@ -67,14 +65,30 @@ section() {
 
 cleanup() {
     info "Cleaning up..."
+    "$STOP_SCRIPT" >/dev/null 2>&1 || true
     if [[ -s "$PID_FILE" ]]; then
         kill "$(cat "$PID_FILE")" 2>/dev/null || true
     fi
     rm -f "$PID_FILE"
     rm -rf "$PD_ROOT/logs/"
-    # kill anything still holding the PD port
-    lsof -ti :8620 | xargs kill -9 2>/dev/null || true
-    lsof -ti :8686 | xargs kill -9 2>/dev/null || true
+    # kill anything still holding the PD port: fuser on Linux, lsof on macOS,
+    # which ships no fuser.  Only the Linux path had to lose its lsof dependency.
+    if [[ "$(uname)" == "Darwin" ]]; then
+        local port pids pid
+        for port in 8620 8686; do
+            pids=$(lsof -ti ":$port" 2>/dev/null)
+            if [[ -n "$pids" ]]; then
+                for pid in $pids; do
+                    kill -9 "$pid" 2>/dev/null || true
+                done
+            fi
+        done
+    elif command -v fuser >/dev/null 2>&1; then
+        fuser -k 8620/tcp 2>/dev/null || true
+        fuser -k 8686/tcp 2>/dev/null || true
+    else
+        echo "Warning: Neither lsof nor fuser available for PD port cleanup"
+    fi
     sleep 3
 }
 
@@ -90,6 +104,27 @@ wait_for_pd() {
         fi
         sleep 2
         elapsed=$((elapsed + 2))
+    done
+    return 1
+}
+
+# Wait until PD readiness answers, or timeout. Same gate the docs recommend:
+# -f rejects the 503, the body match rejects a 200 that is an auth envelope rather
+# than a readiness answer. No credentials, and a single-node group elects itself.
+# Captured rather than piped: under pipefail a grep -q SIGPIPE could misread a
+# ready PD, and wait_for_pd() above uses the same shape. The curl timeouts bound
+# each attempt and the loop bounds itself on the wall clock, so a PD that accepts
+# the connection and then stops answering cannot park this loop past STARTUP_WAIT.
+# A per-round counter could not: an attempt costs up to --max-time plus the sleep,
+# which is more than the counter would add.
+wait_for_pd_ready() {
+    local deadline=$((SECONDS + STARTUP_WAIT))
+    while (( SECONDS < deadline )); do
+        local body
+        body=$(curl --connect-timeout 2 --max-time 5 -fsS \
+            "$PD_URL/v1/ready" 2>/dev/null || true)
+        grep -Eq '"ready"[[:space:]]*:[[:space:]]*true' <<<"$body" && return 0
+        sleep 2
     done
     return 1
 }
@@ -119,7 +154,7 @@ wait_script_exit() {
 # ── preflight ─────────────────────────────────────────────────────────────────
 
 echo ""
-echo "start-hugegraph-pd.sh chunk 2 test suite"
+echo "start-hugegraph-pd.sh test suite"
 echo "root: $PD_ROOT"
 echo ""
 
@@ -129,7 +164,102 @@ if [[ ! -f "$START_SCRIPT" ]]; then
     exit 1
 fi
 
-for tool in lsof curl java; do
+# Exercise the shipped launcher in an isolated fixture, without JNI or a service.
+# This checks shell selection/argv only; the tests below check real JVM startup.
+check_gc_options() {
+    local fixture option capture status jvm_options
+    fixture=$(mktemp -d) || { fail "could not create GC test fixture"; return 1; }
+    if ! mkdir -p "$fixture/bin" "$fixture/conf" "$fixture/lib" "$fixture/jdk/bin" ||
+       ! cp "$START_SCRIPT" "$BIN/util.sh" "$BIN/preload-topling.sh" "$fixture/bin/"; then
+        fail "could not prepare GC test fixture"
+        rm -rf "$fixture"
+        return 1
+    fi
+    touch "$fixture/lib/hg-pd-service-test.jar"
+    cat > "$fixture/jdk/bin/java" <<'JAVA'
+#!/bin/bash
+if [[ "$1" == "-version" ]]; then
+    echo 'openjdk version "17.0.1"' >&2
+else
+    printf '%s\n' "$@" > "$CAPTURE_FILE"
+fi
+JAVA
+    # Avoid the Store allocator download, which is unrelated to GC selection.
+    printf '%s\n' '#!/bin/sh' 'echo launcher-test' > "$fixture/jdk/bin/uname"
+    chmod +x "$fixture/jdk/bin/"* "$fixture/bin/start-hugegraph-pd.sh"
+    for option in default default-serial default-zgc g1 G1 zgc ZGC invalid; do
+        capture="$fixture/$option.args"
+        local -a args=(-d false)
+        jvm_options="-Xms64m -Xmx64m"
+        case "$option" in
+            default) ;;
+            default-serial) jvm_options="$jvm_options -XX:+UseSerialGC" ;;
+            default-zgc) jvm_options="$jvm_options -XX:+UseZGC" ;;
+            *) args+=(-g "$option") ;;
+        esac
+        env -u GC_OPTION -u JAVA_TOOL_OPTIONS -u LD_PRELOAD \
+            -u TOPLINGDB_ROCKSDB_PROVIDER -u TOPLING_RUNTIME_CLASSPATH -u TOPLING_ACTIVE_NATIVE \
+            JAVA_HOME="$fixture/jdk" JAVA_OPTIONS="$jvm_options" \
+            OPEN_TELEMETRY=false STDOUT_MODE=true CAPTURE_FILE="$capture" \
+            PATH="$fixture/jdk/bin:$PATH" \
+            bash "$fixture/bin/start-hugegraph-pd.sh" "${args[@]}" > "$fixture/output" 2>&1
+        status=$?
+        if [[ "$option" == invalid ]]; then
+            if [[ $status -eq 1 && ! -e "$capture" ]] && \
+               grep -Fq "Unrecognized gc option: 'invalid'" "$fixture/logs/hugegraph-pd-stdout.log"; then
+                pass "invalid GC is rejected before application launch"
+            else
+                fail "invalid GC was not rejected correctly"
+            fi
+        elif [[ $status -ne 0 || ! -s "$capture" ]]; then
+            fail "GC '$option' did not reach Java (exit $status)"
+        elif [[ "$option" == zgc || "$option" == ZGC ]]; then
+            if grep -Fxq -- '-XX:+UseZGC' "$capture" && \
+               ! grep -Fxq -- '-XX:InitiatingHeapOccupancyPercent=50' "$capture"; then
+                pass "GC '$option' selects ZGC without G1 tuning"
+            else
+                fail "GC '$option' selected incorrect JVM options"
+            fi
+        elif [[ "$option" == g1 || "$option" == G1 ]]; then
+            if grep -Fxq -- '-XX:+UseG1GC' "$capture" &&
+               grep -Fxq -- '-XX:InitiatingHeapOccupancyPercent=50' "$capture" &&
+               ! grep -Fxq -- '-XX:+UseZGC' "$capture"; then
+                pass "GC '$option' explicitly selects G1"
+            else
+                fail "GC '$option' did not explicitly select G1"
+            fi
+        elif grep -Fxq -- '-XX:InitiatingHeapOccupancyPercent=50' "$capture" &&
+             ! grep -Fxq -- '-XX:+UseG1GC' "$capture"; then
+            if [[ "$option" == default-serial ]] &&
+               ! grep -Fxq -- '-XX:+UseSerialGC' "$capture"; then
+                fail "default GC selection dropped the caller's Serial GC"
+            elif [[ "$option" == default-zgc ]] &&
+                 ! grep -Fxq -- '-XX:+UseZGC' "$capture"; then
+                fail "default GC selection dropped the caller's ZGC"
+            elif [[ "$option" == default ]] && grep -Fxq -- '-XX:+UseZGC' "$capture"; then
+                fail "default GC selection unexpectedly enabled ZGC"
+            else
+                pass "GC '$option' preserves JVM/caller collector selection"
+            fi
+        else
+            fail "GC '$option' selected incorrect JVM options"
+        fi
+    done
+    rm -rf "$fixture"
+}
+
+section "GC option selection (isolated launcher fixture)"
+check_gc_options
+if [[ "${2:-}" == --gc-only ]]; then
+    [[ $FAIL -eq 0 ]] && exit 0 || exit 1
+fi
+
+if [[ "$(uname)" == "Darwin" ]]; then
+    _prereq_tools="lsof curl java jcmd"
+else
+    _prereq_tools="fuser curl java jcmd"
+fi
+for tool in $_prereq_tools; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "SKIP: required tool '$tool' not found — skipping test suite"
         exit 77
@@ -177,14 +307,21 @@ else
     fail "PD health endpoint not responding after ${STARTUP_WAIT}s"
 fi
 
+info "Waiting up to ${STARTUP_WAIT}s for PD readiness endpoint..."
+if wait_for_pd_ready; then
+    pass "PD readiness endpoint reports a raft leader at $PD_URL/v1/ready"
+else
+    fail "PD readiness endpoint did not report ready=true after ${STARTUP_WAIT}s"
+fi
+
 cleanup
 
 # ── test 2: foreground mode blocks ───────────────────────────────────────────
 
 section "Test 2 — foreground mode blocks until Java exits"
 
-info "Starting in foreground mode (-d false)..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
+info "Starting in foreground mode (-d false -g g1)..."
+"$START_SCRIPT" -d false -g g1 >/dev/null 2>&1 &
 SCRIPT_PID=$!
 
 info "Waiting up to ${STARTUP_WAIT}s for PD to come up..."
@@ -210,6 +347,17 @@ else
     info "pid file not written (expected before chunk 2 fix)"
 fi
 
+if [[ -n "$FG_PID" ]] && ps -p "$FG_PID" >/dev/null 2>&1; then
+    if GC_FLAGS=$(jcmd "$FG_PID" VM.flags 2>&1) &&
+       grep -Fq -- '-XX:+UseG1GC' <<<"$GC_FLAGS"; then
+        pass "explicit -g g1 runs the JVM with G1GC"
+    else
+        fail "explicit -g g1 did not run the JVM with G1GC: $GC_FLAGS"
+    fi
+else
+    fail "no running JVM available to verify explicit -g g1"
+fi
+
 # cleanup: kill Java or the script
 if [[ -n "$FG_PID" ]]; then
     kill "$FG_PID" 2>/dev/null || true
@@ -230,8 +378,8 @@ cleanup
 
 section "Test 3 — exit code propagates from Java"
 
-info "Starting in foreground mode (-d false)..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
+info "Starting in foreground mode (-d false -g ZGC)..."
+"$START_SCRIPT" -d false -g ZGC >/dev/null 2>&1 &
 SCRIPT_PID=$!
 
 info "Waiting up to ${STARTUP_WAIT}s for PD..."

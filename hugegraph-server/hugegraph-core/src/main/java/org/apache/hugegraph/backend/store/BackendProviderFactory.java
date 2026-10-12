@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.exception.BackendException;
 import org.apache.hugegraph.backend.store.memory.InMemoryDBStoreProvider;
 import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
 import org.apache.hugegraph.config.CoreOptions;
@@ -37,6 +37,7 @@ import org.slf4j.Logger;
  * since 1.7.0, only "hstore, rocksdb, hbase, memory" are supported for backend.
  * if you want to use cassandra, mysql, postgresql, cockroachdb or palo as backend,
  * please find a version before 1.7.0 of apache hugegraph for your application.
+ * TODO: Remove hbase backend support in 2.0.
  */
 public class BackendProviderFactory {
 
@@ -113,12 +114,10 @@ public class BackendProviderFactory {
         BackendException.check(subclass, "Class '%s' is not a subclass of " +
                                          "class BackendStoreProvider", classPath);
 
-        // Check exists
-        BackendException.check(!providers.containsKey(name),
+        // Register atomically: identical re-registration is a no-op
+        Class<?> registered = providers.putIfAbsent(name, (Class) clazz);
+        BackendException.check(registered == null || registered.equals(clazz),
                                "Exists BackendStoreProvider: %s (%s)",
-                               name, providers.get(name));
-
-        // Register class
-        providers.put(name, (Class) clazz);
+                               name, registered);
     }
 }

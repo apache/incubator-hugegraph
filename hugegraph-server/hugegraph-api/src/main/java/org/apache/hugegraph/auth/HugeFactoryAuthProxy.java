@@ -27,17 +27,18 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.backend.cache.CacheManager;
+import org.apache.hugegraph.backend.cache.CachedGraphTransaction;
 import org.apache.hugegraph.backend.tx.AbstractTransaction;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.IndexableTransaction;
 import org.apache.hugegraph.concurrent.LockManager;
 import org.apache.hugegraph.metrics.ServerReporter;
-import org.apache.hugegraph.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaElement;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.builder.AbstractBuilder;
 import org.apache.hugegraph.schema.builder.EdgeLabelBuilder;
@@ -159,7 +160,7 @@ public final class HugeFactoryAuthProxy {
                                            "lambda$16", "lambda$17", "lambda$18", "lambda$19",
                                            "lambda$20", "lambda$21", "lambda$22", "lambda$23",
                                            "lambda$24", "access$8", "access$9", "access$10",
-                                           "setContext", "getContext");
+                                           "setContext", "getContext", "runAsAdmin");
         Reflection.registerFieldsToFilter(HugeGraphAuthProxy.AuthManagerProxy.class, "authManager",
                                           "this$0");
         Reflection.registerMethodsToFilter(HugeGraphAuthProxy.AuthManagerProxy.class,
@@ -184,7 +185,7 @@ public final class HugeFactoryAuthProxy {
                                           "this$0");
         Reflection.registerFieldsToFilter(HugeGraphAuthProxy.Context.class, "ADMIN", "user");
         Reflection.registerFieldsToFilter(HugeGraphAuthProxy.ContextTask.class, "runner",
-                                          "context");
+                                          "cleanup", "context");
         Reflection.registerFieldsToFilter(StandardHugeGraph.class, "LOG", "started", "closed",
                                           "mode", "variables", "name", "params", "configuration",
                                           "schemaEventHub", "graphEventHub", "indexEventHub",
@@ -202,7 +203,8 @@ public final class HugeFactoryAuthProxy {
                                            "access$14", "access$15", "access$16", "access$17",
                                            "access$18", "serializer", "loadSchemaStore",
                                            "loadSystemStore", "loadGraphStore", "closeTx",
-                                           "analyzer", "serverInfoManager", "reloadRamtable",
+                                           "closeCurrentThreadTransaction", "analyzer",
+                                           "serverInfoManager", "reloadRamtable",
                                            "reloadRamtable", "access$19", "access$20", "access$21");
         Reflection.registerFieldsToFilter(
                 loadClass("org.apache.hugegraph.StandardHugeGraph$StandardHugeGraphParams"),
@@ -262,17 +264,29 @@ public final class HugeFactoryAuthProxy {
                                            "checkVertexExistIfCustomizedId",
                                            "checkAggregateProperty", "checkAggregateProperty",
                                            "checkNonnullProperty", "queryEdgesFromBackend",
+                                           "queryValidEdgesFromBackend",
                                            "commitPartOfEdgeDeletions", "optimizeQueries",
                                            "checkVertexLabel", "checkId",
-                                           "queryVerticesFromBackend", "joinTxVertices",
+                                           "queryVerticesFromBackend",
+                                           "queryValidVerticesFromBackend", "joinTxVertices",
                                            "joinTxEdges", "lockForUpdateProperty", "optimizeQuery",
                                            "verifyVerticesConditionQuery",
                                            "verifyEdgesConditionQuery", "indexQuery",
                                            "joinTxRecords", "propertyUpdated", "parseEntry",
                                            "traverseByLabel", "reset", "queryVerticesByIds",
-                                           "filterUnmatchedRecords", "skipOffsetOrStopLimit",
-                                           "filterExpiredResultFromFromBackend", "queryEdgesByIds",
-                                           "matchEdgeSortKeys", "rightResultFromIndexQuery");
+                                           "filterInvalidRecord", "filterUnmatchedRecord",
+                                           "invalidRecord", "warnLeftRecord",
+                                           "skipOffsetOrStopLimit",
+                                           "filterExpiredBatches", "queryEdgesByIds",
+                                           "matchEdgeSortKeys", "rightResultFromIndexQuery",
+                                           "queryVertexBatchesFromBackend", "backendBatches",
+                                           "fetchVertexBatch", "processBatches",
+                                           "queryEdgeBatchesFromBackend",
+                                           "queryEdgeBatchesFromBackendInternal",
+                                           "queryEdgesFromMemory", "fetchEdgeBatch");
+        Reflection.registerMethodsToFilter(CachedGraphTransaction.class,
+                                           "fetchVertexBatch", "fetchEdgeBatch",
+                                           "queryEdgesFromMemory", "cacheEdgeBatch");
         Reflection.registerFieldsToFilter(IndexableTransaction.class, "$assertionsDisabled");
         Reflection.registerMethodsToFilter(IndexableTransaction.class, "indexTransaction",
                                            "commit2Backend", "reset");
@@ -285,8 +299,10 @@ public final class HugeFactoryAuthProxy {
                                            "autoCommit", "beforeRead", "afterWrite", "afterRead",
                                            "commitMutation2Backend", "checkOwnerThread", "doAction",
                                            "store", "reset");
-        Reflection.registerFieldsToFilter(HugeFactory.class, "LOG", "NAME_REGEX", "graphs");
-        Reflection.registerMethodsToFilter(HugeFactory.class, "lambda$0");
+        Reflection.registerFieldsToFilter(HugeFactory.class, "LOG", "NAME_REGEX", "graphs",
+                                          "GRAPHS");
+        Reflection.registerMethodsToFilter(HugeFactory.class, "lambda$0",
+                                           "closeCurrentThreadTransactions");
         Reflection.registerFieldsToFilter(SchemaElement.class, "graph", "id", "name", "userdata",
                                           "status");
         Reflection.registerFieldsToFilter(HugeVertex.class, "EMPTY_SET", "id", "label", "edges",
@@ -387,11 +403,10 @@ public final class HugeFactoryAuthProxy {
                                            "oneNumericField", "hasSameProperties");
         Reflection.registerFieldsToFilter(TaskManager.class, "LOG", "SCHEDULE_PERIOD", "THREADS",
                                           "MANAGER", "schedulers", "taskExecutor", "taskDbExecutor",
-                                          "serverInfoDbExecutor", "schedulerExecutor", "contexts",
-                                          "$assertionsDisabled");
+                                          "contexts", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(TaskManager.class, "lambda$0", "resetContext",
                                            "closeTaskTx", "setContext", "instance",
-                                           "closeSchedulerTx", "notifyNewTask",
+                                           "notifyNewTask",
                                            "scheduleOrExecuteJob", "scheduleOrExecuteJobForGraph");
         Reflection.registerFieldsToFilter(StandardTaskScheduler.class, "LOG", "graph",
                                           "serverManager", "taskExecutor", "taskDbExecutor",

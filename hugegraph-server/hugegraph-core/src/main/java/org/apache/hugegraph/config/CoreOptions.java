@@ -17,13 +17,13 @@
 
 package org.apache.hugegraph.config;
 
-import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.query.Query;
+import org.apache.hugegraph.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.type.define.CollectionType;
 import org.apache.hugegraph.util.Bytes;
 
-import static org.apache.hugegraph.backend.query.Query.COMMIT_BATCH;
+import static org.apache.hugegraph.query.Query.COMMIT_BATCH;
 import static org.apache.hugegraph.config.OptionChecker.*;
 
 public class CoreOptions extends OptionHolder {
@@ -62,7 +62,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<String> STORE =
             new ConfigOption<>(
                     "store",
-                    "The database name like Cassandra Keyspace.",
+                    "The backend database namespace.",
                     disallowEmpty(),
                     "hugegraph"
             );
@@ -76,7 +76,7 @@ public class CoreOptions extends OptionHolder {
     public static final ConfigOption<String> SERIALIZER =
             new ConfigOption<>(
                     "serializer",
-                    "The serializer for backend store, like: text/binary/cassandra.",
+                    "The serializer for backend store, like: text/binary.",
                     disallowEmpty(),
                     "text"
             );
@@ -313,13 +313,7 @@ public class CoreOptions extends OptionHolder {
                     rangeInt(1, 500),
                     1
             );
-    public static final ConfigOption<String> SCHEDULER_TYPE =
-            new ConfigOption<>(
-                    "task.scheduler_type",
-                    "The type of scheduler used in distribution system.",
-                    allowValues("local", "distributed"),
-                    "local"
-            );
+
     public static final ConfigOption<Boolean> TASK_SYNC_DELETION =
             new ConfigOption<>(
                     "task.sync_deletion",
@@ -657,6 +651,18 @@ public class CoreOptions extends OptionHolder {
             "The addresses of pd nodes, separated with commas.",
             disallowEmpty(),
             "127.0.0.1:8686"
+    );
+    public static final ConfigOption<String> PD_CLUSTER = new ConfigOption<>(
+            "pd.cluster",
+            "The cluster name prefixing the meta keys in PD " +
+            "('HUGEGRAPH/<cluster>/...') when the graph itself connects the " +
+            "MetaManager, i.e. the server runs with usePD=false. The prefix " +
+            "is bound once per process: with usePD=true the server binds its " +
+            "own 'cluster' option first, otherwise the first hstore graph " +
+            "opened wins, and a different value on a later graph is ignored " +
+            "with a warning.",
+            disallowEmpty(),
+            "hg"
     );
     public static final ConfigOption<String> MEMORY_MODE = new ConfigOption<>(
             "memory.mode",

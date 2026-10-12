@@ -17,30 +17,69 @@
 
 package org.apache.hugegraph.unit;
 
-import org.apache.hugegraph.core.RoleElectionStateMachineTest;
+import org.apache.hugegraph.HugeFactoryTest;
+import org.apache.hugegraph.api.auth.GraphSpaceAuthPayloadTest;
+import org.apache.hugegraph.api.auth.GraphSpaceGroupAPITest;
+import org.apache.hugegraph.api.cypher.CypherClientTest;
+import org.apache.hugegraph.auth.ContextGremlinServerHttpTest;
+import org.apache.hugegraph.auth.HttpGremlinRequestHandlerTest;
+import org.apache.hugegraph.auth.ContextTaskTest;
+import org.apache.hugegraph.auth.StandardAuthManagerV2Test;
+import org.apache.hugegraph.auth.WsAndHttpBasicAuthHandlerTest;
+import org.apache.hugegraph.backend.page.QueryListTest;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBSnapshotRestoreTest;
+import org.apache.hugegraph.backend.tx.GraphIndexTransactionTest;
+import org.apache.hugegraph.backend.tx.GraphTransactionTest;
 import org.apache.hugegraph.meta.EtcdMetaDriverTest;
 import org.apache.hugegraph.meta.MetaManagerSchemaCacheClearEventTest;
+import org.apache.hugegraph.meta.managers.AuthMetaManagerTest;
+import org.apache.hugegraph.opencypher.CypherOpProcessorTest;
+import org.apache.hugegraph.store.client.OrderedScanSecurityTest;
+import org.apache.hugegraph.tinkerpop.HugeGraphTestInfrastructureTest;
 import org.apache.hugegraph.traversal.optimize.TraversalUtilOptimizeTest;
+import org.apache.hugegraph.unit.api.auth.LoginAPITest;
+import org.apache.hugegraph.unit.api.filter.AccessLogFilterTest;
 import org.apache.hugegraph.unit.api.filter.LoadDetectFilterTest;
 import org.apache.hugegraph.unit.api.filter.PathFilterTest;
+import org.apache.hugegraph.unit.api.filter.VertexAuthorizationTest;
 import org.apache.hugegraph.unit.api.gremlin.GremlinQueryAPITest;
+import org.apache.hugegraph.unit.api.space.GraphSpaceAPITest;
+import org.apache.hugegraph.unit.api.space.SchemaTemplateAPITest;
 import org.apache.hugegraph.unit.auth.HugeGraphAuthProxyTest;
 import org.apache.hugegraph.unit.cache.CacheManagerTest;
 import org.apache.hugegraph.unit.cache.CacheTest;
 import org.apache.hugegraph.unit.cache.CachedGraphTransactionTest;
 import org.apache.hugegraph.unit.cache.CachedSchemaTransactionTest;
 import org.apache.hugegraph.unit.cache.RamTableTest;
-import org.apache.hugegraph.unit.cassandra.CassandraTest;
+import org.apache.hugegraph.unit.cache.RequestCacheLifetimeTest;
+import org.apache.hugegraph.unit.cmd.InitStoreConfigTest;
+import org.apache.hugegraph.unit.config.GremlinConfigCompatibilityTest;
+import org.apache.hugegraph.unit.config.GraphBinarySchemaCompatibilityTest;
+import org.apache.hugegraph.unit.config.K8sResourceQuotaYamlTest;
 import org.apache.hugegraph.unit.core.AnalyzerTest;
+import org.apache.hugegraph.unit.core.BackendSessionPoolTest;
 import org.apache.hugegraph.unit.core.BackendMutationTest;
+import org.apache.hugegraph.unit.core.BackendProviderFactoryTest;
 import org.apache.hugegraph.unit.core.BackendStoreInfoTest;
 import org.apache.hugegraph.unit.core.ConditionQueryFlattenTest;
 import org.apache.hugegraph.unit.core.ConditionTest;
 import org.apache.hugegraph.unit.core.DataTypeTest;
+import org.apache.hugegraph.unit.core.GraphSpaceInfoLocaleTest;
+import org.apache.hugegraph.unit.core.GraphManagerStoresWaitTest;
+import org.apache.hugegraph.unit.core.MetaManagerClusterTest;
 import org.apache.hugegraph.unit.core.DirectionsTest;
 import org.apache.hugegraph.unit.core.ExceptionTest;
+import org.apache.hugegraph.unit.core.GraphManagerAdminInitTest;
+import org.apache.hugegraph.unit.core.GraphManagerConfigTest;
+import org.apache.hugegraph.unit.core.GroovyScriptEngineCompatibilityTest;
+import org.apache.hugegraph.unit.core.HugeFeaturesTest;
+import org.apache.hugegraph.unit.core.HstoreSessionsTest;
+import org.apache.hugegraph.unit.core.HugeElementViewTest;
+import org.apache.hugegraph.unit.core.HugePrimaryKeyTest;
+import org.apache.hugegraph.unit.core.IdHolderTest;
 import org.apache.hugegraph.unit.core.LocksTableTest;
 import org.apache.hugegraph.unit.core.PageStateTest;
+import org.apache.hugegraph.unit.core.QueryResultsTest;
 import org.apache.hugegraph.unit.core.QueryTest;
 import org.apache.hugegraph.unit.core.RangeTest;
 import org.apache.hugegraph.unit.core.RolePermissionTest;
@@ -49,14 +88,15 @@ import org.apache.hugegraph.unit.core.SchemaElementTest;
 import org.apache.hugegraph.unit.core.SecurityManagerTest;
 import org.apache.hugegraph.unit.core.SerialEnumTest;
 import org.apache.hugegraph.unit.core.ServerInfoManagerTest;
+import org.apache.hugegraph.unit.core.StandardHugeGraphClearBackendTest;
 import org.apache.hugegraph.unit.core.SystemSchemaStoreTest;
+import org.apache.hugegraph.unit.core.TaskSchedulerServerInfoTest;
 import org.apache.hugegraph.unit.core.TraversalUtilTest;
 import org.apache.hugegraph.unit.id.EdgeIdTest;
 import org.apache.hugegraph.unit.id.IdTest;
 import org.apache.hugegraph.unit.id.IdUtilTest;
 import org.apache.hugegraph.unit.id.SplicingIdGeneratorTest;
-import org.apache.hugegraph.unit.mysql.MysqlUtilTest;
-import org.apache.hugegraph.unit.mysql.WhereBuilderTest;
+import org.apache.hugegraph.unit.opencypher.CypherGremlinPredicatesTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBSessionTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBSessionsTest;
@@ -65,13 +105,16 @@ import org.apache.hugegraph.unit.serializer.BinaryBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.BinaryScatterSerializerTest;
 import org.apache.hugegraph.unit.serializer.BinarySerializerTest;
 import org.apache.hugegraph.unit.serializer.BytesBufferTest;
+import org.apache.hugegraph.unit.serializer.HugeGraphSONModuleTest;
 import org.apache.hugegraph.unit.serializer.SerializerFactoryTest;
 import org.apache.hugegraph.unit.serializer.StoreSerializerTest;
 import org.apache.hugegraph.unit.serializer.TableBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.TextBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.TextSerializerTest;
 import org.apache.hugegraph.unit.store.RamIntObjectMapTest;
+import org.apache.hugegraph.unit.traversal.ShortestPathTraverserTest;
 import org.apache.hugegraph.unit.util.CompressUtilTest;
+import org.apache.hugegraph.unit.util.ConsumersTest;
 import org.apache.hugegraph.unit.util.JsonUtilTest;
 import org.apache.hugegraph.unit.util.RateLimiterTest;
 import org.apache.hugegraph.unit.util.StringEncodingTest;
@@ -88,11 +131,30 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         /* api filter */
+        AccessLogFilterTest.class,
         LoadDetectFilterTest.class,
+        LoginAPITest.class,
         PathFilterTest.class,
+        VertexAuthorizationTest.class,
 
         /* api gremlin */
         GremlinQueryAPITest.class,
+        CypherClientTest.class,
+        CypherGremlinPredicatesTest.class,
+        CypherOpProcessorTest.class,
+        WsAndHttpBasicAuthHandlerTest.class,
+        HttpGremlinRequestHandlerTest.class,
+        ContextGremlinServerHttpTest.class,
+        GraphSpaceGroupAPITest.class,
+        GraphSpaceAuthPayloadTest.class,
+        StandardAuthManagerV2Test.class,
+        ContextTaskTest.class,
+        HugeFactoryTest.class,
+        AuthMetaManagerTest.class,
+
+        /* api space */
+        GraphSpaceAPITest.class,
+        SchemaTemplateAPITest.class,
 
         /* cache */
         CacheTest.RamCacheTest.class,
@@ -102,11 +164,15 @@ import org.junit.runners.Suite;
         MetaManagerSchemaCacheClearEventTest.class,
         EtcdMetaDriverTest.class,
         CachedGraphTransactionTest.class,
+        RequestCacheLifetimeTest.class,
         CacheManagerTest.class,
         RamTableTest.class,
 
         /* types */
         DataTypeTest.class,
+        GraphSpaceInfoLocaleTest.class,
+        GraphManagerStoresWaitTest.class,
+        MetaManagerClusterTest.class,
         DirectionsTest.class,
         SerialEnumTest.class,
 
@@ -121,22 +187,43 @@ import org.junit.runners.Suite;
         RowLockTest.class,
         AnalyzerTest.class,
         BackendMutationTest.class,
+        BackendSessionPoolTest.class,
+        BackendProviderFactoryTest.class,
         ConditionTest.class,
+        GroovyScriptEngineCompatibilityTest.class,
+        HugeFeaturesTest.class,
+        StandardHugeGraphClearBackendTest.class,
         ConditionQueryFlattenTest.class,
+        GraphIndexTransactionTest.class,
+        GraphTransactionTest.class,
         QueryTest.class,
+        QueryResultsTest.class,
+        QueryListTest.class,
         RangeTest.class,
         SecurityManagerTest.class,
+        OrderedScanSecurityTest.class,
         RolePermissionTest.class,
         ExceptionTest.class,
+        GraphManagerAdminInitTest.class,
+        GraphManagerConfigTest.class,
+        HstoreSessionsTest.class,
         BackendStoreInfoTest.class,
         TraversalUtilTest.class,
         TraversalUtilOptimizeTest.class,
+        IdHolderTest.class,
         PageStateTest.class,
         SystemSchemaStoreTest.class,
         ServerInfoManagerTest.class,
-        RoleElectionStateMachineTest.class,
+        TaskSchedulerServerInfoTest.class,
         HugeGraphAuthProxyTest.class,
         SchemaElementTest.class,
+        HugeGraphTestInfrastructureTest.class,
+        HugeElementViewTest.class,
+        HugePrimaryKeyTest.class,
+        ShortestPathTraverserTest.class,
+
+        /* cmd */
+        InitStoreConfigTest.class,
 
         /* serializer */
         BytesBufferTest.class,
@@ -146,23 +233,23 @@ import org.junit.runners.Suite;
         BinaryBackendEntryTest.class,
         BinarySerializerTest.class,
         BinaryScatterSerializerTest.class,
+        HugeGraphSONModuleTest.class,
         StoreSerializerTest.class,
         TextSerializerTest.class,
 
-        /* cassandra */
-        CassandraTest.class,
-
-        /* mysql */
-        MysqlUtilTest.class,
-        WhereBuilderTest.class,
-
+        /* config */
+        GremlinConfigCompatibilityTest.class,
+        GraphBinarySchemaCompatibilityTest.class,
+        K8sResourceQuotaYamlTest.class,
         /* rocksdb */
         RocksDBSessionsTest.class,
+        RocksDBSnapshotRestoreTest.class,
         RocksDBSessionTest.class,
         RocksDBCountersTest.class,
         RocksDBTableQueryByIdsTest.class,
 
         /* utils */
+        ConsumersTest.class,
         VersionTest.class,
         JsonUtilTest.class,
         StringEncodingTest.class,

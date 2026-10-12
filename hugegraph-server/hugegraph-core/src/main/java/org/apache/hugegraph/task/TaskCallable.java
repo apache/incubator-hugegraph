@@ -21,7 +21,7 @@ import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.util.E;
@@ -42,15 +42,7 @@ public abstract class TaskCallable<V> implements Callable<V> {
              * task input size exceeds TASK_INPUT_SIZE_LIMIT or task result size
              * exceeds TASK_RESULT_SIZE_LIMIT
              */
-            "The max length of bytes is",
-            /*
-             * "Batch too large" exception message occurs when using
-             * cassandra store and task input size is in
-             * [batch_size_fail_threshold_in_kb, TASK_INPUT_SIZE_LIMIT) or
-             * task result size is in
-             * [batch_size_fail_threshold_in_kb, TASK_RESULT_SIZE_LIMIT)
-             */
-            "Batch too large"
+            "The max length of bytes is"
     );
 
     private HugeTask<V> task = null;

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,10 +32,14 @@ import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.model.RestApiResponse;
 import org.apache.hugegraph.pd.model.StoreRestRequest;
 import org.apache.hugegraph.pd.model.TimeRangeRequest;
+import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.pd.util.DateUtil;
+import org.apache.hugegraph.pd.util.StoreRestAddressUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -145,9 +150,14 @@ public class StoreAPI extends API {
         return leaders;
     }
 
-    @GetMapping(value = "/balanceLeaders")
-    public Map<Integer, Long> balanceLeaders() throws PDException {
-        return pdRestService.balancePartitionLeader();
+    @GetMapping(value = "/balanceLeaders", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public String balanceLeaders() {
+        try {
+            return toJSON(pdRestService.balancePartitionLeader());
+        } catch (PDException e) {
+            return toJSON(e);
+        }
     }
 
     @DeleteMapping(value = "/store/{storeId}")
@@ -278,6 +288,7 @@ public class StoreAPI extends API {
         // store statistics
         String storeId;
         String address;
+        String restAddress;
         String raftAddress;
         String version;
         String state;
@@ -302,6 +313,7 @@ public class StoreAPI extends API {
             if (store != null) {
                 storeId = String.valueOf(store.getId());
                 address = store.getAddress();
+                restAddress = StoreRestAddressUtil.getRestAddress(store);
                 raftAddress = store.getRaftAddress();
                 state = String.valueOf(store.getState());
                 version = store.getVersion();
@@ -375,12 +387,45 @@ public class StoreAPI extends API {
      * Check Service Health Status
      * This interface is used to check the health status of the service by accessing the /health
      * path via a GET request.
+     * <p>
+     * This is a liveness signal only: it answers 200 as soon as the REST listener is up and
+     * does not consult the raft state. Use {@link #checkReady()} to find out whether this PD
+     * can actually serve.
      *
      * @return Returns a string indicating the service's health status. Typically, an empty
      * string indicates the service is healthy.
      */
+    // TODO: answer non-200 when the raft state machine is in STATE_ERROR (a failed snapshot) or
+    // the KV store never opened (a held RocksDB LOCK): both leave this PD unable to recover while
+    // /health stays 200 forever. The Helm chart (helm/hugegraph) derives a single PD's startup
+    // and liveness probes to /v1/ready for this reason; drop that derivation once this reports it.
+    // https://github.com/apache/hugegraph/issues/3222
+    // https://github.com/apache/hugegraph/issues/3226
     @GetMapping(value = "/health", produces = MediaType.TEXT_PLAIN_VALUE)
     public Serializable checkHealthy() {
         return "";
+    }
+
+    /**
+     * Check Service Readiness
+     * Answers 200 only when this PD is part of a raft quorum, that is, the raft node is active
+     * and knows the current leader. Otherwise answers 503 so that anything gating on PD
+     * (the compose healthcheck in front of Stores, a Kubernetes readiness probe)
+     * is held back until the PD can serve. Like /health this endpoint needs no authentication.
+     *
+     * @return JSON with the readiness flag, the local raft state and whether this node is the
+     * leader. It carries no cluster addresses, since the endpoint is unauthenticated.
+     */
+    @GetMapping(value = "/ready", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<Map<String, Object>> checkReady() {
+        RaftEngine.RaftStatus status = RaftEngine.getInstance().getRaftStatus();
+
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("ready", status.isReady());
+        body.put("state", status.getState());
+        body.put("isLeader", status.isLocalLeader());
+        HttpStatus httpStatus = status.isReady() ? HttpStatus.OK
+                                                 : HttpStatus.SERVICE_UNAVAILABLE;
+        return ResponseEntity.status(httpStatus).body(body);
     }
 }

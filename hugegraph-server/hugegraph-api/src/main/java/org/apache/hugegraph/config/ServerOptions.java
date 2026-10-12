@@ -42,15 +42,6 @@ public class ServerOptions extends OptionHolder {
                     1
             );
 
-    public static final ConfigOption<Boolean> ENABLE_SERVER_ROLE_ELECTION =
-            new ConfigOption<>(
-                    "server.role_election",
-                    "Whether to enable role election, if enabled, the server " +
-                    "will elect a master node in the cluster.",
-                    disallowEmpty(),
-                    false
-            );
-
     public static final ConfigOption<Integer> MAX_WORKER_THREADS =
             new ConfigOption<>(
                     "restserver.max_worker_threads",
@@ -198,6 +189,17 @@ public class ServerOptions extends OptionHolder {
                     "The pd server peers.",
                     disallowEmpty(),
                     "127.0.0.1:8686"
+            );
+
+    public static final ConfigOption<Integer> PD_STORES_WAIT_TIMEOUT =
+            new ConfigOption<>(
+                    "pd.stores_wait_timeout",
+                    "With usePD=true, how many seconds to wait at startup " +
+                    "for pd.initial-store-count stores to be active in PD " +
+                    "before any hstore graph is opened; 0 means do not wait " +
+                    "(on a cold start the server exits if the stores are late).",
+                    rangeInt(0, Integer.MAX_VALUE),
+                    300
             );
 
     public static final ConfigOption<Boolean> SERVER_USE_K8S =
@@ -368,6 +370,17 @@ public class ServerOptions extends OptionHolder {
                     "./conf/graphs"
             );
 
+    public static final ConfigOption<Boolean> INIT_STORE_ENABLED =
+            new ConfigOption<>(
+                    "init_store.enabled",
+                    "Whether init-store initializes the local backend stores " +
+                    "and the built-in admin account. Set false in distributed " +
+                    "deployments (PD/HStore) where the storage side already " +
+                    "owns the metadata.",
+                    disallowEmpty(),
+                    true
+            );
+
     public static final ConfigOption<Boolean> SERVER_START_IGNORE_SINGLE_GRAPH_ERROR =
             new ConfigOption<>(
                     "server.start_ignore_single_graph_error",
@@ -439,7 +452,7 @@ public class ServerOptions extends OptionHolder {
                     "arthas.ip",
                     "arthas bound ip",
                     disallowEmpty(),
-                    "127.0.0.1"
+                    "0.0.0.0"
             );
 
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =
@@ -447,7 +460,7 @@ public class ServerOptions extends OptionHolder {
                     "arthas.disabledCommands",
                     "arthas disabled commands",
                     disallowEmpty(),
-                    "jad,ognl,vmtool"
+                    "jad"
             );
 
     public static final ConfigOption<Boolean> ALLOW_TRACE =
@@ -467,6 +480,11 @@ public class ServerOptions extends OptionHolder {
                     ""
             );
 
+    // TODO: accept the initial admin password from the environment (or document the properties
+    // contract): read through PropertiesConfiguration, the value is trimmed, backslash-unescaped
+    // and decoded as ISO-8859-1, so the stored password can differ from what the operator set.
+    // The Helm chart (helm/hugegraph) refuses padded, backslash or non-ASCII admin passwords in
+    // its schema and Server wrapper; relax that guard once the credential bypasses the file.
     public static final ConfigOption<String> ADMIN_PA =
             new ConfigOption<>(
                     "auth.admin_pa",
@@ -556,9 +574,9 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> SERVER_ID =
             new ConfigOption<>(
                     "server.id",
-                    "The id of hugegraph-server.",
-                    disallowEmpty(),
-                    "server-1"
+                    "The optional legacy id of hugegraph-server.",
+                    null,
+                    ""
             );
     public static final ConfigOption<String> SERVER_ROLE =
             new ConfigOption<>(
@@ -646,6 +664,17 @@ public class ServerOptions extends OptionHolder {
                     nonNegativeInt(),
                     1000L
             );
+
+    public static final ConfigOption<Integer> SLOW_QUERY_LOG_BODY_LIMIT =
+            new ConfigOption<>(
+                    "log.slow_query_body_limit",
+                    "The max bytes of request body recorded in the slow query log, " +
+                    "the recorded prefix is written as-is and may contain sensitive " +
+                    "literals of gremlin/cypher scripts, 0 means the body is not recorded.",
+                    rangeInt(0, 1024 * 1024),
+                    512
+            );
+
     public static final ConfigOption<Double> JVM_MEMORY_MONITOR_THRESHOLD =
             new ConfigOption<>(
                     "memory_monitor.threshold",
@@ -659,7 +688,7 @@ public class ServerOptions extends OptionHolder {
                     "memory_monitor.period",
                     "The period in ms of JVM memory usage monitoring, in each period we will " +
                     "detect the jvm memory usage and take corresponding actions.",
-                    nonNegativeInt(),
+                    positiveInt(),
                     2000
             );
     public static ConfigOption<String> K8S_INTERNAL_ALGORITHM_IMAGE_URL =

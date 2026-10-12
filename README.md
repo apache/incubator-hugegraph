@@ -16,7 +16,7 @@
 
 ---
 
-**Quick Navigation:** [Architecture](#architecture) • [Quick Start](#quick-start) • [Module Map](#module-map) • [Ecosystem](#ecosystem) • [For Contributors](#for-contributors) • [Community](#community)
+**Quick Navigation:** [Architecture](#architecture) • [Quick Start](#quick-start) • [Module Map](#module-map) • [Ecosystem](#ecosystem) • [For Contributors](#contributing) • [Community](#community)
 
 ---
 
@@ -31,7 +31,7 @@ achieved through the powerful [Gremlin](https://tinkerpop.apache.org/gremlin.htm
 
 - **Schema Metadata Management**: VertexLabel, EdgeLabel, PropertyKey, and IndexLabel
 - **Multi-type Indexes**: Exact query, range query, and complex conditions combination query
-- **Plug-in Backend Store Framework**: Mainly supports `RocksDB`/`HStore` + `HBase`; other backends available in [legacy versions](https://hugegraph.apache.org/docs/download/download/) ≤ `1.5.0` (MySQL/PostgreSQL/Cassandra...)
+- **Plug-in Backend Store Framework**: RocksDB powers standalone deployments and HStore powers distributed clusters. See the [backend evolution guide](hugegraph-server/README.md#backend-evolution-and-compatibility) for compatibility details.
 - **Big Data Integration**: Seamless integration with `Flink`/`Spark`/`HDFS`
 - **Complete Graph Ecosystem**: In/out-memory Graph Computing + Graph Visualization & Tools + Graph Learning & AI
 - **Dual Query Language Support**: [Gremlin](https://tinkerpop.apache.org/gremlin.html) (via [Apache TinkerPop 3](https://tinkerpop.apache.org/)) and [Cypher](https://en.wikipedia.org/wiki/Cypher_(query_language)) (OpenCypher)
@@ -66,7 +66,7 @@ HugeGraph supports both **standalone** and **distributed** deployments:
                         │             HugeGraph Server (:8080)                │
                         │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐   │
                         │  │ REST API │  │ Gremlin  │  │   Cypher Engine  │   │
-                        │  │(Jersey 3)│  │ (TP 3.5) │  │   (OpenCypher)   │   │
+                        │  │(Jersey 3)│  │(TP 3.8.1)│  │   (OpenCypher)   │   │
                         │  └────┬─────┘  └────┬─────┘  └────────┬─────────┘   │
                         │       └─────────────┼─────────────────┘             │
                         │            ┌────────▼────────┐                      │
@@ -75,35 +75,39 @@ HugeGraph supports both **standalone** and **distributed** deployments:
                         │            └────────┬────────┘                      │
                         └─────────────────────┼───────────────────────────────┘
                                               │
-             ┌────────────────────────────────┼────────────────────────────────┐
-             │                                │                                │
-┌────────────▼────────────┐   ┌───────────────▼───────────────┐   ┌───────────▼──────────┐
-│    Standalone Mode      │   │      Distributed Mode         │   │   Legacy Backends    │
-│  ┌───────────────────┐  │   │  ┌─────────────────────────┐  │   │      (≤v1.5)         │
-│  │      RocksDB      │  │   │  │     HugeGraph-PD        │  │   │  MySQL │ PostgreSQL  │
-│  │    (embedded)     │  │   │  │   (Raft, 3-5 nodes)     │  │   │  Cassandra           │
-│  └───────────────────┘  │   │  │      :8620/:8686        │  │   │  HBase (≤v1.7)       │
-│                         │   │  └────────────┬────────────┘  │   └──────────────────────┘
-│  Use Case:              │   │               │               │
-│  Development/Testing    │   │  ┌────────────▼────────────┐  │
-│  Single Node            │   │  │    HugeGraph-Store      │  │
-│                         │   │  │    (Raft + RocksDB)     │  │
-│  Data Scale: < 1TB      │   │  │   (3+ nodes) :8520      │  │
-└─────────────────────────┘   │  └─────────────────────────┘  │
-                              │                               │
-                              │  Use Case:                    │
-                              │  Production/HA/Cluster        │
-                              │                               │
-                              │  Data Scale: < 1000 TB        │
-                              └───────────────────────────────┘
+                            ┌─────────────────┴─────────────────┐
+                            │                                   │
+             ┌──────────────▼──────────────┐     ┌──────────────▼──────────────┐
+             │        Standalone Mode      │     │       Distributed Mode      │
+             │  ┌───────────────────────┐  │     │  ┌───────────────────────┐  │
+             │  │        RocksDB        │  │     │  │     HugeGraph-PD      │  │
+             │  │      (embedded)       │  │     │  │   (Raft, 3-5 nodes)   │  │
+             │  └───────────────────────┘  │     │  │      :8620/:8686      │  │
+             │                             │     │  └───────────┬───────────┘  │
+             │  Use Case:                  │     │              │              │
+             │  Development/Testing        │     │  ┌───────────▼───────────┐  │
+             │  Single Node                │     │  │         HStore        │  │
+             │                             │     │  │    (Raft, 3+ nodes)   │  │
+             │  Data Scale: < 1TB          │     │  │         :8520         │  │
+             └─────────────────────────────┘     │  └───────────────────────┘  │
+                                                 │                             │
+                                                 │  Use Case:                  │
+                                                 │  Production/HA/Cluster      │
+                                                 │                             │
+                                                 │  Data Scale: < 1000 TB      │
+                                                 └─────────────────────────────┘
 ```
+
+See the [backend evolution guide](hugegraph-server/README.md#backend-evolution-and-compatibility) for lifecycle and historical compatibility guidance.
+
+To use ToplingDB with the RocksDB backend, follow the [three-step switching guide](docs/storage-lifecycle.md#storage-provider-selection-and-toplingdb).
 
 ### Deployment Mode Comparison
 
 | Mode | Components | Use Case | Data Scale | High Availability |
 |------|------------|----------|------------|-------------------|
 | **Standalone** | Server + RocksDB | Development, Testing, Single Node | < 1TB | Basic |
-| **Distributed** | Server + PD (3-5 nodes) + Store (3+ nodes) | Production, HA, Horizontal Scaling | < 1000 TB | Yes |
+| **Distributed** | Server + PD + HStore | Production, HA, Horizontal Scaling | < 1000 TB | Yes |
 
 ### Module Overview
 
@@ -113,22 +117,20 @@ HugeGraph supports both **standalone** and **distributed** deployments:
 | [hugegraph-pd](hugegraph-pd/README.md) | Placement Driver for distributed mode - handles meta storage, partition management and cluster scheduling |
 | [hugegraph-store](hugegraph-store/README.md) | Distributed storage with Raft consensus for high availability and horizontal scaling |
 | [hugegraph-commons](hugegraph-commons) | Shared utilities, RPC framework and common components |
+| [hugegraph-struct](hugegraph-struct/README.md) | Shared schema, IDs, base elements, queries and encoding used by Server and Store |
+
+See the [1.8.0 shared-foundation migration guide](docs/shared-foundation-migration.md) for Java API changes, module ownership and coordinated upgrade requirements.
 
 <details>
 <summary><b>📊 Click to view detailed architecture diagram (Mermaid)</b></summary>
 
 ```mermaid
 flowchart TB
-    subgraph Clients["Client Layer"]
-        GC[Gremlin Console]
-        REST[REST Client]
-        CYPHER[Cypher Client]
-        SDK[SDK/Tools]
-    end
+    CLIENTS["Client Layer<br/>Gremlin Console · REST Client · Cypher Client · SDK/Tools"]
 
     subgraph Server["HugeGraph Server :8080"]
         API[REST API<br/>Jersey 3]
-        GS[Gremlin Server<br/>TinkerPop 3.5]
+        GS[Gremlin Server<br/>TinkerPop 3.8.1]
         CS[Cypher Engine<br/>OpenCypher]
         CORE[Graph Engine<br/>hugegraph-core]
 
@@ -143,23 +145,13 @@ flowchart TB
         end
 
         subgraph Distributed["Distributed Mode"]
-            PD[HugeGraph-PD<br/>Raft Cluster<br/>:8620/:8686]
-            STORE[HugeGraph-Store<br/>Raft + RocksDB<br/>:8520]
-            PD <--> STORE
-        end
-
-        subgraph Legacy["Legacy Backends (≤v1.5)"]
-            MYSQL[(MySQL)]
-            PG[(PostgreSQL)]
-            CASS[(Cassandra)]
-            HBASE[(HBase, ≤v1.7)]
+            PD_HSTORE[PD + HStore<br/>Raft Cluster]
         end
     end
 
-    Clients --> Server
+    CLIENTS --> Server
     CORE --> ROCKS
-    CORE --> PD
-    CORE -.-> Legacy
+    CORE --> PD_HSTORE
 
     style Server fill:#e1f5ff
     style Distributed fill:#fff4e1
@@ -169,6 +161,8 @@ flowchart TB
 </details>
 
 ## Quick Start
+
+<!-- TODO: update release downloads, package names, image tags and version examples after 1.8.0 is published. -->
 
 ### 5 Minutes Quick Start
 
@@ -189,8 +183,15 @@ curl -X POST http://localhost:8080/gremlin \
 
 ### Prerequisites
 
-- **Java 11+** (required)
-- **Maven 3.5+** (for building from source)
+- **Java 17** (required and currently the only supported Java release)
+- **Maven 3.6.3+** (for building from source)
+
+The launch scripts reject Java versions older than 17. That minimum-version
+check does not qualify later Java releases; use Java 17 unless another release
+is explicitly listed as supported.
+
+Read the [Server runtime guide](docs/server-runtime.md#runtime-and-client-configuration)
+for client configuration and query compatibility checks.
 
 ### Option 1: Docker (Fastest)
 
@@ -220,9 +221,16 @@ For advanced Docker configurations, see:
 >
 > **Version Tags**: Use release tags (e.g., `1.7.0`) for stable deployments. The `latest` tag should only be used for testing or development.
 
+### Option 2: Kubernetes with Helm
+
+The HStore Helm chart deploys HugeGraph PD, Store, and Server as a distributed
+Kubernetes cluster. See the [chart documentation](helm/hugegraph/README.md) for
+single-node and highly available presets, configuration, and
+upgrade guidance.
+
 
 <details>
-<summary><b>Option 2: Download Binary Package</b></summary>
+<summary><b>Option 3: Download Binary Package</b></summary>
 
 Download pre-built packages from the [Download Page](https://hugegraph.apache.org/docs/download/download/):
 
@@ -255,7 +263,7 @@ For detailed instructions, see the [Binary Installation Guide](https://hugegraph
 </details>
 
 <details>
-<summary><b>Option 3: Build from Source</b></summary>
+<summary><b>Option 4: Build from Source</b></summary>
 
 Build from source for development or customization:
 
@@ -276,7 +284,7 @@ bin/init-store.sh
 bin/start-hugegraph.sh
 ```
 
-For detailed build instructions, see [BUILDING.md](BUILDING.md) and [Build from Source Guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#33-source-code-compilation).
+For detailed build instructions, see [BUILDING.md](docs/BUILDING.md) and [Build from Source Guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-server/#33-source-code-compilation).
 
 </details>
 
@@ -294,7 +302,7 @@ curl http://localhost:8080/versions
 #   "versions": {
 #     "version": "v1",
 #     "core": "1.7.0",
-#     "gremlin": "3.5.1",
+#     "gremlin": "3.8.1",
 #     "api": "1.7.0"
 #   }
 # }
@@ -308,6 +316,8 @@ gremlin> :> g.V().limit(5)
 ```
 
 For comprehensive documentation, visit the [HugeGraph Documentation](https://hugegraph.apache.org/docs/).
+
+Read the [storage lifecycle and recovery guide](docs/storage-lifecycle.md) before restoring data, mounting store directories or upgrading the storage runtime.
 
 </details>
 
@@ -328,7 +338,7 @@ For comprehensive documentation, visit the [HugeGraph Documentation](https://hug
 | Understand configuration | `hugegraph-dist` | `src/assembly/static/conf/` |
 | Run tests | `hugegraph-test` | Test suites with multiple profiles |
 
-For detailed architecture and development guidance, see [AGENTS.md](AGENTS.md).
+For repository constraints and module guidance, see [AGENTS.md](AGENTS.md).
 
 <details>
 <summary><b>For Contributors</b></summary>
@@ -336,12 +346,12 @@ For detailed architecture and development guidance, see [AGENTS.md](AGENTS.md).
 **New to HugeGraph?** Follow this path to get started:
 
 1. **Understand the Architecture**
-   - Read [AGENTS.md](AGENTS.md) for detailed module structure and development patterns
+   - Read [AGENTS.md](AGENTS.md) for key component relationships and module guidance
    - Review the [Architecture Diagram](#architecture) above
 
 2. **Set Up Your Environment**
-   - Install Java 11+ and Maven 3.5+
-   - Follow [BUILDING.md](BUILDING.md) for build instructions
+   - Install Java 17 and Maven 3.6.3+
+   - Follow [BUILDING.md](docs/BUILDING.md) for build instructions
    - Configure your IDE to use `.editorconfig` for code style and `style/checkstyle.xml` for Checkstyle rules
 
 3. **Find Your First Issue**
@@ -355,13 +365,13 @@ For detailed architecture and development guidance, see [AGENTS.md](AGENTS.md).
    - Try modifying a test and see what breaks
 
 5. **Code Standards**
-   - Line length: 100 characters
+   - Line length: 120 characters
    - Indentation: 4 spaces
    - No star imports
    - Commit format: `feat|fix|refactor(module): description`
 
 6. **Submit Your Contribution**
-   - Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+   - Read [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines
    - Follow the [Contribution Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/)
    - Use [GitHub Desktop](https://desktop.github.com/) to simplify the PR process
 
@@ -371,7 +381,7 @@ For detailed architecture and development guidance, see [AGENTS.md](AGENTS.md).
 
 Welcome to contribute to HugeGraph!
 
-- **How to Contribute**: See [CONTRIBUTING.md](CONTRIBUTING.md) and [Contribution Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/)
+- **How to Contribute**: See [CONTRIBUTING.md](docs/CONTRIBUTING.md) and [Contribution Guidelines](https://hugegraph.apache.org/docs/contribution-guidelines/)
 - **Code Style**: Configure your IDE to use `.editorconfig` for code style and `style/checkstyle.xml` for Checkstyle rules
 - **PR Tool**: [GitHub Desktop](https://desktop.github.com/) is recommended for simpler workflow
 

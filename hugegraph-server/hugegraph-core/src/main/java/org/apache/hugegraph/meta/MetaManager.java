@@ -36,8 +36,8 @@ import org.apache.hugegraph.auth.HugeProject;
 import org.apache.hugegraph.auth.HugeRole;
 import org.apache.hugegraph.auth.HugeTarget;
 import org.apache.hugegraph.auth.HugeUser;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.meta.lock.LockResult;
 import org.apache.hugegraph.meta.managers.AuthMetaManager;
 import org.apache.hugegraph.meta.managers.ConfigMetaManager;
@@ -49,10 +49,10 @@ import org.apache.hugegraph.meta.managers.SchemaTemplateMetaManager;
 import org.apache.hugegraph.meta.managers.ServiceMetaManager;
 import org.apache.hugegraph.meta.managers.SpaceMetaManager;
 import org.apache.hugegraph.meta.managers.TaskMetaManager;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.space.GraphSpace;
 import org.apache.hugegraph.space.SchemaTemplate;
 import org.apache.hugegraph.space.Service;
@@ -162,7 +162,13 @@ public class MetaManager {
                                      String clientKeyFile, Object... args) {
         E.checkArgument(cluster != null && !cluster.isEmpty(),
                         "The cluster can't be null or empty");
-        if (this.metaDriver == null) {
+        if (this.metaDriver != null) {
+            if (!cluster.equals(this.cluster)) {
+                LOG.warn("MetaManager is already connected to cluster '{}', " +
+                         "ignoring the connect request for cluster '{}'",
+                         this.cluster, cluster);
+            }
+        } else {
             this.cluster = cluster;
 
             switch (type) {
@@ -185,6 +191,24 @@ public class MetaManager {
             }
         }
         this.initManagers(this.cluster);
+    }
+
+    /**
+     * Fail fast when the MetaManager was connected earlier under another
+     * cluster name: every meta key is prefixed with the cluster, so a server
+     * that expects `expected` would otherwise silently read an empty tree.
+     */
+    public synchronized void ensureCluster(String expected) {
+        E.checkState(this.metaDriver != null,
+                     "The MetaManager is not connected yet");
+        if (!expected.equals(this.cluster)) {
+            throw new IllegalStateException(String.format(
+                    "The MetaManager is connected to cluster '%s', but the " +
+                    "configured cluster is '%s'; the meta keys live under " +
+                    "'HUGEGRAPH/%s/', set the same cluster name for the " +
+                    "server ('cluster') and the graphs ('pd.cluster')",
+                    this.cluster, expected, this.cluster));
+        }
     }
 
     private void initManagers(String cluster) {

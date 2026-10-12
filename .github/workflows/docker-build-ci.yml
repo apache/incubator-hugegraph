@@ -18,35 +18,115 @@
 name: "Docker Build CI"
 
 on:
-  push:
-    branches:
-      - master
-      - 'release-*'
-  pull_request:
-    paths:
-      - '**/Dockerfile*'
-      - '.dockerignore'
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  docker-build:
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile:
-          - hugegraph-pd/Dockerfile
-          - hugegraph-store/Dockerfile
-          - hugegraph-server/Dockerfile
-          - hugegraph-server/Dockerfile-hstore
-
+  docker-bake-check:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Build ${{ matrix.dockerfile }}
+      - name: Verify shared Maven stages stay identical
+        shell: bash
         run: |
-          IMAGE_ID=$(docker build -q -f ${{ matrix.dockerfile }} .)
-          echo "Built: $IMAGE_ID"
-          HC=$(docker inspect --format='{{json .Config.Healthcheck}}' "$IMAGE_ID")
-          echo "Healthcheck: $HC"
-          [[ "$HC" != "null" ]] || { echo "ERROR: HEALTHCHECK missing in ${{ matrix.dockerfile }}"; exit 1; }
+          set -euo pipefail
+
+          extract_build_stage() {
+            awk '
+              /^FROM .* AS build$/ {
+                in_build = 1
+              }
+              in_build && seen && /^FROM / {
+                exit
+              }
+              in_build {
+                print
+                seen = 1
+              }
+            ' "$1"
+          }
+
+          reference="hugegraph-pd/Dockerfile"
+          if [ -z "$(extract_build_stage "$reference")" ]; then
+            echo "ERROR: no 'AS build' stage found in $reference"
+            exit 1
+          fi
+          for dockerfile in \
+            hugegraph-store/Dockerfile \
+            hugegraph-server/Dockerfile \
+            hugegraph-server/Dockerfile-hstore; do
+            diff -u \
+              <(extract_build_stage "$reference") \
+              <(extract_build_stage "$dockerfile")
+          done
+
+      - name: Validate shared image build graph
+        run: |
+          set -euo pipefail
+
+          docker buildx bake --file docker/bake.hcl --print > /tmp/hugegraph-bake.json
+          jq -e '
+            .group.default.targets == [
+              "build-cache",
+              "pd",
+              "server-hstore",
+              "server-standalone",
+              "store"
+            ] and
+            ([.target[] | .platforms] |
+              all(. == ["linux/amd64", "linux/arm64"])) and
+            .target["build-cache"].target == "build" and
+            .target["build-cache"].output[0].type == "cacheonly" and
+            ([.target | to_entries[] |
+              select(.key != "build-cache") |
+              .value.output[0].type] |
+              all(. == "docker"))
+          ' /tmp/hugegraph-bake.json
+
+  deployment-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify deployment shell contracts
+        run: |
+          bash hugegraph-server/hugegraph-dist/docker/test/test-docker-entrypoint.sh
+          bash hugegraph-server/hugegraph-dist/docker/docker-entrypoint-test.sh
+          bash hugegraph-server/hugegraph-dist/src/assembly/travis/test-check-port.sh \
+            hugegraph-server/hugegraph-dist/src/assembly/static \
+            hugegraph-store/hg-store-dist/src/assembly/static/bin/util.sh
+      - name: Verify Compose contracts
+        run: bash docker/test-compose.sh render
+
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      IMAGE_TAG: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build and load all four PR images with a shared Maven stage
+        run: |
+          docker buildx create --driver docker-container --use
+          docker buildx bake --file docker/bake.hcl --progress=plain \
+            --set '*.platform=linux/amd64' \
+            pd store server-standalone server-hstore
+
+      - name: Verify image runtime contracts
+        run: |
+          bash .github/scripts/check-docker-images.sh
+          bash hugegraph-server/hugegraph-dist/docker/test/test-docker-entrypoint.sh
+
+      - name: Verify deployment checker contracts
+        run: python3 -m unittest discover -s .github/scripts -p 'test_docker_deployment.py'
+
+      - name: Verify exact PR images, authentication and graph read/write
+        run: python3 .github/scripts/docker-deployment.py "$IMAGE_TAG"

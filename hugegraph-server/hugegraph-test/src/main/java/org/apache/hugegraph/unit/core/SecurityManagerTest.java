@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
@@ -282,6 +282,12 @@ public class SecurityManagerTest {
         System.getProperty("java.version");
         result = runGremlinJob("System.getProperty(\"java.version\")");
         assertError(result, "Not allowed to access system property(java.version) via Gremlin");
+
+        result = runGremlinJob("System.getProperty(\"socksProxyHost\")");
+        assertError(result, "Not allowed to access system property(socksProxyHost) via Gremlin");
+
+        result = runGremlinJob("System.getProperty(\"file.encoding\")");
+        assertError(result, "Not allowed to access system property(file.encoding) via Gremlin");
     }
 
     @Test

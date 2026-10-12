@@ -20,10 +20,11 @@ package org.apache.hugegraph.space;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.util.E;
 
 public class GraphSpace {
@@ -389,9 +390,11 @@ public class GraphSpace {
         infos.put("cpu_used", this.cpuUsed);
         infos.put("memory_used", this.memoryUsed);
         infos.put("storage_used", this.storageUsed);
+        // Locale.ROOT: the default locale may format with a decimal comma
+        // ("0,33" on pl_PL, de_DE, fr_FR, ...), which parseFloat() rejects
         float storageUserPercent = Float.parseFloat(
-                String.format("%.2f", (float) this.storageUsed /
-                                      ((float) this.storageLimit * 1.0)));
+                String.format(Locale.ROOT, "%.2f", (float) this.storageUsed /
+                                                   ((float) this.storageLimit * 1.0)));
         infos.put("storage_percent", storageUserPercent);
         infos.put("graph_number_used", this.graphNumberUsed);
         infos.put("role_number_used", this.roleNumberUsed);

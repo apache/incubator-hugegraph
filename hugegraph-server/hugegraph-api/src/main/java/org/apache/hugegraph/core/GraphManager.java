@@ -24,6 +24,7 @@ import static org.apache.hugegraph.space.GraphSpace.DEFAULT_GRAPH_SPACE_SERVICE_
 import java.io.IOException;
 import java.io.StringWriter;
 import java.text.ParseException;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -34,17 +35,20 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import io.grpc.StatusRuntimeException;
+
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
@@ -55,10 +59,9 @@ import org.apache.hugegraph.auth.HugeFactoryAuthProxy;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.auth.HugeUser;
 import org.apache.hugegraph.auth.StandardAuthenticator;
-import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.exception.BackendException;
 import org.apache.hugegraph.backend.cache.Cache;
 import org.apache.hugegraph.backend.cache.CacheManager;
-import org.apache.hugegraph.backend.id.IdGenerator;
 import org.apache.hugegraph.backend.store.AbstractBackendStoreProvider;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.config.ConfigOption;
@@ -67,7 +70,9 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.config.TypedOption;
 import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.event.EventHub.NotifyResult;
 import org.apache.hugegraph.exception.ExistedException;
+import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.io.HugeGraphSONModule;
 import org.apache.hugegraph.k8s.K8sDriver;
@@ -77,9 +82,6 @@ import org.apache.hugegraph.k8s.K8sRegister;
 import org.apache.hugegraph.kvstore.KvStore;
 import org.apache.hugegraph.kvstore.KvStoreImpl;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
-import org.apache.hugegraph.masterelection.RoleElectionOptions;
-import org.apache.hugegraph.masterelection.RoleElectionStateMachine;
-import org.apache.hugegraph.masterelection.StandardRoleListener;
 import org.apache.hugegraph.meta.MetaDriver;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.meta.PdMetaDriver;
@@ -89,8 +91,10 @@ import org.apache.hugegraph.metrics.ServerReporter;
 import org.apache.hugegraph.pd.client.DiscoveryClientImpl;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
+import org.apache.hugegraph.pd.client.interceptor.Authentication;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.PDGrpc;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
@@ -182,7 +186,6 @@ public final class GraphManager {
     private final Set<String> serverUrlsToPd;
     private final Boolean serverDeployInK8s;
     private final HugeConfig config;
-    private RoleElectionStateMachine roleStateMachine;
     private K8sDriver.CA ca;
     private final boolean PDExist;
 
@@ -195,8 +198,6 @@ public final class GraphManager {
     public GraphManager(HugeConfig conf, EventHub hub) {
         LOG.info("Init graph manager");
         E.checkArgumentNotNull(conf, "The config can't be null");
-        String server = conf.get(ServerOptions.SERVER_ID);
-        String role = conf.get(ServerOptions.SERVER_ROLE);
 
         this.config = conf;
         this.url = conf.get(ServerOptions.REST_SERVER_URL);
@@ -206,10 +207,6 @@ public final class GraphManager {
                 conf.get(ServerOptions.SERVER_DEPLOY_IN_K8S);
         this.startIgnoreSingleGraphError = conf.get(
                 ServerOptions.SERVER_START_IGNORE_SINGLE_GRAPH_ERROR);
-        E.checkArgument(server != null && !server.isEmpty(),
-                        "The server name can't be null or empty");
-        E.checkArgument(role != null && !role.isEmpty(),
-                        "The server role can't be null or empty");
         this.graphsDir = conf.get(ServerOptions.GRAPHS);
         this.cluster = conf.get(ServerOptions.CLUSTER);
         this.graphSpaces = new ConcurrentHashMap<>();
@@ -225,7 +222,6 @@ public final class GraphManager {
         this.rpcClient = new RpcClientProvider(conf);
         this.pdPeers = conf.get(ServerOptions.PD_PEERS);
 
-        this.roleStateMachine = null;
         this.globalNodeRoleInfo = new GlobalMasterInfo();
 
         this.eventHub = hub;
@@ -239,6 +235,19 @@ public final class GraphManager {
             this.authManager = this.authenticator.authManager();
         } else {
             this.authManager = null;
+        }
+
+        /*
+         * With PD, opening the first hstore graph on a cold start (a local
+         * conf/graphs one here, the system graph in loadMetaFromPD()) needs
+         * PD to have pd.initial-store-count active stores, and the store
+         * client gives up after a fixed 10 retries (about 38 s). Stores
+         * usually register later than that and the server exits 1, so wait
+         * for PD to report the cluster ready first (issue #3203). A cluster
+         * that already has partitions is not waited for at all.
+         */
+        if (conf.get(ServerOptions.USE_PD)) {
+            this.waitForActiveStores();
         }
 
         // load graphs
@@ -361,7 +370,10 @@ public final class GraphManager {
 
         this.initMetaManager(conf);
         this.initK8sManagerIfNeeded(conf);
-        this.initAdminUserIfNeeded(conf.get(ServerOptions.ADMIN_PA));
+        if (shouldBootstrapAdmin(this.authenticator,
+                                 conf.get(ServerOptions.AUTH_REMOTE_URL))) {
+            this.initAdminUserIfNeeded(conf.get(ServerOptions.ADMIN_PA));
+        }
 
         this.createDefaultGraphSpaceIfNeeded(conf);
 
@@ -374,6 +386,19 @@ public final class GraphManager {
         this.listenMetaChanges();
     }
 
+    private static boolean shouldBootstrapAdmin(HugeAuthenticator authenticator,
+                                                String remoteUrl) {
+        return authenticator instanceof StandardAuthenticator &&
+               remoteUrl.isEmpty();
+    }
+
+    /**
+     * Creates the built-in admin account in PD metadata. With init-store
+     * disabled this is the only bootstrap that admin gets, and init-store's
+     * fail-closed check assumes it works, so only the already-exists case is
+     * benign; any other failure aborts startup instead of leaving the server
+     * without a usable administrator.
+     */
     public void initAdminUserIfNeeded(String password) {
         HugeUser user = new HugeUser("admin");
         user.nickname("超级管理员");
@@ -386,10 +411,29 @@ public final class GraphManager {
         user.create(new Date());
         user.avatar("/image.png");
         try {
-            this.metaManager.createUser(user);
+            try {
+                this.metaManager.createUser(user);
+            } catch (Exception e) {
+                // Judged by re-reading rather than by matching the message:
+                // benign only if the admin actually exists, from an earlier
+                // startup or from a concurrent server that won the race
+                HugeUser existing;
+                try {
+                    existing = this.metaManager.findUser(user.name());
+                } catch (Exception probe) {
+                    e.addSuppressed(probe);
+                    throw e;
+                }
+                if (existing == null) {
+                    throw e;
+                }
+                LOG.info("The built-in admin user already exists, " +
+                         "skip creating it");
+            }
             this.metaManager.initDefaultGraphSpace();
         } catch (Exception e) {
-            LOG.info(e.getMessage());
+            throw new HugeException("Failed to init the built-in admin " +
+                                    "user or the default graph space", e);
         }
     }
 
@@ -453,6 +497,188 @@ public final class GraphManager {
         return graph;
     }
 
+    private void waitForActiveStores() {
+        int timeout = this.conf.get(ServerOptions.PD_STORES_WAIT_TIMEOUT);
+        if (timeout <= 0) {
+            return;
+        }
+        // the same credentials the PD clients of this server use
+        PDConfig pdConfig = PDConfig.of(this.pdPeers);
+        pdConfig.setAuthority(PdMetaDriver.PDAuthConfig.service(),
+                              PdMetaDriver.PDAuthConfig.token());
+        try (PdReadinessProbe probe = new PdReadinessProbe(pdConfig)) {
+            waitForCluster(probe, timeout, STORES_WAIT_POLL_SECONDS);
+        }
+    }
+
+    public static final int STORES_WAIT_POLL_SECONDS = 5;
+
+    /**
+     * One answer of a readiness probe: the cluster is ready (already has
+     * partitions, or PD reports Cluster_OK), not ready yet (with PD's own
+     * message), or PD could not be asked within the given deadline.
+     */
+    public enum Readiness {
+        READY, NOT_READY, UNREACHABLE
+    }
+
+    public interface ReadinessProbe {
+
+        /**
+         * Ask PD once, giving up after {@code deadlineMillis}.
+         *
+         * @return the readiness and a short message for the log
+         */
+        Map.Entry<Readiness, String> probe(long deadlineMillis);
+    }
+
+    /**
+     * Poll {@code probe} until it reports READY, at most
+     * {@code timeoutSeconds}. Every call gets a deadline bounded by the
+     * remaining budget, so the whole wait never exceeds the timeout by more
+     * than one poll interval, even when PD is black-holed.
+     *
+     * @return the number of seconds waited
+     * @throws HugeException when the timeout passes first
+     */
+    public static long waitForCluster(ReadinessProbe probe, long timeoutSeconds,
+                                      long pollSeconds) {
+        long start = System.currentTimeMillis();
+        long deadline = start + timeoutSeconds * 1000L;
+        String last = "";
+        while (true) {
+            long left = deadline - System.currentTimeMillis();
+            if (left <= 0) {
+                throw new HugeException(
+                        "Timed out after %ds waiting for the PD cluster to " +
+                        "be ready (%s); start the stores first or raise %s",
+                        timeoutSeconds, last,
+                        ServerOptions.PD_STORES_WAIT_TIMEOUT.name());
+            }
+            Map.Entry<Readiness, String> answer =
+                    probe.probe(Math.min(left, pollSeconds * 1000L));
+            last = answer.getValue();
+            if (answer.getKey() == Readiness.READY) {
+                break;
+            }
+            LOG.info("Waiting for the PD cluster: {} ({}s left)", last,
+                     (deadline - System.currentTimeMillis()) / 1000);
+            long sleep = Math.min(pollSeconds * 1000L,
+                                  deadline - System.currentTimeMillis());
+            if (sleep > 0) {
+                try {
+                    Thread.sleep(sleep);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new HugeException("Interrupted while waiting for " +
+                                            "the PD cluster", e);
+                }
+            }
+        }
+        long waited = (System.currentTimeMillis() - start) / 1000;
+        LOG.info("PD cluster ready after {}s: {}", waited, last);
+        return waited;
+    }
+
+    /**
+     * A one-shot gRPC probe of PD: one plaintext channel per peer, no
+     * watchers, closed when the wait is over. Each call carries its own
+     * deadline. Any PD member answers, since PD forwards to its leader.
+     */
+    static final class PdReadinessProbe implements ReadinessProbe, AutoCloseable {
+
+        private final List<String> peers;
+        private final PDConfig config;
+        private final Map<String, ManagedChannel> channels = new HashMap<>();
+        private int next = 0;
+
+        PdReadinessProbe(PDConfig config) {
+            this.peers = Arrays.stream(config.getServerHost().split(","))
+                               .map(String::trim)
+                               .filter(p -> !p.isEmpty())
+                               .collect(Collectors.toList());
+            E.checkArgument(!this.peers.isEmpty(),
+                            "pd.peers must not be empty");
+            this.config = config;
+        }
+
+        private PDGrpc.PDBlockingStub stub(String peer, long deadlineMillis) {
+            ManagedChannel channel = this.channels.computeIfAbsent(
+                    peer, p -> ManagedChannelBuilder.forTarget(p)
+                                                    .usePlaintext().build());
+            PDGrpc.PDBlockingStub stub = PDGrpc.newBlockingStub(channel)
+                                               .withMaxInboundMessageSize(
+                                                       PDConfig.getInboundMessageSize())
+                                               .withDeadlineAfter(deadlineMillis,
+                                                                  TimeUnit.MILLISECONDS);
+            // PDConfig.setAuthority() keeps the user name empty when PD
+            // authentication is off; AbstractClient.setBlockingParams() adds
+            // the interceptor the same way
+            if (!StringUtils.isEmpty(this.config.getUserName())) {
+                stub = stub.withInterceptors(new Authentication(
+                        this.config.getUserName(), this.config.getAuthority()));
+            }
+            return stub;
+        }
+
+        @Override
+        public Map.Entry<Readiness, String> probe(long deadlineMillis) {
+            // rotate through the peers so one dead PD does not eat every poll
+            String peer = this.peers.get(this.next++ % this.peers.size());
+            try {
+                PDGrpc.PDBlockingStub stub = this.stub(peer, deadlineMillis);
+                Pdpb.RequestHeader header = Pdpb.RequestHeader.getDefaultInstance();
+                // an initialised cluster already has partitions: nothing to
+                // wait for, even if some store is down at the moment
+                Pdpb.QueryPartitionsResponse parts = stub.queryPartitions(
+                        Pdpb.QueryPartitionsRequest.newBuilder()
+                            .setHeader(header)
+                            .setQuery(Metapb.PartitionQuery.getDefaultInstance())
+                            .build());
+                if (parts.getHeader().hasError() &&
+                    parts.getHeader().getError().getType() != Pdpb.ErrorType.OK) {
+                    return entry(Readiness.UNREACHABLE, peer + ": " +
+                                 parts.getHeader().getError().getMessage());
+                }
+                if (parts.getPartitionsCount() > 0) {
+                    return entry(Readiness.READY, "cluster already has " +
+                                 parts.getPartitionsCount() + " partition(s)");
+                }
+                // first boot: PD's own readiness (pd.initial-store-count
+                // active stores and a majority in every shard group)
+                Pdpb.GetClusterStatsResponse stats = stub.getClusterStats(
+                        Pdpb.GetClusterStatsRequest.newBuilder()
+                            .setHeader(header).build());
+                if (stats.getHeader().hasError() &&
+                    stats.getHeader().getError().getType() != Pdpb.ErrorType.OK) {
+                    return entry(Readiness.UNREACHABLE, peer + ": " +
+                                 stats.getHeader().getError().getMessage());
+                }
+                Metapb.ClusterStats cluster = stats.getCluster();
+                if (cluster.getState() == Metapb.ClusterState.Cluster_OK) {
+                    return entry(Readiness.READY, "PD reports Cluster_OK");
+                }
+                return entry(Readiness.NOT_READY, cluster.getState() + ": " +
+                             cluster.getMessage());
+            } catch (StatusRuntimeException e) {
+                return entry(Readiness.UNREACHABLE,
+                             peer + ": " + e.getStatus().getCode());
+            }
+        }
+
+        private static Map.Entry<Readiness, String> entry(Readiness r, String m) {
+            return new AbstractMap.SimpleImmutableEntry<>(r, m);
+        }
+
+        @Override
+        public void close() {
+            for (ManagedChannel channel : this.channels.values()) {
+                channel.shutdownNow();
+            }
+            this.channels.clear();
+        }
+    }
+
     public void init() {
         this.listenChanges();
 
@@ -465,7 +691,7 @@ public final class GraphManager {
         this.waitGraphsReady();
 
         this.checkBackendVersionOrExit(this.conf);
-        this.serverStarted(this.conf);
+        this.serverStarted();
 
         this.addMetrics(this.conf);
     }
@@ -496,19 +722,44 @@ public final class GraphManager {
     }
 
     private void initMetaManager(HugeConfig conf) {
+        if (conf.get(ServerOptions.META_USE_CA)) {
+            this.ca = new K8sDriver.CA(conf.get(ServerOptions.META_CA),
+                                       conf.get(ServerOptions.META_CLIENT_CA),
+                                       conf.get(ServerOptions.META_CLIENT_KEY));
+        }
+        connectMetaManager(conf);
+    }
+
+    /**
+     * Connect the MetaManager under the cluster name of rest-server.properties
+     * (option 'cluster'). Idempotent, and it fails when the MetaManager was
+     * connected earlier under another name: the meta keys are prefixed with
+     * the cluster, so the server would otherwise read an empty tree. Called
+     * from HugeGraphServer before any graph is opened, because opening an
+     * hstore graph connects the MetaManager with the graph's 'pd.cluster'
+     * (default 'hg') if nothing connected it yet. With usePD=false the server
+     * has no cluster of its own and the graph-level binding is the only one,
+     * so this is a no-op there: the check must never apply to a prefix the
+     * server did not bind.
+     */
+    public static void connectMetaManager(HugeConfig conf) {
+        if (!conf.get(ServerOptions.USE_PD)) {
+            return;
+        }
+        String cluster = conf.get(ServerOptions.CLUSTER);
         String endpoints = conf.get(ServerOptions.PD_PEERS);
-        boolean useCa = conf.get(ServerOptions.META_USE_CA);
         String ca = null;
         String clientCa = null;
         String clientKey = null;
-        if (useCa) {
+        if (conf.get(ServerOptions.META_USE_CA)) {
             ca = conf.get(ServerOptions.META_CA);
             clientCa = conf.get(ServerOptions.META_CLIENT_CA);
             clientKey = conf.get(ServerOptions.META_CLIENT_KEY);
-            this.ca = new K8sDriver.CA(ca, clientCa, clientKey);
         }
-        this.metaManager.connect(this.cluster, MetaManager.MetaDriverType.PD,
-                                 ca, clientCa, clientKey, endpoints);
+        MetaManager manager = MetaManager.instance();
+        manager.connect(cluster, MetaManager.MetaDriverType.PD,
+                        ca, clientCa, clientKey, endpoints);
+        manager.ensureCluster(cluster);
     }
 
     private void initK8sManagerIfNeeded(HugeConfig conf) {
@@ -1199,30 +1450,38 @@ public final class GraphManager {
 
             // Init graph and start it
             graph.create(this.graphsDir, this.globalNodeRoleInfo);
+
+            // Let gremlin server and rest server add graph to context
+            this.notifyEvent(Events.GRAPH_CREATE, graph);
         } catch (Throwable e) {
             LOG.error("Failed to create graph '{}' due to: {}",
                       name, e.getMessage(), e);
             if (graph != null) {
-                this.dropGraphLocal(graph);
+                this.graphs.remove(graph.spaceGraphName(), graph);
+                try {
+                    this.dropGraphLocal(graph);
+                } finally {
+                    // The create event may have partially registered the graph
+                    this.notifyEventLenient(Events.GRAPH_DROP, graph);
+                }
             }
             throw e;
         }
-
-        // Let gremlin server and rest server add graph to context
-        this.notifyAndWaitEvent(Events.GRAPH_CREATE, graph);
 
         return graph;
     }
 
     private void dropGraphLocal(HugeGraph graph) {
-        // Clear data and config files
-        graph.drop();
-
-        /*
-         * Will fill graph instance into HugeFactory.graphs after
-         * GraphFactory.open() succeed, remove it when the graph drops
-         */
-        HugeFactory.remove(graph);
+        try {
+            // Clear data and config files
+            graph.drop();
+        } finally {
+            /*
+             * Will fill graph instance into HugeFactory.graphs after
+             * GraphFactory.open() succeed, remove it when the graph drops
+             */
+            HugeFactory.remove(graph);
+        }
     }
 
     public HugeGraph createGraph(String graphSpace, String name, String creator,
@@ -1277,9 +1536,6 @@ public final class GraphManager {
             throw new ExistedException("graph", key);
         }
         boolean grpcThread = Thread.currentThread().getName().contains("grpc");
-        if (grpcThread) {
-            HugeGraphAuthProxy.setAdmin();
-        }
         E.checkArgumentNotNull(name, "The graph name can't be null");
         checkGraphName(name);
         String nickname;
@@ -1348,18 +1604,37 @@ public final class GraphManager {
         graph.updateTime(timeStamp);
 
         String graphName = spaceGraphName(graphSpace, name);
+        this.graphs.put(graphName, graph);
+
+        /*
+         * Let gremlin server and rest server context add graph before the
+         * graph is published, so that a failed local binding can't leave the
+         * graph behind in meta for the other servers to converge on
+         */
+        try {
+            this.notifyEvent(Events.GRAPH_CREATE, graph);
+        } catch (Throwable e) {
+            this.notifyEventLenient(Events.GRAPH_DROP, graph);
+            this.graphs.remove(graphName, graph);
+            try {
+                graph.close();
+            } catch (Exception e1) {
+                if (graph instanceof StandardHugeGraph) {
+                    ((StandardHugeGraph) graph).clearSchedulerAndLock();
+                }
+            }
+            HugeFactory.remove(graph);
+            throw e;
+        }
+
         if (init) {
             this.creatingGraphs.add(graphName);
             this.metaManager.addGraphConfig(graphSpace, name, configs);
             this.metaManager.notifyGraphAdd(graphSpace, name);
         }
-        this.graphs.put(graphName, graph);
         if (!grpcThread) {
             this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
         }
-
-        // Let gremlin server and rest server context add graph
-        this.eventHub.notify(Events.GRAPH_CREATE, graph);
 
         if (init) {
             String schema = propConfig.getString(
@@ -1369,9 +1644,6 @@ public final class GraphManager {
             }
             String schemas = this.schemaTemplate(graphSpace, schema).schema();
             prepareSchema(graph, schemas);
-        }
-        if (grpcThread) {
-            HugeGraphAuthProxy.resetContext();
         }
         return graph;
     }
@@ -1458,9 +1730,6 @@ public final class GraphManager {
         }
         this.destroyRpcServer();
         this.unlistenChanges();
-        if (this.roleStateMachine != null) {
-            this.roleStateMachine.shutdown();
-        }
     }
 
     private void startRpcServer() {
@@ -1551,13 +1820,21 @@ public final class GraphManager {
     }
 
     private void loadGraph(String name, String graphConfPath) {
+        // TODO: offer a loaded graph to Gremlin Server (notify GRAPH_CREATE, as the create paths
+        // do) or fail startup when its static Gremlin instantiation failed. Today a Server whose
+        // first open failed against a PD member mid-restart serves REST and passes readiness
+        // while every Gremlin call on it fails for the life of the process. The Helm chart
+        // (helm/hugegraph) detects this with a per-Pod Gremlin query in `helm test` and documents
+        // the manual Pod deletion; retire both once this is fixed.
+        // https://github.com/apache/hugegraph/issues/3228
         HugeConfig config = new HugeConfig(graphConfPath);
 
         // Transfer `raft.group_peers` from server config to graph config
         String raftGroupPeers = this.conf.get(ServerOptions.RAFT_GROUP_PEERS);
         config.addProperty(ServerOptions.RAFT_GROUP_PEERS.name(),
                            raftGroupPeers);
-        this.transferRoleWorkerConfig(config);
+
+        this.transferPdPeersConfig(config);
 
         Graph graph = GraphFactory.open(config);
         this.graphs.put(defaultSpaceGraphName(name), graph);
@@ -1575,19 +1852,17 @@ public final class GraphManager {
         }
     }
 
-    private void transferRoleWorkerConfig(HugeConfig config) {
-        config.setProperty(RoleElectionOptions.NODE_EXTERNAL_URL.name(),
-                           this.conf.get(ServerOptions.REST_SERVER_URL));
-        config.setProperty(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND.name(),
-                           this.conf.get(RoleElectionOptions.BASE_TIMEOUT_MILLISECOND));
-        config.setProperty(RoleElectionOptions.EXCEEDS_FAIL_COUNT.name(),
-                           this.conf.get(RoleElectionOptions.EXCEEDS_FAIL_COUNT));
-        config.setProperty(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND.name(),
-                           this.conf.get(RoleElectionOptions.RANDOM_TIMEOUT_MILLISECOND));
-        config.setProperty(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND.name(),
-                           this.conf.get(RoleElectionOptions.HEARTBEAT_INTERVAL_SECOND));
-        config.setProperty(RoleElectionOptions.MASTER_DEAD_TIMES.name(),
-                           this.conf.get(RoleElectionOptions.MASTER_DEAD_TIMES));
+    private void transferPdPeersConfig(HugeConfig config) {
+        if (config.containsKey(CoreOptions.PD_PEERS.name())) {
+            return;
+        }
+
+        String backend = config.get(CoreOptions.BACKEND);
+        boolean needPdPeers = this.conf.get(ServerOptions.USE_PD) ||
+                              StringUtils.equalsIgnoreCase("hstore", backend);
+        if (needPdPeers) {
+            config.addProperty(CoreOptions.PD_PEERS.name(), this.pdPeers);
+        }
     }
 
     private void waitGraphsReady() {
@@ -1635,35 +1910,19 @@ public final class GraphManager {
     }
 
     private void initNodeRole() {
-        String id = config.get(ServerOptions.SERVER_ID);
         String role = config.get(ServerOptions.SERVER_ROLE);
-        E.checkArgument(StringUtils.isNotEmpty(id),
-                        "The server name can't be null or empty");
         E.checkArgument(StringUtils.isNotEmpty(role),
                         "The server role can't be null or empty");
 
         NodeRole nodeRole = NodeRole.valueOf(role.toUpperCase());
-        boolean supportRoleElection = !nodeRole.computer() &&
-                                      this.supportRoleElection() &&
-                                      config.get(ServerOptions.ENABLE_SERVER_ROLE_ELECTION);
-        if (supportRoleElection) {
-            // Init any server as Worker role, then do role election
-            nodeRole = NodeRole.WORKER;
-        }
-
-        this.globalNodeRoleInfo.initNodeId(IdGenerator.of(id));
         this.globalNodeRoleInfo.initNodeRole(nodeRole);
     }
 
-    private void serverStarted(HugeConfig conf) {
+    private void serverStarted() {
         for (String graph : this.graphs()) {
             HugeGraph hugegraph = this.graph(graph);
             assert hugegraph != null;
             hugegraph.serverStarted(this.globalNodeRoleInfo);
-        }
-        if (!this.globalNodeRoleInfo.nodeRole().computer() && this.supportRoleElection() &&
-            config.get(ServerOptions.ENABLE_SERVER_ROLE_ELECTION)) {
-            this.initRoleStateMachine();
         }
     }
 
@@ -1671,30 +1930,6 @@ public final class GraphManager {
                                          String schemaTemplate) {
 
         return this.metaManager.schemaTemplate(graphSpace, schemaTemplate);
-    }
-
-    private void initRoleStateMachine() {
-        E.checkArgument(this.roleStateMachine == null,
-                        "Repeated initialization of role state worker");
-        this.globalNodeRoleInfo.supportElection(true);
-        this.roleStateMachine = this.authenticator().graph().roleElectionStateMachine();
-        StandardRoleListener listener = new StandardRoleListener(TaskManager.instance(),
-                                                                 this.globalNodeRoleInfo);
-        this.roleStateMachine.start(listener);
-    }
-
-    private boolean supportRoleElection() {
-        try {
-            if (!(this.authenticator() instanceof StandardAuthenticator)) {
-                LOG.info("{} authenticator does not support role election currently",
-                         this.authenticator().getClass().getSimpleName());
-                return false;
-            }
-            return true;
-        } catch (IllegalStateException e) {
-            LOG.info("{}, does not support role election currently", e.getMessage());
-            return false;
-        }
     }
 
     private void addMetrics(HugeConfig config) {
@@ -1746,7 +1981,7 @@ public final class GraphManager {
             LOG.debug("RestServer accepts event '{}'", event.name());
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
-            this.graphs.remove(graph.spaceGraphName());
+            this.graphs.remove(graph.spaceGraphName(), graph);
             return null;
         });
     }
@@ -1763,12 +1998,34 @@ public final class GraphManager {
         this.metaManager.listenGraphClear(ConsumerWrapper.wrap(this::graphClearHandler));
     }
 
-    private void notifyAndWaitEvent(String event, HugeGraph graph) {
-        Future<?> future = this.eventHub.notify(event, graph);
+    /**
+     * Notify the listeners of `event` synchronously, failing if any listener
+     * did not complete successfully.
+     * <p>
+     * EventHub swallows every throwable raised by a listener and reports the
+     * attempted and successful listeners from the same snapshot.
+     */
+    private void notifyEvent(String event, HugeGraph graph) {
+        String graphName = graph.spaceGraphName();
+        NotifyResult result = this.eventHub.notifySync(event, graph);
+
+        if (!result.success()) {
+            throw new HugeException("Only %s of %s listeners handled event " +
+                                    "'%s' of graph '%s' successfully",
+                                    result.succeeded(), result.attempted(),
+                                    event, graphName);
+        }
+    }
+
+    /**
+     * Notify listeners synchronously, but keep listener failures non-fatal.
+     * Used by the drop and rollback paths, where cleanup must be best-effort.
+     */
+    private void notifyEventLenient(String event, HugeGraph graph) {
         try {
-            future.get();
+            this.eventHub.notifySync(event, graph);
         } catch (Throwable e) {
-            LOG.warn("Error when waiting for event execution: {}", event, e);
+            LOG.warn("Error when notifying event: {}", event, e);
         }
     }
 
@@ -1856,6 +2113,17 @@ public final class GraphManager {
         if (StringUtils.isNotEmpty((String) configs.get(CoreOptions.ALIAS_NAME.name()))) {
             return attachedConfigs;
         }
+        if (this.config.containsKey(CoreOptions.SCHEMA_CACHE_CAPACITY.name())) {
+            attachedConfigs.putIfAbsent(
+                    CoreOptions.SCHEMA_CACHE_CAPACITY.name(),
+                    this.config.get(CoreOptions.SCHEMA_CACHE_CAPACITY));
+        }
+        if (this.config.containsKey(
+                CoreOptions.SERIALIZER_BUFFER_MAX_CAPACITY.name())) {
+            attachedConfigs.putIfAbsent(
+                    CoreOptions.SERIALIZER_BUFFER_MAX_CAPACITY.name(),
+                    this.config.get(CoreOptions.SERIALIZER_BUFFER_MAX_CAPACITY));
+        }
         Object value = this.config.get(CoreOptions.VERTEX_CACHE_EXPIRE);
         if (Objects.nonNull(value)) {
             attachedConfigs.putIfAbsent(CoreOptions.VERTEX_CACHE_EXPIRE.name(),
@@ -1937,26 +2205,29 @@ public final class GraphManager {
     public HugeGraph graph(String graphSpace, String name) {
         String key = String.join(DELIMITER, graphSpace, name);
         Graph graph = this.graphs.get(key);
-        if (graph == null && isPDEnabled()) {
-            Map<String, Map<String, Object>> configs =
-                    this.metaManager.graphConfigs(graphSpace);
-            // If current server registered graph space is not DEFAULT, only load graph creation
-            // under registered graph space
-            if (!configs.containsKey(key) ||
-                (!"DEFAULT".equals(this.serviceGraphSpace) &&
-                 !graphSpace.equals(this.serviceGraphSpace))) {
-                return null;
+        if (graph == null) {
+            if (isPDEnabled()) {
+                Map<String, Map<String, Object>> configs =
+                        this.metaManager.graphConfigs(graphSpace);
+                // If current server registered graph space is not DEFAULT, only load graph creation
+                // under registered graph space
+                if (!configs.containsKey(key) ||
+                    (!"DEFAULT".equals(this.serviceGraphSpace) &&
+                     !graphSpace.equals(this.serviceGraphSpace))) {
+                    return null;
+                }
+                Map<String, Object> config = configs.get(key);
+                String creator = String.valueOf(config.get("creator"));
+                Date createTime = parseDate(config.get("create_time"));
+                Date updateTime = parseDate(config.get("update_time"));
+                HugeGraph graph1 = this.createGraph(graphSpace, name,
+                                                    creator, config, false);
+                graph1.createTime(createTime);
+                graph1.updateTime(updateTime);
+                this.graphs.put(key, graph1);
+                return graph1;
             }
-            Map<String, Object> config = configs.get(key);
-            String creator = String.valueOf(config.get("creator"));
-            Date createTime = parseDate(config.get("create_time"));
-            Date updateTime = parseDate(config.get("update_time"));
-            HugeGraph graph1 = this.createGraph(graphSpace, name,
-                                                creator, config, false);
-            graph1.createTime(createTime);
-            graph1.updateTime(updateTime);
-            this.graphs.put(key, graph1);
-            return graph1;
+            throw new NotFoundException(String.format("Graph '%s' does not exist", name));
         } else if (graph instanceof HugeGraph) {
             return (HugeGraph) graph;
         }
@@ -1977,7 +2248,7 @@ public final class GraphManager {
         this.dropGraphLocal(graph);
 
         // Let gremlin server and rest server context remove graph
-        this.notifyAndWaitEvent(Events.GRAPH_DROP, graph);
+        this.notifyEventLenient(Events.GRAPH_DROP, graph);
     }
 
     public void dropGraph(String graphSpace, String name, boolean clear) {
@@ -2099,6 +2370,19 @@ public final class GraphManager {
         for (String key : this.metaManager.graphConfigs(graphSpace).keySet()) {
             graphs.add(key.split(DELIMITER)[1]);
         }
+        if (DEFAULT_GRAPH_SPACE_SERVICE_NAME.equals(graphSpace)) {
+            String prefix = spaceGraphName(graphSpace, "");
+            for (String key : this.graphs.keySet()) {
+                if (!key.startsWith(prefix)) {
+                    continue;
+                }
+                String graph = key.substring(prefix.length());
+                if (SYS_GRAPH.equals(graph)) {
+                    continue;
+                }
+                graphs.add(graph);
+            }
+        }
         return graphs;
     }
 
@@ -2108,7 +2392,14 @@ public final class GraphManager {
         }
         GraphSpace space = this.graphSpaces.get(name);
         if (space == null) {
+            // Cache miss: try to load from etcd and populate the local cache
+            // so that subsequent calls (e.g. validGraphSpace checks) don't fail
+            // due to a race between the graphspace-create event and the listener
+            // updating this.graphSpaces.
             space = this.metaManager.graphSpace(name);
+            if (space != null) {
+                this.graphSpaces.putIfAbsent(name, space);
+            }
         }
         return space;
     }
@@ -2136,9 +2427,27 @@ public final class GraphManager {
         if (StringUtils.isEmpty(nickname)) {
             return false;
         }
+        if (!isPDEnabled()) {
+            // In non-PD mode, metaManager is not initialized.
+            // Check nickname against in-memory graphs (same pattern as graphs()).
+            for (Map.Entry<String, Graph> entry : this.graphs.entrySet()) {
+                String key = entry.getKey();
+                String[] parts = key.split(DELIMITER, 2);
+                if (parts.length == 2 && parts[0].equals(graphSpace) &&
+                    entry.getValue() instanceof HugeGraph) {
+                    HugeGraph hg = (HugeGraph) entry.getValue();
+                    if (nickname.equals(hg.nickname())) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        // PD mode: check via metaManager
         for (Map<String, Object> graphConfig :
                 this.metaManager.graphConfigs(graphSpace).values()) {
-            if (nickname.equals(graphConfig.get("nickname").toString())) {
+            Object nick = graphConfig.get("nickname");
+            if (nick != null && nickname.equals(nick.toString())) {
                 return true;
             }
         }
@@ -2174,12 +2483,93 @@ public final class GraphManager {
         return this.metaManager.getGraphConfig(graphSpace, graphName);
     }
 
+    /**
+     * Update the nickname of a graph.
+     * In non-PD mode (standalone RocksDB), only the in-memory instance is updated
+     * since local config files cannot be hot-reloaded.
+     * In PD mode, the change is also persisted to the meta storage so it
+     * survives restarts.
+     */
+    public void updateGraphNickname(String graphSpace, String graphName,
+                                    String nickname) {
+        // Always update the in-memory graph instance first
+        HugeGraph g = this.graph(graphSpace, graphName);
+        // Capture the old nickname so we can restore it on failure
+        String oldNickname = g != null ? g.nickname() : null;
+        if (g != null) {
+            g.nickname(nickname);
+        }
+        if (!isPDEnabled()) {
+            // Non-PD mode: in-memory only, acceptable for standalone RocksDB
+            return;
+        }
+        Map<String, Object> configs;
+        try {
+            configs = this.metaManager.getGraphConfig(graphSpace, graphName);
+            if (configs == null) {
+                return;
+            }
+            configs.put("nickname", nickname);
+            this.metaManager.updateGraphConfig(graphSpace, graphName, configs);
+        } catch (Exception e) {
+            // Roll back only if the PD metadata write did not succeed.
+            if (g != null) {
+                g.nickname(oldNickname);
+            }
+            throw new HugeException("Failed to persist nickname for graph " +
+                                    "'%s/%s'", e, graphSpace, graphName);
+        }
+        try {
+            this.metaManager.notifyGraphUpdate(graphSpace, graphName);
+        } catch (Exception e) {
+            LOG.warn("Failed to notify graph nickname update for graph '{}/{}'",
+                     graphSpace, graphName, e);
+        }
+    }
+
     public String pdPeers() {
         return this.pdPeers;
     }
 
     public String cluster() {
         return this.cluster;
+    }
+
+    public Set<String> schemaTemplates(String graphSpace) {
+        if (!isPDEnabled()) {
+            throw new HugeException("Schema templates are not supported in " +
+                                    "standalone (non-PD) mode");
+        }
+        return this.metaManager.schemaTemplates(graphSpace);
+    }
+
+    public void createSchemaTemplate(String graphSpace, SchemaTemplate template) {
+        if (!isPDEnabled()) {
+            throw new HugeException("Schema templates are not supported in " +
+                                    "standalone (non-PD) mode");
+        }
+        checkSchemaTemplateName(template.name());
+        this.metaManager.addSchemaTemplate(graphSpace, template);
+    }
+
+    public void dropSchemaTemplate(String graphSpace, String name) {
+        if (!isPDEnabled()) {
+            throw new HugeException("Schema templates are not supported in " +
+                                    "standalone (non-PD) mode");
+        }
+        this.metaManager.removeSchemaTemplate(graphSpace, name);
+    }
+
+    public void updateSchemaTemplate(String graphSpace, SchemaTemplate template) {
+        if (!isPDEnabled()) {
+            throw new HugeException("Schema templates are not supported in " +
+                                    "standalone (non-PD) mode");
+        }
+        this.metaManager.updateSchemaTemplate(graphSpace, template);
+    }
+
+    private static void checkSchemaTemplateName(String name) {
+        checkName(name, "schema template");
     }
 
     private enum PdRegisterType {
@@ -2195,7 +2585,7 @@ public final class GraphManager {
         cores
     }
 
-    public static class ConsumerWrapper<T> implements Consumer<T> {
+    private static class ConsumerWrapper<T> implements Consumer<T> {
 
         private final Consumer<T> consumer;
 
@@ -2203,25 +2593,16 @@ public final class GraphManager {
             this.consumer = consumer;
         }
 
-        public static ConsumerWrapper wrap(Consumer consumer) {
+        private static ConsumerWrapper wrap(Consumer consumer) {
             return new ConsumerWrapper(consumer);
         }
 
         @Override
         public void accept(T t) {
-            boolean grpcThread = false;
             try {
-                grpcThread = Thread.currentThread().getName().contains("grpc");
-                if (grpcThread) {
-                    HugeGraphAuthProxy.setAdmin();
-                }
-                consumer.accept(t);
+                HugeGraphAuthProxy.runAsAdmin(() -> this.consumer.accept(t));
             } catch (Throwable e) {
                 LOG.error("Listener exception occurred.", e);
-            } finally {
-                if (grpcThread) {
-                    HugeGraphAuthProxy.resetContext();
-                }
             }
         }
     }
@@ -2273,11 +2654,6 @@ public final class GraphManager {
                 // TODO: add alias graph
                 graph = this.createGraph(parts[0], parts[1], creator, config, false);
                 LOG.info("Add graph space:{} graph:{}", parts[0], parts[1]);
-                // TODO: use a more secure method to determine administrator privileges
-                boolean grpcThread = Thread.currentThread().getName().contains("grpc");
-                if (grpcThread) {
-                    HugeGraphAuthProxy.setAdmin();
-                }
                 graph.started(true);
                 if (graph.tx().isOpen()) {
                     graph.tx().close();

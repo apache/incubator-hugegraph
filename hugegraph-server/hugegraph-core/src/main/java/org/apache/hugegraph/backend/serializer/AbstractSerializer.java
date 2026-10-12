@@ -18,15 +18,16 @@
 package org.apache.hugegraph.backend.serializer;
 
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.query.IdQuery;
-import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.exception.BackendException;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.query.ConditionQuery;
+import org.apache.hugegraph.query.IdQuery;
+import org.apache.hugegraph.query.Query;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.iterator.CIter;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 public abstract class AbstractSerializer
@@ -53,6 +54,18 @@ public abstract class AbstractSerializer
     protected abstract Query writeQueryEdgeCondition(Query query);
 
     protected abstract Query writeQueryCondition(Query query);
+
+    protected Object edgeIdConditionValue(ConditionQuery query,
+                                          HugeKeys key) {
+        if (key == HugeKeys.LABEL) {
+            /*
+             * LABEL may still be represented by multiple top-level EQ/IN
+             * relations before strict edge-id serialization.
+             */
+            return query.conditionValue(key);
+        }
+        return query.condition(key);
+    }
 
     @Override
     public Query writeQuery(Query query) {

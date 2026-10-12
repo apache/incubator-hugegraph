@@ -22,16 +22,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy.Context;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.type.Nameable;
+import org.apache.hugegraph.type.Namifiable;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.dsl.credential.CredentialGraphTokens;
@@ -290,6 +290,10 @@ public interface HugeAuthenticator extends Authenticator {
             }
             for (Map.Entry<HugePermission, Object> e : perms.entrySet()) {
                 HugePermission permission = e.getKey();
+                if (permission == HugePermission.SPACE ||
+                    permission == HugePermission.SPACE_MEMBER) {
+                    continue;
+                }
                 // Maybe required = ANY
                 if (action.match(permission) ||
                     action.equals(HugePermission.EXECUTE)) {
@@ -359,8 +363,17 @@ public interface HugeAuthenticator extends Authenticator {
                 }
             }
 
-            RolePermission rolePerm = RolePermission.fromJson(role);
-            return rolePerm.contains(grant);
+            RolePermission grantedRole = RolePermission.fromJson(grant);
+            RolePermission currentRole = RolePermission.fromJson(role);
+            RolePerm rolePerm = RolePerm.fromJson(currentRole);
+            if (resourceObject != null &&
+                !RolePermission.isAdmin(grantedRole) &&
+                grantedRole.roles().size() == 1 &&
+                grantedRole.roles().containsKey(resourceObject.graphSpace()) &&
+                rolePerm.matchSpace(resourceObject.graphSpace(), "space")) {
+                return true;
+            }
+            return currentRole.contains(grantedRole);
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
@@ -464,12 +477,12 @@ public interface HugeAuthenticator extends Authenticator {
                     // check label
                     String requiredLabel;
                     if (requiredType.isSchema()) {
-                        requiredLabel = ((Nameable) requiredResource.operated()).name();
+                        requiredLabel = ((Namifiable) requiredResource.operated()).name();
                     } else if (requiredType.isGraph()) {
                         if (requiredResource.operated() instanceof HugeElement) {
                             requiredLabel = ((HugeElement) requiredResource.operated()).label();
                         } else {
-                            requiredLabel = ((Nameable) requiredResource.operated()).name();
+                            requiredLabel = ((Namifiable) requiredResource.operated()).name();
                         }
                     } else {
                         return true;
@@ -638,7 +651,7 @@ public interface HugeAuthenticator extends Authenticator {
         }
 
         public ResourceObject<?> resourceObject() {
-            Nameable elem = HugeResource.NameObject.ANY;
+            Namifiable elem = HugeResource.NameObject.ANY;
             return ResourceObject.of(this.graphSpace, this.owner, this.resource, elem);
         }
     }

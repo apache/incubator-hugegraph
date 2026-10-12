@@ -23,12 +23,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.backend.store.ram.IntObjectMap;
 import org.apache.hugegraph.backend.tx.SchemaTransactionV2;
 import org.apache.hugegraph.config.CoreOptions;
@@ -38,7 +39,7 @@ import org.apache.hugegraph.meta.MetaDriver;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.meta.MetaManager.SchemaCacheClearEvent;
 import org.apache.hugegraph.perf.PerfUtil;
-import org.apache.hugegraph.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaElement;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
@@ -47,8 +48,14 @@ import com.google.common.collect.ImmutableSet;
 
 public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
 
-    private static final String ID_CACHE_PREFIX = "schema-id";
-    private static final String NAME_CACHE_PREFIX = "schema-name";
+    /*
+     * V1 and V2 transactions can coexist in the same JVM for graphs with the
+     * same name but different backends. Keep their cache entries isolated:
+     * besides holding different schema data, their attachments use different
+     * SchemaCaches classes and therefore can't be shared safely.
+     */
+    private static final String ID_CACHE_PREFIX = "schema-v2-id";
+    private static final String NAME_CACHE_PREFIX = "schema-v2-name";
 
     // MetaDriver doesn't expose unlisten, register the meta listener once.
     // Lifecycle: this JVM-global flag is intentionally never reset by
@@ -70,6 +77,10 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     private static final String SCHEMA_CACHE_CLEAR_SOURCE =
             UUID.randomUUID().toString();
 
+    private static final ConcurrentMap<String, CacheListenerHolder>
+            SCHEMA_CACHE_EVENT_LISTENERS = new ConcurrentHashMap<>();
+
+    private CacheListenerHolder holder;
     private final Cache<Id, Object> idCache;
     private final Cache<Id, Object> nameCache;
 
@@ -107,8 +118,8 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
         return IdGenerator.of(type.string() + "-" + name);
     }
 
+    @Override
     public void close() {
-        this.clearCache(false);
         this.unlistenChanges();
     }
 
@@ -160,10 +171,9 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             }
             return false;
         };
-        this.graphParams().loadGraphStore().provider().listen(this.storeEventListener);
 
         // Listen cache event: "cache"(invalid cache item)
-        this.cacheEventListener = event -> {
+        EventListener listener = event -> {
             LOG.debug("Graph {} received schema cache event: {}",
                       this.graph(), event);
             Object[] args = event.args();
@@ -197,11 +207,28 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             return false;
         };
         EventHub schemaEventHub = this.graphParams().schemaEventHub();
-        if (!schemaEventHub.containsListener(Events.CACHE)) {
-            schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
-        }
-
         listenSchemaCacheClear();
+        CacheListenerHolder acquired = SCHEMA_CACHE_EVENT_LISTENERS.compute(
+                this.graphParams().spaceGraphName(), (key, existing) -> {
+                    if (existing == null || existing.hub != schemaEventHub) {
+                        if (existing != null) {
+                            existing.close();
+                        }
+                        schemaEventHub.listen(Events.CACHE, listener);
+                        this.graphParams().loadGraphStore().provider().listen(this.storeEventListener);
+                        return new CacheListenerHolder(listener, schemaEventHub, () -> {
+                            try {
+                                this.graphParams().loadGraphStore().provider().unlisten(this.storeEventListener);
+                            } finally {
+                                this.clearCache(false);
+                            }
+                        });
+                    }
+                    existing.refCount++;
+                    return existing;
+                });
+        this.holder = acquired;
+        this.cacheEventListener = acquired.listener;
     }
 
     private static void listenSchemaCacheClear() {
@@ -272,13 +299,27 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
     }
 
     private void unlistenChanges() {
-        // Unlisten store event
-        this.graphParams().loadGraphStore().provider()
-            .unlisten(this.storeEventListener);
+        CacheListenerHolder ours = this.holder;
+        if (ours != null) {
+            SCHEMA_CACHE_EVENT_LISTENERS.compute(this.graphParams().spaceGraphName(), (key, existing) -> {
+                if (existing == ours) {
+                    existing.refCount--;
+                }
+                return existing;
+            });
+            this.holder = null;
+            this.cacheEventListener = null;
+        }
+    }
 
-        // Unlisten cache event
-        EventHub schemaEventHub = this.graphParams().schemaEventHub();
-        schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
+    public static void closeGraph(HugeGraphParams params) {
+        SCHEMA_CACHE_EVENT_LISTENERS.computeIfPresent(params.spaceGraphName(), (key, existing) -> {
+            if (existing.hub != params.schemaEventHub()) {
+                return existing;
+            }
+            existing.close();
+            return null;
+        });
     }
 
     private CachedTypes cachedTypes() {
@@ -461,6 +502,7 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
         // Clear schema info firstly
         super.clear();
         this.clearCache(false);
+        this.notifySchemaCacheClear();
     }
 
     private static final class SchemaCaches<V extends SchemaElement> {

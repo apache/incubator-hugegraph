@@ -19,11 +19,13 @@ package org.apache.hugegraph.unit;
 
 import org.apache.hugegraph.testutil.AssertTest;
 import org.apache.hugegraph.testutil.WhiteboxTest;
+import org.apache.hugegraph.unit.auth.TokenGeneratorTest;
 import org.apache.hugegraph.unit.config.HugeConfigTest;
 import org.apache.hugegraph.unit.config.OptionSpaceTest;
 import org.apache.hugegraph.unit.event.EventHubTest;
 import org.apache.hugegraph.unit.rest.AbstractRestClientTest;
 import org.apache.hugegraph.unit.version.VersionTest;
+import org.apache.hugegraph.unit.util.RocksDBRuntimeTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -59,6 +61,7 @@ import org.apache.hugegraph.unit.util.EcheckTest;
 import org.apache.hugegraph.unit.util.HashUtilTest;
 import org.apache.hugegraph.unit.util.InsertionOrderUtilTest;
 import org.apache.hugegraph.unit.util.LogTest;
+import org.apache.hugegraph.unit.util.LongEncodingGoldenTest;
 import org.apache.hugegraph.unit.util.LongEncodingTest;
 import org.apache.hugegraph.unit.util.NumericUtilTest;
 import org.apache.hugegraph.unit.util.OrderLimitMapTest;
@@ -70,6 +73,7 @@ import org.apache.hugegraph.unit.util.VersionUtilTest;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        RocksDBRuntimeTest.class,
     LockManagerTest.class,
     LockGroupTest.class,
     AtomicLockTest.class,
@@ -77,6 +81,7 @@ import org.apache.hugegraph.unit.util.VersionUtilTest;
     RowLockTest.class,
     PausableScheduledThreadPoolTest.class,
 
+    TokenGeneratorTest.class,
     HugeConfigTest.class,
     OptionSpaceTest.class,
     SafeDateFormatTest.class,
@@ -110,6 +115,7 @@ import org.apache.hugegraph.unit.util.VersionUtilTest;
     TimeUtilTest.class,
     VersionUtilTest.class,
     LongEncodingTest.class,
+    LongEncodingGoldenTest.class,
     OrderLimitMapTest.class,
     DateUtilTest.class,
     UnitUtilTest.class,

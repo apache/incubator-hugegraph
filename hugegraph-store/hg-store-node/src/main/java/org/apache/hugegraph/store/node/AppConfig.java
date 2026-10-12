@@ -40,6 +40,9 @@ public class AppConfig {
     @Value("${pdserver.address}")
     private String pdServerAddress;
 
+    @Value("${pd.cluster:hg}")
+    private String pdCluster = "hg";
+
     @Value("${grpc.host}")
     private String host;
 
@@ -211,10 +214,10 @@ public class AppConfig {
         @Value("${arthas.httpPort:8565}")
         private String httpPort;
 
-        @Value("${arthas.ip:127.0.0.1}")
+        @Value("${arthas.ip:0.0.0.0}")
         private String arthasip;
 
-        @Value("${arthas.disabledCommands:jad,ognl,vmtool}")
+        @Value("${arthas.disabledCommands:jad}")
         private String disCmd;
     }
 

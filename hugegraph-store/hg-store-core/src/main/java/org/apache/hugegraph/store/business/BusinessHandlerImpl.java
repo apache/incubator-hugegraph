@@ -34,10 +34,17 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -47,11 +54,13 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.HugeGraphSupplier;
-import org.apache.hugegraph.SchemaGraph;
 import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.OptionSpace;
@@ -102,8 +111,11 @@ import org.apache.hugegraph.store.pd.PdProvider;
 import org.apache.hugegraph.store.query.QueryTypeParam;
 import org.apache.hugegraph.store.raft.RaftClosure;
 import org.apache.hugegraph.store.raft.RaftOperation;
+import org.apache.hugegraph.store.schema.SchemaDriver;
+import org.apache.hugegraph.store.schema.SchemaGraph;
 import org.apache.hugegraph.store.term.Bits;
 import org.apache.hugegraph.store.term.HgPair;
+import org.apache.hugegraph.store.util.DefaultThreadFactory;
 import org.apache.hugegraph.store.util.ExecutorUtil;
 import org.apache.hugegraph.store.util.HgStoreException;
 import org.apache.hugegraph.structure.BaseElement;
@@ -121,6 +133,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     private static final Map<String, HugeGraphSupplier> GRAPH_SUPPLIER_CACHE =
             new ConcurrentHashMap<>();
+    private static final int GRAPH_LOCK_STRIPES = 1024;
+    private static final ReadWriteLock[] GRAPH_LOCKS = createGraphLocks();
     private static final int batchSize = 10000;
     private static Long indexDataSize = 50 * 1024L;
     private static final RocksDBFactory factory = RocksDBFactory.getInstance();
@@ -132,6 +146,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
     private static HugeGraphSupplier mockGraphSupplier = null;
     private static final ConcurrentMap<String, AtomicInteger> pathLock = new ConcurrentHashMap<>();
     private static final ConcurrentMap<Integer, AtomicInteger> compactionState =
+            new ConcurrentHashMap<>();
+    // Guards the compactRange() window specifically, so a snapshot save can atomically
+    // check-and-reserve against a compaction that is actually running right now. This is
+    // narrower than pathLock, which stays held through the post-compaction blank-task
+    // snapshot and must not be reused here to avoid deadlocking that flow.
+    private static final ConcurrentMap<Integer, ReentrantLock> compactionRangeLock =
             new ConcurrentHashMap<>();
     // Default core thread count
     private static final int compactionThreadCount = 64;
@@ -148,6 +168,33 @@ public class BusinessHandlerImpl implements BusinessHandler {
     private final PdProvider provider;
     private final InnerKeyCreator keyCreator;
     private final Semaphore semaphore = new Semaphore(1);
+
+    /* Bounds how long dbCompaction() waits to acquire compactionRangeLock when a snapshot
+     save is holding it. saveSnapshot() is a RocksDB Checkpoint (hard-links existing SST
+     files, no data copy) plus a partial checksum read, so the lock is normally held for
+     well under a second, at most a few seconds under a slow/busy disk. 10s gives generous
+     margin over that expected hold time while keeping a stuck snapshot save from blocking
+     compaction for long: if the wait is exceeded, dbCompaction just skips this pass and
+     relies on the next trigger (PD instruction, REST call, etc.) to retry - see the
+     tryLock() call below.
+     Not final so tests can shorten it via setCompactionRangeLockWaitMillis() rather than
+     waiting out the real production value.*/
+    @Setter @Getter
+    private static long compactionRangeLockWaitMillis = 10_000;
+    /* Retry cadence for a cleanPartition() compactRange() pass that had to be skipped because
+     compactionRangeLock was still held by a snapshot save after compactionRangeLockWaitMillis.
+     Not final so tests can shorten it via setCleanPartitionCompactRetryDelayMillis() rather
+     than waiting out the real production value. */
+    @Setter @Getter
+    private static long cleanPartitionCompactRetryDelayMillis = 30_000;
+    /* Bounds how many times a skipped cleanPartition() compactRange() pass is retried before
+     it is abandoned and logged, rather than dropped silently forever. Not final so tests can
+     shrink it via setMaxCleanPartitionCompactRetries() to exercise the exhausted-retries path
+     quickly. */
+    @Setter @Getter
+    private static int maxCleanPartitionCompactRetries = 5;
+    private static final ScheduledExecutorService cleanPartitionCompactRetryScheduler =
+            new ScheduledThreadPoolExecutor(1, new DefaultThreadFactory(PoolNames.COMPACT_RETRY));
 
     public BusinessHandlerImpl(PartitionManager partitionManager) {
         this.partitionManager = partitionManager;
@@ -170,6 +217,20 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
             }
         });
+    }
+
+    private static ReadWriteLock[] createGraphLocks() {
+        ReadWriteLock[] locks = new ReadWriteLock[GRAPH_LOCK_STRIPES];
+        for (int i = 0; i < locks.length; i++) {
+            locks[i] = new ReentrantReadWriteLock(true);
+        }
+        return locks;
+    }
+
+    private static ReadWriteLock graphLock(String graph, int partId) {
+        int hash = 31 * partId + graph.hashCode();
+        hash ^= hash >>> 16;
+        return GRAPH_LOCKS[hash & (GRAPH_LOCK_STRIPES - 1)];
     }
 
     public static HugeConfig initRocksdb(Map<String, Object> rocksdbConfig,
@@ -234,20 +295,32 @@ public class BusinessHandlerImpl implements BusinessHandler {
             return mockGraphSupplier;
         }
 
-        if (GRAPH_SUPPLIER_CACHE.get(graph) == null) {
+        if (graph == null) {
+            throw new HgStoreException("Graph must include graph space and graph name");
+        }
+        HugeGraphSupplier supplier = GRAPH_SUPPLIER_CACHE.get(graph);
+        if (supplier == null) {
             synchronized (BusinessHandlerImpl.class) {
-                if (GRAPH_SUPPLIER_CACHE.get(graph) == null) {
+                supplier = GRAPH_SUPPLIER_CACHE.get(graph);
+                if (supplier == null) {
+                    if (HgStoreEngine.getInstance().isClosing().get()) {
+                        throw new HgStoreException("Store is closing");
+                    }
+                    String[] parts = graph.split("/", -1);
+                    if (parts.length < 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
+                        throw new HgStoreException("Graph must include graph space and graph name: " + graph);
+                    }
                     var config =
                             PDConfig.of(HgStoreEngine.getInstance().getOption().getPdAddress());
                     config.setAuthority(DefaultPdProvider.name, DefaultPdProvider.authority);
-                    String[] parts = graph.split("/");
-                    assert (parts.length > 1);
-                    GRAPH_SUPPLIER_CACHE.put(graph, new SchemaGraph(parts[0], parts[1], config));
+                    supplier = new SchemaGraph(parts[0], parts[1], config,
+                                               HgStoreEngine.getInstance().getOption().getPdCluster());
+                    GRAPH_SUPPLIER_CACHE.put(graph, supplier);
                 }
             }
         }
 
-        return GRAPH_SUPPLIER_CACHE.get(graph);
+        return supplier;
     }
 
     @Override
@@ -342,6 +415,29 @@ public class BusinessHandlerImpl implements BusinessHandler {
             }
         };
         return MultiPartitionIterator.of(ids, function);
+    }
+
+    @Override
+    public ScanIterator scanOrdered(String graph, String table, byte[] start,
+                                    byte[] end, int scanType) throws HgStoreException {
+        List<Integer> ids = this.getLeaderPartitionIds(graph);
+        Function<Integer, ScanIterator> function = id -> {
+            byte[] endKey;
+            int type;
+            if (ArrayUtils.isEmpty(end)) {
+                endKey = keyCreator.getEndKey(id, graph);
+                type = ScanIterator.Trait.SCAN_LT_END;
+            } else {
+                endKey = keyCreator.getEndKey(id, graph, end);
+                type = scanType;
+            }
+            try (RocksDBSession dbSession = getSession(graph, table, id)) {
+                return new InnerKeyFilter(dbSession.sessionOp().scan(
+                        table, keyCreator.getStartKey(id, graph, start),
+                        endKey, type));
+            }
+        };
+        return OrderedMultiPartitionIterator.of(ids, function);
     }
 
     /**
@@ -463,7 +559,17 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     @Override
     public GraphStoreIterator scan(ScanPartitionRequest spr) throws HgStoreException {
-        return new GraphStoreIterator(scanOriginal(spr), spr);
+        ScanIterator original = scanOriginal(spr);
+        try {
+            return new GraphStoreIterator(original, spr);
+        } catch (RuntimeException failure) {
+            try {
+                original.close();
+            } catch (RuntimeException closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
+            throw failure;
+        }
     }
 
     private ToLongFunction<BaseElement> getBaseElementHashFunction() {
@@ -656,7 +762,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                                                                 OUT_EDGE_TABLE.equals(
                                                                                         table)) {
                                                                                 element =
-                                                                                        serializer.parseEdge(
+                                                                                        serializer.parseSchemaEdge(
                                                                                                 getGraphSupplier(
                                                                                                         graph),
                                                                                                 BackendColumn.of(
@@ -666,7 +772,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                                                                                 false);
                                                                             } else {
                                                                                 element =
-                                                                                        serializer.parseVertex(
+                                                                                        serializer.parseSchemaVertex(
                                                                                                 getGraphSupplier(
                                                                                                         graph),
                                                                                                 BackendColumn.of(
@@ -794,13 +900,12 @@ public class BusinessHandlerImpl implements BusinessHandler {
                      param.getBoundary()) :
                 scanPrefix(graph, param.getCode(), INDEX_TABLE, param.getStart(),
                            param.getBoundary()), column -> {
-            if (filterTTL && isIndexExpire(column, now)) {
+            if (filterTTL && isIndexExpire(graph, column, now)) {
                 return null;
             }
 
-            // todo: Use parseIndex(BackendColumn indexCol) later
-            var index = serializer.parseIndex(getGraphSupplier(graph),
-                                              BackendColumn.of(column.name, column.value), null);
+            var index = serializer.parseSchemaIndex(getGraphSupplier(graph),
+                                                     BackendColumn.of(column.name, column.value));
 
             if (param.getIdPrefix() != null &&
                 !Bytes.prefixWith(index.elementId().asBytes(), param.getIdPrefix())) {
@@ -833,7 +938,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                      param.getBoundary()) :
                 scanPrefix(graph, param.getCode(), INDEX_TABLE, param.getStart(),
                            param.getBoundary()), column -> {
-            if (filterTTL && isIndexExpire(column, now)) {
+            if (filterTTL && isIndexExpire(graph, column, now)) {
                 return null;
             }
 
@@ -851,8 +956,8 @@ public class BusinessHandlerImpl implements BusinessHandler {
         }, "trans-index-to-base-element");
     }
 
-    private boolean isIndexExpire(RocksDBSession.BackendColumn column, long now) {
-        var e = directBinarySerializer.parseIndex(column.name, column.value);
+    private boolean isIndexExpire(String graph, RocksDBSession.BackendColumn column, long now) {
+        var e = directBinarySerializer.parseSchemaIndex(getGraphSupplier(graph), column.name, column.value);
         return e.expiredTime() > 0 && e.expiredTime() < now;
     }
 
@@ -1014,11 +1119,17 @@ public class BusinessHandlerImpl implements BusinessHandler {
     public void truncate(String graphName, int partId) throws HgStoreException {
         // Each partition corresponds to a rocksdb instance, so the rocksdb instance name is
         // rocksdb + partId
-        try (RocksDBSession dbSession = getSession(graphName, partId)) {
-            dbSession.sessionOp().deleteRange(keyCreator.getStartKey(partId, graphName),
-                                              keyCreator.getEndKey(partId, graphName));
-            // Release map ID
-            keyCreator.delGraphId(partId, graphName);
+        Lock lifecycleLock = graphLock(graphName, partId).writeLock();
+        lifecycleLock.lock();
+        try {
+            try (RocksDBSession dbSession = getSession(graphName, partId)) {
+                dbSession.sessionOp().deleteRange(keyCreator.getStartKey(partId, graphName),
+                                                  keyCreator.getEndKey(partId, graphName));
+                // Release map ID
+                keyCreator.delGraphId(partId, graphName);
+            }
+        } finally {
+            lifecycleLock.unlock();
         }
     }
 
@@ -1042,9 +1153,13 @@ public class BusinessHandlerImpl implements BusinessHandler {
     @Override
     public void closeAll() {
         log.warn("close all db!!! ");
-        factory.getGraphNames().forEach(dbName -> {
-            factory.releaseGraphDB(dbName);
-        });
+        try {
+            factory.getGraphNames().forEach(dbName -> {
+                factory.releaseGraphDB(dbName);
+            });
+        } finally {
+            closeSchemaResources();
+        }
     }
 
     @Override
@@ -1127,7 +1242,6 @@ public class BusinessHandlerImpl implements BusinessHandler {
         if (partition == null) {
             return true;
         }
-
         log.info("cleanPartition: graph {}, part id: {}, {} -> {}, cleanType:{}", graph, partId,
                  startKey, endKey, cleanType);
 
@@ -1142,6 +1256,13 @@ public class BusinessHandlerImpl implements BusinessHandler {
         taskManager.putAsyncTask(cleanTask);
 
         Utils.runInThread(() -> {
+            // The range lock only guards the actual compactRange() call inside
+            // cleanPartition(Partition, Function) below - not this whole delete pass, which
+            // scans every key in the partition and can take minutes. Holding the range lock
+            // for that long would fail every onSnapshotSave on this partition with EBUSY for
+            // the duration, and a slow snapshot save could then make this one-shot
+            // post-split/move cleanup time out and get dropped entirely instead of just its
+            // compaction step.
             cleanPartition(partition, code -> {
                 // in range
                 boolean flag = code >= startKey && code < endKey;
@@ -1216,9 +1337,108 @@ public class BusinessHandlerImpl implements BusinessHandler {
             }
             op.getDBSession().close();
         }
-        op.compactRange();
+        int partId = partition.getId();
+        ReentrantLock rangeLock =
+                compactionRangeLock.computeIfAbsent(partId, k -> new ReentrantLock());
+        boolean rangeLocked = false;
+        boolean needsRetry = false;
+        try {
+            rangeLocked = rangeLock.tryLock(compactionRangeLockWaitMillis, TimeUnit.MILLISECONDS);
+            if (rangeLocked) {
+                op.compactRange();
+            } else {
+                // The delete pass above already committed, so the cleanup itself succeeded -
+                // only compaction needs to be retried here. Log and move on rather than failing
+                // the whole cleanup over a busy snapshot save. A bounded retry is scheduled
+                // below so the compaction still eventually runs.
+                log.warn("Partition {}-{} skip cleanPartition compactRange, snapshot save " +
+                         "still in progress after {}ms wait", partition.getGraphName(), partId,
+                         compactionRangeLockWaitMillis);
+                needsRetry = true;
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Partition {}-{} cleanPartition interrupted while waiting for snapshot " +
+                     "range lock, will retry compactRange", partition.getGraphName(), partId);
+            needsRetry = true;
+        } finally {
+            if (rangeLocked) {
+                rangeLock.unlock();
+            }
+        }
+        if (needsRetry) {
+            scheduleCleanPartitionCompactRetry(partition, 1);
+        }
         log.info("Partition {}-{} cleanPartition end", partition.getGraphName(), partition.getId());
         return true;
+    }
+
+    /**
+     * Retries a cleanPartition() compactRange() pass that needs to run again because
+     * compactionRangeLock was still held by a snapshot save. The original op's session was
+     * already closed by the time the range-lock section ran, so each attempt opens a fresh
+     * session rather than reusing it. Gives up and logs once maxCleanPartitionCompactRetries
+     * is exhausted, or if the partition has since been destroyed.
+     */
+    private void scheduleCleanPartitionCompactRetry(Partition partition, int attempt) {
+        String graph = partition.getGraphName();
+        int partId = partition.getId();
+        cleanPartitionCompactRetryScheduler.schedule(() -> {
+            if (HgStoreEngine.getInstance().getPartitionEngine(partId) == null) {
+                log.warn("Partition {}-{} abandoning cleanPartition compactRange retry {}/{}, " +
+                         "partition no longer exists", graph, partId, attempt,
+                         maxCleanPartitionCompactRetries);
+                return;
+            }
+            ReentrantLock rangeLock =
+                    compactionRangeLock.computeIfAbsent(partId, k -> new ReentrantLock());
+            boolean rangeLocked = false;
+            boolean needsRetry = false;
+            try {
+                rangeLocked = rangeLock.tryLock(compactionRangeLockWaitMillis,
+                                                TimeUnit.MILLISECONDS);
+                if (rangeLocked) {
+                    SessionOperator retryOp = getSession(graph, partId).sessionOp();
+                    try {
+                        retryOp.compactRange();
+                        log.info("Partition {}-{} cleanPartition compactRange retry {}/{} " +
+                                 "succeeded", graph, partId, attempt,
+                                 maxCleanPartitionCompactRetries);
+                    } finally {
+                        retryOp.getDBSession().close();
+                    }
+                } else {
+                    log.warn("Partition {}-{} cleanPartition compactRange retry {}/{} needs " +
+                             "another retry, snapshot save still in progress after {}ms wait",
+                             graph, partId, attempt, maxCleanPartitionCompactRetries,
+                             compactionRangeLockWaitMillis);
+                    needsRetry = true;
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Partition {}-{} cleanPartition compactRange retry {}/{} interrupted " +
+                         "while waiting for snapshot range lock", graph, partId, attempt,
+                         maxCleanPartitionCompactRetries);
+                needsRetry = true;
+            } catch (Exception e) {
+                log.error("Partition {}-{} abandoning cleanPartition compactRange retry {}/{} " +
+                          "after failure", graph, partId, attempt, maxCleanPartitionCompactRetries,
+                          e);
+            } finally {
+                if (rangeLocked) {
+                    rangeLock.unlock();
+                }
+            }
+            if (needsRetry) {
+                if (attempt < maxCleanPartitionCompactRetries) {
+                    scheduleCleanPartitionCompactRetry(partition, attempt + 1);
+                } else {
+                    log.warn("Partition {}-{} abandoning cleanPartition compactRange after {} " +
+                             "retries, snapshot save still busy", graph, partId,
+                             maxCleanPartitionCompactRetries);
+                }
+            }
+        }, cleanPartitionCompactRetryDelayMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -1287,7 +1507,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
 
     @Override
     public TxBuilder txBuilder(String graph, int partId) throws HgStoreException {
-        return new TxBuilderImpl(graph, partId, getSession(graph, partId));
+        return new TxBuilderImpl(graph, partId);
     }
 
     @Override
@@ -1365,12 +1585,50 @@ public class BusinessHandlerImpl implements BusinessHandler {
                         pathLock.putIfAbsent(path, new AtomicInteger(compactionCanStart));
                         compactionState.putIfAbsent(id, new AtomicInteger(0));
                         log.info("Partition {} dbCompaction started", id);
+                        ReentrantLock rangeLock =
+                                compactionRangeLock.computeIfAbsent(id,
+                                                                    k -> new ReentrantLock());
                         if (tableName.isEmpty()) {
+                            // Take the path lock first: it can block for up to timeoutMillis
+                            // (6h) waiting on an earlier compaction/snapshot cycle for this
+                            // partition, so it must not be held while also reserving the
+                            // range lock below - that would let a blocked dbCompaction pin
+                            // the range lock and fail every onSnapshotSave for the partition
+                            // until the wait ends.
                             lock(path);
-                            setState(id, doing);
-                            log.info("Partition {}-{} got lock, dbCompaction start", id, path);
-                            op.compactRange();
-                            setState(id, compactionDone);
+                            boolean rangeLocked;
+                            try {
+                                rangeLocked = rangeLock.tryLock(compactionRangeLockWaitMillis,
+                                                                TimeUnit.MILLISECONDS);
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                log.warn("Partition {} dbCompaction interrupted while waiting " +
+                                         "for snapshot range lock", id);
+                                // lock(path) above already succeeded, so the path lock is
+                                // definitely held here and must be released, otherwise later
+                                // compactions for this partition would block until the path
+                                // lock timeout.
+                                unlock(path);
+                                return;
+                            }
+                            if (!rangeLocked) {
+                                // A snapshot save is still reserving this partition's range lock
+                                // after the wait. Skip this compaction pass rather than block -
+                                // callers of dbCompaction().
+                                log.warn("Partition {} skip dbCompaction, snapshot save " +
+                                         "still in progress after {}ms wait", id,
+                                         compactionRangeLockWaitMillis);
+                                unlock(path);
+                                return;
+                            }
+                            try {
+                                setState(id, doing);
+                                log.info("Partition {}-{} got lock, dbCompaction start", id, path);
+                                op.compactRange();
+                                setState(id, compactionDone);
+                            } finally {
+                                rangeLock.unlock();
+                            }
                             log.info("Partition {} dbCompaction end and start to do snapshot", id);
                             PartitionEngine pe = HgStoreEngine.getInstance().getPartitionEngine(id);
                             // find leader and send blankTask, after execution
@@ -1388,7 +1646,29 @@ public class BusinessHandlerImpl implements BusinessHandler {
                             }
                             setAndNotifyState(id, compactionDone);
                         } else {
-                            op.compactRange(tableName);
+                            // No path lock in this branch: only guard the actual
+                            // compactRange(tableName) call against a concurrent snapshot save.
+                            boolean rangeLocked = false;
+                            try {
+                                rangeLocked = rangeLock.tryLock(compactionRangeLockWaitMillis,
+                                                                TimeUnit.MILLISECONDS);
+                                if (rangeLocked) {
+                                    op.compactRange(tableName);
+                                } else {
+                                    log.warn("Partition {} skip dbCompaction({}), snapshot " +
+                                             "save still in progress after {}ms wait", id,
+                                             tableName, compactionRangeLockWaitMillis);
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                                log.warn("Partition {} dbCompaction({}) interrupted while " +
+                                         "waiting for snapshot range lock", id, tableName);
+                                return;
+                            } finally {
+                                if (rangeLocked) {
+                                    rangeLock.unlock();
+                                }
+                            }
                         }
                     }
                     log.info("Partition {}-{} dbCompaction end", id, path);
@@ -1437,6 +1717,20 @@ public class BusinessHandlerImpl implements BusinessHandler {
     }
 
     @Override
+    public boolean tryLockCompactionRange(int id) {
+        ReentrantLock rangeLock = compactionRangeLock.computeIfAbsent(id, k -> new ReentrantLock());
+        return rangeLock.tryLock();
+    }
+
+    @Override
+    public void unlockCompactionRange(int id) {
+        ReentrantLock rangeLock = compactionRangeLock.get(id);
+        if (rangeLock != null) {
+            rangeLock.unlock();
+        }
+    }
+
+    @Override
     public void awaitAndSetLock(int id, int expectedValue, int value) throws InterruptedException,
                                                                              TimeoutException {
         long start = System.currentTimeMillis();
@@ -1464,6 +1758,11 @@ public class BusinessHandlerImpl implements BusinessHandler {
     public AtomicInteger getState(int id) {
         AtomicInteger l = compactionState.get(id);
         return l;
+    }
+
+    @Override
+    public AtomicInteger getPathLockState(String path) {
+        return pathLock.get(path);
     }
 
     private AtomicInteger setState(int id, int state) {
@@ -1564,20 +1863,42 @@ public class BusinessHandlerImpl implements BusinessHandler {
         private final int partId;
         private final RocksDBSession dbSession;
         private final SessionOperator op;
+        private final Lock lifecycleLock;
+        private boolean completed;
 
-        private TxBuilderImpl(String graph, int partId, RocksDBSession dbSession) {
+        private TxBuilderImpl(String graph, int partId) {
             this.graph = graph;
             this.partId = partId;
-            this.dbSession = dbSession;
-            this.op = this.dbSession.sessionOp();
-            this.op.prepare();
+            this.lifecycleLock = graphLock(graph, partId).readLock();
+            this.lifecycleLock.lock();
+
+            RocksDBSession session = null;
+            SessionOperator operator = null;
+            try {
+                session = getSession(graph, partId);
+                operator = session.sessionOp();
+                operator.prepare();
+            } catch (RuntimeException | Error e) {
+                try {
+                    if (session != null) {
+                        session.close();
+                    }
+                } catch (Throwable closeError) {
+                    e.addSuppressed(closeError);
+                } finally {
+                    this.lifecycleLock.unlock();
+                }
+                throw e;
+            }
+            this.dbSession = session;
+            this.op = operator;
         }
 
         @Override
         public TxBuilder put(int code, String table, byte[] key, byte[] value) throws
                                                                                HgStoreException {
             try {
-                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
+                byte[] targetKey = keyCreator.getKeyOrCreate(this.partId, graph, code, key);
                 this.op.put(table, targetKey, value);
             } catch (DBStoreException e) {
                 throw new HgStoreException(HgStoreException.EC_RKDB_DOPUT_FAIL, e.toString());
@@ -1642,7 +1963,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
                                                                                  HgStoreException {
 
             try {
-                byte[] targetKey = keyCreator.getKey(this.partId, graph, code, key);
+                byte[] targetKey = keyCreator.getKeyOrCreate(this.partId, graph, code, key);
                 op.merge(table, targetKey, value);
             } catch (DBStoreException e) {
                 throw new HgStoreException(HgStoreException.EC_RKDB_DOMERGE_FAIL, e.toString());
@@ -1655,24 +1976,48 @@ public class BusinessHandlerImpl implements BusinessHandler {
             return new Tx() {
                 @Override
                 public void commit() throws HgStoreException {
+                    if (completed) {
+                        return;
+                    }
                     op.commit();  // After an exception occurs in commit, rollback must be
                     // called, otherwise it will cause the lock not to be released.
-                    dbSession.close();
+                    completed = true;
+                    release();
                 }
 
                 @Override
                 public void rollback() throws HgStoreException {
+                    if (completed) {
+                        return;
+                    }
                     try {
                         op.rollback();
                     } finally {
-                        dbSession.close();
+                        completed = true;
+                        release();
                     }
                 }
             };
         }
+
+        private void release() {
+            try {
+                this.dbSession.close();
+            } finally {
+                this.lifecycleLock.unlock();
+            }
+        }
     }
 
-    public static void clearCache() {
+    public static synchronized void clearCache() {
         GRAPH_SUPPLIER_CACHE.clear();
+    }
+
+    public static synchronized void closeSchemaResources() {
+        try {
+            SchemaDriver.destroy();
+        } finally {
+            GRAPH_SUPPLIER_CACHE.clear();
+        }
     }
 }

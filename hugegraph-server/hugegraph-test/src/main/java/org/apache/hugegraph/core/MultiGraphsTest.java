@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.core;
 
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,19 +27,19 @@ import java.util.Objects;
 import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendStoreInfo;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBOptions;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -72,6 +73,56 @@ public class MultiGraphsTest extends BaseCoreTest {
     }
 
     @Test
+    public void testTruncateBackendKeepsVersionAndResetsSchemaIds() {
+        // hstore keeps the schema in PD meta after truncate and caches id ranges
+        Assume.assumeFalse("skip this test for hstore",
+                           "hstore".equals(graph().backend()));
+
+        HugeGraph graph = openGraphs("truncate_g").get(0);
+        try {
+            // Start from a clean backend in case a previous run failed midway
+            graph.clearBackend();
+            graph.initBackend();
+            graph.serverStarted(GlobalMasterInfo.master("server-truncate"));
+
+            BackendStoreInfo backendStoreInfo = graph.backendStoreInfo();
+            Assert.assertTrue(backendStoreInfo.checkVersion());
+
+            SchemaManager schema = graph.schema();
+            schema.propertyKey("name").asText().create();
+            VertexLabel person = schema.vertexLabel("person")
+                                       .properties("name")
+                                       .useAutomaticId().create();
+            graph.addVertex(T.label, "person", "name", "marko");
+            graph.tx().commit();
+            Assert.assertEquals(1L, graph.traversal().V().count().next());
+
+            graph.truncateBackend();
+
+            // The backend version written by init() survives the truncate
+            Assert.assertTrue(backendStoreInfo.exists());
+            Assert.assertTrue(backendStoreInfo.checkVersion());
+            // The schema and the data are gone
+            Assert.assertEquals(0L, graph.traversal().V().count().next());
+            Assert.assertTrue(schema.getVertexLabels().isEmpty());
+            Assert.assertTrue(schema.getPropertyKeys().isEmpty());
+            // The schema id counters are reset: the same ids are handed out
+            schema.propertyKey("name").asText().create();
+            VertexLabel person2 = schema.vertexLabel("person")
+                                        .properties("name")
+                                        .useAutomaticId().create();
+            Assert.assertEquals(person.id(), person2.id());
+            graph.addVertex(T.label, "person", "name", "marko");
+            graph.tx().commit();
+            Assert.assertEquals(1L, graph.traversal().V().count().next());
+
+            graph.clearBackend();
+        } finally {
+            destroyGraphs(ImmutableList.of(graph));
+        }
+    }
+
+    @Test
     public void testCreateMultiGraphs() {
         List<HugeGraph> graphs = openGraphs("g_1", NAME48);
         for (HugeGraph graph : graphs) {
@@ -83,7 +134,8 @@ public class MultiGraphsTest extends BaseCoreTest {
 
     @Test
     public void testCopySchemaWithMultiGraphs() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -248,7 +300,7 @@ public class MultiGraphsTest extends BaseCoreTest {
 
     @Test
     public void testCreateGraphsWithSameName() {
-        List<HugeGraph> graphs = openGraphs("g", "g", "G");
+        List<HugeGraph> graphs = openGraphs("gg", "gg", "GG");
         HugeGraph g1 = graphs.get(0);
         HugeGraph g2 = graphs.get(1);
         HugeGraph g3 = graphs.get(2);
@@ -292,7 +344,8 @@ public class MultiGraphsTest extends BaseCoreTest {
 
     @Test
     public void testCreateGraphWithSameNameDifferentBackends() throws Exception {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -321,6 +374,14 @@ public class MultiGraphsTest extends BaseCoreTest {
     }
 
     @Test
+    public void testOpenGraphWithRemovedTaskSchedulerType() {
+        HugeGraph graph = openGraphWithBackend("legacySchedulerType",
+                                               "rocksdb", "binary",
+                                               "task.scheduler_type", "local");
+        destroyGraphs(ImmutableList.of(graph));
+    }
+
+    @Test
     public void testCreateGraphsWithMultiDisksForRocksDB() {
         HugeGraph g1 = openGraphWithBackend("g1", "rocksdb", "binary", "rocksdb.data_disks",
                                             "[g/secondary_index:rocksdb-index1," +
@@ -336,12 +397,14 @@ public class MultiGraphsTest extends BaseCoreTest {
                                          "[g/range_int_index:rocksdb-index1]");
             g2[0].initBackend();
         }, e -> {
-            Throwable root = HugeException.rootCause(e);
-            Assert.assertInstanceOf(RocksDBException.class, root);
+            RocksDBException failure = rocksDBCause(e);
+            Assert.assertNotNull(failure.getCause());
             Assert.assertContains("lock hold by current process",
-                                  root.getMessage());
+                                  failure.getMessage());
             Assert.assertContains("No locks available",
-                                  root.getMessage());
+                                  failure.getMessage());
+            Assert.assertInstanceOf(OverlappingFileLockException.class,
+                                    HugeException.rootCause(failure));
         });
 
         final HugeGraph[] g3 = new HugeGraph[1];
@@ -351,13 +414,23 @@ public class MultiGraphsTest extends BaseCoreTest {
                                          "[g/secondary_index:/]");
             g3[0].initBackend();
         }, e -> {
-            Throwable root = HugeException.rootCause(e);
-            Assert.assertInstanceOf(RocksDBException.class, root);
-            Assert.assertContains("While mkdir if missing",
-                                  root.getMessage());
+            RocksDBException failure = rocksDBCause(e);
+            Assert.assertNotNull(failure.getCause());
+            Assert.assertContains("Cannot lock database for open/recovery",
+                                  failure.getMessage());
+            Assert.assertContains("/g", failure.getMessage());
         });
 
         destroyGraphs(ImmutableList.of(g1));
+    }
+
+    private static RocksDBException rocksDBCause(Throwable exception) {
+        Throwable cause = exception;
+        while (cause != null && !(cause instanceof RocksDBException)) {
+            cause = cause.getCause();
+        }
+        Assert.assertInstanceOf(RocksDBException.class, cause);
+        return (RocksDBException) cause;
     }
 
     private static List<HugeGraph> openGraphs(String... graphNames) {

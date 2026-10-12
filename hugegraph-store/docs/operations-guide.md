@@ -2,6 +2,14 @@
 
 This guide covers monitoring, troubleshooting, backup & recovery, and operational procedures for HugeGraph Store in production.
 
+> **PD REST credential.** Calls to a PD REST endpoint on port 8620, other than `/v1/health`, `/v1/ready`, `/actuator/**` and `/v1/prom/targets/*`, need HTTP Basic auth: one of the internal service names (`hg`, `store`, `hubble`, `vermeer`) and PD's `auth.secret-key` value as the password. A call without it gets HTTP 401, which for a mutating step such as `balanceLeaders` means the step did nothing. Export the secret before following a procedure that uses `${PD_SECRET}`:
+>
+> ```bash
+> read -rs PD_SECRET && export PD_SECRET
+> ```
+>
+> Store endpoints on port 8520 are unaffected. Some PD examples in this guide still omit the credential; add `-u hg:"${PD_SECRET}"` when a call returns 401.
+
 ## Table of Contents
 
 - [Monitoring and Metrics](#monitoring-and-metrics)
@@ -440,6 +448,15 @@ df -h
 
 ---
 
+### State Machine Apply Failures
+
+A partition that reports a Raft state machine error stops applying logs and is
+not automatically restarted, including by the activity check. Inspect the Store
+error log and repair the underlying storage or apply failure before manually
+restarting the Store process. Restarting without repairing the cause may replay
+the same failing entry. This protection does not undo writes already performed
+by the failed entry.
+
 ## Backup and Recovery
 
 ### Backup Strategies
@@ -490,6 +507,22 @@ scp backup-store1-*.tar.gz backup-server:/backups/
    - Deploy new Store node with same configuration
    - PD automatically assigns partitions to new node
    - Wait for data replication (may take hours)
+   - If the new node reuses the failed node's raft address with an empty data directory (for
+     example a Kubernetes StatefulSet Pod rebuilt after its volume was lost), it registers under
+     a new store ID while the old ID still holds its partitions. Retire the old ID on the PD
+     leader so the replicas move to the new node:
+     ```bash
+     # Two entries share the address: the new ID and the old one
+     curl http://192.168.1.10:8620/v1/stores
+     curl -X POST -H 'Content-Type: application/json' -d '{"storeState":"Tombstone"}' \
+          http://192.168.1.10:8620/v1/store/<oldStoreId>
+     curl http://192.168.1.10:8620/v1/task/patrolPartitions
+     ```
+     Every shard group in `/v1/shardGroups` should then list the new ID, and the new node's
+     `http://<store>:8520/v1/partition/<partitionId>` should answer for each group. Then remove
+     the old record with `curl -X DELETE http://192.168.1.10:8620/v1/store/<oldStoreId>`. Store
+     versions without the fix for apache/hugegraph#3227 never finish this: the groups keep the
+     old ID and the new node stays empty.
 
 4. **Verify**: Check partition distribution
    ```bash
@@ -604,19 +637,19 @@ curl http://192.168.1.10:8620/v1/partitionsAndStatus
 
 2. **Verify Registration**:
    ```bash
-   curl http://192.168.1.10:8620/v1/stores
+   curl -u hg:"${PD_SECRET}" http://192.168.1.10:8620/v1/stores
    # New Store should appear
    ```
 
 3. **Trigger Rebalancing** (optional):
    ```bash
-   curl -X POST http://192.168.1.10:8620/v1/balanceLeaders
+   curl -u hg:"${PD_SECRET}" -X POST http://192.168.1.10:8620/v1/balanceLeaders
    ```
 
 4. **Monitor Rebalancing**:
    ```bash
    # Watch partition distribution
-   watch -n 10 'curl http://192.168.1.10:8620/v1/partitionsAndStatus'
+   watch -n 10 'curl -u hg:"${PD_SECRET}" http://192.168.1.10:8620/v1/partitionsAndStatus'
    ```
 
 5. **Verify**: Wait for even distribution (may take hours)
@@ -651,6 +684,10 @@ curl http://192.168.1.10:8620/v1/partitionsAndStatus
 ---
 
 ## Rolling Upgrades
+
+<!-- TODO: verify the 1.8.0 package examples after publication; retain historical source-version and rollback paths. -->
+
+The 1.8.0 package paths below illustrate a future release upgrade. Run these steps only after that release is published.
 
 ### Upgrade Strategy
 
@@ -705,6 +742,18 @@ bin/stop-hugegraph.sh
 
 bin/start-hugegraph.sh
 ```
+
+**Meta key prefix (`usePD=true`)**: the Server keeps its schema, graph spaces
+and users in PD under `HUGEGRAPH/<cluster>/...`, where `<cluster>` is the
+`cluster` option of `rest-server.properties` (default `hg-test`). Release 1.7.0
+bound that name; master builds between #3008 (2026-07-10) and #3220 bound the
+literal `hg` instead, because a graph was opened before the Server's own
+binding. Since #3220 the Server binds `cluster` again and logs
+`Meta cluster bound to '<cluster>' (keys under HUGEGRAPH/<cluster>/)` at
+startup. If a Server comes up with an empty schema after an upgrade, compare
+that line with the prefix your data lives under (1.7.0: `hg-test`; a master
+snapshot from that window: `hg`) and set `cluster` in `rest-server.properties`
+to the prefix that holds your data.
 
 ### Rollback Procedure
 

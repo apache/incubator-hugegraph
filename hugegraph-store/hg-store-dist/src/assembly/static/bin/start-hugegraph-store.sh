@@ -39,6 +39,17 @@ PID_FILE="$BIN/pid"
 
 . "$BIN"/util.sh
 
+# Keep caller preloads visible to the runtime selector, including conflicting JNI.
+function preload_jemalloc() {
+    local inherited="${LD_PRELOAD//:/ }" entry
+    local -a preloads
+    read -r -a preloads <<< "${inherited//$'\n'/ }"
+    for entry in "${preloads[@]-}"; do
+        [ "$entry" != "$1" ] || return 0
+    done
+    export LD_PRELOAD="$1${LD_PRELOAD:+:$LD_PRELOAD}"
+}
+
 arch=$(uname -m)
 echo "Current arch: $arch"
 
@@ -46,8 +57,8 @@ if [[ $arch == "aarch64" || $arch == "arm64" ]]; then
     lib_file="$TOP/bin/libjemalloc_aarch64.so"
     download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc_aarch64.so"
     expected_md5="2a631d2f81837f9d5864586761c5e380"
-    if download_and_verify $download_url $lib_file $expected_md5; then
-        export LD_PRELOAD=$lib_file
+    if download_and_verify "$download_url" "$lib_file" "$expected_md5"; then
+        preload_jemalloc "$lib_file"
     else
         echo "Failed to verify or download $lib_file, skip it"
     fi
@@ -55,8 +66,8 @@ elif [[ $arch == "x86_64" ]]; then
     lib_file="$TOP/bin/libjemalloc.so"
     download_url="${GITHUB}/apache/hugegraph-doc/raw/binary-1.5/dist/server/libjemalloc.so"
     expected_md5="fd61765eec3bfea961b646c269f298df"
-    if download_and_verify $download_url $lib_file $expected_md5; then
-        export LD_PRELOAD=$lib_file
+    if download_and_verify "$download_url" "$lib_file" "$expected_md5"; then
+        preload_jemalloc "$lib_file"
     else
         echo "Failed to verify or download $lib_file, skip it"
     fi
@@ -73,7 +84,8 @@ export FILE_LIMITN=1024
 #export FILE_LIMITN=1024000
 
 function check_evn_limit() {
-    local limit_check=$(ulimit -n)
+    local limit_check
+    limit_check=$(ulimit -n)
     if [[ ${limit_check} != "unlimited" && ${limit_check} -lt ${FILE_LIMITN} ]]; then
         echo -e "${BASH_SOURCE[0]##*/}:${LINENO}:\E[1;32m ulimit -n can open too few maximum file descriptors, need (${FILE_LIMITN})!! \E[0m"
         return 1
@@ -111,7 +123,7 @@ while getopts "d:g:j:y:" arg; do
         # Telemetry is used to collect metrics, traces and logs
         y) OPEN_TELEMETRY="$OPTARG" ;;
         d) DAEMON="$OPTARG" ;;
-        ?) echo "USAGE: $0 [-d true|false] [-g g1] [-j xxx] [-y true|false]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-d true|false] [-g g1|ZGC] [-j xxx] [-y true|false]" && exit 1 ;;
     esac
 done
 
@@ -121,7 +133,7 @@ ensure_path_writable "$PLUGINS"
 # The maximum and minimum heap memory that service can use (for production env set it 36GB)
 MAX_MEM=$((2 * 1024))
 MIN_MEM=$((1 * 512))
-EXPECT_JDK_VERSION=11
+EXPECT_JDK_VERSION=17
 
 # Change to $BIN's parent
 cd ${TOP} || exit
@@ -134,8 +146,11 @@ else
 fi
 
 # check jdk version
-JAVA_VERSION=$($JAVA -version 2>&1 | awk 'NR==1{gsub(/"/,""); print $3}'  | awk -F'_' '{print $1}')
-if [[ $? -ne 0 || $JAVA_VERSION < $EXPECT_JDK_VERSION ]]; then
+JAVA_VERSION=$($JAVA -version 2>&1 |
+               awk -F'"' '/^(java|openjdk) version "/ {print $2; exit}' |
+               sed 's/^1\.//' | cut -d'.' -f1)
+JAVA_VERSION="${JAVA_VERSION%%[!0-9]*}"
+if [[ -z $JAVA_VERSION || $JAVA_VERSION -lt $EXPECT_JDK_VERSION ]]; then
     echo "Please make sure that the JDK is installed and the version >= $EXPECT_JDK_VERSION"  >> ${OUTPUT}
     exit 1
 fi
@@ -155,22 +170,27 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=./logs/gc.log:time,uptime,level,tags:filecount=3,filesize=100m"
 fi
 
-# Using G1GC as the default garbage collector (Recommended for large memory machines)
+# Keep JVM/caller GC selection by default; explicitly select G1 when requested.
 case "$GC_OPTION" in
-    "")
-        echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
-                      -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
+    ""|g1|G1)
+        if [[ "$GC_OPTION" == g1 || "$GC_OPTION" == G1 ]]; then
+            echo "Using G1GC"
+            JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC"
+        else
+            echo "Using JVM garbage collector configuration"
+        fi
+        JAVA_OPTIONS="-XX:+ParallelRefProcEnabled -XX:InitiatingHeapOccupancyPercent=50 \
+                      -XX:G1RSetUpdatingPauseTimePercent=5 ${JAVA_OPTIONS}"
         ;;
     zgc|ZGC)
-        echo "Using ZGC as the default garbage collector (Only support Java 11+)"
+        echo "Using ZGC as the default garbage collector (requires Java 17 or later)"
         JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
                                       -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
                                       -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
                                       -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
         ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> ${OUTPUT}
+        echo "Unrecognized gc option: '$GC_OPTION', supported options: g1, ZGC" >> ${OUTPUT}
         exit 1
 esac
 
@@ -218,24 +238,35 @@ fi
 #  JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:${LIB}/jmx_prometheus_javaagent-0.16.1.jar=${JMX_EXPORT_PORT}:${CONF}/jmx_exporter.yml"
 #fi
 
-if [ $(ps -ef|grep -v grep| grep java|grep -cE ${CONF}) -ne 0 ]; then
+if [ "$(ps -ef | grep -v grep | grep java | grep -cE "${CONF}")" -ne 0 ]; then
    echo "HugeGraphStoreServer is already running..."
    exit 0
 fi
 
 echo "Starting HG-StoreServer..."
 
+source "$BIN/preload-topling.sh" || exit 1
+BOOT_JARS=("${LIB}"/hg-store-node-*.jar)
+if [ "${#BOOT_JARS[@]}" -ne 1 ] || [ ! -f "${BOOT_JARS[0]}" ]; then
+    echo "Error: expected one component executable JAR in $LIB" >&2
+    exit 1
+fi
+JAVA_MAIN=(-jar "${BOOT_JARS[0]}")
+if [ -n "${TOPLING_RUNTIME_CLASSPATH:-}" ]; then
+    JAVA_MAIN=(-cp "${TOPLING_RUNTIME_CLASSPATH}:${BOOT_JARS[0]}" org.springframework.boot.loader.JarLauncher)
+fi
+
 # Turn on security check
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphStoreServer in daemon mode..."
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
+        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
-            ${LIB}/hg-store-node-*.jar &
+            "${JAVA_MAIN[@]}" "$@" &
     else
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
+        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
-            ${LIB}/hg-store-node-*.jar >> ${OUTPUT} 2>&1 &
+            "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1 &
     fi
     PID="$!"
     # Write pid to file
@@ -247,12 +278,12 @@ else
     echo "$$" > "$PID_FILE"
     echo "[+pid] $$"
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
+        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
-            ${LIB}/hg-store-node-*.jar
+            "${JAVA_MAIN[@]}" "$@"
     else
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
+        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
-            ${LIB}/hg-store-node-*.jar >> ${OUTPUT} 2>&1
+            "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1
     fi
 fi

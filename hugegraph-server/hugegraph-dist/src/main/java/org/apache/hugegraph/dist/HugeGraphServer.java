@@ -17,11 +17,14 @@
 
 package org.apache.hugegraph.dist;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.constant.ServiceConstant;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.query.ConditionQuery;
+import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.meta.PdMetaDriver;
@@ -54,42 +57,123 @@ public class HugeGraphServer {
         // Only switch on security manager after HugeGremlinServer started
         SecurityManager securityManager = System.getSecurityManager();
         System.setSecurityManager(null);
-
-        ConfigUtil.checkGremlinConfig(gremlinServerConf);
-        HugeConfig restServerConfig = new HugeConfig(restServerConf);
-        String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
-        EventHub hub = new EventHub("gremlin=>hub<=rest");
-
-        PdMetaDriver.PDAuthConfig.setAuthority(
-                ServiceConstant.SERVICE_NAME,
-                ServiceConstant.AUTHORITY);
+        RestServer restServer = null;
+        GremlinServer preparedGremlinServer = null;
+        GremlinServer gremlinServer = null;
+        MemoryMonitor memoryMonitor = null;
         try {
-            // Start HugeRestServer
-            this.restServer = HugeRestServer.start(restServerConf, hub);
-        } catch (Throwable e) {
-            LOG.error("HugeRestServer start error: ", e);
-            throw e;
-        }
+            initializeQueryClasses();
+            ConfigUtil.checkGremlinConfig(gremlinServerConf);
+            HugeConfig restServerConfig = new HugeConfig(restServerConf);
+            String graphsDir = restServerConfig.get(ServerOptions.GRAPHS);
+            EventHub hub = new EventHub("gremlin=>hub<=rest");
 
-        try {
-            // Start GremlinServer
-            this.gremlinServer = HugeGremlinServer.start(gremlinServerConf,
-                                                         graphsDir, hub);
-        } catch (Throwable e) {
-            LOG.error("HugeGremlinServer start error: ", e);
-            try {
-                this.restServer.shutdown().get();
-            } catch (Throwable t) {
-                LOG.error("HugeRestServer stop error: ", t);
+            PdMetaDriver.PDAuthConfig.setAuthority(
+                    ServiceConstant.SERVICE_NAME,
+                    ServiceConstant.AUTHORITY);
+
+            // Bind the meta cluster name ('cluster' in rest-server.properties)
+            // before any graph is opened: prepare() below opens every graph
+            // in conf/graphs, and an hstore graph would otherwise connect the
+            // MetaManager first under its own 'pd.cluster' (default 'hg'),
+            // hiding the meta written under the configured cluster
+            if (restServerConfig.get(ServerOptions.USE_PD)) {
+                GraphManager.connectMetaManager(restServerConfig);
+                String cluster = MetaManager.instance().cluster();
+                LOG.info("Meta cluster bound to '{}' (keys under HUGEGRAPH/{}/)",
+                         cluster, cluster);
             }
-            throw e;
+
+            // Prepare GremlinServer (registers GRAPH_CREATE listener) BEFORE
+            // RestServer starts loading graphs from PD/meta. This ensures that
+            // graphs loaded during RestServer initialization are captured by
+            // ContextGremlinServer's listener and injected into Gremlin's bindings.
+            try {
+                preparedGremlinServer = HugeGremlinServer.prepare(
+                        gremlinServerConf, graphsDir, hub);
+            } catch (Throwable e) {
+                LOG.error("HugeGremlinServer prepare error: ", e);
+                throw e;
+            }
+
+            try {
+                // Start HugeRestServer (loads graphs from PD; events go to
+                // ContextGremlinServer which is already listening)
+                restServer = HugeRestServer.start(restServerConf, hub);
+            } catch (Throwable e) {
+                LOG.error("HugeRestServer start error: ", e);
+                stopPreparedGremlinServer(preparedGremlinServer);
+                throw e;
+            }
+
+            try {
+                // Now start the pre-prepared GremlinServer
+                gremlinServer = HugeGremlinServer.startPrepared(
+                        preparedGremlinServer);
+            } catch (Throwable e) {
+                LOG.error("HugeGremlinServer start error: ", e);
+                try {
+                    restServer.shutdown().get();
+                } catch (Throwable t) {
+                    LOG.error("HugeRestServer stop error: ", t);
+                }
+                throw e;
+            }
+
+            try {
+                // Start (In-Heap) Memory Monitor
+                memoryMonitor = new MemoryMonitor(restServerConf);
+                memoryMonitor.start();
+            } catch (Throwable e) {
+                LOG.error("MemoryMonitor start error: ", e);
+                rollbackStartup(memoryMonitor, gremlinServer, restServer);
+                throw e;
+            }
         } finally {
             System.setSecurityManager(securityManager);
         }
+        this.restServer = restServer;
+        this.gremlinServer = gremlinServer;
+        this.memoryMonitor = memoryMonitor;
+    }
 
-        // Start (In-Heap) Memory Monitor
-        this.memoryMonitor = new MemoryMonitor(restServerConf);
-        this.memoryMonitor.start();
+    static void initializeQueryClasses() {
+        // Gson reads java.version while ConditionQuery initializes. Complete
+        // this on the trusted startup thread before accepting Gremlin requests.
+        new ConditionQuery(HugeType.VERTEX);
+    }
+
+    private static void stopPreparedGremlinServer(GremlinServer server) {
+        if (server == null) {
+            return;
+        }
+        try {
+            server.stop().get();
+        } catch (Throwable t) {
+            LOG.error("HugeGremlinServer stop error: ", t);
+        }
+    }
+
+    static void rollbackStartup(MemoryMonitor monitor,
+                                GremlinServer gremlinServer,
+                                RestServer restServer) {
+        if (monitor != null) {
+            try {
+                monitor.stop();
+            } catch (Throwable t) {
+                LOG.error("MemoryMonitor stop error: ", t);
+            }
+        }
+
+        stopPreparedGremlinServer(gremlinServer);
+
+        if (restServer != null) {
+            try {
+                restServer.shutdown().get();
+            } catch (Throwable t) {
+                LOG.error("HugeRestServer stop error: ", t);
+            }
+        }
     }
 
     public void stop() {

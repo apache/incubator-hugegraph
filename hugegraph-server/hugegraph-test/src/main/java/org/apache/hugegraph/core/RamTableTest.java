@@ -24,9 +24,9 @@ import java.util.Objects;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.query.Query;
 import org.apache.hugegraph.backend.store.ram.RamTable;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.schema.SchemaManager;
@@ -92,7 +92,8 @@ public class RamTableTest extends BaseCoreTest {
 
     @Test
     public void testReloadAndQuery() throws Exception {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -143,7 +144,8 @@ public class RamTableTest extends BaseCoreTest {
 
     @Test
     public void testReloadFromFileAndQuery() throws Exception {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -221,7 +223,8 @@ public class RamTableTest extends BaseCoreTest {
 
     @Test
     public void testReloadAndQueryWithMultiEdges() throws Exception {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -352,7 +355,8 @@ public class RamTableTest extends BaseCoreTest {
 
     @Test
     public void testReloadAndQueryWithBigVertex() throws Exception {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -420,7 +424,8 @@ public class RamTableTest extends BaseCoreTest {
 
     @Test
     public void testReloadAndQueryWithProperty() throws Exception {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 

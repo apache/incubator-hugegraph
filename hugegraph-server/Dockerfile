@@ -18,44 +18,52 @@
 
 # Dockerfile for HugeGraph Server
 # 1st stage: build source code
-FROM maven:3.9.0-eclipse-temurin-11 AS build
+FROM --platform=$BUILDPLATFORM maven:3.9.16-eclipse-temurin-17 AS build
 
 WORKDIR /pkg
 
 COPY . .
 
 ARG MAVEN_ARGS
+ARG MAVEN_PROJECTS="hugegraph-server/hugegraph-dist,hugegraph-pd/hg-pd-dist,hugegraph-store/hg-store-dist"
+ARG SOURCE_REVISION=local
 
-RUN --mount=type=cache,target=/root/.m2 \
-    mvn package $MAVEN_ARGS -e -B -ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true \
+RUN --mount=type=cache,id=hugegraph-maven-${SOURCE_REVISION},target=/root/.m2,sharing=locked \
+    mvn install -pl "$MAVEN_PROJECTS" \
+        -am $MAVEN_ARGS -e -B -ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true \
     && rm ./hugegraph-server/*.tar.gz ./hugegraph-pd/*.tar.gz ./hugegraph-store/*.tar.gz
 
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13
-FROM eclipse-temurin:11-jre-jammy
+FROM eclipse-temurin:17-jre-jammy
 
-COPY --from=build /pkg/hugegraph-server/apache-hugegraph-server-*/ /hugegraph-server/
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
 # TODO: use g1gc or zgc as default
-# Note: --add-exports is required for Java 11+ to access jdk.internal.reflect for auth proxy
-ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XshowSettings:vm --add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED" \
+ENV JAVA_OPTS="-XX:+UnlockExperimentalVMOptions -XX:+UseContainerSupport -XX:MaxRAMPercentage=50 -XshowSettings:vm" \
     HUGEGRAPH_HOME="hugegraph-server" \
     STDOUT_MODE="true"
 
 WORKDIR /hugegraph-server/
 
-# 1. Install runtime dependencies and configure server
+# 1. Install runtime dependencies
+# Note: iproute2 provides `ss`, which the bin/util.sh port preflight needs.  The
+# jammy base image ships neither ss nor netstat, so without it the preflight is
+# permanently inconclusive and a duplicate start is no longer caught.  It
+# replaces lsof, which no shipped script calls any more.
+ARG RUNTIME_DEPS_EPOCH=1
 RUN apt-get -q update \
     && apt-get -q install -y --no-install-recommends --no-install-suggests \
        dumb-init \
        procps \
        curl \
-       lsof \
+       iproute2 \
        vim \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
-    && sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /pkg/hugegraph-server/apache-hugegraph-server-*/ /hugegraph-server/
+RUN sed -i "s/^restserver.url.*$/restserver.url=http:\/\/0.0.0.0:8080/g" ./conf/rest-server.properties
 
 # 2. Init docker script
 COPY hugegraph-server/hugegraph-dist/docker/scripts/remote-connect.groovy ./scripts

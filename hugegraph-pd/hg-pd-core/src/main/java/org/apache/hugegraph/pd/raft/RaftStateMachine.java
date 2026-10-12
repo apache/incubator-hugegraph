@@ -36,6 +36,7 @@ import com.alipay.sofa.jraft.Closure;
 import com.alipay.sofa.jraft.Iterator;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
+import com.alipay.sofa.jraft.core.State;
 import com.alipay.sofa.jraft.core.StateMachineAdapter;
 import com.alipay.sofa.jraft.entity.LeaderChangeContext;
 import com.alipay.sofa.jraft.entity.LocalFileMetaOutter;
@@ -56,8 +57,32 @@ public class RaftStateMachine extends StateMachineAdapter {
     private static final String SNAPSHOT_DIR_NAME = "snapshot";
     private static final String SNAPSHOT_ARCHIVE_NAME = "snapshot.zip";
     private final AtomicLong leaderTerm = new AtomicLong(-1);
+    // Kept for the readiness probe and the raft gauges, which must answer without
+    // touching the raft node: during an election jraft holds the node lock while it
+    // reconnects to peers, and a reader stalls for the connect timeout. One volatile
+    // immutable pair, swapped in whole per callback, so a reader can never see the
+    // state of one announcement with the leader visibility of another.
+    private volatile ProbeView probeView = new ProbeView(State.STATE_UNINITIALIZED, false);
+
+    /**
+     * Immutable pair of the last announced node state and leader visibility. Written only
+     * from the FSM callback thread; both fields always come from the same announcement.
+     */
+    static final class ProbeView {
+
+        final State state;
+        final boolean seesLeader;
+
+        ProbeView(State state, boolean seesLeader) {
+            this.state = state;
+            this.seesLeader = seesLeader;
+        }
+    }
     private List<RaftTaskHandler> taskHandlers;
     private List<RaftStateListener> stateListeners;
+    private final Object callbackMonitor = new Object();
+    private int callbacks;
+    private boolean stoppingCallbacks;
 
     public RaftStateMachine() {
         this.taskHandlers = new CopyOnWriteArrayList<>();
@@ -74,6 +99,15 @@ public class RaftStateMachine extends StateMachineAdapter {
 
     public boolean isLeader() {
         return this.leaderTerm.get() > 0;
+    }
+
+    /**
+     * The last state and leader visibility a raft callback announced, as one immutable
+     * view. jraft emits no callback for candidacy or leadership transfer, so a candidate
+     * reads as a follower that sees no leader.
+     */
+    ProbeView getProbeView() {
+        return this.probeView;
     }
 
     @Override
@@ -94,10 +128,10 @@ public class RaftStateMachine extends StateMachineAdapter {
                     done.run(Status.OK());
                 }
             } catch (Throwable t) {
-                log.error("StateMachine meet critical error: {}.", t);
-                if (done != null) {
-                    done.run(new Status(RaftError.EINTERNAL, t.getMessage()));
-                }
+                log.error("StateMachine encountered critical error", t);
+                // JRaft completes the failed and remaining closures with the state machine error.
+                iter.setErrorAndRollback(1, new Status(RaftError.ESTATEMACHINE, "%s", t.getMessage()));
+                return;
             }
             iter.next();
         }
@@ -105,46 +139,103 @@ public class RaftStateMachine extends StateMachineAdapter {
 
     @Override
     public void onError(final RaftException e) {
+        // A node that errors after it was leader keeps a positive leaderTerm otherwise, and
+        // the alive-peer refresher would go on reading listAlivePeers off a broken node
+        this.leaderTerm.set(-1);
+        this.probeView = new ProbeView(State.STATE_ERROR, false);
         log.error("Raft StateMachine on error {}", e);
     }
 
     @Override
     public void onShutdown() {
+        this.leaderTerm.set(-1);
+        this.probeView = new ProbeView(State.STATE_SHUTDOWN, false);
         super.onShutdown();
+    }
+
+    private void notifyStateListeners() {
+        synchronized (this.callbackMonitor) {
+            if (this.stoppingCallbacks || CollectionUtils.isEmpty(this.stateListeners)) {
+                return;
+            }
+            this.callbacks++;
+        }
+        try {
+            Utils.runInThread(() -> {
+                try {
+                    this.stateListeners.forEach(RaftStateListener::onRaftLeaderChanged);
+                } finally {
+                    callbackFinished();
+                }
+            });
+        } catch (RuntimeException | Error failure) {
+            callbackFinished();
+            throw failure;
+        }
+    }
+
+    private void callbackFinished() {
+        synchronized (this.callbackMonitor) {
+            this.callbacks--;
+            this.callbackMonitor.notifyAll();
+        }
+    }
+
+    void stopLeaderCallbacks() {
+        boolean interrupted = false;
+        synchronized (this.callbackMonitor) {
+            this.stoppingCallbacks = true;
+            while (this.callbacks != 0) {
+                try {
+                    this.callbackMonitor.wait(5000L);
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
+                if (this.callbacks != 0) {
+                    log.warn("Waiting for PD leader callbacks to finish");
+                }
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
     public void onLeaderStart(final long term) {
         this.leaderTerm.set(term);
+        this.probeView = new ProbeView(State.STATE_LEADER, true);
         super.onLeaderStart(term);
 
         log.info("Raft becomes leader");
-        Utils.runInThread(() -> {
-            if (!CollectionUtils.isEmpty(stateListeners)) {
-                stateListeners.forEach(RaftStateListener::onRaftLeaderChanged);
-            }
-        });
+        notifyStateListeners();
     }
 
     @Override
     public void onLeaderStop(final Status status) {
         this.leaderTerm.set(-1);
+        // TODO: keep STATE_ERROR set by onError instead of overwriting it with STATE_FOLLOWER, so
+        // the probe view, and with it /v1/ready, reports a PD that stepped down for good after a
+        // snapshot failure. /v1/health does not read this view; making it report the state is the
+        // separate TODO at StoreAPI.checkHealthy. The Helm chart (helm/hugegraph) works around both
+        // by deriving a single PD's startup and liveness probes to /v1/ready.
+        // https://github.com/apache/hugegraph/issues/3222
+        this.probeView = new ProbeView(State.STATE_FOLLOWER, false);
         super.onLeaderStop(status);
         log.info("Raft  lost leader ");
     }
 
     @Override
     public void onStartFollowing(final LeaderChangeContext ctx) {
+        this.probeView = new ProbeView(State.STATE_FOLLOWER, true);
         super.onStartFollowing(ctx);
-        Utils.runInThread(() -> {
-            if (!CollectionUtils.isEmpty(stateListeners)) {
-                stateListeners.forEach(RaftStateListener::onRaftLeaderChanged);
-            }
-        });
+        notifyStateListeners();
     }
 
     @Override
     public void onStopFollowing(final LeaderChangeContext ctx) {
+        // Callbacks run on the single FSM thread, so reading our own field is safe
+        this.probeView = new ProbeView(this.probeView.state, false);
         super.onStopFollowing(ctx);
     }
 
@@ -309,7 +400,12 @@ public class RaftStateMachine extends StateMachineAdapter {
 
         @Override
         public void run(Status status) {
-            closure.run(status);
+            try {
+                closure.run(status);
+            } catch (Throwable t) {
+                // Response delivery must not turn an applied entry into an apply failure.
+                log.error("Raft completion callback failed", t);
+            }
         }
 
         @Override

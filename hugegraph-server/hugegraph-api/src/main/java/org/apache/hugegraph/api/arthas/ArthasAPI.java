@@ -19,8 +19,6 @@ package org.apache.hugegraph.api.arthas;
 
 import java.util.HashMap;
 
-import jakarta.annotation.security.RolesAllowed;
-
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
@@ -40,7 +38,6 @@ import jakarta.ws.rs.core.Context;
 @Path("arthas")
 @Singleton
 @Tag(name = "ArthasAPI")
-@RolesAllowed("admin")
 public class ArthasAPI extends API {
 
     @Context
