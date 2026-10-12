@@ -50,6 +50,20 @@ A non-empty `HUGEGRAPH_ADMIN_PASSWORD` enables Server authentication, and Hubble
 
 `HUGEGRAPH_ADMIN_PASSWORD` initializes the built-in `admin` account on its first authenticated startup. Changing `.env` does not rotate an existing administrator password; use the HugeGraph user API for credential changes.
 
+The Server image writes `PASSWORD` to `auth.admin_pa` in the REST configuration.
+It writes `HG_SERVER_AUTH_TOKEN_SECRET` to `auth.token_secret` in both REST and
+graph configuration. An explicit signing key must be at least 32 bytes. Authentication
+string values retain spaces, tabs, backslashes and Unicode through the Server's
+properties reader; keep the same signing key on every replica. Use passwords
+compatible with the existing authentication protocol and the chart's documented
+password constraints. When the signing-key environment variable is omitted,
+the image reuses the configured key instead of rotating it.
+
+Older images could change signing keys containing spaces or Unicode, and a
+trailing space could hide the following configuration property. On upgrade,
+explicitly provide the intended key for those deployments. Tokens signed with
+the previous interpreted key require a new login after the correction.
+
 For the verification commands below, load `.env` into your current shell and set the password:
 
 ```bash
