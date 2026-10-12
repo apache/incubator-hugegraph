@@ -631,7 +631,9 @@ Servers use with PD. Both default to `DEFAULT`, which leaves the image's
 `server.service_id` and `server.graphspace` untouched. A non-default value
 injects `HG_SERVER_SERVICE_ID` or `HG_SERVER_GRAPHSPACE` for the image entrypoint.
 `server.serviceId` accepts printable ASCII (bytes 0x20–0x7E), including spaces
-and backslashes. The chart and entrypoint reject non-ASCII and control characters
+and backslashes. Dollar signs are escaped in the manifest so Kubernetes passes
+the service ID literally, including `$(POD_IP)` and `$$`. The chart and entrypoint
+reject non-ASCII and control characters
 to prevent the Server's ISO-8859-1 properties reader from changing the value;
 this is a deployment input serialization limit, not a change to core service names:
 
@@ -794,7 +796,8 @@ before anything reaches the cluster:
   the whole membership); disable the PD PDB or use an odd replica count.
 - `extraEnv` must not set chart-managed variable names (for example
   `HG_SERVER_INIT_STORE_ENABLED` or the PD/Store identity and topology
-  variables): entries render after the chart-owned variables and the last
+  variables, including the legacy Server names `SERVICE_ID` and `GRAPH_SPACE`):
+  entries render after the chart-owned variables and the last
   duplicate wins, so an override would silently bypass a validated contract.
   `JAVA_OPTS` and `JAVA_OPTIONS` are reserved for the same reason: the
   component start scripts skip automatic heap sizing and drop the chart's

@@ -260,7 +260,7 @@ spec:
               value: {{ .Values.server.backend | quote }}
             {{- if ne (.Values.server.serviceId | default "DEFAULT") "DEFAULT" }}
             - name: HG_SERVER_SERVICE_ID
-              value: {{ .Values.server.serviceId | quote }}
+              value: {{ .Values.server.serviceId | replace "$" "$$" | quote }}
             {{- end }}
             {{- if ne (.Values.server.graphSpace | default "DEFAULT") "DEFAULT" }}
             - name: HG_SERVER_GRAPHSPACE

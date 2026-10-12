@@ -72,7 +72,8 @@ chmod +x "${TEST_HOME}/bin/"*.sh
 if [[ -n "${HG_CONFIG_TEST_CLASSPATH:-}" ]]; then
     javac -cp "${HG_CONFIG_TEST_CLASSPATH}" -d "${TEST_HOME}/docker" \
         "${SCRIPT_DIR}/../../hugegraph-core/src/main/java/org/apache/hugegraph/config/AuthOptions.java" \
-        "${SCRIPT_DIR}/test/AuthConfigReadback.java"
+        "${SCRIPT_DIR}/test/AuthConfigReadback.java" \
+        "${SCRIPT_DIR}/test/ConfigReadback.java"
 else
     echo "SKIP: native auth readback (HG_CONFIG_TEST_CLASSPATH is unset)"
 fi
@@ -88,6 +89,13 @@ assert_auth_readback() {
             java -Xmx128m -cp "${TEST_HOME}/docker:${HG_CONFIG_TEST_CLASSPATH}" AuthConfigReadback \
                 "$1" "${secret_base64}"
         fi
+    fi
+}
+
+assert_service_readback() {
+    if [[ -n "${HG_CONFIG_TEST_CLASSPATH:-}" ]]; then
+        java -cp "${TEST_HOME}/docker:${HG_CONFIG_TEST_CLASSPATH}" ConfigReadback \
+            "${TEST_HOME}/conf/rest-server.properties" "$1"
     fi
 }
 
@@ -389,7 +397,10 @@ done
 [[ "$(cat "${TEST_HOME}/docker/init-store-locale")" == 'en_US.UTF-8' ]]
 # Identity mappings apply on every start and leave mounted config alone when unset.
 identity_conf="${TEST_HOME}/conf/rest-server.properties"
-printf '\nserver.service_id=mounted-service\nserver.graphspace=mounted_space\n' >> "${identity_conf}"
+# Earlier secret-escaping fixtures leave escaped trailing whitespace in this file.
+# Start identity cases with their own parseable configuration.
+printf 'restserver.url=http://127.0.0.1:8080\nserver.service_id=mounted-service\nserver.graphspace=mounted_space\n' \
+    > "${identity_conf}"
 (cd "${TEST_HOME}"; bash ./docker-entrypoint.sh)
 grep -qx 'server.service_id=mounted-service' "${identity_conf}"
 grep -qx 'server.graphspace=mounted_space' "${identity_conf}"
@@ -420,10 +431,20 @@ grep -qx 'server.graphspace=legacy_empty' "${identity_conf}"
 # Service permits spaces; Unicode escapes round-trip through the Server parser.
 (cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID='ops team' bash ./docker-entrypoint.sh)
 grep -Fxq 'server.service_id=ops\u0020team' "${identity_conf}"
+assert_service_readback 'ops team'
 (cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID=' ops team ' bash ./docker-entrypoint.sh)
 grep -Fxq 'server.service_id=\u0020ops\u0020team\u0020' "${identity_conf}"
+assert_service_readback ' ops team '
 (cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID='ops\ team' bash ./docker-entrypoint.sh)
 grep -Fxq 'server.service_id=ops\\\u0020team' "${identity_conf}"
+assert_service_readback 'ops\ team'
+
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID=' ops\ team ' bash ./docker-entrypoint.sh)
+assert_service_readback ' ops\ team '
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID='ops\u0020team' bash ./docker-entrypoint.sh)
+assert_service_readback 'ops\u0020team'
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID='x-$(POD_IP)-$$(POD_IP)-$name-$' bash ./docker-entrypoint.sh)
+assert_service_readback 'x-$(POD_IP)-$$(POD_IP)-$name-$'
 
 # Unsupported effective identity input must fail before changing mounted config.
 cp "${identity_conf}" "${identity_conf}.before-invalid-identity"
