@@ -497,15 +497,20 @@ function cgroup_free_memory() {
         dir="${dir%/}"
     fi
     local limit usage inactive available smallest=""
+    local child child_min
     local cache_key=inactive_file
     [[ "$version" != cgroup ]] || cache_key=total_inactive_file
     while :; do
         limit=""
-        usage=0
+        usage=""
         [[ ! -r "$dir/$limit_file" ]] || read -r limit < "$dir/$limit_file" || true
-        [[ ! -r "$dir/$usage_file" ]] || read -r usage < "$dir/$usage_file" || true
         if [[ "$limit" =~ ^[0-9]+$ ]]; then
-            [[ "$usage" =~ ^[0-9]+$ ]] || usage=0
+            # Unknown usage under a known limit must not fall back to host memory.
+            if [[ ! -r "$dir/$usage_file" ]] || ! read -r usage < "$dir/$usage_file" ||
+                    [[ ! "$usage" =~ ^[0-9]+$ ]]; then
+                echo 0
+                return 0
+            fi
             # Inactive file cache can be reclaimed on a warm restart. For v1,
             # use the hierarchical total so ancestor budgets include children.
             inactive=0
@@ -513,6 +518,30 @@ function cgroup_free_memory() {
                 inactive=$(awk -v key="$cache_key" '$1 == key {print $2; exit}' "$dir/memory.stat")
             fi
             [[ "$inactive" =~ ^[0-9]+$ ]] || inactive=0
+            if [[ "$version" == cgroup2 && "$inactive" != 0 ]]; then
+                # A child's protected cache cannot be reclaimed by this limit.
+                # The target's own memory.min does not protect against its own reclaim.
+                if [[ ! -r "$dir" || ! -x "$dir" ]]; then
+                    # Known files can be readable while child enumeration is denied.
+                    inactive=0
+                else
+                    for child in "$dir"/* "$dir"/.[!.]* "$dir"/..?*; do
+                        [[ -d "$child" ]] || continue
+                        # An unsearchable directory can hide a protected cgroup.
+                        if [[ ! -x "$child" ]]; then
+                            inactive=0
+                            break
+                        fi
+                        [[ -e "$child/memory.current" && -e "$child/memory.max" ]] || continue
+                        child_min=""
+                        [[ ! -r "$child/memory.min" ]] || read -r child_min < "$child/memory.min" || true
+                        if [[ "$child_min" != 0 ]]; then
+                            inactive=0
+                            break
+                        fi
+                    done
+                fi
+            fi
             # Inconsistent snapshots receive no cache credit. awk also avoids
             # shell integer overflow for v1's unlimited sentinel.
             available=$(awk -v limit="$limit" -v usage="$usage" -v inactive="$inactive" 'BEGIN {
