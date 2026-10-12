@@ -387,6 +387,62 @@ done
 (cd "${TEST_HOME}"; LC_ALL=en_US.UTF-8 PASSWORD='locale probe' \
     HG_SERVER_AUTH_TOKEN_SECRET="${fake_key}" bash ./docker-entrypoint.sh)
 [[ "$(cat "${TEST_HOME}/docker/init-store-locale")" == 'en_US.UTF-8' ]]
+# Identity mappings apply on every start and leave mounted config alone when unset.
+identity_conf="${TEST_HOME}/conf/rest-server.properties"
+printf '\nserver.service_id=mounted-service\nserver.graphspace=mounted_space\n' >> "${identity_conf}"
+(cd "${TEST_HOME}"; bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=mounted-service' "${identity_conf}"
+grep -qx 'server.graphspace=mounted_space' "${identity_conf}"
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID=DEFAULT HG_SERVER_GRAPHSPACE=DEFAULT \
+    bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=DEFAULT' "${identity_conf}"
+grep -qx 'server.graphspace=DEFAULT' "${identity_conf}"
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID=service-a HG_SERVER_GRAPHSPACE=space_a bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=service-a' "${identity_conf}"
+grep -qx 'server.graphspace=space_a' "${identity_conf}"
+(cd "${TEST_HOME}"; SERVICE_ID=legacy-service GRAPH_SPACE=legacy_space bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=legacy-service' "${identity_conf}"
+grep -qx 'server.graphspace=legacy_space' "${identity_conf}"
+(cd "${TEST_HOME}"; SERVICE_ID=legacy-service GRAPH_SPACE=legacy_space \
+    HG_SERVER_SERVICE_ID=service-b HG_SERVER_GRAPHSPACE=space_b bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=service-b' "${identity_conf}"
+grep -qx 'server.graphspace=space_b' "${identity_conf}"
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID= HG_SERVER_GRAPHSPACE= bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=service-b' "${identity_conf}"
+grep -qx 'server.graphspace=space_b' "${identity_conf}"
+
+# Empty new variables still allow the legacy driver values to apply.
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID= HG_SERVER_GRAPHSPACE= \
+    SERVICE_ID=legacy-empty GRAPH_SPACE=legacy_empty bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=legacy-empty' "${identity_conf}"
+grep -qx 'server.graphspace=legacy_empty' "${identity_conf}"
+
+# Service permits spaces; Unicode escapes round-trip through the Server parser.
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID='ops team' bash ./docker-entrypoint.sh)
+grep -Fxq 'server.service_id=ops\u0020team' "${identity_conf}"
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID=' ops team ' bash ./docker-entrypoint.sh)
+grep -Fxq 'server.service_id=\u0020ops\u0020team\u0020' "${identity_conf}"
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID='ops\ team' bash ./docker-entrypoint.sh)
+grep -Fxq 'server.service_id=ops\\\u0020team' "${identity_conf}"
+
+# Unsupported effective identity input must fail before changing mounted config.
+cp "${identity_conf}" "${identity_conf}.before-invalid-identity"
+for identity_name in HG_SERVER_SERVICE_ID HG_SERVER_GRAPHSPACE SERVICE_ID GRAPH_SPACE; do
+    for identity_value in 'café' '😀' $'ops\tteam' $'ops\nteam'; do
+        if (cd "${TEST_HOME}"; env "${identity_name}=${identity_value}" \
+            bash ./docker-entrypoint.sh > ./docker/invalid-identity.log 2>&1); then
+            echo "unsupported ${identity_name} unexpectedly succeeded" >&2
+            exit 1
+        fi
+        grep -q 'must be printable ASCII' "${TEST_HOME}/docker/invalid-identity.log"
+        cmp "${identity_conf}.before-invalid-identity" "${identity_conf}"
+    done
+done
+# Ignored legacy input does not override a supported non-empty new value.
+(cd "${TEST_HOME}"; HG_SERVER_SERVICE_ID=analytics SERVICE_ID='café' \
+    HG_SERVER_GRAPHSPACE=team_a GRAPH_SPACE='😀' bash ./docker-entrypoint.sh)
+grep -qx 'server.service_id=analytics' "${identity_conf}"
+grep -qx 'server.graphspace=team_a' "${identity_conf}"
 
 echo "PASS: Docker entrypoint configures HStore discovery and authentication"
 bash "${SCRIPT_DIR}/test/test-docker-entrypoint-process.sh"

@@ -151,6 +151,17 @@ jobs:
             helm template ci helm/hugegraph \
               --set "${component}.probes.readiness.successThreshold=2" > /dev/null
           done
+          # These deployment inputs must serialize unchanged through the properties reader.
+          must_fail --set-string server.serviceId=café
+          must_fail --set-string server.serviceId=😀
+          must_fail --set-string "$(printf 'server.serviceId=ops\tteam')"
+          # Match the Server API graph-space names, including its 48-character limit.
+          must_fail --set-string server.graphSpace=TeamA
+          must_fail --set-string server.graphSpace=team-a
+          must_fail --set-string server.graphSpace=1team
+          graph_space_max=$(printf 'a%.0s' {1..48})
+          helm template ci helm/hugegraph --set-string "server.graphSpace=${graph_space_max}" > /dev/null
+          must_fail --set-string "server.graphSpace=${graph_space_max}a"
           must_fail --set pd.replicas=100
           must_fail --set pd.pdb.minAvailable=3
           must_fail --set server.hpa.enabled=true

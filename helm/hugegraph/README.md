@@ -567,6 +567,8 @@ default values.
 | `server.port` | Server REST port, container port, and Service port | `8080` |
 | `server.readinessPath` | Path the Server readinessProbe hits. Set `/readiness` once the Server image serves it (apache/hugegraph#3212); it answers 503 while the Server cannot serve graph traffic. Startup and liveness stay on `/versions` | `/versions` |
 | `server.backend` | Storage backend | `hstore` |
+| `server.serviceId` | Non-default PD service name; `DEFAULT` preserves the image config | `DEFAULT` |
+| `server.graphSpace` | Existing non-default graph space for the PD service; `DEFAULT` preserves the image config | `DEFAULT` |
 | `server.resources` | Server resources. `requests.cpu` is required when HPA is enabled | `{}` |
 | `server.podSecurityContext` | Pod-level securityContext, rendered only when set | `{}` |
 | `server.securityContext` | Container-level securityContext. Hardened by default; `runAsNonRoot` is not set because the published images run as root | `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, `seccompProfile: RuntimeDefault` |
@@ -621,6 +623,33 @@ Helm upgrade does not overwrite the autoscaler's live replica count. Enabling
 utilization-based HPA requires a strictly positive
 `server.resources.requests.cpu`.
 
+
+### Server service identity
+
+`server.serviceId` and `server.graphSpace` select the service metadata that
+Servers use with PD. Both default to `DEFAULT`, which leaves the image's
+`server.service_id` and `server.graphspace` untouched. A non-default value
+injects `HG_SERVER_SERVICE_ID` or `HG_SERVER_GRAPHSPACE` for the image entrypoint.
+`server.serviceId` accepts printable ASCII (bytes 0x20–0x7E), including spaces
+and backslashes. The chart and entrypoint reject non-ASCII and control characters
+to prevent the Server's ISO-8859-1 properties reader from changing the value;
+this is a deployment input serialization limit, not a change to core service names:
+
+```bash
+helm upgrade --install hg ./helm/hugegraph \
+  --set-string server.serviceId=analytics \
+  --set-string server.graphSpace=team_a
+```
+
+Use images built with these entrypoint mappings. Create the non-default graph
+space in the existing cluster before deploying Servers assigned to it; the chart
+does not create it. A graph-space name is `DEFAULT` or up to 48 lowercase letters,
+digits and underscores, starting with a letter, as required by the Server API. All replicas in this Server Deployment use the same identity.
+Changing the graph space changes the Server's assigned space; it does not move
+existing graphs or change `server.path_graphspace`. Use explicit
+`/graphspaces/team_a/...` REST paths, and select the matching space and service in
+Hubble. Rendering and entrypoint checks verify configuration only; non-default
+PD discovery, authentication and isolation require a running Linux cluster.
 
 ### Reaching Hubble (pick one path)
 

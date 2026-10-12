@@ -258,6 +258,14 @@ spec:
                   fieldPath: status.podIP
             - name: HG_SERVER_BACKEND
               value: {{ .Values.server.backend | quote }}
+            {{- if ne (.Values.server.serviceId | default "DEFAULT") "DEFAULT" }}
+            - name: HG_SERVER_SERVICE_ID
+              value: {{ .Values.server.serviceId | quote }}
+            {{- end }}
+            {{- if ne (.Values.server.graphSpace | default "DEFAULT") "DEFAULT" }}
+            - name: HG_SERVER_GRAPHSPACE
+              value: {{ .Values.server.graphSpace | quote }}
+            {{- end }}
             - name: HG_SERVER_PD_PEERS
               value: {{ include "hugegraph.pd.grpcPeersList" . | quote }}
             - name: HG_SERVER_PD_REST_ENDPOINT

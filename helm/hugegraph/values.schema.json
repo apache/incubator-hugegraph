@@ -762,6 +762,18 @@
         "probes"
       ],
       "properties": {
+        "serviceId": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[ -~]+$",
+          "description": "Printable ASCII PD service name (bytes 0x20-0x7E), including spaces and backslashes. DEFAULT preserves the image config."
+        },
+        "graphSpace": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(DEFAULT|[a-z][a-z0-9_]{0,47})$",
+          "description": "Existing PD graph space: DEFAULT or up to 48 lowercase letters, digits and underscores, starting with a letter. DEFAULT preserves the image config."
+        },
         "replicas": {
           "type": "integer",
           "minimum": 1

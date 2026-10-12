@@ -269,6 +269,35 @@ Standalone stores RocksDB data at `/hugegraph-server/rocksdb-data`. The HStore t
 
 `docker compose down` keeps named-volume data. `docker compose down -v` intentionally deletes it.
 
+### Server service identity
+
+Images built from current master accept `HG_SERVER_SERVICE_ID` and
+`HG_SERVER_GRAPHSPACE`, which write `server.service_id` and `server.graphspace`
+in `conf/rest-server.properties`. A property keeps its existing value when both
+its `HG_SERVER_*` variable and its older name are unset or empty; the shipped
+defaults are both `DEFAULT`.
+The older `SERVICE_ID` and `GRAPH_SPACE` variables emitted by the Kubernetes driver
+are also accepted. A non-empty `HG_SERVER_*` value takes precedence over its older name.
+These container identity inputs accept printable ASCII (bytes 0x20–0x7E);
+spaces and backslashes in service IDs round-trip unchanged. Non-ASCII and control
+characters are rejected before the entrypoint writes configuration, because the
+Server reads properties using ISO-8859-1. This is the container input's
+serialization limit; it does not change the core service-name contract.
+
+For a PD-backed Server, add the variables to the Server container's environment,
+for example `HG_SERVER_SERVICE_ID=analytics` and `HG_SERVER_GRAPHSPACE=team_a`.
+Create `team_a` in the existing cluster before starting the assigned Server;
+these settings do not create graph spaces. The Compose files do not pass these
+variables through from the host, so add explicit `environment:` entries to a
+local Compose override. The Helm chart exposes the same settings as
+[`server.serviceId` and `server.graphSpace`](../helm/hugegraph/README.md#server-service-identity).
+
+This selects the Server's PD service metadata. It does not change
+`server.path_graphspace` for REST paths that omit `/graphspaces/<name>`, or
+configure Hubble's chosen service. Actual non-default service discovery,
+authentication and graph-space isolation still require verification with a
+running Linux cluster.
+
 ### Server logs and crash files
 
 The Server container owns its foreground launcher and returns the JVM's exit status after startup,

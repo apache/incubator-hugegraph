@@ -274,6 +274,11 @@ store:
 
 server:
   replicas: 3
+  # DEFAULT preserves the image config; non-default values select PD service metadata.
+  # serviceId accepts printable ASCII, including spaces and backslashes.
+  # Create a non-default graph space before starting a Server assigned to it.
+  serviceId: DEFAULT
+  graphSpace: DEFAULT
   image:
     repository: hugegraph/server
     # TODO: leave tag empty to inherit Chart.appVersion after the 1.8.0
