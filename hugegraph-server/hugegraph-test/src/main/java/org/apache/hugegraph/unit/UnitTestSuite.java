@@ -43,6 +43,7 @@ import org.apache.hugegraph.unit.api.auth.LoginAPITest;
 import org.apache.hugegraph.unit.api.filter.AccessLogFilterTest;
 import org.apache.hugegraph.unit.api.filter.LoadDetectFilterTest;
 import org.apache.hugegraph.unit.api.filter.PathFilterTest;
+import org.apache.hugegraph.unit.api.filter.VertexAuthorizationTest;
 import org.apache.hugegraph.unit.api.gremlin.GremlinQueryAPITest;
 import org.apache.hugegraph.unit.api.space.GraphSpaceAPITest;
 import org.apache.hugegraph.unit.api.space.SchemaTemplateAPITest;
@@ -138,6 +139,7 @@ import org.junit.runners.Suite;
         LoadDetectFilterTest.class,
         LoginAPITest.class,
         PathFilterTest.class,
+        VertexAuthorizationTest.class,
 
         /* api gremlin */
         GremlinQueryAPITest.class,
@@ -257,6 +259,7 @@ import org.junit.runners.Suite;
         MemoryManageTest.class,
 
         /* utils */
+        ConsumersTest.class,
         VersionTest.class,
         JsonUtilTest.class,
         StringEncodingTest.class,
