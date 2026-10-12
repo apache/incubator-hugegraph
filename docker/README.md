@@ -234,6 +234,18 @@ Standalone stores RocksDB data at `/hugegraph-server/rocksdb-data`. The HStore t
 
 ### Server logs and crash files
 
+The Server container owns its foreground launcher and returns the JVM's exit status after startup,
+including 0 for a normal exit and 137 when the JVM is killed with SIGKILL. TERM and INT request
+shutdown through the launcher using TERM, which shuts down and reaps the JVM; the entrypoint returns
+143 and 130 respectively.
+The startup REST check still uses `HG_SERVER_STARTUP_TIMEOUT_S`, and HStore partition checks still
+run after readiness. Shutdown interrupts a stalled readiness probe or pending partition check and
+reaps its polling processes.
+A startup timeout requests termination and returns 1 without waiting for an
+unresponsive JVM beyond the startup deadline; container termination cleans up remaining processes.
+Graceful shutdown requires the JVM to respond to TERM; forceful OOM and orchestrator shutdown testing
+needs a Linux environment.
+
 This section describes images built from current master. Images from 1.7.0 and earlier do not set `STDOUT_MODE`: `docker logs` shows only the entrypoint's output, and the service logs stay in `logs/` inside the container.
 
 Both Server images (`hugegraph/hugegraph` and `hugegraph/server`) write the HugeGraph log to container stdout. WARN and above from Hadoop, ZooKeeper, SOFA, Netty and Commons also reaches stdout. INFO from Hadoop, Netty and Commons, the audit log and the slow-query log stay in files only; ZooKeeper and SOFA log nothing below WARN. Errors that `hugegraph-server.sh` reports before Java starts, such as an unsupported JDK or too little free memory, and fatal bootstrap errors go to stderr and, when `logs/` can be written, also to `hugegraph-server.log`. Earlier entrypoint steps, such as `init-store.sh` in the HStore image, report to stderr only. Either way, when a Server exits during startup, `docker logs` or `kubectl logs --previous` shows why. When the JVM starts, it also prints `Picked up JAVA_TOOL_OPTIONS: ...` with the crash-file defaults below; a start that fails its preflight checks exits before that.

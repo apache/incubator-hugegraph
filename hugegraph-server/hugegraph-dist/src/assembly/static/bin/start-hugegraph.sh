@@ -103,7 +103,9 @@ function forward_signal_and_wait() {
     local signal="$1"
     local exit_code="$2"
 
-    trap - SIGHUP SIGINT SIGQUIT SIGTERM
+    # A process-group signal and the entrypoint's forwarding can arrive twice.
+    # Keep the wrapper alive until it has reaped its child in either case.
+    trap '' SIGHUP SIGINT SIGQUIT SIGTERM
     if kill -0 "$PID" 2>/dev/null; then
         kill "-$signal" "$PID" 2>/dev/null || true
         # The foreground wait is interrupted before the trap runs, so retry
