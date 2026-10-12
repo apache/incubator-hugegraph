@@ -35,7 +35,8 @@ failure leaves these DB paths intact. The original overloads keep their behavior
 this generic hook does not depend on Store graph-ID rules.
 
 `loadSnapshot(snapshotPath, version, Consumer<String> validator)` first copies
-and verifies the staging database, then passes its path to the validator before
+and verifies the staging database with the session's configured column-family
+options, then passes its path to the validator before
 replacing the target version. The validator must inspect it read-only. A rejected
 validation preserves active databases, target versions and staging evidence;
 the exception cause is retained. The original two-argument overload remains

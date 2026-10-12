@@ -11,7 +11,8 @@ graph ID, first opening a partition DB during metadata bootstrap, starting a
 partition's Raft state machine, or activating a snapshot.
 If it finds the reserved prefix, it rejects that operation and reports the
 partition and column family. Metadata-only column families are excluded. The
-checks do not assign an owner to legacy rows or change the persisted ID format.
+checks use the configured column-family options from normal Store opens. They do
+not assign an owner to legacy rows or change the persisted ID format.
 
 The partition preflight resolves existing DB versions without creating a DB,
 allocating a store location or pruning older versions. It runs before partition

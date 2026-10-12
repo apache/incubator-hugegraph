@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.SessionOperator;
 import org.apache.hugegraph.store.constant.HugeServerTables;
@@ -285,8 +287,7 @@ public class GraphIdManager extends PartitionMetaStore {
         try {
             checkLegacyGraphIdData(session.getDB(), session.getTables(), partitionId);
         } catch (RocksDBException e) {
-            throw new HgStoreException(HgStoreException.EC_FAIL,
-                                       "Can't inspect legacy GraphID data in partition " + partitionId, e);
+            throw new HgStoreException("Can't inspect legacy GraphID data in partition " + partitionId, e);
         } finally {
             lock.unlock();
         }
@@ -303,6 +304,10 @@ public class GraphIdManager extends PartitionMetaStore {
                  }
              }) {
             dbOptions.setLogger(logger);
+            HugeConfig config = RocksDBFactory.getInstance().getHugeConfig();
+            if (config != null) {
+                RocksDBSession.initOptions(config, null, null, cfOptions, cfOptions);
+            }
             List<byte[]> names = RocksDB.listColumnFamilies(options, existingDbPath);
             List<ColumnFamilyDescriptor> descriptors = new ArrayList<>();
             for (byte[] name : names) {
@@ -326,8 +331,7 @@ public class GraphIdManager extends PartitionMetaStore {
                 }
             }
         } catch (RocksDBException e) {
-            throw new HgStoreException(HgStoreException.EC_FAIL,
-                                       "Can't inspect legacy GraphID data in partition " + partitionId +
+            throw new HgStoreException("Can't inspect legacy GraphID data in partition " + partitionId +
                                        " at " + existingDbPath, e);
         }
     }

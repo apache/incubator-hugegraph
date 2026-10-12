@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.SessionOperator;
@@ -71,11 +72,16 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.Checkpoint;
+import org.rocksdb.CompactRangeOptions;
+import org.rocksdb.CompressionType;
+import org.rocksdb.FlushOptions;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
 import org.rocksdb.DBOptions;
+import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
 import com.google.protobuf.Int64Value;
 
@@ -107,6 +113,168 @@ public class GraphIdUpgradePreflightTest {
         config.put("rocksdb.write_buffer_size", "1048576");
         config.put("rocksdb.bloom_filter_bits_per_key", "10");
         BusinessHandlerImpl.initRocksdb(config, null);
+    }
+
+    @Test
+    public void testNativePreflightFailurePreservesCauseAndFiles() throws Exception {
+        Path data = this.temporary.newFolder("native-preflight-failure").toPath();
+        writeDatabase(data, DB_NAME, 1);
+        Path database = data.resolve(DB_NAME);
+        Files.writeString(database.resolve("CURRENT"), "invalid-current");
+        Map<String, String> before = fileHashes(data);
+        RocksDBException nativeFailure;
+        try (Options options = new Options()) {
+            nativeFailure = assertThrows(RocksDBException.class, () -> {
+                try (RocksDB ignored = RocksDB.openReadOnly(options, database.toString())) {
+                    // Close any unexpectedly successful open before reporting failure.
+                }
+            });
+        }
+        HgStoreException rejected = assertThrows(HgStoreException.class, () ->
+                GraphIdManager.checkLegacyGraphIdData(database.toString(), PARTITION_ID));
+        assertEquals(HgStoreException.EC_FAIL, rejected.getCode());
+        assertEquals(before, fileHashes(data));
+        assertTrue("Expected native cause " + nativeFailure.getStatus().getCode() +
+                   ", got " + rejected.getCause(),
+                   rejected.getCause() instanceof RocksDBException);
+        assertEquals(nativeFailure.getStatus().getCode(),
+                     ((RocksDBException) rejected.getCause()).getStatus().getCode());
+    }
+
+    @Test
+    public void testEffectiveOptionsPreserveLevelSevenBootstrap() throws Exception {
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        HugeConfig previous = factory.getHugeConfig();
+        try {
+            useEightLevelConfiguration();
+            Path location = this.temporary.newFolder("eight-level-bootstrap").toPath();
+            Path data = Files.createDirectory(location.resolve("db"));
+            writeEightLevelDatabase(data.resolve(DB_NAME + "_1"), 1);
+            // The normal session can read this legal configuration before the preflight.
+            try (RocksDBSession normal = session(data, DB_NAME)) {
+                assertRows(normal, 1);
+            }
+            Map<String, String> before = fileHashes(data);
+            GraphIdManager.checkLegacyGraphIdData(data.resolve(DB_NAME + "_1").toString(), PARTITION_ID);
+            assertEquals(before, fileHashes(data));
+            try (Bootstrap bootstrap = new Bootstrap(location)) {
+                bootstrap.manager.loadPartition();
+                assertTrue(bootstrap.manager.hasPartition("test", PARTITION_ID));
+                assertEquals(1, bootstrap.handler.getKeyCreator().getGraphId(PARTITION_ID, "test"));
+                for (String table : TABLES) {
+                    assertArrayEquals(VALUE, bootstrap.handler.doGet("test", 0, table, new byte[]{1}));
+                }
+                GraphIdManager ids = new GraphIdManager(bootstrap.handler::getSession, PARTITION_ID);
+                assertTrue(ids.getGraphIdOrCreate("additional") < 65534L);
+            }
+        } finally {
+            factory.setHugeConfig(previous);
+        }
+    }
+
+    @Test
+    public void testEffectiveOptionsRejectLegacyLevelSevenData() throws Exception {
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        HugeConfig previous = factory.getHugeConfig();
+        try {
+            useEightLevelConfiguration();
+            Path location = this.temporary.newFolder("eight-level-legacy").toPath();
+            Path data = Files.createDirectory(location.resolve("db"));
+            writeEightLevelDatabase(data.resolve(DB_NAME + "_1"), 65534);
+            Map<String, String> before = fileHashes(data);
+            HgStoreException rejected = assertThrows(HgStoreException.class, () ->
+                    GraphIdManager.checkLegacyGraphIdData(data.resolve(DB_NAME + "_1").toString(), PARTITION_ID));
+            assertTrue(rejected.getMessage().contains("prefix 0xFFFE"));
+            assertEquals(before, fileHashes(data));
+            try (Bootstrap bootstrap = new Bootstrap(location)) {
+                assertThrows(HgStoreException.class, bootstrap.manager::loadPartition);
+                assertEquals(before, fileHashes(data));
+                assertFalse(factory.getGraphNames().contains(DB_NAME));
+            }
+        } finally {
+            factory.setHugeConfig(previous);
+        }
+    }
+
+    @Test
+    public void testEffectiveOptionsAcceptLevelSevenSnapshot() throws Exception {
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        HugeConfig previous = factory.getHugeConfig();
+        try {
+            useEightLevelConfiguration();
+            Path seed = this.temporary.newFolder("eight-level-seed").toPath();
+            writeEightLevelDatabase(seed.resolve("seed"), 2);
+            Path snapshot = seed.resolve("snapshot");
+            try (RocksDBSession source = session(seed, "seed");
+                 Checkpoint checkpoint = Checkpoint.create(source.getDB())) {
+                checkpoint.createCheckpoint(snapshot.toString());
+            }
+            Map<String, String> incoming = fileHashes(snapshot);
+            Path location = this.temporary.newFolder("eight-level-restore").toPath();
+            Path data = Files.createDirectory(location.resolve("db"));
+            writeEightLevelDatabase(data.resolve(DB_NAME + "_1"), 1);
+            try (Bootstrap bootstrap = new Bootstrap(location)) {
+                bootstrap.handler.loadSnapshot(snapshot.toString(), "", PARTITION_ID, 5L);
+                try (RocksDBSession restored = bootstrap.handler.getSession(PARTITION_ID)) {
+                    assertRows(restored, 2);
+                    assertEquals(2, bootstrap.handler.getKeyCreator().getGraphId(PARTITION_ID, "test"));
+                }
+            }
+            assertEquals(incoming, fileHashes(snapshot));
+        } finally {
+            factory.setHugeConfig(previous);
+        }
+    }
+
+    private static void useEightLevelConfiguration() {
+        Map<String, Object> config = new HashMap<>();
+        config.put("rocksdb.write_buffer_size", "1048576");
+        config.put("rocksdb.bloom_filter_bits_per_key", "10");
+        config.put("rocksdb.num_levels", "8");
+        config.put("rocksdb.compression_per_level", "[none,none,none,none,none,none,none,none]");
+        BusinessHandlerImpl.initRocksdb(config, null);
+    }
+
+    private static void writeEightLevelDatabase(Path path, int graphId) throws Exception {
+        List<ColumnFamilyHandle> handles = new ArrayList<>();
+        try (DBOptions options = new DBOptions().setCreateIfMissing(true).setCreateMissingColumnFamilies(true);
+             ColumnFamilyOptions cfOptions = new ColumnFamilyOptions().setNumLevels(8)
+                     .setCompressionPerLevel(Collections.nCopies(8, CompressionType.NO_COMPRESSION))
+                     .setDisableAutoCompactions(true).setWriteBufferSize(1048576);
+             FlushOptions flush = new FlushOptions().setWaitForFlush(true);
+             CompactRangeOptions compact = new CompactRangeOptions().setChangeLevel(true).setTargetLevel(7)) {
+            List<ColumnFamilyDescriptor> descriptors = new ArrayList<>();
+            descriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
+            for (String table : TABLES) {
+                descriptors.add(new ColumnFamilyDescriptor(table.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                                                            cfOptions));
+            }
+            RocksDB database = null;
+            try {
+                database = RocksDB.open(options, path.toString(), descriptors, handles);
+                for (int i = 1; i < handles.size(); i++) {
+                    database.put(handles.get(i), key(graphId), VALUE);
+                }
+                if (graphId != 65534) {
+                    database.put(handles.get(0), MetadataKeyHelper.getGraphIDKey("test"),
+                                 Int64Value.of(graphId).toByteArray());
+                    database.put(handles.get(0), MetadataKeyHelper.getPartitionKey("test", PARTITION_ID),
+                                 Metapb.Partition.newBuilder().setId(PARTITION_ID).setGraphName("test")
+                                       .build().toByteArray());
+                }
+                database.flush(flush, handles);
+                for (int i = 1; i < handles.size(); i++) {
+                    database.compactRange(handles.get(i), null, null, compact);
+                    assertFalse("A real L7 SST is required for this native compatibility regression",
+                                database.getColumnFamilyMetaData(handles.get(i)).levels().get(7).files().isEmpty());
+                }
+            } finally {
+                handles.forEach(ColumnFamilyHandle::close);
+                if (database != null) {
+                    database.close();
+                }
+            }
+        }
     }
 
     @Test
