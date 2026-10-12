@@ -606,6 +606,9 @@ public class TaskCoreTest extends BaseCoreTest {
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("{\"k1\":13579,\"k2\":\"24680\"}", task.result());
 
+        // Future.get() publishes the result before done() and native owner cleanup finish.
+        scheduler.waitUntilAllTasksCompleted(10);
+
         // Ephemeral tasks are not stored in DB, so these should throw NotFoundException
         Assert.assertThrows(NotFoundException.class, () -> {
             scheduler.waitUntilTaskCompleted(task.id(), 10);
