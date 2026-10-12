@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -357,6 +358,43 @@ public class DistributedTaskAdmissionTest {
         }
     }
 
+    @Test
+    public void testBlockedCronStillFencesAdmissionAndTimesOutClose() throws Exception {
+        try (Fixture fixture = new Fixture("blocked_cron", 1L)) {
+            CountDownLatch querying = new CountDownLatch(1);
+            CountDownLatch finishQuery = new CountDownLatch(1);
+            fixture.scheduler.beforeTaskQuery = () -> {
+                querying.countDown();
+                awaitUninterruptibly(finishQuery);
+            };
+            ExecutorService requests = Executors.newSingleThreadExecutor();
+            Future<?> cron = fixture.cron.submit(fixture.scheduler::cronSchedule);
+            try {
+                Assert.assertTrue(querying.await(10L, TimeUnit.SECONDS));
+                Future<Boolean> close = requests.submit(fixture.scheduler::close);
+                AtomicBoolean closed = Whitebox.getInternalState(fixture.scheduler, "closed");
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2L);
+                while (!closed.get() && System.nanoTime() < deadline) {
+                    Thread.yield();
+                }
+                Assert.assertTrue(closed.get());
+                Assert.assertThrows(IllegalStateException.class,
+                        () -> fixture.scheduler.schedule(task(true, new AtomicBoolean(), 9999919L)));
+                // This exercises the real cron barrier, not a mocked drain method.
+                Assert.assertFalse(close.get(10L, TimeUnit.SECONDS));
+                Assert.assertFalse(cron.isDone());
+                finishQuery.countDown();
+                cron.get(10L, TimeUnit.SECONDS);
+                Assert.assertTrue(fixture.scheduler.close());
+                fixture.assertWorkerClean();
+            } finally {
+                finishQuery.countDown();
+                cron.get(10L, TimeUnit.SECONDS);
+                stop(requests);
+            }
+        }
+    }
+
     private static void awaitUninterruptibly(CountDownLatch release) {
         while (release.getCount() != 0L) {
             try {
@@ -407,12 +445,16 @@ public class DistributedTaskAdmissionTest {
         private final Map<HugeGraphParams, TaskScheduler> registry;
 
         Fixture(String suffix) {
+            this(suffix, 600L);
+        }
+
+        Fixture(String suffix, long schedulePeriod) {
             RegisterUtil.registerBackends();
             HugeConfig config = FakeObjects.newConfig();
             config.setProperty("backend", "memory");
             config.setProperty("serializer", "text");
             config.setProperty("store", "distributed_admission_" + suffix);
-            config.setProperty("task.schedule_period", 600L);
+            config.setProperty("task.schedule_period", schedulePeriod);
             config.setProperty("task.retry", 0);
             this.graph = HugeFactory.open(config);
             this.graph.initBackend();
@@ -498,6 +540,13 @@ public class DistributedTaskAdmissionTest {
     private static class TestScheduler extends DistributedTaskScheduler {
 
         private volatile Runnable beforeTaskRead = () -> { };
+        private volatile Runnable beforeTaskQuery = () -> { };
+
+        @Override
+        protected <V> Iterator<HugeTask<V>> queryTaskWithoutResultByStatus(TaskStatus status) {
+            this.beforeTaskQuery.run();
+            return super.queryTaskWithoutResultByStatus(status);
+        }
 
         @Override
         public <V> HugeTask<V> task(Id id, boolean withResult) {

@@ -125,7 +125,7 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         }
     }
 
-    public synchronized void cronSchedule() {
+    public void cronSchedule() {
         // Perform periodic scheduling tasks
 
         // Check closed flag first to exit early

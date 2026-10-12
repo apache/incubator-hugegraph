@@ -234,7 +234,8 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskScheduler scheduler = graph.taskScheduler();
 
         Id id = IdGenerator.of(88891);
-        HugeTask<?> task = new HugeTask<>(id, null, new SleepCallable<>());
+        BlockingCallable.reset();
+        HugeTask<?> task = new HugeTask<>(id, null, new BlockingCallable<>());
         task.type("test");
         task.name("delete-incomplete-task");
         scheduler.schedule(task);
@@ -248,13 +249,14 @@ public class TaskCoreTest extends BaseCoreTest {
                                           e.getMessage());
                 });
             } else {
-                waitUntilTaskRunning(scheduler);
+                Assert.assertTrue(BlockingCallable.awaitStarted());
                 HugeTask<?> deleted = scheduler.delete(id, false);
                 Assert.assertNotNull(deleted);
                 Assert.assertEquals(TaskStatus.DELETING, deleted.status());
                 Assert.assertEquals(TaskStatus.DELETING, scheduler.task(id).status());
             }
         } finally {
+            BlockingCallable.release();
             try {
                 scheduler.waitUntilAllTasksCompleted(10);
             } catch (TimeoutException ignored) {
