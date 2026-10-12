@@ -152,13 +152,13 @@ public class LoginApiTest extends BaseApiTest {
                         result, new TypeReference<Map<String, Object>>() {});
                 String id = (String) created.get("id");
                 try {
-                    r = basicAuthGet(noAuthClient, user[0], user[1]);
+                    r = basicAuthGet(noAuthClient, user[0] + ":" + user[1]);
                     assertResponseStatus(200, r);
 
-                    r = basicAuthGet(noAuthClient, user[0], "wrong" + user[1]);
+                    r = basicAuthGet(noAuthClient, user[0] + ":wrong" + user[1]);
                     assertResponseStatus(401, r);
                 } finally {
-                    this.deleteUser(id);
+                    assertResponseStatus(204, this.deleteUser(id));
                 }
             }
         } finally {
@@ -166,9 +166,29 @@ public class LoginApiTest extends BaseApiTest {
         }
     }
 
-    private static Response basicAuthGet(RestClient client, String name, String password) {
+    @Test
+    public void testBasicAuthWithMalformedCredential() {
+        RestClient noAuthClient = new RestClient(baseUrl(), false);
+        try {
+            assertResponseStatus(200, basicAuthGet(noAuthClient, "test:test"));
+
+            // No colon, an empty user-id or an empty password
+            for (String credential : new String[]{"admin", "admin:", ":pa"}) {
+                assertResponseStatus(400, basicAuthGet(noAuthClient, credential));
+            }
+
+            // Only the first colon separates the fields, so a trailing colon belongs to
+            // the password
+            assertResponseStatus(401, basicAuthGet(noAuthClient, "test:test:"));
+            assertResponseStatus(401, basicAuthGet(noAuthClient, "test::"));
+        } finally {
+            noAuthClient.close();
+        }
+    }
+
+    private static Response basicAuthGet(RestClient client, String userPass) {
         // Built by hand: Jersey's HttpAuthenticationFeature encodes the credential as ISO-8859-1
-        byte[] credential = (name + ":" + password).getBytes(StandardCharsets.UTF_8);
+        byte[] credential = userPass.getBytes(StandardCharsets.UTF_8);
         MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
         headers.add(HttpHeaders.AUTHORIZATION,
                     "Basic " + Base64.getEncoder().encodeToString(credential));

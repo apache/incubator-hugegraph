@@ -479,10 +479,17 @@ public class CypherApiTest extends BaseApiTest {
     }
 
     private void deleteAuth(Deque<String[]> created) {
+        // Attempt every deletion first, then fail on any record that was left behind
+        List<String> failures = new ArrayList<>();
         while (!created.isEmpty()) {
             String[] entry = created.pop();
-            client().delete(entry[0], entry[1]);
+            Response r = client().delete(entry[0], entry[1]);
+            if (r.getStatus() != 204) {
+                failures.add(String.format("%s/%s: %s %s", entry[0], entry[1],
+                                           r.getStatus(), r.readEntity(String.class)));
+            }
         }
+        Assert.assertTrue("Failed to delete auth records: " + failures, failures.isEmpty());
     }
 
     private static String basicCredential(String user, String password) {
