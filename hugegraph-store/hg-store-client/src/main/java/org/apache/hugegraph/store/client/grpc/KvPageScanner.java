@@ -321,15 +321,15 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
             } catch (Exception e) {
                 log.warn("failed to invoke requestObserver.onCompleted(), reason:", e.getMessage());
             }
-            proxy.setError(t);
-            proxy.close();
-            // Retire the failed node/channel pool just as unary RPCs do. Keep the
-            // original iterator error; cancellation or protocol errors must not
-            // evict a healthy node, and a stale node notice preserves replacements.
+            // Retire the failed pool before publishing the original iterator error,
+            // so immediate retries cannot reuse it. Cancellation or protocol errors
+            // must not evict healthy nodes, and stale notices preserve replacements.
             if (Status.fromThrowable(t).getCode() == Status.Code.UNAVAILABLE) {
                 new NotifyingExecutor(session.getGraphName(),
                                       HgStoreNodeManager.getInstance(), session).handleErr(t);
             }
+            proxy.setError(t);
+            proxy.close();
             log.error("failed to complete scan of session: " + session, t);
         }
 

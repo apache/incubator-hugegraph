@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.store.client.grpc;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -26,7 +28,14 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.apache.hugegraph.store.client.HgStoreNode;
@@ -71,6 +80,81 @@ public class KvPageScannerTest {
     }
 
     @Test
+    public void testUnavailableScanRetiresPoolBeforePublishingError() throws Exception {
+        try (FailureFixture fixture = new FailureFixture()) {
+            CountDownLatch requested = new CountDownLatch(1);
+            CountDownLatch retirementEntered = new CountDownLatch(1);
+            CountDownLatch allowRetirement = new CountDownLatch(1);
+            AtomicReference<Thread> receiverThread = new AtomicReference<>();
+            AtomicReference<StreamObserver<KvPageRes>> response = new AtomicReference<>();
+            StreamObserver<ScanStreamReq> requestObserver = mock(StreamObserver.class);
+            doAnswer(invocation -> {
+                requested.countDown();
+                return null;
+            }).when(requestObserver).onNext(any());
+            when(fixture.session.getStoreNode()).thenAnswer(invocation -> {
+                retirementEntered.countDown();
+                Assert.assertTrue("Retirement gate timed out",
+                                  allowRetirement.await(5, TimeUnit.SECONDS));
+                return fixture.node;
+            });
+            KvPageScanner scanner = new KvPageScanner(fixture.session,
+                    ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
+                    observer -> {
+                        response.set(observer);
+                        return requestObserver;
+                    });
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            var error = Status.UNAVAILABLE.withDescription("asynchronous scan failure")
+                                          .asRuntimeException();
+            try {
+                Future<Throwable> failure = executor.submit(() -> {
+                    receiverThread.set(Thread.currentThread());
+                    try {
+                        scanner.hasNext();
+                        Assert.fail("Failed scan must remain visible to the caller");
+                        return null;
+                    } catch (HgStoreClientException e) {
+                        return e.getCause();
+                    }
+                });
+                Assert.assertTrue(requested.await(5, TimeUnit.SECONDS));
+                awaitBlockedReceiver(receiverThread.get());
+                Future<?> notification = executor.submit(() -> response.get().onError(error));
+                Assert.assertTrue(retirementEntered.await(5, TimeUnit.SECONDS));
+                Assert.assertSame(fixture.channels, AbstractGrpcClient.channels.get(fixture.target));
+                try {
+                    failure.get(1, TimeUnit.SECONDS);
+                    Assert.fail("Scan error became visible before failed pool retirement");
+                } catch (TimeoutException expected) {
+                    // The caller must remain blocked until the failed pool is retired.
+                }
+                allowRetirement.countDown();
+                Assert.assertSame(error, failure.get(5, TimeUnit.SECONDS));
+                Assert.assertNull(fixture.manager.getStoreNode(fixture.nodeId));
+                Assert.assertFalse(AbstractGrpcClient.channels.containsKey(fixture.target));
+                var retryStub = fixture.client.getStub(fixture.session);
+                Assert.assertFalse(Arrays.asList(fixture.channels).contains(retryStub.getChannel()));
+                notification.get(5, TimeUnit.SECONDS);
+            } finally {
+                allowRetirement.countDown();
+                executor.shutdownNow();
+                Assert.assertTrue("Scan workers failed to stop",
+                                  executor.awaitTermination(5, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    private static void awaitBlockedReceiver(Thread receiver) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (receiver.getState() != Thread.State.TIMED_WAITING && System.nanoTime() < deadline) {
+            Thread.sleep(1);
+        }
+        Assert.assertEquals("Scanner must be blocked waiting for its response",
+                            Thread.State.TIMED_WAITING, receiver.getState());
+    }
+
+    @Test
     public void testCancelledAndInvalidScansPreserveHealthyPool() {
         for (Status status : List.of(Status.CANCELLED, Status.INVALID_ARGUMENT)) {
             try (FailureFixture fixture = new FailureFixture()) {
@@ -98,9 +182,6 @@ public class KvPageScannerTest {
             for (ManagedChannel channel : fixture.channels) {
                 verify(channel, never()).shutdown();
             }
-            fixture.manager.notifying(fixture.graph,
-                                      HgStoreNotice.of(fixture.nodeId, HgNodeStatus.NOT_WORK),
-                                      replacement);
         }
     }
 
@@ -158,8 +239,11 @@ public class KvPageScannerTest {
 
         @Override
         public void close() {
-            this.manager.notifying(this.graph,
-                                   HgStoreNotice.of(this.nodeId, HgNodeStatus.NOT_WORK), this.node);
+            HgStoreNode currentNode = this.manager.getStoreNode(this.nodeId);
+            if (currentNode != null) {
+                this.manager.notifying(this.graph,
+                                       HgStoreNotice.of(this.nodeId, HgNodeStatus.NOT_WORK), currentNode);
+            }
             AbstractGrpcClient.closeChannel(this.target);
         }
     }
