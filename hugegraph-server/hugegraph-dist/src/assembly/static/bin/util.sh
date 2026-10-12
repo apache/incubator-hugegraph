@@ -444,26 +444,46 @@ function cgroup_free_memory() {
 
     # Mount points and exposed roots need not use the conventional hierarchy.
     # The kernel escapes whitespace/backslashes in mountinfo path fields.
-    local mount_root="" mountpoint=""
+    local mount_root="" mountpoint="" mapped_path=""
+    local fallback_base="" selected_root="" selected_path=""
     if [[ -r "$mountinfo" ]]; then
-        read -r mount_root mountpoint < <(awk -v version="$version" '
+        while read -r mount_root mountpoint; do
+            printf -v mountpoint '%b' "$mountpoint"
+            printf -v mount_root '%b' "$mount_root"
+            if [[ -z "$fallback_base" ]]; then
+                fallback_base="$mountpoint"
+            fi
+            if [[ "$mount_root" == / ]]; then
+                mapped_path="$path"
+            elif [[ "$path" == "$mount_root" ]]; then
+                mapped_path=/
+            elif [[ "$path" == "$mount_root/"* ]]; then
+                mapped_path="${path#"$mount_root"}"
+            else
+                continue
+            fi
+            [[ -d "$mountpoint$mapped_path" ]] || continue
+            # Prefer the widest visible hierarchy so a delegated bind mount
+            # cannot hide a tighter ancestor exposed by another matching mount.
+            [[ -z "$selected_root" || ${#mount_root} -lt ${#selected_root} ]] || continue
+            base="$mountpoint"
+            selected_root="$mount_root"
+            selected_path="$mapped_path"
+        done < <(awk -v version="$version" '
             {
                 split($0, parts, " - ");
                 split(parts[2], tail, " ");
                 if (tail[1] == version && (version == "cgroup2" ||
                     index("," tail[3] ",", ",memory,") > 0)) {
                     print $4, $5;
-                    exit;
                 }
-            }' "$mountinfo") || true
-        if [[ -n "$mountpoint" ]]; then
-            printf -v base '%b' "$mountpoint"
-            printf -v mount_root '%b' "$mount_root"
-            if [[ "$mount_root" != / && "$path" == "$mount_root" ]]; then
-                path=/
-            elif [[ "$mount_root" != / && "$path" == "$mount_root/"* ]]; then
-                path="${path#"$mount_root"}"
-            fi
+            }' "$mountinfo")
+        # Only use a namespace root after all membership mappings were tried.
+        if [[ -n "$selected_root" ]]; then
+            path="$selected_path"
+        elif [[ -n "$fallback_base" ]]; then
+            base="$fallback_base"
+            path=/
         fi
     fi
 
@@ -476,7 +496,9 @@ function cgroup_free_memory() {
         dir="$base$path"
         dir="${dir%/}"
     fi
-    local limit usage available smallest=""
+    local limit usage inactive available smallest=""
+    local cache_key=inactive_file
+    [[ "$version" != cgroup ]] || cache_key=total_inactive_file
     while :; do
         limit=""
         usage=0
@@ -484,9 +506,18 @@ function cgroup_free_memory() {
         [[ ! -r "$dir/$usage_file" ]] || read -r usage < "$dir/$usage_file" || true
         if [[ "$limit" =~ ^[0-9]+$ ]]; then
             [[ "$usage" =~ ^[0-9]+$ ]] || usage=0
-            # awk avoids shell integer overflow for v1's unlimited sentinel.
-            available=$(awk -v limit="$limit" -v usage="$usage" 'BEGIN {
-                remaining = limit - usage;
+            # Inactive file cache can be reclaimed on a warm restart. For v1,
+            # use the hierarchical total so ancestor budgets include children.
+            inactive=0
+            if [[ -r "$dir/memory.stat" ]]; then
+                inactive=$(awk -v key="$cache_key" '$1 == key {print $2; exit}' "$dir/memory.stat")
+            fi
+            [[ "$inactive" =~ ^[0-9]+$ ]] || inactive=0
+            # Inconsistent snapshots receive no cache credit. awk also avoids
+            # shell integer overflow for v1's unlimited sentinel.
+            available=$(awk -v limit="$limit" -v usage="$usage" -v inactive="$inactive" 'BEGIN {
+                if (inactive > usage) inactive = 0;
+                remaining = limit - (usage - inactive);
                 printf "%.0f\n", (remaining > 0 ? int(remaining / 1048576) : 0);
             }')
             if [[ -z "$smallest" ]] || awk -v a="$available" -v b="$smallest" \

@@ -75,8 +75,9 @@ To regenerate Hubble configuration after modifying `.env`:
 
 The Server launcher sizes its default heap from the smaller of host available memory
 and remaining memory under visible cgroup hard limits. It supports cgroup v1/v2,
-ancestor limits and custom controller mounts. The default heap uses half that budget,
-with a 512 MiB minimum and a 32 GiB maximum; startup fails if the budget is below
+ancestor limits and custom controller mounts. Charged inactive file cache is counted
+as reclaimable when controller statistics are available and consistent. The default heap
+uses half that budget, with a 512 MiB minimum and a 32 GiB maximum; startup fails if the budget is below
 512 MiB. Native allocations, thread stacks and file caches also consume container
 memory, so the heap limit does not bound the process's total memory use.
 

@@ -97,6 +97,55 @@ cp "$CUSTOM/job/"memory.* "$SPACED/job/"
 ESCAPED=${SPACED// /\\040}
 printf '29 23 0:26 /delegated %s rw - cgroup cgroup rw,memory\n' "$ESCAPED" > "$MOUNTINFO"
 assert_memory 1536
+# Skip unrelated bind mounts before applying namespace fallback.
+UNRELATED="$FIXTURE/unrelated"
+mkdir -p "$UNRELATED"
+printf '17179869184\n' > "$UNRELATED/memory.max"
+printf '0\n' > "$UNRELATED/memory.current"
+printf '0::/team/service\n' > "$MEMBERSHIP"
+printf '29 23 0:26 /other %s rw - cgroup2 cgroup rw\n' "$UNRELATED" > "$MOUNTINFO"
+printf '30 23 0:26 / %s rw - cgroup2 cgroup rw\n' "$ROOT" >> "$MOUNTINFO"
+assert_memory 768
+# A matching delegated view must not hide a tighter ancestor in a wider view.
+printf '29 23 0:26 /team/service %s rw - cgroup2 cgroup rw\n' "$ROOT/team/service" > "$MOUNTINFO"
+printf '30 23 0:26 / %s rw - cgroup2 cgroup rw\n' "$ROOT" >> "$MOUNTINFO"
+printf '536870912\n' > "$ROOT/team/memory.max"
+printf '0\n' > "$ROOT/team/memory.current"
+assert_memory 512
+printf '2147483648\n' > "$ROOT/team/memory.max"
+printf '536870912\n' > "$ROOT/team/memory.current"
+# The same selection rule applies to v1 and decoded delegated roots.
+printf '6:memory:/delegated group/job\n' > "$MEMBERSHIP"
+printf '29 23 0:26 /other %s rw - cgroup cgroup rw,memory\n' "$UNRELATED" > "$MOUNTINFO"
+printf '30 23 0:26 /delegated\\040group %s rw - cgroup cgroup rw,memory\n' "$ESCAPED" >> "$MOUNTINFO"
+assert_memory 1536
+# Warm inactive file cache is reclaimable; active usage still consumes budget.
+printf '0::/\n' > "$MEMBERSHIP"
+: > "$MOUNTINFO"
+printf '4294967296\n' > "$ROOT/memory.max"
+printf '4026531840\n' > "$ROOT/memory.current"
+printf 'inactive_file 4026531840\n' > "$ROOT/memory.stat"
+assert_memory 4096
+# shellcheck disable=SC2329
+free_memory() { cgroup_free_memory "$ROOT" "$MEMBERSHIP" "$MOUNTINFO"; }
+[[ $(calc_xmx 512 32768) == 2048 ]]
+# Inconsistent snapshots and malformed statistics receive no cache credit.
+printf 'inactive_file 8589934592\n' > "$ROOT/memory.stat"
+assert_memory 256
+printf 'inactive_file invalid\n' > "$ROOT/memory.stat"
+assert_memory 256
+rm "$ROOT/memory.stat"
+assert_memory 256
+# Reclaimable cache is checked independently at every ancestor.
+printf '0::/team/service\n' > "$MEMBERSHIP"
+printf 'inactive_file 268435456\n' > "$ROOT/team/service/memory.stat"
+printf 'inactive_file 536870912\n' > "$ROOT/team/memory.stat"
+printf 'inactive_file 4026531840\n' > "$ROOT/memory.stat"
+assert_memory 1024
+# v1's total statistic includes descendants; the local statistic does not.
+printf '6:memory:/job\n' > "$MEMBERSHIP"
+printf 'inactive_file 0\ntotal_inactive_file 536870912\n' > "$ROOT/memory/job/memory.stat"
+assert_memory 2048
 # shellcheck disable=SC2329
 free_memory() { echo 3072; }
 [[ $(calc_xmx 512 32768) == 1536 ]]

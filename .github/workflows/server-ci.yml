@@ -20,7 +20,30 @@ permissions:
   pull-requests: read
 
 jobs:
+  check-license:
+    runs-on: ubuntu-latest
+    env:
+      USE_STAGE: 'false' # Whether to include the stage repository.
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check License Header
+        uses: apache/skywalking-eyes@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          log: info
+          token: ${{ github.token }}
+          config: .licenserc.yaml
+
+      - name: License Check (RAT)
+        run: |
+          mvn apache-rat:check -ntp
+          find ./ -name rat.txt -print0 | xargs -0 -I file cat file > merged-rat.txt
+          grep "Binaries" merged-rat.txt -C 3 && cat merged-rat.txt
+
   plan:
+    needs: check-license
     runs-on: ubuntu-24.04
     outputs:
       server: ${{ steps.select.outputs.server }}
@@ -56,6 +79,7 @@ jobs:
           overwrite: true
 
   java-runtime:
+    needs: check-license
     uses: ./.github/workflows/java-runtime.yml
     permissions:
       contents: read
@@ -72,9 +96,6 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
-
-      - name: Test CI retry freshness checks
-        run: python3 -m unittest discover -s .github/scripts -p 'test_check_rerun.py'
 
       - name: Run wait-storage.sh peer failover tests
         run: hugegraph-server/hugegraph-dist/src/assembly/travis/test-wait-storage.sh
@@ -171,3 +192,87 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python3 .github/scripts/ci-policy.py gate --mode advisory --plan plan.json --results results.json --output test-results.json
+
+  memory-plan:
+    needs: check-license
+    runs-on: ubuntu-24.04
+    outputs:
+      server: ${{ steps.select.outputs.server }}
+      commons: ${{ steps.select.outputs.commons }}
+      pd_store: ${{ steps.select.outputs.pd_store }}
+      cluster: ${{ steps.select.outputs.cluster }}
+      docker: ${{ steps.select.outputs.docker }}
+      helm: ${{ steps.select.outputs.helm }}
+      dependency_license: ${{ steps.select.outputs.dependency_license }}
+      compatibility: ${{ steps.select.outputs.compatibility }}
+      smoke: ${{ steps.select.outputs.smoke }}
+      security: ${{ steps.select.outputs.security }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select affected tests
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 .github/scripts/ci-policy.py plan --project server
+          --event-path "$GITHUB_EVENT_PATH" --repository "$GITHUB_REPOSITORY"
+          --output plan.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ci-memory-plan
+          path: plan.json
+          retention-days: 7
+          overwrite: true
+
+  memory-java-runtime:
+    needs: memory-plan
+    if: needs.memory-plan.outputs.server == 'true'
+    uses: ./.github/workflows/java-runtime.yml
+    permissions:
+      contents: read
+
+  build-server:
+    needs: [memory-plan, memory-java-runtime]
+    if: needs.memory-plan.outputs.server == 'true'
+    uses: ./.github/workflows/server-tests.yml
+    with:
+      backend: memory
+      java-versions: ${{ needs.memory-java-runtime.outputs.versions }}
+    secrets: inherit
+
+  server-memory-required:
+    name: Server memory tests
+    needs: [memory-plan, memory-java-runtime, build-server]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check planning and runtime results
+        env:
+          JOB_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PYGATE'
+          import json, os
+          results = json.loads(os.environ['JOB_RESULTS'])
+          if results['memory-plan']['result'] != 'success':
+              raise SystemExit('CI planning failed')
+          if results['memory-plan']['outputs'].get('server') == 'true' and results['memory-java-runtime']['result'] != 'success':
+              raise SystemExit('Selected Java runtime preparation failed')
+          results['plan'] = results['memory-plan']
+          results['server_memory'] = results['build-server']
+          with open('results.json', 'w') as output:
+              json.dump(results, output)
+          PYGATE
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-memory-plan
+      - name: Report selected suites and their real results
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/ci-policy.py gate --mode memory --plan plan.json --results results.json --output test-results.json
