@@ -41,7 +41,7 @@ while getopts "c:d:g:i:j:l:o:y:" arg; do
         # Telemetry is used to collect metrics, traces and logs
         d) DAEMON="$OPTARG" ;;
         y) OPEN_TELEMETRY="$OPTARG" ;;
-        ?) echo "USAGE: $0 [-c conf_dir] [-d true|false] [-g g1] [-i pid_file] [-j opts] [-l logs_dir] [-o plugins_dir] [-y true|false]" && exit 1 ;;
+        ?) echo "USAGE: $0 [-d true|false] [-c conf_dir] [-g g1|ZGC] [-i pid_file] [-j xxx] [-l logs_dir] [-o plugins_dir] [-y true|false]" && exit 1 ;;
     esac
 done
 
@@ -118,12 +118,17 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     #              -Xloggc:./logs/gc.log -XX:+PrintHeapAtGC -XX:+PrintGCDetails -XX:+PrintGCDateStamps"
 fi
 
-# Using G1GC as the default garbage collector (Recommended for large memory machines)
+# Keep JVM/caller GC selection by default; explicitly select G1 when requested.
 case "$GC_OPTION" in
-    "")
-        echo "Using G1GC as the default garbage collector"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+ParallelRefProcEnabled \
-                      -XX:InitiatingHeapOccupancyPercent=50 -XX:G1RSetUpdatingPauseTimePercent=5"
+    ""|g1|G1)
+        if [[ "$GC_OPTION" == g1 || "$GC_OPTION" == G1 ]]; then
+            echo "Using G1GC"
+            JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC"
+        else
+            echo "Using JVM garbage collector configuration"
+        fi
+        JAVA_OPTIONS="-XX:+ParallelRefProcEnabled -XX:InitiatingHeapOccupancyPercent=50 \
+                      -XX:G1RSetUpdatingPauseTimePercent=5 ${JAVA_OPTIONS}"
         ;;
     zgc|ZGC)
         echo "Using ZGC as the default garbage collector (requires Java 17 or later)"
@@ -133,7 +138,7 @@ case "$GC_OPTION" in
                                       -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
         ;;
     *)
-        echo "Unrecognized gc option: '$GC_OPTION', default use g1, options only support 'ZGC' now" >> "${OUTPUT}"
+        echo "Unrecognized gc option: '$GC_OPTION', supported options: g1, ZGC" >> "${OUTPUT}"
         exit 1
 esac
 
@@ -185,15 +190,26 @@ fi
 
 JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dlogging.config=${CONF}/log4j2.xml -DLOG_PATH=${LOGS} -Dbolt.log.path=${LOGS} -Dlogging.path=${LOGS} -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
 
+source "$BIN/preload-topling.sh" || exit 1
+BOOT_JARS=("${LIB}"/hg-pd-service-*.jar)
+if [ "${#BOOT_JARS[@]}" -ne 1 ] || [ ! -f "${BOOT_JARS[0]}" ]; then
+    echo "Error: expected one component executable JAR in $LIB" >&2
+    exit 1
+fi
+JAVA_MAIN=(-jar "${BOOT_JARS[0]}")
+if [ -n "${TOPLING_RUNTIME_CLASSPATH:-}" ]; then
+    JAVA_MAIN=(-cp "${TOPLING_RUNTIME_CLASSPATH}:${BOOT_JARS[0]}" org.springframework.boot.loader.JarLauncher)
+fi
+
 # Turn on security check
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphPDServer in daemon mode..."
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
-            -Dspring.config.location="${CONF}"/application.yml ${LIB}/hg-pd-service-*.jar &
+        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+            -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@" &
     else
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
-            -Dspring.config.location="${CONF}"/application.yml ${LIB}/hg-pd-service-*.jar >> "${OUTPUT}" 2>&1 &
+        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+            -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1 &
     fi
     PID="$!"
     # Write pid to file
@@ -205,10 +221,10 @@ else
     echo "$$" > "$PID_FILE"
     echo "[+pid] $$"
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
-            -Dspring.config.location="${CONF}"/application.yml ${LIB}/hg-pd-service-*.jar
+        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+            -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@"
     else
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} -jar \
-            -Dspring.config.location="${CONF}"/application.yml ${LIB}/hg-pd-service-*.jar >> "${OUTPUT}" 2>&1
+        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+            -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1
     fi
 fi

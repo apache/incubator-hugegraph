@@ -39,7 +39,7 @@ cleanup() {
     local status=$?
     trap - EXIT
     if [[ "$SERVER_START_ATTEMPTED" == "true" ]]; then
-        "$SERVER_DIR/bin/stop-hugegraph.sh" -m false >/dev/null 2>&1 || status=1
+        "$SERVER_DIR/bin/stop-hugegraph.sh" -m false || status=1
     fi
     rm -rf "$WORK_DIR"
     exit "$status"
@@ -78,12 +78,13 @@ start_server
     tee "$WORK_DIR/verify.log"
 grep -q '^server-e2e-smoke-verify-ok$' "$WORK_DIR/verify.log"
 
+# Heap dumps under logs/heapdump_*/ contain class names as plain strings, so
+# leave them out of the search.
+LINKAGE_ERRORS='undefined symbol|UnsatisfiedLinkError|UnsupportedClassVersionError|NoClassDefFoundError'
 if [[ -d "$SERVER_DIR/logs" ]] && \
-   grep -Eirq 'undefined symbol|UnsatisfiedLinkError|UnsupportedClassVersionError|NoClassDefFoundError' \
-        "$SERVER_DIR/logs"; then
+   grep -Eirq --exclude='*.hprof*' "$LINKAGE_ERRORS" "$SERVER_DIR/logs"; then
     echo "Native linkage or Java compatibility error found in $SERVER_DIR/logs" >&2
-    grep -Eirn 'undefined symbol|UnsatisfiedLinkError|UnsupportedClassVersionError|NoClassDefFoundError' \
-        "$SERVER_DIR/logs" >&2
+    grep -Eirn --exclude='*.hprof*' "$LINKAGE_ERRORS" "$SERVER_DIR/logs" >&2
     exit 1
 fi
 

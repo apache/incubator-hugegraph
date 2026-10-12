@@ -25,6 +25,7 @@ function command_available() {
 }
 
 function configure_riscv64_libatomic() {
+    local error_handler="${1:-}"
     if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "riscv64" ]]; then
         return 0
     fi
@@ -56,7 +57,12 @@ function configure_riscv64_libatomic() {
     fi
 
     if [[ -z "$libatomic" ]]; then
-        echo "RISC-V RocksDB requires libatomic.so.1; install libatomic1" >&2
+        local message="RISC-V RocksDB requires libatomic.so.1; install libatomic1"
+        if [[ -n "$error_handler" ]]; then
+            "$error_handler" "$message"
+        else
+            echo "$message" >&2
+        fi
         return 1
     fi
 
@@ -510,13 +516,19 @@ function remove_with_prompt() {
 
 function ensure_path_writable() {
     local path=$1
+    local error_handler="${2:-}"
     # Ensure input path exist
     if [ ! -d "${path}" ]; then
         mkdir -p "${path}"
     fi
     # Check for write permission
     if [ ! -w "${path}" ]; then
-        echo "No write permission on directory ${path}"
+        local message="No write permission on directory ${path}"
+        if [ -n "${error_handler}" ]; then
+            "${error_handler}" "${message}"
+        else
+            echo "${message}"
+        fi
         exit 1
     fi
 }
@@ -719,6 +731,11 @@ function kill_process_and_wait() {
 }
 
 function exit_with_usage_help(){
-    echo "USAGE: $0 [-c conf_dir] [-d true|false] [-g g1] [-i pid_file] [-l logs_dir] [-m true|false] [-o plugins_dir] [-p true|false] [-s true|false] [-j java_options] [-t timeout] [-y true|false]"
+    echo "USAGE: $0 [-d true|false] [-g g1|G1|zgc|ZGC] [-m true|false] [-p true|false]" \
+         "[-s true|false] [-j java_options] [-t timeout] [-y true|false]" \
+         "[-c conf_dir] [-l logs_dir] [-o plugins_dir] [-i pid_file]"
+    echo "Without -g, JVM/caller collector selection applies. -j applies when JAVA_OPTIONS is empty."
+    echo "Default/G1 tuning precedes caller options, so caller tuning values win."
+    echo "Do not combine -g with a different collector in JAVA_OPTIONS or -j."
     exit 1
 }

@@ -252,19 +252,83 @@ else
     ./bin/init-store.sh
 fi
 
-./bin/start-hugegraph.sh -j "${JAVA_OPTS:-}" -t "${SERVER_STARTUP_TIMEOUT_S}"
+# Own the foreground launcher so wait can recover the JVM's actual status.
+# A daemon JVM is not our child; watching its PID with tail loses that status.
+source ./bin/util.sh
+LAUNCHER_PID=""
+READINESS_PID=""
+PARTITION_PID=""
+stop_server_and_exit() {
+    local exit_code="$1"
+    # dumb-init can signal the group before we forward to its children.
+    # Ignore duplicate signals while those children finish shutting down.
+    trap '' TERM INT
+    if [[ -n "$READINESS_PID" ]]; then
+        kill -TERM "$READINESS_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$PARTITION_PID" ]]; then
+        kill -TERM "$PARTITION_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$LAUNCHER_PID" ]]; then
+        kill -TERM "$LAUNCHER_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$PARTITION_PID" ]]; then
+        wait "$PARTITION_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$READINESS_PID" ]]; then
+        wait "$READINESS_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$LAUNCHER_PID" ]]; then
+        wait "$LAUNCHER_PID" 2>/dev/null || true
+    fi
+    exit "$exit_code"
+}
+trap 'stop_server_and_exit 143' TERM
+trap 'stop_server_and_exit 130' INT
+
+./bin/start-hugegraph.sh -d false -j "${JAVA_OPTS:-}" -t "${SERVER_STARTUP_TIMEOUT_S}" &
+LAUNCHER_PID=$!
+REST_SERVER_URL=$(read_property "$REST_SERVER_CONF" "restserver.url")
+# GNU timeout owns the probe group, including a stalled curl. Background it
+# so wait is interruptible; a foreground probe would defer our signal traps.
+timeout "${SERVER_STARTUP_TIMEOUT_S}s" bash -c '
+    source ./bin/util.sh
+    wait_for_startup "$@"
+' bash "$LAUNCHER_PID" 'HugeGraphServer' "$REST_SERVER_URL/graphs" \
+       "$SERVER_STARTUP_TIMEOUT_S" &
+READINESS_PID=$!
+READY_STATUS=0
+wait "$READINESS_PID" || READY_STATUS=$?
+READINESS_PID=""
+if [[ "$READY_STATUS" -ne 0 ]]; then
+    log "ERROR: HugeGraphServer did not become ready; see the container logs"
+    if kill -0 "$LAUNCHER_PID" 2>/dev/null; then
+        # Keep the startup deadline even if the JVM ignores TERM. Container
+        # termination cleans up any remaining processes; don't wait forever.
+        kill -TERM "$LAUNCHER_PID" 2>/dev/null || true
+        exit 1
+    fi
+    # Preserve an early failure, but a normal exit before readiness is still
+    # an unsuccessful start.
+    STATUS=0
+    wait "$LAUNCHER_PID" || STATUS=$?
+    [[ "$STATUS" -ne 0 ]] || STATUS=1
+    exit "$STATUS"
+fi
 
 # Post-startup cluster stabilization check (hstore only — rocksdb has no partitions)
 ACTUAL_BACKEND=$(grep -E '^[[:space:]]*backend[[:space:]]*=' "${GRAPH_CONF}" | head -n 1 | sed 's/.*=//' | tr -d '[:space:]' || true)
 if [[ "${ACTUAL_BACKEND}" == "hstore" ]]; then
     STORE_REST="${STORE_REST:-store:8520}"
     export STORE_REST
-    ./bin/wait-partition.sh || log "WARN: partitions not assigned yet"
+    ./bin/wait-partition.sh &
+    PARTITION_PID=$!
+    wait "$PARTITION_PID" || log "WARN: partitions not assigned yet"
+    PARTITION_PID=""
 fi
 
-PID=$(cat ./bin/pid 2>/dev/null || true)
-if [[ -n "$PID" ]]; then
-    trap 'kill -TERM "$PID" 2>/dev/null; while kill -0 "$PID" 2>/dev/null; do sleep 1; done; exit 0' TERM INT
-    tail --pid="$PID" -f /dev/null
-    exit 1
+if wait "$LAUNCHER_PID"; then
+    exit 0
+else
+    exit $?
 fi

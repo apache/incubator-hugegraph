@@ -71,9 +71,10 @@ Id id = IdGenerator.of("alice");
 
 | Previous entry | Shared entry or migration |
 |----------------|---------------------------|
-| `org.apache.hugegraph.backend.id.*` | `org.apache.hugegraph.id.*` |
+| Shared types in `org.apache.hugegraph.backend.id` | `org.apache.hugegraph.id.*` |
 | `org.apache.hugegraph.schema.*` metadata | `org.apache.hugegraph.struct.schema.*` |
-| `org.apache.hugegraph.backend.query.*` | `org.apache.hugegraph.query.*` |
+| Shared types in `org.apache.hugegraph.backend.query` | `org.apache.hugegraph.query.*` |
+| `org.apache.hugegraph.backend.query.serializer.*` | `org.apache.hugegraph.query.serializer.*` |
 | `org.apache.hugegraph.backend.store.Shard` | `org.apache.hugegraph.backend.Shard` |
 | `org.apache.hugegraph.backend.store.BackendEntry.BackendColumn` | `org.apache.hugegraph.backend.BackendColumn` |
 | `org.apache.hugegraph.structure.HugeIndex` | `org.apache.hugegraph.structure.Index` |
@@ -81,7 +82,36 @@ Id id = IdGenerator.of("alice");
 | Core `HugeException` | `org.apache.hugegraph.exception.HugeException` |
 | `org.apache.hugegraph.SchemaGraph` / `SchemaDriver` | `org.apache.hugegraph.store.schema.*` |
 
-The table applies to these shared types, not every class in a package. Schema mutation builders and backend-specific serializers remain in core. There is no general compatibility package for removed core classes. Relocated types also change method descriptors that expose IDs, schema, queries and indexes, so update implementations and call sites and recompile every affected integration against matching artifacts. Changing source imports does not make old binaries compatible.
+Keep the core imports for `SnowflakeIdGenerator` and the query execution helpers
+`QueryResults`, `ConditionQueryFlatten`, `EdgesQueryIterator`, `QueryBatch` and `QueryResultContext`.
+The table applies to shared types, not entire packages. `SchemaManager`, schema mutation builders and backend-specific serializers remain in core. There is no general compatibility package for removed core classes. Relocated types also change method descriptors that expose IDs, schema, queries and indexes, so update implementations and call sites and recompile every affected integration against matching artifacts. Changing source imports does not make old binaries compatible.
+
+### Resolve conditions through the shared query type
+
+Server and Store now use `org.apache.hugegraph.query.ConditionQuery` from struct.
+The explicit resolution methods operate on top-level `EQ` and `IN` relations
+for a key and intersect their candidate values. Nested conditions and other
+operators remain outside this resolution.
+
+| Method | Result |
+|--------|--------|
+| `containsCondition(HugeKeys)` | Reports whether any top-level relation exists for the system key. |
+| `containsConditionValues(key)` | Reports whether a top-level `EQ` or `IN` relation exists, including an empty `IN`. |
+| `conditionValues(key)` | Returns the candidate intersection. Pair it with `containsConditionValues` to distinguish absence from an empty intersection. |
+| `conditionValue(key)` | Returns `null` for an empty intersection, the value for a singleton, and throws for multiple candidates. |
+| `singleConditionValueOrNull(key)` | Returns the value for a singleton and `null` for every other candidate count. |
+
+The existing `condition(key)` method keeps its legacy behavior, including
+returning the original list for a sole `IN` relation. Use strict
+`conditionValue` when a serializer requires one value; use
+`singleConditionValueOrNull` when an optimization applies only to one candidate.
+For example, `IN [1, 2]` combined with `EQ 2` resolves to `2`, while an
+additional `EQ 3` produces an empty intersection.
+
+SEARCH index construction and local SEARCH matching share the analyzer and
+term handling in struct's `IndexBuilder`. Engine callers use
+`HugeGraph.searchPredicate(text)` so the graph selects its configured analyzer
+and the authorization proxy checks access before delegation.
 
 ### Check API and SPI implementations
 
@@ -139,6 +169,21 @@ A vertex-only physical key allowed one OLAP property to overwrite another on the
 
 Readers try the requested property's compound key first, then the legacy vertex-only key if its value contains the matching property ID. Deleting one property removes its compound row and a matching legacy row while preserving other properties. Values already overwritten by the old writer are lost.
 
+Clearing an OLAP property deletes its matching compound and legacy rows while
+retaining its schema. Removing the property deletes those rows before the existing
+schema/index removal job completes. Both operations retain the shared OLAP table,
+other properties and other graphs. Cleanup scans the shared table and commits
+bounded batches; if a batch fails, the task fails and the pending session is rolled
+back. Deletions already committed to Store nodes can remain, so retrying cleanup
+is idempotent; the operation does not promise graph-wide atomicity.
+
+Quiesce writes to the affected OLAP property before clearing or removing it, and
+keep those writes stopped until cleanup completes. The scan and bounded delete
+batches do not coordinate concurrent writers: a new row can be missed, and a
+rewrite of a scanned row can be deleted. An inconsistent compound key/value
+blocks cleanup until the affected row is repaired; the error includes its key
+in hexadecimal, limited to the first 64 bytes.
+
 Mixed-version writes can produce stale reads: an old writer may update a legacy row while a new reader prefers an earlier compound row. Upgrade all Server and Store writers before resuming writes.
 
 ### Match metadata namespaces
@@ -150,7 +195,10 @@ pd:
   cluster: hg
 ```
 
-The environment equivalent is `PD_CLUSTER`. Match Server's `cluster` when `usePD=true`, or the graph's `pd.cluster` when `usePD=false`. One Store process cannot reuse its schema driver across conflicting namespaces.
+The environment equivalent is `PD_CLUSTER`. Match Server's `cluster` when `usePD=true`.
+With `usePD=false`, the first HStore graph opened binds the process-wide `MetaManager` to its `pd.cluster`;
+a later graph's explicit conflicting value is logged and ignored. Configure all HStore graphs in the
+process with the same namespace. Store rejects reuse of its schema driver under a conflicting namespace.
 
 Keep backend graph-name components such as `DEFAULT/hugegraph/g` (`graphspace/store/table`). The REST identity `DEFAULT-hugegraph` is not a metadata key.
 

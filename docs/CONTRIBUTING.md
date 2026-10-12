@@ -58,10 +58,12 @@ and automatic cancellation and retries. Report what you actually validated and a
 Install/package the current reactor before regenerating the inventory:
 
 ```bash
-mvn install -DskipTests -Dmaven.javadoc.skip=true
+mvn clean install -DskipTests -Dmaven.javadoc.skip=true
 bash install-dist/scripts/dependency/regenerate_known_dependencies.sh
 ```
 
+Clean rebuilds the current revision's distributions to avoid stale dependency jars.
+It also removes root-level `*.tar.gz` distribution archives; other revision directories remain.
 The build must produce Server, PD and Store distributions for the same current revision.
 It skips tests and is not validation evidence. The inventory combines Maven runtime
 dependencies with flat and nested distribution jars, including Spring Boot `BOOT-INF/lib`

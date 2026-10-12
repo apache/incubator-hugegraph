@@ -16,6 +16,19 @@ The operations page carries the walkthroughs this README links to below.
 Note that this chart requires Helm 3. `--reset-then-reuse-values`, referenced
 under Upgrading, requires Helm 3.14 or later.
 
+### Packaging
+
+`helm package helm/hugegraph` includes the runtime templates, value presets and
+schema, but excludes source diagrams and contributor test fixtures. Helm also
+stores chart files in its release Secret, which Kubernetes limits to 1 MiB;
+documentation images must stay outside that payload. The diagram below links
+to the source repository so it remains available when reading a packaged chart.
+
+CI checks the packaged archive, renders all three presets from it, and keeps
+the compressed chart below 512 KiB to leave room for values and rendered
+resources in the release. This package budget is a regression guard, not a
+replacement for validating a real Helm installation with the intended values.
+
 ## Prerequisites Details
 
 * Kubernetes 1.23+ (the chart renders `autoscaling/v2` and `policy/v1`)
@@ -34,7 +47,7 @@ under Upgrading, requires Helm 3.14 or later.
 | Server | Deployment | Gremlin and REST query layer |
 | Hubble | Deployment + optional PVC | Web UI, off by default; enable with `hubble.enabled` |
 
-![HugeGraph HStore architecture and Kubernetes workload types](images/architecture.png)
+![HugeGraph HStore architecture and Kubernetes workload types](https://raw.githubusercontent.com/apache/hugegraph/master/helm/hugegraph/images/architecture.png)
 
 A distributed HugeGraph cluster has a startup contract that this chart encodes
 so operators do not have to:
@@ -172,8 +185,9 @@ A fresh install seeds PD with a partition shard count of 3 when
 default of 1. The seed applies at first bootstrap only; see Partition
 Sharding below.
 
-The component image tags and `appVersion` track `latest` until the next
-HugeGraph release tag is published. For production, pin the image tags (or
+The component image tags and `appVersion` stay at `latest` until the 1.8.0
+release images are published. Empty component tags inherit `appVersion`;
+explicit image tags still override it. For production, pin the image tags (or
 digests) and switch the component pull policies to `IfNotPresent`.
 
 Verify the release:
@@ -1064,6 +1078,12 @@ use; see `values-cluster.yaml`.
 kubectl get pods -o wide
 kubectl -n <namespace> describe pod <pod> | grep -A5 "Last State"
 ```
+
+`kubectl -n <namespace> logs <pod> --previous` shows the previous container's
+output, including launcher and bootstrap errors that stopped the Server. The
+chart does not mount a volume at `/hugegraph-server/logs`, so JVM crash logs and
+heap dumps the Server writes there are lost when its container restarts; see
+[Server logs and crash files](../../docker/README.md#server-logs-and-crash-files).
 
 ### Release Name Too Long
 
