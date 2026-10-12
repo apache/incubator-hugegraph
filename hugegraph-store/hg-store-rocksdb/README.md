@@ -26,6 +26,14 @@ path. Directory listing or `CURRENT` inspection failures are rejected; unknown
 access or I/O state is not treated as an absent database. Paths queued for removal retain the constructor's existing treatment.
 The normal constructor continues to open read/write and prune old versions.
 
+`RocksDBFactory.createGraphDB(path, name, version, Consumer<String> validator)`
+validates existing DB versions before creating an uncached native session. It
+uses the existing factory creation lock and cache: cached sessions skip validation.
+Each existing candidate not queued for removal is passed to the validator through
+the read-only resolver before constructor pruning or cache publication. Validation
+failure leaves these DB paths intact. The original overloads keep their behavior;
+this generic hook does not depend on Store graph-ID rules.
+
 `loadSnapshot(snapshotPath, version, Consumer<String> validator)` first copies
 and verifies the staging database, then passes its path to the validator before
 replacing the target version. The validator must inspect it read-only. A rejected

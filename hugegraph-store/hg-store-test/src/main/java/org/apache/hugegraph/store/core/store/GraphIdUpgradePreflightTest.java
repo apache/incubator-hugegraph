@@ -47,6 +47,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.SessionOperator;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.PartitionEngine;
@@ -54,6 +55,9 @@ import org.apache.hugegraph.store.business.BusinessHandlerImpl;
 import org.apache.hugegraph.store.meta.PartitionManager;
 import org.apache.hugegraph.store.meta.ShardGroup;
 import org.apache.hugegraph.store.meta.StoreMetadata;
+import org.apache.hugegraph.store.meta.Store;
+import org.apache.hugegraph.store.meta.GraphIdManager;
+import org.apache.hugegraph.store.meta.MetadataKeyHelper;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import org.apache.hugegraph.store.options.PartitionEngineOptions;
 import org.apache.hugegraph.store.raft.PartitionStateMachine;
@@ -103,6 +107,221 @@ public class GraphIdUpgradePreflightTest {
         config.put("rocksdb.write_buffer_size", "1048576");
         config.put("rocksdb.bloom_filter_bits_per_key", "10");
         BusinessHandlerImpl.initRocksdb(config, null);
+    }
+
+    @Test
+    public void testBootstrapPreservesOlderDatabaseWhenLatestHasNoCurrent() throws Exception {
+        Path location = this.temporary.newFolder("bootstrap").toPath();
+        Path data = Files.createDirectory(location.resolve("db"));
+        writeDatabase(data, DB_NAME + "_1", 1);
+        Files.createDirectory(data.resolve(DB_NAME + "_2"));
+        Files.write(data.resolve(DB_NAME + "_2/incomplete-copy"), new byte[]{7});
+        Map<String, String> before = fileHashes(data);
+        try (Bootstrap bootstrap = new Bootstrap(location)) {
+            Throwable failure = null;
+            try {
+                bootstrap.manager.loadPartition();
+            } catch (Throwable caught) {
+                failure = caught;
+            }
+            System.out.println("BOOTSTRAP older-present=" + Files.exists(data.resolve(DB_NAME + "_1")) +
+                               " latest-CURRENT=" + Files.exists(data.resolve(DB_NAME + "_2/CURRENT")) +
+                               " unchanged=" + before.equals(fileHashes(data)) + " failure=" + failure);
+            assertNotNull("Bootstrap must reject before creating/pruning native databases", failure);
+            assertTrue(failure.getMessage().contains("no CURRENT"));
+            assertEquals(before, fileHashes(data));
+            assertFalse(RocksDBFactory.getInstance().getGraphNames().contains(DB_NAME));
+        }
+    }
+
+    @Test
+    public void testBootstrapPreservesLegacyOlderVersionBeforePruning() throws Exception {
+        Path location = this.temporary.newFolder("bootstrap-older-legacy").toPath();
+        Path data = Files.createDirectory(location.resolve("db"));
+        writeDatabase(data, DB_NAME + "_1", 65534);
+        writeDatabase(data, DB_NAME + "_2", 1);
+        Map<String, String> before = fileHashes(data);
+        try (Bootstrap bootstrap = new Bootstrap(location)) {
+            Throwable failure = null;
+            try {
+                bootstrap.manager.loadPartition();
+            } catch (Throwable caught) {
+                failure = caught;
+            }
+            System.out.println("BOOTSTRAP older-legacy-present=" +
+                               Files.exists(data.resolve(DB_NAME + "_1")) +
+                               " unchanged=" + before.equals(fileHashes(data)) + " failure=" + failure);
+            assertNotNull("Pruning must not erase an older legacy database", failure);
+            assertTrue(failure.getMessage().contains("GraphID"));
+            assertEquals(before, fileHashes(data));
+            assertFalse(RocksDBFactory.getInstance().getGraphNames().contains(DB_NAME));
+        }
+    }
+
+    @Test
+    public void testBootstrapPreservesLegacyLatestVersion() throws Exception {
+        Path location = this.temporary.newFolder("bootstrap-latest-legacy").toPath();
+        Path data = Files.createDirectory(location.resolve("db"));
+        writeDatabase(data, DB_NAME + "_1", 1);
+        writeDatabase(data, DB_NAME + "_2", 65534);
+        Map<String, String> before = fileHashes(data);
+        try (Bootstrap bootstrap = new Bootstrap(location)) {
+            assertThrows(HgStoreException.class, bootstrap.manager::loadPartition);
+            assertEquals(before, fileHashes(data));
+            assertFalse(RocksDBFactory.getInstance().getGraphNames().contains(DB_NAME));
+        }
+    }
+
+    @Test
+    public void testBootstrapLoadsCurrentValidMappingAndData() throws Exception {
+        Path location = this.temporary.newFolder("bootstrap-valid").toPath();
+        Path data = Files.createDirectory(location.resolve("db"));
+        writeDatabase(data, DB_NAME + "_1", 1);
+        writeBootstrapMetadata(data.resolve(DB_NAME + "_1"), 1);
+        try (Bootstrap bootstrap = new Bootstrap(location)) {
+            bootstrap.manager.loadPartition();
+            assertTrue(bootstrap.manager.hasPartition("test", PARTITION_ID));
+            assertEquals(1, bootstrap.handler.getKeyCreator().getGraphId(PARTITION_ID, "test"));
+            for (String table : TABLES) {
+                assertArrayEquals(VALUE, bootstrap.handler.doGet("test", 0, table, new byte[]{1}));
+            }
+        }
+    }
+
+    @Test
+    public void testFactoryValidatesColdOpenAndReusesCachedSession() throws Exception {
+        Path data = this.temporary.newFolder("factory-valid").toPath();
+        writeDatabase(data, DB_NAME, 1);
+        java.util.concurrent.atomic.AtomicInteger checks = new java.util.concurrent.atomic.AtomicInteger();
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        try {
+            try (RocksDBSession first = factory.createGraphDB(data.toString(), DB_NAME, 0L, path -> {
+                checks.incrementAndGet();
+                GraphIdManager.checkLegacyGraphIdData(path, PARTITION_ID);
+            });
+                 RocksDBSession cached = factory.createGraphDB(data.toString(), DB_NAME, 0L,
+                         path -> org.junit.Assert.fail("Cached session must not be revalidated"))) {
+                assertEquals(1, checks.get());
+                assertSame(first.getDB(), cached.getDB());
+                assertRows(cached, 1);
+            }
+        } finally {
+            factory.releaseGraphDB(DB_NAME);
+        }
+    }
+
+    @Test
+    public void testNewPartitionDatabaseStillCreatesNormally() throws Exception {
+        Path location = this.temporary.newFolder("bootstrap-new").toPath();
+        try (Bootstrap bootstrap = new Bootstrap(location);
+             RocksDBSession session = bootstrap.handler.getSession(PARTITION_ID)) {
+            assertTrue(Files.isRegularFile(Path.of(session.getDbPath(), "CURRENT")));
+            assertTrue(session.getDB().isOwningHandle());
+        }
+    }
+
+    private static void writeBootstrapMetadata(Path databasePath, long graphId) throws Exception {
+        List<ColumnFamilyHandle> handles = new ArrayList<>();
+        try (DBOptions options = new DBOptions(); ColumnFamilyOptions cfOptions = new ColumnFamilyOptions()) {
+            List<ColumnFamilyDescriptor> descriptors = new ArrayList<>();
+            descriptors.add(new ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfOptions));
+            for (String table : TABLES) {
+                descriptors.add(new ColumnFamilyDescriptor(table.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                                                            cfOptions));
+            }
+            try (RocksDB database = RocksDB.open(options, databasePath.toString(), descriptors, handles)) {
+                database.put(handles.get(0), MetadataKeyHelper.getGraphIDKey("test"),
+                             Int64Value.of(graphId).toByteArray());
+                database.put(handles.get(0), MetadataKeyHelper.getPartitionKey("test", PARTITION_ID),
+                             Metapb.Partition.newBuilder().setId(PARTITION_ID).setGraphName("test")
+                                   .build().toByteArray());
+            } finally {
+                handles.forEach(ColumnFamilyHandle::close);
+            }
+        }
+    }
+
+    @Test
+    public void testBootstrapChecksActualRootAfterLocationUpdate() throws Exception {
+        Path location = this.temporary.newFolder("bootstrap-relocated").toPath();
+        Path data = Files.createDirectory(location.resolve("db"));
+        writeDatabase(data, DB_NAME + "_1", 1);
+        Files.createDirectory(data.resolve(DB_NAME + "_2"));
+        Map<String, String> before = fileHashes(data);
+        try (Bootstrap bootstrap = new Bootstrap(location, true)) {
+            assertThrows(org.apache.hugegraph.rocksdb.access.DBStoreException.class,
+                         bootstrap.manager::loadPartition);
+            // Location discovery precedes native validation; it is not a startup transaction.
+            assertEquals(location.toString(), bootstrap.manager.getStoreMetadata()
+                                                              .getPartitionStore(PARTITION_ID)
+                                                              .getStoreLocation());
+            org.mockito.Mockito.verify(bootstrap.manager.getStoreMetadata())
+                               .savePartitionStore(org.mockito.ArgumentMatchers.any());
+            assertEquals(before, fileHashes(data));
+            assertFalse(RocksDBFactory.getInstance().getGraphNames().contains(DB_NAME));
+        }
+    }
+
+    private static class Bootstrap implements AutoCloseable {
+
+        private final PartitionManager manager;
+        private final BusinessHandlerImpl handler;
+        private final Object previousHandler;
+        private final Field handlerField;
+
+        private Bootstrap(Path location) throws Exception {
+            this(location, false);
+        }
+
+        private Bootstrap(Path location, boolean relocate) throws Exception {
+            Files.createDirectories(location.resolve("raft/" + DB_NAME + "/log"));
+            HgStoreEngineOptions options = new HgStoreEngineOptions();
+            options.setDataPath(location.toString());
+            options.setRaftPath(location.toString());
+            PdProvider provider = mock(PdProvider.class);
+            when(provider.getShardGroup(PARTITION_ID)).thenReturn(
+                    Metapb.ShardGroup.newBuilder().setId(PARTITION_ID)
+                          .addShards(Metapb.Shard.newBuilder().setStoreId(1L).build()).build());
+            Metapb.Partition partition = Metapb.Partition.newBuilder().setId(PARTITION_ID)
+                                                        .setGraphName("test").build();
+            when(provider.getPartitionByID(anyString(), anyInt())).thenReturn(
+                    new org.apache.hugegraph.store.meta.Partition(partition));
+            when(provider.getPartitionByCode(anyString(), anyInt())).thenReturn(partition);
+            this.manager = new PartitionManager(provider, options);
+            StoreMetadata metadata = mock(StoreMetadata.class);
+            when(metadata.getStore()).thenReturn(new Store(Metapb.Store.newBuilder().setId(1L).build()));
+            AtomicReference<Metapb.PartitionStore> saved = new AtomicReference<>(
+                    Metapb.PartitionStore.newBuilder().setPartitionId(PARTITION_ID)
+                          .setStoreLocation(relocate ? location.resolve("previous").toString() :
+                                            location.toString()).build());
+            when(metadata.getPartitionStore(PARTITION_ID)).thenAnswer(call -> saved.get());
+            org.mockito.Mockito.doAnswer(call -> {
+                saved.set(call.getArgument(0));
+                return null;
+            }).when(metadata).savePartitionStore(org.mockito.ArgumentMatchers.any());
+            when(metadata.getPartitionRaft(PARTITION_ID)).thenReturn(
+                    Metapb.PartitionRaft.newBuilder().setPartitionId(PARTITION_ID)
+                          .setRaftLocation(location.toString()).build());
+            when(metadata.getPartitionStoreLocation(PARTITION_ID, DB_NAME))
+                    .thenAnswer(call -> saved.get().getStoreLocation());
+            Field metadataField = PartitionManager.class.getDeclaredField("storeMetadata");
+            metadataField.setAccessible(true);
+            metadataField.set(this.manager, metadata);
+            this.handler = new BusinessHandlerImpl(this.manager);
+            this.handlerField = HgStoreEngine.class.getDeclaredField("businessHandler");
+            this.handlerField.setAccessible(true);
+            this.previousHandler = this.handlerField.get(HgStoreEngine.getInstance());
+            this.handlerField.set(HgStoreEngine.getInstance(), this.handler);
+        }
+
+        @Override
+        public void close() throws Exception {
+            try {
+                RocksDBFactory.getInstance().releaseGraphDB(DB_NAME);
+            } finally {
+                this.handlerField.set(HgStoreEngine.getInstance(), this.previousHandler);
+            }
+        }
     }
 
     @Test

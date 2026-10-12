@@ -7,16 +7,19 @@ them. This condition is specific to affected old write paths; it does not mean
 that every 1.7 database needs migration.
 
 Store checks existing graph-data column families before allocating a missing
-graph ID, starting a partition's Raft state machine, or activating a snapshot.
+graph ID, first opening a partition DB during metadata bootstrap, starting a
+partition's Raft state machine, or activating a snapshot.
 If it finds the reserved prefix, it rejects that operation and reports the
 partition and column family. Metadata-only column families are excluded. The
 checks do not assign an owner to legacy rows or change the persisted ID format.
 
 The partition preflight resolves existing DB versions without creating a DB,
 allocating a store location or pruning older versions. It runs before partition
-task/FSM construction and Raft replay; other existing Store bootstrap steps can
-already have opened databases. It is not a promise that the entire startup
-process leaves every file untouched.
+task/FSM construction and Raft replay. The first native DB open also validates
+every existing version not already queued for removal before constructor pruning
+or cache publication. Cached sessions are reused without repeating these scans.
+Bootstrap can update Store/Raft location metadata before this check; the refusal
+preserves data DB versions, not every file touched by the startup process.
 
 A rejected snapshot retains the active DB and its index, the incoming snapshot,
 and the staged copy for diagnosis. Successful snapshots still use the existing

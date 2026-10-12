@@ -312,8 +312,13 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
      * another existing database is rejected rather than treated as a new database.
      */
     public static String resolveExistingDBPath(String dbDataPath, String graphName, long version) {
+        return resolveExistingDBPath(dbDataPath, graphName, version, null);
+    }
+
+    public static String resolveExistingDBPath(String dbDataPath, String graphName, long version,
+                                               Consumer<String> existingDatabaseValidator) {
         String path = Paths.get(dbDataPath, graphName).toString();
-        String selected = findLatestDBPath(path, version, false);
+        String selected = findLatestDBPath(path, version, false, existingDatabaseValidator);
         return hasCurrentFile(selected) ? selected : null;
     }
 
@@ -334,6 +339,11 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     }
 
     private static String findLatestDBPath(String path, long version, boolean prune) {
+        return findLatestDBPath(path, version, prune, null);
+    }
+
+    private static String findLatestDBPath(String path, long version, boolean prune,
+                                          Consumer<String> existingDatabaseValidator) {
         File file = new File(path);
         int strIndex = file.getName().indexOf("_");
 
@@ -411,6 +421,9 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
                 if (!prune && !factory.findPathInRemovedList(curDBPath) &&
                     hasCurrentFile(curDBPath)) {
                     existingDatabase = true;
+                    if (existingDatabaseValidator != null) {
+                        existingDatabaseValidator.accept(curDBPath);
+                    }
                 }
                 if (i == dbCount - 1) {
                     latestDBPath = curDBPath;

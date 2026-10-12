@@ -1500,7 +1500,7 @@ public class BusinessHandlerImpl implements BusinessHandler {
             long version = HgStoreEngine.getInstance().getCommittedIndex(partId);
             dbSession =
                     factory.createGraphDB(partitionManager.getDbDataPath(partId, dbName), dbName,
-                                          version);
+                                          version, path -> GraphIdManager.checkLegacyGraphIdData(path, partId));
             if (dbSession == null) {
                 log.info("failed to create a new graph db: {}", dbName);
                 throw new HgStoreException(HgStoreException.EC_RKDB_CREATE_FAIL,
