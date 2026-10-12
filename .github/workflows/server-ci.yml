@@ -97,6 +97,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Test CI retry freshness checks
+        run: python3 -m unittest discover -s .github/scripts -p 'test_check_rerun.py'
+
       - name: Run wait-storage.sh peer failover tests
         run: hugegraph-server/hugegraph-dist/src/assembly/travis/test-wait-storage.sh
 

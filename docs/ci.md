@@ -82,11 +82,20 @@ Plans and actual results are diagnostics, not execution credentials for later ru
 
 `.asf.yaml` requests only `check-license` and `Server memory tests`. Keep these required check
 names stable. The Memory jobs run real unit, core and API tests on the project runtime
-and reports their results through `Server memory tests`. Commons tests remain advisory
+and report their results through `Server memory tests`. Commons tests remain advisory
 and install only the Commons reactor and its upstream modules.
 `affected-module-tests` and CodeQL remain advisory. Verify live branch protection
 when changing required checks; do not forge a successful result or leave retired contexts required.
 
-Server CI does not automatically retry its combined required and advisory jobs. The standalone
-Memory and license workflows and their automatic retry chain have been retired. Use a manual
-rerun when appropriate; a rerun retains its original commit and event.
+Push runs whose overall conclusion is `failure` keep automatic retries for license and Memory
+validation: wait 180 seconds, then retry at most twice, sharing the combined run's attempt limit.
+Whole-run `timed_out` conclusions do not trigger retries; PR retries remain paused.
+The trusted default-branch checker verifies the source workflow, failed completed attempt,
+repository and unchanged branch head before and after the delay. It selects one license or
+Memory producer with a `failure` or `timed_out` conclusion, or its failed result reporter,
+from that attempt and uses
+[GitHub's native job rerun](https://docs.github.com/en/rest/actions/workflow-runs#re-run-a-job-from-a-workflow-run),
+which also reruns dependent jobs. A Memory retry updates its required result without restarting unrelated product jobs.
+A license retry can unblock its previously skipped product dependencies. Advisory failures alone
+do not trigger automatic retries. Use a manual rerun when appropriate; it retains the original
+commit and event.
