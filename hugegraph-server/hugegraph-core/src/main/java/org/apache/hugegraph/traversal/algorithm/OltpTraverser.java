@@ -335,22 +335,32 @@ public abstract class OltpTraverser extends HugeTraverser
 
         @Override
         public void accept(Iterator<T> edgeIter) {
-            // Bind worker leases before a caller-created lazy query opens a session.
-            graph().tx().readWrite();
-            Iterator<E> ids = prepare(edgeIter);
-            long counter = 0;
-            while (ids.hasNext()) {
-                if (Thread.currentThread().isInterrupted()) {
-                    LOG.warn("Consumer is Interrupted");
-                    break;
+            Iterator<?> toClose = edgeIter;
+            Throwable failure = null;
+            try {
+                // Bind worker leases before a caller-created lazy query opens a session.
+                graph().tx().readWrite();
+                Iterator<E> ids = prepare(edgeIter);
+                toClose = ids != null ? ids : edgeIter;
+                long counter = 0;
+                while (ids.hasNext()) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        LOG.warn("Consumer is Interrupted");
+                        break;
+                    }
+                    counter++;
+                    this.consumer.accept(ids.next());
                 }
-                counter++;
-                this.consumer.accept(ids.next());
-            }
-            long total = edgeIterCounter.addAndGet(counter);
-            // traverse by batch & improve performance
-            if (this.capacity != NO_LIMIT && total >= this.capacity) {
-                throw new Consumers.StopExecution("reach capacity");
+                long total = edgeIterCounter.addAndGet(counter);
+                // traverse by batch & improve performance
+                if (this.capacity != NO_LIMIT && total >= this.capacity) {
+                    throw new Consumers.StopExecution("reach capacity");
+                }
+            } catch (RuntimeException | Error e) {
+                failure = e;
+                throw e;
+            } finally {
+                closeIterator(toClose, failure);
             }
         }
     }
