@@ -56,13 +56,22 @@ public class RocksDBIteratorPoolTest {
 
     @After
     public void teardown() {
-        // Native objects must be released child-first: pool, CF, DB, options
+        // Native objects must be released child-first: pool, CF, DB, options. Any of them may
+        // be missing when setup() failed, and closing it must not hide that failure.
         try {
-            this.pool.close();
+            if (this.pool != null) {
+                this.pool.close();
+            }
         } finally {
-            this.cfh.close();
-            this.rocksdb.close();
-            this.options.close();
+            if (this.cfh != null) {
+                this.cfh.close();
+            }
+            if (this.rocksdb != null) {
+                this.rocksdb.close();
+            }
+            if (this.options != null) {
+                this.options.close();
+            }
         }
     }
 
