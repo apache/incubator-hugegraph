@@ -208,16 +208,16 @@ public class AppConfig {
     @Configuration
     public class ArthasConfig {
 
-        @Value("${arthas.telnetPort:8566}")
+        @Value("${arthas.telnet_port:${arthas.telnetPort:8566}}")
         private String telnetPort;
 
-        @Value("${arthas.httpPort:8565}")
+        @Value("${arthas.http_port:${arthas.httpPort:8565}}")
         private String httpPort;
 
         @Value("${arthas.ip:0.0.0.0}")
         private String arthasip;
 
-        @Value("${arthas.disabledCommands:jad}")
+        @Value("${arthas.disabled_commands:${arthas.disabledCommands:jad}}")
         private String disCmd;
     }
 

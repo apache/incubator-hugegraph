@@ -20,6 +20,7 @@ package org.apache.hugegraph.api.arthas;
 import java.util.HashMap;
 
 import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.config.ConfigOption;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.util.JsonUtil;
@@ -49,13 +50,29 @@ public class ArthasAPI extends API {
     @Operation(summary = "start arthas agent")
     public Object startArthas() {
         HugeConfig config = this.configProvider.get();
-        HashMap<String, String> configMap = new HashMap<>(4);
-        configMap.put("arthas.telnetPort", config.get(ServerOptions.ARTHAS_TELNET_PORT));
-        configMap.put("arthas.httpPort", config.get(ServerOptions.ARTHAS_HTTP_PORT));
-        configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
-        configMap.put("arthas.disabledCommands",
-                      config.get(ServerOptions.ARTHAS_DISABLED_COMMANDS));
+        HashMap<String, String> configMap = arthasConfig(config);
         ArthasAgent.attach(configMap);
         return JsonUtil.toJson(configMap);
+    }
+
+    static HashMap<String, String> arthasConfig(HugeConfig config) {
+        HashMap<String, String> configMap = new HashMap<>(4);
+        configMap.put("arthas.telnetPort",
+                      option(config, ServerOptions.ARTHAS_TELNET_PORT,
+                             ServerOptions.ARTHAS_TELNET_PORT_LEGACY));
+        configMap.put("arthas.httpPort",
+                      option(config, ServerOptions.ARTHAS_HTTP_PORT,
+                             ServerOptions.ARTHAS_HTTP_PORT_LEGACY));
+        configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
+        configMap.put("arthas.disabledCommands",
+                      option(config, ServerOptions.ARTHAS_DISABLED_COMMANDS,
+                             ServerOptions.ARTHAS_DISABLED_COMMANDS_LEGACY));
+        return configMap;
+    }
+
+    private static String option(HugeConfig config, ConfigOption<String> canonical,
+                                 ConfigOption<String> legacy) {
+        return config.containsKey(canonical.name()) ? config.get(canonical) :
+               config.get(legacy);
     }
 }

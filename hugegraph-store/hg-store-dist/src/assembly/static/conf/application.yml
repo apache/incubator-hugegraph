@@ -62,3 +62,12 @@ logging:
   config: 'file:./conf/log4j2.xml'
   level:
     root: info
+
+# Optional Arthas settings; leave commented to preserve existing legacy overrides.
+# Legacy aliases: arthas.telnetPort, arthas.httpPort, arthas.disabledCommands.
+# The snake_case key takes precedence when both forms are configured.
+# arthas:
+#   telnet_port: 8566
+#   http_port: 8565
+#   ip: 0.0.0.0
+#   disabled_commands: jad

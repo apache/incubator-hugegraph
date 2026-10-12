@@ -433,16 +433,32 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<String> ARTHAS_TELNET_PORT =
             new ConfigOption<>(
-                    "arthas.telnetPort",
+                    "arthas.telnet_port",
                     "arthas provides telnet ports to the outside",
+                    disallowEmpty(),
+                    "8562"
+            );
+
+    public static final ConfigOption<String> ARTHAS_TELNET_PORT_LEGACY =
+            new ConfigOption<>(
+                    "arthas.telnetPort",
+                    "Legacy alias: arthas provides telnet ports to the outside",
                     disallowEmpty(),
                     "8562"
             );
 
     public static final ConfigOption<String> ARTHAS_HTTP_PORT =
             new ConfigOption<>(
-                    "arthas.httpPort",
+                    "arthas.http_port",
                     "arthas provides http ports to the outside",
+                    disallowEmpty(),
+                    "8561"
+            );
+
+    public static final ConfigOption<String> ARTHAS_HTTP_PORT_LEGACY =
+            new ConfigOption<>(
+                    "arthas.httpPort",
+                    "Legacy alias: arthas provides http ports to the outside",
                     disallowEmpty(),
                     "8561"
             );
@@ -457,8 +473,16 @@ public class ServerOptions extends OptionHolder {
 
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =
             new ConfigOption<>(
-                    "arthas.disabledCommands",
+                    "arthas.disabled_commands",
                     "arthas disabled commands",
+                    disallowEmpty(),
+                    "jad"
+            );
+
+    public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS_LEGACY =
+            new ConfigOption<>(
+                    "arthas.disabledCommands",
+                    "Legacy alias: arthas disabled commands",
                     disallowEmpty(),
                     "jad"
             );
