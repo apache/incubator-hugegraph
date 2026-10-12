@@ -34,11 +34,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
+
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
+import org.apache.hugegraph.auth.AuthContext;
+import org.apache.hugegraph.auth.HugeAuthenticator;
+import org.apache.hugegraph.auth.HugeGraphAuthProxy;
+import org.apache.hugegraph.auth.HugePermission;
+import org.apache.hugegraph.auth.RolePermission;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
@@ -52,18 +60,135 @@ import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.rpc.RpcClientProvider;
 import org.apache.hugegraph.rpc.RpcServer;
 import org.apache.hugegraph.space.GraphSpace;
+import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
+import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class GraphManagerConfigTest {
 
+    private static ExecutorService previousEventExecutor;
+    private static ExecutorService previousTaskDbExecutor;
+    private static ExecutorService taskDbExecutor;
+
+    @BeforeClass
+    public static void initEventExecutor() {
+        // Other suite classes may have destroyed the global EventHub executor.
+        previousEventExecutor = Whitebox.getInternalState(EventHub.class, "executor");
+        Whitebox.setInternalState(EventHub.class, "executor", null);
+        EventHub.init(2);
+        previousTaskDbExecutor = Whitebox.getInternalState(TaskManager.instance(), "taskDbExecutor");
+        taskDbExecutor = Executors.newSingleThreadExecutor(
+                runnable -> new Thread(runnable, "task-db-worker-rpc-config-test"));
+        Whitebox.setInternalState(TaskManager.instance(), "taskDbExecutor", taskDbExecutor);
+    }
+
+    @AfterClass
+    public static void restoreEventExecutor() throws InterruptedException {
+        try {
+            Assert.assertTrue(EventHub.destroy(5));
+        } finally {
+            Whitebox.setInternalState(EventHub.class, "executor", previousEventExecutor);
+            taskDbExecutor.shutdown();
+            try {
+                Assert.assertTrue(taskDbExecutor.awaitTermination(5, TimeUnit.SECONDS));
+            } finally {
+                Whitebox.setInternalState(TaskManager.instance(), "taskDbExecutor", previousTaskDbExecutor);
+            }
+        }
+    }
+
     @Rule
     public TemporaryFolder temporary = new TemporaryFolder();
+
+    @Test
+    public void testAuthenticatedRpcCleanupPreservesOwnerUntilAdmin() throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        OptionSpace.register("rpc", RpcOptions.instance());
+        OptionSpace.register("server", ServerOptions.instance());
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(ServerOptions.GRAPHS.name(), this.temporary.newFolder("auth").getPath());
+        properties.setProperty(ServerOptions.USE_PD.name(), false);
+        properties.setProperty(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG.name(), false);
+        properties.setProperty(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP.name(), true);
+        properties.setProperty(RpcOptions.RPC_SERVER_HOST.name(), "127.0.0.1");
+        properties.setProperty(RpcOptions.RPC_SERVER_PORT.name(), 0);
+        try (ServerSocket reservation = new ServerSocket(0)) {
+            properties.setProperty(RpcOptions.RPC_REMOTE_URL.name(), "127.0.0.1:" + reservation.getLocalPort());
+        }
+        EventHub hub = new EventHub("authenticated-rpc-cleanup");
+        GraphManager manager = new GraphManager(new HugeConfig(properties), hub);
+        String originalThreadName = Thread.currentThread().getName();
+        AuthContext.setContext(HugeAuthenticator.User.ADMIN.toJson());
+        TaskManager.setContext(HugeAuthenticator.User.ADMIN.toJson());
+        try {
+            String factory = "gremlin.graph=" + AuthSharedMemoryGraph.class.getName() + "\nbackend=memory\nstore=";
+            manager.createGraphLocal("auth_startup", factory + "auth_startup\n");
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            HugeGraph owner = manager.createGraphLocal("auth_late", factory + "auth_late\n");
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 4);
+            EventListener rejection = event -> {
+                throw new IllegalStateException("reject authenticated candidate");
+            };
+            hub.listen(Events.GRAPH_CREATE, rejection);
+            try {
+                Assert.assertThrows(HugeException.class, () -> manager.createGraphLocal(
+                        "auth_rejected", factory + "auth_rejected\n"));
+            } finally {
+                hub.unlisten(Events.GRAPH_CREATE, rejection);
+            }
+            assertRpcResources(server, client, 4);
+            TaskManager.resetContext();
+            RolePermission execute = RolePermission.role(owner.graphSpace(), owner.name(), HugePermission.EXECUTE);
+            Assert.assertFalse(RolePermission.isAdmin(execute));
+            AuthContext.setContext(new HugeAuthenticator.User("reader", execute).toJson());
+            SimpleBindings bindings = new SimpleBindings();
+            bindings.put("graph", owner);
+            GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
+            Assert.assertThrows(ScriptException.class, () -> engine.eval("graph.unregisterRpcServices()", bindings),
+                                error -> Assert.assertContains("Permission denied", error.getMessage()));
+            assertRpcResources(server, client, 4);
+            AuthContext.resetContext();
+            Assert.assertThrows(IllegalStateException.class, owner::unregisterRpcServices,
+                                error -> Assert.assertContains("Missing authentication context", error.getMessage()));
+            assertRpcResources(server, client, 4);
+            HugeGraphAuthProxy.runAsAdmin(owner::unregisterRpcServices);
+            assertRpcResources(server, client, 2);
+            AuthContext.setContext(HugeAuthenticator.User.ADMIN.toJson());
+            // Use the normal PD-drop branch with explicit admin identity and no placement metadata writes.
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            spaces.put("DEFAULT", new GraphSpace("DEFAULT"));
+            Thread.currentThread().setName("grpc-auth-cleanup-test");
+            manager.dropGraph("DEFAULT", "auth_late", false);
+            Assert.assertTrue(owner.closed());
+            assertRpcResources(server, client, 2);
+        } finally {
+            Thread.currentThread().setName(originalThreadName);
+            try {
+                HugeGraphAuthProxy.runAsAdmin(manager::close);
+            } finally {
+                HugeGraphAuthProxy.resetContext();
+                TaskManager.resetContext();
+            }
+        }
+    }
+
+    public static class AuthSharedMemoryGraph {
+
+        public static HugeGraph open(Configuration config) {
+            return new HugeGraphAuthProxy(new SharedMemoryGraph(new HugeConfig(config)));
+        }
+    }
 
     @Test
     public void testLegacyDefaultCleanupDoesNotAbortDropWithoutRpc() throws Exception {
