@@ -535,3 +535,21 @@ configuration changes rather than hot reload, whose recovery is handled separate
 Deletion is not transactional: a failure after destructive cleanup needs operator
 inspection, and retry does not restore removed data. An owner-cleanup failure must not
 be treated as a successful drain; inspect it instead of force-removing the scheduler.
+## Cache RPC graph lifecycle
+
+When cache RPC is enabled and a backend declares shared storage, Server registers both
+graph and schema cache notifiers for graphs loaded during startup and graphs created or
+loaded later. A new graph's RPC registration must succeed before its local publication.
+Graph services use the graph space and graph name together as their service identity.
+
+Successful graph close releases that graph's notifier listeners, providers and consumer
+proxies. A failed close that retains the graph owner also retains its RPC resources.
+Failed creation releases the candidate's resources, and an old graph's cleanup cannot
+remove a replacement graph's services. Events queued for a closed notifier are ignored;
+an RPC request already sent cannot be recalled.
+
+Cache RPC uses the configured peer addresses; local provider export does not establish
+that every remote consumer connection is ready. Notifications are asynchronous, and
+connection or delivery failures are logged. This lifecycle handling does not provide
+acknowledged delivery or a distributed cache consistency protocol. Validate actual DML
+and cache behavior against the deployment's shared backend and topology.

@@ -295,6 +295,11 @@ public interface HugeGraph extends Graph, HugeGraphSupplier {
     void registerRpcServices(RpcServiceConfig4Server serverConfig,
                              RpcServiceConfig4Client clientConfig);
 
+    default void unregisterRpcServices() {
+        // Legacy implementations do not participate in the owned RPC cleanup contract.
+        // Implementations owning graph-scoped RPC resources must override this hook.
+    }
+
     default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());
         for (Id id : ids) {

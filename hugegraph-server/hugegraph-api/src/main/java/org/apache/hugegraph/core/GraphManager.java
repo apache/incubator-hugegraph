@@ -181,6 +181,7 @@ public final class GraphManager {
 
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
+    private boolean rpcInitialized;
     private final GlobalMasterInfo globalNodeRoleInfo;
     private final HugeConfig conf;
     private final EventHub eventHub;
@@ -1597,7 +1598,6 @@ public final class GraphManager {
         graph.updateTime(timeStamp);
 
         String graphName = spaceGraphName(graphSpace, name);
-        this.graphs.put(graphName, graph);
 
         /*
          * Let gremlin server and rest server context add graph before the
@@ -1605,6 +1605,7 @@ public final class GraphManager {
          * graph behind in meta for the other servers to converge on
          */
         try {
+            this.publishGraph(graph);
             this.notifyEvent(Events.GRAPH_CREATE, graph);
         } catch (Throwable e) {
             try {
@@ -1723,7 +1724,7 @@ public final class GraphManager {
         this.unlistenChanges();
     }
 
-    private void startRpcServer() {
+    private synchronized void startRpcServer() {
         if (!this.rpcServer.enabled()) {
             LOG.info("RpcServer is not enabled, skip starting rpc service");
             return;
@@ -1737,20 +1738,33 @@ public final class GraphManager {
                                     this.authenticator.authManager());
         }
 
-        // Start graph rpc service if RPC_REMOTE_URL enabled
-        if (this.rpcClient.enabled()) {
-            RpcConsumerConfig clientConfig = this.rpcClient.config();
-
-            for (Graph graph : this.graphs.values()) {
-                HugeGraph hugegraph = (HugeGraph) graph;
-                hugegraph.registerRpcServices(serverConfig, clientConfig);
-            }
-        }
-
         try {
+            // Start graph rpc service if RPC_REMOTE_URL enabled
+            if (this.rpcClient.enabled()) {
+                RpcConsumerConfig clientConfig = this.rpcClient.config();
+
+                for (Graph graph : this.graphs.values()) {
+                    HugeGraph hugegraph = (HugeGraph) graph;
+                    hugegraph.registerRpcServices(serverConfig, clientConfig);
+                }
+            }
+
             this.rpcServer.exportAll();
+            this.rpcInitialized = true;
         } catch (Throwable e) {
-            this.rpcServer.destroy();
+            this.rpcInitialized = false;
+            for (Graph graph : this.graphs.values()) {
+                try {
+                    ((HugeGraph) graph).unregisterRpcServices();
+                } catch (Throwable cleanup) {
+                    e.addSuppressed(cleanup);
+                }
+            }
+            try {
+                this.rpcServer.destroy();
+            } catch (Throwable cleanup) {
+                e.addSuppressed(cleanup);
+            }
             throw e;
         }
     }
@@ -1828,7 +1842,17 @@ public final class GraphManager {
         this.transferPdPeersConfig(config);
 
         Graph graph = GraphFactory.open(config);
-        this.graphs.put(defaultSpaceGraphName(name), graph);
+        try {
+            this.publishGraph(defaultSpaceGraphName(name), (HugeGraph) graph);
+        } catch (RuntimeException | Error failure) {
+            try {
+                graph.close();
+            } catch (Exception cleanup) {
+                failure.addSuppressed(cleanup);
+            }
+            HugeFactory.remove((HugeGraph) graph);
+            throw failure;
+        }
 
         HugeConfig graphConfig = (HugeConfig) graph.configuration();
         assert graphConfPath.equals(Objects.requireNonNull(graphConfig.file()).getPath());
@@ -1965,16 +1989,42 @@ public final class GraphManager {
             LOG.debug("RestServer accepts event '{}'", event.name());
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
-            this.graphs.put(graph.spaceGraphName(), graph);
+            this.publishGraph(graph);
             return null;
         });
         this.eventHub.listen(Events.GRAPH_DROP, event -> {
             LOG.debug("RestServer accepts event '{}'", event.name());
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
-            this.graphs.remove(graph.spaceGraphName(), graph);
+            if (this.graphs.remove(graph.spaceGraphName(), graph)) {
+                graph.unregisterRpcServices();
+            }
             return null;
         });
+    }
+
+    private void publishGraph(HugeGraph graph) {
+        this.publishGraph(graph.spaceGraphName(), graph);
+    }
+
+    private synchronized void publishGraph(String name, HugeGraph graph) {
+        if (this.graphs.get(name) == graph) {
+            return;
+        }
+        if (this.rpcInitialized && this.rpcServer.enabled() && this.rpcClient.enabled()) {
+            try {
+                graph.registerRpcServices(this.rpcServer.config(), this.rpcClient.config());
+                this.rpcServer.exportAll();
+            } catch (RuntimeException | Error failure) {
+                try {
+                    graph.unregisterRpcServices();
+                } catch (RuntimeException | Error cleanup) {
+                    failure.addSuppressed(cleanup);
+                }
+                throw failure;
+            }
+        }
+        this.graphs.put(name, graph);
     }
 
     private void unlistenChanges() {
@@ -2214,7 +2264,6 @@ public final class GraphManager {
                                                     creator, config, false);
                 graph1.createTime(createTime);
                 graph1.updateTime(updateTime);
-                this.graphs.put(key, graph1);
                 return graph1;
             }
             throw new NotFoundException(String.format("Graph '%s' does not exist", name));

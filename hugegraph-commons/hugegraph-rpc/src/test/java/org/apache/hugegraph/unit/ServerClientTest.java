@@ -712,6 +712,61 @@ public class ServerClientTest extends BaseUnitTest {
     }
 
     @Test
+    public void testRemoveServiceUsesImplementationIdentity() {
+        RpcServer server = new RpcServer(config("server-random"));
+        GraphHelloServiceImpl original = new GraphHelloServiceImpl("graph");
+        RpcProviderConfig providers = server.config();
+        String serviceId = providers.addService("graph", HelloService.class, original);
+        server.exportAll();
+        RpcClientProvider client = clientFor(server);
+        try {
+            HelloService proxy = client.config().serviceProxy("graph", HelloService.class);
+            Assert.assertFalse(providers.removeService(serviceId, new GraphHelloServiceImpl("graph")));
+            Assert.assertEquals("graph: hello tom!", proxy.hello("tom"));
+            Assert.assertTrue(providers.removeService(serviceId, original));
+            GraphHelloServiceImpl replacement = new GraphHelloServiceImpl("replacement");
+            providers.addService("graph", HelloService.class, replacement);
+            server.exportAll();
+            Assert.assertFalse(providers.removeService(serviceId, original));
+            Assert.assertSame(replacement, providers.configs().get(serviceId).getRef());
+            Assert.assertEquals("replacement: hello tom!", proxy.hello("tom"));
+        } finally {
+            client.destroy();
+            stopServer(server);
+        }
+    }
+
+    @Test
+    public void testRemoveServiceProxyUsesProxyIdentity() {
+        RpcServer server = new RpcServer(config("server-random"));
+        server.config().addService("graph", HelloService.class, new GraphHelloServiceImpl("graph"));
+        server.config().addService("other", HelloService.class, new GraphHelloServiceImpl("other"));
+        server.exportAll();
+        RpcClientProvider client = clientFor(server);
+        try {
+            RpcConsumerConfig consumers = client.config();
+            HelloService original = consumers.serviceProxy("graph", HelloService.class);
+            HelloService second = consumers.serviceProxy("graph", HelloService.class);
+            HelloService other = consumers.serviceProxy("other", HelloService.class);
+            Assert.assertNotSame(original, second);
+            Assert.assertTrue(consumers.removeServiceProxy("graph", HelloService.class.getName(), original));
+            Assert.assertThrows(SofaRpcRuntimeException.class, () -> original.hello("tom"));
+            Assert.assertEquals("graph: hello tom!", second.hello("tom"));
+            Assert.assertFalse(consumers.removeServiceProxy("graph", HelloService.class.getName(), original));
+            Assert.assertTrue(consumers.removeServiceProxy("graph", HelloService.class.getName(), second));
+            List<?> bootstraps = Whitebox.getInternalState(consumers, "bootstraps");
+            Assert.assertEquals(1, bootstraps.size());
+            HelloService replacement = consumers.serviceProxy("graph", HelloService.class);
+            Assert.assertFalse(consumers.removeServiceProxy("graph", HelloService.class.getName(), original));
+            Assert.assertEquals("graph: hello tom!", replacement.hello("tom"));
+            Assert.assertEquals("other: hello tom!", other.hello("tom"));
+        } finally {
+            client.destroy();
+            stopServer(server);
+        }
+    }
+
+    @Test
     public void testServerDisabled() {
         HugeConfig clientConf = config(false);
         RpcServer rpcServerDisabled = new RpcServer(clientConf);

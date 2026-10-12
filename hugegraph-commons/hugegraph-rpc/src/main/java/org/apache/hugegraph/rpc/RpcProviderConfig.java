@@ -18,14 +18,14 @@
 package org.apache.hugegraph.rpc;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.alipay.sofa.rpc.config.ProviderConfig;
 import org.apache.hugegraph.util.E;
-import com.google.common.collect.Maps;
 
 public class RpcProviderConfig implements RpcServiceConfig4Server {
 
-    private final Map<String, ProviderConfig<?>> configs = Maps.newHashMap();
+    private final Map<String, ProviderConfig<?>> configs = new ConcurrentHashMap<>();
 
     @Override
     public <T, S extends T> String addService(Class<T> clazz, S serviceImpl) {
@@ -54,10 +54,9 @@ public class RpcProviderConfig implements RpcServiceConfig4Server {
         providerConfig.setInterfaceId(interfaceId)
                       .setRef(serviceImpl);
 
-        E.checkArgument(!this.configs.containsKey(serviceId),
+        E.checkArgument(this.configs.putIfAbsent(serviceId, providerConfig) == null,
                         "Not allowed to add service already exist: '%s'",
                         serviceId);
-        this.configs.put(serviceId, providerConfig);
         return serviceId;
     }
 
@@ -67,6 +66,20 @@ public class RpcProviderConfig implements RpcServiceConfig4Server {
         E.checkArgument(config != null,
                         "The service '%s' doesn't exist", serviceId);
         config.unExport();
+    }
+
+    @Override
+    public boolean removeService(String serviceId, Object serviceImpl) {
+        boolean[] removed = {false};
+        this.configs.computeIfPresent(serviceId, (key, config) -> {
+            if (config.getRef() != serviceImpl) {
+                return config;
+            }
+            config.unExport();
+            removed[0] = true;
+            return null;
+        });
+        return removed[0];
     }
 
     @Override
