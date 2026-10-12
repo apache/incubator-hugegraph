@@ -26,11 +26,13 @@ import java.util.UUID;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.backend.cache.Cache;
+import org.apache.hugegraph.backend.cache.CachedBackendStore.QueryId;
 import org.apache.hugegraph.backend.cache.LevelCache;
 import org.apache.hugegraph.backend.cache.OffheapCache;
 import org.apache.hugegraph.backend.cache.RamCache;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.serializer.BytesBuffer;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.BaseUnitTest;
@@ -182,6 +184,69 @@ public abstract class CacheTest extends BaseUnitTest {
 
         protected HugeGraph graph() {
             return this.graph;
+        }
+
+        @Test
+        public void testOversizedQueryKeyBypassesOffheapCache() {
+            // Construct L2 directly: LevelCacheTest inherits this method but
+            // may legitimately retain the same large key in its RAM tier.
+            Cache<Id, Object> cache = new OffheapCache(this.graph(), 10000L,
+                                                      ENTRY_SIZE, SEGMENTS);
+            String text = "a".repeat(BytesBuffer.ID_LEN_MAX + 1);
+            Id oversized = new QueryId(text, text.hashCode());
+            Id normal = new QueryId("normal", "normal".hashCode());
+
+            Assert.assertTrue(cache.update(normal, "retained"));
+            Assert.assertNull(cache.get(oversized));
+            Assert.assertFalse(cache.containsKey(oversized));
+            Assert.assertFalse(cache.update(oversized, "ignored"));
+            cache.invalidate(oversized);
+            Assert.assertNull(cache.get(oversized));
+            Assert.assertFalse(cache.containsKey(oversized));
+            Assert.assertEquals("retained", cache.get(normal));
+            Assert.assertEquals(1L, cache.size());
+            cache.clear();
+        }
+
+        @Test
+        public void testQueryKeyAtBinaryIdLimit() {
+            Cache<Id, Object> cache = new OffheapCache(this.graph(), 10000L,
+                                                      ENTRY_SIZE, SEGMENTS);
+            String text = "a".repeat(BytesBuffer.ID_LEN_MAX);
+            Id boundary = new QueryId(text, text.hashCode());
+
+            Assert.assertTrue(cache.update(boundary, "boundary"));
+            Assert.assertTrue(cache.containsKey(boundary));
+            Assert.assertEquals("boundary", cache.get(boundary));
+            cache.invalidate(boundary);
+            Assert.assertNull(cache.get(boundary));
+            Assert.assertFalse(cache.containsKey(boundary));
+            cache.clear();
+        }
+
+        @Test
+        public void testQueryKeyLimitCountsUtf8Bytes() {
+            Cache<Id, Object> cache = new OffheapCache(this.graph(), 10000L,
+                                                      ENTRY_SIZE, SEGMENTS);
+            String text = "图".repeat(BytesBuffer.ID_LEN_MAX / 3 + 1);
+            Id oversized = new QueryId(text, text.hashCode());
+            Assert.assertLt(BytesBuffer.ID_LEN_MAX, text.length());
+            Assert.assertGt(BytesBuffer.ID_LEN_MAX, oversized.asBytes().length);
+
+            Assert.assertNull(cache.get(oversized));
+            Assert.assertFalse(cache.update(oversized, "ignored"));
+            Assert.assertFalse(cache.containsKey(oversized));
+            cache.invalidate(oversized);
+            Assert.assertEquals(0L, cache.size());
+
+            text = "图".repeat(BytesBuffer.ID_LEN_MAX / 3) + "a";
+            Id boundary = new QueryId(text, text.hashCode());
+            Assert.assertEquals(BytesBuffer.ID_LEN_MAX, boundary.asBytes().length);
+            Assert.assertTrue(cache.update(boundary, "utf8-boundary"));
+            Assert.assertEquals("utf8-boundary", cache.get(boundary));
+            cache.invalidate(boundary);
+            Assert.assertNull(cache.get(boundary));
+            cache.clear();
         }
 
         @Test

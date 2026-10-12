@@ -100,17 +100,23 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
     @Override
     public boolean containsKey(Id id) {
-        return this.cache.containsKey(id);
+        return cacheableKey(id) && this.cache.containsKey(id);
     }
 
     @Override
     protected Object access(Id id) {
+        if (!cacheableKey(id)) {
+            return null;
+        }
         Value value = this.cache.get(id);
         return value == null ? null : value.value();
     }
 
     @Override
     protected boolean write(Id id, Object value, long timeOffset) {
+        if (!cacheableKey(id)) {
+            return false;
+        }
         Value serializedValue = new Value(value);
         int serializedSize;
         try {
@@ -144,7 +150,18 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
     @Override
     protected void remove(Id id) {
-        this.cache.remove(id);
+        if (cacheableKey(id)) {
+            this.cache.remove(id);
+        }
+    }
+
+    private static boolean cacheableKey(Id id) {
+        // Query text is a cache key, not a persistent graph ID. A large
+        // request must still reach the backend when its optional cache key
+        // exceeds the binary ID codec's byte limit.
+        return !(id instanceof CachedBackendStore.QueryId) ||
+               (id.length() <= BytesBuffer.ID_LEN_MAX &&
+                id.asBytes().length <= BytesBuffer.ID_LEN_MAX);
     }
 
     @Override
