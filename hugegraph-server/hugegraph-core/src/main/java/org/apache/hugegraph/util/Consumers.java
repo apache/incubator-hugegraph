@@ -268,6 +268,7 @@ public final class Consumers<V> {
                     if (this.exception != null) {
                         throw this.throwException();
                     }
+                    throw new StopExecution("Consumer stopped");
                 }
             } catch (InterruptedException e) {
                 LOG.warn("Interrupt while queuing QUEUE_END", e);

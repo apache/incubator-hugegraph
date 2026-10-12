@@ -207,8 +207,12 @@ public class ConsumersTest {
             Assert.assertTrue(calling.await(5L, TimeUnit.SECONDS));
             Assert.assertThrows(TimeoutException.class, () -> result.get(100L, TimeUnit.MILLISECONDS));
             release.countDown();
-            Assert.assertSame(cleanupFailure ? closeFailure : terminalFailure,
-                              result.get(3L, TimeUnit.SECONDS));
+            Throwable returned = result.get(3L, TimeUnit.SECONDS);
+            if (blockedProducer && !cleanupFailure && terminalFailure == null) {
+                Assert.assertTrue(returned instanceof Consumers.StopExecution);
+            } else {
+                Assert.assertSame(cleanupFailure ? closeFailure : terminalFailure, returned);
+            }
             Assert.assertTrue(finished.await(5L, TimeUnit.SECONDS));
             if (blockedProducer && (cleanupFailure || terminalFailure != null)) {
                 // A failure reported by provide() must not leave await() blocked.
@@ -316,6 +320,45 @@ public class ConsumersTest {
             caller.shutdownNow();
             worker.shutdownNow();
             Assert.assertTrue(caller.awaitTermination(5L, TimeUnit.SECONDS));
+            Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void testCleanStopEndsLazyProducer() throws Exception {
+        ExecutorService worker = Executors.newFixedThreadPool(1);
+        CountDownLatch stopped = new CountDownLatch(1);
+        AtomicInteger reads = new AtomicInteger();
+        AtomicInteger processed = new AtomicInteger();
+        try {
+            Consumers<Integer> consumers = new Consumers<>(worker, value -> {
+                processed.incrementAndGet();
+                throw new Consumers.StopExecution("capacity");
+            }, stopped::countDown, 1);
+            consumers.start("lazy-producer-stop");
+            try {
+                for (int i = 0; i < 100; i++) {
+                    if (i == 1) {
+                        Assert.assertTrue(stopped.await(5L, TimeUnit.SECONDS));
+                    }
+                    reads.incrementAndGet();
+                    consumers.provide(i);
+                }
+            } catch (Consumers.StopExecution ignored) {
+                // Same successful producer termination contract as Oltp traversal.
+            } catch (Throwable failure) {
+                throw new AssertionError(failure);
+            } finally {
+                try {
+                    consumers.await();
+                } catch (Throwable failure) {
+                    throw new AssertionError(failure);
+                }
+            }
+            Assert.assertEquals(2, reads.get());
+            Assert.assertEquals(1, processed.get());
+        } finally {
+            worker.shutdownNow();
             Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
         }
     }

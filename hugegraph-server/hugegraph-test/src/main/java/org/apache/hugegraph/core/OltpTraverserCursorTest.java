@@ -130,19 +130,25 @@ public class OltpTraverserCursorTest {
         this.checkNativeCursor("async-fatal-producer");
     }
 
+    @Test
+    public void testCapacityStopEndsActualLazyTraversal() throws Exception {
+        this.checkNativeCursor("lazy-producer");
+    }
+
     private void checkNativeCursor(String outcome) throws Exception {
         Path directory = Files.createTempDirectory("oltp-cursor-");
         HugeConfig config = new HugeConfig(new MapConfiguration(Collections.emptyMap()));
         config.setProperty("backend", "rocksdb");
         config.setProperty("serializer", "binary");
         config.setProperty("store", "cursor_" + UUID.randomUUID().toString().replace("-", ""));
-        config.setProperty("oltp.concurrent_threads", 0);
+        config.setProperty("oltp.concurrent_threads", "lazy-producer".equals(outcome) ? 1 : 0);
         config.setProperty("rocksdb.data_path", directory.toString());
         config.setProperty("rocksdb.wal_path", directory.toString());
         HugeGraph graph = null;
         RocksDBSessions control = null;
         Iterator<Edge> edges = null;
         RocksIterator nativeCursor = null;
+        int producerReads = -1;
         try {
             graph = HugeFactory.open(config);
             graph.initBackend();
@@ -170,6 +176,10 @@ public class OltpTraverserCursorTest {
             // Keep the native DB alive during handle observation after caller FINISHED cleanup.
             control = sessions.copy(config, "cursor-control", "g");
             control.session();
+            if ("lazy-producer".equals(outcome)) {
+                // This isolated JVM fixture owns the single-worker pool used below.
+                OltpTraverser.destroy();
+            }
             Probe traverser = new Probe(graph);
             Throwable failure = outcome.contains("fatal") ? new AssertionError("fatal failure") :
                                 "stop".equals(outcome) ? new Consumers.StopExecution("limit") :
@@ -198,15 +208,19 @@ public class OltpTraverserCursorTest {
                 };
             } else {
                 consumer = traverser.new OneStepEdgeIterConsumer(id -> {
-                    if (!outcome.startsWith("async-capacity")) {
+                    if (!outcome.startsWith("async-capacity") && !"lazy-producer".equals(outcome)) {
                         if (failure instanceof Error) {
                             throw (Error) failure;
                         }
                         throw (RuntimeException) failure;
                     }
-                }, outcome.startsWith("async-capacity") ? 1L : OltpTraverser.NO_LIMIT);
+                }, outcome.startsWith("async-capacity") || "lazy-producer".equals(outcome) ?
+                   1L : OltpTraverser.NO_LIMIT);
             }
-            if (outcome.startsWith("async-")) {
+            if ("lazy-producer".equals(outcome)) {
+                producerReads = this.consumeLazyProducer(traverser, consumer, input);
+                Assert.assertEquals(501L, traverser.edgeIterCounter.get());
+            } else if (outcome.startsWith("async-")) {
                 AtomicReference<Throwable> handled = new AtomicReference<>();
                 Throwable thrown = this.consumeAsync(consumer, input, handled, outcome);
                 if (outcome.startsWith("async-capacity")) {
@@ -250,6 +264,9 @@ public class OltpTraverserCursorTest {
             Assert.assertTrue("Control lease must keep the DB alive", control.databaseOpened());
             Assert.assertFalse("Traversal retained its native cursor after " + outcome,
                                nativeCursor.isOwningHandle());
+            if ("lazy-producer".equals(outcome)) {
+                Assert.assertEquals("Capacity Stop must end the lazy producer", 2, producerReads);
+            }
         } finally {
             // These are teardown only; the native handle assertion above must run first.
             try {
@@ -319,6 +336,8 @@ public class OltpTraverserCursorTest {
                     if (outcome.contains("producer")) {
                         consumers.provide(Collections.emptyIterator());
                     }
+                } catch (Consumers.StopExecution ignored) {
+                    // Stop ends production successfully, as in Oltp's producer loop.
                 } catch (Throwable providedFailure) {
                     failure = providedFailure;
                 }
@@ -353,6 +372,54 @@ public class OltpTraverserCursorTest {
         }
     }
 
+    private int consumeLazyProducer(Probe traverser, OltpTraverser.EdgesConsumer<Edge, ?> consumer,
+                                     Iterator<Edge> input) throws Exception {
+        Consumers.ExecutorPool pool = Whitebox.getInternalState(OltpTraverser.class, "executors");
+        ExecutorService worker = pool.getExecutor();
+        pool.returnExecutor(worker);
+        class LazyInputs implements Iterator<Iterator<Edge>>, AutoCloseable {
+
+            private int reads;
+            private boolean closed;
+
+            @Override
+            public boolean hasNext() {
+                if (this.reads == 1) {
+                    try {
+                        // Runs after the real Consumers task and its worker transaction cleanup.
+                        worker.submit(() -> { }).get(5L, TimeUnit.SECONDS);
+                    } catch (Exception e) {
+                        throw new AssertionError(e);
+                    }
+                }
+                return this.reads < 100;
+            }
+
+            @Override
+            public Iterator<Edge> next() {
+                if (this.reads >= 100) {
+                    throw new java.util.NoSuchElementException();
+                }
+                return this.reads++ == 0 ? input : Collections.emptyIterator();
+            }
+
+            @Override
+            public void close() {
+                this.closed = true;
+            }
+        }
+        LazyInputs source = new LazyInputs();
+        try {
+            long total = traverser.traverseLazy(source, consumer);
+            Assert.assertEquals((long) source.reads, total);
+            Assert.assertTrue("Traversal must close its lazy producer", source.closed);
+            return source.reads;
+        } finally {
+            OltpTraverser.destroy();
+            Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
+        }
+    }
+
     private static RocksIterator nativeCursor(Object value, Set<Object> visited) throws Exception {
         if (value instanceof RocksIterator) {
             return (RocksIterator) value;
@@ -381,6 +448,10 @@ public class OltpTraverserCursorTest {
 
         Probe(HugeGraph graph) {
             super(graph);
+        }
+
+        long traverseLazy(Iterator<Iterator<Edge>> source, java.util.function.Consumer<Iterator<Edge>> consumer) {
+            return this.traverseByOne(source, consumer, "native-lazy-producer-stop");
         }
     }
 }
