@@ -388,7 +388,8 @@ else
 fi
 
 info "Stopping server..."
-"$STOP_SCRIPT" -m false >/dev/null 2>&1 || true
+# Stop the registered monitor before shutdown so cron cannot restart this fixture.
+"$STOP_SCRIPT" >/dev/null 2>&1 || true
 
 cleanup
 
@@ -414,6 +415,18 @@ if [[ -z "$FG_PID" ]]; then
     fail "could not get Java PID — skipping signal forwarding check"
     kill "$SCRIPT_PID" 2>/dev/null || true
 else
+    # A monitor restart can overwrite the shared pid file. Verify that this
+    # assertion observes the wrapper's own child before testing signal forwarding.
+    FG_PARENT_PID=$(ps -o ppid= -p "$FG_PID" 2>/dev/null | tr -d '[:space:]') || FG_PARENT_PID=""
+    FG_PID_OWNED=false
+    if [[ "$FG_PARENT_PID" == "$SCRIPT_PID" ]]; then
+        FG_PID_OWNED=true
+    else
+        fail "pid file PID $FG_PID is not a child of wrapper $SCRIPT_PID (parent $FG_PARENT_PID)"
+        ps -o pid=,ppid=,stat= -p "$SCRIPT_PID,$FG_PID" 2>/dev/null || true
+        [[ ! -f "$HUGEGRAPH_ROOT/logs/monitor.log" ]] || tail -n 80 "$HUGEGRAPH_ROOT/logs/monitor.log"
+    fi
+
     info "Sending SIGTERM to wrapper script (pid $SCRIPT_PID)..."
     kill -TERM "$SCRIPT_PID" 2>/dev/null || true
 
@@ -422,11 +435,14 @@ else
 
     # Allow a bounded shutdown window and treat a zombie as already terminated.
     # If wait_script_exit timed out, a live Java process remains a failure.
-    if wait_for_process_exit "$FG_PID" "$SETTLE_WAIT"; then
-        pass "Java process terminated after SIGTERM sent to wrapper"
-    else
-        fail "Java process still running after SIGTERM — signal not forwarded"
-        kill "$FG_PID" 2>/dev/null || true
+    if [[ "$FG_PID_OWNED" == true ]]; then
+        if wait_for_process_exit "$FG_PID" "$SETTLE_WAIT"; then
+            pass "Java process terminated after SIGTERM sent to wrapper"
+        else
+            fail "Java process still running after SIGTERM — signal not forwarded"
+            ps -o pid=,ppid=,stat= -p "$SCRIPT_PID,$FG_PID" 2>/dev/null || true
+            [[ ! -f "$HUGEGRAPH_ROOT/logs/monitor.log" ]] || tail -n 80 "$HUGEGRAPH_ROOT/logs/monitor.log"
+        fi
     fi
 
     if [[ $ACTUAL_EXIT -ne 0 ]]; then
