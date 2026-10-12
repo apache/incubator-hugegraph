@@ -17,12 +17,24 @@
 
 package org.apache.hugegraph.store.client.grpc;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+import org.apache.hugegraph.store.client.HgStoreNode;
+import org.apache.hugegraph.store.client.HgStoreNodeManager;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
+import org.apache.hugegraph.store.client.HgStoreNotice;
+import org.apache.hugegraph.store.client.type.HgNodeStatus;
+import org.apache.hugegraph.store.client.type.HgStoreClientException;
 import org.apache.hugegraph.store.grpc.common.Kv;
 import org.apache.hugegraph.store.grpc.common.ScanMethod;
 import org.apache.hugegraph.store.grpc.common.ScanOrderType;
@@ -33,9 +45,124 @@ import org.junit.Test;
 
 import com.google.protobuf.ByteString;
 
+import io.grpc.ManagedChannel;
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 
 public class KvPageScannerTest {
+
+    private static final AtomicLong NODE_IDS = new AtomicLong(-9000000);
+
+    @Test
+    public void testUnavailableScanRetiresPoolAndRebindsNextStub() {
+        try (FailureFixture fixture = new FailureFixture()) {
+            var oldStub = fixture.client.getStub(fixture.session);
+            Assert.assertTrue(Arrays.asList(fixture.channels).contains(oldStub.getChannel()));
+            fixture.failScan(Status.UNAVAILABLE);
+
+            Assert.assertNull(fixture.manager.getStoreNode(fixture.nodeId));
+            Assert.assertFalse(AbstractGrpcClient.channels.containsKey(fixture.target));
+            for (ManagedChannel channel : fixture.channels) {
+                verify(channel).shutdown();
+            }
+            var nextStub = fixture.client.getStub(fixture.session);
+            Assert.assertFalse(Arrays.asList(fixture.channels).contains(nextStub.getChannel()));
+        }
+    }
+
+    @Test
+    public void testCancelledAndInvalidScansPreserveHealthyPool() {
+        for (Status status : List.of(Status.CANCELLED, Status.INVALID_ARGUMENT)) {
+            try (FailureFixture fixture = new FailureFixture()) {
+                fixture.failScan(status);
+                Assert.assertSame(fixture.node, fixture.manager.getStoreNode(fixture.nodeId));
+                Assert.assertSame(fixture.channels, AbstractGrpcClient.channels.get(fixture.target));
+                for (ManagedChannel channel : fixture.channels) {
+                    verify(channel, never()).shutdown();
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testLateScanFailurePreservesSameAddressReplacement() {
+        try (FailureFixture fixture = new FailureFixture()) {
+            HgStoreNode replacement = mock(HgStoreNode.class);
+            when(replacement.getNodeId()).thenReturn(fixture.nodeId);
+            when(replacement.getAddress()).thenReturn(fixture.target);
+            fixture.manager.addNode(fixture.graph, replacement);
+            fixture.failScan(Status.UNAVAILABLE);
+
+            Assert.assertSame(replacement, fixture.manager.getStoreNode(fixture.nodeId));
+            Assert.assertSame(fixture.channels, AbstractGrpcClient.channels.get(fixture.target));
+            for (ManagedChannel channel : fixture.channels) {
+                verify(channel, never()).shutdown();
+            }
+            fixture.manager.notifying(fixture.graph,
+                                      HgStoreNotice.of(fixture.nodeId, HgNodeStatus.NOT_WORK),
+                                      replacement);
+        }
+    }
+
+    private static class FailureFixture implements AutoCloseable {
+
+        private final long nodeId = NODE_IDS.decrementAndGet();
+        private final String graph = "scan-recovery-" + this.nodeId;
+        private final String target = this.graph + ":8500";
+        private final HgStoreNodeManager manager = HgStoreNodeManager.getInstance();
+        private final HgStoreNode node = mock(HgStoreNode.class);
+        private final HgStoreNodeSession session = mock(HgStoreNodeSession.class);
+        private final ManagedChannel[] channels = new ManagedChannel[AbstractGrpcClient.concurrency];
+        private final GrpcStoreStreamClient client = new GrpcStoreStreamClient() {
+            @Override
+            protected ManagedChannel createChannel(String target) {
+                return mock(ManagedChannel.class);
+            }
+        };
+
+        FailureFixture() {
+            when(this.node.getNodeId()).thenReturn(this.nodeId);
+            when(this.node.getAddress()).thenReturn(this.target);
+            when(this.session.getStoreNode()).thenReturn(this.node);
+            when(this.session.getGraphName()).thenReturn(this.graph);
+            this.manager.addNode(this.graph, this.node);
+            Arrays.setAll(this.channels, ignored -> mock(ManagedChannel.class));
+            AbstractGrpcClient.channels.put(this.target, this.channels);
+        }
+
+        void failScan(Status status) {
+            var error = status.withDescription("scan transport failure").asRuntimeException();
+            KvPageScanner scanner = new KvPageScanner(this.session,
+                    ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
+                    response -> new StreamObserver<ScanStreamReq>() {
+                        @Override
+                        public void onNext(ScanStreamReq request) {
+                            response.onError(error);
+                        }
+
+                        @Override
+                        public void onError(Throwable t) {
+                        }
+
+                        @Override
+                        public void onCompleted() {
+                        }
+                    });
+            try {
+                scanner.hasNext();
+                Assert.fail("Failed scan must remain visible to the caller");
+            } catch (HgStoreClientException e) {
+                Assert.assertSame(error, e.getCause());
+            }
+        }
+
+        @Override
+        public void close() {
+            this.manager.notifying(this.graph,
+                                   HgStoreNotice.of(this.nodeId, HgNodeStatus.NOT_WORK), this.node);
+            AbstractGrpcClient.closeChannel(this.target);
+        }
+    }
 
     @Test
     public void testKeepsExplicitPageSizeAndRequestsNextPageOnDemand() {

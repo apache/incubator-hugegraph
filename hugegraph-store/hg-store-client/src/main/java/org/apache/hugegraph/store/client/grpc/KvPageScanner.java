@@ -32,6 +32,7 @@ import org.apache.hugegraph.store.HgKvStore;
 import org.apache.hugegraph.store.HgOwnerKey;
 import org.apache.hugegraph.store.HgPageSize;
 import org.apache.hugegraph.store.HgSeekAble;
+import org.apache.hugegraph.store.client.HgStoreNodeManager;
 import org.apache.hugegraph.store.client.HgStoreNodeSession;
 import org.apache.hugegraph.store.client.util.HgBufferProxy;
 import org.apache.hugegraph.store.client.util.HgStoreClientConfig;
@@ -50,6 +51,7 @@ import org.apache.hugegraph.store.grpc.stream.SelectParam;
 
 import com.google.protobuf.ByteString;
 
+import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.extern.slf4j.Slf4j;
 
@@ -321,6 +323,13 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
             }
             proxy.setError(t);
             proxy.close();
+            // Retire the failed node/channel pool just as unary RPCs do. Keep the
+            // original iterator error; cancellation or protocol errors must not
+            // evict a healthy node, and a stale node notice preserves replacements.
+            if (Status.fromThrowable(t).getCode() == Status.Code.UNAVAILABLE) {
+                new NotifyingExecutor(session.getGraphName(),
+                                      HgStoreNodeManager.getInstance(), session).handleErr(t);
+            }
             log.error("failed to complete scan of session: " + session, t);
         }
 
