@@ -413,6 +413,94 @@ function wait_for_startup() {
     return 1
 }
 
+# Return the remaining memory (MiB) under visible cgroup hard limits. Keep
+# missing/unlimited controllers empty so ordinary host sizing stays unchanged.
+function cgroup_free_memory() {
+    local root="${1:-/sys/fs/cgroup}"
+    local membership="${2:-/proc/self/cgroup}"
+    local mountinfo="${3:-/proc/self/mountinfo}"
+    local base="" path="" limit_file="" usage_file=""
+    local version=""
+    local id controllers member
+    if [[ -r "$membership" ]]; then
+        while IFS=: read -r id controllers member; do
+            if [[ ",$controllers," == *,memory,* ]]; then
+                base="$root/memory"
+                path="$member"
+                limit_file="memory.limit_in_bytes"
+                usage_file="memory.usage_in_bytes"
+                version="cgroup"
+                break
+            elif [[ "$id" == 0 && -z "$controllers" ]]; then
+                base="$root"
+                path="$member"
+                limit_file="memory.max"
+                usage_file="memory.current"
+                version="cgroup2"
+            fi
+        done < "$membership"
+    fi
+    [[ -n "$base" ]] || return 0
+
+    # Mount points and exposed roots need not use the conventional hierarchy.
+    # The kernel escapes whitespace/backslashes in mountinfo path fields.
+    local mount_root="" mountpoint=""
+    if [[ -r "$mountinfo" ]]; then
+        read -r mount_root mountpoint < <(awk -v version="$version" '
+            {
+                split($0, parts, " - ");
+                split(parts[2], tail, " ");
+                if (tail[1] == version && (version == "cgroup2" ||
+                    index("," tail[3] ",", ",memory,") > 0)) {
+                    print $4, $5;
+                    exit;
+                }
+            }' "$mountinfo") || true
+        if [[ -n "$mountpoint" ]]; then
+            printf -v base '%b' "$mountpoint"
+            printf -v mount_root '%b' "$mount_root"
+            if [[ "$mount_root" != / && "$path" == "$mount_root" ]]; then
+                path=/
+            elif [[ "$mount_root" != / && "$path" == "$mount_root/"* ]]; then
+                path="${path#"$mount_root"}"
+            fi
+        fi
+    fi
+
+    # A cgroup namespace can expose its own root while /proc still names a
+    # host-relative membership. Fall back to the visible mount root in that
+    # case; never follow a membership path out of the controller mount.
+    local dir="$base"
+    if [[ "$path" == /* && "$path" != *"/../"* && "$path" != */.. &&
+          -d "$base$path" ]]; then
+        dir="$base$path"
+        dir="${dir%/}"
+    fi
+    local limit usage available smallest=""
+    while :; do
+        limit=""
+        usage=0
+        [[ ! -r "$dir/$limit_file" ]] || read -r limit < "$dir/$limit_file" || true
+        [[ ! -r "$dir/$usage_file" ]] || read -r usage < "$dir/$usage_file" || true
+        if [[ "$limit" =~ ^[0-9]+$ ]]; then
+            [[ "$usage" =~ ^[0-9]+$ ]] || usage=0
+            # awk avoids shell integer overflow for v1's unlimited sentinel.
+            available=$(awk -v limit="$limit" -v usage="$usage" 'BEGIN {
+                remaining = limit - usage;
+                printf "%.0f\n", (remaining > 0 ? int(remaining / 1048576) : 0);
+            }')
+            if [[ -z "$smallest" ]] || awk -v a="$available" -v b="$smallest" \
+                    'BEGIN {exit !(a < b)}'; then
+                smallest="$available"
+            fi
+        fi
+        [[ "$dir" != "$base" && "$dir" == "$base/"* ]] || break
+        dir="${dir%/*}"
+    done
+    [[ -z "$smallest" ]] || echo "$smallest"
+    return 0
+}
+
 function free_memory() {
     local free=""
     local os=$(uname)
@@ -426,6 +514,11 @@ function free_memory() {
         fi
         free=$(expr "$mem_free" + "$mem_buffer" + "$mem_cached")
         free=$(expr "$free" / 1024)
+        local cgroup_free=$(cgroup_free_memory)
+        if [[ -n "$cgroup_free" ]] && awk -v a="$cgroup_free" -v b="$free" \
+                'BEGIN {exit !(a < b)}'; then
+            free="$cgroup_free"
+        fi
     elif [ "$os" == "Darwin" ]; then
         local pages_free=$(vm_stat | awk '/Pages free/{print $0}' | awk -F'[:.]+' '{print $2}' | tr -d " ")
         local pages_inactive=$(vm_stat | awk '/Pages inactive/{print $0}' | awk -F'[:.]+' '{print $2}' | tr -d " ")
