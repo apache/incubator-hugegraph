@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         BackendLeaseCleanupTest.class,
+        OltpTraverserRocksDBTest.class,
         PropertyKeyCoreTest.class,
         VertexLabelCoreTest.class,
         EdgeLabelCoreTest.class,
