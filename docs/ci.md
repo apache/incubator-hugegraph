@@ -109,23 +109,49 @@ it does not guarantee a specific queue delay.
 ## Dependency baseline
 
 The separate [dependency submission workflow](../.github/workflows/submit-dependencies.yml)
-installs the complete reactor with Java 17, then uses the pinned official
-[Maven dependency submission action](https://github.com/advanced-security/maven-dependency-submission-action/tree/a64327a7329c9939cf675e458452febe1894a70c)
-to submit each module's resolved dependencies. It runs on master pushes or manual
-dispatches. Only `apache/hugegraph` on `refs/heads/master` can run the submission
-job, which alone has `contents: write`; the org repository runs read-only policy
-and inventory validation. PRs, forks and other refs cannot run the writer.
+installs the complete reactor with Java 17 in a `contents: read` job, then generates
+each module's resolved graph with Ferstl 4.0.3. The repository's
+[stdlib serializer](../.github/scripts/dependency-snapshot.py) preserves the
+[official Maven parser 6.0.1](https://github.com/actions/maven-dependency-submission-action/tree/1f666f7ac2ab7b72cd5e22eaf7f23c8a581db1db)
+package URLs, scopes and relationships. Every tracked POM must have a graph; empty
+aggregator manifests are allowed, but a completely empty inventory fails. It runs on master pushes or manual
+dispatches. Only `apache/hugegraph` (not a fork) and the explicitly allowed
+`hugegraph/hugegraph` test fork on `refs/heads/master` can run the submission job,
+which alone has `contents: write`. PRs, other repositories and other refs cannot
+run the writer. Maven inherits no submission token, and checkout does not persist
+credentials. A pinned `actions/upload-artifact` transfers only `snapshot.json`.
+The fresh writer runner uses fixed inline stdlib Python to verify artifact/run
+identity before downloading. It bounds ZIP and JSON sizes, checks the archive digest,
+and reads only one regular `snapshot.json` member in memory. Duplicate members,
+paths and symlinks fail; no archive members are extracted to disk. A signed storage
+redirect is fetched without forwarding GitHub Authorization, and further redirects
+are refused. The writer does not check out the repository, run Maven, or execute
+downloaded code. The first-party upload action is permitted by the
+[ASF Actions policy](https://infra.apache.org/github-actions-policy.html).
 
 Checkout and snapshot use the event commit SHA. Master is checked before install
-and again before invoking the submission action; a run already stale at either
-check fails. Snapshots retain the checked event SHA even if master advances during
-graph generation. A fixed correlator keeps successive master snapshots in the same stream.
+and again after graph generation and serialization; a stale run fails. The writer
+checks the run attempt, successful producer, artifact ID/name, JSON schema,
+detector/correlator and source SHA/ref. It verifies all manifest paths against the
+event commit's source tree, rejects empty or mismatched inventory, and checks master
+immediately before and after submission. Snapshots retain the checked event SHA
+if master advances during submission; that run fails its final freshness check.
+
+If submission fails, use **Re-run all jobs** or start a fresh `workflow_dispatch`
+on master. **Re-run failed jobs** keeps the older generation artifact, which the
+writer rejects because the snapshot must be produced in the same run attempt.
+
+A fixed master-only correlator keeps successive baseline snapshots in the
+same stream within each repository; ASF and org inventories are independent. The writer's
+identity is separate from automatic PR submissions so they cannot replace its baseline.
 The [snapshot API](https://docs.github.com/en/rest/dependency-graph/dependency-submission#create-a-snapshot-of-dependencies-for-a-repository)
-requires Contents write permission; no additional metadata permission is needed.
+requires Contents write permission. The writer also has Actions read permission
+to verify run and artifact metadata. Snapshot metadata identifies the repository
+adapter rather than claiming that the combined generation/submission action ran.
 
 This producer supplements the existing dependency review and shipped-inventory
 checks without changing their severity, license rules or inventory. Merging the
-workflow does not prove that a canonical baseline exists: after the first ASF
-master run, verify the submitted SHA/ref, non-empty module manifests and a real
-dependency-review comparison against that baseline. Until then, baseline acceptance
-remains open. No ASF repository setting is changed by this workflow.
+workflow does not prove that either repository has a baseline: verify each repository's
+first master submission, including its SHA/ref, non-empty module manifests and a real
+dependency-review comparison against that baseline. Until then, that repository's baseline
+acceptance remains open. This workflow changes no repository settings.

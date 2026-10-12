@@ -53,8 +53,8 @@ jobs:
   submit:
     needs: validate
     if: >-
-      github.repository == 'apache/hugegraph' &&
-      github.event.repository.fork == false &&
+      ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) ||
+       github.repository == 'hugegraph/hugegraph') &&
       github.ref == 'refs/heads/master' &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
