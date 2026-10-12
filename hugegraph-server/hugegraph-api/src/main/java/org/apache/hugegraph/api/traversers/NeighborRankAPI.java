@@ -28,7 +28,7 @@ import java.util.Map;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.NeighborRankTraverser;
@@ -49,7 +49,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/neighborrank")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/neighborrank")
 @Singleton
 @Tag(name = "NeighborRankAPI")
 public class NeighborRankAPI extends API {
@@ -60,6 +60,7 @@ public class NeighborRankAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String neighborRank(@Context GraphManager manager,
+                               @PathParam("graphspace") String graphSpace,
                                @PathParam("graph") String graph,
                                RankRequest request) {
         E.checkArgumentNotNull(request, "The rank request body can't be null");
@@ -79,14 +80,14 @@ public class NeighborRankAPI extends API {
                   request.steps, request.alpha, request.capacity);
 
         Id sourceId = HugeVertex.getIdValue(request.source);
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         List<NeighborRankTraverser.Step> steps = steps(g, request);
         NeighborRankTraverser traverser;
         traverser = new NeighborRankTraverser(g, request.alpha,
                                               request.capacity);
         List<Map<Id, Double>> ranks = traverser.neighborRank(sourceId, steps);
-        return manager.serializer(g).writeList("ranks", ranks);
+        return manager.serializer().writeList("ranks", ranks);
     }
 
     private static List<NeighborRankTraverser.Step> steps(HugeGraph graph,

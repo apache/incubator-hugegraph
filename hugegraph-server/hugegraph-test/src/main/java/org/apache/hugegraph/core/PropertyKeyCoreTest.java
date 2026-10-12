@@ -19,19 +19,24 @@ package org.apache.hugegraph.core;
 
 import java.util.Date;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.struct.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.Userdata;
+import org.apache.hugegraph.struct.schema.Userdata;
+import org.apache.hugegraph.task.TaskStatus;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.AggregateType;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
+import org.apache.hugegraph.type.define.GraphReadMode;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.DateUtil;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -453,6 +458,48 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
     }
 
     @Test
+    public void testClearAndRemoveOlapDataKeepsOtherProperty() throws Exception {
+        Assume.assumeTrue("Not support olap properties", storeFeatures().supportsOlapProperties());
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("olap-owner").asText().create();
+        PropertyKey clear = schema.propertyKey("olap-clear").asText()
+                                  .writeType(WriteType.OLAP_COMMON).create();
+        schema.propertyKey("olap-keep").asText().writeType(WriteType.OLAP_COMMON).create();
+        schema.vertexLabel("olap-person").properties("olap-owner").primaryKeys("olap-owner").create();
+        Vertex owner = graph().addVertex(T.label, "olap-person", "olap-owner", "alice");
+        this.commitTx();
+        graph().addVertex(T.id, owner.id(), "olap-clear", "removed");
+        this.commitTx();
+        graph().addVertex(T.id, owner.id(), "olap-keep", "kept");
+        this.commitTx();
+        try {
+            graph().readMode(GraphReadMode.ALL);
+            Vertex before = graph().vertices(owner.id()).next();
+            Assert.assertEquals("removed", before.value("olap-clear"));
+            Assert.assertEquals("kept", before.value("olap-keep"));
+            this.commitTx();
+            Id clearTask = graph().clearPropertyKey(clear);
+            Assert.assertEquals(TaskStatus.SUCCESS,
+                                graph().taskScheduler().waitUntilTaskCompleted(clearTask, 60).status());
+            Assert.assertEquals(clear.id(), schema.getPropertyKey("olap-clear").id());
+            Vertex after = graph().vertices(owner.id()).next();
+            Assert.assertFalse(after.property("olap-clear").isPresent());
+            Assert.assertEquals("kept", after.value("olap-keep"));
+            this.commitTx();
+
+            graph().addVertex(T.id, owner.id(), "olap-clear", "removed-again");
+            this.commitTx();
+            Id removeTask = schema.propertyKey("olap-clear").remove();
+            Assert.assertEquals(TaskStatus.SUCCESS,
+                                graph().taskScheduler().waitUntilTaskCompleted(removeTask, 60).status());
+            Assert.assertThrows(NotFoundException.class, () -> schema.getPropertyKey("olap-clear"));
+            Assert.assertEquals("kept", graph().vertices(owner.id()).next().value("olap-keep"));
+        } finally {
+            graph().readMode(GraphReadMode.OLTP_ONLY);
+        }
+    }
+
+    @Test
     public void testRemoveOlapPropertyKey() {
         Assume.assumeTrue("Not support olap properties",
                           storeFeatures().supportsOlapProperties());
@@ -628,6 +675,26 @@ public class PropertyKeyCoreTest extends SchemaCoreTest {
                     .userdata("max", "")
                     .eliminate();
         Assert.assertEquals(2, age.userdata().size());
+        Assert.assertEquals(0, age.userdata().get("min"));
+    }
+
+    @Test
+    public void testEliminatePropertyKeyCreateTimeUserdata() {
+        SchemaManager schema = graph().schema();
+
+        PropertyKey age = schema.propertyKey("age")
+                                .userdata("min", 0)
+                                .create();
+        Assert.assertEquals(2, age.userdata().size());
+        Assert.assertTrue(age.userdata().containsKey(Userdata.CREATE_TIME));
+
+        // "" is a key-only placeholder for eliminate; it must not be parsed
+        // as a date (regression: normalization on Userdata.put()).
+        age = schema.propertyKey("age")
+                    .userdata(Userdata.CREATE_TIME, "")
+                    .eliminate();
+        Assert.assertEquals(1, age.userdata().size());
+        Assert.assertFalse(age.userdata().containsKey(Userdata.CREATE_TIME));
         Assert.assertEquals(0, age.userdata().get("min"));
     }
 

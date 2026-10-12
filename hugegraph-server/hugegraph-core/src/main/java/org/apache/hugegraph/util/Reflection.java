@@ -20,8 +20,10 @@ package org.apache.hugegraph.util;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.slf4j.Logger;
 
@@ -33,73 +35,86 @@ public class Reflection {
     private static final Method REGISTER_FILEDS_TO_FILTER_METHOD;
     private static final Method REGISTER_METHODS_TO_FILTER_METHOD;
 
-    public static final String JDK_INTERNAL_REFLECT_REFLECTION = "jdk.internal.reflect.Reflection";
-    public static final String SUN_REFLECT_REFLECTION = "sun.reflect.Reflection";
-
     static {
         Method registerFieldsToFilterMethodTemp = null;
         Method registerMethodsToFilterMethodTemp = null;
         Class<?> reflectionClazzTemp = null;
         try {
-            reflectionClazzTemp = Class.forName(JDK_INTERNAL_REFLECT_REFLECTION);
+            reflectionClazzTemp = Class.forName("jdk.internal.reflect.Reflection");
+
+            registerFieldsToFilterMethodTemp =
+                    reflectionClazzTemp.getMethod("registerFieldsToFilter",
+                                                  Class.class, Set.class);
+
+            registerMethodsToFilterMethodTemp =
+                    reflectionClazzTemp.getMethod("registerMethodsToFilter",
+                                                  Class.class, Set.class);
         } catch (ClassNotFoundException e) {
-            try {
-                reflectionClazzTemp = Class.forName(SUN_REFLECT_REFLECTION);
-            } catch (ClassNotFoundException ex) {
-                LOG.error("Can't find Reflection class", ex);
-            }
+            LOG.error("Can't find jdk.internal.reflect.Reflection class, " +
+                      "please ensure you are using Java 17", e);
+        } catch (NoSuchMethodException e) {
+            LOG.error("Can't find reflection filter methods", e);
         }
 
         REFLECTION_CLAZZ = reflectionClazzTemp;
-
-        if (REFLECTION_CLAZZ != null) {
-            try {
-                registerFieldsToFilterMethodTemp =
-                        REFLECTION_CLAZZ.getMethod("registerFieldsToFilter",
-                                                   Class.class, String[].class);
-            } catch (Throwable e) {
-                LOG.error("Can't find registerFieldsToFilter method", e);
-            }
-
-            try {
-                registerMethodsToFilterMethodTemp =
-                        REFLECTION_CLAZZ.getMethod("registerMethodsToFilter",
-                                                   Class.class, String[].class);
-            } catch (NoSuchMethodException e) {
-                LOG.error("Can't find registerMethodsToFilter method", e);
-            }
-        }
         REGISTER_FILEDS_TO_FILTER_METHOD = registerFieldsToFilterMethodTemp;
         REGISTER_METHODS_TO_FILTER_METHOD = registerMethodsToFilterMethodTemp;
     }
 
     public static void registerFieldsToFilter(Class<?> containingClass, String... fieldNames) {
         if (REGISTER_FILEDS_TO_FILTER_METHOD == null) {
-            throw new NotSupportException("Reflection.registerFieldsToFilter()");
+            throw new NotSupportException("Reflection.registerFieldsToFilter() - " +
+                                          "requires Java 17 or higher");
         }
 
         try {
             REGISTER_FILEDS_TO_FILTER_METHOD.setAccessible(true);
-            REGISTER_FILEDS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ, containingClass, fieldNames);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new HugeException("Failed to register class '%s' fields to filter: %s",
-                                    containingClass, Arrays.toString(fieldNames));
+            REGISTER_FILEDS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ, containingClass,
+                                                    toFilterSet(fieldNames));
+        } catch (IllegalAccessException e) {
+            throw new HugeException(
+                    "Failed to register class '%s' fields to filter: %s",
+                    e, containingClass, Arrays.toString(fieldNames));
+        } catch (InvocationTargetException e) {
+            throwInvocationTargetException(e, containingClass, fieldNames, "fields");
         }
     }
 
     public static void registerMethodsToFilter(Class<?> containingClass, String... methodNames) {
         if (REGISTER_METHODS_TO_FILTER_METHOD == null) {
-            throw new NotSupportException("Reflection.registerMethodsToFilterMethod()");
+            throw new NotSupportException("Reflection.registerMethodsToFilter() - " +
+                                          "requires Java 17 or higher");
         }
 
         try {
             REGISTER_METHODS_TO_FILTER_METHOD.setAccessible(true);
             REGISTER_METHODS_TO_FILTER_METHOD.invoke(REFLECTION_CLAZZ, containingClass,
-                                                     methodNames);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            throw new HugeException("Failed to register class '%s' methods to filter: %s",
-                                    containingClass, Arrays.toString(methodNames));
+                                                     toFilterSet(methodNames));
+        } catch (IllegalAccessException e) {
+            throw new HugeException(
+                    "Failed to register class '%s' methods to filter: %s",
+                    e, containingClass, Arrays.toString(methodNames));
+        } catch (InvocationTargetException e) {
+            throwInvocationTargetException(e, containingClass, methodNames, "methods");
         }
+    }
+
+    private static Set<String> toFilterSet(String... members) {
+        return new LinkedHashSet<>(Arrays.asList(members));
+    }
+
+    private static void throwInvocationTargetException(InvocationTargetException exception,
+                                                       Class<?> containingClass,
+                                                       String[] members,
+                                                       String type) {
+        Throwable cause = exception.getCause();
+        if (cause instanceof IllegalArgumentException) {
+            throw (IllegalArgumentException) cause;
+        }
+        Throwable failure = cause != null ? cause : exception;
+        throw new HugeException(
+                "Failed to register class '%s' %s to filter: %s",
+                failure, containingClass, type, Arrays.toString(members));
     }
 
     public static Class<?> loadClass(String clazz) {

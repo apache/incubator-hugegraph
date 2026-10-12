@@ -18,10 +18,10 @@
 package org.apache.hugegraph.job.schema;
 
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.LockUtil;
 
@@ -51,7 +51,7 @@ public class IndexLabelRemoveJob extends SchemaJob {
                      "please check if it's expected to delete it again",
                      indexLabel, indexLabel.status());
         }
-        LockUtil.Locks locks = new LockUtil.Locks(graph.name());
+        LockUtil.Locks locks = new LockUtil.Locks(graph.graph().spaceGraphName());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, id);
             // TODO add update lock

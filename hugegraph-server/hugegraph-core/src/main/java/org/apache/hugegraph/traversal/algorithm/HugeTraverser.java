@@ -34,13 +34,13 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.Aggregate;
-import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.query.Aggregate;
+import org.apache.hugegraph.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.EdgesQueryIterator;
-import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.query.Query;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.CoreOptions;
@@ -50,7 +50,7 @@ import org.apache.hugegraph.iterator.FilterIterator;
 import org.apache.hugegraph.iterator.LimitIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.iterator.NestedIterator;
@@ -393,10 +393,35 @@ public class HugeTraverser {
         if (labels == null || labels.isEmpty()) {
             return this.edgesOfVertex(source, dir, (Id) null, limit);
         }
+        return this.edgesOfVertexByLabels(source, dir, labels.keySet(), limit);
+    }
+
+    protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
+                                           List<Id> labels, long limit) {
+        if (labels == null || labels.isEmpty()) {
+            return this.edgesOfVertex(source, dir, (Id) null, limit);
+        }
+        return this.edgesOfVertexByLabels(source, dir, labels, limit);
+    }
+
+    private Iterator<Edge> edgesOfVertexByLabels(Id source, Directions dir,
+                                                 Iterable<Id> labels,
+                                                 long limit) {
         ExtendableIterator<Edge> results = new ExtendableIterator<>();
-        for (Id label : labels.keySet()) {
-            E.checkNotNull(label, "edge label");
-            results.extend(this.edgesOfVertex(source, dir, label, limit));
+        List<Iterator<Edge>> opened = new ArrayList<>();
+        try {
+            for (Id label : labels) {
+                E.checkNotNull(label, "edge label");
+                Iterator<Edge> edges = this.edgesOfVertex(source, dir,
+                                                          label, limit);
+                opened.add(edges);
+                results.extend(edges);
+            }
+        } catch (RuntimeException | Error e) {
+            for (Iterator<Edge> edges : opened) {
+                closeIterator(edges, e);
+            }
+            throw e;
         }
 
         if (limit == NO_LIMIT) {
@@ -407,23 +432,18 @@ public class HugeTraverser {
         return new LimitIterator<>(results, e -> count[0]++ >= limit);
     }
 
-    protected Iterator<Edge> edgesOfVertex(Id source, Directions dir,
-                                           List<Id> labels, long limit) {
-        if (labels == null || labels.isEmpty()) {
-            return this.edgesOfVertex(source, dir, (Id) null, limit);
+    protected static void closeIterator(Iterator<?> iterator,
+                                        Throwable failure) {
+        try {
+            CloseableIterator.closeIterator(iterator);
+        } catch (RuntimeException | Error closeFailure) {
+            if (failure == null) {
+                throw closeFailure;
+            }
+            if (failure != closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
         }
-        ExtendableIterator<Edge> results = new ExtendableIterator<>();
-        for (Id label : labels) {
-            E.checkNotNull(label, "edge label");
-            results.extend(this.edgesOfVertex(source, dir, label, limit));
-        }
-
-        if (limit == NO_LIMIT) {
-            return results;
-        }
-
-        long[] count = new long[1];
-        return new LimitIterator<>(results, e -> count[0]++ >= limit);
     }
 
     protected Iterator<Edge> edgesOfVertex(Id source, EdgeStep edgeStep) {
@@ -463,7 +483,7 @@ public class HugeTraverser {
         if (filter != null) {
             ConditionQuery finalFilter = filter;
             edges = new FilterIterator<>(edges, (e) -> {
-                return finalFilter.test((HugeEdge) e);
+                return finalFilter.test(((HugeEdge) e).element());
             });
         }
         return edgeStep.skipSuperNodeIfNeeded(edges);
@@ -524,7 +544,7 @@ public class HugeTraverser {
         ConditionQuery cq = conditions.get(sourceV.schemaLabel().id());
         if (cq != null) {
             sourceV = (HugeVertex) this.graph.vertex(sourceV.id());
-            if (!cq.test(sourceV)) {
+            if (!cq.test(sourceV.element())) {
                 return false;
             }
         }
@@ -532,7 +552,7 @@ public class HugeTraverser {
         cq = conditions.get(targetV.schemaLabel().id());
         if (cq != null) {
             targetV = (HugeVertex) this.graph.vertex(targetV.id());
-            return cq.test(targetV);
+            return cq.test(targetV.element());
         }
         return true;
     }
@@ -545,7 +565,7 @@ public class HugeTraverser {
 
         ConditionQuery cq = conditions.get(edge.schemaLabel().id());
         if (cq != null) {
-            return cq.test(edge);
+            return cq.test(edge.element());
         }
         return true;
     }
@@ -582,7 +602,9 @@ public class HugeTraverser {
 
         ConditionQuery condQuery = (ConditionQuery) query;
         if (!GraphTransaction.matchFullEdgeSortKeys(condQuery, this.graph())) {
-            Id label = condQuery.condition(HugeKeys.LABEL);
+            // Sort-key validation needs one concrete edge label so that the
+            // error message points to the exact schema label in use.
+            Id label = condQuery.conditionValue(HugeKeys.LABEL);
             E.checkArgument(false, "The properties %s does not match " +
                                    "sort keys of edge label '%s'",
                             this.graph().mapPkId2Name(properties.keySet()),

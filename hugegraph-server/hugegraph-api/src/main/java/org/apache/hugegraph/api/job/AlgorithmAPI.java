@@ -21,9 +21,8 @@ import java.util.Map;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.api.filter.RedirectFilter;
 import org.apache.hugegraph.api.filter.StatusFilter.Status;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.job.AlgorithmJob;
 import org.apache.hugegraph.job.JobBuilder;
@@ -36,6 +35,7 @@ import org.slf4j.Logger;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableMap;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -46,7 +46,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/jobs/algorithm")
+@Path("graphspaces/{graphspace}/graphs/{graph}/jobs/algorithm")
 @Singleton
 @Tag(name = "AlgorithmAPI")
 public class AlgorithmAPI extends API {
@@ -59,10 +59,14 @@ public class AlgorithmAPI extends API {
     @Status(Status.CREATED)
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RedirectFilter.RedirectMasterRole
     public Map<String, Id> post(@Context GraphManager manager,
+                                @Parameter(description = "The graphspace name")
+                                @PathParam("graphspace") String graphSpace,
+                                @Parameter(description = "The graph name")
                                 @PathParam("graph") String graph,
+                                @Parameter(description = "The algorithm name")
                                 @PathParam("name") String algorithm,
+                                @Parameter(description = "The algorithm parameters")
                                 Map<String, Object> parameters) {
         LOG.debug("Graph [{}] schedule algorithm job: {}", graph, parameters);
         E.checkArgument(algorithm != null && !algorithm.isEmpty(),
@@ -74,7 +78,7 @@ public class AlgorithmAPI extends API {
             throw new NotFoundException("Not found algorithm: " + algorithm);
         }
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Map<String, Object> input = ImmutableMap.of("algorithm", algorithm,
                                                     "parameters", parameters);
         JobBuilder<Object> builder = JobBuilder.of(g);

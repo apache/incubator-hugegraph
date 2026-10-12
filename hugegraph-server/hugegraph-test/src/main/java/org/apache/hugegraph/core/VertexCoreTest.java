@@ -19,6 +19,8 @@ package org.apache.hugegraph.core;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -30,37 +32,42 @@ import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.hugegraph.HugeException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.Id.IdType;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.Shard;
+import org.apache.hugegraph.backend.cache.CachedGraphTransaction;
 import org.apache.hugegraph.backend.id.SnowflakeIdGenerator;
-import org.apache.hugegraph.backend.id.SplicingIdGenerator;
+import org.apache.hugegraph.backend.page.IdHolderList;
 import org.apache.hugegraph.backend.page.PageInfo;
-import org.apache.hugegraph.backend.query.Condition;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.query.Query;
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.store.BackendTable;
-import org.apache.hugegraph.backend.store.Shard;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
+import org.apache.hugegraph.exception.BackendException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.exception.LimitExceedException;
 import org.apache.hugegraph.exception.NoIndexException;
 import org.apache.hugegraph.exception.NotAllowException;
-import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.id.Id.IdType;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.id.SplicingIdGenerator;
+import org.apache.hugegraph.query.Condition;
+import org.apache.hugegraph.query.ConditionQuery;
+import org.apache.hugegraph.query.Query;
 import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.Userdata;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.serializer.BytesBuffer;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.Userdata;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.FakeObjects;
 import org.apache.hugegraph.testutil.Utils;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.traversal.optimize.ConditionP;
+import org.apache.hugegraph.traversal.optimize.HugeGraphStep;
 import org.apache.hugegraph.traversal.optimize.Text;
 import org.apache.hugegraph.traversal.optimize.TraversalUtil;
 import org.apache.hugegraph.type.HugeType;
@@ -69,11 +76,17 @@ import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.type.define.WriteType;
 import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.CollectionUtil;
+import org.apache.hugegraph.util.DateUtil;
+import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.LongEncoding;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
+import org.apache.tinkerpop.gremlin.process.traversal.step.filter.HasStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.map.GraphStep;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
@@ -84,6 +97,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 public class VertexCoreTest extends BaseCoreTest {
@@ -193,6 +207,23 @@ public class VertexCoreTest extends BaseCoreTest {
               .secondary().by("cpu", "ram", "band")
               .ifNotExist()
               .create();
+    }
+
+    @Test
+    public void testDeleteVertexWithMissingSchemaLabel() throws InterruptedException, ExecutionException {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "author", "id", 1, "name", "James");
+        graph.tx().commit();
+
+        // Simulate schema loss while the committed backend record remains.
+        params().schemaTransaction().removeSchema(graph.vertexLabel("author"));
+        params().graphEventHub().notify(Events.CACHE, "clear", null).get();
+        Vertex orphan = graph.vertices(vertex.id()).next();
+        Assert.assertEquals("~undefined", orphan.label());
+
+        orphan.remove();
+        graph.tx().commit();
+        Assert.assertFalse(graph.vertices(vertex.id()).hasNext());
     }
 
     @Test
@@ -824,6 +855,63 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals("Movie", vertex.value("fav"));
         Assert.assertEquals(123, vertex.value("cnt"));
         Assert.assertFalse(vertex.values("age").hasNext());
+    }
+
+    @Test
+    public void testAddVertexWithDateDefaultValue() {
+        SchemaManager schema = graph().schema();
+
+        Date joined = DateUtil.parse("2026-05-14 10:11:12.345");
+        schema.propertyKey("joinDate").asDate()
+              .userdata(Userdata.DEFAULT_VALUE, joined).create();
+        schema.vertexLabel("person")
+              .properties("joinDate")
+              .nullableKeys("joinDate").append();
+
+        // No 'joinDate' supplied
+        Vertex vertex = graph().addVertex(T.label, "person",
+                                          "name", "Baby", "city", "Shanghai");
+
+        this.commitTx();
+
+        // Reload from backend then query: the typed default must survive the
+        // JSON serialize/reload round-trip as a Date, not a String (#3028).
+        vertex = graph().vertex(vertex.id());
+        Object value = vertex.value("joinDate");
+        Assert.assertTrue("default 'joinDate' should be a Date, was " +
+                          (value == null ? "null" : value.getClass()),
+                          value instanceof Date);
+        Assert.assertEquals(joined, value);
+    }
+
+    @Test
+    public void testAddVertexWithDateSetDefaultValue() {
+        SchemaManager schema = graph().schema();
+
+        String dateStr = "2026-05-14 10:11:12.345";
+        Date expected = DateUtil.parse(dateStr);
+
+        // Simulate JSON-deserialized default: ArrayList of Strings with duplicates
+        schema.propertyKey("joinDates").asDate().valueSet()
+              .userdata(Userdata.DEFAULT_VALUE, Arrays.asList(dateStr, dateStr))
+              .create();
+        schema.vertexLabel("person")
+              .properties("joinDates")
+              .nullableKeys("joinDates").append();
+
+        Vertex vertex = graph().addVertex(T.label, "person",
+                                          "name", "Baby", "city", "Shanghai");
+        this.commitTx();
+
+        vertex = graph().vertex(vertex.id());
+        Object raw = vertex.value("joinDates");
+
+        Assert.assertTrue("joinDates should be a Set, was " +
+                          (raw == null ? "null" : raw.getClass()),
+                          raw instanceof Set);
+        Set<?> values = (Set<?>) raw;
+        Assert.assertEquals("duplicates must be collapsed", 1, values.size());
+        Assert.assertTrue(values.contains(expected));
     }
 
     @Test
@@ -2182,7 +2270,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testAddOlapSecondaryProperties() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -2273,7 +2362,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testAddOlapRangeProperties() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -2399,7 +2489,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testAddOlapRangeAndOlapSecondaryProperties() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -2573,7 +2664,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryOlapRangeAndRegularSecondaryProperties() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -2702,7 +2794,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryOlapWithUpdates() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -3207,6 +3300,24 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByNullKeyAndLabel() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        Assert.assertFalse(graph.traversal().V()
+                                .has((String) null, "test-null-key")
+                                .hasNext());
+        Assert.assertFalse(graph.traversal().V()
+                                .hasLabel((String) null)
+                                .hasNext());
+
+        List<Vertex> vertices = graph.traversal().V()
+                                     .hasLabel(null, "book")
+                                     .toList();
+        Assert.assertEquals(5, vertices.size());
+    }
+
+    @Test
     public void testQueryByLabelWithLimit() {
         HugeGraph graph = graph();
         this.init10VerticesAndCommit();
@@ -3282,6 +3393,62 @@ public class VertexCoreTest extends BaseCoreTest {
         vertices = graph.traversal().V().hasLabel("author")
                         .has("id", 1).has("name", "fake-name").toList();
         Assert.assertEquals(0, vertices.size());
+    }
+
+    @Test
+    public void testQueryByPrimaryValuesInPageWithVertexCache() {
+        Assume.assumeTrue("Not support paging", storeFeatures().supportsQueryByPage());
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "person", "name", "marko",
+                                        "age", 29, "city", "Beijing");
+        this.commitTx();
+        CachedGraphTransaction cache = (CachedGraphTransaction) this.params().graphTransaction();
+        cache.clearCache(HugeType.VERTEX, false);
+
+        for (int i = 0; i < 2; i++) {
+            if (i == 1) {
+                Assert.assertEquals(vertex.id(), graph.vertices(vertex.id()).next().id());
+            }
+            GraphTraversal<Vertex, Vertex> results = graph.traversal().V()
+                    .hasLabel("person").has("name", "marko").has("~page", "").limit(2);
+            List<Vertex> vertices = results.toList();
+            Assert.assertEquals(1, vertices.size());
+            Assert.assertEquals(vertex.id(), vertices.get(0).id());
+            Assert.assertNull(TraversalUtil.page(results));
+            CloseableIterator.closeIterator(results);
+        }
+
+        GraphTraversal<Vertex, Vertex> filtered = graph.traversal().V()
+                .hasLabel("person").has("name", "marko").has("age", 30)
+                .has("~page", "").limit(2);
+        Assert.assertFalse(filtered.hasNext());
+        Assert.assertNull(TraversalUtil.page(filtered));
+        CloseableIterator.closeIterator(filtered);
+
+        GraphTraversal<Vertex, Vertex> missing = graph.traversal().V()
+                .hasLabel("person").has("name", "missing").has("~page", "").limit(2);
+        Assert.assertFalse(missing.hasNext());
+        Assert.assertNull(TraversalUtil.page(missing));
+        CloseableIterator.closeIterator(missing);
+    }
+
+    @Test
+    public void testQueryByPrimaryValuesAndPropsWithCachedVertex() {
+        HugeGraph graph = graph();
+        Vertex vertex = graph.addVertex(T.label, "person",
+                                        "name", "marko", "age", 29,
+                                        "city", "Beijing");
+        this.commitTx();
+
+        Vertex cached = graph.vertices(vertex.id()).next();
+        Assert.assertEquals(vertex.id(), cached.id());
+
+        long count = graph.traversal().V().hasLabel("person")
+                          .has("name", "marko")
+                          .has("age", 30)
+                          .count()
+                          .next();
+        Assert.assertEquals(0L, count);
     }
 
     @Test
@@ -3931,6 +4098,35 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByNegatedNullPredicate() {
+        HugeGraph graph = graph();
+
+        graph.addVertex(T.label, "person", "name", "marko",
+                        "city", "Beijing", "age", 29);
+        graph.addVertex(T.label, "person", "name", "vadas",
+                        "city", "Beijing", "age", 27);
+        graph.addVertex(T.label, "person", "name", "lop",
+                        "city", "Shanghai");
+        this.commitTx();
+
+        List<Object> negatedNull = graph.traversal().V()
+                                        .hasLabel("person")
+                                        .has("age", P.not(P.eq(null)))
+                                        .values("name")
+                                        .toList();
+        List<Object> notEqualNull = graph.traversal().V()
+                                         .hasLabel("person")
+                                         .has("age", P.neq(null))
+                                         .values("name")
+                                         .toList();
+
+        Set<Object> expected = ImmutableSet.of("marko", "vadas");
+        Assert.assertEquals(expected, ImmutableSet.copyOf(negatedNull));
+        Assert.assertEquals(expected, ImmutableSet.copyOf(notEqualNull));
+        Assert.assertEquals(notEqualNull.size(), negatedNull.size());
+    }
+
+    @Test
     public void testQueryByLongProperty() {
         HugeGraph graph = graph();
 
@@ -4139,8 +4335,7 @@ public class VertexCoreTest extends BaseCoreTest {
 
         /*
          * The double precision type typically has a range of around 1E-307 to
-         * 1E+308 with a precision of at least 15 digits. (postgresql)
-         * https://www.postgresql.org/docs/9.5/datatype-numeric.html#DATATYPE-NUMERIC-TABLE
+         * 1E+308 with a precision of at least 15 digits.
          */
         final double max15 = new BigDecimal(Double.MAX_VALUE)
                 .movePointLeft(308)
@@ -4794,14 +4989,10 @@ public class VertexCoreTest extends BaseCoreTest {
                  .and(P.lt(29).or(P.eq(35)).or(P.gt(45)))
         ).values("name").toList();
 
-        // There is duplicate results with OR condition
-        Assert.assertEquals(5, vertices.size());
-
         Set<String> names = ImmutableSet.of("Hebe", "James",
                                             "Tom Cat", "Lisa");
-        for (Object name : vertices) {
-            Assert.assertTrue(names.contains(name));
-        }
+        Assert.assertEquals(names.size(), vertices.size());
+        Assert.assertEquals(names, ImmutableSet.copyOf(vertices));
     }
 
     @Test
@@ -5361,8 +5552,12 @@ public class VertexCoreTest extends BaseCoreTest {
         graph.addVertex(T.label, "test", "name", "诚信文明",
                         "confirmType", 3, "type", 1, "kid", 3);
 
-        this.mayCommitTx();
+        this.assertQueryByJointIndexesWithSearchAndTwoRangeIndexesAndWithin();
+        this.commitTx();
+        this.assertQueryByJointIndexesWithSearchAndTwoRangeIndexesAndWithin();
+    }
 
+    private void assertQueryByJointIndexesWithSearchAndTwoRangeIndexesAndWithin() {
         List<Vertex> vertices;
         vertices = graph().traversal().V()
                           .has("type", 1)
@@ -5370,6 +5565,9 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("name", Text.contains("诚信"))
                           .toList();
         Assert.assertEquals(3, vertices.size());
+        assertContains(vertices, T.label, "test", "kid", 1);
+        assertContains(vertices, T.label, "test", "kid", 2);
+        assertContains(vertices, T.label, "test", "kid", 3);
 
         vertices = graph().traversal().V()
                           .has("type", 1)
@@ -5377,6 +5575,8 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("name", Text.contains("文明"))
                           .toList();
         Assert.assertEquals(2, vertices.size());
+        assertContains(vertices, T.label, "test", "kid", 2);
+        assertContains(vertices, T.label, "test", "kid", 3);
 
         vertices = graph().traversal().V()
                           .has("type", 0)
@@ -5384,6 +5584,7 @@ public class VertexCoreTest extends BaseCoreTest {
                           .has("name", Text.contains("诚信"))
                           .toList();
         Assert.assertEquals(1, vertices.size());
+        assertContains(vertices, T.label, "test", "kid", 0);
     }
 
     @Test
@@ -6275,8 +6476,7 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals("3", vertices.get(0).value("name"));
 
         String backend = graph.backend();
-        Set<String> nonZeroBackends = ImmutableSet.of("postgresql",
-                                                      "rocksdb", "hbase", "hstore");
+        Set<String> nonZeroBackends = ImmutableSet.of("rocksdb", "hbase", "hstore");
         if (nonZeroBackends.contains(backend)) {
             Assert.assertThrows(Exception.class, () -> {
                 graph.addVertex(T.label, "person", "name", "0",
@@ -6468,6 +6668,87 @@ public class VertexCoreTest extends BaseCoreTest {
         Vertex vertex = graph.traversal().V().has("city", "").next();
         Assert.assertEquals("Baby", vertex.value("name"));
         Assert.assertEquals("", vertex.value("city"));
+    }
+
+    @Test
+    public void testQueryVertexByBooleanPredicate() {
+        HugeGraph graph = graph();
+        Assume.assumeFalse("skip this test for hstore",
+                           Objects.equals("hstore", graph.backend()));
+
+        graph.schema().indexLabel("languageByDynamic").onV("language")
+             .secondary().by("dynamic").create();
+
+        graph.addVertex(T.label, "language", "name", "java",
+                        "dynamic", true);
+        graph.addVertex(T.label, "language", "name", "rust",
+                        "dynamic", false);
+        graph.addVertex(T.label, "language", "name", "c");
+        this.commitTx();
+
+        List<Vertex> neqTrueVertices = graph.traversal().V()
+                                             .hasLabel("language")
+                                             .has("dynamic", P.neq(true))
+                                             .toList();
+        Assert.assertEquals(1, neqTrueVertices.size());
+        Assert.assertEquals("rust", neqTrueVertices.get(0).value("name"));
+
+        List<Vertex> neqFalseVertices = graph.traversal().V()
+                                               .hasLabel("language")
+                                               .has("dynamic", P.neq(false))
+                                               .toList();
+        Assert.assertEquals(1, neqFalseVertices.size());
+        Assert.assertEquals("java", neqFalseVertices.get(0).value("name"));
+
+        List<Vertex> hasLtVertices = graph.traversal().V()
+                                           .hasLabel("language")
+                                           .has("dynamic", P.lt(true))
+                                           .toList();
+        Assert.assertEquals(1, hasLtVertices.size());
+        Assert.assertEquals("rust", hasLtVertices.get(0).value("name"));
+
+        List<Vertex> whereLtVertices = graph.traversal().V()
+                                             .hasLabel("language")
+                                             .where(__.has("dynamic",
+                                                           P.lt(true)))
+                                             .toList();
+        Assert.assertEquals(1, whereLtVertices.size());
+        Assert.assertEquals("rust", whereLtVertices.get(0).value("name"));
+
+        List<Vertex> matchLtVertices = graph.traversal().V()
+                                             .hasLabel("language")
+                                             .match(__.as("start")
+                                                      .where(__.has("dynamic",
+                                                                    P.lt(true)))
+                                                      .as("matched"))
+                                             .<Vertex>select("matched")
+                                             .toList();
+        Assert.assertEquals(1, matchLtVertices.size());
+        Assert.assertEquals("rust", matchLtVertices.get(0).value("name"));
+
+        List<Vertex> compoundOrVertices = graph.traversal().V()
+                                                .hasLabel("language")
+                                                .has("dynamic",
+                                                     P.gt(true).or(P.eq(true)))
+                                                .toList();
+        Assert.assertEquals(1, compoundOrVertices.size());
+        Assert.assertEquals("java", compoundOrVertices.get(0).value("name"));
+
+        Assert.assertEquals(0, graph.traversal().V()
+                                    .hasLabel("language")
+                                    .has("dynamic", P.lt(false))
+                                    .toList().size());
+
+        List<Vertex> gteFalseVertices = graph.traversal().V()
+                                             .hasLabel("language")
+                                             .has("dynamic", P.gte(false))
+                                             .toList();
+        Assert.assertEquals(2, gteFalseVertices.size());
+        Set<String> gteFalseNames = new HashSet<>();
+        for (Vertex vertex : gteFalseVertices) {
+            gteFalseNames.add(vertex.value("name"));
+        }
+        Assert.assertEquals(ImmutableSet.of("java", "rust"), gteFalseNames);
     }
 
     @Test
@@ -7594,7 +7875,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testScanVertexInPaging() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -7608,13 +7890,8 @@ public class VertexCoreTest extends BaseCoreTest {
         ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
 
         String backend = graph.backend();
-        if (backend.equals("cassandra") || backend.equals("scylladb")) {
-            query.scan(String.valueOf(Long.MIN_VALUE),
-                       String.valueOf(Long.MAX_VALUE));
-        } else {
-            query.scan(BackendTable.ShardSplitter.START,
-                       BackendTable.ShardSplitter.END);
-        }
+        query.scan(BackendTable.ShardSplitter.START,
+                   BackendTable.ShardSplitter.END);
 
         query.limit(1);
         String page = PageInfo.PAGE_NONE;
@@ -7623,7 +7900,7 @@ public class VertexCoreTest extends BaseCoreTest {
             Iterator<Vertex> iterator = graph.vertices(query);
             while (iterator.hasNext()) {
                 Vertex vertex = iterator.next();
-                Assert.assertTrue(query.test((HugeElement) vertex));
+                Assert.assertTrue(query.test(((HugeElement) vertex).element()));
                 vertices.add(vertex);
             }
             page = PageInfo.pageInfo(iterator);
@@ -8339,8 +8616,57 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByRangeIndexKeepsOrderAcrossStorePages() {
+        Assume.assumeTrue("Not support paging",
+                          storeFeatures().supportsQueryByPage());
+
+        initRangeIndexOrderTestData();
+
+        GraphTraversalSource g = graph().traversal();
+        List<Vertex> vertices = g.V().hasLabel("ranked")
+                                 .has("rank", P.between(0, 130))
+                                 .limit(70)
+                                 .toList();
+        assertRanks(vertices, 0, 70);
+
+        GraphTraversal<Vertex, Vertex> firstPage =
+                g.V().hasLabel("ranked")
+                 .has("rank", P.between(0, 130))
+                 .has("~page", "")
+                 .limit(70);
+        vertices = firstPage.toList();
+        assertRanks(vertices, 0, 70);
+
+        String page = TraversalUtil.page(firstPage);
+        Assert.assertNotNull(page);
+        Assert.assertFalse(page.isEmpty());
+
+        vertices = g.V().hasLabel("ranked")
+                    .has("rank", P.between(0, 130))
+                    .has("~page", page)
+                    .limit(70)
+                    .toList();
+        assertRanks(vertices, 70, 60);
+    }
+
+    @Test
+    public void testQueryByRangeIndexKeepsOffsetOrderInHstore() {
+        Assume.assumeTrue("Only run for hstore",
+                          Objects.equals("hstore", graph().backend()));
+
+        initRangeIndexOrderTestData();
+
+        List<Vertex> vertices = graph().traversal().V().hasLabel("ranked")
+                                       .has("rank", P.between(0, 130))
+                                       .range(65, 75)
+                                       .toList();
+        assertRanks(vertices, 65, 10);
+    }
+
+    @Test
     public void testQueryByPropertyInPageWithLimitGtPageSize() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -8420,7 +8746,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryBySingleRangePropertyInPage() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -8569,7 +8896,8 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testQueryByRangeIndexInPage() {
-        // FIXME: skip this test for hstore
+        // FIXME: The legacy HStore guard and related coverage debt are tracked in
+        // https://github.com/apache/hugegraph/issues/3090
         Assume.assumeTrue("skip this test for hstore",
                           Objects.equals("hstore", System.getProperty("backend")));
 
@@ -8937,6 +9265,686 @@ public class VertexCoreTest extends BaseCoreTest {
     }
 
     @Test
+    public void testQueryByNonEqLabelAndIndexedProperty() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                        "age", 20, "city", "Beijing");
+        this.commitTx();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Object> names = g.V().has(T.label, P.neq("author"))
+                              .has("city", "Beijing")
+                              .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+    }
+
+    @Test
+    public void testQueryByIndexedPropertyAndNonEqLabel() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                        "age", 20, "city", "Beijing");
+        this.commitTx();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Object> names = g.V().has("city", "Beijing")
+                              .has(T.label, P.neq("author"))
+                              .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+    }
+
+    @Test
+    public void testNegativeLabelAfterReturningToSourceThroughEdge() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        graph.schema().edgeLabel("fanToPerson").link("fan", "person").create();
+        graph.schema().edgeLabel("personToFan").link("person", "fan").create();
+        Vertex outFan = graph.addVertex(T.label, "fan", "name", "out-fan",
+                                        "age", 20, "city", "Beijing");
+        Vertex inFan = graph.addVertex(T.label, "fan", "name", "in-fan",
+                                       "age", 20, "city", "Beijing");
+        Vertex target = graph.addVertex(T.label, "person", "name", "target",
+                                        "age", 20, "city", "Shanghai");
+        outFan.addEdge("fanToPerson", target);
+        target.addEdge("personToFan", inFan);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Assert.assertEquals(ImmutableList.of(outFan), g.V().has("city", "Beijing")
+                .outE().outV().hasLabel(P.neq("person")).toList());
+        Assert.assertEquals(ImmutableList.of(inFan), g.V().has("city", "Beijing")
+                .inE().inV().hasLabel(P.neq("person")).toList());
+        Assert.assertEquals(ImmutableList.of(outFan), g.V().has("city", "Beijing")
+                .where(__.outE().outV().hasLabel(P.neq("person"))).toList());
+        Assert.assertEquals(ImmutableList.of(inFan), g.V().has("city", "Beijing")
+                .where(__.inE().inV().hasLabel(P.neq("person"))).toList());
+        Assert.assertEquals(ImmutableSet.of(outFan, inFan),
+                ImmutableSet.copyOf(g.V().has("city", "Beijing")
+                        .bothE().bothV().hasLabel(P.neq("person")).toList()));
+        Assert.assertEquals(ImmutableSet.of(outFan, inFan),
+                ImmutableSet.copyOf(g.V().has("city", "Beijing")
+                        .where(__.bothE().bothV().hasLabel(P.neq("person"))).toList()));
+        Assert.assertEquals(ImmutableList.of(outFan), g.V().has("city", "Beijing")
+                .where(__.outE().barrier().outV().hasLabel(P.neq("person"))).toList());
+    }
+
+    @Test
+    public void testNegativeLabelAfterAdjacencyPreservesSourceCandidates() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        graph.schema().vertexLabel("returnFan").properties("name", "age", "city")
+             .useAutomaticId().create();
+        graph.schema().edgeLabel("fanLoop").link("returnFan", "returnFan").create();
+        graph.schema().edgeLabel("personLoop").link("person", "person").create();
+        Vertex fan = graph.addVertex(T.label, "returnFan", "name", "loop-fan",
+                                    "age", 20, "city", "Beijing");
+        Vertex person = graph.addVertex(T.label, "person", "name", "loop-person",
+                                       "age", 20, "city", "Beijing");
+        fan.addEdge("fanLoop", fan);
+        Edge personEdge = person.addEdge("personLoop", person);
+        this.commitTx();
+
+        GraphTraversalSource g = graph.traversal();
+        // The existing source query uses only indexed labels. #3201 tracks
+        // complete cross-label candidates; a later label must not change this
+        // source query's behavior solely because it follows an adjacency step.
+        Set<Vertex> source = g.V().has("city", "Beijing").toSet();
+        Assert.assertEquals(ImmutableSet.of(person), source);
+        Assert.assertEquals(source, g.V().has("city", "Beijing").out().toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel("person").toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).dedup().toSet());
+        Assert.assertEquals(ImmutableList.of(person), g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).order().by("name").toList());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).tail(1).toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).fold().unfold().toSet());
+        Assert.assertEquals(ImmutableList.of(20), g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).values("age").is(P.gt(1)).toList());
+        Assert.assertEquals(ImmutableList.of(1), g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).constant(1).toList());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).sample(2).toSet());
+        Assert.assertEquals(ImmutableMap.of("person", ImmutableList.of(person)), g.V()
+                .has("city", "Beijing").out().hasLabel(P.neq("author")).group().by(T.label).next());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).aggregate("x").toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).cyclicPath().toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().in().hasLabel(P.neq("author")).toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .both().both().hasLabel(P.neq("author")).toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .out().inE().outV().hasLabel(P.neq("author")).toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .where(__.out().in().hasLabel(P.neq("author"))).toSet());
+        Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
+                .outE().hasLabel(P.neq("knows")).toSet());
+        Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
+                .outE().hasLabel(P.neq("knows")).dedup().toSet());
+        Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
+                .outE().hasLabel(P.neq("knows")).tail(1).toSet());
+        Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
+                .outE().hasLabel(P.neq("knows")).fold().unfold().toSet());
+        Assert.assertEquals(source, g.V().has("city", "Beijing")
+                .where(__.out().hasLabel(P.neq("author")).tail(1)).toSet());
+    }
+
+    @Test
+    public void testChildSourceBeforeParentNegativeLabel() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        Vertex fan = graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                                     "age", 20, "city", "Beijing");
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Set<Object> expected = g.V().hasLabel(P.neq("author"))
+                                .has("city", "Beijing").id().toSet();
+        Assert.assertEquals(4, expected.size());
+        Assert.assertTrue(expected.contains(fan.id()));
+
+        List<Object> ids = g.inject(1).union(__.V().has("city", "Beijing"))
+                            .hasLabel(P.neq("author")).id().toList();
+        Assert.assertEquals(4, ids.size());
+        Assert.assertEquals(expected, ImmutableSet.copyOf(ids));
+        ids = g.inject(1).local(__.union(__.V().has("city", "Beijing")))
+               .hasLabel(P.neq("author")).id().toList();
+        Assert.assertEquals(4, ids.size());
+        Assert.assertEquals(expected, ImmutableSet.copyOf(ids));
+    }
+
+    @Test
+    public void testLocalUuidIdBeforeNegativeLabel() {
+        HugeGraph graph = graph();
+        graph.schema().vertexLabel("uuid").useCustomizeUuidId().create();
+        UUID first = UUID.fromString("835e1153-9281-4957-8691-cf79258e90eb");
+        UUID second = UUID.fromString("835e1153-9281-4957-8691-cf79258e90ec");
+        Vertex one = graph.addVertex(T.label, "uuid", T.id, first);
+        Vertex two = graph.addVertex(T.label, "uuid", T.id, second);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Assert.assertEquals(ImmutableList.of(one), g.V().hasId(first).toList());
+        Assert.assertEquals(ImmutableList.of(one),
+                            g.V().hasId(first).limit(10).hasLabel(P.neq("other")).toList());
+        Assert.assertEquals(ImmutableSet.of(one, two),
+                            g.V().hasId(P.within(first, second)).limit(10)
+                             .hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableList.of(one),
+                            g.V(first).hasId(P.within(first, second)).limit(10)
+                             .hasLabel(P.neq("other")).toList());
+        Assert.assertTrue(g.V(second).hasId(first).limit(10)
+                           .hasLabel(P.neq("other")).toList().isEmpty());
+        P<UUID> predicate = P.eq(first).or(P.eq(second));
+        Assert.assertEquals(ImmutableSet.of(one, two),
+                            g.V().hasId(predicate).limit(10)
+                             .hasLabel(P.neq("other")).toSet());
+        // A reused predicate must still accept the caller's original UUIDs.
+        Assert.assertTrue(predicate.test(first));
+        Assert.assertTrue(predicate.test(second));
+        Assert.assertEquals(ImmutableList.of(two),
+                            g.V().hasId(P.without(first)).limit(10)
+                             .hasLabel(P.neq("other")).toList());
+    }
+
+    @Test
+    public void testLocalElementIdAndLabelRepresentations() {
+        HugeGraph graph = graph();
+        graph.schema().vertexLabel("localV").useCustomizeNumberId().create();
+        Vertex one = graph.addVertex(T.label, "localV", T.id, 123);
+        Vertex two = graph.addVertex(T.label, "localV", T.id, 456);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Assert.assertEquals(ImmutableList.of(one), g.V().hasId(one).toList());
+        Assert.assertEquals(ImmutableList.of(one),
+                            g.V().hasId(one).limit(10).hasLabel(P.neq("other")).toList());
+        Assert.assertEquals(ImmutableSet.of(one, two),
+                            g.V().hasId(P.within(one, two)).limit(10)
+                             .hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableList.of(one),
+                            g.V(one.id()).hasId(P.within(one, two)).limit(10)
+                             .hasLabel(P.neq("other")).toList());
+        Assert.assertTrue(g.V(two.id()).hasId(one).limit(10)
+                           .hasLabel(P.neq("other")).toList().isEmpty());
+        P<Vertex> ids = P.eq(one).or(P.eq(two));
+        Assert.assertEquals(ImmutableSet.of(one, two),
+                            g.V().hasId(ids).limit(10).hasLabel(P.neq("other")).toSet());
+        Assert.assertTrue(ids.test(one));
+        Id label = graph.vertexLabel("localV").id();
+        Set<Vertex> expected = ImmutableSet.of(one, two);
+        for (Object value : ImmutableList.of("localV", label, label.asLong())) {
+            Assert.assertEquals(expected, g.V().has(T.label, value).toSet());
+            Assert.assertEquals(expected, g.V().has(T.label, value).limit(10)
+                                          .hasLabel(P.neq("other")).toSet());
+            Assert.assertEquals(expected, g.inject(1).local(__.union(__.V().has(T.label, value)))
+                                          .hasLabel(P.neq("other")).toSet());
+        }
+        P<Object> labels = P.eq((Object) label).or(P.eq("localV"));
+        GraphTraversal<Vertex, Vertex> traversal = g.V().has(T.label, labels)
+                                                    .limit(10).hasLabel(P.neq("other"));
+        traversal.asAdmin().applyStrategies();
+        GraphTraversal.Admin<Vertex, Vertex> clone = traversal.asAdmin().clone();
+        Assert.assertEquals(expected, traversal.toSet());
+        Assert.assertEquals(expected, clone.toSet());
+        traversal.asAdmin().reset();
+        Assert.assertEquals(expected, traversal.toSet());
+        Assert.assertTrue(labels.test(label));
+        Assert.assertEquals(expected, g.V().has(T.label, P.eq((Object) label).and(P.neq(-1L)))
+                                      .limit(10).hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(expected, g.V().has(T.label, P.within(label, IdGenerator.of(-1L)))
+                                      .limit(10).hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(expected, g.V().has(T.label, P.without(IdGenerator.of(-1L)))
+                                      .limit(10).hasLabel(P.neq("other")).toSet());
+        Assert.assertTrue(g.V().has(T.label, IdGenerator.of(-1L)).limit(10)
+                           .hasLabel(P.neq("other")).toList().isEmpty());
+        Assert.assertTrue(g.V().has(T.label, P.without(label)).limit(10)
+                           .hasLabel(P.neq("other")).toList().isEmpty());
+    }
+
+    @Test
+    public void testNotLabelContextKeepsUnindexedCandidates() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        Vertex fan = graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                                     "age", 20, "city", "Beijing");
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Set<Vertex> expected = g.V().hasLabel(P.neq("author")).has("city", "Beijing").toSet();
+        Assert.assertEquals(4, expected.size());
+        Assert.assertTrue(expected.contains(fan));
+        Assert.assertEquals(expected, g.V().has("city", "Beijing")
+                                      .not(__.hasLabel("author")).toSet());
+        Assert.assertEquals(expected, g.V().has("city", "Beijing")
+                                      .not(__.or(__.hasLabel("author"), __.hasLabel("missing")))
+                                      .toSet());
+        Assert.assertEquals(expected, g.inject(1).union(__.V().has("city", "Beijing"))
+                                      .not(__.hasLabel("author")).toSet());
+    }
+
+    @Test
+    public void testNegativeLabelAfterElementChange() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("city").asText().ifNotExist().create();
+        graph.schema().vertexLabel("indexed").properties("city").useAutomaticId().create();
+        graph.schema().vertexLabel("target").useAutomaticId().create();
+        graph.schema().indexLabel("byCity").onV("indexed").by("city").secondary().create();
+        graph.schema().edgeLabel("link").link("indexed", "target").create();
+        Vertex source = graph.addVertex(T.label, "indexed", "city", "Beijing");
+        Vertex target = graph.addVertex(T.label, "target");
+        source.addEdge("link", target);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        for (GraphTraversal<Vertex, Vertex> query : ImmutableList.of(
+                g.V().has("city", "Beijing").out().hasLabel(P.neq("indexed")),
+                g.V().has("city", "Beijing").out().where(__.not(__.hasLabel("indexed"))))) {
+            query.asAdmin().applyStrategies();
+            HugeGraphStep<?, ?> step = (HugeGraphStep<?, ?>) query.asAdmin().getStartStep();
+            Assert.assertTrue(step.getHasContainers().stream()
+                                  .anyMatch(h -> h.getKey().equals("city")));
+            Assert.assertEquals(ImmutableList.of(target), query.toList());
+        }
+        Assert.assertEquals(ImmutableList.of(source), g.V().has("city", "Beijing").as("a")
+                            .out().select("a").hasLabel(P.neq("target")).toList());
+        Assert.assertEquals(ImmutableList.of(source), g.V().has("city", "Beijing")
+                            .out().path().unfold().hasLabel(P.neq("target")).toList());
+    }
+
+    @Test
+    public void testLocalContainsBeforeNegativeLabel() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("age").asInt().ifNotExist().create();
+        graph.schema().propertyKey("key").asText().ifNotExist().create();
+        graph.schema().propertyKey("value").asInt().ifNotExist().create();
+        graph.schema().vertexLabel("containsV").properties("age", "key", "value")
+             .nullableKeys("age", "key", "value").useAutomaticId().create();
+        graph.schema().edgeLabel("containsE").link("containsV", "containsV")
+             .properties("age", "key", "value").nullableKeys("age", "key", "value").create();
+        Vertex one = graph.addVertex(T.label, "containsV", "age", 20);
+        Vertex two = graph.addVertex(T.label, "containsV", "age", 30);
+        Vertex misleading = graph.addVertex(T.label, "containsV", "key", "age", "value", 99);
+        Edge first = one.addEdge("containsE", two, "age", 20);
+        Edge second = one.addEdge("containsE", misleading, "key", "age", "value", 99);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Assert.assertEquals(ImmutableSet.of(one, two),
+                            g.V().hasKey("age").hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(one),
+                            g.V().hasValue(20).hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(one),
+                            g.V(one.id(), misleading.id()).hasKey("age")
+                             .hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(one),
+                            g.V().hasKey("age").hasId(one.id()).hasValue(20)
+                             .hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(two),
+                            g.V(one.id()).out().hasKey("age").hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(first),
+                            g.E().hasKey("age").hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(first),
+                            g.E().hasValue(20).hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(first),
+                            g.E(first.id(), second.id()).hasKey("age")
+                             .hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(first),
+                            g.V(one.id()).outE().hasKey("age").hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(first),
+                            g.V(one.id()).outE().hasValue(20).hasLabel(P.neq("other")).toSet());
+        Assert.assertTrue(g.V().hasValue(-1).hasLabel(P.neq("other")).toList().isEmpty());
+        Assert.assertTrue(g.V().hasKey("age").hasLabel(P.neq("containsV")).toList().isEmpty());
+        Assert.assertThrows(IllegalArgumentException.class, () ->
+                            g.V().hasKey("age", "key").hasLabel(P.neq("other")).toList());
+        Assert.assertThrows(IllegalArgumentException.class, () ->
+                            g.V().hasValue(20, 30).hasLabel(P.neq("other")).toList());
+        GraphTraversal.Admin<Vertex, Vertex> traversal = g.V().hasKey("age")
+                .hasLabel(P.neq("other")).asAdmin();
+        traversal.applyStrategies();
+        GraphTraversal.Admin<Vertex, Vertex> clone = traversal.clone();
+        Assert.assertEquals(ImmutableSet.of(one, two), traversal.toSet());
+        Assert.assertEquals(ImmutableSet.of(one, two), clone.toSet());
+        traversal.reset();
+        Assert.assertEquals(ImmutableSet.of(one, two), traversal.toSet());
+    }
+
+    @Test
+    public void testLocalConnectiveStringIds() {
+        HugeGraph graph = graph();
+        graph.schema().vertexLabel("stringV").useCustomizeStringId().create();
+        graph.schema().edgeLabel("stringE").link("stringV", "stringV").create();
+        Vertex one = graph.addVertex(T.label, "stringV", T.id, "a");
+        Vertex two = graph.addVertex(T.label, "stringV", T.id, "b");
+        Edge edge = one.addEdge("stringE", two);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        P<String> either = P.eq("a").or(P.eq("b"));
+        Assert.assertEquals(ImmutableSet.of(one), g.V().hasId("a").toSet());
+        Assert.assertEquals(ImmutableSet.of(two), g.V().hasId("b").toSet());
+        Assert.assertEquals(ImmutableSet.of(one, two),
+                            g.V().hasId(either).limit(10).hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(one),
+                            g.V().hasId(P.eq("a").and(P.neq("b")))
+                             .limit(10).hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(one),
+                            g.V(one.id()).hasId(either).hasLabel(P.neq("other")).toSet());
+        Assert.assertTrue(either.test("a"));
+        Assert.assertTrue(either.test("b"));
+        Assert.assertEquals(ImmutableSet.of(one),
+                            g.V().hasId(P.within("a", "b").and(P.neq("b")))
+                             .limit(10).hasLabel(P.neq("other")).toSet());
+        P<String> edgeIds = P.eq(edge.id().toString()).or(P.eq("missing"));
+        Assert.assertEquals(ImmutableSet.of(edge),
+                            g.E().hasId(edgeIds).hasLabel(P.neq("other")).toSet());
+        Assert.assertEquals(ImmutableSet.of(edge),
+                            g.V(one.id()).outE().hasId(edgeIds).hasLabel(P.neq("other")).toSet());
+        GraphTraversal.Admin<Vertex, Vertex> traversal = g.V().hasId(either)
+                .hasLabel(P.neq("other")).asAdmin();
+        traversal.applyStrategies();
+        GraphTraversal.Admin<Vertex, Vertex> clone = traversal.clone();
+        Assert.assertEquals(ImmutableSet.of(one, two), traversal.toSet());
+        Assert.assertEquals(ImmutableSet.of(one, two), clone.toSet());
+        traversal.reset();
+        Assert.assertEquals(ImmutableSet.of(one, two), traversal.toSet());
+    }
+
+    @Test
+    public void testRangeIndexAfterElementChangeWithTerminalSteps() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("age").asInt().ifNotExist().create();
+        graph.schema().vertexLabel("indexed").properties("age").useAutomaticId().create();
+        graph.schema().vertexLabel("unindexed").properties("age").useAutomaticId().create();
+        graph.schema().vertexLabel("target").useAutomaticId().create();
+        graph.schema().indexLabel("byAge").onV("indexed").by("age").range().create();
+        graph.schema().edgeLabel("link").link("indexed", "target").create();
+        Vertex source = graph.addVertex(T.label, "indexed", "age", 60);
+        graph.addVertex(T.label, "unindexed", "age", 60);
+        Vertex target = graph.addVertex(T.label, "target");
+        source.addEdge("link", target);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        List<GraphTraversal<?, ?>> queries = ImmutableList.of(
+                g.V().has("age", P.gte(60)).out().hasLabel(P.neq("indexed")).count(),
+                g.V().has("age", P.gte(60)).out().where(__.not(__.hasLabel("indexed"))).count(),
+                g.V().has("age", P.gte(60)).out().hasLabel(P.neq("indexed")).id(),
+                g.V().has("age", P.gte(60)).out().hasLabel(P.neq("indexed")).label());
+        List<Object> expected = ImmutableList.of(1L, 1L, target.id(), "target");
+        for (int i = 0; i < queries.size(); i++) {
+            GraphTraversal<?, ?> query = queries.get(i);
+            query.asAdmin().applyStrategies();
+            HugeGraphStep<?, ?> step = (HugeGraphStep<?, ?>) query.asAdmin().getStartStep();
+            Assert.assertTrue(step.getHasContainers().stream()
+                                  .anyMatch(h -> h.getKey().equals("age")));
+            Assert.assertEquals(ImmutableList.of(expected.get(i)), query.toList());
+        }
+    }
+
+    @Test
+    public void testRepeatSiblingNegativeLabel() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("city").asText().ifNotExist().create();
+        graph.schema().vertexLabel("indexed").properties("city").useAutomaticId().create();
+        graph.schema().vertexLabel("unindexed").properties("city").useAutomaticId().create();
+        graph.schema().indexLabel("byCity").onV("indexed").by("city").secondary().create();
+        Vertex indexed = graph.addVertex(T.label, "indexed", "city", "Beijing");
+        Vertex unindexed = graph.addVertex(T.label, "unindexed", "city", "Beijing");
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Set<Vertex> expected = ImmutableSet.of(indexed, unindexed);
+        Assert.assertEquals(expected,
+                            g.V(indexed.id()).repeat(__.V().has("city", "Beijing"))
+                             .until(__.hasLabel(P.neq("author"))).toSet());
+        List<Vertex> emitted = g.V(indexed.id()).repeat(__.V().has("city", "Beijing"))
+                                .emit(__.hasLabel(P.neq("author"))).times(2).toList();
+        Assert.assertEquals(6, emitted.size());
+        Assert.assertEquals(expected, ImmutableSet.copyOf(emitted));
+    }
+
+    @Test
+    public void testQueryByNonEqLabelAndIndexedPropertyAcrossBarrier() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                        "age", 20, "city", "Beijing");
+        this.commitTx();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Object> names = g.V().has(T.label, P.neq("author"))
+                              .barrier().has("city", "Beijing")
+                              .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+
+        names = g.V().has("city", "Beijing").barrier()
+                 .has(T.label, P.neq("author"))
+                 .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+    }
+
+    @Test
+    public void testQueryByNonEqLabelAndIndexedPropertyAcrossRange() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                        "age", 20, "city", "Beijing");
+        this.commitTx();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Object> names = g.V().has("city", "Beijing").skip(0)
+                              .has(T.label, P.neq("author"))
+                              .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+
+        names = g.V().has("city", "Beijing").limit(1000)
+                 .has(T.label, P.neq("author"))
+                 .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+    }
+
+    @Test
+    public void testQueryByNonEqLabelAndIndexedPropertyAcrossMixedKeyOr() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                        "age", 20, "city", "Beijing");
+        this.commitTx();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Object> names = g.V().has("city", "Beijing")
+                              .or(__.has(T.label, P.neq("author")),
+                                  __.has("age", 20))
+                              .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+    }
+
+    @Test
+    public void testQueryByNonEqLabelAndIndexedPropertyAcrossSideEffect() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        init5Persons();
+        graph.addVertex(T.label, "fan", "name", "unindexed-city-fan",
+                        "age", 20, "city", "Beijing");
+        this.commitTx();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Object> names = g.V().has("city", "Beijing").aggregate("x")
+                              .has(T.label, P.neq("author"))
+                              .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+
+        names = g.V().has("city", "Beijing").coin(1.0D)
+                 .has(T.label, P.neq("author"))
+                 .values("name").toList();
+        Assert.assertEquals(4, names.size());
+        Assert.assertEquals(ImmutableSet.of("James", "Tom Cat", "Lisa",
+                                            "unindexed-city-fan"),
+                            ImmutableSet.copyOf(names));
+    }
+
+    @Test
+    public void testQueryByNonEqLabel() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices = g.V().has(T.label, P.neq("author")).toList();
+        Assert.assertEquals(8, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertNotEquals("author", vertex.label());
+        }
+    }
+
+    @Test
+    public void testQueryByMixedConnectiveLabel() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices = g.V()
+                                 .has(T.label, P.eq("language")
+                                                .or(P.neq("author")))
+                                 .toList();
+        Assert.assertEquals(8, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertNotEquals("author", vertex.label());
+        }
+
+        vertices = g.V()
+                    .has(T.label, P.eq("language")
+                                   .and(P.neq("author")))
+                    .toList();
+        Assert.assertEquals(3, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertEquals("language", vertex.label());
+        }
+    }
+
+    @Test
+    public void testQueryByMultipleNegativeLabelContainers() {
+        HugeGraph graph = graph();
+        init10Vertices();
+
+        GraphTraversalSource g = graph.traversal();
+
+        List<Vertex> vertices = g.V().hasLabel("language")
+                                 .has(T.label, P.neq("author"))
+                                 .toList();
+        Assert.assertEquals(3, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertEquals("language", vertex.label());
+        }
+
+        vertices = g.V().has(T.label, P.neq("author"))
+                    .has(T.label, P.neq("book"))
+                    .toList();
+        Assert.assertEquals(3, vertices.size());
+        for (Vertex vertex : vertices) {
+            Assert.assertEquals("language", vertex.label());
+        }
+    }
+
+    @Test
+    public void testCollectMatchedIndexesByJointLabelsWithIndexedProperties() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+
+        VertexLabel person = graph.vertexLabel("person");
+        VertexLabel computer = graph.vertexLabel("computer");
+        PropertyKey city = graph.propertyKey("city");
+
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.query(Condition.in(HugeKeys.LABEL,
+                                 ImmutableList.of(person.id(), computer.id())));
+        query.query(Condition.eq(city.id(), "Beijing"));
+
+        Set<?> matchedIndexes = Whitebox.invoke(params().graphTransaction(),
+                                                "indexTx",
+                                                "collectMatchedIndexes",
+                                                query);
+        Assert.assertEquals(1, matchedIndexes.size());
+        Object matchedIndex = matchedIndexes.iterator().next();
+        SchemaLabel schemaLabel = Whitebox.getInternalState(matchedIndex,
+                                                            "schemaLabel");
+        Assert.assertEquals("person", schemaLabel.name());
+
+        ConditionQuery conflicting = new ConditionQuery(HugeType.VERTEX);
+        conflicting.eq(HugeKeys.LABEL, person.id());
+        conflicting.eq(HugeKeys.LABEL, computer.id());
+        conflicting.query(Condition.eq(city.id(), "Beijing"));
+
+        Assert.assertTrue(conflicting.containsCondition(HugeKeys.LABEL));
+        Assert.assertEquals(ImmutableSet.of(),
+                            conflicting.conditionValues(HugeKeys.LABEL));
+
+        matchedIndexes = Whitebox.invoke(params().graphTransaction(),
+                                         "indexTx",
+                                         "collectMatchedIndexes",
+                                         conflicting);
+        Assert.assertEquals(0, matchedIndexes.size());
+    }
+
+    @Test
+    public void testQueryByUserpropWithConflictingLabels() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+
+        VertexLabel person = graph.vertexLabel("person");
+        VertexLabel computer = graph.vertexLabel("computer");
+        PropertyKey city = graph.propertyKey("city");
+
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.eq(HugeKeys.LABEL, person.id());
+        query.eq(HugeKeys.LABEL, computer.id());
+        query.query(Condition.eq(city.id(), "Beijing"));
+
+        IdHolderList holders = Whitebox.invoke(params().graphTransaction(),
+                                               "indexTx",
+                                               "queryByUserprop",
+                                               query);
+        Assert.assertTrue(holders.isEmpty());
+        Assert.assertFalse(holders.paging());
+    }
+
+    @Test
     public void testQueryByHasIdEmptyList() {
         HugeGraph graph = graph();
         GraphTraversalSource g = graph.traversal();
@@ -8986,13 +9994,11 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(vertex3, g.V().hasLabel("person")
                                       .has("name", "xyz\u0003abc").next());
 
-        if (!graph.backend().equals("postgresql")) {
-            Vertex vertex0 = graph.addVertex(T.label, "person", "name",
-                                             "xyz\u0000abc", "city", "Hongkong",
-                                             "age", 10);
-            Assert.assertEquals(vertex0, g.V().hasLabel("person")
-                                          .has("name", "xyz\u0000abc").next());
-        }
+        Vertex vertex0 = graph.addVertex(T.label, "person", "name",
+                                         "xyz\u0000abc", "city", "Hongkong",
+                                         "age", 10);
+        Assert.assertEquals(vertex0, g.V().hasLabel("person")
+                                      .has("name", "xyz\u0000abc").next());
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             graph.addVertex(T.label, "person", "name",
@@ -9118,18 +10124,6 @@ public class VertexCoreTest extends BaseCoreTest {
                 Assert.assertContains("can't contains byte '0x00'",
                                       e.getMessage());
             });
-        } else if (backend.equals("postgresql")) {
-            Assert.assertThrows(BackendException.class, () -> {
-                graph.addVertex(T.label, "person", "name", "7",
-                                "city", "xyz\u0000efg",
-                                "age", 15);
-                graph.tx().commit();
-            }, e -> {
-                graph.tx().rollback();
-                Assert.assertContains("invalid byte sequence for encoding " +
-                                      "\"UTF8\": 0x00",
-                                      e.getCause().getMessage());
-            });
         } else {
             graph.addVertex(T.label, "person", "name", "8",
                             "city", "xyz\u0000efg",
@@ -9189,6 +10183,306 @@ public class VertexCoreTest extends BaseCoreTest {
         Assert.assertEquals(2, vertices.size());
         Assert.assertTrue(vertices.contains(vertex3));
         Assert.assertTrue(vertices.contains(vertex4));
+    }
+
+    @Test
+    public void testPositiveLabelBeforeUnsafeChildUsesLabelQuery() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("unindexedAge").asInt().create();
+        graph.schema().vertexLabel("sourceV").properties("unindexedAge")
+             .useAutomaticId().create();
+        graph.schema().vertexLabel("targetV").useAutomaticId().create();
+        graph.schema().vertexLabel("unrelatedV").useAutomaticId().create();
+        graph.schema().vertexLabel("withoutLabelIndex").useAutomaticId()
+             .enableLabelIndex(false).create();
+        graph.schema().edgeLabel("positiveLink").link("sourceV", "targetV").create();
+        Vertex source = graph.addVertex(T.label, "sourceV", "unindexedAge", 18);
+        Vertex target = graph.addVertex(T.label, "targetV");
+        Vertex unindexed = graph.addVertex(T.label, "withoutLabelIndex");
+        Edge edge = source.addEdge("positiveLink", target);
+        for (int i = 0; i < 5; i++) {
+            graph.addVertex(T.label, "unrelatedV");
+        }
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Id label = graph.vertexLabel("sourceV").id();
+        for (P<?> predicate : new P<?>[]{P.eq("sourceV"), P.eq(label), P.eq(label.asLong()),
+                P.within("sourceV", "targetV"), P.within(label, "sourceV")}) {
+            GraphTraversal<Vertex, Vertex> query = g.V().has(T.label, predicate)
+                    .has("unindexedAge", 18)
+                    .where(__.hasLabel(P.neq("targetV")));
+            query.asAdmin().applyStrategies();
+            HugeGraphStep<?, ?> step = (HugeGraphStep<?, ?>) query.asAdmin().getStartStep();
+            Assert.assertEquals(1, step.getHasContainers().size());
+            Assert.assertEquals(T.label.getAccessor(), step.getHasContainers().get(0).getKey());
+            Assert.assertEquals(ImmutableList.of(source), query.toList());
+            GraphTraversal<Vertex, Vertex> downstream = g.V().has(T.label, predicate)
+                    .has("unindexedAge", 18)
+                    .where(__.out().hasLabel(P.neq("sourceV")));
+            downstream.asAdmin().applyStrategies();
+            HugeGraphStep<?, ?> downstreamStep =
+                    (HugeGraphStep<?, ?>) downstream.asAdmin().getStartStep();
+            Assert.assertEquals(2, downstreamStep.getHasContainers().size());
+            Assert.assertThrows(NoIndexException.class, downstream::toList);
+            Assert.assertEquals(ImmutableList.of(source), g.V(source.id(), target.id())
+                    .has(T.label, predicate).where(__.out().hasLabel(P.neq("sourceV"))).toList());
+        }
+        Assert.assertEquals(Long.valueOf(1L), g.V().hasLabel("sourceV")
+                .where(__.out().hasLabel(P.neq("sourceV"))).count().next());
+        Assert.assertTrue(g.V().hasLabel(P.within(Collections.emptyList()))
+                           .where(__.out().hasLabel(P.neq("sourceV"))).toList().isEmpty());
+        Assert.assertTrue(g.V().hasLabel("sourceV").hasLabel("targetV")
+                           .where(__.out().hasLabel(P.neq("sourceV"))).toList().isEmpty());
+        // Unknown labels are evaluated locally only when fallback is required.
+        Assert.assertEquals(ImmutableList.of(source), g.V().hasLabel(P.within("sourceV", "missing"))
+                .where(__.hasLabel(P.neq("targetV"))).toList());
+        Assert.assertThrows(IllegalArgumentException.class,
+                () -> g.V().hasLabel(P.within("sourceV", "missing"))
+                       .where(__.out().hasLabel(P.neq("sourceV"))).toList());
+        Assert.assertTrue(g.V().hasLabel("missing").hasLabel(P.neq("sourceV")).toList().isEmpty());
+        Assert.assertEquals(ImmutableList.of(unindexed), g.V().hasLabel("withoutLabelIndex")
+                .hasLabel(P.neq("sourceV")).toList());
+        Assert.assertEquals(ImmutableList.of(target), g.V(source.id()).out().hasLabel("targetV")
+                .hasLabel(P.neq("sourceV")).toList());
+        Assert.assertEquals(ImmutableList.of(target), g.V(source.id()).out().has(T.label,
+                graph.vertexLabel("targetV").id()).hasLabel(P.neq("sourceV")).toList());
+        Id edgeLabel = graph.edgeLabel("positiveLink").id();
+        Assert.assertEquals(ImmutableList.of(edge), g.E().has(T.label, edgeLabel)
+                .limit(10).hasLabel(P.neq("other")).toList());
+        Assert.assertEquals(ImmutableList.of(edge), g.E(edge.id()).has(T.label, edgeLabel)
+                .hasLabel(P.neq("other")).toList());
+        // A selective label query must not consume unrelated vertices' capacity.
+        if ("rocksdb".equals(graph.backend())) {
+            long old = Query.defaultCapacity(3L);
+            try {
+                Assert.assertEquals(ImmutableList.of(source), g.V().hasLabel("sourceV")
+                        .where(__.out().hasLabel(P.neq("sourceV"))).toList());
+            } finally {
+                Query.defaultCapacity(old);
+            }
+        }
+    }
+
+    @Test
+    public void testUnindexedPropertyBeforeNegativeLabel() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("unindexedProp").asText().create();
+        graph.schema().vertexLabel("scanDoc").properties("unindexedProp")
+             .useAutomaticId().create();
+        graph.schema().vertexLabel("scanExcluded").properties("unindexedProp")
+             .useAutomaticId().create();
+        Vertex match = graph.addVertex(T.label, "scanDoc", "unindexedProp", "x");
+        graph.addVertex(T.label, "scanDoc", "unindexedProp", "y");
+        graph.addVertex(T.label, "scanExcluded", "unindexedProp", "x");
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Assert.assertThrows(NoIndexException.class,
+                            () -> g.V().has("unindexedProp", "x").toList());
+        Assert.assertThrows(NoIndexException.class,
+                            () -> g.V().has("unindexedProp", "x")
+                                   .out().hasLabel(P.neq("scanExcluded")).toList());
+        Assert.assertThrows(NoIndexException.class,
+                            () -> g.V().has("unindexedProp", "x")
+                                   .out().hasLabel(P.neq("scanExcluded")).dedup().toList());
+        for (GraphTraversal<?, ?> query : new GraphTraversal<?, ?>[]{
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded")).tail(1),
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded"))
+                 .values("unindexedProp").is("y"),
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded"))
+                 .fold().unfold(),
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded")).constant(1),
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded")).sample(2),
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded"))
+                 .group().by(T.label),
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded"))
+                 .aggregate("x"),
+                g.V().has("unindexedProp", "x").out().hasLabel(P.neq("scanExcluded")).simplePath(),
+                g.V().has("unindexedProp", "x").outE().hasLabel(P.neq("knows")).tail(1),
+                g.V().has("unindexedProp", "x").outE().hasLabel(P.neq("knows")).fold().unfold(),
+                g.V().has("unindexedProp", "x")
+                 .where(__.out().hasLabel(P.neq("scanExcluded")).tail(1))}) {
+            Assert.assertThrows(NoIndexException.class, query::toList);
+        }
+        Assert.assertThrows(NoIndexException.class,
+                            () -> g.V().has("unindexedProp", "x")
+                                   .outE().hasLabel(P.neq("knows")).toList());
+        Assert.assertThrows(NoIndexException.class,
+                            () -> g.V().has("unindexedProp", "x")
+                                   .outE().hasLabel(P.neq("knows")).dedup().toList());
+        Assert.assertThrows(NoIndexException.class,
+                            () -> g.V().has("unindexedProp", "x")
+                                   .where(__.out().hasLabel(P.neq("scanExcluded"))).toList());
+        Assert.assertThrows(NoIndexException.class,
+                            () -> g.V().has("unindexedProp", "x")
+                                   .not(__.out().hasLabel("scanExcluded")).toList());
+        Assert.assertEquals(ImmutableList.of(match.id()),
+                            g.V().has("unindexedProp", "x")
+                             .hasLabel(P.neq("scanExcluded")).id().toList());
+        Assert.assertEquals(Long.valueOf(1L), g.V().has("unindexedProp", "x")
+                .hasLabel(P.neq("scanExcluded")).count().next());
+        Assert.assertEquals(ImmutableList.of(match.id()),
+                            g.V(match.id()).has("unindexedProp", "x")
+                             .hasLabel(P.neq("scanExcluded")).id().toList());
+        long old = Query.defaultCapacity(1L);
+        try {
+            if ("rocksdb".equals(graph.backend())) {
+                // RocksDB's iterator counts candidates, not just final matches.
+                Assert.assertThrows(LimitExceedException.class,
+                                    () -> g.V().has("unindexedProp", "x")
+                                           .hasLabel(P.neq("scanExcluded")).toList());
+            } else if ("memory".equals(graph.backend())) {
+                // The test-only memory backend does not enforce scan capacity.
+                Assert.assertEquals(ImmutableList.of(match.id()),
+                                    g.V().has("unindexedProp", "x")
+                                     .hasLabel(P.neq("scanExcluded")).id().toList());
+            }
+        } finally {
+            Query.defaultCapacity(old);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testUnboundLocalSearchUsesGraphAnalyzer() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("body").asText().create();
+        graph.schema().vertexLabel("runtimeDoc").properties("body").useAutomaticId().create();
+        Vertex alpha = graph.addVertex(T.label, "runtimeDoc", "body", "alpha");
+        Vertex alphabet = graph.addVertex(T.label, "runtimeDoc", "body", "alphabet");
+        this.commitTx();
+        for (P<?> predicate : new P<?>[]{Text.contains("(alpha)"),
+                Text.contains("(alpha)").or(P.eq("beta")).and(P.neq("excluded"))}) {
+            GraphTraversal.Admin<Object, Vertex> traversal = __.V().has("body", predicate)
+                    .limit(10).hasLabel(P.neq("other")).asAdmin();
+            HugeGraphStep<?, ?> source = new HugeGraphStep<>(
+                    (GraphStep<Object, Vertex>) traversal.getStartStep());
+            traversal.removeStep(0);
+            traversal.addStep(0, source);
+            TraversalUtil.extractHasContainer(source, traversal);
+            HasContainer local = ((HasStep<?>) source.getNextStep()).getHasContainers().get(0);
+            Assert.assertTrue(local.test(alpha));
+            Assert.assertFalse(local.test(alphabet));
+            Assert.assertTrue(local.clone().test(alpha));
+        }
+    }
+
+    @Test
+    public void testSearchBeforeDownstreamNegativeLabel() {
+        HugeGraph graph = graph();
+        graph.schema().propertyKey("body").asText().create();
+        graph.schema().vertexLabel("doc").properties("body").useAutomaticId().create();
+        graph.schema().vertexLabel("unindexedDoc").properties("body").useAutomaticId().create();
+        graph.schema().indexLabel("docByBody").onV("doc").by("body").search().create();
+        Vertex alpha = graph.addVertex(T.label, "doc", "body", "alpha");
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        for (String text : ImmutableList.of("(alpha)", "(alpha|beta)", "alpha", "alpha beta")) {
+            Assert.assertEquals(ImmutableList.of(alpha.id()),
+                                g.V().hasLabel("doc")
+                                 .has("body", Text.contains(text)).id().toList());
+            Assert.assertEquals(ImmutableList.of(alpha.id()),
+                                g.V().hasLabel("doc")
+                                 .has("body", Text.contains(text)).limit(10)
+                                 .has(T.label, P.neq("author")).id().toList());
+        }
+        Assert.assertEquals(ImmutableList.of(alpha.id()),
+                            g.V().has("body", Text.contains("(alpha)").or(P.eq("beta")))
+                             .limit(10).has(T.label, P.neq("author")).id().toList());
+        Vertex unindexed = graph.addVertex(T.label, "unindexedDoc", "body", "alpha");
+        this.commitTx();
+        List<Object> ids = g.V().has("body", Text.contains("(alpha|beta)"))
+                            .limit(10).has(T.label, P.neq("author")).id().toList();
+        Assert.assertEquals(2, ids.size());
+        Assert.assertEquals(ImmutableSet.of(alpha.id(), unindexed.id()), ImmutableSet.copyOf(ids));
+    }
+
+    @Test
+    public void testNegativeLabelPreservesRangeAndAggregate() {
+        HugeGraph graph = graph();
+        initPersonIndex(true);
+        graph.schema().vertexLabel("author").properties("city").nullableKeys("city").append();
+        graph.addVertex(T.label, "person", "name", "a", "city", "Beijing", "age", 20);
+        Vertex excluded = graph.addVertex(T.label, "author", "name", "b",
+                                          "id", 1, "age", 20, "city", "Beijing");
+        Vertex included = graph.addVertex(T.label, "fan", "name", "c",
+                                          "age", 20, "city", "Beijing");
+        graph.addVertex(T.label, "person", "name", "d", "city", "Beijing", "age", 20);
+        this.commitTx();
+        GraphTraversalSource g = graph.traversal();
+        Assert.assertEquals(ImmutableList.of(included.id()),
+                            g.V().has("city", "Beijing").order().by("name").range(1, 3)
+                             .has(T.label, P.neq("author")).id().toList());
+        GraphTraversal<Vertex, Vertex> traversal = g.V().has("city", "Beijing")
+                .order().by("name").range(1, 3).aggregate("seen")
+                .has(T.label, P.neq("author"));
+        Assert.assertEquals(ImmutableList.of(included), traversal.toList());
+        Collection<Vertex> seen = traversal.asAdmin().getSideEffects().get("seen");
+        Assert.assertEquals(2, seen.size());
+        Assert.assertTrue(seen.contains(excluded));
+        Assert.assertTrue(seen.contains(included));
+    }
+
+    @Test
+    public void testPageBeforeDownstreamNegativeLabel() {
+        Assume.assumeTrue("Not support paging", storeFeatures().supportsQueryByPage());
+        HugeGraph graph = graph();
+        Set<Object> expected = new HashSet<>();
+        for (int i = 0; i < 5; i++) {
+            expected.add(graph.addVertex(T.label, "person", "name", "page-" + i,
+                                         "city", "Beijing", "age", 20).id());
+        }
+        // More excluded vertices than matches also exercises empty filtered
+        // pages whose backend cursor must still be followed.
+        for (int i = 0; i < 10; i++) {
+            graph.addVertex(T.label, "author", "id", i, "name", "excluded-" + i);
+        }
+        this.commitTx();
+        assertNegativeLabelPages(graph, expected, false);
+        assertNegativeLabelPages(graph, expected, true);
+    }
+
+    private static void assertNegativeLabelPages(HugeGraph graph, Set<Object> expected,
+                                                 boolean localFilter) {
+        Set<Object> actual = new HashSet<>();
+        String page = "";
+        int pages = 0;
+        do {
+            GraphTraversal<Vertex, Vertex> traversal = graph.traversal().V();
+            if (localFilter) {
+                traversal.hasLabel("person").has("age", 20);
+            }
+            traversal.has("~page", page).limit(2).has(T.label, P.neq("author"));
+            traversal.asAdmin().applyStrategies();
+            Assert.assertNotNull(TraversalUtil.firstPageStep(traversal));
+            List<Vertex> vertices = traversal.toList();
+            Assert.assertTrue(vertices.size() <= 2);
+            for (Vertex vertex : vertices) {
+                Assert.assertTrue(actual.add(vertex.id()));
+            }
+            page = TraversalUtil.page(traversal);
+            Assert.assertTrue(++pages <= 10);
+        } while (page != null && !page.isEmpty());
+        Assert.assertEquals(expected, actual);
+        Assert.assertTrue(pages >= 3);
+    }
+
+    @Test
+    public void testSelectedLabelsExcludeIndexedInterference() {
+        HugeGraph graph = graph();
+        Set<Object> expected = new HashSet<>();
+        for (String label : ImmutableList.of("selectedA", "selectedB", "outside")) {
+            graph.schema().vertexLabel(label).properties("age").useAutomaticId().create();
+            graph.schema().indexLabel(label + "ByAge").onV(label).by("age").secondary().create();
+            Vertex vertex = graph.addVertex(T.label, label, "age", 20);
+            if (!label.equals("outside")) {
+                expected.add(vertex.id());
+            }
+        }
+        this.commitTx();
+        List<Object> ids = graph.traversal().V().hasLabel("selectedA", "selectedB")
+                                .has("age", 20).id().toList();
+        Assert.assertEquals(2, ids.size());
+        Assert.assertEquals(expected, new HashSet<>(ids));
     }
 
     private void init10VerticesAndCommit() {
@@ -9376,12 +10670,45 @@ public class VertexCoreTest extends BaseCoreTest {
         this.commitTx();
     }
 
+    private void initRangeIndexOrderTestData() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("rank").asInt().create();
+        schema.vertexLabel("ranked")
+              .properties("rank")
+              .useCustomizeStringId()
+              .create();
+        schema.indexLabel("rankedByRank")
+              .onV("ranked")
+              .by("rank")
+              .range()
+              .create();
+
+        for (int rank = 129; rank >= 0; rank--) {
+            graph().addVertex(T.label, "ranked", T.id, "ranked-" + rank,
+                              "rank", rank);
+        }
+        this.commitTx();
+    }
+
     private Vertex vertex(String label, String pkName, Object pkValue) {
         List<Vertex> vertices = graph().traversal().V()
                                        .hasLabel(label).has(pkName, pkValue)
                                        .toList();
         Assert.assertTrue(vertices.size() <= 1);
         return vertices.size() == 1 ? vertices.get(0) : null;
+    }
+
+    private static void assertRanks(List<Vertex> vertices, int firstRank,
+                                    int expectedSize) {
+        List<Integer> actualRanks = new ArrayList<>(vertices.size());
+        for (Vertex vertex : vertices) {
+            actualRanks.add(vertex.value("rank"));
+        }
+        Assert.assertEquals(expectedSize, vertices.size());
+        for (int i = 0; i < expectedSize; i++) {
+            Assert.assertEquals("Unexpected ranks: " + actualRanks,
+                                firstRank + i, (int) actualRanks.get(i));
+        }
     }
 
     private static void assertContains(List<Vertex> vertices,

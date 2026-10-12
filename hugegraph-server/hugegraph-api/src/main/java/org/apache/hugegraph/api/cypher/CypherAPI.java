@@ -20,6 +20,7 @@ package org.apache.hugegraph.api.cypher;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,10 +30,19 @@ import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.CompressInterceptor;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.apache.tinkerpop.shaded.jackson.core.JsonProcessingException;
+import org.apache.tinkerpop.shaded.jackson.databind.DeserializationFeature;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectMapper;
+import org.apache.tinkerpop.shaded.jackson.databind.ObjectReader;
 import org.slf4j.Logger;
 
 import com.codahale.metrics.annotation.Timed;
 
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -46,7 +56,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 
-@Path("graphs/{graph}/cypher")
+@Path("graphspaces/{graphspace}/graphs/{graph}/cypher")
 @Singleton
 @Tag(name = "CypherAPI")
 public class CypherAPI extends API {
@@ -54,6 +64,9 @@ public class CypherAPI extends API {
     private static final Logger LOG = Log.logger(CypherAPI.class);
     private static final Charset UTF8 = StandardCharsets.UTF_8;
     private static final String CLIENT_CONF = "conf/remote-objects.yaml";
+    private static final ObjectReader REQUEST_READER = new ObjectMapper()
+            .readerFor(Object.class)
+            .with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS);
     private final Base64.Decoder decoder = Base64.getUrlDecoder();
     private final String basic = "Basic ";
     private final String bearer = "Bearer ";
@@ -71,33 +84,99 @@ public class CypherAPI extends API {
     @Timed
     @CompressInterceptor.Compress(buffer = (1024 * 40))
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public CypherModel query(@PathParam("graph") String graph, @Context HttpHeaders headers,
+    public CypherModel query(@Context HttpHeaders headers,
+                             @Parameter(description = "The graph space name")
+                             @PathParam("graphspace") String graphspace,
+                             @Parameter(description = "The graph name")
+                             @PathParam("graph") String graph,
+                             @Parameter(description = "The cypher query string")
                              @QueryParam("cypher") String cypher) {
-        LOG.debug("Graph [{}] query by cypher: {}", graph, cypher);
-        return this.queryByCypher(graph, headers, cypher);
+
+        return this.queryByCypher(headers, graphspace, graph, cypher,
+                                  Collections.emptyMap());
     }
+
 
     @POST
     @Timed
     @CompressInterceptor.Compress
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    public CypherModel post(@PathParam("graph") String graph,
-                            @Context HttpHeaders headers, String cypher) {
-        LOG.debug("Graph [{}] query by cypher: {}", graph, cypher);
-        return this.queryByCypher(graph, headers, cypher);
+    @RequestBody(required = true,
+                 description = "A nonblank raw Cypher query, or a JSON object with a nonblank " +
+                               "string 'cypher' and optional object 'parameters'. Omitted " +
+                               "parameters default to an empty object; null, arrays and " +
+                               "scalars are rejected. The JSON request itself must be an object. " +
+                               "Legacy raw Cypher sent as application/json " +
+                               "is also accepted.",
+                 content = {
+                     @Content(mediaType = APPLICATION_JSON,
+                              schema = @Schema(implementation = Map.class),
+                              examples = @ExampleObject(name = "Parameterized query",
+                                                        value = "{\"cypher\":\"MATCH (n:person) WHERE " +
+                                                                "n.name = $name RETURN n.name\"," +
+                                                                "\"parameters\":{\"name\":\"marko\"}}"))
+                 })
+    public CypherModel post(@Context HttpHeaders headers,
+                            @Parameter(description = "The graph space name")
+                            @PathParam("graphspace") String graphspace,
+                            @Parameter(description = "The graph name")
+                            @PathParam("graph") String graph,
+                            String cypher) {
+
+        Map<String, Object> parameters = Collections.emptyMap();
+        if (looksLikeJson(cypher)) {
+            Object value;
+            try {
+                value = REQUEST_READER.readValue(cypher);
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("Invalid Cypher request JSON", e);
+            }
+            E.checkArgument(value instanceof Map, "The Cypher request must be a JSON object");
+            Map<?, ?> request = (Map<?, ?>) value;
+            Object query = request.get("cypher");
+            E.checkArgument(query instanceof String,
+                            "The cypher parameter must be a nonblank string");
+            cypher = (String) query;
+            if (request.containsKey("parameters")) {
+                Object bindings = request.get("parameters");
+                E.checkArgument(bindings instanceof Map,
+                                "The parameters parameter must be an object");
+                @SuppressWarnings("unchecked")
+                Map<String, Object> supplied = (Map<String, Object>) bindings;
+                parameters = supplied;
+            }
+        }
+        return this.queryByCypher(headers, graphspace, graph, cypher, parameters);
     }
 
-    private CypherModel queryByCypher(String graph, HttpHeaders headers, String cypher) {
+    private static boolean looksLikeJson(String body) {
+        if (body == null || body.isBlank()) {
+            return false;
+        }
+        String value = body.strip();
+        char first = value.charAt(0);
+        return first == '{' || first == '[' || first == '"' || first == '-' ||
+               (first >= '0' && first <= '9') || value.equals("null") ||
+               value.equals("true") || value.equals("false");
+    }
+
+    private CypherModel queryByCypher(HttpHeaders headers, String graphspace,
+                                      String graph, String cypher,
+                                      Map<String, Object> parameters) {
+        E.checkArgument(graphspace != null && !graphspace.isEmpty(),
+                        "The graphspace parameter can't be null or empty");
         E.checkArgument(graph != null && !graph.isEmpty(),
                         "The graph parameter can't be null or empty");
-        E.checkArgument(cypher != null && !cypher.isEmpty(),
-                        "The cypher parameter can't be null or empty");
+        E.checkArgument(cypher != null && !cypher.isBlank(),
+                        "The cypher parameter must be a nonblank string");
 
-        Map<String, String> aliases = new HashMap<>(1, 1);
-        aliases.put("g", "__g_" + graph);
+        String graphInfo = graphspace + "-" + graph;
+        Map<String, String> aliases = new HashMap<>(2, 1);
+        aliases.put("graph", graphInfo);
+        aliases.put("g", "__g_" + graphInfo);
 
-        return this.client(headers).submitQuery(cypher, aliases);
+        return this.client(headers).submitQuery(cypher, aliases, parameters);
     }
 
     private CypherClient client(HttpHeaders headers) {

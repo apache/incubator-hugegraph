@@ -17,40 +17,50 @@
 
 package org.apache.hugegraph.store.business;
 
-import java.util.Arrays;
-
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
+import org.apache.hugegraph.HugeGraphSupplier;
+import org.apache.hugegraph.backend.BackendColumn;
+import org.apache.hugegraph.query.ConditionQuery;
+import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
-import org.apache.hugegraph.structure.HugeElement;
+import org.apache.hugegraph.structure.BaseElement;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FilterIterator<T extends BackendColumn> extends
-                                                     AbstractSelectIterator
+public class FilterIterator<T extends RocksDBSession.BackendColumn> extends
+                                                                    AbstractSelectIterator
         implements ScanIterator {
 
     private final ConditionQuery query;
     T current = null;
 
-    public FilterIterator(ScanIterator iterator, ConditionQuery query) {
-        super();
+    public FilterIterator(ScanIterator iterator, ConditionQuery query, HugeGraphSupplier graph) {
+        super(graph);
         this.iterator = iterator;
         this.query = query;
         // log.info("operator sinking is used to filter data:{}",
         //         query.toString());
     }
 
-    public static ScanIterator of(ScanIterator it, byte[] conditionQuery) {
+    public static ScanIterator of(ScanIterator it, byte[] conditionQuery, String graph) {
         if (ArrayUtils.isEmpty(conditionQuery)) {
             return it;
         }
-        ConditionQuery query = ConditionQuery.fromBytes(conditionQuery);
-        return new FilterIterator(it, query);
+        try {
+            ConditionQuery query = ConditionQuery.fromBytes(conditionQuery);
+            if (!query.resultType().isVertex() && !query.resultType().isEdge()) {
+                return it;
+            }
+            return new FilterIterator(it, query, BusinessHandlerImpl.getGraphSupplier(graph));
+        } catch (RuntimeException failure) {
+            try {
+                it.close();
+            } catch (RuntimeException closeFailure) {
+                failure.addSuppressed(closeFailure);
+            }
+            throw failure;
+        }
     }
 
     @Override
@@ -58,27 +68,20 @@ public class FilterIterator<T extends BackendColumn> extends
         boolean match = false;
         if (this.query.resultType().isVertex() ||
             this.query.resultType().isEdge()) {
-            BackendEntry entry = null;
+
             while (iterator.hasNext()) {
                 current = iterator.next();
-                BackendEntry.BackendColumn column =
-                        BackendEntry.BackendColumn.of(
-                                current.name, current.value);
-                BackendEntry.BackendColumn[] columns =
-                        new BackendEntry.BackendColumn[]{column};
-                if (entry == null || !belongToMe(entry, column) ||
-                    this.query.resultType().isEdge()) {
-                    entry = new BinaryBackendEntry(query.resultType(),
-                                                   current.name);
-                    entry.columns(Arrays.asList(columns));
+                BaseElement element;
+                if (this.query.resultType().isVertex()) {
+                    element = serializer.parseSchemaVertex(this.graph,
+                                                     BackendColumn.of(current.name, current.value),
+                                                     null);
                 } else {
-                    // There may be cases that contain multiple columns
-                    entry.columns(Arrays.asList(columns));
-                    continue;
+                    element = serializer.parseSchemaEdge(this.graph,
+                                                   BackendColumn.of(current.name, current.value),
+                                                   null, true);
                 }
-                HugeElement element = this.parseEntry(entry,
-                                                      this.query.resultType()
-                                                                .isVertex());
+
                 match = query.test(element);
                 if (match) {
                     break;

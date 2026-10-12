@@ -20,6 +20,7 @@ package org.apache.hugegraph.rocksdb.access;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBSession.BackendColumn;
 import org.apache.hugegraph.util.Bytes;
@@ -39,11 +40,14 @@ public class RocksDBScanIterator<T> implements ScanIterator {
 
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final RocksDBSession.RefCounter iterReference;
+    private final Consumer<Boolean> closeOp;
+    private Throwable closeFailure;
     private byte[] key;
     private boolean matched;
 
     public RocksDBScanIterator(RocksIterator rawIt, byte[] keyBegin, byte[] keyEnd,
-                               int scanType, RocksDBSession.RefCounter iterReference) {
+                               int scanType, RocksDBSession.RefCounter iterReference,
+                               Consumer<Boolean> closeOp) {
         this.rawIt = rawIt;
         this.keyBegin = keyBegin;
         this.keyEnd = keyEnd;
@@ -52,6 +56,7 @@ public class RocksDBScanIterator<T> implements ScanIterator {
         this.key = keyBegin;
         this.matched = false;
         this.iterReference = iterReference;
+        this.closeOp = closeOp;
         this.seek();
     }
 
@@ -221,12 +226,26 @@ public class RocksDBScanIterator<T> implements ScanIterator {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         if (!this.closed.getAndSet(true)) {
-            if (this.rawIt.isOwningHandle()) {
-                this.rawIt.close();
+            try {
+                if (this.rawIt.isOwningHandle()) {
+                    this.rawIt.close();
+                }
+                this.closeOp.accept(true);
+                this.iterReference.release();
+            } catch (RuntimeException | Error failure) {
+                this.closeFailure = failure;
+                throw failure;
             }
-            this.iterReference.release();
+        }
+        // Automatic exhaustion can initiate close before its owner enters finally.
+        // A repeated close must wait for that release and retain any failure, without retrying JNI.
+        if (this.closeFailure instanceof RuntimeException) {
+            throw (RuntimeException) this.closeFailure;
+        }
+        if (this.closeFailure instanceof Error) {
+            throw (Error) this.closeFailure;
         }
     }
 

@@ -21,12 +21,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy.Context;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy.ContextThreadPoolExecutor;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.server.HugeGraphWsAndHttpChannelizer;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
@@ -35,6 +36,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.server.GraphManager;
 import org.apache.tinkerpop.gremlin.server.GremlinServer;
 import org.apache.tinkerpop.gremlin.server.Settings;
+import org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer;
 import org.apache.tinkerpop.gremlin.server.util.ThreadFactoryUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.slf4j.Logger;
@@ -58,9 +60,16 @@ public class ContextGremlinServer extends GremlinServer {
         /*
          * pass custom Executor https://github.com/apache/tinkerpop/pull/813
          */
-        super(settings, newGremlinExecutorService(settings));
+        super(configureChannelizer(settings), newGremlinExecutorService(settings));
         this.eventHub = eventHub;
         this.listenChanges();
+    }
+
+    static Settings configureChannelizer(Settings settings) {
+        if (WsAndHttpChannelizer.class.getName().equals(settings.channelizer)) {
+            settings.channelizer = HugeGraphWsAndHttpChannelizer.class.getName();
+        }
+        return settings;
     }
 
     private void listenChanges() {
@@ -75,7 +84,7 @@ public class ContextGremlinServer extends GremlinServer {
             LOG.debug("GremlinServer accepts event '{}'", event.name());
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
-            this.removeGraph(graph.name());
+            this.removeGraph(graph);
             return null;
         });
     }
@@ -123,8 +132,8 @@ public class ContextGremlinServer extends GremlinServer {
         }
     }
 
-    private void injectGraph(HugeGraph graph) {
-        String name = graph.name();
+    private synchronized void injectGraph(HugeGraph graph) {
+        String name = graph.spaceGraphName();
         GraphManager manager = this.getServerGremlinExecutor()
                                    .getGraphManager();
         GremlinExecutor executor = this.getServerGremlinExecutor()
@@ -140,17 +149,25 @@ public class ContextGremlinServer extends GremlinServer {
                         "put", name, graph);
     }
 
-    private void removeGraph(String name) {
+    private synchronized void removeGraph(HugeGraph graph) {
+        String name = graph.spaceGraphName();
         GraphManager manager = this.getServerGremlinExecutor()
                                    .getGraphManager();
         GremlinExecutor executor = this.getServerGremlinExecutor()
                                        .getGremlinExecutor();
         try {
-            manager.removeGraph(name);
-            manager.removeTraversalSource(G_PREFIX + name);
+            if (manager.getGraph(name) != graph) {
+                return;
+            }
+            if (manager.getTraversalSource(G_PREFIX + name) != null) {
+                manager.removeTraversalSource(G_PREFIX + name);
+            }
             Whitebox.invoke(executor, "globalBindings",
                             new Class<?>[]{Object.class},
                             "remove", name);
+            if (manager.getGraph(name) != null) {
+                manager.removeGraph(name);
+            }
         } catch (Exception e) {
             throw new HugeException("Failed to remove graph '%s' from " +
                                     "gremlin server context", e, name);

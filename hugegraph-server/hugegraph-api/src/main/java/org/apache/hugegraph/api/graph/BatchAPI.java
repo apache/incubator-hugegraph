@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.config.HugeConfig;
@@ -39,6 +39,8 @@ import org.slf4j.Logger;
 import com.codahale.metrics.Meter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class BatchAPI extends API {
 
@@ -78,14 +80,20 @@ public class BatchAPI extends API {
     }
 
     @JsonIgnoreProperties(value = {"type"})
+    @Schema(description = "Base class for vertex/edge in batch operations")
     protected abstract static class JsonElement implements Checkable {
 
+        @Schema(description = "The vertex/edge ID. If not specified, " +
+                               "it will be automatically generated based on ID strategy")
         @JsonProperty("id")
         public Object id;
+        @Schema(description = "The vertex/edge label")
         @JsonProperty("label")
         public String label;
+        @Schema(description = "The properties of the vertex/edge in key-value format")
         @JsonProperty("properties")
         public Map<String, Object> properties;
+        @Schema(description = "The type of element (vertex or edge)", hidden = true)
         @JsonProperty("type")
         public String type;
 

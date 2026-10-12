@@ -26,7 +26,7 @@ import java.util.Map;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
@@ -46,7 +46,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/personalrank")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/personalrank")
 @Singleton
 @Tag(name = "PersonalRankAPI")
 public class PersonalRankAPI extends API {
@@ -61,6 +61,7 @@ public class PersonalRankAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String personalRank(@Context GraphManager manager,
+                               @PathParam("graphspace") String graphSpace,
                                @PathParam("graph") String graph,
                                RankRequest request) {
         E.checkArgumentNotNull(request, "The rank request body can't be null");
@@ -93,7 +94,7 @@ public class PersonalRankAPI extends API {
                   request.maxDegree, request.maxDepth, request.sorted);
 
         Id sourceId = HugeVertex.getIdValue(request.source);
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         PersonalRankTraverser traverser;
         traverser = new PersonalRankTraverser(g, request.alpha, request.maxDegree,
@@ -101,7 +102,7 @@ public class PersonalRankAPI extends API {
         Map<Id, Double> ranks = traverser.personalRank(sourceId, request.label,
                                                        request.withLabel);
         ranks = HugeTraverser.topN(ranks, request.sorted, request.limit);
-        return manager.serializer(g).writeMap(ranks);
+        return manager.serializer().writeMap(ranks);
     }
 
     private static class RankRequest {

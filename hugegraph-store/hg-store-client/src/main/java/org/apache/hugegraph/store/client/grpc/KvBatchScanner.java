@@ -40,6 +40,7 @@ import org.apache.hugegraph.store.grpc.common.Header;
 import org.apache.hugegraph.store.grpc.common.ScanOrderType;
 import org.apache.hugegraph.store.grpc.stream.HgStoreStreamGrpc;
 import org.apache.hugegraph.store.grpc.stream.KvStream;
+import org.apache.hugegraph.store.grpc.stream.ScanCancelRequest;
 import org.apache.hugegraph.store.grpc.stream.ScanReceiptRequest;
 import org.apache.hugegraph.store.grpc.stream.ScanStreamBatchReq;
 
@@ -48,7 +49,6 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Batch streaming query client implementation class
- * <p>
  * created on 2022/07/23
  *
  * @version 3.0.0
@@ -87,7 +87,8 @@ public class KvBatchScanner implements Closeable {
 
     /**
      * Build streaming query iterators
-     * scanQuery is split to launch multiple streaming requests, enhancing the concurrency of the store.
+     * scanQuery is split to launch multiple streaming requests, enhancing the concurrency of the
+     * store.
      *
      * @param scanQuery scanQuery
      * @param handler   task handler
@@ -167,12 +168,16 @@ public class KvBatchScanner implements Closeable {
      * Data reception ended
      */
     public void dataComplete() {
-        close();
+        close(false);
     }
 
     // Flow is closed
     @Override
     public void close() {
+        close(true);
+    }
+
+    private void close(boolean cancel) {
         try {
             if (notifier.unregisterScanner(this) < 0) {
                 notifier.dataArrived(this, NO_DATA); // Task finished, wake up the queue
@@ -183,6 +188,12 @@ public class KvBatchScanner implements Closeable {
         synchronized (this.sender) {
             try {
                 if (running) {
+                    running = false;
+                    if (cancel) {
+                        sender.onNext(ScanStreamBatchReq.newBuilder()
+                                    .setHeader(Header.newBuilder().setGraph(graphName))
+                                    .setCancelRequest(ScanCancelRequest.getDefaultInstance()).build());
+                    }
                     sender.onCompleted();
                 }
             } catch (Exception e) {
@@ -232,13 +243,18 @@ public class KvBatchScanner implements Closeable {
          * Evaluate maximum number of tasks
          */
         private void evaluateMaxTaskSize() {
-            if (maxTaskSize == 0) { // According to the first batch of tasks, get the number of stores, and then calculate the maximum number of tasks
+            if (maxTaskSize ==
+                0) { // According to the first batch of tasks, get the number of stores, and then
+                // calculate the maximum number of tasks
                 if (scanQuery.getOrderType() == ScanOrderType.ORDER_STRICT) {
-                    maxTaskSize = 1; // Point sorting, one stream per machine, all store streams must finish before starting other streams.
+                    maxTaskSize =
+                            1; // Point sorting, one stream per machine, all store streams must
+                    // finish before starting other streams.
                 } else {
                     maxTaskSize = this.notifier.getScannerCount() * maxTaskSizePerStore;
                 }
-                maxBatchSize = this.notifier.getScannerCount() * maxBatchSize; // Each machine maximum 1000 items
+                maxBatchSize = this.notifier.getScannerCount() *
+                               maxBatchSize; // Each machine maximum 1000 items
 
                 /*
                  * Limit fewer than 10000 to start a stream, save network bandwidth.
@@ -274,7 +290,8 @@ public class KvBatchScanner implements Closeable {
                         // Evaluate maximum number of tasks
                         evaluateMaxTaskSize();
                         if (this.notifier.getScannerCount() < this.maxTaskSize) {
-                            splitTask(); // Not reached the maximum number of tasks, continue to split
+                            splitTask(); // Not reached the maximum number of tasks, continue to
+                            // split
                         }
                     }
                     this.finished = !prefixItr.hasNext();
@@ -338,7 +355,7 @@ public class KvBatchScanner implements Closeable {
 
         private void close() {
             if (scanner != null) {
-                scanner.close();
+                scanner.dataComplete();
             }
         }
     }

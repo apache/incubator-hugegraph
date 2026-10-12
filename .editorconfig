@@ -21,9 +21,9 @@ root = true
 charset = utf-8
 end_of_line = lf
 insert_final_newline = true
-max_line_length = 100
+max_line_length = 120
 ij_wrap_on_typing = true
-ij_visual_guides = 100
+ij_visual_guides = 120
 
 
 [*.{java,xml,py}]
@@ -36,6 +36,7 @@ continuation_indent_size = 8
 
 [*.md]
 max_line_length = off
+ij_wrap_on_typing = false
 
 [*.java]
 ij_java_doc_add_p_tag_on_empty_lines = true

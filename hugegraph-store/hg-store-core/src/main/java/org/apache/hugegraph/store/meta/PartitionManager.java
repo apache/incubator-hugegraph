@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -37,8 +38,10 @@ import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.store.HgStoreEngine;
 import org.apache.hugegraph.store.business.BusinessHandlerImpl;
-import org.apache.hugegraph.store.cmd.UpdatePartitionRequest;
-import org.apache.hugegraph.store.cmd.UpdatePartitionResponse;
+import org.apache.hugegraph.store.cmd.HgCmdClient;
+import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
+import org.apache.hugegraph.store.cmd.response.UpdatePartitionResponse;
+import org.apache.hugegraph.store.listener.PartitionChangedListener;
 import org.apache.hugegraph.store.meta.base.GlobalMetaStore;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import org.apache.hugegraph.store.options.MetadataOptions;
@@ -52,7 +55,8 @@ import com.alipay.sofa.jraft.core.ElectionPriority;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Partition object management strategy, each modification requires cloning a copy, and the version number is incremented.
+ * Partition object management strategy, each modification requires cloning a copy, and the
+ * version number is incremented.
  */
 @Slf4j
 public class PartitionManager extends GlobalMetaStore {
@@ -72,6 +76,7 @@ public class PartitionManager extends GlobalMetaStore {
 
     // Record all partition information of this machine, consistent with rocksdb storage.
     private Map<String, Map<Integer, Partition>> partitions;
+    private HgCmdClient cmdClient;
 
     public PartitionManager(PdProvider pdProvider, HgStoreEngineOptions options) {
         super(new MetadataOptions() {{
@@ -93,6 +98,15 @@ public class PartitionManager extends GlobalMetaStore {
         storeMetadata.load();
         graphManager.load();
         deletedFileManager.load();
+    }
+
+    public static final class InvalidShardException extends IllegalStateException {
+
+        private static final long serialVersionUID = 1L;
+
+        private InvalidShardException() {
+            super("Local partition does not belong to this store");
+        }
     }
 
     public void loadPartition() {
@@ -120,7 +134,8 @@ public class PartitionManager extends GlobalMetaStore {
      *
      * @param detections  dir list
      * @param partitionId partition id
-     * @param checkLogDir :  whether it includes the subdirectory log (raft snapshot and log separation, further checks are needed)
+     * @param checkLogDir :  whether it includes the subdirectory log (raft snapshot and log
+     *                    separation, further checks are needed)
      * @return true if contains partition id, otherwise false
      */
     private Boolean checkPathContains(File[] detections, int partitionId, boolean checkLogDir) {
@@ -145,8 +160,10 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * According to the root directory of the profile, loop through to find the storage path of the partition.
-     * According to the agreement, db data is in the dataPath/db/partition_id directory, and raft data is in the dataPath/raft/partition_id directory.
+     * According to the root directory of the profile, loop through to find the storage path of
+     * the partition.
+     * According to the agreement, db data is in the dataPath/db/partition_id directory, and raft
+     * data is in the dataPath/raft/partition_id directory.
      * Check if the partition storage folder exists
      */
     private Boolean resetPartitionPath(int partitionId) {
@@ -241,6 +258,8 @@ public class PartitionManager extends GlobalMetaStore {
             }
         }
 
+        Set<Integer> normalPartitions = new HashSet<>();
+
         // Once according to the partition read
         for (int partId : partIds) {
             if (!resetPartitionPath(partId)) {
@@ -249,18 +268,23 @@ public class PartitionManager extends GlobalMetaStore {
                 continue;
             }
 
-            for (var metaPart : wrapper.scan(partId, Metapb.Partition.parser(), key)) {
+            var metaParts = wrapper.scan(partId, Metapb.Partition.parser(), key);
+            int countOfPartition = 0;
+
+            var shards = pdProvider.getShardGroup(partId).getShardsList();
+
+            for (var metaPart : metaParts) {
                 var graph = metaPart.getGraphName();
                 var pdPartition = pdProvider.getPartitionByID(graph, metaPart.getId());
                 boolean isLegeal = false;
-
-                var shards = pdProvider.getShardGroup(metaPart.getId()).getShardsList();
 
                 if (pdPartition != null) {
                     // Check if it contains this store id
                     if (shards.stream().anyMatch(s -> s.getStoreId() == storeId)) {
                         isLegeal = true;
                     }
+                } else {
+                    continue;
                 }
 
                 if (isLegeal) {
@@ -268,8 +292,11 @@ public class PartitionManager extends GlobalMetaStore {
                         partitions.put(graph, new ConcurrentHashMap<>());
                     }
 
+                    countOfPartition += 1;
+
                     Partition partition = new Partition(metaPart);
-                    partition.setWorkState(Metapb.PartitionState.PState_Normal);     // Start recovery work state
+                    partition.setWorkState(
+                            Metapb.PartitionState.PState_Normal);     // Start recovery work state
                     partitions.get(graph).put(partition.getId(), partition);
                     log.info("load partition : {} -{}", partition.getGraphName(),
                              partition.getId());
@@ -281,8 +308,21 @@ public class PartitionManager extends GlobalMetaStore {
                     // businessHandler.dbCompaction(graph, partId);
                     log.error("partition {}-{} is illegal. store id {} not in valid shard group:{}",
                               graph, partId, getStore().getId(), shards2Peers(shards));
-                    System.exit(0);
+                    throw new InvalidShardException();
                 }
+            }
+
+            if (countOfPartition > 0) {
+                // Partition data is normal
+                normalPartitions.add(partId);
+            }
+            wrapper.close(partId);
+        }
+
+        // Remove redundant partition storage paths, partitions that have been migrated away may migrate back
+        for (var location : storeMetadata.getPartitionStores()) {
+            if (!normalPartitions.contains(location.getPartitionId())) {
+                storeMetadata.removePartitionStore(location.getPartitionId());
             }
         }
     }
@@ -294,7 +334,8 @@ public class PartitionManager extends GlobalMetaStore {
 
     /**
      * Synchronize from PD and delete the extra local partitions.
-     * During the synchronization process, new partitions need to be saved locally, and the existing partition information is merged with the local data.
+     * During the synchronization process, new partitions need to be saved locally, and the
+     * existing partition information is merged with the local data.
      */
     public void syncPartitionsFromPD(Consumer<Partition> delCallback) throws PDException {
         Lock writeLock = readWriteLock.writeLock();
@@ -429,7 +470,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Find the Partition belonging to this machine, prioritize searching locally, if not found locally, inquire with pd.
+     * Find the Partition belonging to this machine, prioritize searching locally, if not found
+     * locally, inquire with pd.
      *
      * @param graph
      * @param partId
@@ -473,7 +515,8 @@ public class PartitionManager extends GlobalMetaStore {
     }
 
     /**
-     * Get partition information from pd and merge it with local partition information. Leader and shardList are taken from local.
+     * Get partition information from pd and merge it with local partition information. Leader
+     * and shardList are taken from local.
      */
     public Partition getPartitionFromPD(String graph, int partId) {
         pdProvider.invalidPartitionCache(graph, partId);
@@ -484,7 +527,8 @@ public class PartitionManager extends GlobalMetaStore {
             if (partitions.containsKey(graph)) {
                 Partition local = partitions.get(graph).get(partId);
                 if (local != null) {
-                    // Update the local key range, ensuring consistency between pd and local partition information
+                    // Update the local key range, ensuring consistency between pd and local
+                    // partition information
                     local.setStartKey(partition.getStartKey());
                     local.setEndKey(partition.getEndKey());
                     savePartition(local, true, true);
@@ -575,7 +619,8 @@ public class PartitionManager extends GlobalMetaStore {
         pdProvider.updatePartitionCache(partition, changeLeader);
 
         partitionChangedListeners.forEach(listener -> {
-            listener.onChanged(partition); // Notify raft, synchronize partition information synchronization
+            listener.onChanged(
+                    partition); // Notify raft, synchronize partition information synchronization
         });
     }
 
@@ -611,7 +656,7 @@ public class PartitionManager extends GlobalMetaStore {
                             Metapb.ShardGroup.parser());
 
         if (shardGroup == null) {
-            shardGroup = pdProvider.getShardGroup(partitionId);
+            shardGroup = pdProvider.getShardGroupDirect(partitionId);
 
             if (shardGroup != null) {
                 // local not found, write back to db from pd
@@ -726,6 +771,18 @@ public class PartitionManager extends GlobalMetaStore {
         return ids;
     }
 
+    public Set<Integer> getLeaderPartitionIdSet() {
+        Set<Integer> ids = new HashSet<>();
+        partitions.forEach((key, value) -> {
+            value.forEach((k, v) -> {
+                if (!useRaft || v.isLeader()) {
+                    ids.add(k);
+                }
+            });
+        });
+        return ids;
+    }
+
     /**
      * Generate partition peer string, containing priority information *
      *
@@ -833,15 +890,50 @@ public class PartitionManager extends GlobalMetaStore {
         return result[0];
     }
 
-    public Shard getShardByRaftEndpoint(ShardGroup group, String endpoint) {
-        final Shard[] result = {new Shard()};
-        group.getShards().forEach((shard) -> {
+    /**
+     * According to raft address to find Store, checked against PD's current shard group.
+     * A Store rebuilt with an empty disk at the same raft address registers under a new id,
+     * so the id held locally for that address may no longer be in PD's group; use PD's id then.
+     */
+    public Store getStoreByRaftEndpoint(ShardGroup group, Metapb.ShardGroup pdGroup,
+                                        String endpoint) {
+        Store store = getStoreByRaftEndpoint(group, endpoint);
+        if (pdGroup == null ||
+            pdGroup.getShardsList().stream().anyMatch(s -> s.getStoreId() == store.getId())) {
+            return store;
+        }
+        Long pdStoreId = shardIdsByEndpoint(pdGroup.getShardsList()).get(endpoint.toLowerCase());
+        if (pdStoreId == null) {
+            return store;
+        }
+        log.info("Raft {} endpoint {} is store {} locally but {} in PD, using PD",
+                 pdGroup.getId(), endpoint, store.getId(), pdStoreId);
+        return getStore(pdStoreId);
+    }
+
+    /**
+     * Raft address (lower case) to store id, for the shards whose store PD can still resolve
+     */
+    public Map<String, Long> shardIdsByEndpoint(List<Metapb.Shard> shards) {
+        Map<String, Long> result = new HashMap<>();
+        for (Metapb.Shard shard : shards) {
+            Store store = getStore(shard.getStoreId());
+            if (store != null && !store.getRaftAddress().isEmpty()) {
+                result.put(store.getRaftAddress().toLowerCase(), shard.getStoreId());
+            }
+        }
+        return result;
+    }
+
+    public Shard getShardByEndpoint(ShardGroup group, String endpoint) {
+        List<Shard> shards = group.getShards();
+        for (Shard shard : shards) {
             Store store = getStore(shard.getStoreId());
             if (store != null && store.getRaftAddress().equalsIgnoreCase(endpoint)) {
-                result[0] = shard;
+                return shard;
             }
-        });
-        return result[0];
+        }
+        return new Shard();
     }
 
     /**
@@ -885,6 +977,16 @@ public class PartitionManager extends GlobalMetaStore {
         return location;
     }
 
+    /**
+     * DB storage path
+     *
+     * @return location/db
+     */
+    public String getDbDataPath(int partitionId) {
+        String dbName = BusinessHandlerImpl.getDbName(partitionId);
+        return getDbDataPath(partitionId, dbName);
+    }
+
     public void reportTask(MetaTask.Task task) {
         try {
             pdProvider.reportTask(task);
@@ -908,14 +1010,39 @@ public class PartitionManager extends GlobalMetaStore {
         return wrapper;
     }
 
-    /**
-     * Partition object is modified message
-     */
-    public interface PartitionChangedListener {
+    public void setCmdClient(HgCmdClient client) {
+        this.cmdClient = client;
+    }
 
-        void onChanged(Partition partition);
+    public UpdatePartitionResponse updateState(Metapb.Partition partition,
+                                               Metapb.PartitionState state) {
+        // During partition splitting, actively need to find leader for information synchronization
+        UpdatePartitionRequest request = new UpdatePartitionRequest();
+        request.setWorkState(state);
+        request.setPartitionId(partition.getId());
+        request.setGraphName(partition.getGraphName());
+        return cmdClient.raftUpdatePartition(request);
+    }
 
-        UpdatePartitionResponse rangeOrStateChanged(UpdatePartitionRequest request);
+    public UpdatePartitionResponse updateRange(Metapb.Partition partition, int startKey,
+                                               int endKey) {
+        // During partition splitting, actively need to find leader for information synchronization
+        UpdatePartitionRequest request = new UpdatePartitionRequest();
+        request.setStartKey(startKey);
+        request.setEndKey(endKey);
+        request.setPartitionId(partition.getId());
+        request.setGraphName(partition.getGraphName());
+        return cmdClient.raftUpdatePartition(request);
+    }
+
+    public List<Integer> getPartitionIds(String graph) {
+        List<Integer> ids = new ArrayList<>();
+        if (partitions.containsKey(graph)) {
+            partitions.get(graph).forEach((k, v) -> {
+                ids.add(k);
+            });
+        }
+        return ids;
     }
 
 }

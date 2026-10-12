@@ -22,14 +22,14 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.schema.SchemaLabel;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeElement;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -92,7 +92,7 @@ public class IndexLabelRebuildJob extends SchemaJob {
             }
         };
 
-        LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
+        LockUtil.Locks locks = new LockUtil.Locks(schemaTx.spaceGraphName());
         try {
             locks.lockWrites(LockUtil.INDEX_LABEL_REBUILD, indexLabelIds);
 
@@ -160,7 +160,7 @@ public class IndexLabelRebuildJob extends SchemaJob {
                  */
                 continue;
             }
-            LockUtil.Locks locks = new LockUtil.Locks(schemaTx.graphName());
+            LockUtil.Locks locks = new LockUtil.Locks(schemaTx.spaceGraphName());
             try {
                 locks.lockWrites(LockUtil.INDEX_LABEL_DELETE, indexLabelIds);
                 graphTx.removeIndex(il);

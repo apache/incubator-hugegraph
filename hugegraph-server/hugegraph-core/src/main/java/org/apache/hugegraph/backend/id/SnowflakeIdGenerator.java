@@ -16,12 +16,14 @@ package org.apache.hugegraph.backend.id;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
-import org.apache.hugegraph.structure.HugeVertex;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.structure.BaseVertex;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.TimeUtil;
@@ -38,7 +40,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
     private final IdWorker idWorker;
 
     public static SnowflakeIdGenerator init(HugeGraphParams graph) {
-        String graphName = graph.name();
+        String graphName = graph.graph().spaceGraphName();
         SnowflakeIdGenerator generator = INSTANCES.get(graphName);
         if (generator == null) {
             synchronized (INSTANCES) {
@@ -54,7 +56,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
     }
 
     public static SnowflakeIdGenerator instance(HugeGraph graph) {
-        String graphName = graph.name();
+        String graphName = graph.spaceGraphName();
         SnowflakeIdGenerator generator = INSTANCES.get(graphName);
         E.checkState(generator != null,
                      "SnowflakeIdGenerator of graph '%s' is not initialized",
@@ -85,7 +87,7 @@ public class SnowflakeIdGenerator extends IdGenerator {
     }
 
     @Override
-    public Id generate(HugeVertex vertex) {
+    public Id generate(BaseVertex vertex) {
         return this.generate();
     }
 

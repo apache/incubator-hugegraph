@@ -23,14 +23,14 @@ import java.util.List;
 
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.BackendException;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.exception.BackendException;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.query.ConditionQuery;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
 import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.traversal.optimize.Text;
 import org.apache.hugegraph.type.HugeType;
@@ -357,7 +357,7 @@ public class Example1 {
             LOG.info(">>>> queryEdges(id-condition): {}", edges2.next());
         }
 
-        // NOTE: query edge by has-key just supported by Cassandra
+        // Query edge by property key when the backend supports it
         if (graph.backendStoreFeatures().supportsQueryWithContainsKey()) {
             PropertyKey contribution = graph.propertyKey("contribution");
             q.key(HugeKeys.PROPERTIES, contribution.id());

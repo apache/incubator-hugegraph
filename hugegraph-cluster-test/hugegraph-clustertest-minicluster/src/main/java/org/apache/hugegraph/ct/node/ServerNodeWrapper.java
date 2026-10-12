@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.ct.node;
 
+import static org.apache.hugegraph.ct.base.ClusterConstant.BIN_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.CONF_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.EMPTY_SAMPLE_GROOVY_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.EXAMPLE_GROOVY_FILE;
@@ -24,34 +25,64 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.EXT_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_DRIVER_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.GREMLIN_SERVER_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.JAVA_CMD;
+import static org.apache.hugegraph.ct.base.ClusterConstant.JVM_MODULE_OPTIONS_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LIB_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
+import static org.apache.hugegraph.ct.base.ClusterConstant.LOCALHOST;
 import static org.apache.hugegraph.ct.base.ClusterConstant.PLUGINS_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.REMOTE_OBJECTS_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.REMOTE_SETTING_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_LIB_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_PACKAGE_PATH;
 import static org.apache.hugegraph.ct.base.ClusterConstant.SERVER_TEMPLATE_PATH;
-import static org.apache.hugegraph.ct.base.ClusterConstant.isJava11OrHigher;
+import static org.apache.hugegraph.ct.base.ClusterConstant.isJava17OrHigher;
+import static org.apache.hugegraph.ct.base.EnvUtil.isPortOpen;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+
+import org.apache.hugegraph.ct.config.GremlinServerConfig;
 
 public class ServerNodeWrapper extends AbstractNodeWrapper {
 
+    private static List<String> hgJars = loadHgJarsOnce();
+    private final int restPort;
+    private final int gremlinPort;
+
     public ServerNodeWrapper(int clusterIndex, int index) {
+        this(clusterIndex, index, -1, -1);
+    }
+
+    public ServerNodeWrapper(int clusterIndex, int index, int restPort) {
+        this(clusterIndex, index, restPort, -1);
+    }
+
+    public ServerNodeWrapper(int clusterIndex, int index, int restPort,
+                             int gremlinPort) {
         super(clusterIndex, index);
+        this.restPort = restPort;
+        this.gremlinPort = gremlinPort;
         this.fileNames = new ArrayList<>(
                 List.of(LOG4J_FILE, GREMLIN_SERVER_FILE, GREMLIN_DRIVER_SETTING_FILE,
                         REMOTE_SETTING_FILE, REMOTE_OBJECTS_SETTING_FILE));
         this.workPath = SERVER_LIB_PATH;
         createNodeDir(Paths.get(SERVER_TEMPLATE_PATH), getNodePath() + CONF_DIR + File.separator);
+        if (this.gremlinPort >= 0) {
+            GremlinServerConfig.update(
+                    Paths.get(getNodePath(), CONF_DIR, GREMLIN_SERVER_FILE),
+                    LOCALHOST, this.gremlinPort);
+        }
         this.fileNames = new ArrayList<>(List.of(EMPTY_SAMPLE_GROOVY_FILE, EXAMPLE_GROOVY_FILE));
-        this.startLine = "INFO: [HttpServer] Started.";
+        this.startLine = "Channel started at port ";
         createNodeDir(Paths.get(SERVER_PACKAGE_PATH), getNodePath());
         createLogDir();
     }
@@ -67,26 +98,59 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
         }
     }
 
+    private static void addOrderedJarsToClasspath(File directory, List<String> classpath) {
+        // Add jar starts with hugegraph in proper order
+        String path = directory.getAbsolutePath();
+        for (String jar : hgJars) {
+            classpath.add(path + File.separator + jar);
+        }
+        if (directory.exists() && directory.isDirectory()) {
+            File[] files =
+                    directory.listFiles((dir, name) -> name.endsWith(".jar") && !name.contains(
+                            "hugegraph"));
+            if (files != null) {
+                for (File file : files) {
+                    classpath.add(file.getAbsolutePath());
+                }
+            }
+        }
+    }
+
+    private static List<String> loadHgJarsOnce(){
+        ArrayList<String> jars = new ArrayList<>();
+        try (InputStream is = ServerNodeWrapper.class.getResourceAsStream("/jar.txt");
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                jars.add(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return Collections.unmodifiableList(jars);
+    }
+
     @Override
     public void start() {
         try {
             File stdoutFile = new File(getLogPath());
             List<String> startCmd = new ArrayList<>();
             startCmd.add(JAVA_CMD);
-            if (!isJava11OrHigher()) {
-                LOG.error("Please make sure that the JDK is installed and the version >= 11");
+            if (!isJava17OrHigher()) {
+                LOG.error("Please make sure that the JDK is installed and the version >= 17");
                 return;
             }
 
             List<String> classpath = new ArrayList<>();
-            addJarsToClasspath(new File(workPath + LIB_DIR), classpath);
+            addOrderedJarsToClasspath(new File(workPath + LIB_DIR), classpath);
             addJarsToClasspath(new File(workPath + EXT_DIR), classpath);
             addJarsToClasspath(new File(workPath + PLUGINS_DIR), classpath);
             String storeClassPath = String.join(":", classpath);
 
             startCmd.addAll(Arrays.asList(
                     "-Dname=HugeGraphServer" + this.index,
-                    "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED",
+                    "@" + Paths.get(SERVER_PACKAGE_PATH, BIN_DIR,
+                                    JVM_MODULE_OPTIONS_FILE),
                     "-cp", storeClassPath,
                     "org.apache.hugegraph.dist.HugeGraphServer",
                     "./conf/gremlin-server.yaml",
@@ -96,6 +160,14 @@ public class ServerNodeWrapper extends AbstractNodeWrapper {
         } catch (IOException ex) {
             throw new AssertionError("Started server node failed. " + ex);
         }
+    }
+
+    @Override
+    public boolean isStarted() {
+        return super.isStarted() &&
+               (this.restPort < 0 || isPortOpen(LOCALHOST, this.restPort)) &&
+               (this.gremlinPort < 0 ||
+                isPortOpen(LOCALHOST, this.gremlinPort));
     }
 
     @Override

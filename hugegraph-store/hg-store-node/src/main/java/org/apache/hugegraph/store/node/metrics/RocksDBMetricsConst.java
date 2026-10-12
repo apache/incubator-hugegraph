@@ -54,12 +54,12 @@ public final class RocksDBMetricsConst {
             TickerType.BLOCK_CACHE_INDEX_HIT, // Index cache hits.
             TickerType.BLOCK_CACHE_INDEX_ADD, // Index blocks added to cache.
             TickerType.BLOCK_CACHE_INDEX_BYTES_INSERT, // Bytes inserted into index cache.
-            TickerType.BLOCK_CACHE_INDEX_BYTES_EVICT, // Bytes evicted from index cache.
+            // BLOCK_CACHE_INDEX_BYTES_EVICT removed in RocksDB 8.x
             TickerType.BLOCK_CACHE_FILTER_MISS, // Filter cache misses.
             TickerType.BLOCK_CACHE_FILTER_HIT, // Filter cache hits.
             TickerType.BLOCK_CACHE_FILTER_ADD, // Filter blocks added to cache.
             TickerType.BLOCK_CACHE_FILTER_BYTES_INSERT, // Bytes inserted in filter cache.
-            TickerType.BLOCK_CACHE_FILTER_BYTES_EVICT, // Bytes evicted from filter cache.
+            // BLOCK_CACHE_FILTER_BYTES_EVICT removed in RocksDB 8.x
             TickerType.BLOCK_CACHE_DATA_MISS, // Data cache misses.
             TickerType.BLOCK_CACHE_DATA_HIT, // Data cache hits.
             TickerType.BLOCK_CACHE_DATA_ADD, // Data blocks added to cache.
@@ -76,9 +76,11 @@ public final class RocksDBMetricsConst {
             TickerType.GET_HIT_L0, // Level 0 get hits.
             TickerType.GET_HIT_L1, // Level 1 get hits.
             TickerType.GET_HIT_L2_AND_UP, // Level 2 and above get hits.
-            TickerType.COMPACTION_KEY_DROP_NEWER_ENTRY, // Keys dropped due to newer entry during compaction.
+            TickerType.COMPACTION_KEY_DROP_NEWER_ENTRY,
+            // Keys dropped due to newer entry during compaction.
             TickerType.COMPACTION_KEY_DROP_OBSOLETE, // Obsolete keys dropped during compaction.
-            TickerType.COMPACTION_KEY_DROP_RANGE_DEL, // Range deletion keys dropped during compaction.
+            TickerType.COMPACTION_KEY_DROP_RANGE_DEL,
+            // Range deletion keys dropped during compaction.
             TickerType.COMPACTION_KEY_DROP_USER, // User keys dropped during compaction.
             TickerType.COMPACTION_RANGE_DEL_DROP_OBSOLETE, // Obsolete range deletes dropped.
             TickerType.NUMBER_KEYS_WRITTEN, // Total keys written.
@@ -93,36 +95,37 @@ public final class RocksDBMetricsConst {
             TickerType.NUMBER_DB_NEXT_FOUND, // Number of successful next operations.
             TickerType.NUMBER_DB_PREV_FOUND, // Number of successful previous operations.
             TickerType.ITER_BYTES_READ, // Bytes read by iterators.
-            TickerType.NO_FILE_CLOSES, // Number of file close operations.
+            // NO_FILE_CLOSES removed in RocksDB 8.x
             TickerType.NO_FILE_OPENS, // Number of file open operations.
             TickerType.NO_FILE_ERRORS, // Number of file errors.
             TickerType.STALL_MICROS, // Time spent in a stall micro.
             TickerType.DB_MUTEX_WAIT_MICROS, // Time spent waiting on a mutex.
-            TickerType.RATE_LIMIT_DELAY_MILLIS, // Rate limiting delay in milliseconds.
-            TickerType.NO_ITERATORS, // Number of iterators created.
+            // RATE_LIMIT_DELAY_MILLIS removed in RocksDB 8.x
+            // NO_ITERATORS removed in RocksDB 8.x
             TickerType.NUMBER_MULTIGET_BYTES_READ, // Bytes read by multi-get operations.
             TickerType.NUMBER_MULTIGET_KEYS_READ, // Keys read in multi-get operations.
             TickerType.NUMBER_MULTIGET_CALLS, // Number of multi-get operations.
-            TickerType.NUMBER_FILTERED_DELETES, // Number of deletes filtered.
+            // NUMBER_FILTERED_DELETES removed in RocksDB 8.x
             TickerType.NUMBER_MERGE_FAILURES, // Number of merge failures.
             TickerType.BLOOM_FILTER_PREFIX_CHECKED, // Number of prefix bloom filter checks.
             TickerType.BLOOM_FILTER_PREFIX_USEFUL, // Number of useful prefix bloom filter checks.
             TickerType.NUMBER_OF_RESEEKS_IN_ITERATION, // Number of reseeks in iteration.
             TickerType.GET_UPDATES_SINCE_CALLS, // Number of get updates since calls.
-            TickerType.BLOCK_CACHE_COMPRESSED_MISS, // Misses in compressed block cache.
-            TickerType.BLOCK_CACHE_COMPRESSED_HIT, // Hits in compressed block cache.
-            TickerType.BLOCK_CACHE_COMPRESSED_ADD, // Compressed blocks added to cache.
-            TickerType.BLOCK_CACHE_COMPRESSED_ADD_FAILURES, // Failures adding compressed blocks.
+            // BLOCK_CACHE_COMPRESSED_MISS removed in RocksDB 8.x
+            // BLOCK_CACHE_COMPRESSED_HIT removed in RocksDB 8.x
+            // BLOCK_CACHE_COMPRESSED_ADD removed in RocksDB 8.x
+            // BLOCK_CACHE_COMPRESSED_ADD_FAILURES removed in RocksDB 8.x
             TickerType.WAL_FILE_SYNCED, // Number of synced WAL files.
             TickerType.WAL_FILE_BYTES, // Bytes written to WAL files.
             TickerType.WRITE_DONE_BY_SELF, // Writes completed by self.
             TickerType.WRITE_DONE_BY_OTHER, // Writes completed by others.
-            TickerType.WRITE_TIMEDOUT, // Number of write timeouts.
+            // WRITE_TIMEDOUT removed in RocksDB 8.x
             TickerType.WRITE_WITH_WAL, // Writes involving WAL.
             TickerType.COMPACT_READ_BYTES, // Bytes read during compaction.
             TickerType.COMPACT_WRITE_BYTES, // Bytes written during compaction.
             TickerType.FLUSH_WRITE_BYTES, // Bytes written during flush.
-            TickerType.NUMBER_DIRECT_LOAD_TABLE_PROPERTIES, // Number of direct load table properties.
+            TickerType.NUMBER_DIRECT_LOAD_TABLE_PROPERTIES,
+            // Number of direct load table properties.
             TickerType.NUMBER_SUPERVERSION_ACQUIRES, // Acquired superversions.
             TickerType.NUMBER_SUPERVERSION_RELEASES, // Released superversions.
             TickerType.NUMBER_SUPERVERSION_CLEANUPS, // Cleanups of superversions.
@@ -133,7 +136,8 @@ public final class RocksDBMetricsConst {
             TickerType.FILTER_OPERATION_TOTAL_TIME, // Time spent in filter operations.
             TickerType.ROW_CACHE_HIT, // Hits in row cache.
             TickerType.ROW_CACHE_MISS, // Misses in row cache.
-            TickerType.READ_AMP_ESTIMATE_USEFUL_BYTES, // Estimated useful bytes read due to read amplification.
+            TickerType.READ_AMP_ESTIMATE_USEFUL_BYTES,
+            // Estimated useful bytes read due to read amplification.
             TickerType.READ_AMP_TOTAL_READ_BYTES, // Total bytes read due to read amplification.
             TickerType.NUMBER_RATE_LIMITER_DRAINS, // Number of times rate limiter is drained.
             TickerType.NUMBER_ITER_SKIP, // Number of iterator skips.
@@ -153,19 +157,20 @@ public final class RocksDBMetricsConst {
             HistogramType.COMPACTION_TIME, // Time spent in compactions.
             HistogramType.SUBCOMPACTION_SETUP_TIME, // Time spent setting up subcompactions.
             HistogramType.TABLE_SYNC_MICROS, // Time spent synchronizing tables.
-            HistogramType.COMPACTION_OUTFILE_SYNC_MICROS, // Time spent syncing compaction output files.
+            HistogramType.COMPACTION_OUTFILE_SYNC_MICROS,
+            // Time spent syncing compaction output files.
             HistogramType.WAL_FILE_SYNC_MICROS, // Time spent syncing WAL files.
             HistogramType.MANIFEST_FILE_SYNC_MICROS, // Time spent syncing manifest files.
             HistogramType.TABLE_OPEN_IO_MICROS, // Time spent opening tables (I/O).
             HistogramType.DB_MULTIGET, // Latency of database multi-get operations.
-            HistogramType.READ_BLOCK_COMPACTION_MICROS, // Time spent reading blocks during compaction.
+            HistogramType.READ_BLOCK_COMPACTION_MICROS,
+            // Time spent reading blocks during compaction.
             HistogramType.READ_BLOCK_GET_MICROS, // Time spent reading blocks during get.
             HistogramType.WRITE_RAW_BLOCK_MICROS, // Time spent writing raw blocks.
-            HistogramType.STALL_L0_SLOWDOWN_COUNT, // Count of stalls due to L0 slowdown.
-            HistogramType.STALL_MEMTABLE_COMPACTION_COUNT, // Count of stalls due to memtable compaction.
-            HistogramType.STALL_L0_NUM_FILES_COUNT, // Count of stalls due to number of files at L0.
-            HistogramType.HARD_RATE_LIMIT_DELAY_COUNT, // Count of delays due to hard rate limits.
-            HistogramType.SOFT_RATE_LIMIT_DELAY_COUNT, // Count of delays due to soft rate limits.
+            // STALL_L0_SLOWDOWN_COUNT removed in RocksDB 8.x
+            // Note: The following constants were removed in RocksDB 8.10.2:
+            // STALL_MEMTABLE_COMPACTION_COUNT, STALL_L0_NUM_FILES_COUNT,
+            // HARD_RATE_LIMIT_DELAY_COUNT, SOFT_RATE_LIMIT_DELAY_COUNT
             HistogramType.NUM_FILES_IN_SINGLE_COMPACTION, // Number of files in a single compaction.
             HistogramType.DB_SEEK, // Latency of database seek operations.
             HistogramType.WRITE_STALL, // Time spent in write stalls.

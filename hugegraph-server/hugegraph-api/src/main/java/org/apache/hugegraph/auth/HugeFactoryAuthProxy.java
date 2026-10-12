@@ -27,17 +27,18 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.configuration2.Configuration;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.backend.cache.CacheManager;
+import org.apache.hugegraph.backend.cache.CachedGraphTransaction;
 import org.apache.hugegraph.backend.tx.AbstractTransaction;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.IndexableTransaction;
 import org.apache.hugegraph.concurrent.LockManager;
 import org.apache.hugegraph.metrics.ServerReporter;
-import org.apache.hugegraph.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaElement;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.schema.builder.AbstractBuilder;
 import org.apache.hugegraph.schema.builder.EdgeLabelBuilder;
@@ -54,6 +55,7 @@ import org.apache.hugegraph.task.StandardTaskScheduler;
 import org.apache.hugegraph.task.TaskCallable;
 import org.apache.hugegraph.task.TaskCallable.SysTaskCallable;
 import org.apache.hugegraph.task.TaskManager;
+import org.apache.hugegraph.traversal.optimize.HugeConnectiveLabelStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeCountStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeGraphStepStrategy;
 import org.apache.hugegraph.traversal.optimize.HugeVertexStepStrategy;
@@ -66,10 +68,9 @@ import com.google.common.collect.ImmutableSet;
 
 public final class HugeFactoryAuthProxy {
 
-    private static final Logger LOG = Log.logger(HugeFactoryAuthProxy.class);
     public static final String GRAPH_FACTORY =
             "gremlin.graph=org.apache.hugegraph.auth.HugeFactoryAuthProxy";
-
+    private static final Logger LOG = Log.logger(HugeFactoryAuthProxy.class);
     private static final Set<String> PROTECT_METHODS = ImmutableSet.of("instance");
 
     private static final Map<HugeGraph, HugeGraph> GRAPHS = new HashMap<>();
@@ -130,7 +131,6 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerFieldsToFilter(StandardAuthenticator.class, "graph");
         Reflection.registerMethodsToFilter(StandardAuthenticator.class, "initAdminUser",
                                            "inputPassword", "graph");
-        Reflection.registerFieldsToFilter(ConfigAuthenticator.class, "tokens");
         Reflection.registerFieldsToFilter(HugeFactoryAuthProxy.class, "PROTECT_METHODS");
         Reflection.registerMethodsToFilter(HugeFactoryAuthProxy.class, "genRegisterPrivateActions",
                                            "registerClass", "registerPrivateActions",
@@ -160,7 +160,7 @@ public final class HugeFactoryAuthProxy {
                                            "lambda$16", "lambda$17", "lambda$18", "lambda$19",
                                            "lambda$20", "lambda$21", "lambda$22", "lambda$23",
                                            "lambda$24", "access$8", "access$9", "access$10",
-                                           "setContext", "getContext");
+                                           "setContext", "getContext", "runAsAdmin");
         Reflection.registerFieldsToFilter(HugeGraphAuthProxy.AuthManagerProxy.class, "authManager",
                                           "this$0");
         Reflection.registerMethodsToFilter(HugeGraphAuthProxy.AuthManagerProxy.class,
@@ -185,7 +185,7 @@ public final class HugeFactoryAuthProxy {
                                           "this$0");
         Reflection.registerFieldsToFilter(HugeGraphAuthProxy.Context.class, "ADMIN", "user");
         Reflection.registerFieldsToFilter(HugeGraphAuthProxy.ContextTask.class, "runner",
-                                          "context");
+                                          "cleanup", "context");
         Reflection.registerFieldsToFilter(StandardHugeGraph.class, "LOG", "started", "closed",
                                           "mode", "variables", "name", "params", "configuration",
                                           "schemaEventHub", "graphEventHub", "indexEventHub",
@@ -203,7 +203,8 @@ public final class HugeFactoryAuthProxy {
                                            "access$14", "access$15", "access$16", "access$17",
                                            "access$18", "serializer", "loadSchemaStore",
                                            "loadSystemStore", "loadGraphStore", "closeTx",
-                                           "analyzer", "serverInfoManager", "reloadRamtable",
+                                           "closeCurrentThreadTransaction", "analyzer",
+                                           "serverInfoManager", "reloadRamtable",
                                            "reloadRamtable", "access$19", "access$20", "access$21");
         Reflection.registerFieldsToFilter(
                 loadClass("org.apache.hugegraph.StandardHugeGraph$StandardHugeGraphParams"),
@@ -263,17 +264,29 @@ public final class HugeFactoryAuthProxy {
                                            "checkVertexExistIfCustomizedId",
                                            "checkAggregateProperty", "checkAggregateProperty",
                                            "checkNonnullProperty", "queryEdgesFromBackend",
+                                           "queryValidEdgesFromBackend",
                                            "commitPartOfEdgeDeletions", "optimizeQueries",
                                            "checkVertexLabel", "checkId",
-                                           "queryVerticesFromBackend", "joinTxVertices",
+                                           "queryVerticesFromBackend",
+                                           "queryValidVerticesFromBackend", "joinTxVertices",
                                            "joinTxEdges", "lockForUpdateProperty", "optimizeQuery",
                                            "verifyVerticesConditionQuery",
                                            "verifyEdgesConditionQuery", "indexQuery",
                                            "joinTxRecords", "propertyUpdated", "parseEntry",
                                            "traverseByLabel", "reset", "queryVerticesByIds",
-                                           "filterUnmatchedRecords", "skipOffsetOrStopLimit",
-                                           "filterExpiredResultFromFromBackend", "queryEdgesByIds",
-                                           "matchEdgeSortKeys", "rightResultFromIndexQuery");
+                                           "filterInvalidRecord", "filterUnmatchedRecord",
+                                           "invalidRecord", "warnLeftRecord",
+                                           "skipOffsetOrStopLimit",
+                                           "filterExpiredBatches", "queryEdgesByIds",
+                                           "matchEdgeSortKeys", "rightResultFromIndexQuery",
+                                           "queryVertexBatchesFromBackend", "backendBatches",
+                                           "fetchVertexBatch", "processBatches",
+                                           "queryEdgeBatchesFromBackend",
+                                           "queryEdgeBatchesFromBackendInternal",
+                                           "queryEdgesFromMemory", "fetchEdgeBatch");
+        Reflection.registerMethodsToFilter(CachedGraphTransaction.class,
+                                           "fetchVertexBatch", "fetchEdgeBatch",
+                                           "queryEdgesFromMemory", "cacheEdgeBatch");
         Reflection.registerFieldsToFilter(IndexableTransaction.class, "$assertionsDisabled");
         Reflection.registerMethodsToFilter(IndexableTransaction.class, "indexTransaction",
                                            "commit2Backend", "reset");
@@ -286,8 +299,10 @@ public final class HugeFactoryAuthProxy {
                                            "autoCommit", "beforeRead", "afterWrite", "afterRead",
                                            "commitMutation2Backend", "checkOwnerThread", "doAction",
                                            "store", "reset");
-        Reflection.registerFieldsToFilter(HugeFactory.class, "LOG", "NAME_REGEX", "graphs");
-        Reflection.registerMethodsToFilter(HugeFactory.class, "lambda$0");
+        Reflection.registerFieldsToFilter(HugeFactory.class, "LOG", "NAME_REGEX", "graphs",
+                                          "GRAPHS");
+        Reflection.registerMethodsToFilter(HugeFactory.class, "lambda$0",
+                                           "closeCurrentThreadTransactions");
         Reflection.registerFieldsToFilter(SchemaElement.class, "graph", "id", "name", "userdata",
                                           "status");
         Reflection.registerFieldsToFilter(HugeVertex.class, "EMPTY_SET", "id", "label", "edges",
@@ -388,11 +403,10 @@ public final class HugeFactoryAuthProxy {
                                            "oneNumericField", "hasSameProperties");
         Reflection.registerFieldsToFilter(TaskManager.class, "LOG", "SCHEDULE_PERIOD", "THREADS",
                                           "MANAGER", "schedulers", "taskExecutor", "taskDbExecutor",
-                                          "serverInfoDbExecutor", "schedulerExecutor", "contexts",
-                                          "$assertionsDisabled");
+                                          "contexts", "$assertionsDisabled");
         Reflection.registerMethodsToFilter(TaskManager.class, "lambda$0", "resetContext",
                                            "closeTaskTx", "setContext", "instance",
-                                           "closeSchedulerTx", "notifyNewTask",
+                                           "notifyNewTask",
                                            "scheduleOrExecuteJob", "scheduleOrExecuteJobForGraph");
         Reflection.registerFieldsToFilter(StandardTaskScheduler.class, "LOG", "graph",
                                           "serverManager", "taskExecutor", "taskDbExecutor",
@@ -470,6 +484,10 @@ public final class HugeFactoryAuthProxy {
                                            "createDefaultExecutor", "lambda$start$0", "start");
         Reflection.registerFieldsToFilter(JsonSerializer.class, "LBUF_SIZE", "INSTANCE");
         Reflection.registerMethodsToFilter(JsonSerializer.class, "writeIterator", "instance");
+        Reflection.registerFieldsToFilter(HugeConnectiveLabelStepStrategy.class,
+                                          "serialVersionUID", "INSTANCE");
+        Reflection.registerMethodsToFilter(HugeConnectiveLabelStepStrategy.class,
+                                           "instance");
         Reflection.registerFieldsToFilter(HugeVertexStepStrategy.class, "serialVersionUID",
                                           "INSTANCE");
         Reflection.registerMethodsToFilter(HugeVertexStepStrategy.class, "instance");
@@ -498,8 +516,6 @@ public final class HugeFactoryAuthProxy {
         Reflection.registerMethodsToFilter(loadClass("java.lang.ProcessImpl"), "forkAndExec",
                                            "setAccessible", "start");
 
-        optionalMethodsToFilter("sun.invoke.util.BytecodeDescriptor", "parseMethod", "parseSig");
-        optionalMethodsToFilter("sun.reflect.misc.MethodUtil", "invoke");
         optionalMethodsToFilter("jdk.internal.reflect.MethodAccessor", "invoke");
         optionalMethodsToFilter("jdk.internal.reflect.NativeMethodAccessorImpl", "invoke");
     }
@@ -511,7 +527,6 @@ public final class HugeFactoryAuthProxy {
         registerPrivateActions(InheritableThreadLocal.class);
 
         registerPrivateActions(StandardAuthenticator.class);
-        registerPrivateActions(ConfigAuthenticator.class);
         registerPrivateActions(HugeFactoryAuthProxy.class);
         registerPrivateActions(HugeAuthenticator.User.class);
 
@@ -564,6 +579,7 @@ public final class HugeFactoryAuthProxy {
         registerPrivateActions(LockManager.class);
         registerPrivateActions(ServerReporter.class);
         registerPrivateActions(JsonSerializer.class);
+        registerPrivateActions(HugeConnectiveLabelStepStrategy.class);
         registerPrivateActions(HugeVertexStepStrategy.class);
         registerPrivateActions(HugeGraphStepStrategy.class);
         registerPrivateActions(HugeCountStepStrategy.class);
@@ -636,8 +652,8 @@ public final class HugeFactoryAuthProxy {
         try {
             clazz = Class.forName(className);
         } catch (ClassNotFoundException e) {
-            // TODO: we just ignore the exception, change it after we drop Java8 support
-            LOG.warn("Skip register class {} to filter", className);
+            LOG.debug("Internal class {} not found in this JDK implementation, skipping filter " +
+                      "registration", className, e);
         }
         if (clazz != null) {
             Reflection.registerMethodsToFilter(clazz, methodNames);

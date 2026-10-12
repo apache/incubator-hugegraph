@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.api.traversers;
 
+import org.apache.hugegraph.util.TinkerPopUtil;
+
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
@@ -28,7 +30,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.graph.EdgeAPI;
 import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
@@ -41,6 +43,7 @@ import org.slf4j.Logger;
 
 import com.codahale.metrics.annotation.Timed;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.DefaultValue;
@@ -51,7 +54,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/weightedshortestpath")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/weightedshortestpath")
 @Singleton
 @Tag(name = "WeightedShortestPathAPI")
 public class WeightedShortestPathAPI extends API {
@@ -62,20 +65,32 @@ public class WeightedShortestPathAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @Parameter(description = "The graph space name")
+                      @PathParam("graphspace") String graphSpace,
+                      @Parameter(description = "The graph name")
                       @PathParam("graph") String graph,
+                      @Parameter(description = "The source vertex ID")
                       @QueryParam("source") String source,
+                      @Parameter(description = "The target vertex ID")
                       @QueryParam("target") String target,
+                      @Parameter(description = "The direction of traversal")
                       @QueryParam("direction") String direction,
+                      @Parameter(description = "The edge label to traverse")
                       @QueryParam("label") String edgeLabel,
+                      @Parameter(description = "The weight property name")
                       @QueryParam("weight") String weight,
+                      @Parameter(description = "The maximum degree of vertices")
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
-                      @QueryParam("skip_degree")
+                      @Parameter(description = "The degree to skip") @QueryParam("skip_degree")
                       @DefaultValue("0") long skipDegree,
+                      @Parameter(description = "Whether to include vertex details")
                       @QueryParam("with_vertex")
                       @DefaultValue("false") boolean withVertex,
+                      @Parameter(description = "Whether to include edge details")
                       @QueryParam("with_edge")
                       @DefaultValue("false") boolean withEdge,
+                      @Parameter(description = "The capacity of the traversal")
                       @QueryParam("capacity")
                       @DefaultValue(DEFAULT_CAPACITY) long capacity) {
         LOG.debug("Graph [{}] get weighted shortest path between '{}' and " +
@@ -88,10 +103,10 @@ public class WeightedShortestPathAPI extends API {
         ApiMeasurer measure = new ApiMeasurer();
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(direction));
         E.checkArgumentNotNull(weight, "The weight property can't be null");
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         SingleSourceShortestPathTraverser traverser =
                 new SingleSourceShortestPathTraverser(g);
 

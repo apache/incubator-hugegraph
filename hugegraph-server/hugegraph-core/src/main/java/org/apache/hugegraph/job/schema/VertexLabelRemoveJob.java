@@ -20,13 +20,13 @@ package org.apache.hugegraph.job.schema;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.util.LockUtil;
 
@@ -75,7 +75,7 @@ public class VertexLabelRemoveJob extends SchemaJob {
          * vertexLabel.indexLabels()
          */
         Set<Id> indexLabelIds = ImmutableSet.copyOf(vertexLabel.indexLabels());
-        LockUtil.Locks locks = new LockUtil.Locks(graph.name());
+        LockUtil.Locks locks = new LockUtil.Locks(graph.graph().spaceGraphName());
         try {
             locks.lockWrites(LockUtil.VERTEX_LABEL_DELETE, id);
             schemaTx.updateSchemaStatus(vertexLabel, SchemaStatus.DELETING);

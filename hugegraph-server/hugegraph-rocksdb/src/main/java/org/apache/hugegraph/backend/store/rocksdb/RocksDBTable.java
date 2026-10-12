@@ -21,27 +21,28 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.page.PageState;
-import org.apache.hugegraph.backend.query.Aggregate;
-import org.apache.hugegraph.backend.query.Aggregate.AggregateFunc;
-import org.apache.hugegraph.backend.query.Condition.Relation;
-import org.apache.hugegraph.backend.query.ConditionQuery;
-import org.apache.hugegraph.backend.query.IdPrefixQuery;
-import org.apache.hugegraph.backend.query.IdRangeQuery;
-import org.apache.hugegraph.backend.query.Query;
+import org.apache.hugegraph.query.Aggregate;
+import org.apache.hugegraph.query.Aggregate.AggregateFunc;
+import org.apache.hugegraph.query.Condition.Relation;
+import org.apache.hugegraph.query.ConditionQuery;
+import org.apache.hugegraph.query.IdPrefixQuery;
+import org.apache.hugegraph.query.IdRangeQuery;
+import org.apache.hugegraph.query.Query;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BinaryEntryIterator;
 import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
+import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
 import org.apache.hugegraph.backend.store.BackendEntryIterator;
 import org.apache.hugegraph.backend.store.BackendTable;
-import org.apache.hugegraph.backend.store.Shard;
+import org.apache.hugegraph.backend.Shard;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSessions.Session;
 import org.apache.hugegraph.exception.NotSupportException;
 import org.apache.hugegraph.iterator.FlatMapperIterator;
@@ -215,6 +216,16 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
         ));
     }
 
+    protected BackendColumnIterator queryByIdsWithGet(RocksDBSessions.Session session,
+                                                      Collection<Id> ids) {
+        E.checkState(!session.hasChanges(),
+                     "Can't queryByIds() when RocksDB session has pending changes");
+        if (ids.isEmpty()) {
+            return BackendColumnIterator.empty();
+        }
+        return this.getByIds(session, ids);
+    }
+
     protected BackendColumnIterator getById(RocksDBSessions.Session session, Id id) {
         byte[] value = session.get(this.table(), id.asBytes());
         if (value == null) {
@@ -224,7 +235,8 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
         return BackendColumnIterator.iterator(col);
     }
 
-    protected BackendColumnIterator getByIds(RocksDBSessions.Session session, Set<Id> ids) {
+    protected BackendColumnIterator getByIds(RocksDBSessions.Session session,
+                                             Collection<Id> ids) {
         if (ids.size() == 1) {
             return this.getById(session, ids.iterator().next());
         }
@@ -309,7 +321,7 @@ public class RocksDBTable extends BackendTable<RocksDBSessions.Session, BackendE
     }
 
     protected static BackendEntryIterator newEntryIteratorOlap(
-        BackendColumnIterator cols, Query query, boolean isOlap) {
+            BackendColumnIterator cols, Query query, boolean isOlap) {
         return new BinaryEntryIterator<>(cols, query, (entry, col) -> {
             if (entry == null || !entry.belongToMe(col)) {
                 HugeType type = query.resultType();

@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.task;
 
+import java.io.InterruptedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -29,11 +30,11 @@ import java.util.concurrent.FutureTask;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.serializer.BytesBuffer;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.LimitExceedException;
 import org.apache.hugegraph.exception.NotFoundException;
@@ -41,6 +42,7 @@ import org.apache.hugegraph.job.ComputerJob;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.GremlinJob;
 import org.apache.hugegraph.job.schema.SchemaJob;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.define.SerialEnum;
 import org.apache.hugegraph.util.Blob;
 import org.apache.hugegraph.util.E;
@@ -51,6 +53,7 @@ import org.apache.hugegraph.util.StringEncoding;
 import org.apache.tinkerpop.gremlin.structure.Graph.Hidden;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.process.traversal.util.TraversalInterruptedException;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.slf4j.Logger;
 
@@ -318,12 +321,20 @@ public class HugeTask<V> extends FutureTask<V> {
     public boolean cancel(boolean mayInterruptIfRunning) {
         // NOTE: Gremlin sleep() can't be interrupted by default
         // https://mrhaki.blogspot.com/2016/10/groovy-goodness-interrupted-sleeping.html
+        TaskStatus prevStatus = this.status;
         boolean cancelled = super.cancel(mayInterruptIfRunning);
         if (!cancelled) {
             return cancelled;
         }
 
         try {
+            // If the task is being deleted, don't transition to CANCELLED or
+            // fire cancelled() callback — let cronSchedule() handle the actual
+            // DB deletion. Prevents an async save() from resurrecting the task
+            // after deleteFromDB() has already removed it.
+            if (prevStatus == TaskStatus.DELETING) {
+                return cancelled;
+            }
             if (this.status(TaskStatus.CANCELLED)) {
                 // Callback for saving status to store
                 this.callable.cancelled();
@@ -337,9 +348,16 @@ public class HugeTask<V> extends FutureTask<V> {
         return cancelled;
     }
 
+    private static boolean isInterrupted(Throwable error) {
+        Throwable cause = HugeException.rootCause(error);
+        return cause instanceof InterruptedException ||
+               cause instanceof TraversalInterruptedException ||
+               cause instanceof InterruptedIOException;
+    }
+
     public boolean fail(Throwable e) {
         E.checkNotNull(e, "exception");
-        if (!(this.cancelled() && HugeException.isInterrupted(e))) {
+        if (!(this.cancelled() && isInterrupted(e))) {
             LOG.warn("An exception occurred when running task: {}",
                      this.id(), e);
             // Update status to FAILED if exception occurred(not interrupted)
@@ -653,6 +671,11 @@ public class HugeTask<V> extends FutureTask<V> {
     }
 
     public synchronized Map<String, Object> asMap(boolean withDetails) {
+        return this.asMap(withDetails, true);
+    }
+
+    public synchronized Map<String, Object> asMap(boolean withDetails,
+                                                  boolean withResult) {
         E.checkState(this.type != null, "Task type can't be null");
         E.checkState(this.name != null, "Task name can't be null");
 
@@ -689,7 +712,7 @@ public class HugeTask<V> extends FutureTask<V> {
             if (this.input != null) {
                 map.put(Hidden.unHide(P.INPUT), this.input);
             }
-            if (this.result != null) {
+            if (withResult && this.result != null) {
                 map.put(Hidden.unHide(P.RESULT), this.result);
             }
         }
@@ -697,7 +720,37 @@ public class HugeTask<V> extends FutureTask<V> {
         return map;
     }
 
+    synchronized HugeTask<V> copyWithoutResult() {
+        HugeTask<V> task = new HugeTask<>(this.id, this.parent, this.callable);
+        task.type = this.type;
+        task.name = this.name;
+        task.dependencies = this.dependencies == null ?
+                            null : InsertionOrderUtil.newSet(this.dependencies);
+        task.description = this.description;
+        task.context = this.context;
+        task.create = this.create;
+        task.server = this.server;
+        task.load = this.load;
+        task.status = this.status;
+        task.progress = this.progress;
+        task.update = this.update;
+        task.retries = this.retries;
+        task.input = this.input;
+        task.result = null;
+        task.scheduler = this.scheduler;
+        return task;
+    }
+
     public static <V> HugeTask<V> fromVertex(Vertex vertex) {
+        return fromVertex(vertex, true);
+    }
+
+    public static <V> HugeTask<V> fromVertex(Vertex vertex,
+                                             boolean withResult) {
+        if (!withResult && vertex instanceof HugeVertex) {
+            return fromHugeVertex((HugeVertex) vertex);
+        }
+
         String callableName = vertex.value(P.CALLABLE);
         TaskCallable<V> callable;
         try {
@@ -710,9 +763,35 @@ public class HugeTask<V> extends FutureTask<V> {
         for (Iterator<VertexProperty<Object>> iter = vertex.properties();
              iter.hasNext(); ) {
             VertexProperty<Object> prop = iter.next();
+            if (!withResult && P.RESULT.equals(prop.key())) {
+                continue;
+            }
             task.property(prop.key(), prop.value());
         }
         return task;
+    }
+
+    private static <V> HugeTask<V> fromHugeVertex(HugeVertex vertex) {
+        String callableName = getPropertyValue(vertex, P.CALLABLE);
+        TaskCallable<V> callable;
+        try {
+            callable = TaskCallable.fromClass(callableName);
+        } catch (Exception e) {
+            callable = TaskCallable.empty(e);
+        }
+
+        HugeTask<V> task = new HugeTask<>(vertex.id(), null, callable);
+        for (String property : P.METADATA_PROPERTIES) {
+            Object value = getPropertyValue(vertex, property);
+            if (value != null) {
+                task.property(property, value);
+            }
+        }
+        return task;
+    }
+
+    private static <V> V getPropertyValue(HugeVertex vertex, String property) {
+        return vertex.getPropertyValue(vertex.graph().propertyKey(property).id());
     }
 
     private static <V> Collector<V, ?, Set<V>> toOrderSet() {
@@ -791,6 +870,11 @@ public class HugeTask<V> extends FutureTask<V> {
         public static final String RESULT = "~task_result";
         public static final String DEPENDENCIES = "~task_dependencies";
         public static final String SERVER = "~task_server";
+
+        private static final String[] METADATA_PROPERTIES = new String[]{
+                TYPE, NAME, CALLABLE, DESCRIPTION, CONTEXT, STATUS, PROGRESS,
+                CREATE, UPDATE, RETRIES, DEPENDENCIES, INPUT, SERVER
+        };
 
         //public static final String PARENT = hide("parent");
         //public static final String CHILDREN = hide("children");

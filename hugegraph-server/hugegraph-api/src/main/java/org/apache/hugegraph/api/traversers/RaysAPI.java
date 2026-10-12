@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.api.traversers;
 
+import org.apache.hugegraph.util.TinkerPopUtil;
+
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
@@ -29,7 +31,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.graph.EdgeAPI;
 import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.SubGraphTraverser;
@@ -50,7 +52,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/rays")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/rays")
 @Singleton
 @Tag(name = "RaysAPI")
 public class RaysAPI extends API {
@@ -61,6 +63,7 @@ public class RaysAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String sourceV,
                       @QueryParam("direction") String direction,
@@ -84,9 +87,9 @@ public class RaysAPI extends API {
         ApiMeasurer measure = new ApiMeasurer();
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         SubGraphTraverser traverser = new SubGraphTraverser(g);
         HugeTraverser.PathSet paths = traverser.rays(source, dir, edgeLabel,

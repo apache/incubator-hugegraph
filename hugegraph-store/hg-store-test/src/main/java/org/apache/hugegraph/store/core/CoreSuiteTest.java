@@ -17,13 +17,16 @@
 
 package org.apache.hugegraph.store.core;
 
+import org.apache.hugegraph.store.HeartbeatShutdownTest;
+import org.apache.hugegraph.store.StoreIdChangeTest;
+import org.apache.hugegraph.store.core.snapshot.HgSnapshotHandlerTest;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+
 import lombok.extern.slf4j.Slf4j;
 
-// TODO: uncomment it until all test can run free.
-//@RunWith(Suite.class)
-//@Suite.SuiteClasses({
+// TODO: uncomment the rest of these classes once they can run free of each other.
 //        HgCmdClientTest.class,
-//        HgSnapshotHandlerTest.class,
 //        RaftUtilsTest.class,
 //        RaftOperationTest.class,
 //        UnsafeUtilTest.class,
@@ -41,8 +44,13 @@ import lombok.extern.slf4j.Slf4j;
 //        PartitionInstructionProcessorTest.class,
 //        // Try to put it last
 //        HgBusinessImplTest.class
-//})
-
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+        HeartbeatShutdownTest.class,
+        MetricSessionTest.class,
+        HgSnapshotHandlerTest.class,
+        StoreIdChangeTest.class
+})
 @Slf4j
 public class CoreSuiteTest {
 

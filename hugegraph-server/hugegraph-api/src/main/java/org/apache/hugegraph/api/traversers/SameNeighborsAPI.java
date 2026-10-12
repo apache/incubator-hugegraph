@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.api.traversers;
 
+import org.apache.hugegraph.util.TinkerPopUtil;
+
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
@@ -30,7 +32,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.graph.EdgeAPI;
 import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.traversal.algorithm.SameNeighborTraverser;
@@ -54,7 +56,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/sameneighbors")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/sameneighbors")
 @Singleton
 @Tag(name = "SameNeighborsAPI")
 public class SameNeighborsAPI extends API {
@@ -65,6 +67,7 @@ public class SameNeighborsAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("vertex") String vertex,
                       @QueryParam("other") String other,
@@ -82,9 +85,9 @@ public class SameNeighborsAPI extends API {
 
         Id sourceId = VertexAPI.checkAndParseVertexId(vertex);
         Id targetId = VertexAPI.checkAndParseVertexId(other);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         SameNeighborTraverser traverser = new SameNeighborTraverser(g);
         Set<Id> neighbors = traverser.sameNeighbors(sourceId, targetId, dir,
                                                     edgeLabel, maxDegree, limit);
@@ -100,14 +103,15 @@ public class SameNeighborsAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String sameNeighbors(@Context GraphManager manager,
+                                @PathParam("graphspace") String graphSpace,
                                 @PathParam("graph") String graph,
                                 Request request) {
         LOG.debug("Graph [{}] get same neighbors among batch, '{}'", graph, request.toString());
 
         ApiMeasurer measure = new ApiMeasurer();
 
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(request.direction));
-        HugeGraph g = graph(manager, graph);
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(request.direction));
+        HugeGraph g = graph(manager, graphSpace, graph);
         SameNeighborTraverser traverser = new SameNeighborTraverser(g);
 
         List<Object> vertexList = request.vertexList;

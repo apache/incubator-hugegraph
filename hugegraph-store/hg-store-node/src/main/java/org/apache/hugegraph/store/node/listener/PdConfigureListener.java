@@ -39,7 +39,9 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertiesPropertySource;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import com.google.common.base.Charsets;
 
@@ -68,22 +70,7 @@ public class PdConfigureListener implements
         MutablePropertySources sources = event.getEnvironment().getPropertySources();
         String pdAddress = event.getEnvironment().getProperty("pdserver.address");
         pdConfFile = new File(configFilePath);
-        // String[] defaultProfiles = event.getEnvironment().getDefaultProfiles();
-        // String defaultProfile = defaultProfiles[0];
-        // PropertySource<?> appSource = null;
-        // for (PropertySource<?> source : sources) {
-        //    log.info("source name:{},{}", source.getName(), source.getSource());
-        //    boolean applicationConfig = source.getName().contains("application.yml");
-        //    if (applicationConfig) {
-        //        appSource = source;
-        //        break;
-        //    }
-        // }
-        // Map<String, OriginTrackedValue> appSourceMap = (Map<String, OriginTrackedValue>)
-        // appSource
-        // .getSource();
-        // OriginTrackedValue pdTrackedValue = appSourceMap.getMetric("pdserver.address");
-        // String pdAddress = pdTrackedValue.getValue().toString();
+
         KvClient client = new KvClient(PDConfig.of(pdAddress));
         try {
             ScanPrefixResponse response = client.scanPrefix(CONFIG_PREFIX);
@@ -103,7 +90,8 @@ public class PdConfigureListener implements
             client.listen(TIMESTAMP_KEY, (Consumer<WatchResponse>) o -> {
                 log.info("receive message to restart :" + o);
                 try {
-                    // Prioritize updating the latest configuration file to avoid old files being loaded first when modifying parameters like ports.
+                    // Prioritize updating the latest configuration file to avoid old files being
+                    // loaded first when modifying parameters like ports.
                     ScanPrefixResponse responseNew = client.scanPrefix(CONFIG_PREFIX);
                     Map<String, String> kvsMapNew = responseNew.getKvsMap();
                     String config = kvsMapNew.get(CONFIG_FIX_PREFIX);
@@ -139,7 +127,7 @@ public class PdConfigureListener implements
     }
 
     private Properties getYmlConfig(String yml) {
-        Yaml yaml = new Yaml();
+        Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()));
         Iterable load = yaml.loadAll(yml);
         Iterator iterator = load.iterator();
         Properties properties = new Properties();

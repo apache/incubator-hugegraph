@@ -17,14 +17,13 @@
 
 package org.apache.hugegraph.store.business;
 
-import org.apache.hugegraph.backend.serializer.AbstractSerializer;
-import org.apache.hugegraph.backend.serializer.BinarySerializer;
-import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.iterator.CIter;
+import java.util.Objects;
+
+import org.apache.hugegraph.HugeGraphSupplier;
+import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.rocksdb.access.ScanIterator;
-import org.apache.hugegraph.structure.HugeElement;
-import org.apache.hugegraph.util.Bytes;
-import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.hugegraph.serializer.BinaryElementSerializer;
+import org.apache.hugegraph.structure.BaseElement;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -32,36 +31,22 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractSelectIterator implements ScanIterator {
 
     protected ScanIterator iterator;
-    protected AbstractSerializer serializer;
+    protected BinaryElementSerializer serializer;
+    protected final HugeGraphSupplier graph;
 
-    public AbstractSelectIterator() {
-        this.serializer = new BinarySerializer();
+    public AbstractSelectIterator(HugeGraphSupplier graph) {
+        this.graph = Objects.requireNonNull(graph, "graph");
+        this.serializer = new BinaryElementSerializer();
     }
 
-    public boolean belongToMe(BackendEntry entry,
-                              BackendEntry.BackendColumn column) {
-        return Bytes.prefixWith(column.name, entry.id().asBytes());
-    }
-
-    public HugeElement parseEntry(BackendEntry entry, boolean isVertex) {
-        try {
-            if (isVertex) {
-                return this.serializer.readVertex(null, entry);
-            } else {
-                CIter<Edge> itr =
-                        this.serializer.readEdges(null, entry);
-
-                // Iterator<HugeEdge> itr = this.serializer.readEdges(
-                //         null, entry, true, false).iterator();
-                HugeElement el = null;
-                if (itr.hasNext()) {
-                    el = (HugeElement) itr.next();
-                }
-                return el;
-            }
-        } catch (Exception e) {
-            log.error("Failed to parse entry: {}", entry, e);
-            throw e;
+    public BaseElement parseEntry(BackendColumn column, boolean isVertex) {
+        if (column == null) {
+            throw new IllegalArgumentException("BackendColumn cannot be null");
+        }
+        if (isVertex) {
+            return serializer.parseSchemaVertex(this.graph, column, null);
+        } else {
+            return serializer.parseSchemaEdge(this.graph, column, null, true);
         }
     }
 }

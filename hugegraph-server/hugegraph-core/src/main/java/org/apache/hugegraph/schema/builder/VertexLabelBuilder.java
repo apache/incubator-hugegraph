@@ -27,15 +27,16 @@ import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.HugeGraphSupplier;
 import org.apache.hugegraph.backend.tx.ISchemaTransaction;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.Userdata;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.Userdata;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.Action;
 import org.apache.hugegraph.type.define.IdStrategy;
@@ -52,7 +53,7 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
     private final Set<String> properties;
     private final List<String> primaryKeys;
     private final Set<String> nullableKeys;
-    private long ttl;
+    private Long ttl;
     private String ttlStartTime;
     private Boolean enableLabelIndex;
     private final Userdata userdata;
@@ -68,7 +69,7 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
         this.properties = new HashSet<>();
         this.primaryKeys = new ArrayList<>();
         this.nullableKeys = new HashSet<>();
-        this.ttl = 0L;
+        this.ttl = null;
         this.ttlStartTime = null;
         this.enableLabelIndex = null;
         this.userdata = new Userdata();
@@ -79,7 +80,7 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
                               HugeGraph graph, VertexLabel copy) {
         super(transaction, graph);
         E.checkNotNull(copy, "copy");
-        HugeGraph origin = copy.graph();
+        HugeGraphSupplier origin = copy.graph();
         this.id = null;
         this.name = copy.name();
         this.idStrategy = copy.idStrategy();
@@ -99,13 +100,8 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
                                        this.id, this.name);
         VertexLabel vertexLabel = new VertexLabel(this.graph(), id, this.name);
         vertexLabel.idStrategy(this.idStrategy);
-        vertexLabel.enableLabelIndex(this.enableLabelIndex == null ||
-                                     this.enableLabelIndex);
-        vertexLabel.ttl(this.ttl);
-        if (this.ttlStartTime != null) {
-            vertexLabel.ttlStartTime(this.graph().propertyKey(
-                    this.ttlStartTime).id());
-        }
+        vertexLabel.enableLabelIndex(this.enableLabelIndex == null || this.enableLabelIndex);
+        this.updateTTL(vertexLabel);
         // Assign properties
         for (String key : this.properties) {
             PropertyKey propertyKey = this.graph().propertyKey(key);
@@ -142,8 +138,7 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
             this.checkIdStrategy();
             this.checkNullableKeys(Action.INSERT);
             Userdata.check(this.userdata, Action.INSERT);
-            this.checkTtl();
-            this.checkUserdata(Action.INSERT);
+            this.checkTTL();
 
             vertexLabel = this.build();
             assert vertexLabel.name().equals(name);
@@ -225,6 +220,7 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
             PropertyKey propertyKey = this.graph().propertyKey(key);
             vertexLabel.nullableKey(propertyKey.id());
         }
+        this.updateTTL(vertexLabel);
         vertexLabel.userdata(this.userdata);
         this.graph().updateVertexLabel(vertexLabel);
         return vertexLabel;
@@ -276,8 +272,7 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
 
     @Override
     public VertexLabelBuilder idStrategy(IdStrategy idStrategy) {
-        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT ||
-                        this.idStrategy == idStrategy,
+        E.checkArgument(this.idStrategy == IdStrategy.DEFAULT || this.idStrategy == idStrategy,
                         "Not allowed to change id strategy for " +
                         "vertex label '%s'", this.name);
         this.idStrategy = idStrategy;
@@ -434,18 +429,15 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
         if (action == Action.ELIMINATE) {
             if (!this.nullableKeys.isEmpty()) {
                 throw new NotAllowException(
-                        "Not support to eliminate nullableKeys " +
-                        "for vertex label currently");
+                        "Not support to eliminate nullableKeys for vertex label currently");
             }
             return;
         }
 
         VertexLabel vertexLabel = this.vertexLabelOrNull(this.name);
         // The originProps is empty when firstly create vertex label
-        List<String> originProps = vertexLabel == null ?
-                                   ImmutableList.of() :
-                                   this.graph()
-                                       .mapPkId2Name(vertexLabel.properties());
+        List<String> originProps = vertexLabel == null ? ImmutableList.of() :
+                                   this.graph().mapPkId2Name(vertexLabel.properties());
         Set<String> appendProps = this.properties;
 
         E.checkArgument(CollectionUtil.union(originProps, appendProps)
@@ -454,10 +446,8 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
                         "must belong to the origin/new properties: %s/%s",
                         this.nullableKeys, originProps, appendProps);
 
-        List<String> primaryKeys = vertexLabel == null ?
-                                   this.primaryKeys :
-                                   this.graph()
-                                       .mapPkId2Name(vertexLabel.primaryKeys());
+        List<String> primaryKeys = vertexLabel == null ? this.primaryKeys :
+                                   this.graph().mapPkId2Name(vertexLabel.primaryKeys());
         E.checkArgument(!CollectionUtil.hasIntersection(primaryKeys,
                                                         this.nullableKeys),
                         "The nullableKeys: %s are not allowed to " +
@@ -465,11 +455,9 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
                         this.nullableKeys, primaryKeys, this.name);
 
         if (action == Action.APPEND) {
-            Collection<String> newAddedProps = CollectionUtils.subtract(
-                    appendProps, originProps);
+            Collection<String> newAddedProps = CollectionUtils.subtract(appendProps, originProps);
             E.checkArgument(this.nullableKeys.containsAll(newAddedProps),
-                            "The new added properties: %s must be nullable",
-                            newAddedProps);
+                            "The new added properties: %s must be nullable", newAddedProps);
         }
     }
 
@@ -498,8 +486,7 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
                                 "when using '%s' id strategy", strategy);
                 break;
             default:
-                throw new AssertionError(String.format(
-                        "Unknown id strategy '%s'", strategy));
+                throw new AssertionError(String.format("Unknown id strategy '%s'", strategy));
         }
         if (this.idStrategy == IdStrategy.PRIMARY_KEY) {
             this.checkPrimaryKeys();
@@ -546,7 +533,35 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
         }
     }
 
-    private void checkTtl() {
+    /**
+     * Update TTL in two cases:
+     * 1) ttl > 0L: set or change a positive TTL
+     * 2) ttl == 0L and existing ttl > 0L: explicitly clear an existing TTL
+     * This allows removing TTL from a label that previously had TTL configured.
+     * Note: ttl == null means not set, so we skip the update.
+     */
+    private void updateTTL(VertexLabel vertexLabel) {
+        if (this.ttl == null) {
+            return;
+        }
+        if (this.ttl > 0L) {
+            vertexLabel.ttl(this.ttl);
+            if (this.ttlStartTime != null) {
+                vertexLabel.ttlStartTime(this.graph().propertyKey(this.ttlStartTime).id());
+            }
+        } else if (this.ttl == 0L && vertexLabel.ttl() > 0L) {
+            // Clear TTL and ttlStartTime
+            vertexLabel.ttl(0L);
+            vertexLabel.ttlStartTime(IdGenerator.ZERO);
+        }
+    }
+
+    private void checkTTL() {
+        if (this.ttl == null) {
+            E.checkArgument(this.ttlStartTime == null,
+                            "Can't set ttl start time if ttl is not set");
+            return;
+        }
         E.checkArgument(this.ttl >= 0,
                         "The ttl must be >= 0, but got: %s", this.ttl);
         if (this.ttl == 0L) {
@@ -571,33 +586,12 @@ public class VertexLabelBuilder extends AbstractBuilder implements VertexLabel.B
                         "but got '%s(%s)'", this.ttlStartTime, pkey.dataType());
     }
 
-    private void checkUserdata(Action action) {
-        switch (action) {
-            case INSERT:
-            case APPEND:
-                for (Map.Entry<String, Object> e : this.userdata.entrySet()) {
-                    if (e.getValue() == null) {
-                        throw new NotAllowException(
-                                "Not allowed pass null userdata value when " +
-                                "create or append edge label");
-                    }
-                }
-                break;
-            case ELIMINATE:
-            case DELETE:
-                // pass
-                break;
-            default:
-                throw new AssertionError(String.format(
-                        "Unknown schema action '%s'", action));
-        }
-    }
 
-    private static Set<String> mapPkId2Name(HugeGraph graph, Set<Id> ids) {
+    private static Set<String> mapPkId2Name(HugeGraphSupplier graph, Set<Id> ids) {
         return new HashSet<>(graph.mapPkId2Name(ids));
     }
 
-    private static List<String> mapPkId2Name(HugeGraph graph, List<Id> ids) {
+    private static List<String> mapPkId2Name(HugeGraphSupplier graph, List<Id> ids) {
         return graph.mapPkId2Name(ids);
     }
 }

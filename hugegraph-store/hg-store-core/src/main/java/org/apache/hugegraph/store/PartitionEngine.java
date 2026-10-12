@@ -29,34 +29,45 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.collections.ListUtils;
+import org.apache.commons.collections.SetUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
-import org.apache.hugegraph.store.cmd.BatchPutRequest;
-import org.apache.hugegraph.store.cmd.CleanDataRequest;
-import org.apache.hugegraph.store.cmd.DbCompactionRequest;
+import org.apache.hugegraph.pd.raft.RaftReflectionUtil;
+import org.apache.hugegraph.store.business.BusinessHandler;
+import org.apache.hugegraph.store.business.BusinessHandlerImpl;
 import org.apache.hugegraph.store.cmd.HgCmdClient;
-import org.apache.hugegraph.store.cmd.UpdatePartitionRequest;
+import org.apache.hugegraph.store.cmd.request.BatchPutRequest;
+import org.apache.hugegraph.store.cmd.request.CleanDataRequest;
+import org.apache.hugegraph.store.cmd.request.DbCompactionRequest;
+import org.apache.hugegraph.store.cmd.request.UpdatePartitionRequest;
+import org.apache.hugegraph.store.listener.PartitionStateListener;
 import org.apache.hugegraph.store.meta.Partition;
 import org.apache.hugegraph.store.meta.PartitionManager;
 import org.apache.hugegraph.store.meta.Shard;
 import org.apache.hugegraph.store.meta.ShardGroup;
 import org.apache.hugegraph.store.meta.Store;
 import org.apache.hugegraph.store.meta.TaskManager;
+import org.apache.hugegraph.store.options.HgStoreEngineOptions;
 import org.apache.hugegraph.store.options.PartitionEngineOptions;
-import org.apache.hugegraph.store.raft.HgStoreStateMachine;
+import org.apache.hugegraph.store.raft.DefaultRaftClosure;
+import org.apache.hugegraph.store.raft.PartitionStateMachine;
 import org.apache.hugegraph.store.raft.RaftClosure;
 import org.apache.hugegraph.store.raft.RaftOperation;
 import org.apache.hugegraph.store.raft.RaftStateListener;
 import org.apache.hugegraph.store.raft.RaftTaskHandler;
 import org.apache.hugegraph.store.raft.util.RaftUtils;
-import org.apache.hugegraph.store.snapshot.HgSnapshotHandler;
+import org.apache.hugegraph.store.snapshot.SnapshotHandler;
 import org.apache.hugegraph.store.util.FutureClosure;
 import org.apache.hugegraph.store.util.HgRaftError;
 import org.apache.hugegraph.store.util.HgStoreException;
@@ -72,6 +83,7 @@ import com.alipay.sofa.jraft.conf.Configuration;
 import com.alipay.sofa.jraft.core.DefaultJRaftServiceFactory;
 import com.alipay.sofa.jraft.core.NodeMetrics;
 import com.alipay.sofa.jraft.core.Replicator;
+import com.alipay.sofa.jraft.entity.EnumOutter.ErrorType;
 import com.alipay.sofa.jraft.entity.PeerId;
 import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftException;
@@ -81,12 +93,11 @@ import com.alipay.sofa.jraft.storage.LogStorage;
 import com.alipay.sofa.jraft.storage.impl.RocksDBLogStorage;
 import com.alipay.sofa.jraft.storage.log.RocksDBSegmentLogStorage;
 import com.alipay.sofa.jraft.util.Endpoint;
-import com.alipay.sofa.jraft.util.SystemPropertyUtil;
 import com.alipay.sofa.jraft.util.ThreadId;
 import com.alipay.sofa.jraft.util.Utils;
-import com.alipay.sofa.jraft.util.internal.ThrowUtil;
 import com.google.protobuf.CodedInputStream;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -105,25 +116,18 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     private final AtomicBoolean changingPeer;
     private final AtomicBoolean snapshotFlag;
     private final Object leaderChangedEvent = "leaderChangedEvent";
-    /**
-     * Default value size threshold to decide whether it will be stored in segments or rocksdb,
-     * default is 4K.
-     * When the value size is less than 4K, it will be stored in rocksdb directly.
-     */
-    private final int DEFAULT_VALUE_SIZE_THRESHOLD = SystemPropertyUtil.getInt(
-            "jraft.log_storage.segment.value.threshold.bytes", 4 * 1024);
-    /**
-     * Default checkpoint interval in milliseconds.
-     */
-    private final int DEFAULT_CHECKPOINT_INTERVAL_MS = SystemPropertyUtil.getInt(
-            "jraft.log_storage.segment.checkpoint.interval.ms", 5000);
 
     private PartitionEngineOptions options;
-    private HgStoreStateMachine stateMachine;
+    private PartitionStateMachine stateMachine;
+    @Getter
     private RaftGroupService raftGroupService;
     private TaskManager taskManager;
+    private SnapshotHandler snapshotHandler;
     private Node raftNode;
-    private boolean started;
+    private volatile boolean started;
+    private volatile boolean stateMachineError;
+    // FSM callbacks may need the engine monitor while restart waits for them to drain.
+    private final Object restartLock = new Object();
 
     public PartitionEngine(HgStoreEngine storeEngine, ShardGroup shardGroup) {
         this.storeEngine = storeEngine;
@@ -133,15 +137,6 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         partitionManager = storeEngine.getPartitionManager();
         stateListeners = Collections.synchronizedList(new ArrayList());
     }
-//    public static ThreadPoolExecutor getRaftLogWriteExecutor() {
-//        if (raftLogWriteExecutor == null) {
-//            synchronized (PartitionEngine.class) {
-//                if (raftLogWriteExecutor == null)
-//                    raftLogWriteExecutor = RocksDBSegmentLogStorage.createDefaultWriteExecutor();
-//            }
-//        }
-//        return raftLogWriteExecutor;
-//    }
 
     /**
      * Record the partition information using this raft.
@@ -182,8 +177,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         log.info("PartitionEngine starting: {}", this);
         this.taskManager = new TaskManager(storeEngine.getBusinessHandler(), opts.getGroupId());
-        HgSnapshotHandler snapshotHandler = new HgSnapshotHandler(this);
-        this.stateMachine = new HgStoreStateMachine(opts.getGroupId(), snapshotHandler);
+        this.snapshotHandler = new SnapshotHandler(this);
+        this.stateMachine = new PartitionStateMachine(opts.getGroupId(), snapshotHandler);
         // probably null in test case
         if (opts.getTaskHandler() != null) {
             this.stateMachine.addTaskHandler(opts.getTaskHandler());
@@ -219,6 +214,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         nodeOptions.setSharedVoteTimer(true);
         nodeOptions.setFilterBeforeCopyRemote(true);
 
+        HgStoreEngineOptions.RaftOptions raft = options.getRaftOptions();
         nodeOptions.setServiceFactory(new DefaultJRaftServiceFactory() {
             @Override
             public LogStorage createLogStorage(final String uri, final RaftOptions raftOptions) {
@@ -231,27 +227,25 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         });
         // Initial cluster
         nodeOptions.setInitialConf(initConf);
-        // Snapshot interval
-        nodeOptions.setSnapshotIntervalSecs(options.getRaftOptions().getSnapshotIntervalSecs());
+        // Snapshot time interval
+        nodeOptions.setSnapshotIntervalSecs(raft.getSnapshotIntervalSecs());
+        //todo soya fix
+        // nodeOptions.setSnapShotDownloadingThreads(raft.getSnapshotDownloadingThreads());
 
-        //nodeOptions.setSnapshotLogIndexMargin(options.getRaftOptions()
+        // nodeOptions.setSnapshotLogIndexMargin(options.getRaftOptions()
         // .getSnapshotLogIndexMargin());
 
-        nodeOptions.setRpcConnectTimeoutMs(options.getRaftOptions().getRpcConnectTimeoutMs());
-        nodeOptions.setRpcDefaultTimeout(options.getRaftOptions().getRpcDefaultTimeout());
-        nodeOptions.setRpcInstallSnapshotTimeout(
-                options.getRaftOptions().getRpcInstallSnapshotTimeout());
-        nodeOptions.setElectionTimeoutMs(options.getRaftOptions().getElectionTimeoutMs());
+        nodeOptions.setRpcConnectTimeoutMs(raft.getRpcConnectTimeoutMs());
+        nodeOptions.setRpcDefaultTimeout(raft.getRpcDefaultTimeout());
+        nodeOptions.setRpcInstallSnapshotTimeout(raft.getRpcInstallSnapshotTimeout());
+        nodeOptions.setElectionTimeoutMs(raft.getElectionTimeoutMs());
         // Set raft configuration
         RaftOptions raftOptions = nodeOptions.getRaftOptions();
-        raftOptions.setDisruptorBufferSize(options.getRaftOptions().getDisruptorBufferSize());
-        raftOptions.setMaxEntriesSize(options.getRaftOptions().getMaxEntriesSize());
-        raftOptions.setMaxReplicatorInflightMsgs(
-                options.getRaftOptions().getMaxReplicatorInflightMsgs());
+        raftOptions.setDisruptorBufferSize(raft.getDisruptorBufferSize());
+        raftOptions.setMaxEntriesSize(raft.getMaxEntriesSize());
+        raftOptions.setMaxReplicatorInflightMsgs(raft.getMaxReplicatorInflightMsgs());
         raftOptions.setMaxByteCountPerRpc(1024 * 1024);
-        raftOptions.setMaxBodySize(options.getRaftOptions().getMaxBodySize());
         nodeOptions.setEnableMetrics(true);
-
         final PeerId serverId = JRaftUtils.getPeerId(options.getRaftAddress());
 
         // Build raft group and start raft
@@ -261,7 +255,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         this.raftNode = raftGroupService.start(false);
         this.raftNode.addReplicatorStateListener(new ReplicatorStateListener());
 
-        // Check if the peers returned by pd are consistent with the local ones, if not, reset the peerlist
+        // Check if the peers returned by pd are consistent with the local ones, if not, reset
+        // the peerlist
         if (this.raftNode != null) {
             // TODO: Check peer list, if peer changes, perform reset
             started = true;
@@ -281,7 +276,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * 1. Receive the partition migration command sent by PD, add the migration task to the state machine, the state is new.
+     * 1. Receive the partition migration command sent by PD, add the migration task to the state
+     * machine, the state is new.
      * 2, execute state machine messages, add to the task queue, and execute tasks.
      * 3. Compare old and new peers to identify added and removed peers.
      * 4. If there is a new peer added
@@ -310,125 +306,246 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         // Check the peer that needs to be added.
         List<String> addPeers = ListUtils.removeAll(peers, oldPeers);
         // learner to be deleted. Possible peer change.
-        List<String> removedPeers = ListUtils.removeAll(RaftUtils.getLearnerEndpoints(raftNode),
-                                                        peers);
+        List<String> removedPeers = ListUtils.removeAll(oldPeers, peers);
 
         HgCmdClient rpcClient = storeEngine.getHgCmdClient();
         // Generate a new Configuration object
+
         Configuration oldConf = getCurrentConf();
         Configuration conf = oldConf.copy();
+
+        FutureClosure closure;
+
         if (!addPeers.isEmpty()) {
-            addPeers.forEach(peer -> {
-                conf.addLearner(JRaftUtils.getPeerId(peer));
-            });
-
-            doSnapshot((RaftClosure) status -> {
-                log.info("Raft {} snapshot before add learner, result:{}", getGroupId(), status);
-            });
-
-            FutureClosure closure = new FutureClosure(addPeers.size());
-            addPeers.forEach(peer -> Utils.runInThread(() -> {
-                // 1. Create a new peer's raft object
+            addPeers.forEach(peer -> conf.addLearner(JRaftUtils.getPeerId(peer)));
+            doSnapshot(status -> log.info("Raft {} snapshot before add learner, result:{}",
+                                          getGroupId(), status));
+            // 2.1 learner join in raft group
+            for (var peer : addPeers) {
+                closure = new FutureClosure();
                 rpcClient.createRaftNode(peer, partitionManager.getPartitionList(getGroupId()),
-                                         conf, status -> {
-                            closure.run(status);
-                            if (!status.isOk()) {
-                                log.error("Raft {} add node {} error {}",
-                                          options.getGroupId(), peer, status);
-                            }
-                        });
-            }));
-            closure.get();
-        } else {
-            // 3. Check if learner has completed snapshot synchronization
-            boolean snapshotOk = true;
-            for (PeerId peerId : raftNode.listLearners()) {
-                Replicator.State state = getReplicatorState(peerId);
-                if (state == null || state != Replicator.State.Replicate) {
-                    snapshotOk = false;
-                    break;
+                                         conf, closure);
+                var status = closure.get();
+                if (!status.isOk()) {
+                    log.info("Raft {} createRaftNode, peer:{}, reason:{}", getGroupId(), peer,
+                             status.getErrorMsg());
+                    return status;
                 }
-                log.info("Raft {} {} getReplicatorState {}", getGroupId(), peerId, state);
             }
-            if (snapshotOk && !conf.listLearners().isEmpty()) {
-                // 4. Delete learner, rejoin as peer
-                FutureClosure closure = new FutureClosure();
-                raftNode.removeLearners(conf.listLearners(), closure);
-                if (closure.get().isOk()) {
-                    conf.listLearners().forEach(peerId -> {
-                        conf.addPeer(peerId);
-                        conf.removeLearner(peerId);
-                    });
-                    result = Status.OK();
-                } else {
-                    // Failed, retrying
-                    result = HgRaftError.TASK_ERROR.toStatus();
-                }
-            } else if (snapshotOk) {
-                result = Status.OK();   // No learner, indicating only delete operations are performed.
+
+            closure = new FutureClosure();
+            raftNode.changePeers(conf, closure);
+            var status = closure.get();
+            if (!status.isOk()) {
+                log.info("Raft {} changePeers failed, reason:{}", getGroupId(),
+                         status.getErrorMsg());
+                return status;
             }
-        }
-        if (result.isOk()) {
-            // Sync completed, delete old peer
-            removedPeers.addAll(ListUtils.removeAll(oldPeers, peers));
-            // Check if leader is deleted, if so, perform leader migration first.
-            if (removedPeers.contains(
-                    this.getRaftNode().getNodeId().getPeerId().getEndpoint().toString())) {
 
-                log.info("Raft {} leader is removed, needs to transfer leader {}, conf: {}",
-                         getGroupId(), peers, conf);
-                // only one (that's leader self), should add peer first
-                if (raftNode.listPeers().size() == 1) {
-                    FutureClosure closure = new FutureClosure();
-                    raftNode.changePeers(conf, closure);
-                    log.info("Raft {} change peer result:{}", getGroupId(), closure.get());
-                }
+            // 2.2 Waiting learner to synchronize snapshot (check added learner)
+            if (!waitForReplicate(addPeers)) {
+                return HgRaftError.TASK_CONTINUE.toStatus();
+            }
 
-                var status = this.raftNode.transferLeadershipTo(PeerId.ANY_PEER);
-                log.info("Raft {} transfer leader status : {}", getGroupId(), status);
-                // Need to resend the command to the new leader
+            log.info("Raft {} replicate status is OK", getGroupId());
+
+            closure = new FutureClosure();
+            // 2.3 change learner to follower (first remove, then add follower)
+            raftNode.removeLearners(conf.listLearners(), closure);
+            if (!closure.get().isOk()) {
+                log.error("Raft {} remove learner error, result:{}", getGroupId(), status);
+                return HgRaftError.TASK_ERROR.toStatus();
+            }
+
+            addPeers.forEach(peer -> {
+                conf.removeLearner(JRaftUtils.getPeerId(peer));
+                conf.addPeer(JRaftUtils.getPeerId(peer));
+            });
+
+            // add follower
+            closure = new FutureClosure();
+            raftNode.changePeers(conf, closure);
+            if (!closure.get().isOk()) {
+                log.error("Raft {} changePeers error, result:{}", getGroupId(), status);
                 return HgRaftError.TASK_ERROR.toStatus();
             }
         }
 
+        boolean removeSelf = false;
+        // case 3:
         if (!removedPeers.isEmpty()) {
-            removedPeers.forEach(peer -> {
+            var self = this.getRaftNode().getNodeId().getPeerId().getEndpoint().toString();
+            removeSelf = removedPeers.contains(self);
+            // 3.1 remove peers
+            List<String> toDestroy = new ArrayList<>();
+            for (var peer : removedPeers) {
+                if (Objects.equals(peer, self)) {
+                    continue;
+                }
                 conf.removeLearner(JRaftUtils.getPeerId(peer));
                 conf.removePeer(JRaftUtils.getPeerId(peer));
-            });
+                toDestroy.add(peer);
+            }
+
+            closure = new FutureClosure();
+            raftNode.changePeers(conf, closure);
+            var status = closure.get();
+
+            if (!status.isOk()) {
+                log.error("Raft {} changePeers error after destroy, result:{}", getGroupId(),
+                          status);
+                return HgRaftError.TASK_ERROR.toStatus();
+            } else {
+                for (var peer : toDestroy) {
+                    closure = new FutureClosure();
+                    rpcClient.destroyRaftNode(peer, partitionManager.getPartitionList(getGroupId()),
+                                              closure);
+                    log.info("Raft {} destroy raft node {}, result:{}", peer, getGroupId(),
+                             closure.get());
+                }
+            }
+
+            // transfer leadership to any peer
+            if (removeSelf) {
+                raftNode.transferLeadershipTo(PeerId.ANY_PEER);
+            }
         }
 
-        if (!RaftUtils.configurationEquals(oldConf, conf)) {
-            // 2. The new peer joins as a learner.
-            // 5. peer switching, add new peer, delete old peer
-            FutureClosure closure = new FutureClosure();
-            raftNode.changePeers(conf, closure);
-            if (closure.get().isOk()) {
-                if (!removedPeers.isEmpty()) {
-                    removedPeers.forEach(peer -> Utils.runInThread(() -> {
-                        // 6. Stop the deleted peer
-                        rpcClient.destroyRaftNode(peer,
-                                                  partitionManager.getPartitionList(getGroupId()),
-                                                  status -> {
-                                                      if (!status.isOk()) {
-                                                          // TODO: What if it fails?
-                                                          log.error("Raft {} destroy node {}" +
-                                                                    " error {}",
-                                                                    options.getGroupId(), peer,
-                                                                    status);
-                                                      }
-                                                  });
-                    }));
+        return removeSelf ? HgRaftError.TASK_CONTINUE.toStatus() : HgRaftError.OK.toStatus();
+    }
+
+    /**
+     * Wait until the replicator of every peer is in Replicate state (snapshot installed).
+     *
+     * @return false if the peers did not catch up within 600s
+     */
+    private boolean waitForReplicate(List<String> peers) {
+        //todo Each learner will wait for 1s, if another one is not sync.Consider using
+        // countdownLatch
+        boolean allLearnerSnapshotOk = false;
+        long current = System.currentTimeMillis();
+        while (!allLearnerSnapshotOk) {
+            boolean snapshotOk = true;
+            for (var peerId : peers) {
+                var state = getReplicatorState(JRaftUtils.getPeerId(peerId));
+                log.info("Raft {}, peer:{}, replicate state:{}", getGroupId(), peerId, state);
+                if (state != Replicator.State.Replicate) {
+                    snapshotOk = false;
                 }
-            } else {
-                // Failed, retrying
-                result = HgRaftError.TASK_ERROR.toStatus();
             }
-            log.info("Raft {} changePeers result {}, conf is {}",
-                     getRaftNode().getGroupId(), closure.get(), conf);
+            allLearnerSnapshotOk = snapshotOk;
+
+            if (!allLearnerSnapshotOk) {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    log.warn("Raft {} sleep when check learner snapshot", getGroupId());
+                }
+            }
+            if (System.currentTimeMillis() - current > 600 * 1000) {
+                return false;
+            }
         }
-        log.info("Raft {} changePeers end. {}, result is {}", getGroupId(), peers, result);
-        return result;
+        return true;
+    }
+
+    /**
+     * PD's shard list and the raft configuration have the same endpoints, but PD names another
+     * store id at one of them: a Store rebuilt with an empty disk at the same raft address
+     * registers under a new id. The raft configuration has nothing to change, so:
+     * 1. Create the raft node on that endpoint, the leader then installs a snapshot into it.
+     * 2. Take PD's store ids into the local shard group and report it to PD, otherwise the
+     * partition heartbeat writes the old id back to PD.
+     * 3. Wait for the peer to catch up.
+     *
+     * @param shards shard list from PD
+     * @return OK when nothing changed or the peers caught up, the createRaftNode status when an
+     * endpoint is unreachable (retried when its replicator comes online), TASK_ERROR when a peer
+     * has not caught up in time (its replicator keeps installing the snapshot)
+     */
+    private Status syncShardIdentities(List<Metapb.Shard> shards) {
+        Map<String, Long> pdIds = partitionManager.shardIdsByEndpoint(shards);
+        Map<String, Long> localIds =
+                partitionManager.shardIdsByEndpoint(shardGroup.getMetaPbShard());
+        String self = raftNode.getNodeId().getPeerId().getEndpoint().toString();
+        List<String> changed = changedShardEndpoints(pdIds, localIds,
+                                                     RaftUtils.getAllEndpoints(raftNode), self);
+        if (changed.isEmpty()) {
+            return HgRaftError.OK.toStatus();
+        }
+        log.info("Raft {} store id changed at raft address {}, local {}, pd {}",
+                 getGroupId(), changed, localIds, pdIds);
+
+        for (String peer : changed) {
+            FutureClosure closure = new FutureClosure();
+            storeEngine.getHgCmdClient().createRaftNode(peer, partitionManager.getPartitionList(
+                    getGroupId()), getCurrentConf(), closure);
+            Status status = closure.get();
+            if (!status.isOk()) {
+                log.info("Raft {} createRaftNode, peer:{}, reason:{}", getGroupId(), peer,
+                         status.getErrorMsg());
+                return status;
+            }
+        }
+        doSnapshot(status -> log.info("Raft {} snapshot after create raft node, result:{}",
+                                      getGroupId(), status));
+
+        List<Long> peerIds = new ArrayList<>();
+        for (String peer : RaftUtils.getPeerEndpoints(raftNode)) {
+            Long id = pdIds.getOrDefault(peer.toLowerCase(), localIds.get(peer.toLowerCase()));
+            if (id != null) {
+                peerIds.add(id);
+            }
+        }
+        List<Long> learners = new ArrayList<>();
+        for (String learner : RaftUtils.getLearnerEndpoints(raftNode)) {
+            Long id = pdIds.getOrDefault(learner.toLowerCase(),
+                                         localIds.get(learner.toLowerCase()));
+            if (id != null) {
+                learners.add(id);
+            }
+        }
+        shardGroup.changeShardList(peerIds, learners, partitionManager.getStore().getId());
+        partitionManager.updateShardGroup(shardGroup);
+        try {
+            partitionManager.getPdProvider().updateShardGroup(shardGroup.getProtoObj());
+        } catch (PDException e) {
+            log.warn("Raft {} update shard group to pd failed, {}", getGroupId(), e.getMessage());
+        }
+        log.info("Raft {} shard group after store id change {}", getGroupId(),
+                 shardGroup.getMetaPbShard());
+
+        // The store ids are taken before the wait: a rebuilt Store that restarts before PD names
+        // it would exit in loadPartitions. A timeout loses nothing, the replicator keeps going.
+        if (!waitForReplicate(changed)) {
+            log.warn("Raft {} peers {} not caught up in time, replication continues",
+                     getGroupId(), changed);
+            return HgRaftError.TASK_ERROR.toStatus();
+        }
+        return HgRaftError.OK.toStatus();
+    }
+
+    /**
+     * Endpoints of the raft configuration, except self, where PD names a different store id
+     * than the local shard group. Empty if PD's endpoints differ from the configuration, which
+     * is a membership change for changePeers.
+     */
+    static List<String> changedShardEndpoints(Map<String, Long> pdIds, Map<String, Long> localIds,
+                                              List<String> confEndpoints, String self) {
+        List<String> changed = new ArrayList<>();
+        Set<String> endpoints = new HashSet<>();
+        confEndpoints.forEach(endpoint -> endpoints.add(endpoint.toLowerCase()));
+        if (!endpoints.equals(pdIds.keySet())) {
+            return changed;
+        }
+        for (String endpoint : confEndpoints) {
+            String key = endpoint.toLowerCase();
+            if (!key.equals(self.toLowerCase()) &&
+                !Objects.equals(pdIds.get(key), localIds.get(key))) {
+                changed.add(endpoint);
+            }
+        }
+        return changed;
     }
 
     public void addRaftTask(RaftOperation operation, RaftClosure closure) {
@@ -438,7 +555,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         }
         final Task task = new Task();
         task.setData(ByteBuffer.wrap(operation.getValues()));
-        task.setDone(new HgStoreStateMachine.RaftClosureAdapter(operation, closure));
+        task.setDone(new DefaultRaftClosure(operation, closure));
         this.raftNode.apply(task);
     }
 
@@ -447,34 +564,56 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         if (!this.started) {
             return;
         }
-
-        partitionManager.updateShardGroup(shardGroup);
-
-        if (this.raftGroupService != null) {
-            this.raftGroupService.shutdown();
-            try {
-                this.raftGroupService.join();
-            } catch (final InterruptedException e) {
-                ThrowUtil.throwException(e);
+        boolean interrupted = false;
+        try {
+            if (this.raftGroupService != null) {
+                this.raftGroupService.shutdown();
+                boolean terminated = false;
+                while (!terminated) {
+                    try {
+                        this.raftGroupService.join();
+                        terminated = true;
+                    } catch (InterruptedException e) {
+                        // Storage remains in use until Raft and its callbacks have stopped.
+                        interrupted = true;
+                    }
+                }
+            }
+            this.started = false;
+            log.info("PartitionEngine shutdown successfully: {}.", this);
+        } finally {
+            if (interrupted) {
+                Thread.currentThread().interrupt();
             }
         }
-        this.started = false;
-        log.info("PartitionEngine shutdown successfully: {}.", this);
     }
 
     /**
      * Restart raft engine
      */
     public void restartRaftNode() {
-        shutdown();
-        log.error("Raft {} is restarting !!!", getGroupId());
-        this.init(this.options);
+        synchronized (this.restartLock) {
+            if (this.stateMachineError) {
+                return;
+            }
+            shutdown();
+            // shutdown joins the old FSM, including its synchronous error notifications.
+            // An error while it drained must prevent reopening the same logs.
+            if (this.stateMachineError) {
+                return;
+            }
+            log.error("Raft {} is restarting !!!", getGroupId());
+            this.init(this.options);
+        }
     }
 
     /**
      * Check if it is active, if not, restart it.
      */
     public void checkActivity() {
+        if (this.stateMachineError) {
+            return;
+        }
         Utils.runInThread(() -> {
             if (!this.raftNode.getNodeState().isActive()) {
                 log.error("Raft {} is not activity state is {} ",
@@ -521,8 +660,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     public Map<Long, PeerId> getAlivePeers() {
         Map<Long, PeerId> peers = new HashMap<>();
         raftNode.listAlivePeers().forEach(peerId -> {
-            Shard shard = partitionManager.getShardByRaftEndpoint(shardGroup,
-                                                                  peerId.getEndpoint().toString());
+            Shard shard = partitionManager.getShardByEndpoint(shardGroup,
+                                                              peerId.getEndpoint().toString());
             if (shard != null) {
                 peers.put(shard.getStoreId(), peerId);
             }
@@ -564,7 +703,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     if (partitionManager.isLocalPartition(this.options.getGroupId())) {
                         log.error("Raft {} leader not found, try to repair!",
                                   this.options.getGroupId());
-                        // TODO: Check if raft is local, if so, try to fix the Leader, including checking if the configuration is correct.
+                        // TODO: Check if raft is local, if so, try to fix the Leader, including
+                        //  checking if the configuration is correct.
                         storeEngine.createPartitionGroups(
                                 partitionManager.getPartitionList(getGroupId()).get(0));
                     }
@@ -629,14 +769,17 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
      */
     @Override
     public void onConfigurationCommitted(Configuration conf) {
-
+        if (storeEngine.isClosing().get()) {
+            return;
+        }
         try {
             // Update shardlist
             log.info("Raft {} onConfigurationCommitted, conf is {}", getGroupId(), conf.toString());
+            var pdGroup = storeEngine.getPdProvider().getShardGroupDirect(getGroupId());
             // According to raft endpoint find storeId
             List<Long> peerIds = new ArrayList<>();
             for (String peer : RaftUtils.getPeerEndpoints(conf)) {
-                Store store = getStoreByEndpoint(peer);
+                Store store = getStoreByEndpoint(pdGroup, peer);
                 if (store != null) {
                     peerIds.add(store.getId());
                 } else {
@@ -645,7 +788,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             }
             List<Long> learners = new ArrayList<>();
             for (String learner : RaftUtils.getLearnerEndpoints(conf)) {
-                Store store = getStoreByEndpoint(learner);
+                Store store = getStoreByEndpoint(pdGroup, learner);
                 if (store != null) {
                     learners.add(store.getId());
                 } else {
@@ -657,14 +800,24 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
             partitionManager.updateShardGroup(shardGroup);
 
             if (isLeader()) {
+                // TODO: remove this commented-out block if nothing still needs it
                 // partitionManager.getPartitionList(getGroupId()).forEach(partition -> {
                 //    partitionManager.changeShards(partition, shardGroup.getMetaPbShard());
                 // });
                 try {
-                    var pdGroup = storeEngine.getPdProvider().getShardGroup(getGroupId());
                     List<String> peers = partitionManager.shards2Peers(pdGroup.getShardsList());
 
-                    if (!ListUtils.isEqualList(peers, RaftUtils.getPeerEndpoints(raftNode))) {
+                    Long leaderStoreId = null;
+                    for (var shard : pdGroup.getShardsList()) {
+                        if (shard.getRole() == Metapb.ShardRole.Leader) {
+                            leaderStoreId = shard.getStoreId();
+                        }
+                    }
+                    // Update PD information when leader changes, peers differ, or learners are
+                    // different
+                    if (!SetUtils.isEqualSet(peers, RaftUtils.getPeerEndpoints(raftNode)) ||
+                        !SetUtils.isEqualSet(learners, RaftUtils.getLearnerEndpoints(raftNode)) ||
+                        !Objects.equals(leaderStoreId, partitionManager.getStore().getId())) {
                         partitionManager.getPdProvider().updateShardGroup(shardGroup.getProtoObj());
                     }
 
@@ -681,8 +834,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
     }
 
-    private Store getStoreByEndpoint(String endpoint) {
-        Store store = partitionManager.getStoreByRaftEndpoint(getShardGroup(), endpoint);
+    private Store getStoreByEndpoint(Metapb.ShardGroup pdGroup, String endpoint) {
+        Store store = partitionManager.getStoreByRaftEndpoint(getShardGroup(), pdGroup, endpoint);
         if (store == null || store.getId() == 0) {
             store = this.storeEngine.getHgCmdClient().getStoreInfo(endpoint);
         }
@@ -696,6 +849,13 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
     @Override
     public void onError(RaftException e) {
+        if (e.getType() == ErrorType.ERROR_TYPE_STATE_MACHINE) {
+            // Do not acquire restartLock here: shutdown may be joining this FSM thread.
+            this.stateMachineError = true;
+            log.error("Raft {} stopped after a state machine error; repair the cause and " +
+                      "restart the Store process before resuming", getGroupId(), e);
+            return;
+        }
         this.restartRaftNode();
     }
 
@@ -735,102 +895,53 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
      * 1. Compare new and old peers, identify added and removed peers.
      * 2. For new peers, join as a learner.
      * 3. Listen for snapshot synchronization events
-     * 4. After the snapshot synchronization is completed, call changePeers, change the learner to follower, and delete the old peer.
+     * 4. After the snapshot synchronization is completed, call changePeers, change the learner
+     * to follower, and delete the old peer.
      */
     public void doChangeShard(final MetaTask.Task task, Closure done) {
-        if (!isLeader()) {
-            return;
-        }
+        try {
+            if (!isLeader() || !changingPeer.compareAndSet(false, true)) {
+                return;
+            }
 
-        log.info("Raft {} doChangeShard task is {}", getGroupId(), task);
-        // If the same partition has the same task executing, ignore task execution.
-        if (taskManager.partitionTaskRepeat(task.getPartition().getId(),
-                                            task.getPartition().getGraphName(),
-                                            task.getType().name())) {
-            log.error("Raft {} doChangeShard task repeat, type:{}", getGroupId(), task.getType());
-            return;
-        }
-        // Task not completed, repeat execution.
-        if (task.getState().getNumber() < MetaTask.TaskState.Task_Stop_VALUE && isLeader()) {
+            log.info("Raft {} doChangeShard task is {}", getGroupId(), task);
             Utils.runInThread(() -> {
+                List<String> peers =
+                        partitionManager.shards2Peers(task.getChangeShard().getShardList());
+                HashSet<String> hashSet = new HashSet<>(peers);
+
                 try {
-                    // cannot changePeers in the state machine
-                    List<String> peers =
-                            partitionManager.shards2Peers(task.getChangeShard().getShardList());
-                    HashSet<String> hashSet = new HashSet<>(peers);
-                    // Task has the same peers, indicating there is an error in the task itself, task ignored
+                    // If there are duplicate peers in the task, it indicates the task itself has errors, ignore the task
                     if (peers.size() != hashSet.size()) {
-                        log.info("Raft {} doChangeShard peer is repeat, peers: {}", getGroupId(),
+                        log.info("Raft {} doChangeShard peer is repeat, peers:{}", getGroupId(),
                                  peers);
+                        return;
                     }
-                    Status result;
-                    if (changingPeer.compareAndSet(false, true)) {
-                        result = this.changePeers(peers, done);
-                    } else {
-                        result = HgRaftError.TASK_ERROR.toStatus();
+                    Status result = changePeers(peers, null);
+                    if (result.isOk()) {
+                        result = syncShardIdentities(task.getChangeShard().getShardList());
                     }
 
-                    if (result.getCode() != HgRaftError.TASK_CONTINUE.getNumber()) {
-                        log.info("Raft {} doChangeShard is finished, status is {}", getGroupId(),
-                                 result);
-                        // Task completed, synchronize task status
-                        MetaTask.Task newTask;
-                        if (result.isOk()) {
-                            newTask = task.toBuilder().setState(MetaTask.TaskState.Task_Success)
-                                          .build();
-                        } else {
-                            log.warn(
-                                    "Raft {} doChangeShard is failure, need to retry, status is {}",
-                                    getGroupId(), result);
-                            try {
-                                // Reduce send times
-                                Thread.sleep(1000);
-                            } catch (Exception e) {
-                                log.error("wait 1s to resend retry task. got error:{}",
-                                          e.getMessage());
-                            }
-                            newTask = task.toBuilder().setState(MetaTask.TaskState.Task_Ready)
-                                          .build();
-                        }
-                        try {
-                            // During the waiting process, it may have already shut down.
-                            if (isLeader()) {
-                                storeEngine.addRaftTask(newTask.getPartition().getGraphName(),
-                                                        newTask.getPartition().getId(),
-                                                        RaftOperation.create(
-                                                                RaftOperation.SYNC_PARTITION_TASK,
-                                                                newTask),
-                                                        status -> {
-                                                            if (!status.isOk()) {
-                                                                log.error(
-                                                                        "Raft {} addRaftTask " +
-                                                                        "error, status is {}",
-                                                                        newTask.getPartition()
-                                                                               .getId(), status);
-                                                            }
-                                                        }
-                                );
-                            }
-                        } catch (Exception e) {
-                            log.error("Partition {}-{} update task state exception {}",
-                                      task.getPartition().getGraphName(),
-                                      task.getPartition().getId(), e);
-                        }
-                        // db might have been destroyed, do not update anymore
-                        if (this.started) {
-                            taskManager.updateTask(newTask);
-                        }
-                    } else {
-                        log.info("Raft {} doChangeShard not finished", getGroupId());
+                    if (result.getCode() == HgRaftError.TASK_CONTINUE.getNumber()) {
+                        // Need to resend a request
+                        storeEngine.addRaftTask(task.getPartition().getGraphName(),
+                                                task.getPartition().getId(), RaftOperation.create(
+                                        RaftOperation.SYNC_PARTITION_TASK, task), status -> {
+                                    if (!status.isOk()) {
+                                        log.error(
+                                                "Raft {} addRaftTask error, " + "status " + "is {}",
+                                                task.getPartition().getId(), status);
+                                    }
+                                });
                     }
+                    log.info("Raft {} doChangeShard result is {}", getGroupId(), result);
                 } catch (Exception e) {
                     log.error("Raft {} doChangeShard exception {}", getGroupId(), e);
                 } finally {
                     changingPeer.set(false);
                 }
             });
-        } else {
-            // Whether the message has been processed
+        } finally {
             if (done != null) {
                 done.run(Status.OK());
             }
@@ -917,7 +1028,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 storeEngine.createPartitionGroups(new Partition(newPartitions.get(i)));
             }
             // Copy data from the source machine to the target machine
-            status = storeEngine.getDataMover().moveData(task.getPartition(), newPartitions);
+            status = storeEngine.getDataManager().move(task.getPartition(), newPartitions);
 
             if (status.isOk()) {
                 var source = Metapb.Partition.newBuilder(targets.get(0))
@@ -925,9 +1036,9 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                                              .build();
                 // Update local key range, and synchronize follower
                 partitionManager.updatePartition(source, true);
-                storeEngine.getDataMover().updatePartitionRange(source,
-                                                                (int) source.getStartKey(),
-                                                                (int) source.getEndKey());
+                partitionManager.updateRange(source,
+                                             (int) source.getStartKey(),
+                                             (int) source.getEndKey());
             }
 
             if (!status.isOk()) {
@@ -955,9 +1066,9 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                      task.getPartition().getGraphName(),
                      task.getPartition().getId(),
                      task.getMovePartition().getTargetPartition().getId());
-            status = storeEngine.getDataMover().moveData(task.getPartition(),
-                                                         task.getMovePartition()
-                                                             .getTargetPartition());
+            status = storeEngine.getDataManager().move(task.getPartition(),
+                                                       task.getMovePartition()
+                                                           .getTargetPartition());
         } catch (Exception e) {
             log.error("handleMoveTask got exception: ", e);
             status = new Status(-1, e.getMessage());
@@ -966,14 +1077,16 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     /**
-     * For the entire graph deletion, clear the deletion partition, if there are no other graphs, destroy the raft group.
+     * For the entire graph deletion, clear the deletion partition, if there are no other graphs,
+     * destroy the raft group.
      * Need to be placed after the call to move data
      *
      * @param graphName   graph name
      * @param partitionId partition id
      * @param keyStart    key start used for verification
      * @param keyEnd      key end used for verification
-     * @param isLeader    Whether leader, to avoid leader drifting, the leader status when moving data
+     * @param isLeader    Whether leader, to avoid leader drifting, the leader status when moving
+     *                    data
      */
     private synchronized void destroyPartitionIfGraphsNull(String graphName, int partitionId,
                                                            long keyStart, long keyEnd,
@@ -1051,7 +1164,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                 partitionManager.getPartition(request.getGraphName(), request.getPartitionId());
 
         if (partition != null) {
-            storeEngine.getDataMover().doCleanData(request);
+            storeEngine.getDataManager().clean(request);
             storeEngine.getBusinessHandler()
                        .dbCompaction(partition.getGraphName(), partition.getId());
 
@@ -1087,56 +1200,106 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         }
     }
 
+    public void buildIndex(MetaTask.Task task) {
+
+        var state = MetaTask.TaskState.Task_Failure;
+        String message = "SUCCESS";
+        try {
+            var status = storeEngine.getDataManager().doBuildIndex(task.getBuildIndex().getParam(),
+                                                                   task.getPartition());
+            if (status.isOk()) {
+                state = MetaTask.TaskState.Task_Success;
+            } else {
+                message = status.getErrorMsg();
+            }
+
+        } catch (Exception e) {
+            message = e.getMessage() == null ? "UNKNOWN" : e.getMessage();
+            log.error("build index error:", e);
+        }
+
+        try {
+            partitionManager.reportTask(
+                    task.toBuilder().setState(state).setMessage(message).build());
+        } catch (Exception e) {
+            log.error("report task failed: error :", e);
+        }
+
+    }
+
+    public void doSnapshotSync(Closure done) {
+        long lastIndex = raftNode.getLastAppliedLogIndex();
+        BusinessHandler handler = storeEngine.getBusinessHandler();
+        Integer groupId = getGroupId();
+        String lockPath = handler.getLockPath(groupId);
+        AtomicInteger state = handler.getState(groupId);
+        if (state != null && state.get() == BusinessHandler.compactionDone) {
+            log.info("Partition {},path:{} prepare to doSnapshotSync", this.getGroupId(), lockPath);
+            BusinessHandlerImpl.getCompactionPool().execute(() -> {
+                try {
+                    long start = System.currentTimeMillis();
+                    while ((System.currentTimeMillis() - start) < 5000 &&
+                           raftNode.getLastAppliedLogIndex() == lastIndex) {
+                        synchronized (state) {
+                            state.wait(200);
+                        }
+                    }
+                    log.info("Partition {},path:{}  begin to doSnapshotSync", this.getGroupId(),
+                             lockPath);
+                    //todo soya may have problem
+                    //raftNode.getRaftOptions().setTruncateLog(true);
+                    CountDownLatch latch = new CountDownLatch(1);
+                    AtomicReference<Status> result = new AtomicReference<>();
+                    raftNode.snapshot(status -> {
+                        result.set(status);
+                        try {
+                            //todo soya may have problem
+                            //raftNode.getRaftOptions().setTruncateLog(false);
+                            latch.countDown();
+                            log.info("Partition {},path: {} doSnapshotSync result : {}. ", groupId,
+                                     lockPath, status);
+                        } catch (Exception e) {
+                            log.error("wait doSnapshotSync with error:", e);
+                        } finally {
+                            handler.setAndNotifyState(groupId, BusinessHandler.compactionCanStart);
+                            handler.unlock(lockPath);
+                            log.info("Partition {},path: {} release dbCompaction lock", groupId,
+                                     lockPath);
+                        }
+                    });
+                    latch.await();
+                } catch (Exception e) {
+                    log.error("doSnapshotSync with error:", e);
+                    handler.setAndNotifyState(groupId, BusinessHandler.compactionCanStart);
+                    handler.unlock(lockPath);
+                }
+            });
+        }
+        if (done != null) {
+            done.run(Status.OK());
+        }
+    }
+
+    public void doBlankTaskSync(Closure done) {
+        try {
+            doSnapshotSync(done);
+        } catch (Exception e) {
+            // TODO: groupId is unused and the error is never logged; log it or remove both
+            Integer groupId = getGroupId();
+            // String msg = String.format("Partition %s blank task done with error：", groupId);
+            // log.error(msg, e);
+            if (done != null) {
+                done.run(new Status(-1, e.getMessage()));
+            }
+        }
+    }
+
     public Configuration getCurrentConf() {
         return new Configuration(this.raftNode.listPeers(), this.raftNode.listLearners());
     }
 
     private Replicator.State getReplicatorState(PeerId peerId) {
-        var replicateGroup = getReplicatorGroup();
-        if (replicateGroup == null) {
-            return null;
-        }
-
-        ThreadId threadId = replicateGroup.getReplicator(peerId);
-        if (threadId == null) {
-            return null;
-        } else {
-            Replicator r = (Replicator) threadId.lock();
-            if (r == null) {
-                return Replicator.State.Probe;
-            }
-            Replicator.State result = getState(r);
-            threadId.unlock();
-            return result;
-        }
-    }
-
-    private ReplicatorGroup getReplicatorGroup() {
-        var clz = this.raftNode.getClass();
-        try {
-            var f = clz.getDeclaredField("replicatorGroup");
-            f.setAccessible(true);
-            var group = (ReplicatorGroup) f.get(this.raftNode);
-            f.setAccessible(false);
-            return group;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            log.info("getReplicatorGroup: error {}", e.getMessage());
-            return null;
-        }
-    }
-
-    private Replicator.State getState(Replicator r) {
-        var clz = r.getClass();
-        try {
-            var f = clz.getDeclaredField("state");
-            f.setAccessible(true);
-            var state = (Replicator.State) f.get(this.raftNode);
-            f.setAccessible(false);
-            return state;
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            log.info("getReplicatorGroup: error {}", e.getMessage());
-            return null;
-        }
+        return RaftReflectionUtil.getReplicatorState(this.raftNode, peerId);
     }
 
     class ReplicatorStateListener implements Replicator.ReplicatorStateListener {
@@ -1148,7 +1311,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
 
         @Override
         public void onError(PeerId peer, Status status) {
-            //  log.info("Raft {} Replicator onError {} {}", getGroupId(), peer, status);
+            // TODO: replicator errors are silently dropped; log them or remove this line
+            // log.info("Raft {} Replicator onError {} {}", getGroupId(), peer, status);
         }
 
         @Override
@@ -1157,7 +1321,8 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
         }
 
         /**
-         * Listen for changes in replicator status to determine if the snapshot is fully synchronized.
+         * Listen for changes in replicator status to determine if the snapshot is fully
+         * synchronized.
          * Check if there is a changeShard task, if it exists, call changeShard.
          */
         @Override
@@ -1192,7 +1357,9 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                         invoke(groupId, methodId, Metapb.Partition.parseFrom(input), response);
                         break;
                     case RaftOperation.DO_SNAPSHOT:
+                    case RaftOperation.DO_SYNC_SNAPSHOT:
                     case RaftOperation.BLANK_TASK:
+                    case RaftOperation.SYNC_BLANK_TASK:
                         invoke(groupId, methodId, null, response);
                         break;
                     case RaftOperation.IN_WRITE_OP:
@@ -1236,7 +1403,7 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                     doSnapshot(response);
                     break;
                 case RaftOperation.IN_WRITE_OP:
-                    storeEngine.getDataMover().doWriteData((BatchPutRequest) (req));
+                    storeEngine.getDataManager().write((BatchPutRequest) (req));
                     break;
                 case RaftOperation.IN_CLEAN_OP:
                     handleCleanOp((CleanDataRequest) req);
@@ -1252,6 +1419,12 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
                                .dbCompaction(dbCompactionRequest.getGraphName(),
                                              dbCompactionRequest.getPartitionId(),
                                              dbCompactionRequest.getTableName());
+                    break;
+                case RaftOperation.DO_SYNC_SNAPSHOT:
+                    doSnapshotSync(response);
+                    break;
+                case RaftOperation.SYNC_BLANK_TASK:
+                    doBlankTaskSync(response);
                     break;
                 default:
                     return false;

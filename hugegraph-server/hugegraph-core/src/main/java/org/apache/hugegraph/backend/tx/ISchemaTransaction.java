@@ -17,17 +17,16 @@
 
 package org.apache.hugegraph.backend.tx;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.schema.SchemaLabel;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.SchemaStatus;
@@ -96,6 +95,8 @@ public interface ISchemaTransaction {
     void checkSchemaName(String name);
 
     String graphName();
+
+    String spaceGraphName();
 
     void updateSchemaStatus(SchemaElement element, SchemaStatus status);
 

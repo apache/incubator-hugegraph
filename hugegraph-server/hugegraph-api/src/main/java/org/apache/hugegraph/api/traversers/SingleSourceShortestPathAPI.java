@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.api.traversers;
 
+import org.apache.hugegraph.util.TinkerPopUtil;
+
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_PATHS_LIMIT;
@@ -28,7 +30,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.graph.EdgeAPI;
 import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.SingleSourceShortestPathTraverser;
@@ -49,7 +51,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/singlesourceshortestpath")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/singlesourceshortestpath")
 @Singleton
 @Tag(name = "SingleSourceShortestPathAPI")
 public class SingleSourceShortestPathAPI extends API {
@@ -60,6 +62,7 @@ public class SingleSourceShortestPathAPI extends API {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
                       @QueryParam("direction") String direction,
@@ -87,9 +90,9 @@ public class SingleSourceShortestPathAPI extends API {
         ApiMeasurer measure = new ApiMeasurer();
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         SingleSourceShortestPathTraverser traverser =
                 new SingleSourceShortestPathTraverser(g);
         SingleSourceShortestPathTraverser.WeightedPaths paths =

@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.api.traversers;
 
+import org.apache.hugegraph.util.TinkerPopUtil;
+
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 
@@ -24,7 +26,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.graph.EdgeAPI;
 import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.traversal.algorithm.PredictionTraverser;
 import org.apache.hugegraph.type.define.Directions;
@@ -49,7 +51,7 @@ import jakarta.ws.rs.core.Context;
  * info and definition in:
  * https://en.wikipedia.org/wiki/Adamic/Adar_index
  */
-@Path("graphs/{graph}/traversers/adamicadar")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/adamicadar")
 @Singleton
 @Tag(name = "AdamicAdarAPI")
 public class AdamicAdarAPI extends API {
@@ -59,6 +61,7 @@ public class AdamicAdarAPI extends API {
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
                       @PathParam("graph") String graph,
+                      @PathParam("graphspace") String graphSpace,
                       @QueryParam("vertex") String current,
                       @QueryParam("other") String other,
                       @QueryParam("direction") String direction,
@@ -76,9 +79,9 @@ public class AdamicAdarAPI extends API {
         Id targetId = VertexAPI.checkAndParseVertexId(other);
         E.checkArgument(!current.equals(other),
                         "The source and target vertex id can't be same");
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         try (PredictionTraverser traverser = new PredictionTraverser(g)) {
             double score = traverser.adamicAdar(sourceId, targetId, dir,
                                                 edgeLabel, maxDegree, limit);

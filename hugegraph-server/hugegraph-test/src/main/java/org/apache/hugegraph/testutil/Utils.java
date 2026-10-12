@@ -24,10 +24,10 @@ import java.util.List;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.fluent.Configurations;
 import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.util.DateUtil;
 import org.apache.hugegraph.util.E;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -48,7 +48,20 @@ public class Utils {
         } catch (Exception ignored) {
             // ignored Exception
         }
-        return HugeFactory.open(confPath);
+
+        return HugeFactory.open(getLocalConfig(confPath));
+    }
+
+    private static PropertiesConfiguration getLocalConfig(String path) {
+        File file = new File(path);
+        E.checkArgument(file.exists() && file.isFile() && file.canRead(),
+                        "Please specify a proper config file rather than: %s",
+                        file.toString());
+        try {
+            return new Configurations().properties(file);
+        } catch (ConfigurationException e) {
+            throw new HugeException("Unable to load config file: %s", e, path);
+        }
     }
 
     public static boolean containsId(List<Vertex> vertices, Id id) {

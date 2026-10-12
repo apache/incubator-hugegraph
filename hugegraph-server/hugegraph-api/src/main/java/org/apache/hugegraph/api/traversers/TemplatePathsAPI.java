@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.TemplatePathsTraverser;
@@ -50,7 +50,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/templatepaths")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/templatepaths")
 @Singleton
 @Tag(name = "TemplatePathsAPI")
 public class TemplatePathsAPI extends TraverserAPI {
@@ -78,6 +78,7 @@ public class TemplatePathsAPI extends TraverserAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        Request request) {
         E.checkArgumentNotNull(request, "The request body can't be null");
@@ -96,7 +97,7 @@ public class TemplatePathsAPI extends TraverserAPI {
 
         ApiMeasurer measure = new ApiMeasurer();
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
         Iterator<Vertex> targets = request.targets.vertices(g);
         List<RepeatEdgeStep> steps = steps(g, request.steps);

@@ -33,12 +33,12 @@ public class ClusterConstant {
     public static final String PLUGINS_DIR = "plugins";
     public static final String BIN_DIR = "bin";
     public static final String CONF_DIR = "conf";
-    public static final String PD_PACKAGE_PREFIX = "apache-hugegraph-pd-incubating";
+    public static final String PD_PACKAGE_PREFIX = "apache-hugegraph-pd";
     public static final String PD_JAR_PREFIX = "hg-pd-service";
-    public static final String STORE_PACKAGE_PREFIX = "apache-hugegraph-store-incubating";
+    public static final String STORE_PACKAGE_PREFIX = "apache-hugegraph-store";
     public static final String STORE_JAR_PREFIX = "hg-store-node";
-    public static final String SERVER_PACKAGE_PREFIX = "apache-hugegraph-server-incubating";
-    public static final String CT_PACKAGE_PREFIX = "apache-hugegraph-ct-incubating";
+    public static final String SERVER_PACKAGE_PREFIX = "apache-hugegraph-server";
+    public static final String CT_PACKAGE_PREFIX = "apache-hugegraph-ct";
     public static final String APPLICATION_FILE = "application.yml";
     public static final String SERVER_PROPERTIES = "rest-server.properties";
     public static final String HUGEGRAPH_PROPERTIES = "graphs/hugegraph.properties";
@@ -49,6 +49,7 @@ public class ClusterConstant {
     public static final String GRAPH_TEMPLATE_FILE = "hugegraph.properties.template";
     public static final String GREMLIN_DRIVER_SETTING_FILE = "gremlin-driver-settings.yaml";
     public static final String GREMLIN_SERVER_FILE = "gremlin-server.yaml";
+    public static final String JVM_MODULE_OPTIONS_FILE = "jvm-module.options";
     public static final String REMOTE_SETTING_FILE = "remote.yaml";
     public static final String REMOTE_OBJECTS_SETTING_FILE = "remote-objects.yaml";
     public static final String EMPTY_SAMPLE_GROOVY_FILE = "scripts/empty-sample.groovy";
@@ -106,7 +107,7 @@ public class ClusterConstant {
         return "";
     }
 
-    public static boolean isJava11OrHigher() {
+    public static boolean isJava17OrHigher() {
         String version = System.getProperty("java.version");
         if (version.startsWith("1.")) {
             version = version.substring(2, 3);
@@ -117,7 +118,7 @@ public class ClusterConstant {
             }
         }
         int versionNumber = Integer.parseInt(version);
-        return versionNumber >= 11;
+        return versionNumber >= 17;
     }
 
     public static String getProjectDir() {

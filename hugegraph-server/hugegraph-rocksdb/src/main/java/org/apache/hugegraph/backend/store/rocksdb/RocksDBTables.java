@@ -22,10 +22,11 @@ import java.nio.ByteOrder;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.query.Condition;
-import org.apache.hugegraph.backend.query.Condition.Relation;
-import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.backend.BackendColumn;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.query.Condition;
+import org.apache.hugegraph.query.Condition.Relation;
+import org.apache.hugegraph.query.ConditionQuery;
 import org.apache.hugegraph.backend.serializer.BinarySerializer;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendEntry.BackendColumnIterator;
@@ -182,8 +183,7 @@ public class RocksDBTables {
         @Override
         protected BackendColumnIterator queryByIds(RocksDBSessions.Session session,
                                                    Collection<Id> ids) {
-            // TODO: use getByIds() after batch version multi-get is ready
-            return super.queryByIds(session, ids);
+            return this.queryByIdsWithGet(session, ids);
         }
     }
 
@@ -208,6 +208,12 @@ public class RocksDBTables {
         protected BackendColumnIterator queryById(RocksDBSessions.Session session, Id id) {
             return this.getById(session, id);
         }
+
+        @Override
+        protected BackendColumnIterator queryByIds(RocksDBSessions.Session session,
+                                                   Collection<Id> ids) {
+            return this.queryByIdsWithGet(session, ids);
+        }
     }
 
     public static class IndexTable extends RocksDBTable {
@@ -229,7 +235,7 @@ public class RocksDBTables {
              * Only delete index by label will come here
              * Regular index delete will call eliminate()
              */
-            for (BackendEntry.BackendColumn column : entry.columns()) {
+            for (BackendColumn column : entry.columns()) {
                 // Don't assert entry.belongToMe(column), length-prefix is 1*
                 session.deletePrefix(this.table(), column.name);
             }

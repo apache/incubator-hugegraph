@@ -17,20 +17,55 @@
 
 package org.apache.hugegraph.unit.cache;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
+import org.apache.hugegraph.backend.cache.Cache;
+import org.apache.hugegraph.backend.cache.CacheNotifier;
+import org.apache.hugegraph.backend.cache.CacheManager;
 import org.apache.hugegraph.backend.cache.CachedSchemaTransaction;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.backend.cache.CachedSchemaTransactionV2;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.event.EventListener;
+import org.apache.hugegraph.meta.MetaDriver;
+import org.apache.hugegraph.meta.MetaManager;
+import org.apache.hugegraph.meta.PdMetaDriver;
+import org.apache.hugegraph.meta.managers.GraphMetaManager;
+import org.apache.hugegraph.struct.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.VertexLabel;
+import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.type.HugeType;
+import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.util.JsonUtil;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -38,24 +73,54 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
 
     private CachedSchemaTransaction cache;
     private HugeGraphParams params;
+    private HugeGraph graph;
 
     @Before
     public void setup() {
-        HugeGraph graph = HugeFactory.open(FakeObjects.newConfig());
-        this.params = Whitebox.getInternalState(graph, "params");
+        this.graph = HugeFactory.open(FakeObjects.newConfig());
+        this.params = Whitebox.getInternalState(this.graph, "params");
         this.cache = new CachedSchemaTransaction(this.params,
                                                  this.params.loadSchemaStore());
     }
 
     @After
     public void teardown() throws Exception {
-        this.cache().graph().clearBackend();
-        this.cache().graph().close();
+        try {
+            if (this.cache != null) {
+                this.cache.close();
+            }
+        } finally {
+            this.cache = null;
+            if (this.graph != null) {
+                this.graph.clearBackend();
+                this.graph.close();
+                this.graph = null;
+            }
+        }
     }
 
     private CachedSchemaTransaction cache() {
         Assert.assertNotNull(this.cache);
         return this.cache;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ConcurrentMap<String, Object> schemaCacheEventListeners()
+            throws Exception {
+        Field field = CachedSchemaTransaction.class
+                                             .getDeclaredField(
+                                                     "SCHEMA_CACHE_EVENT_LISTENERS");
+        field.setAccessible(true);
+        return (ConcurrentMap<String, Object>) field.get(null);
+    }
+
+    private static EventListener holderListener(Object holder) {
+        return Whitebox.getInternalState(holder, "listener");
+    }
+
+    private static int holderRefCount(Object holder) {
+        Integer refCount = Whitebox.getInternalState(holder, "refCount");
+        return refCount;
     }
 
     @Test
@@ -166,6 +231,755 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
     }
 
     @Test
+    public void testLegacySchemaChangeEmitsActionInvalid()
+            throws Exception {
+        CachedSchemaTransaction cache = this.cache();
+        CountDownLatch latch = new CountDownLatch(1);
+        AtomicReference<String> action = new AtomicReference<>();
+        EventListener listener = event -> {
+            Object[] args = event.args();
+            if (args.length > 0) {
+                action.set((String) args[0]);
+                latch.countDown();
+            }
+            return true;
+        };
+        this.params.schemaEventHub().listen(Events.CACHE, listener);
+
+        try {
+            FakeObjects objects = new FakeObjects("unit-test");
+            cache.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
+                                                        "fake-pk-1"));
+
+            Assert.assertTrue(latch.await(1L, TimeUnit.SECONDS));
+            Assert.assertEquals(Cache.ACTION_INVALID, action.get());
+            Assert.assertEquals(1L, Whitebox.invoke(cache, "idCache", "size"));
+            Assert.assertEquals(1L,
+                                Whitebox.invoke(cache, "nameCache", "size"));
+            Assert.assertEquals("fake-pk-1",
+                                cache.getPropertyKey(IdGenerator.of(1))
+                                     .name());
+            Assert.assertEquals(IdGenerator.of(1),
+                                cache.getPropertyKey("fake-pk-1").id());
+        } finally {
+            this.params.schemaEventHub().unlisten(Events.CACHE, listener);
+        }
+    }
+
+    @Test
+    public void testCacheListenerSurvivesOwnerClose() throws Exception {
+        ConcurrentMap<String, Object> registry = schemaCacheEventListeners();
+        String graphName = this.params.spaceGraphName();
+        CachedSchemaTransaction owner = this.cache();
+        CachedSchemaTransaction second = new CachedSchemaTransaction(
+                this.params, this.params.loadSchemaStore());
+
+        Object holder = registry.get(graphName);
+        Assert.assertNotNull(holder);
+        EventListener registered = holderListener(holder);
+        int refCount = holderRefCount(holder);
+        Assert.assertTrue(refCount >= 2);
+
+        owner.close();
+        this.cache = second;
+
+        Assert.assertSame(holder, registry.get(graphName));
+        Assert.assertEquals(refCount - 1, holderRefCount(holder));
+        Assert.assertTrue(this.params.schemaEventHub()
+                                     .listeners(Events.CACHE)
+                                     .contains(registered));
+
+        FakeObjects objects = new FakeObjects("unit-test");
+        second.addPropertyKey(objects.newPropertyKey(IdGenerator.of(1),
+                                                     "fake-pk-1"));
+        second.addPropertyKey(objects.newPropertyKey(IdGenerator.of(2),
+                                                     "fake-pk-2"));
+        Assert.assertEquals(2L, Whitebox.invoke(second, "idCache", "size"));
+        Assert.assertEquals(2L, Whitebox.invoke(second, "nameCache", "size"));
+
+        this.params.schemaEventHub().notify(Events.CACHE, Cache.ACTION_CLEAR,
+                                            null).get();
+
+        Assert.assertEquals(0L, Whitebox.invoke(second, "idCache", "size"));
+        Assert.assertEquals(0L, Whitebox.invoke(second, "nameCache", "size"));
+    }
+
+    @Test
+    public void testGraphCloseRemovesSchemaCacheListener() throws Exception {
+        ConcurrentMap<String, Object> registry = schemaCacheEventListeners();
+        String graphName = this.params.spaceGraphName();
+        CachedSchemaTransaction owner = this.cache();
+        CachedSchemaTransaction second = new CachedSchemaTransaction(
+                this.params, this.params.loadSchemaStore());
+
+        Object holder = registry.get(graphName);
+        Assert.assertNotNull(holder);
+        EventListener registered = holderListener(holder);
+        Assert.assertTrue(holderRefCount(holder) >= 2);
+
+        owner.close();
+        second.close();
+        this.cache = null;
+        this.params.schemaTransaction().close();
+
+        Assert.assertTrue(registry.containsKey(graphName));
+        Assert.assertTrue(this.params.schemaEventHub().listeners(Events.CACHE).contains(registered));
+
+        this.graph.clearBackend();
+        this.graph.close();
+        Assert.assertFalse(registry.containsKey(graphName));
+        Assert.assertFalse(this.params.schemaEventHub()
+                                      .listeners(Events.CACHE)
+                                      .contains(registered));
+        this.graph = null;
+
+        HugeGraph reopened = HugeFactory.open(FakeObjects.newConfig());
+        this.graph = reopened;
+        this.params = Whitebox.getInternalState(reopened, "params");
+        Object reopenedHolder = registry.get(graphName);
+        Assert.assertNotNull(reopenedHolder);
+        Assert.assertNotSame(holder, reopenedHolder);
+        int reopenedRefCount = holderRefCount(reopenedHolder);
+        CachedSchemaTransaction third = new CachedSchemaTransaction(
+                this.params, this.params.loadSchemaStore());
+        this.cache = third;
+        Object newHolder = registry.get(graphName);
+        Assert.assertSame(reopenedHolder, newHolder);
+        Assert.assertEquals(reopenedRefCount + 1, holderRefCount(newHolder));
+    }
+
+    @Test
+    public void testCacheNotifierLocalEventCallsProxyOnce()
+            throws Exception {
+        EventHub hub = new EventHub("schema-cache-notifier-test");
+        AtomicInteger proxyInvalidCalls = new AtomicInteger();
+        CacheNotifier proxy = newCacheNotifier(proxyInvalidCalls,
+                                               new AtomicInteger(),
+                                               new AtomicInteger());
+        CacheNotifier notifier = newSchemaCacheNotifier(hub, proxy);
+
+        try {
+            Assert.assertEquals(1, (int) hub.notify(Events.CACHE,
+                                                    Cache.ACTION_INVALID,
+                                                    HugeType.PROPERTY_KEY,
+                                                    IdGenerator.of(1))
+                                           .get());
+            Assert.assertEquals(1, proxyInvalidCalls.get());
+        } finally {
+            notifier.close();
+        }
+    }
+
+    @Test
+    public void testCacheNotifierRpcInvalidDoesNotLoopToProxy()
+            throws Exception {
+        EventHub hub = new EventHub("schema-cache-notifier-test");
+        AtomicInteger proxyInvalidCalls = new AtomicInteger();
+        AtomicInteger localInvalidCalls = new AtomicInteger();
+        CountDownLatch latch = new CountDownLatch(1);
+        CacheNotifier proxy = newCacheNotifier(proxyInvalidCalls,
+                                               new AtomicInteger(),
+                                               new AtomicInteger());
+        CacheNotifier notifier = newSchemaCacheNotifier(hub, proxy);
+        EventListener localListener = event -> {
+            event.checkArgs(String.class, HugeType.class, Id.class);
+            if (Cache.ACTION_INVALID.equals(event.args()[0])) {
+                localInvalidCalls.incrementAndGet();
+                latch.countDown();
+            }
+            return true;
+        };
+        hub.listen(Events.CACHE, localListener);
+
+        try {
+            notifier.invalid(HugeType.PROPERTY_KEY, IdGenerator.of(1));
+
+            Assert.assertTrue(latch.await(1L, TimeUnit.SECONDS));
+            Assert.assertEquals(1, localInvalidCalls.get());
+            Assert.assertEquals(0, proxyInvalidCalls.get());
+        } finally {
+            notifier.close();
+        }
+    }
+
+    @Test
+    public void testClearV2SchemaCacheByGraphName() {
+        String graphName = "DEFAULT-unit-test-v2";
+        String otherGraphName = "DEFAULT-other-v2";
+
+        Cache<Id, Object> idCache = v2IdCache(graphName);
+        Cache<Id, Object> nameCache = v2NameCache(graphName);
+        Cache<Id, Object> otherIdCache = v2IdCache(otherGraphName);
+        Cache<Id, Object> v1IdCache = CacheManager.instance()
+                                                    .cache("schema-id-" +
+                                                           graphName, 10L);
+        Cache<Id, Object> v1NameCache = CacheManager.instance()
+                                                      .cache("schema-name-" +
+                                                             graphName, 10L);
+        Object arrayCaches = idCache.attachment(newV2SchemaCaches(10));
+        Id arrayCacheId = IdGenerator.of(1);
+        SchemaElement arrayCacheSchema =
+                new FakeObjects("unit-test-v2")
+                        .newPropertyKey(arrayCacheId, "fake-pk-array");
+
+        try {
+            clearV2SchemaCaches(arrayCaches);
+            setV2SchemaCache(arrayCaches, HugeType.PROPERTY_KEY, arrayCacheId,
+                             arrayCacheSchema);
+            idCache.update(IdGenerator.of(1), "fake-pk-by-id");
+            nameCache.update(IdGenerator.of("fake-pk"), "fake-pk-by-name");
+            otherIdCache.update(IdGenerator.of(2), "other-pk-by-id");
+            v1IdCache.update(IdGenerator.of(3), "v1-pk-by-id");
+            v1NameCache.update(IdGenerator.of("v1-pk"), "v1-pk-by-name");
+
+            Assert.assertNotSame(v1IdCache, idCache);
+            Assert.assertNotSame(v1NameCache, nameCache);
+            Assert.assertEquals(1L, idCache.size());
+            Assert.assertEquals(1L, nameCache.size());
+            Assert.assertEquals(1L, otherIdCache.size());
+            Assert.assertEquals(1L, v1IdCache.size());
+            Assert.assertEquals(1L, v1NameCache.size());
+            Assert.assertSame(arrayCacheSchema,
+                              getV2SchemaCache(arrayCaches,
+                                               HugeType.PROPERTY_KEY,
+                                               arrayCacheId));
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  new Class<?>[]{String.class},
+                                  "clearSchemaCache", graphName);
+
+            Assert.assertEquals(0L, idCache.size());
+            Assert.assertEquals(0L, nameCache.size());
+            Assert.assertEquals(1L, otherIdCache.size());
+            Assert.assertEquals(1L, v1IdCache.size());
+            Assert.assertEquals(1L, v1NameCache.size());
+            Assert.assertNull(getV2SchemaCache(arrayCaches,
+                                               HugeType.PROPERTY_KEY,
+                                               arrayCacheId));
+        } finally {
+            clearV2SchemaCaches(arrayCaches);
+            idCache.clear();
+            nameCache.clear();
+            otherIdCache.clear();
+            v1IdCache.clear();
+            v1NameCache.clear();
+        }
+    }
+
+    private static Cache<Id, Object> v2IdCache(String graphName) {
+        return v2Cache("ID_CACHE_PREFIX", graphName);
+    }
+
+    private static Cache<Id, Object> v2NameCache(String graphName) {
+        return v2Cache("NAME_CACHE_PREFIX", graphName);
+    }
+
+    private static Cache<Id, Object> v2Cache(String prefixField,
+                                             String graphName) {
+        // Keep test fixtures aligned with the private cache namespace used by
+        // CachedSchemaTransactionV2 without duplicating production literals.
+        String prefix = Whitebox.getInternalState(
+                CachedSchemaTransactionV2.class, prefixField);
+        return CacheManager.instance().cache(prefix + "-" + graphName, 10L);
+    }
+
+    private static Object newV2SchemaCaches(int size) {
+        for (Class<?> clazz :
+             CachedSchemaTransactionV2.class.getDeclaredClasses()) {
+            if (!"SchemaCaches".equals(clazz.getSimpleName())) {
+                continue;
+            }
+            try {
+                Constructor<?> constructor =
+                        clazz.getDeclaredConstructor(int.class);
+                constructor.setAccessible(true);
+                return constructor.newInstance(size);
+            } catch (ReflectiveOperationException e) {
+                throw new AssertionError("Failed to create SchemaCaches", e);
+            }
+        }
+        throw new AssertionError("SchemaCaches class not found");
+    }
+
+    private static void clearV2SchemaCaches(Object arrayCaches) {
+        Whitebox.invoke(arrayCaches.getClass(), "clear", arrayCaches);
+    }
+
+    private static void setV2SchemaCache(Object arrayCaches, HugeType type,
+                                         Id id, SchemaElement schema) {
+        Whitebox.invoke(arrayCaches.getClass(),
+                        new Class<?>[]{HugeType.class, Id.class,
+                                       SchemaElement.class},
+                        "set", arrayCaches, type, id, schema);
+    }
+
+    private static SchemaElement getV2SchemaCache(Object arrayCaches,
+                                                  HugeType type, Id id) {
+        return Whitebox.invoke(arrayCaches.getClass(),
+                               new Class<?>[]{HugeType.class, Id.class},
+                               "get", arrayCaches, type, id);
+    }
+
+    @Test
+    public void testListenSchemaCacheClearIsIdempotent() throws Exception {
+        // Once the JVM-global registration flag is set, every subsequent
+        // call to listenSchemaCacheClear() must short-circuit before
+        // touching MetaManager — even under concurrent invocation. Pre-set
+        // the flag, race N threads, and verify none of them propagated an
+        // exception (which would happen if MetaManager.instance()
+        // .listenSchemaCacheClear were invoked without an initialised
+        // driver).
+        Field flagField = CachedSchemaTransactionV2.class
+                .getDeclaredField("metaEventListenerRegistered");
+        flagField.setAccessible(true);
+        AtomicBoolean flag = (AtomicBoolean) flagField.get(null);
+        boolean previous = flag.getAndSet(true);
+        try {
+            int threads = 8;
+            CountDownLatch start = new CountDownLatch(1);
+            CountDownLatch done = new CountDownLatch(threads);
+            AtomicInteger failures = new AtomicInteger();
+            for (int i = 0; i < threads; i++) {
+                new Thread(() -> {
+                    try {
+                        start.await();
+                        Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                              "listenSchemaCacheClear");
+                    } catch (Throwable t) {
+                        failures.incrementAndGet();
+                    } finally {
+                        done.countDown();
+                    }
+                }).start();
+            }
+            start.countDown();
+            Assert.assertTrue("listenSchemaCacheClear race timed out",
+                              done.await(10, TimeUnit.SECONDS));
+            Assert.assertEquals("listenSchemaCacheClear must short-circuit " +
+                                "when already registered", 0, failures.get());
+            Assert.assertTrue("registration flag must remain set", flag.get());
+        } finally {
+            flag.set(previous);
+        }
+    }
+
+    @Test
+    public void testClearSchemaCacheClearsArrayAttachmentMaps()
+            throws Exception {
+        // clearSchemaCache() must wipe idCache, nameCache and every internal
+        // IntObjectMap (pks/vls/els/ils) inside the array attachment so
+        // stale entries are not served after a meta event.
+        String graphName = "DEFAULT-unit-test-v2-array";
+        Cache<Id, Object> idCache = v2IdCache(graphName);
+        Cache<Id, Object> nameCache = v2NameCache(graphName);
+        // Size must comfortably exceed the largest id below: IntObjectMap
+        // grows by doubling and refuses to write past currentSize even after
+        // a single expansion, so a small capacity rejects mid-range keys.
+        Object arrayCaches = idCache.attachment(newV2SchemaCaches(64));
+        Id pkId = IdGenerator.of(1);
+        Id vlId = IdGenerator.of(2);
+        Id elId = IdGenerator.of(3);
+        Id ilId = IdGenerator.of(4);
+        FakeObjects fakeObjects = new FakeObjects("unit-test-v2-array");
+        SchemaElement pk = fakeObjects.newPropertyKey(pkId, "fake-pk");
+
+        try {
+            clearV2SchemaCaches(arrayCaches);
+            setV2SchemaCache(arrayCaches, HugeType.PROPERTY_KEY, pkId, pk);
+            setV2SchemaCache(arrayCaches, HugeType.VERTEX_LABEL, vlId, pk);
+            setV2SchemaCache(arrayCaches, HugeType.EDGE_LABEL, elId, pk);
+            setV2SchemaCache(arrayCaches, HugeType.INDEX_LABEL, ilId, pk);
+            idCache.update(pkId, "fake-pk-by-id");
+            nameCache.update(IdGenerator.of("fake-pk"), "fake-pk-by-name");
+
+            Assert.assertEquals(1L, idCache.size());
+            Assert.assertEquals(1L, nameCache.size());
+            Assert.assertNotNull(getV2SchemaCache(arrayCaches,
+                                                  HugeType.PROPERTY_KEY, pkId));
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  new Class<?>[]{String.class},
+                                  "clearSchemaCache", graphName);
+
+            Assert.assertEquals(0L, idCache.size());
+            Assert.assertEquals(0L, nameCache.size());
+            for (String mapName : new String[]{"pks", "vls", "els", "ils"}) {
+                Object intMap = readField(arrayCaches, mapName);
+                assertIntObjectMapEmpty(intMap, mapName);
+            }
+            Map<HugeType, Boolean> cachedTypes = readField(arrayCaches,
+                                                           "cachedTypes");
+            Assert.assertTrue("cachedTypes must be empty after clear",
+                              cachedTypes.isEmpty());
+        } finally {
+            clearV2SchemaCaches(arrayCaches);
+            idCache.clear();
+            nameCache.clear();
+        }
+    }
+
+    // TASK_SYNC_DELETION gating of removeSchema notifications and the
+    // unconditional addSchema notification require an initialised
+    // CachedSchemaTransactionV2 instance, which in turn needs an hstore
+    // backend and a connected MetaManager. Both prerequisites are out of
+    // scope for this unit test class. They are exercised end-to-end by the
+    // hstore integration tests in CoreTestSuite. TODO(#2617): port these
+    // assertions into a dedicated CachedSchemaTransactionV2IT once
+    // mockito-inline becomes available so MetaManager.instance() can be
+    // stubbed without an hstore cluster.
+
+    @Test
+    public void testHandleSchemaCacheClearEventSkipsLocalSource()
+            throws Exception {
+        String graphName = "DEFAULT-meta-local-source-v2";
+        Cache<Id, Object> idCache = v2IdCache(graphName);
+        Cache<Id, Object> nameCache = v2NameCache(graphName);
+
+        MetaDriver mockDriver = Mockito.mock(MetaDriver.class);
+        Object localResponse = new Object();
+        Object remoteResponse = new Object();
+        String localSource = schemaCacheClearSource();
+        Mockito.when(mockDriver.extractValuesFromResponse(localResponse))
+               .thenReturn(Collections.singletonList(
+                       MetaManager.schemaCacheClearEventValue(graphName,
+                                                              localSource)));
+        Mockito.when(mockDriver.extractValuesFromResponse(remoteResponse))
+               .thenReturn(Collections.singletonList(
+                       MetaManager.schemaCacheClearEventValue(graphName,
+                                                              "remote")));
+
+        MetaDriver originalDriver = swapMetaDriver(mockDriver);
+        try {
+            idCache.update(IdGenerator.of(1), "v");
+            nameCache.update(IdGenerator.of("n"), "v");
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  new Class<?>[]{Object.class},
+                                  "handleSchemaCacheClearEvent",
+                                  localResponse);
+
+            Assert.assertEquals("local echo must not clear id cache",
+                                1L, idCache.size());
+            Assert.assertEquals("local echo must not clear name cache",
+                                1L, nameCache.size());
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  new Class<?>[]{Object.class},
+                                  "handleSchemaCacheClearEvent",
+                                  remoteResponse);
+
+            Assert.assertEquals(0L, idCache.size());
+            Assert.assertEquals(0L, nameCache.size());
+        } finally {
+            swapMetaDriver(originalDriver);
+            idCache.clear();
+            nameCache.clear();
+        }
+    }
+
+    @Test
+    public void testHandleSchemaCacheClearEventClearsTargetGraphOnly()
+            throws Exception {
+        // End-to-end coverage of the meta-event consumer:
+        //   publish (response) -> MetaManager extract -> clearSchemaCache
+        // We bypass the live etcd/PD watch by stubbing MetaDriver on the
+        // MetaManager singleton and invoking the package-private consumer
+        // directly. This validates that only the targeted graph's caches are
+        // cleared and that other graphs in the same JVM are left untouched.
+        String targetGraph = "DEFAULT-meta-target-v2";
+        String otherGraph = "DEFAULT-meta-other-v2";
+
+        Cache<Id, Object> targetIdCache = v2IdCache(targetGraph);
+        Cache<Id, Object> targetNameCache = v2NameCache(targetGraph);
+        Cache<Id, Object> otherIdCache = v2IdCache(otherGraph);
+
+        MetaDriver mockDriver = Mockito.mock(MetaDriver.class);
+        Object response = new Object();
+        Mockito.when(mockDriver.extractValuesFromResponse(response))
+               .thenReturn(Arrays.asList(targetGraph));
+
+        MetaDriver originalDriver = swapMetaDriver(mockDriver);
+        try {
+            targetIdCache.update(IdGenerator.of(1), "v");
+            targetNameCache.update(IdGenerator.of("n"), "v");
+            otherIdCache.update(IdGenerator.of(2), "v");
+
+            Assert.assertEquals(1L, targetIdCache.size());
+            Assert.assertEquals(1L, targetNameCache.size());
+            Assert.assertEquals(1L, otherIdCache.size());
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  new Class<?>[]{Object.class},
+                                  "handleSchemaCacheClearEvent", response);
+
+            Assert.assertEquals(0L, targetIdCache.size());
+            Assert.assertEquals(0L, targetNameCache.size());
+            Assert.assertEquals("Other graph caches must remain untouched",
+                                1L, otherIdCache.size());
+        } finally {
+            swapMetaDriver(originalDriver);
+            targetIdCache.clear();
+            targetNameCache.clear();
+            otherIdCache.clear();
+        }
+    }
+
+    @Test
+    public void testHandleSchemaCacheClearEventNullGraphsIsNoop()
+            throws Exception {
+        // A response that yields no graph names (extractor returns null) must
+        // be a strict noop: caches stay populated.
+        String graphName = "DEFAULT-meta-noop-v2";
+        Cache<Id, Object> idCache = v2IdCache(graphName);
+
+        MetaDriver mockDriver = Mockito.mock(MetaDriver.class);
+        Object response = new Object();
+        Mockito.when(mockDriver.extractValuesFromResponse(response))
+               .thenReturn(null);
+
+        MetaDriver originalDriver = swapMetaDriver(mockDriver);
+        try {
+            idCache.update(IdGenerator.of(1), "v");
+            Assert.assertEquals(1L, idCache.size());
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  new Class<?>[]{Object.class},
+                                  "handleSchemaCacheClearEvent", response);
+
+            Assert.assertEquals("noop response must not clear any cache",
+                                1L, idCache.size());
+        } finally {
+            swapMetaDriver(originalDriver);
+            idCache.clear();
+        }
+    }
+
+    @Test
+    public void testHandleSchemaCacheClearEventClearsMultipleGraphs()
+            throws Exception {
+        // A single meta event may carry multiple graph names; every one of
+        // them must have its V2 caches cleared.
+        String graphA = "DEFAULT-meta-multi-a";
+        String graphB = "DEFAULT-meta-multi-b";
+        Cache<Id, Object> idA = v2IdCache(graphA);
+        Cache<Id, Object> idB = v2IdCache(graphB);
+
+        MetaDriver mockDriver = Mockito.mock(MetaDriver.class);
+        Object response = new Object();
+        Mockito.when(mockDriver.extractValuesFromResponse(response))
+               .thenReturn(Arrays.asList(graphA, graphB));
+
+        MetaDriver originalDriver = swapMetaDriver(mockDriver);
+        try {
+            idA.update(IdGenerator.of(1), "v");
+            idB.update(IdGenerator.of(2), "v");
+            Assert.assertEquals(1L, idA.size());
+            Assert.assertEquals(1L, idB.size());
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  new Class<?>[]{Object.class},
+                                  "handleSchemaCacheClearEvent", response);
+
+            Assert.assertEquals(0L, idA.size());
+            Assert.assertEquals(0L, idB.size());
+        } finally {
+            swapMetaDriver(originalDriver);
+            idA.clear();
+            idB.clear();
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void testListenSchemaCacheClearRegistersOnlyOnce() throws Exception {
+        // Two CachedSchemaTransactionV2 instances in the same JVM must share
+        // the JVM-global meta listener: only ONE underlying watch should be
+        // installed even if listenSchemaCacheClear() is invoked multiple
+        // times. We assert this directly against the MetaDriver mock.
+        MetaDriver mockDriver = Mockito.mock(MetaDriver.class);
+        GraphMetaManager mockGraphMgr =
+                new GraphMetaManager(mockDriver, "test-cluster");
+
+        AtomicBoolean flag = metaListenerFlag();
+        boolean previousFlag = flag.getAndSet(false);
+        MetaDriver originalDriver = swapMetaDriver(mockDriver);
+        Object originalGraphMgr = swapGraphMetaManager(mockGraphMgr);
+        try {
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  "listenSchemaCacheClear");
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  "listenSchemaCacheClear");
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  "listenSchemaCacheClear");
+
+            ArgumentCaptor<Consumer> captor =
+                    ArgumentCaptor.forClass(Consumer.class);
+            Mockito.verify(mockDriver, Mockito.times(1))
+                   .listen(Mockito.anyString(), captor.capture());
+            Assert.assertNotNull("registered consumer must not be null",
+                                 captor.getValue());
+            Assert.assertTrue("flag must be set after successful registration",
+                              flag.get());
+        } finally {
+            flag.set(previousFlag);
+            swapMetaDriver(originalDriver);
+            swapGraphMetaManager(originalGraphMgr);
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void testListenSchemaCacheClearEndToEnd() throws Exception {
+        // Full publish -> callback -> clear path: register the listener via
+        // the production code, capture the consumer that was wired into the
+        // MetaDriver, then invoke it as the watch would and assert the V2
+        // caches for the named graph are cleared.
+        String graphName = "DEFAULT-end-to-end-v2";
+        Cache<Id, Object> idCache = v2IdCache(graphName);
+        Cache<Id, Object> nameCache = v2NameCache(graphName);
+
+        MetaDriver mockDriver = Mockito.mock(MetaDriver.class);
+        Object response = new Object();
+        Mockito.when(mockDriver.extractValuesFromResponse(response))
+               .thenReturn(Collections.singletonList(graphName));
+        GraphMetaManager mockGraphMgr =
+                new GraphMetaManager(mockDriver, "test-cluster");
+
+        AtomicBoolean flag = metaListenerFlag();
+        boolean previousFlag = flag.getAndSet(false);
+        MetaDriver originalDriver = swapMetaDriver(mockDriver);
+        Object originalGraphMgr = swapGraphMetaManager(mockGraphMgr);
+        try {
+            idCache.update(IdGenerator.of(1), "v");
+            nameCache.update(IdGenerator.of("n"), "v");
+            Assert.assertEquals(1L, idCache.size());
+            Assert.assertEquals(1L, nameCache.size());
+
+            Whitebox.invokeStatic(CachedSchemaTransactionV2.class,
+                                  "listenSchemaCacheClear");
+
+            ArgumentCaptor<Consumer> captor =
+                    ArgumentCaptor.forClass(Consumer.class);
+            Mockito.verify(mockDriver)
+                   .listen(Mockito.anyString(), captor.capture());
+
+            // Simulate the meta server publishing a schema-cache-clear event:
+            // invoke the consumer captured above with a synthetic response.
+            captor.getValue().accept(response);
+
+            Assert.assertEquals(0L, idCache.size());
+            Assert.assertEquals(0L, nameCache.size());
+        } finally {
+            flag.set(previousFlag);
+            swapMetaDriver(originalDriver);
+            swapGraphMetaManager(originalGraphMgr);
+            idCache.clear();
+            nameCache.clear();
+        }
+    }
+
+    private static AtomicBoolean metaListenerFlag() throws Exception {
+        Field f = CachedSchemaTransactionV2.class
+                .getDeclaredField("metaEventListenerRegistered");
+        f.setAccessible(true);
+        return (AtomicBoolean) f.get(null);
+    }
+
+    private static String schemaCacheClearSource() throws Exception {
+        Field f = CachedSchemaTransactionV2.class
+                .getDeclaredField("SCHEMA_CACHE_CLEAR_SOURCE");
+        f.setAccessible(true);
+        return (String) f.get(null);
+    }
+
+    private static MetaDriver swapMetaDriver(MetaDriver replacement)
+            throws Exception {
+        Field f = MetaManager.class.getDeclaredField("metaDriver");
+        f.setAccessible(true);
+        MetaDriver previous = (MetaDriver) f.get(MetaManager.instance());
+        f.set(MetaManager.instance(), replacement);
+        return previous;
+    }
+
+    private static Object swapGraphMetaManager(Object replacement)
+            throws Exception {
+        Field f = MetaManager.class.getDeclaredField("graphMetaManager");
+        f.setAccessible(true);
+        Object previous = f.get(MetaManager.instance());
+        f.set(MetaManager.instance(), replacement);
+        return previous;
+    }
+
+    private static CacheNotifier newSchemaCacheNotifier(EventHub hub,
+                                                        CacheNotifier proxy)
+                                                        throws Exception {
+        Class<?> clazz = Class.forName("org.apache.hugegraph." +
+                                       "StandardHugeGraph$" +
+                                       "HugeSchemaCacheNotifier");
+        Constructor<?> constructor = clazz.getDeclaredConstructor(
+                EventHub.class, CacheNotifier.class);
+        constructor.setAccessible(true);
+        return (CacheNotifier) constructor.newInstance(hub, proxy);
+    }
+
+    private static CacheNotifier newCacheNotifier(AtomicInteger invalidCalls,
+                                                  AtomicInteger invalid2Calls,
+                                                  AtomicInteger clearCalls) {
+        return new CacheNotifier() {
+
+            @Override
+            public void invalid(HugeType type, Id id) {
+                invalidCalls.incrementAndGet();
+            }
+
+            @Override
+            public void invalid2(HugeType type, Object[] ids) {
+                invalid2Calls.incrementAndGet();
+            }
+
+            @Override
+            public void clear(HugeType type) {
+                clearCalls.incrementAndGet();
+            }
+
+            @Override
+            public void reload() {
+                // pass
+            }
+
+            @Override
+            public void close() {
+                // pass
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T readField(Object target, String name)
+            throws ReflectiveOperationException {
+        Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        return (T) field.get(target);
+    }
+
+    private static void assertIntObjectMapEmpty(Object intMap, String label)
+            throws ReflectiveOperationException {
+        Object array = readField(intMap, "array");
+        if (array instanceof Object[]) {
+            for (Object slot : (Object[]) array) {
+                Assert.assertNull(label + " slot must be null after clear",
+                                  slot);
+            }
+            return;
+        }
+        // Older IntObjectMap implementations expose a size accessor instead
+        // of a raw array; fall back to that if reflection finds no array.
+        Object size = Whitebox.invoke(intMap.getClass(), "size", intMap);
+        Assert.assertEquals(label + " must report size 0 after clear",
+                            0, ((Number) size).intValue());
+    }
+
+    @Test
     public void testResetCachedAllIfReachedCapacity() throws Exception {
         CachedSchemaTransaction cache = this.cache();
 
@@ -197,5 +1011,197 @@ public class CachedSchemaTransactionTest extends BaseUnitTest {
         } finally {
             Whitebox.setInternalState(cache, "idCache.capacity", old);
         }
+    }
+
+    @Test
+    public void testV2WarmRequestsRetainSchemaWithoutMetadataReadsAndReceiveInvalidations() throws Exception {
+        AtomicBoolean registered = metaListenerFlag();
+        boolean previous = registered.getAndSet(true);
+        List<CachedSchemaTransactionV2> requests = new ArrayList<>();
+        Object originalGraphManager = null;
+        boolean graphManagerReplaced = false;
+        try {
+            FakeObjects objects = new FakeObjects("v2-request-schema");
+            HugeGraphParams requestParams = v2RequestParams(objects.graph());
+            VertexLabel original = objects.newVertexLabel(IdGenerator.of(31), "retained",
+                                                          IdStrategy.CUSTOMIZE_NUMBER);
+            AtomicReference<String> metadata = new AtomicReference<>(JsonUtil.toJson(original.asMap()));
+            AtomicInteger reads = new AtomicInteger();
+            AtomicInteger scans = new AtomicInteger();
+            PdMetaDriver driver = Mockito.mock(PdMetaDriver.class);
+            Mockito.when(driver.get(Mockito.anyString())).thenAnswer(call -> {
+                reads.incrementAndGet();
+                return metadata.get();
+            });
+            Mockito.when(driver.scanWithPrefix(Mockito.anyString())).thenAnswer(call -> {
+                scans.incrementAndGet();
+                return ImmutableMap.of("label", metadata.get());
+            });
+            originalGraphManager = swapGraphMetaManager(new GraphMetaManager(driver, "test"));
+            graphManagerReplaced = true;
+            CachedSchemaTransactionV2 first = new CachedSchemaTransactionV2(driver, "test", requestParams);
+            requests.add(first);
+            VertexLabel retainedLabel = first.getVertexLabel(original.id());
+            Assert.assertEquals(1, reads.get());
+            HugeVertex retained = new HugeVertex(objects.graph(), IdGenerator.of(32), retainedLabel);
+            first.close();
+            for (int request = 0; request < 10; request++) {
+                CachedSchemaTransactionV2 next = new CachedSchemaTransactionV2(driver, "test", requestParams);
+                requests.add(next);
+                Assert.assertSame(retainedLabel, next.getVertexLabel(original.id()));
+                Assert.assertSame(retainedLabel, next.getVertexLabel(original.name()));
+                next.close();
+            }
+            Assert.assertEquals("Warm request cleanup must not re-read metadata", 1, reads.get());
+            PropertyKey appended = objects.newPropertyKey(IdGenerator.of(33), "appended");
+            retainedLabel.properties(appended.id());
+            retainedLabel.nullableKeys(appended.id());
+            Assert.assertEquals("accepted", retained.property(VertexProperty.Cardinality.single,
+                                                              appended.name(), "accepted").value());
+            Object holder = v2CacheEventListeners().get(this.params.spaceGraphName());
+            Assert.assertNotNull(holder);
+            Assert.assertEquals(0, holderRefCount(holder));
+            Assert.assertTrue(this.params.schemaEventHub().listeners(Events.CACHE).contains(holderListener(holder)));
+            VertexLabel updated = objects.newVertexLabel(original.id(), "changed", IdStrategy.CUSTOMIZE_NUMBER);
+            metadata.set(JsonUtil.toJson(updated.asMap()));
+            this.params.schemaEventHub().notify(Events.CACHE, Cache.ACTION_INVALID,
+                                                HugeType.VERTEX_LABEL, original.id()).get();
+            CachedSchemaTransactionV2 afterInvalidation = new CachedSchemaTransactionV2(driver, "test", requestParams);
+            requests.add(afterInvalidation);
+            Assert.assertEquals("changed", afterInvalidation.getVertexLabel(original.id()).name());
+            Assert.assertEquals("Invalidation must refresh metadata even with no request lease", 2, reads.get());
+            Assert.assertNotSame(retainedLabel, afterInvalidation.getVertexLabel(original.id()));
+            afterInvalidation.close();
+            VertexLabel afterStore = objects.newVertexLabel(original.id(), "store-cleared",
+                                                            IdStrategy.CUSTOMIZE_NUMBER);
+            metadata.set(JsonUtil.toJson(afterStore.asMap()));
+            EventHub storeHub = this.params.loadGraphStore().provider().storeEventHub();
+            EventListener v2StoreListener = Whitebox.getInternalState(first, "storeEventListener");
+            List<EventListener> otherStoreListeners = new ArrayList<>(storeHub.listeners(EventHub.ANY_EVENT));
+            Assert.assertTrue("The V2 Store listener must remain registered without a request lease",
+                              otherStoreListeners.remove(v2StoreListener));
+            // Isolate the Store path from V1 listeners that asynchronously emit another CACHE clear.
+            for (EventListener listener : otherStoreListeners) {
+                storeHub.unlisten(EventHub.ANY_EVENT, listener);
+            }
+            try {
+                Assert.assertEquals(1, storeHub.notify(Events.STORE_CLEAR,
+                                                      this.params.loadGraphStore().provider()).get().intValue());
+            } finally {
+                for (EventListener listener : otherStoreListeners) {
+                    storeHub.listen(EventHub.ANY_EVENT, listener);
+                }
+            }
+            Mockito.verify(driver).put(Mockito.anyString(), Mockito.anyString());
+            CachedSchemaTransactionV2 afterStoreEvent = new CachedSchemaTransactionV2(driver, "test", requestParams);
+            requests.add(afterStoreEvent);
+            Assert.assertEquals("store-cleared", afterStoreEvent.getVertexLabel(original.id()).name());
+            Assert.assertEquals("Store events must refresh metadata with no active request", 3, reads.get());
+            afterStoreEvent.close();
+            VertexLabel allLabel = null;
+            for (int request = 0; request < 4; request++) {
+                CachedSchemaTransactionV2 next = new CachedSchemaTransactionV2(driver, "test", requestParams);
+                requests.add(next);
+                List<VertexLabel> all = next.getVertexLabels();
+                Assert.assertEquals(1, all.size());
+                Assert.assertEquals("store-cleared", all.get(0).name());
+                if (allLabel == null) {
+                    allLabel = all.get(0);
+                } else {
+                    Assert.assertSame(allLabel, all.get(0));
+                }
+                next.close();
+            }
+            Assert.assertEquals("Warm all-schema requests must retain the cached-all flag", 1, scans.get());
+        } finally {
+            for (CachedSchemaTransactionV2 request : requests) {
+                request.close();
+            }
+            CachedSchemaTransactionV2.closeGraph(this.params);
+            if (graphManagerReplaced) {
+                swapGraphMetaManager(originalGraphManager);
+            }
+            registered.set(previous);
+        }
+    }
+
+    @Test
+    public void testV2GraphCloseReopenKeepsNewHubSafeFromOldLeases() throws Exception {
+        AtomicBoolean registered = metaListenerFlag();
+        boolean previous = registered.getAndSet(true);
+        HugeGraphParams oldParams = this.params;
+        CachedSchemaTransactionV2 oldLease = null;
+        CachedSchemaTransactionV2 newLease = null;
+        try {
+            FakeObjects objects = new FakeObjects("v2-generation-schema");
+            VertexLabel original = objects.newVertexLabel(IdGenerator.of(41), "generation",
+                                                          IdStrategy.CUSTOMIZE_NUMBER);
+            AtomicInteger reads = new AtomicInteger();
+            PdMetaDriver driver = Mockito.mock(PdMetaDriver.class);
+            Mockito.when(driver.get(Mockito.anyString())).thenAnswer(call -> {
+                reads.incrementAndGet();
+                return JsonUtil.toJson(original.asMap());
+            });
+            oldLease = new CachedSchemaTransactionV2(driver, "test", oldParams);
+            VertexLabel oldLabel = oldLease.getVertexLabel(original.id());
+            Object oldHolder = v2CacheEventListeners().get(oldParams.spaceGraphName());
+            EventListener oldListener = holderListener(oldHolder);
+            this.cache.close();
+            this.cache = null;
+            this.graph.close();
+            this.graph = null;
+            Assert.assertFalse(v2CacheEventListeners().containsKey(oldParams.spaceGraphName()));
+            Assert.assertFalse(oldParams.schemaEventHub().listeners(Events.CACHE).contains(oldListener));
+            Assert.assertEquals(0L, Whitebox.invoke(oldLease, "idCache", "size"));
+            this.graph = HugeFactory.open(FakeObjects.newConfig());
+            this.params = Whitebox.getInternalState(this.graph, "params");
+            Assert.assertNotSame(oldParams.schemaEventHub(), this.params.schemaEventHub());
+            newLease = new CachedSchemaTransactionV2(driver, "test", this.params);
+            VertexLabel newLabel = newLease.getVertexLabel(original.id());
+            Object newHolder = v2CacheEventListeners().get(this.params.spaceGraphName());
+            Assert.assertNotSame(oldHolder, newHolder);
+            Assert.assertNotSame(oldLabel, newLabel);
+            Assert.assertEquals(2, reads.get());
+            int newRefCount = holderRefCount(newHolder);
+            oldLease.close();
+            CachedSchemaTransactionV2.closeGraph(oldParams);
+            Assert.assertSame(newHolder, v2CacheEventListeners().get(this.params.spaceGraphName()));
+            Assert.assertEquals(newRefCount, holderRefCount(newHolder));
+            Assert.assertTrue(this.params.schemaEventHub().listeners(Events.CACHE)
+                                        .contains(holderListener(newHolder)));
+            Assert.assertSame(newLabel, newLease.getVertexLabel(original.id()));
+            Assert.assertEquals(2, reads.get());
+        } finally {
+            if (oldLease != null) {
+                oldLease.close();
+            }
+            if (newLease != null) {
+                newLease.close();
+            }
+            CachedSchemaTransactionV2.closeGraph(oldParams);
+            CachedSchemaTransactionV2.closeGraph(this.params);
+            registered.set(previous);
+        }
+    }
+
+    private HugeGraphParams v2RequestParams(HugeGraph supplier) {
+        Mockito.when(supplier.name()).thenReturn(this.params.name());
+        Mockito.when(supplier.graphSpace()).thenReturn(this.graph.graphSpace());
+        Mockito.when(supplier.spaceGraphName()).thenReturn(this.params.spaceGraphName());
+        HugeGraphParams params = Mockito.mock(HugeGraphParams.class);
+        Mockito.when(params.graph()).thenReturn(supplier);
+        Mockito.when(params.name()).thenReturn(this.params.name());
+        Mockito.when(params.spaceGraphName()).thenReturn(this.params.spaceGraphName());
+        Mockito.when(params.configuration()).thenReturn(this.params.configuration());
+        Mockito.when(params.schemaEventHub()).thenReturn(this.params.schemaEventHub());
+        Mockito.when(params.loadGraphStore()).thenReturn(this.params.loadGraphStore());
+        return params;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ConcurrentMap<String, Object> v2CacheEventListeners() throws Exception {
+        Field field = CachedSchemaTransactionV2.class.getDeclaredField("SCHEMA_CACHE_EVENT_LISTENERS");
+        field.setAccessible(true);
+        return (ConcurrentMap<String, Object>) field.get(null);
     }
 }

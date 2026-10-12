@@ -19,7 +19,7 @@
 # could use '0.0.0.0' or specified (real)IP to expose external network access
 restserver.url=http://$REST_SERVER_ADDRESS$
 # gremlin server url, need to be consistent with host and port in gremlin-server.yaml
-#gremlinserver.url=http://$REST_SERVER_ADDRESS$
+gremlinserver.url=http://$GREMLIN_SERVER_ADDRESS$
 
 graphs=./conf/graphs
 
@@ -36,16 +36,19 @@ arthas.disabled_commands=jad
 # authentication configs
 # choose 'org.apache.hugegraph.auth.StandardAuthenticator' or
 # 'org.apache.hugegraph.auth.ConfigAuthenticator'
-#auth.authenticator=
+auth.authenticator=org.apache.hugegraph.auth.StandardAuthenticator
+# true if using hstore mode
+usePD=true
+cluster=hg
+pd.peers=$PD_PEERS_LIST$
+
+# default password
+auth.admin_pa=pa
 
 # for StandardAuthenticator mode
 #auth.graph_store=hugegraph
 # auth client config
 #auth.remote_url=127.0.0.1:8899,127.0.0.1:8898,127.0.0.1:8897
-
-# for ConfigAuthenticator mode
-#auth.admin_token=
-#auth.user_tokens=[]
 
 # rpc server configs for multi graph-servers or raft-servers
 rpc.server_host=127.0.0.1
@@ -69,3 +72,5 @@ server.role=$ROLE$
 
 # slow query log
 log.slow_query_threshold=1000
+# bytes of request body recorded as-is (may contain sensitive literals), 0 to disable
+log.slow_query_body_limit=512

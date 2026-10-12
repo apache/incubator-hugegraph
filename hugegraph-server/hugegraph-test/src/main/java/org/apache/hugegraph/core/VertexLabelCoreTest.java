@@ -20,16 +20,16 @@ package org.apache.hugegraph.core;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NoIndexException;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.Userdata;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.Userdata;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.task.TaskStatus;
@@ -566,7 +566,7 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddVertexLabelWithTtl() {
+    public void testAddVertexLabelWithTTL() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();
@@ -631,6 +631,91 @@ public class VertexLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(86400L, student.ttl());
         Assert.assertNotNull(student.ttlStartTime());
         assertContainsPk(ImmutableSet.of(student.ttlStartTime()), "born");
+    }
+
+    @Test
+    public void testAppendVertexLabelWithTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("born").asDate().ifNotExist().create();
+
+        // Create a vertex label without TTL
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city", "born")
+                                   .create();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(0L, person.ttl());
+
+        // Update the vertex label with TTL via append
+        person = schema.vertexLabel("person")
+                       .ttl(86400L)
+                       .append();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(86400L, person.ttl());
+    }
+
+    @Test
+    public void testAppendVertexLabelResetTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        // Create a vertex label with TTL
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city")
+                                   .ttl(86400L)
+                                   .create();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(86400L, person.ttl());
+
+        // Reset TTL to 0 via append
+        person = schema.vertexLabel("person")
+                       .ttl(0L)
+                       .append();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals("person", person.name());
+        Assert.assertEquals(0L, person.ttl());
+    }
+
+    @Test
+    public void testAppendVertexLabelWithoutTTLShouldNotClearExistingTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("born").asDate().ifNotExist().create();
+
+        // Create label with TTL and ttlStartTime
+        VertexLabel person = schema.vertexLabel("person")
+                                   .properties("name", "age", "city", "born")
+                                   .ttl(86400L)
+                                   .ttlStartTime("born")
+                                   .create();
+
+        Assert.assertNotNull(person);
+        Assert.assertEquals(86400L, person.ttl());
+        Assert.assertNotNull(person.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(person.ttlStartTime()), "born");
+
+        // Append property WITHOUT specifying ttl
+        person = schema.vertexLabel("person")
+                       .nullableKeys("city")
+                       .append();
+
+        // Both TTL and ttlStartTime should remain unchanged
+        Assert.assertNotNull(person);
+        Assert.assertEquals(86400L, person.ttl());
+        Assert.assertNotNull(person.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(person.ttlStartTime()), "born");
     }
 
     @Test

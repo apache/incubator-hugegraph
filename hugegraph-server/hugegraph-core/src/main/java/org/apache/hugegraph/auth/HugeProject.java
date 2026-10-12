@@ -18,8 +18,10 @@
 package org.apache.hugegraph.auth;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,9 +29,9 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.auth.SchemaDefine.Entity;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.type.define.Cardinality;
 import org.apache.hugegraph.type.define.DataType;
 import org.apache.hugegraph.util.E;
@@ -57,7 +59,10 @@ public class HugeProject extends Entity {
     }
 
     public HugeProject(String name, String description) {
-        this(null, name, description, null, null, null, null);
+        this(StringUtils.isNotEmpty(name) ? IdGenerator.of(name) : null, name, description, null,
+             null,
+             null,
+             null);
     }
 
     public HugeProject(Id id, String name, String description, Id adminGroupId,
@@ -198,7 +203,6 @@ public class HugeProject extends Entity {
         return super.asArray(list);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     protected boolean property(String key, Object value) {
         if (super.property(key, value)) {
@@ -209,7 +213,19 @@ public class HugeProject extends Entity {
                 this.name = (String) value;
                 break;
             case HugeProject.P.GRAPHS:
-                this.graphs = (Set<String>) value;
+                if (value == null) {
+                    this.graphs = null;
+                    break;
+                }
+                E.checkArgument(value instanceof Collection,
+                                "The graphs of project must be a collection");
+                Set<String> graphs = new HashSet<>();
+                for (Object graph : (Collection<?>) value) {
+                    E.checkArgument(graph instanceof String,
+                                    "The graphs of project must contain only strings");
+                    graphs.add((String) graph);
+                }
+                this.graphs = graphs;
                 break;
             case HugeProject.P.DESCRIPTIONS:
                 this.description = (String) value;
@@ -232,6 +248,11 @@ public class HugeProject extends Entity {
     public static HugeProject fromVertex(Vertex vertex) {
         HugeProject target = new HugeProject((Id) vertex.id());
         return fromVertex(vertex, target);
+    }
+
+    public static HugeProject fromMap(Map<String, Object> map) {
+        HugeProject project = new HugeProject("");
+        return fromMap(map, project);
     }
 
     @Override

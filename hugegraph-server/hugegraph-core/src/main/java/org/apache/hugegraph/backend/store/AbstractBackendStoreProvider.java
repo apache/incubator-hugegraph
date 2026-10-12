@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
-import org.apache.hugegraph.backend.BackendException;
+import org.apache.hugegraph.exception.BackendException;
 import org.apache.hugegraph.backend.store.raft.StoreSnapshotFile;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
@@ -45,7 +45,7 @@ public abstract class AbstractBackendStoreProvider
 
     protected Map<String, BackendStore> stores = null;
 
-    protected final void notifyAndWaitEvent(String event) {
+    public final void notifyAndWaitEvent(String event) {
         Future<?> future = this.storeEventHub.notify(event, this);
         try {
             future.get();

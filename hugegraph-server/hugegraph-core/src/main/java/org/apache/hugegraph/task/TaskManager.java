@@ -21,22 +21,25 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.concurrent.PausableScheduledThreadPool;
-import org.apache.hugegraph.type.define.NodeRole;
 import org.apache.hugegraph.util.Consumers;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.ExecutorUtil;
-import org.apache.hugegraph.util.LockUtil;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
+/**
+ * Central task management system that coordinates task scheduling and execution.
+ * Manages the task schedulers of each graph and the executors they share.
+ */
 public final class TaskManager {
 
     private static final Logger LOG = Log.logger(TaskManager.class);
@@ -44,16 +47,13 @@ public final class TaskManager {
     public static final String TASK_WORKER_PREFIX = "task-worker";
     public static final String TASK_WORKER = TASK_WORKER_PREFIX + "-%d";
     public static final String TASK_DB_WORKER = "task-db-worker-%d";
-    public static final String SERVER_INFO_DB_WORKER =
-            "server-info-db-worker-%d";
-    public static final String TASK_SCHEDULER = "task-scheduler-%d";
 
     public static final String OLAP_TASK_WORKER = "olap-task-worker-%d";
     public static final String SCHEMA_TASK_WORKER = "schema-task-worker-%d";
     public static final String EPHEMERAL_TASK_WORKER = "ephemeral-task-worker-%d";
     public static final String DISTRIBUTED_TASK_SCHEDULER = "distributed-scheduler-%d";
 
-    protected static final long SCHEDULE_PERIOD = 1000L; // unit ms
+    static final long SCHEDULE_PERIOD = 1000L; // unit ms
     private static final long TX_CLOSE_TIMEOUT = 30L; // unit s
     private static final int THREADS = 4;
     private static final TaskManager MANAGER = new TaskManager(THREADS);
@@ -62,15 +62,11 @@ public final class TaskManager {
 
     private final ExecutorService taskExecutor;
     private final ExecutorService taskDbExecutor;
-    private final ExecutorService serverInfoDbExecutor;
-    private final PausableScheduledThreadPool schedulerExecutor;
 
     private final ExecutorService schemaTaskExecutor;
     private final ExecutorService olapTaskExecutor;
     private final ExecutorService ephemeralTaskExecutor;
     private final PausableScheduledThreadPool distributedSchedulerExecutor;
-
-    private boolean enableRoleElected = false;
 
     public static TaskManager instance() {
         return MANAGER;
@@ -84,34 +80,21 @@ public final class TaskManager {
         // For save/query task state, just one thread is ok
         this.taskDbExecutor = ExecutorUtil.newFixedThreadPool(
                 1, TASK_DB_WORKER);
-        this.serverInfoDbExecutor = ExecutorUtil.newFixedThreadPool(
-                1, SERVER_INFO_DB_WORKER);
 
-        this.schemaTaskExecutor = ExecutorUtil.newFixedThreadPool(pool,
-                                                                  SCHEMA_TASK_WORKER);
-        this.olapTaskExecutor = ExecutorUtil.newFixedThreadPool(pool,
-                                                                OLAP_TASK_WORKER);
-        this.ephemeralTaskExecutor = ExecutorUtil.newFixedThreadPool(pool,
-                                                                     EPHEMERAL_TASK_WORKER);
+        this.schemaTaskExecutor = ExecutorUtil.newFixedThreadPool(pool, SCHEMA_TASK_WORKER);
+        this.olapTaskExecutor = ExecutorUtil.newFixedThreadPool(pool, OLAP_TASK_WORKER);
+        this.ephemeralTaskExecutor = ExecutorUtil.newFixedThreadPool(pool, EPHEMERAL_TASK_WORKER);
         this.distributedSchedulerExecutor =
-                ExecutorUtil.newPausableScheduledThreadPool(1,
-                                                            DISTRIBUTED_TASK_SCHEDULER);
-
-        // For schedule task to run, just one thread is ok
-        this.schedulerExecutor = ExecutorUtil.newPausableScheduledThreadPool(
-                1, TASK_SCHEDULER);
-        // Start after 10x period time waiting for HugeGraphServer startup
-        this.schedulerExecutor.scheduleWithFixedDelay(this::scheduleOrExecuteJob,
-                                                      10 * SCHEDULE_PERIOD,
-                                                      SCHEDULE_PERIOD,
-                                                      TimeUnit.MILLISECONDS);
+                ExecutorUtil.newPausableScheduledThreadPool(1, DISTRIBUTED_TASK_SCHEDULER);
     }
 
     public void addScheduler(HugeGraphParams graph) {
         E.checkArgumentNotNull(graph, "The graph can't be null");
         LOG.info("Use {} as the scheduler of graph ({})",
                  graph.schedulerType(), graph.name());
-        // TODO: If the current service is bound to a specified non-DEFAULT graph space, the graph outside of the current graph space will no longer create task schedulers (graph space)
+        // TODO: If the current service is bound to a specified non-DEFAULT graph space, the
+        //  graph outside of the current graph space will no longer create task schedulers (graph
+        //  space)
         switch (graph.schedulerType()) {
             case "distributed": {
                 TaskScheduler scheduler =
@@ -122,8 +105,7 @@ public final class TaskManager {
                                 schemaTaskExecutor,
                                 olapTaskExecutor,
                                 taskExecutor, /* gremlinTaskExecutor */
-                                ephemeralTaskExecutor,
-                                serverInfoDbExecutor);
+                                ephemeralTaskExecutor);
                 this.schedulers.put(graph, scheduler);
                 break;
             }
@@ -133,8 +115,7 @@ public final class TaskManager {
                         new StandardTaskScheduler(
                                 graph,
                                 this.taskExecutor,
-                                this.taskDbExecutor,
-                                this.serverInfoDbExecutor);
+                                this.taskDbExecutor);
                 this.schedulers.put(graph, scheduler);
                 break;
             }
@@ -143,73 +124,118 @@ public final class TaskManager {
 
     public void closeScheduler(HugeGraphParams graph) {
         TaskScheduler scheduler = this.schedulers.get(graph);
+        Throwable failure = null;
+        boolean drained = scheduler == null;
         if (scheduler != null) {
             /*
-             * Synch close+remove scheduler and iterate scheduler, details:
-             * 'closeScheduler' should sync with 'scheduleOrExecuteJob'.
-             * Because 'closeScheduler' will be called by 'graph.close()' in
-             * main thread and there is gap between 'scheduler.close()'
-             * (will close graph tx) and 'this.schedulers.remove(graph)'.
-             * In this gap 'scheduleOrExecuteJob' may be run in
-             * scheduler-db-thread and 'scheduleOrExecuteJob' will reopen
-             * graph tx. As a result, graph tx will mistakenly not be closed
-             * after 'graph.close()'.
+             * Keep close+remove exclusive with scheduler iteration: in their gap
+             * a scheduler DB worker could otherwise reopen the graph transaction.
              */
             synchronized (scheduler) {
-                if (scheduler.close()) {
-                    this.schedulers.remove(graph);
+                boolean stopped = false;
+                try {
+                    stopped = scheduler.close();
+                } catch (RuntimeException | Error error) {
+                    failure = error;
+                    // Standard closes its server manager in finally; Distributed
+                    // sets its dispatch-stop flag before cancellation/drain begins.
+                    stopped = true;
+                }
+                // A timeout leaves running jobs registered for the next drain attempt.
+                if (stopped && scheduler.pendingTasks() == 0) {
+                    this.schedulers.remove(graph, scheduler);
+                    drained = true;
                 }
             }
         }
-
-        if (!this.taskExecutor.isTerminated()) {
-            this.closeTaskTx(graph);
+        if (!drained) {
+            // A running cron/job must finish before owner callbacks are queued
+            // on its executor. In particular, do not rejoin a timed-out cron.
+            if (failure instanceof Error) {
+                throw (Error) failure;
+            }
+            if (failure != null) {
+                throw (RuntimeException) failure;
+            }
+            return;
         }
-
-        if (!this.schedulerExecutor.isTerminated()) {
-            this.closeSchedulerTx(graph);
+        for (Runnable close : new Runnable[]{() -> {
+            if (!this.taskExecutor.isTerminated()) {
+                this.closeTaskTx(graph);
+            }
+        }, () -> {
+            if (!this.distributedSchedulerExecutor.isTerminated()) {
+                this.closeDistributedSchedulerTx(graph);
+            }
+        }}) {
+            try {
+                close.run();
+            } catch (RuntimeException | Error error) {
+                if (failure == null) {
+                    failure = error;
+                } else if (failure != error) {
+                    failure.addSuppressed(error);
+                }
+            }
         }
-
-        if (!this.distributedSchedulerExecutor.isTerminated()) {
-            this.closeDistributedSchedulerTx(graph);
+        if (failure instanceof Error) {
+            throw (Error) failure;
         }
+        if (failure != null) {
+            throw (RuntimeException) failure;
+        }
+    }
+
+    public void forceRemoveScheduler(HugeGraphParams params) {
+        this.schedulers.remove(params);
     }
 
     private void closeTaskTx(HugeGraphParams graph) {
         final boolean selfIsTaskWorker = Thread.currentThread().getName()
                                                .startsWith(TASK_WORKER_PREFIX);
         final int totalThreads = selfIsTaskWorker ? THREADS - 1 : THREADS;
+        Queue<Throwable> failures = new ConcurrentLinkedQueue<>();
+        Runnable close = () -> {
+            try {
+                graph.closeTx();
+            } catch (RuntimeException | Error error) {
+                // invokeAll() does not inspect worker Futures. Capture failures
+                // here so each worker still completes its execution accounting.
+                failures.add(error);
+                LOG.error("Failed to close task tx in thread '{}'", Thread.currentThread().getName(), error);
+            }
+        };
         try {
             if (selfIsTaskWorker) {
                 // Call closeTx directly if myself is task thread(ignore others)
-                graph.closeTx();
+                close.run();
             } else {
                 Consumers.executeOncePerThread(this.taskExecutor, totalThreads,
-                                               graph::closeTx, TX_CLOSE_TIMEOUT);
+                                               close, TX_CLOSE_TIMEOUT);
             }
-        } catch (Exception e) {
-            throw new HugeException("Exception when closing task tx", e);
+        } catch (Exception error) {
+            failures.add(error);
+            if (error instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
         }
-    }
-
-    private void closeSchedulerTx(HugeGraphParams graph) {
-        final Callable<Void> closeTx = () -> {
-            // Do close-tx for current thread
-            graph.closeTx();
-            // Let other threads run
-            Thread.yield();
-            return null;
-        };
-        try {
-            this.schedulerExecutor.submit(closeTx).get();
-        } catch (Exception e) {
-            throw new HugeException("Exception when closing scheduler tx", e);
+        Throwable failure = failures.poll();
+        if (failure != null) {
+            for (Throwable error : failures) {
+                if (error != failure) {
+                    failure.addSuppressed(error);
+                }
+            }
+            if (failure instanceof Error) {
+                throw (Error) failure;
+            }
+            throw new HugeException("Exception when closing task tx", failure);
         }
     }
 
     private void closeDistributedSchedulerTx(HugeGraphParams graph) {
         final Callable<Void> closeTx = () -> {
-            // Do close-tx for current thread
+            // Do close-tx for the current thread
             graph.closeTx();
             // Let other threads run
             Thread.yield();
@@ -220,14 +246,6 @@ public final class TaskManager {
         } catch (Exception e) {
             throw new HugeException("Exception when closing scheduler tx", e);
         }
-    }
-
-    public void pauseScheduledThreadPool() {
-        this.schedulerExecutor.pauseSchedule();
-    }
-
-    public void resumeScheduledThreadPool() {
-        this.schedulerExecutor.resumeSchedule();
     }
 
     public TaskScheduler getScheduler(HugeGraphParams graph) {
@@ -246,24 +264,13 @@ public final class TaskManager {
         assert this.schedulers.isEmpty() : this.schedulers.size();
 
         Throwable ex = null;
-        boolean terminated = this.schedulerExecutor.isTerminated();
+        boolean terminated = this.distributedSchedulerExecutor.isTerminated();
         final TimeUnit unit = TimeUnit.SECONDS;
 
-        if (!this.schedulerExecutor.isShutdown()) {
-            this.schedulerExecutor.shutdown();
-            try {
-                terminated = this.schedulerExecutor.awaitTermination(timeout,
-                                                                     unit);
-            } catch (Throwable e) {
-                ex = e;
-            }
-        }
-
-        if (terminated && !this.distributedSchedulerExecutor.isShutdown()) {
+        if (!this.distributedSchedulerExecutor.isShutdown()) {
             this.distributedSchedulerExecutor.shutdown();
             try {
-                terminated = this.distributedSchedulerExecutor.awaitTermination(timeout,
-                                                                                unit);
+                terminated = this.distributedSchedulerExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -272,18 +279,7 @@ public final class TaskManager {
         if (terminated && !this.taskExecutor.isShutdown()) {
             this.taskExecutor.shutdown();
             try {
-                terminated = this.taskExecutor.awaitTermination(timeout,
-                                                                unit);
-            } catch (Throwable e) {
-                ex = e;
-            }
-        }
-
-        if (terminated && !this.serverInfoDbExecutor.isShutdown()) {
-            this.serverInfoDbExecutor.shutdown();
-            try {
-                terminated = this.serverInfoDbExecutor.awaitTermination(timeout,
-                                                                        unit);
+                terminated = this.taskExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -292,8 +288,7 @@ public final class TaskManager {
         if (terminated && !this.taskDbExecutor.isShutdown()) {
             this.taskDbExecutor.shutdown();
             try {
-                terminated = this.taskDbExecutor.awaitTermination(timeout,
-                                                                  unit);
+                terminated = this.taskDbExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -302,8 +297,7 @@ public final class TaskManager {
         if (terminated && !this.ephemeralTaskExecutor.isShutdown()) {
             this.ephemeralTaskExecutor.shutdown();
             try {
-                terminated = this.ephemeralTaskExecutor.awaitTermination(timeout,
-                                                                         unit);
+                terminated = this.ephemeralTaskExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -312,8 +306,7 @@ public final class TaskManager {
         if (terminated && !this.schemaTaskExecutor.isShutdown()) {
             this.schemaTaskExecutor.shutdown();
             try {
-                terminated = this.schemaTaskExecutor.awaitTermination(timeout,
-                                                                      unit);
+                terminated = this.schemaTaskExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -322,8 +315,7 @@ public final class TaskManager {
         if (terminated && !this.olapTaskExecutor.isShutdown()) {
             this.olapTaskExecutor.shutdown();
             try {
-                terminated = this.olapTaskExecutor.awaitTermination(timeout,
-                                                                    unit);
+                terminated = this.olapTaskExecutor.awaitTermination(timeout, unit);
             } catch (Throwable e) {
                 ex = e;
             }
@@ -349,129 +341,13 @@ public final class TaskManager {
         return size;
     }
 
-    public void enableRoleElection() {
-        this.enableRoleElected = true;
-    }
-
-    public void onAsRoleMaster() {
-        try {
-            for (TaskScheduler entry : this.schedulers.values()) {
-                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager serverInfoManager = scheduler.serverManager();
-                serverInfoManager.changeServerRole(NodeRole.MASTER);
-            }
-        } catch (Throwable e) {
-            LOG.error("Exception occurred when change to master role", e);
-            throw e;
-        }
-    }
-
-    public void onAsRoleWorker() {
-        try {
-            for (TaskScheduler entry : this.schedulers.values()) {
-                StandardTaskScheduler scheduler = (StandardTaskScheduler) entry;
-                ServerInfoManager serverInfoManager = scheduler.serverManager();
-                serverInfoManager.changeServerRole(NodeRole.WORKER);
-            }
-        } catch (Throwable e) {
-            LOG.error("Exception occurred when change to worker role", e);
-            throw e;
-        }
-    }
-
-    protected void notifyNewTask(HugeTask<?> task) {
-        Queue<Runnable> queue = ((ThreadPoolExecutor) this.schedulerExecutor)
-                .getQueue();
-        if (queue.size() <= 1) {
-            /*
-             * Notify to schedule tasks initiatively when have new task
-             * It's OK to not notify again if there are more than one task in
-             * queue(like two, one is timer task, one is immediate task),
-             * we don't want too many immediate tasks to be inserted into queue,
-             * one notify will cause all the tasks to be processed.
-             */
-            this.schedulerExecutor.submit(this::scheduleOrExecuteJob);
-        }
-    }
-
-    private void scheduleOrExecuteJob() {
-        // Called by scheduler timer
-        try {
-            for (TaskScheduler entry : this.schedulers.values()) {
-                TaskScheduler scheduler = entry;
-                // Maybe other thread close&remove scheduler at the same time
-                synchronized (scheduler) {
-                    this.scheduleOrExecuteJobForGraph(scheduler);
-                }
-            }
-        } catch (Throwable e) {
-            LOG.error("Exception occurred when schedule job", e);
-        }
-    }
-
-    private void scheduleOrExecuteJobForGraph(TaskScheduler scheduler) {
-        E.checkNotNull(scheduler, "scheduler");
-
-        if (scheduler instanceof StandardTaskScheduler) {
-            StandardTaskScheduler standardTaskScheduler = (StandardTaskScheduler) (scheduler);
-            ServerInfoManager serverManager = scheduler.serverManager();
-            String graph = scheduler.graphName();
-
-            LockUtil.lock(graph, LockUtil.GRAPH_LOCK);
-            try {
-                /*
-                 * Skip if:
-                 * graph is closed (iterate schedulers before graph is closing)
-                 *  or
-                 * graph is not initialized(maybe truncated or cleared).
-                 *
-                 * If graph is closing by other thread, current thread get
-                 * serverManager and try lock graph, at the same time other
-                 * thread deleted the lock-group, current thread would get
-                 * exception 'LockGroup xx does not exists'.
-                 * If graph is closed, don't call serverManager.initialized()
-                 * due to it will reopen graph tx.
-                 */
-                if (!serverManager.graphIsReady()) {
-                    return;
-                }
-
-                // Update server heartbeat
-                serverManager.heartbeat();
-
-                /*
-                 * Master will schedule tasks to suitable servers.
-                 * Note a Worker may become to a Master, so elected-Master also needs to
-                 * execute tasks assigned by previous Master when enableRoleElected=true.
-                 * However, when enableRoleElected=false, a Master is only set by the
-                 * config assignment, assigned-Master always stays the same state.
-                 */
-                if (serverManager.selfIsMaster()) {
-                    standardTaskScheduler.scheduleTasksOnMaster();
-                    if (!this.enableRoleElected && !serverManager.onlySingleNode()) {
-                        // assigned-Master + non-single-node don't need to execute tasks
-                        return;
-                    }
-                }
-
-                // Execute queued tasks scheduled to current server
-                standardTaskScheduler.executeTasksOnWorker(serverManager.selfNodeId());
-
-                // Cancel tasks scheduled to current server
-                standardTaskScheduler.cancelTasksOnWorker(serverManager.selfNodeId());
-            } finally {
-                LockUtil.unlock(graph, LockUtil.GRAPH_LOCK);
-            }
-        }
-    }
-
     private static final ThreadLocal<String> CONTEXTS = new ThreadLocal<>();
 
-    protected static void setContext(String context) {
+    public static void setContext(String context) {
         CONTEXTS.set(context);
     }
 
-    protected static void resetContext() {
+    public static void resetContext() {
         CONTEXTS.remove();
     }
 

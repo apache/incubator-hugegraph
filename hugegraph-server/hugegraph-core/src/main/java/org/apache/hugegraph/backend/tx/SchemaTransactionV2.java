@@ -23,8 +23,8 @@ import java.util.function.Consumer;
 
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.exception.NotAllowException;
 import org.apache.hugegraph.job.JobBuilder;
@@ -41,13 +41,13 @@ import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.meta.PdMetaDriver;
 import org.apache.hugegraph.meta.managers.SchemaMetaManager;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.schema.EdgeLabel;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.SchemaElement;
-import org.apache.hugegraph.schema.SchemaLabel;
-import org.apache.hugegraph.schema.Userdata;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.Userdata;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.task.HugeTask;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphMode;
@@ -73,13 +73,11 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     private final SchemaMetaManager schemaMetaManager;
 
     public SchemaTransactionV2(MetaDriver metaDriver,
-                             String cluster,
-                             HugeGraphParams graphParams) {
+                               String cluster,
+                               HugeGraphParams graphParams) {
         E.checkNotNull(graphParams, "graphParams");
         this.graphParams = graphParams;
-        // TODO: uncomment later - graph space
-        //this.graphSpace = graphParams.graph().graphSpace();
-        this.graphSpace = "";
+        this.graphSpace = graphParams.graph().graphSpace();
         this.graph = graphParams.name();
         this.schemaMetaManager =
                 new SchemaMetaManager(metaDriver, cluster, this.graph());
@@ -106,8 +104,8 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
                                SchemaJob job, Set<Id> dependencies) {
         E.checkArgument(schema != null, "Schema can't be null");
         String name = SchemaJob.formatTaskName(schema.type(),
-                                                    schema.id(),
-                                                    schema.name());
+                                               schema.id(),
+                                               schema.name());
 
         JobBuilder<Object> builder = JobBuilder.of(graph).name(name)
                                                .job(job)
@@ -386,7 +384,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
 
         if (baseLabel == null) {
             LOG.info("The base label '{}' of index label '{}' " +
-                "may be deleted before", baseValue, indexLabel);
+                     "may be deleted before", baseValue, indexLabel);
             return;
         }
         if (baseLabel.equals(VertexLabel.OLAP_VL)) {
@@ -417,10 +415,9 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     private void saveSchema(SchemaElement schema, boolean update,
                             Consumer<SchemaElement> updateCallback) {
         // Lock for schema update
-        // TODO: uncomment later - graph space
-        //String spaceGraph = this.graphParams()
-        //                        .graph().spaceGraphName();
-        LockUtil.Locks locks = new LockUtil.Locks(graph);
+        String spaceGraph = this.graphParams()
+                                .graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()), schema.id());
 
@@ -439,14 +436,16 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
                     this.schemaMetaManager.addVertexLabel(this.graphSpace,
                                                           this.graph,
                                                           (VertexLabel) schema);
-                    // Point's label changes, clear the corresponding graph's point cache information
+                    // Point's label changes, clear the corresponding graph's point cache
+                    // information
                     MetaManager.instance().notifyGraphVertexCacheClear(this.graphSpace, this.graph);
                     break;
                 case EDGE_LABEL:
                     this.schemaMetaManager.addEdgeLabel(this.graphSpace,
                                                         this.graph,
                                                         (EdgeLabel) schema);
-                    // Side label changes, clear the corresponding edge cache information of the graph.
+                    // Side label changes, clear the corresponding edge cache information of the
+                    // graph.
                     MetaManager.instance().notifyGraphEdgeCacheClear(this.graphSpace, this.graph);
                     break;
                 case INDEX_LABEL:
@@ -541,10 +540,9 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public void removeSchema(SchemaElement schema) {
         LOG.debug("SchemaTransaction remove {} by id '{}'",
                   schema.type(), schema.id());
-        // TODO: uncomment later - graph space
-        //String spaceGraph = this.graphParams()
-        //                        .graph().spaceGraphName();
-        LockUtil.Locks locks = new LockUtil.Locks(graph);
+        String spaceGraph = this.graphParams()
+                                .graph().spaceGraphName();
+        LockUtil.Locks locks = new LockUtil.Locks(spaceGraph);
         try {
             locks.lockWrites(LockUtil.hugeType2Group(schema.type()),
                              schema.id());
@@ -719,6 +717,11 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     @Override
     public String graphName() {
         return this.graph;
+    }
+
+    @Override
+    public String spaceGraphName() {
+        return this.graph().spaceGraphName();
     }
 
     protected HugeGraphParams graphParams() {

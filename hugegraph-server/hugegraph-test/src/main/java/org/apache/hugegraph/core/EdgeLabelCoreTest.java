@@ -20,15 +20,15 @@ package org.apache.hugegraph.core;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.exception.ExistedException;
 import org.apache.hugegraph.exception.NoIndexException;
 import org.apache.hugegraph.exception.NotFoundException;
-import org.apache.hugegraph.schema.EdgeLabel;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
 import org.apache.hugegraph.schema.SchemaManager;
-import org.apache.hugegraph.schema.Userdata;
+import org.apache.hugegraph.struct.schema.Userdata;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.type.define.Frequency;
 import org.apache.hugegraph.util.DateUtil;
@@ -480,7 +480,7 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
     }
 
     @Test
-    public void testAddEdgeLabelWithTtl() {
+    public void testAddEdgeLabelWithTTL() {
         super.initPropertyKeys();
 
         SchemaManager schema = graph().schema();
@@ -559,6 +559,124 @@ public class EdgeLabelCoreTest extends SchemaCoreTest {
         Assert.assertEquals(86400L, write.ttl());
         Assert.assertNotNull(write.ttlStartTime());
         assertContainsPk(ImmutableSet.of(write.ttlStartTime()), "date");
+    }
+
+    @Test
+    public void testAppendEdgeLabelWithTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("date").asDate().ifNotExist().create();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        // Create an edge label without TTL
+        EdgeLabel read = schema.edgeLabel("read").link("person", "book")
+                               .properties("date", "weight")
+                               .create();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(0L, read.ttl());
+
+        // Update the edge label with TTL via append
+        read = schema.edgeLabel("read")
+                     .ttl(86400L)
+                     .append();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(86400L, read.ttl());
+    }
+
+    @Test
+    public void testAppendEdgeLabelResetTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        // Create an edge label with TTL
+        EdgeLabel read = schema.edgeLabel("read").link("person", "book")
+                               .properties("time", "weight")
+                               .ttl(86400L)
+                               .create();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(86400L, read.ttl());
+
+        // Reset TTL to 0 via append
+        read = schema.edgeLabel("read")
+                     .ttl(0L)
+                     .append();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals("read", read.name());
+        Assert.assertEquals(0L, read.ttl());
+    }
+
+    @Test
+    public void testAppendEdgeLabelWithoutTTLShouldNotClearExistingTTL() {
+        super.initPropertyKeys();
+
+        SchemaManager schema = graph().schema();
+
+        schema.propertyKey("date").asDate().ifNotExist().create();
+
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("city")
+              .create();
+
+        schema.vertexLabel("book")
+              .properties("name")
+              .primaryKeys("name")
+              .create();
+
+        // Create edge label with TTL and ttlStartTime
+        EdgeLabel read = schema.edgeLabel("read").link("person", "book")
+                               .properties("date", "weight")
+                               .ttl(86400L)
+                               .ttlStartTime("date")
+                               .create();
+
+        Assert.assertNotNull(read);
+        Assert.assertEquals(86400L, read.ttl());
+        Assert.assertNotNull(read.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(read.ttlStartTime()), "date");
+
+        // Append property WITHOUT specifying ttl
+        read = schema.edgeLabel("read")
+                     .nullableKeys("weight")
+                     .append();
+
+        // Both TTL and ttlStartTime should remain unchanged
+        Assert.assertNotNull(read);
+        Assert.assertEquals(86400L, read.ttl());
+        Assert.assertNotNull(read.ttlStartTime());
+        assertContainsPk(ImmutableSet.of(read.ttlStartTime()), "date");
     }
 
     @Test

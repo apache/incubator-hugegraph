@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.api.traversers;
 
+import org.apache.hugegraph.util.TinkerPopUtil;
+
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_ELEMENTS_LIMIT;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.NO_LIMIT;
@@ -30,7 +32,7 @@ import java.util.Set;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.graph.EdgeAPI;
 import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.structure.HugeVertex;
@@ -50,6 +52,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
@@ -62,7 +65,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/kneighbor")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/kneighbor")
 @Singleton
 @Tag(name = "KneighborAPI")
 public class KneighborAPI extends TraverserAPI {
@@ -73,15 +76,25 @@ public class KneighborAPI extends TraverserAPI {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @Parameter(description = "The graph space name")
+                      @PathParam("graphspace") String graphSpace,
+                      @Parameter(description = "The graph name")
                       @PathParam("graph") String graph,
+                      @Parameter(description = "The source vertex ID")
                       @QueryParam("source") String sourceV,
+                      @Parameter(description = "The direction of traversal")
                       @QueryParam("direction") String direction,
+                      @Parameter(description = "The edge label to traverse")
                       @QueryParam("label") String edgeLabel,
+                      @Parameter(description = "The maximum depth of traversal")
                       @QueryParam("max_depth") int depth,
+                      @Parameter(description = "Whether to return only count")
                       @QueryParam("count_only")
                       @DefaultValue("false") boolean countOnly,
+                      @Parameter(description = "The maximum degree of vertices")
                       @QueryParam("max_degree")
                       @DefaultValue(DEFAULT_MAX_DEGREE) long maxDegree,
+                      @Parameter(description = "The maximum number of results")
                       @QueryParam("limit")
                       @DefaultValue(DEFAULT_ELEMENTS_LIMIT) int limit) {
         LOG.debug("Graph [{}] get k-neighbor from '{}' with " +
@@ -93,9 +106,9 @@ public class KneighborAPI extends TraverserAPI {
         ApiMeasurer measure = new ApiMeasurer();
 
         Id source = VertexAPI.checkAndParseVertexId(sourceV);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
 
         Set<Id> ids;
         try (KneighborTraverser traverser = new KneighborTraverser(g)) {
@@ -116,6 +129,7 @@ public class KneighborAPI extends TraverserAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        Request request) {
         E.checkArgumentNotNull(request, "The request body can't be null");
@@ -137,7 +151,7 @@ public class KneighborAPI extends TraverserAPI {
 
         ApiMeasurer measure = new ApiMeasurer();
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Id sourceId = HugeVertex.getIdValue(request.source);
 
         Steps steps = steps(g, request.steps);

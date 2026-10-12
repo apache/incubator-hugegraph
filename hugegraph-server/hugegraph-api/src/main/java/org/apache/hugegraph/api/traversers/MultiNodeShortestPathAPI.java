@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
 import org.apache.hugegraph.traversal.algorithm.MultiNodeShortestPathTraverser;
@@ -48,7 +48,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/multinodeshortestpath")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/multinodeshortestpath")
 @Singleton
 @Tag(name = "MultiNodeShortestPathAPI")
 public class MultiNodeShortestPathAPI extends TraverserAPI {
@@ -60,6 +60,7 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        Request request) {
         E.checkArgumentNotNull(request, "The request body can't be null");
@@ -76,7 +77,7 @@ public class MultiNodeShortestPathAPI extends TraverserAPI {
 
         ApiMeasurer measure = new ApiMeasurer();
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Iterator<Vertex> vertices = request.vertices.vertices(g);
 
         EdgeStep step = step(g, request.step);

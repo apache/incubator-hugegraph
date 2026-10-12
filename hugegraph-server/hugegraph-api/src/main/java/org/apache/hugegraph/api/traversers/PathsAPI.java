@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.api.traversers;
 
+import org.apache.hugegraph.util.TinkerPopUtil;
+
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_CAPACITY;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEGREE;
 import static org.apache.hugegraph.traversal.algorithm.HugeTraverser.DEFAULT_MAX_DEPTH;
@@ -30,7 +32,7 @@ import java.util.Set;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.graph.EdgeAPI;
 import org.apache.hugegraph.api.graph.VertexAPI;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.traversal.algorithm.CollectionPathsTraverser;
 import org.apache.hugegraph.traversal.algorithm.HugeTraverser;
@@ -58,7 +60,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 
-@Path("graphs/{graph}/traversers/paths")
+@Path("graphspaces/{graphspace}/graphs/{graph}/traversers/paths")
 @Singleton
 @Tag(name = "PathsAPI")
 public class PathsAPI extends TraverserAPI {
@@ -69,6 +71,7 @@ public class PathsAPI extends TraverserAPI {
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String get(@Context GraphManager manager,
+                      @PathParam("graphspace") String graphSpace,
                       @PathParam("graph") String graph,
                       @QueryParam("source") String source,
                       @QueryParam("target") String target,
@@ -91,9 +94,9 @@ public class PathsAPI extends TraverserAPI {
 
         Id sourceId = VertexAPI.checkAndParseVertexId(source);
         Id targetId = VertexAPI.checkAndParseVertexId(target);
-        Directions dir = Directions.convert(EdgeAPI.parseDirection(direction));
+        Directions dir = TinkerPopUtil.direction(EdgeAPI.parseDirection(direction));
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         PathsTraverser traverser = new PathsTraverser(g);
         HugeTraverser.PathSet paths = traverser.paths(sourceId, dir, targetId,
                                                       dir.opposite(), edgeLabel,
@@ -110,6 +113,7 @@ public class PathsAPI extends TraverserAPI {
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
     public String post(@Context GraphManager manager,
+                       @PathParam("graphspace") String graphSpace,
                        @PathParam("graph") String graph,
                        Request request) {
         E.checkArgumentNotNull(request, "The request body can't be null");
@@ -132,7 +136,7 @@ public class PathsAPI extends TraverserAPI {
 
         ApiMeasurer measure = new ApiMeasurer();
 
-        HugeGraph g = graph(manager, graph);
+        HugeGraph g = graph(manager, graphSpace, graph);
         Iterator<Vertex> sources = request.sources.vertices(g);
         Iterator<Vertex> targets = request.targets.vertices(g);
         EdgeStep step = step(g, request.step);

@@ -26,7 +26,7 @@ import javax.json.JsonArrayBuilder;
 import javax.json.JsonObjectBuilder;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
@@ -89,7 +89,7 @@ public class ExceptionFilter {
         @GET
         @Timed
         @Produces(APPLICATION_JSON_WITH_CHARSET)
-        @RolesAllowed({"admin"})
+        @RolesAllowed({"space_member"})
         public Object get() {
             return ImmutableMap.of("trace", TracedExceptionMapper.forcedTrace);
         }
@@ -98,7 +98,7 @@ public class ExceptionFilter {
         @Timed
         @Consumes(APPLICATION_JSON)
         @Produces(APPLICATION_JSON_WITH_CHARSET)
-        @RolesAllowed({"admin"})
+        @RolesAllowed({"space_member"})
         public Object trace(boolean trace) {
             TracedExceptionMapper.forcedTrace = trace;
             return ImmutableMap.of("trace", TracedExceptionMapper.forcedTrace);

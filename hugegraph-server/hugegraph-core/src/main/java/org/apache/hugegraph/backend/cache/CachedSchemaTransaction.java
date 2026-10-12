@@ -21,11 +21,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.store.ram.IntObjectMap;
 import org.apache.hugegraph.backend.tx.SchemaTransaction;
@@ -33,7 +34,7 @@ import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.event.EventListener;
 import org.apache.hugegraph.perf.PerfUtil.Watched;
-import org.apache.hugegraph.schema.SchemaElement;
+import org.apache.hugegraph.struct.schema.SchemaElement;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
@@ -42,6 +43,13 @@ import com.google.common.collect.ImmutableSet;
 
 public final class CachedSchemaTransaction extends SchemaTransaction {
 
+    /*
+     * Retain graph caches and invalidation listeners between request leases.
+     * Only graph close disposes the holder.
+     */
+    private static final ConcurrentMap<String, CacheListenerHolder>
+            SCHEMA_CACHE_EVENT_LISTENERS = new ConcurrentHashMap<>();
+
     private final Cache<Id, Object> idCache;
     private final Cache<Id, Object> nameCache;
 
@@ -49,6 +57,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
     private EventListener storeEventListener;
     private EventListener cacheEventListener;
+    private CacheListenerHolder holder;
 
     public CachedSchemaTransaction(HugeGraphParams graph, BackendStore store) {
         super(graph, store);
@@ -68,18 +77,27 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.listenChanges();
     }
 
+    private static Id generateId(HugeType type, Id id) {
+        // NOTE: it's slower performance to use:
+        // String.format("%x-%s", type.code(), name)
+        return IdGenerator.of(type.string() + "-" + id.asString());
+    }
+
+    private static Id generateId(HugeType type, String name) {
+        return IdGenerator.of(type.string() + "-" + name);
+    }
+
     @Override
     public void close() {
         try {
             super.close();
         } finally {
-            this.clearCache(false);
             this.unlistenChanges();
         }
     }
 
     private Cache<Id, Object> cache(String prefix, long capacity) {
-        final String name = prefix + "-" + this.graphName();
+        final String name = prefix + "-" + this.graph().spaceGraphName();
         // NOTE: must disable schema cache-expire due to getAllSchema()
         return CacheManager.instance().cache(name, capacity);
     }
@@ -98,10 +116,10 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             }
             return false;
         };
-        this.store().provider().listen(this.storeEventListener);
+
 
         // Listen cache event: "cache"(invalid cache item)
-        this.cacheEventListener = event -> {
+        EventListener listener = event -> {
             LOG.debug("Graph {} received schema cache event: {}",
                       this.graph(), event);
             Object[] args = event.args();
@@ -122,28 +140,70 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
             return false;
         };
         EventHub schemaEventHub = this.params().schemaEventHub();
-        if (!schemaEventHub.containsListener(Events.CACHE)) {
-            schemaEventHub.listen(Events.CACHE, this.cacheEventListener);
-        }
+        String graph = this.params().spaceGraphName();
+        CacheListenerHolder acquired = SCHEMA_CACHE_EVENT_LISTENERS.compute(
+                graph, (key, existing) -> {
+                    if (existing == null || existing.hub != schemaEventHub) {
+                        // Graph close/reopen creates a new EventHub for the
+                        // same graph name; replace the stale holder. Old
+                        // transactions skip decrement via identity check.
+                        if (existing != null) {
+                            existing.close();
+                        }
+                        schemaEventHub.listen(Events.CACHE, listener);
+                        this.store().provider().listen(this.storeEventListener);
+                        return new CacheListenerHolder(listener, schemaEventHub, () -> {
+                            try {
+                                this.store().provider().unlisten(this.storeEventListener);
+                            } finally {
+                                this.clearCache(false);
+                            }
+                        });
+                    }
+                    existing.refCount++;
+                    return existing;
+                });
+        this.holder = acquired;
+        this.cacheEventListener = acquired.listener;
     }
 
     private void unlistenChanges() {
-        // Unlisten store event
-        this.store().provider().unlisten(this.storeEventListener);
-
         // Unlisten cache event
-        EventHub schemaEventHub = this.params().schemaEventHub();
-        schemaEventHub.unlisten(Events.CACHE, this.cacheEventListener);
+        CacheListenerHolder ours = this.holder;
+        if (ours != null) {
+            SCHEMA_CACHE_EVENT_LISTENERS.compute(
+                    this.params().spaceGraphName(), (key, existing) -> {
+                        if (existing == null || existing != ours) {
+                            return existing;
+                        }
+                        existing.refCount--;
+                        return existing;
+                    });
+            this.holder = null;
+            this.cacheEventListener = null;
+        }
+    }
+
+    public static void closeGraph(HugeGraphParams params) {
+        SCHEMA_CACHE_EVENT_LISTENERS.computeIfPresent(params.spaceGraphName(), (key, existing) -> {
+            if (existing.hub != params.schemaEventHub()) {
+                return existing;
+            }
+            existing.close();
+            return null;
+        });
     }
 
     private void notifyChanges(String action, HugeType type, Id id) {
         EventHub graphEventHub = this.params().schemaEventHub();
-        graphEventHub.notify(Events.CACHE, action, type, id);
+        graphEventHub.notifyExcept(Events.CACHE, this.cacheEventListener,
+                                   action, type, id);
     }
 
     private void notifyChanges(String action, HugeType type) {
         EventHub graphEventHub = this.params().schemaEventHub();
-        graphEventHub.notify(Events.CACHE, action, type);
+        graphEventHub.notifyExcept(Events.CACHE, this.cacheEventListener,
+                                   action, type);
     }
 
     private void resetCachedAll(HugeType type) {
@@ -163,13 +223,13 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         return this.arrayCaches.cachedTypes();
     }
 
-    private void clearCache(boolean notify) {
+    public void clearCache(boolean notify) {
         this.idCache.clear();
         this.nameCache.clear();
         this.arrayCaches.clear();
 
         if (notify) {
-            this.notifyChanges(Cache.ACTION_CLEARED, null);
+            this.notifyChanges(Cache.ACTION_CLEAR, null);
         }
     }
 
@@ -204,16 +264,6 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
         this.arrayCaches.remove(type, id);
     }
 
-    private static Id generateId(HugeType type, Id id) {
-        // NOTE: it's slower performance to use:
-        // String.format("%x-%s", type.code(), name)
-        return IdGenerator.of(type.string() + "-" + id.asString());
-    }
-
-    private static Id generateId(HugeType type, String name) {
-        return IdGenerator.of(type.string() + "-" + name);
-    }
-
     @Override
     protected void updateSchema(SchemaElement schema,
                                 Consumer<SchemaElement> updateCallback) {
@@ -221,7 +271,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         this.updateCache(schema);
 
-        this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
+        this.notifyChanges(Cache.ACTION_INVALID, schema.type(), schema.id());
     }
 
     @Override
@@ -230,7 +280,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         this.updateCache(schema);
 
-        this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
+        this.notifyChanges(Cache.ACTION_INVALID, schema.type(), schema.id());
     }
 
     @Override
@@ -283,7 +333,7 @@ public final class CachedSchemaTransaction extends SchemaTransaction {
 
         this.invalidateCache(schema.type(), schema.id());
 
-        this.notifyChanges(Cache.ACTION_INVALIDED, schema.type(), schema.id());
+        this.notifyChanges(Cache.ACTION_INVALID, schema.type(), schema.id());
     }
 
     @Override
