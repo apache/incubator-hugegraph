@@ -105,3 +105,27 @@ Each separate job or matrix item requests a runner; steps within a job share one
 but [plan-dependent total and macOS concurrency limits](https://docs.github.com/en/actions/reference/limits#job-concurrency-limits-for-github-hosted-runners)
 still apply. Reducing job allocations and long executions lowers shared-pool demand;
 it does not guarantee a specific queue delay.
+
+## Dependency baseline
+
+The separate [dependency submission workflow](../.github/workflows/submit-dependencies.yml)
+installs the complete reactor with Java 17, then uses the pinned official
+[Maven dependency submission action](https://github.com/advanced-security/maven-dependency-submission-action/tree/a64327a7329c9939cf675e458452febe1894a70c)
+to submit each module's resolved dependencies. It runs on master pushes or manual
+dispatches. Only `apache/hugegraph` on `refs/heads/master` can run the submission
+job, which alone has `contents: write`; the org repository runs read-only policy
+and inventory validation. PRs, forks and other refs cannot run the writer.
+
+Checkout and snapshot use the event commit SHA. Master is checked before install
+and again before invoking the submission action; a run already stale at either
+check fails. Snapshots retain the checked event SHA even if master advances during
+graph generation. A fixed correlator keeps successive master snapshots in the same stream.
+The [snapshot API](https://docs.github.com/en/rest/dependency-graph/dependency-submission#create-a-snapshot-of-dependencies-for-a-repository)
+requires Contents write permission; no additional metadata permission is needed.
+
+This producer supplements the existing dependency review and shipped-inventory
+checks without changing their severity, license rules or inventory. Merging the
+workflow does not prove that a canonical baseline exists: after the first ASF
+master run, verify the submitted SHA/ref, non-empty module manifests and a real
+dependency-review comparison against that baseline. Until then, baseline acceptance
+remains open. No ASF repository setting is changed by this workflow.

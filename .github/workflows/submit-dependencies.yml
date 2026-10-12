@@ -1,0 +1,95 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Dependency baseline
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-baseline-${{ github.repository }}-master
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: >-
+      (github.repository == 'apache/hugegraph' || github.repository == 'hugegraph/hugegraph') &&
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout event commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Test CI policy and dependency inventory
+        run: |
+          python3 -m unittest discover -s .github/scripts -p 'test_ci_policy.py'
+          python3 -m unittest discover -s install-dist/scripts/dependency -p 'test_*.py'
+
+  submit:
+    needs: validate
+    if: >-
+      github.repository == 'apache/hugegraph' &&
+      github.event.repository.fork == false &&
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout event commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up project JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          java-version-file: .github/workflows/.java-version
+          distribution: 'temurin'
+      - name: Verify checkout and current master
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
+      - name: Install the complete Maven reactor
+        run: mvn -B -ntp install -Dmaven.test.skip=true -Dmaven.javadoc.skip=true --fail-at-end
+      - name: Refuse a stale master submission
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
+      - name: Submit resolved reactor dependencies
+        uses: advanced-security/maven-dependency-submission-action@a64327a7329c9939cf675e458452febe1894a70c # v6.0.1
+        with:
+          directory: '.'
+          ignore-maven-wrapper: true
+          maven-args: '-ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true'
+          correlator: '.github/workflows/submit-dependencies.yml:submit'
+          snapshot-sha: ${{ github.sha }}
+          snapshot-ref: ${{ github.ref }}
