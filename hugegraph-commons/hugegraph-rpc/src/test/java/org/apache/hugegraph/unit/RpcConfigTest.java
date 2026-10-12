@@ -73,8 +73,9 @@ public class RpcConfigTest extends BaseUnitTest {
         RpcClientProvider withPeer = new RpcClientProvider(new HugeConfig(options));
         try {
             Assert.assertTrue(withPeer.enabled());
+            // Self is dropped from the direct URL the SOFA consumer is built with
             Assert.assertEquals("127.0.0.1:8092",
-                                Whitebox.getInternalState(withPeer.config(), "remoteUrls"));
+                                consumerConfig(withPeer.config(), null, HELLO).getDirectUrl());
         } finally {
             withPeer.destroy();
         }
