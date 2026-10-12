@@ -18,6 +18,7 @@
 package org.apache.hugegraph.unit.rocksdb;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -40,6 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDBException;
+import org.rocksdb.Status;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -197,7 +199,7 @@ public class RocksDBStdSessionsLifecycleTest extends BaseUnitTest {
         Assert.assertThrows(RocksDBException.class, () -> {
             this.openWithoutTable(path);
         }, e -> {
-            Assert.assertContains("lock", e.getMessage());
+            Assert.assertEquals(Status.Code.IOError, ((RocksDBException) e).getStatus().getCode());
         });
         // The failed open must not disturb the live instance
         Assert.assertTrue(sessions.databaseOpened());
@@ -307,6 +309,20 @@ public class RocksDBStdSessionsLifecycleTest extends BaseUnitTest {
         Assert.assertEquals(expected.getPath(), sessions.buildSnapshotPath("snapshot"));
     }
 
+    @Test
+    public void testNonAsciiDataSurvivesReopen() throws Exception {
+        String path = this.newPath("utf8");
+        RocksDBSessions sessions = this.open(path);
+        sessions.session().put(TABLE, getBytes("图-key"), getBytes("值-\uD83D\uDE00"));
+        sessions.session().commit();
+        Assert.assertTrue(sessions.close());
+
+        RocksDBSessions reopened = this.openWithoutTable(path);
+        Assert.assertEquals("值-\uD83D\uDE00",
+                            getString(reopened.session().get(TABLE, getBytes("图-key"))));
+        Assert.assertArrayEquals("图-key".getBytes(StandardCharsets.UTF_8), getBytes("图-key"));
+    }
+
     private String newPath(String name) throws Exception {
         return new File(this.temporary.newFolder(name), "db").getAbsolutePath();
     }
@@ -327,10 +343,10 @@ public class RocksDBStdSessionsLifecycleTest extends BaseUnitTest {
     }
 
     private static byte[] getBytes(String str) {
-        return str.getBytes();
+        return str.getBytes(StandardCharsets.UTF_8);
     }
 
     private static String getString(byte[] bytes) {
-        return bytes == null ? null : new String(bytes);
+        return bytes == null ? null : new String(bytes, StandardCharsets.UTF_8);
     }
 }

@@ -57,7 +57,7 @@ public class ZipUtilsPathSafetyTest {
     }
 
     private File maliciousZip(String... entryNames) throws IOException {
-        File zip = this.folder.newFile("malicious.zip");
+        File zip = this.folder.newFile();
         try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(zip))) {
             zos.putNextEntry(new ZipEntry("snapshot/ok.sst"));
             zos.write("ok".getBytes(StandardCharsets.UTF_8));
@@ -102,8 +102,11 @@ public class ZipUtilsPathSafetyTest {
     @Test
     public void testRocksDbDecompressSkipsEntriesEscapingTheTargetDir() throws IOException {
         File out = this.folder.newFolder("out");
+        String absoluteEntry = new File(this.folder.getRoot(), "absolute.txt")
+                .getAbsolutePath().replace(File.separatorChar, '/');
+        assertFalse(out.toPath().resolve(absoluteEntry).normalize().startsWith(out.toPath()));
         File zip = maliciousZip("../escaped.txt", "snapshot/../../escaped2.txt", "../out-evil/x.txt",
-                                new File(this.folder.getRoot(), "absolute.txt").getAbsolutePath());
+                                absoluteEntry);
 
         ZipUtils.decompress(zip.getAbsolutePath(), out.getAbsolutePath(), new CRC32());
 
@@ -127,7 +130,7 @@ public class ZipUtilsPathSafetyTest {
             assertTrue(e.getMessage(), e.getMessage().contains("outside of the target dir"));
             assertFalse(new File(this.folder.getRoot(), "escaped.txt").exists());
             assertFalse(new File(this.folder.getRoot(), "out-evil").exists());
-            assertTrue(zip.delete());
+            // Each attack has its own archive; TemporaryFolder owns cleanup.
         }
     }
 
