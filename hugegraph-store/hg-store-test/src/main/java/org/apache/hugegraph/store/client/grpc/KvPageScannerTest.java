@@ -80,6 +80,15 @@ public class KvPageScannerTest {
     }
 
     @Test
+    public void testUnavailableScanPreservesErrorWhenRequestCompletionFails() {
+        try (FailureFixture fixture = new FailureFixture()) {
+            fixture.failScan(Status.UNAVAILABLE, true);
+            Assert.assertNull(fixture.manager.getStoreNode(fixture.nodeId));
+            Assert.assertFalse(AbstractGrpcClient.channels.containsKey(fixture.target));
+        }
+    }
+
+    @Test
     public void testUnavailableScanRetiresPoolBeforePublishingError() throws Exception {
         try (FailureFixture fixture = new FailureFixture()) {
             CountDownLatch requested = new CountDownLatch(1);
@@ -119,7 +128,7 @@ public class KvPageScannerTest {
                     }
                 });
                 Assert.assertTrue(requested.await(5, TimeUnit.SECONDS));
-                awaitBlockedReceiver(receiverThread.get());
+                awaitBlockedReceiver(receiverThread.get(), failure);
                 Future<?> notification = executor.submit(() -> response.get().onError(error));
                 Assert.assertTrue(retirementEntered.await(5, TimeUnit.SECONDS));
                 Assert.assertSame(fixture.channels, AbstractGrpcClient.channels.get(fixture.target));
@@ -145,9 +154,138 @@ public class KvPageScannerTest {
         }
     }
 
-    private static void awaitBlockedReceiver(Thread receiver) throws InterruptedException {
+    @Test
+    public void testReceiverEnteringDuringRetirementDoesNotSeeEof() throws Exception {
+        try (FailureFixture fixture = new FailureFixture()) {
+            CountDownLatch retirementEntered = new CountDownLatch(1);
+            CountDownLatch allowRetirement = new CountDownLatch(1);
+            CountDownLatch receiverEntered = new CountDownLatch(1);
+            AtomicReference<Thread> receiverThread = new AtomicReference<>();
+            AtomicReference<StreamObserver<KvPageRes>> response = new AtomicReference<>();
+            StreamObserver<ScanStreamReq> requestObserver = mock(StreamObserver.class);
+            when(fixture.session.getStoreNode()).thenAnswer(invocation -> {
+                retirementEntered.countDown();
+                Assert.assertTrue("Retirement gate timed out",
+                                  allowRetirement.await(5, TimeUnit.SECONDS));
+                return fixture.node;
+            });
+            KvPageScanner scanner = new KvPageScanner(fixture.session,
+                    ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
+                    observer -> {
+                        response.set(observer);
+                        return requestObserver;
+                    });
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            var error = Status.UNAVAILABLE.withDescription("scan retirement in progress")
+                                          .asRuntimeException();
+            try {
+                Future<?> notification = executor.submit(() -> response.get().onError(error));
+                Assert.assertTrue(retirementEntered.await(5, TimeUnit.SECONDS));
+                Future<Throwable> failure = executor.submit(() -> {
+                    receiverThread.set(Thread.currentThread());
+                    receiverEntered.countDown();
+                    try {
+                        scanner.hasNext();
+                        Assert.fail("Retiring failed scan must not become normal EOF");
+                        return null;
+                    } catch (HgStoreClientException e) {
+                        return e.getCause();
+                    }
+                });
+                Assert.assertTrue(receiverEntered.await(5, TimeUnit.SECONDS));
+                awaitBlockedReceiver(receiverThread.get(), failure);
+                try {
+                    failure.get(1, TimeUnit.SECONDS);
+                    Assert.fail("Receiver finished before failed pool retirement");
+                } catch (TimeoutException expected) {
+                    // Terminal publication must wait for retirement, even for a new receiver.
+                }
+                Assert.assertSame(fixture.channels, AbstractGrpcClient.channels.get(fixture.target));
+                allowRetirement.countDown();
+                Assert.assertSame(error, failure.get(5, TimeUnit.SECONDS));
+                notification.get(5, TimeUnit.SECONDS);
+                Assert.assertNull(fixture.manager.getStoreNode(fixture.nodeId));
+                Assert.assertFalse(AbstractGrpcClient.channels.containsKey(fixture.target));
+                var retryStub = fixture.client.getStub(fixture.session);
+                Assert.assertFalse(Arrays.asList(fixture.channels).contains(retryStub.getChannel()));
+                verify(requestObserver, never()).onNext(any());
+            } finally {
+                allowRetirement.countDown();
+                executor.shutdownNow();
+                Assert.assertTrue("Scan workers failed to stop",
+                                  executor.awaitTermination(5, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    @Test
+    public void testServerCompletionAndClientCloseFinishEmptyScan() {
+        for (boolean clientClose : new boolean[]{false, true}) {
+            AtomicReference<StreamObserver<KvPageRes>> response = new AtomicReference<>();
+            StreamObserver<ScanStreamReq> requestObserver = mock(StreamObserver.class);
+            doAnswer(invocation -> {
+                ScanStreamReq request = invocation.getArgument(0);
+                Assert.assertEquals(clientClose ? 1 : 0, request.getCloseFlag());
+                response.get().onCompleted();
+                return null;
+            }).when(requestObserver).onNext(any());
+            KvPageScanner scanner = new KvPageScanner(session(),
+                    ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
+                    observer -> {
+                        response.set(observer);
+                        return requestObserver;
+                    });
+            if (clientClose) {
+                scanner.close();
+            }
+            Assert.assertFalse(scanner.hasNext());
+            Assert.assertFalse(scanner.hasNext());
+            verify(requestObserver).onNext(any());
+        }
+    }
+
+    @Test
+    public void testFinalPageSurvivesRequestCompletionFailure() throws Exception {
+        AtomicReference<StreamObserver<KvPageRes>> response = new AtomicReference<>();
+        StreamObserver<ScanStreamReq> requestObserver = mock(StreamObserver.class);
+        var completionFailure = new IllegalStateException("request completion failed");
+        doAnswer(invocation -> {
+            throw completionFailure;
+        }).when(requestObserver).onCompleted();
+        KvPageScanner scanner = new KvPageScanner(session(),
+                ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
+                observer -> {
+                    response.set(observer);
+                    return requestObserver;
+                });
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            try {
+                response.get().onNext(page(true, 7));
+            } catch (IllegalStateException e) {
+                Assert.assertSame(completionFailure, e);
+            }
+            Future<?> receiver = executor.submit(() -> {
+                Assert.assertTrue("The final page must still be delivered", scanner.hasNext());
+                Assert.assertEquals(7, scanner.next().getKey().byteAt(0) & 0xff);
+                Assert.assertFalse(scanner.hasNext());
+            });
+            receiver.get(2, TimeUnit.SECONDS);
+            verify(requestObserver, never()).onNext(any());
+        } finally {
+            executor.shutdownNow();
+            Assert.assertTrue("Scan receiver failed to stop",
+                              executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    private static void awaitBlockedReceiver(Thread receiver, Future<?> result) throws Exception {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (receiver.getState() != Thread.State.TIMED_WAITING && System.nanoTime() < deadline) {
+            if (result.isDone()) {
+                result.get(5, TimeUnit.SECONDS);
+                Assert.fail("Scanner returned before waiting for its response");
+            }
             Thread.sleep(1);
         }
         Assert.assertEquals("Scanner must be blocked waiting for its response",
@@ -212,6 +350,10 @@ public class KvPageScannerTest {
         }
 
         void failScan(Status status) {
+            this.failScan(status, false);
+        }
+
+        void failScan(Status status, boolean failCompletion) {
             var error = status.withDescription("scan transport failure").asRuntimeException();
             KvPageScanner scanner = new KvPageScanner(this.session,
                     ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
@@ -227,6 +369,9 @@ public class KvPageScannerTest {
 
                         @Override
                         public void onCompleted() {
+                            if (failCompletion) {
+                                throw new IllegalStateException("request completion failed");
+                            }
                         }
                     });
             try {

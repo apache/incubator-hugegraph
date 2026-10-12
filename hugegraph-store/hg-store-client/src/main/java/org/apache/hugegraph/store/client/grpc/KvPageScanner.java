@@ -176,7 +176,7 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
 
     private void serverScan() {
         if (this.completed.get()) {
-            this.proxy.close();
+            // The response callback closes the buffer after publishing its final page or error.
             return;
         }
         if (this.proxy.isClosed()) {
@@ -305,7 +305,11 @@ class KvPageScanner implements KvCloseableIterator<Kv>, HgPageSize, HgSeekAble {
             }
             if (value.getOver()) {
                 completed.set(true);
-                observer.onCompleted();
+                try {
+                    observer.onCompleted();
+                } catch (Exception e) {
+                    log.warn("failed to invoke requestObserver.onCompleted(), reason: {}", e.getMessage());
+                }
             }
             proxy.send(value.getDataList());
             if (completed.get()) {
