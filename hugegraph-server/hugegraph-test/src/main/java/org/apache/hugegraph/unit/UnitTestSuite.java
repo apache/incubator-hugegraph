@@ -114,6 +114,7 @@ import org.apache.hugegraph.unit.serializer.TextSerializerTest;
 import org.apache.hugegraph.unit.store.RamIntObjectMapTest;
 import org.apache.hugegraph.unit.traversal.ShortestPathTraverserTest;
 import org.apache.hugegraph.unit.util.CompressUtilTest;
+import org.apache.hugegraph.unit.util.ConsumersTest;
 import org.apache.hugegraph.unit.util.JsonUtilTest;
 import org.apache.hugegraph.unit.util.RateLimiterTest;
 import org.apache.hugegraph.unit.util.StringEncodingTest;
@@ -248,6 +249,7 @@ import org.junit.runners.Suite;
         RocksDBTableQueryByIdsTest.class,
 
         /* utils */
+        ConsumersTest.class,
         VersionTest.class,
         JsonUtilTest.class,
         StringEncodingTest.class,
