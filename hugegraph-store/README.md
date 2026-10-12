@@ -252,6 +252,10 @@ bin/start-hugegraph-store.sh [-g GC_TYPE] [-j "JVM_OPTIONS"] [-d DAEMON]
 - `-j`: Custom JVM options (e.g., `-j "-Xmx16g -Xms8g"`)
 - `-d`: Daemon mode (`true` = daemon, `false` = foreground; default: `true`). Set to `false` when running under Docker or a process supervisor so the container exits if Java dies.
 
+On supported architectures, startup reuses a checksum-verified jemalloc library or tries to download it.
+The optional download allows 5 seconds to connect and 30 seconds for the complete transfer. If it fails
+or times out, Store continues without adding jemalloc to `LD_PRELOAD`; partial downloads are discarded.
+
 Default JVM memory settings (defined in `start-hugegraph-store.sh`):
 - Max heap: 32GB
 - Min heap: 512MB
