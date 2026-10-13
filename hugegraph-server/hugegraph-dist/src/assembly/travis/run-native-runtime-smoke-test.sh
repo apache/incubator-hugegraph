@@ -47,13 +47,21 @@ cleanup() {
 trap cleanup EXIT
 
 start_server() {
-    if ! command -v timeout >/dev/null 2>&1; then
-        echo "Required command is unavailable: timeout" >&2
+    if command -v timeout >/dev/null 2>&1; then
+        TIMEOUT_COMMAND=timeout
+    elif command -v gtimeout >/dev/null 2>&1; then
+        TIMEOUT_COMMAND=gtimeout
+    else
+        echo "Required command is unavailable: timeout or gtimeout" >&2
         return 1
     fi
-    timeout --foreground --kill-after=15s \
+    local start_options=(-t "$SERVER_STARTUP_TIMEOUT")
+    if [[ -n "${SERVER_JAVA_OPTIONS:-}" ]]; then
+        start_options+=(-j "$SERVER_JAVA_OPTIONS")
+    fi
+    "$TIMEOUT_COMMAND" --foreground --kill-after=15s \
             "${SERVER_START_COMMAND_TIMEOUT}s" \
-            "$SERVER_DIR/bin/start-hugegraph.sh" -t "$SERVER_STARTUP_TIMEOUT"
+            "$SERVER_DIR/bin/start-hugegraph.sh" "${start_options[@]}"
 }
 
 "$TRAVIS_DIR/run-rocksdb-jni-smoke-test.sh" "$SERVER_DIR"
@@ -66,7 +74,7 @@ start_server
 grep -q '^server-e2e-smoke-create-ok$' "$WORK_DIR/create.log"
 
 "$SERVER_DIR/bin/stop-hugegraph.sh" -m false
-timeout --foreground --kill-after=15s "${STORE_DUMP_TIMEOUT}s" \
+"$TIMEOUT_COMMAND" --foreground --kill-after=15s "${STORE_DUMP_TIMEOUT}s" \
         "$SERVER_DIR/bin/dump-store.sh" | tee "$WORK_DIR/store-dump.log"
 grep -q 'Dump table VERTEX (offset 0 limit 20):' "$WORK_DIR/store-dump.log"
 grep -Fq "riscv-smoke-v1-$RUN_ID" "$WORK_DIR/store-dump.log"
