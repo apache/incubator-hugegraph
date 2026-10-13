@@ -292,9 +292,6 @@ public class GraphIdUpgradePreflightTest {
             } catch (Throwable caught) {
                 failure = caught;
             }
-            System.out.println("BOOTSTRAP older-present=" + Files.exists(data.resolve(DB_NAME + "_1")) +
-                               " latest-CURRENT=" + Files.exists(data.resolve(DB_NAME + "_2/CURRENT")) +
-                               " unchanged=" + before.equals(fileHashes(data)) + " failure=" + failure);
             assertNotNull("Bootstrap must reject before creating/pruning native databases", failure);
             assertTrue(failure.getMessage().contains("no CURRENT"));
             assertEquals(before, fileHashes(data));
@@ -316,9 +313,6 @@ public class GraphIdUpgradePreflightTest {
             } catch (Throwable caught) {
                 failure = caught;
             }
-            System.out.println("BOOTSTRAP older-legacy-present=" +
-                               Files.exists(data.resolve(DB_NAME + "_1")) +
-                               " unchanged=" + before.equals(fileHashes(data)) + " failure=" + failure);
             assertNotNull("Pruning must not erase an older legacy database", failure);
             assertTrue(failure.getMessage().contains("GraphID"));
             assertEquals(before, fileHashes(data));
