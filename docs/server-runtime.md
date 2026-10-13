@@ -34,9 +34,13 @@ The default launcher heap uses half the smaller of host available memory and the
 remaining budget under visible cgroup v1/v2 hard limits, with a 512 MiB minimum and a
 32 GiB maximum. It refuses startup when the effective budget is below 512 MiB.
 If a known hard limit has missing, unreadable or invalid usage, the budget is zero;
-the launcher refuses startup instead of using host memory. Cgroup v1 numeric unlimited
-levels are skipped so readable finite ancestors still apply; without a finite limit,
-host sizing remains available. The sentinel uses the native long and page sizes.
+the launcher refuses startup instead of using host memory. For cgroup v1, numeric
+unlimited values are recognized only when `uname -m` reports `x86_64`, `aarch64` or
+`riscv64` and `getconf PAGESIZE` returns a positive integer. The threshold is the
+signed 64-bit maximum rounded down to that page size. Recognized unlimited levels
+are skipped so readable finite ancestors still apply; without a finite limit,
+host sizing remains available. Unknown or masked machine names, or an unavailable
+or invalid page size, keep numeric limits on the finite-limit path.
 
 Inactive file cache can contribute to this budget on a warm restart. For a finite
 cgroup v2 limit, the launcher checks the immediate cgroup children of that reclaim
