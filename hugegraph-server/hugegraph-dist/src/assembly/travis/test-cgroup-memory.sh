@@ -48,7 +48,7 @@ assert_unknown_usage() {
     (
         # Only supply host data; the cgroup helper still reads the real fixture.
         # shellcheck disable=SC2329
-        uname() { echo Linux; }
+        uname() { [[ "${1:-}" != -m ]] && echo Linux || echo x86_64; }
         # shellcheck disable=SC2329
         cat() {
             if [[ "$1" == /proc/meminfo ]]; then
@@ -113,14 +113,13 @@ assert_memory 3072
 # Malformed limits do not introduce arithmetic errors or an artificial zero.
 printf 'invalid\n' > "$ROOT/memory.max"
 assert_memory ""
-# v1 has different names and a numeric unlimited sentinel.
-LONG_BITS=$(getconf LONG_BIT)
+# The v1 fixture represents a known 64-bit Linux kernel, independently of the
+# test host's userspace or machine name (the checks also run on macOS).
+# shellcheck disable=SC2329
+uname() { [[ "${1:-}" != -m ]] && command uname "$@" || echo x86_64; }
+export -f uname
 PAGE_SIZE=$(getconf PAGESIZE)
-case "$LONG_BITS" in
-    64) V1_UNLIMITED=$((9223372036854775807 / PAGE_SIZE * PAGE_SIZE)) ;;
-    32) V1_UNLIMITED=$(awk -v page="$PAGE_SIZE" 'BEGIN {printf "%.0f", 2147483647 * page}') ;;
-    *) echo 'unsupported native long size for the v1 fixture' >&2; exit 1 ;;
-esac
+V1_UNLIMITED=$((9223372036854775807 / PAGE_SIZE * PAGE_SIZE))
 mkdir -p "$ROOT/memory/job"
 printf '5:cpu,cpuacct:/job\n6:memory:/job\n' > "$MEMBERSHIP"
 printf '%s\n' "$V1_UNLIMITED" > "$ROOT/memory/memory.limit_in_bytes"
@@ -136,12 +135,10 @@ printf '2147483648\n' > "$ROOT/memory/memory.limit_in_bytes"
 printf '536870912\n' > "$ROOT/memory/memory.usage_in_bytes"
 printf 'invalid\n' > "$ROOT/memory/job/memory.usage_in_bytes"
 assert_memory 1536
-if [[ "$LONG_BITS" == 64 ]]; then
-    # The existing 64-bit/4-KiB sentinel is also an unlimited boundary.
-    printf '9223372036854771712\n' > "$ROOT/memory/job/memory.limit_in_bytes"
-    assert_memory 1536
-    printf '%s\n' "$V1_UNLIMITED" > "$ROOT/memory/job/memory.limit_in_bytes"
-fi
+# The existing 64-bit/4-KiB sentinel is also an unlimited boundary.
+printf '9223372036854771712\n' > "$ROOT/memory/job/memory.limit_in_bytes"
+assert_memory 1536
+printf '%s\n' "$V1_UNLIMITED" > "$ROOT/memory/job/memory.limit_in_bytes"
 rm "$ROOT/memory/job/memory.usage_in_bytes"
 assert_memory 1536
 printf '536870912\n' > "$ROOT/memory/job/memory.usage_in_bytes"
@@ -166,9 +163,46 @@ printf '%s\n' "$V1_UNLIMITED" > "$ROOT/memory/job/memory.limit_in_bytes"
 )
 (
     # shellcheck disable=SC2329
-    getconf() { [[ "$1" != LONG_BIT ]] || echo 64; }
+    getconf() { [[ "$1" != PAGESIZE ]] || return 0; }
     assert_memory 0
 )
+# A 32-bit userspace cannot turn an 8-TiB finite limit into unlimited.
+(
+    # shellcheck disable=SC2329
+    getconf() { [[ "$1" != LONG_BIT ]] && echo 4096 || echo 32; }
+    printf '8796093022208\n' > "$ROOT/memory/memory.limit_in_bytes"
+    printf '8795824586752\n' > "$ROOT/memory/memory.usage_in_bytes"
+    printf '9223372036854771712\n' > "$ROOT/memory/job/memory.limit_in_bytes"
+    for machine in x86_64 aarch64 riscv64; do
+        # shellcheck disable=SC2329
+        uname() { echo "$machine"; }
+        assert_memory 256
+    done
+    # Unknown/32-bit-looking names, including personality-masked uname, must
+    # retain finite limits rather than infer a 32-bit unlimited sentinel.
+    printf '8796093022208\n' > "$ROOT/memory/job/memory.limit_in_bytes"
+    printf '8795824586752\n' > "$ROOT/memory/job/memory.usage_in_bytes"
+    for machine in unknown i686 armv8l; do
+        assert_memory 256
+        rm "$ROOT/memory/job/memory.usage_in_bytes"
+        assert_memory 0
+        printf '9223372036854771712\n' > "$ROOT/memory/job/memory.limit_in_bytes"
+        assert_memory 0
+        printf '8796093022208\n' > "$ROOT/memory/job/memory.limit_in_bytes"
+        printf '8795824586752\n' > "$ROOT/memory/job/memory.usage_in_bytes"
+    done
+    # shellcheck disable=SC2329
+    uname() { return 127; }
+    assert_memory 256
+    rm "$ROOT/memory/job/memory.usage_in_bytes"
+    assert_memory 0
+    printf '9223372036854771712\n' > "$ROOT/memory/job/memory.limit_in_bytes"
+    assert_memory 0
+)
+# Restore the original finite-ancestor/unlimited-child fixture.
+printf '2147483648\n' > "$ROOT/memory/memory.limit_in_bytes"
+printf '536870912\n' > "$ROOT/memory/memory.usage_in_bytes"
+printf '%s\n' "$V1_UNLIMITED" > "$ROOT/memory/job/memory.limit_in_bytes"
 # With no finite limits, unknown unlimited usage still permits host sizing.
 printf '%s\n' "$V1_UNLIMITED" > "$ROOT/memory/memory.limit_in_bytes"
 rm "$ROOT/memory/memory.usage_in_bytes"
@@ -176,7 +210,7 @@ assert_memory ""
 (
     # Supply host data; the actual helper reads the unlimited fixture.
     # shellcheck disable=SC2329
-    uname() { echo Linux; }
+    uname() { [[ "${1:-}" != -m ]] && echo Linux || echo x86_64; }
     # shellcheck disable=SC2329
     cat() {
         if [[ "$1" == /proc/meminfo ]]; then

@@ -499,16 +499,18 @@ function cgroup_free_memory() {
     local limit usage inactive available smallest=""
     local child child_min
     local cache_key=inactive_file
-    local unlimited="" long_bits="" page_size=""
+    local unlimited="" kernel_machine="" page_size=""
     if [[ "$version" == cgroup ]]; then
         cache_key=total_inactive_file
         # v1 exposes PAGE_COUNTER_MAX * PAGE_SIZE instead of "max".
-        long_bits=$(getconf LONG_BIT 2>/dev/null) || true
+        # LONG_BIT describes userspace, not the kernel. Personality can also
+        # mask uname as 32-bit, so infer unlimited only from known 64-bit names.
+        kernel_machine=$(uname -m 2>/dev/null) || true
         page_size=$(getconf PAGESIZE 2>/dev/null) || true
         if [[ "$page_size" =~ ^[1-9][0-9]*$ ]]; then
-            case "$long_bits" in
-                64) unlimited=$((9223372036854775807 / page_size * page_size)) ;;
-                32) unlimited=$(awk -v page="$page_size" 'BEGIN {printf "%.0f", 2147483647 * page}') ;;
+            case "$kernel_machine" in
+                x86_64|aarch64|riscv64)
+                    unlimited=$((9223372036854775807 / page_size * page_size)) ;;
             esac
         fi
     fi
