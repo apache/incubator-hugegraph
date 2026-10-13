@@ -60,6 +60,28 @@ tests:
           path: spec.containers[0].command[2]
           pattern: "FLOOR=\"3\""
 
+  - it: checks the explicitly selected graph in a non-default graph space
+    template: tests/test-connection.yaml
+    set:
+      server.graphSpace: team_a
+      server.testGraphAlias: team_a-demo
+    asserts:
+      - matchRegex:
+          path: spec.containers[0].command[2]
+          pattern: '"graph":"team_a-demo"'
+      - notMatchRegex:
+          path: spec.containers[0].command[2]
+          pattern: "DEFAULT-hugegraph"
+
+  - it: preserves the default binding when graphSpace changes without a selected graph
+    template: tests/test-connection.yaml
+    set:
+      server.graphSpace: team_a
+    asserts:
+      - matchRegex:
+          path: spec.containers[0].command[2]
+          pattern: '"graph":"DEFAULT-hugegraph"'
+
   - it: floors the per-Pod count at the HPA minimum when HPA is enabled
     template: tests/test-connection.yaml
     set:

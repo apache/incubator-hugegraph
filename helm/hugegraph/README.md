@@ -202,7 +202,10 @@ or recovery. Hubble health probes and the Server hook do not verify UI access.
 
 Besides the Service checks, the test resolves a headless Server Service and
 requires an authenticated, graph-bound Gremlin answer from every Server Pod
-(at least the replica floor), because a Server that started during a PD roll
+(at least the replica floor). `server.testGraphAlias` selects that binding and
+defaults to `DEFAULT-hugegraph`. Set it to an existing target graph's full alias,
+such as `team_a-demo`, to check that graph instead. The hook does not create a
+graph or infer an alias from `server.graphSpace`. A Server that started during a PD roll
 can pass readiness and serve REST while every Gremlin call on it fails (see
 Troubleshooting, "Could not rebind"). Transient failures are retried for
 150 seconds before the test fails and names the failing Pod IPs. Large HPA
@@ -617,6 +620,7 @@ default values.
 | `server.probes.startup.failureThreshold` | Raised automatically so the guaranteed budget, `(failureThreshold - 1) * periodSeconds` (the first probe can fail immediately), is at least 450s | `91` |
 | `server.probes.startup.periodSeconds` | Startup probe interval | `5` |
 | `server.probes.*` | Same optional probe keys as PD | see `values.yaml` |
+| `server.testGraphAlias` | Existing Gremlin graph binding checked on every Server Pod by `helm test` | `DEFAULT-hugegraph` |
 
 When `server.hpa.enabled` is `true` the Deployment omits `spec.replicas`, so a
 Helm upgrade does not overwrite the autoscaler's live replica count. Enabling
@@ -652,6 +656,13 @@ existing graphs or change `server.path_graphspace`. Use explicit
 `/graphspaces/team_a/...` REST paths, and select the matching space and service in
 Hubble. Rendering and entrypoint checks verify configuration only; non-default
 PD discovery, authentication and isolation require a running Linux cluster.
+
+To validate a graph in the selected space, create the graph there and set
+`server.testGraphAlias` to its actual Gremlin binding, for example
+`--set-string server.testGraphAlias=team_a-demo`. Creating `team_a` does not
+create a `hugegraph` graph. The default hook checks the local `DEFAULT-hugegraph`
+binding, which may exist independently of the Server's assigned PD graph space;
+its success alone does not validate graphs in `team_a`.
 
 ### Reaching Hubble (pick one path)
 
@@ -1093,8 +1104,13 @@ curl -s --compressed -u "admin:${PASSWORD}" -H 'Content-Type: application/json' 
   -d '{"gremlin":"graph.traversal().V().limit(1).count()","aliases":{"graph":"DEFAULT-hugegraph"}}'
 ```
 
-A healthy Pod answers with `result.data`; delete a Pod that answers
-`Could not rebind`, and its replacement binds normally once PD is stable.
+A healthy Pod answers with `result.data`. This example uses the default
+`server.testGraphAlias`; replace `DEFAULT-hugegraph` with your configured alias.
+If a Pod answers `Could not rebind`, first confirm that the requested graph
+exists and the alias matches its binding. For a missing binding caused by the
+PD startup failure above, delete the affected Pod once PD is stable so its
+replacement can bind the graph. Restarting a Pod cannot create a missing graph
+or correct the requested alias.
 `helm test` runs this same graph-bound query against every Server Pod
 through the headless Service, so a stuck replica now fails the release
 check instead of hiding behind the load balancer. The measurements behind

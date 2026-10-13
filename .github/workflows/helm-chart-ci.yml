@@ -162,6 +162,16 @@ jobs:
           graph_space_max=$(printf 'a%.0s' {1..48})
           helm template ci helm/hugegraph --set-string "server.graphSpace=${graph_space_max}" > /dev/null
           must_fail --set-string "server.graphSpace=${graph_space_max}a"
+          # The hook queries an explicit, fully qualified existing graph binding.
+          must_fail --set-string server.testGraphAlias=
+          must_fail --set-string server.testGraphAlias=team_a
+          must_fail --set-string server.testGraphAlias=team_a-demo-name
+          must_fail --set-string "server.testGraphAlias=team_a-demo'"
+          graph_name_max=$(printf 'g%.0s' {1..48})
+          helm template ci helm/hugegraph \
+            --set-string "server.testGraphAlias=${graph_space_max}-${graph_name_max}" > /dev/null
+          must_fail --set-string "server.testGraphAlias=${graph_space_max}a-demo"
+          must_fail --set-string "server.testGraphAlias=team_a-${graph_name_max}g"
           must_fail --set pd.replicas=100
           must_fail --set pd.pdb.minAvailable=3
           must_fail --set server.hpa.enabled=true
@@ -344,7 +354,7 @@ jobs:
           printf '#!/bin/sh\nfor ip in ${STUB_IPS}; do printf "%%s STREAM host\\n" "$ip"; done\n' > /tmp/stub/getent
           chmod +x /tmp/stub/getent
           cat > /tmp/fixture.py <<'PY'
-          import http.server, os, sys, threading, time
+          import http.server, json, os, sys, threading, time
           calls = {}
           class H(http.server.BaseHTTPRequestHandler):
               def _send(self, code, body):
@@ -356,7 +366,9 @@ jobs:
               def do_GET(self):
                   self._send(200, b'{"versions":{}}')
               def do_POST(self):
-                  self.rfile.read(int(self.headers.get('Content-Length', 0)))
+                  body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
+                  expected_alias = ('team_a-demo' if os.path.exists('/tmp/selected-graph')
+                                    else 'DEFAULT-hugegraph')
                   ip = self.server.server_address[0]
                   # broken-<ip>: every Gremlin call fails. flip-odd-<ip> /
                   # flip-even-<ip>: the odd or even calls fail, counted from
@@ -366,6 +378,7 @@ jobs:
                   even = os.path.exists('/tmp/flip-even-' + ip)
                   n = calls[ip] = (calls.get(ip, 0) + 1) if (odd or even) else 0
                   broken = (os.path.exists('/tmp/broken-' + ip)
+                            or body.get('aliases', {}).get('graph') != expected_alias
                             or (odd and n % 2 == 1)
                             or (even and n % 2 == 0))
                   if broken:
@@ -383,7 +396,7 @@ jobs:
           sleep 1
           run_hook() {
             PATH="/tmp/stub:${PATH}" PASSWORD=ci-password HG_TEST_DEADLINE_S=8 \
-              STUB_IPS="$1" sh /tmp/hook.sh
+              STUB_IPS="$1" sh "${2:-/tmp/hook.sh}"
           }
           # Healthy: three Pods, all Gremlin-bound.
           run_hook "127.0.0.1 127.0.0.2 127.0.0.3"
@@ -418,6 +431,26 @@ jobs:
             exit 1
           fi
           run_hook "127.0.0.1 127.0.0.2 127.0.0.3 ::1 ::2 ::3"
+          # A non-default graph space must query the explicitly selected graph.
+          # A missing alias still fails rather than weakening the per-Pod sweep.
+          touch /tmp/selected-graph
+          for alias in team_a-demo team_a-missing; do
+            helm template ci helm/hugegraph -s templates/tests/test-connection.yaml \
+              --set-string server.graphSpace=team_a \
+              --set-string "server.testGraphAlias=${alias}" > "/tmp/hook-${alias}.yaml"
+          done
+          python3 - <<'PY'
+          import yaml
+          for alias in ('team_a-demo', 'team_a-missing'):
+              d = yaml.safe_load(open('/tmp/hook-' + alias + '.yaml'))
+              open('/tmp/hook-' + alias + '.sh', 'w').write(d['spec']['containers'][0]['command'][2])
+          PY
+          run_hook "127.0.0.1 127.0.0.2 127.0.0.3" /tmp/hook-team_a-demo.sh
+          if run_hook "127.0.0.1 127.0.0.2 127.0.0.3" /tmp/hook-team_a-missing.sh; then
+            echo "expected the hook to fail on a missing selected graph" >&2
+            exit 1
+          fi
+          rm /tmp/selected-graph
           # The auth-off render must carry no credentials.
           if helm template ci helm/hugegraph -s templates/tests/test-connection.yaml \
               --set server.auth.enabled=false | grep -q 'Authorization'; then

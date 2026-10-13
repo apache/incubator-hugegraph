@@ -336,6 +336,9 @@ server:
     minAvailable: 2
   # Image used by the Helm test hook.
   waitImage: curlimages/curl:8.5.0
+  # Existing Gremlin graph binding checked on every Server Pod. Select the
+  # target graph explicitly; graphSpace does not create or infer this binding.
+  testGraphAlias: DEFAULT-hugegraph
   # Resources for the Helm test hook container. Bounded by default so the hook
   # cannot run unlimited on a restricted or quota-managed namespace.
   testResources:
