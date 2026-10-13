@@ -63,6 +63,36 @@ import org.mockito.Mockito;
 public class HugeGraphAuthProxyTest extends BaseUnitTest {
 
     @Test
+    public void testLoadingOwnershipRequiresStatusWriteAndUsesAuthenticatedPrincipal() {
+        HugeGraph graph = Mockito.mock(HugeGraph.class);
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(graph.name()).thenReturn("tc13_mode_auth");
+        Mockito.when(graph.graphSpace()).thenReturn("DEFAULT");
+        Mockito.when(graph.spaceGraphName()).thenReturn("tc13_mode_auth");
+        Mockito.when(graph.configuration()).thenReturn(config);
+        Mockito.when(graph.authManager()).thenReturn(Mockito.mock(AuthManager.class));
+        Mockito.when(graph.taskScheduler()).thenReturn(Mockito.mock(TaskScheduler.class));
+        Mockito.when(config.get(AuthOptions.AUTH_CACHE_EXPIRE)).thenReturn(3600L);
+        Mockito.when(config.get(AuthOptions.AUTH_CACHE_CAPACITY)).thenReturn(100L);
+        Mockito.when(config.get(AuthOptions.AUTH_AUDIT_LOG_RATE)).thenReturn(1000D);
+        HugeGraphAuthProxy proxy = new HugeGraphAuthProxy(graph);
+        setContext(new HugeGraphAuthProxy.Context(new HugeAuthenticator.User(
+                "reader", RolePermission.role("DEFAULT", "tc13_mode_auth", HugePermission.READ))));
+        Assert.assertThrows(jakarta.ws.rs.ForbiddenException.class, (Assert.ThrowableRunnable) proxy::loadingMode);
+        Assert.assertThrows(jakarta.ws.rs.ForbiddenException.class,
+                            () -> proxy.loadingMode("acquire", "instance", 0, "token", "forged"));
+        Mockito.verify(graph, Mockito.never()).loadingMode();
+        Mockito.verify(graph, Mockito.never()).loadingMode(Mockito.anyString(), Mockito.anyString(),
+                                                         Mockito.anyLong(), Mockito.anyString(), Mockito.anyString());
+        setContext(new HugeGraphAuthProxy.Context(new HugeAuthenticator.User(
+                "writer", RolePermission.role("DEFAULT", "tc13_mode_auth", HugePermission.WRITE))));
+        proxy.loadingMode();
+        proxy.loadingMode("acquire", "instance", 0, "token", "forged");
+        Mockito.verify(graph).loadingMode();
+        Mockito.verify(graph).loadingMode("acquire", "instance", 0, "token", "writer");
+    }
+
+    @Test
     public void testJdk17ReflectionFilters() {
         Reflection.registerFieldsToFilter(ReflectionFilterTarget.class, "field");
         Reflection.registerMethodsToFilter(ReflectionFilterTarget.class, "method");

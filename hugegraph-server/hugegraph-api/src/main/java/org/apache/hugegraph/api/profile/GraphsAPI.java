@@ -693,6 +693,40 @@ public class GraphsAPI extends API {
         return ImmutableMap.of("mode", g.mode());
     }
 
+    @GET
+    @Timed
+    @Path("{name}/mode/owners")
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"space", "$owner=$name"})
+    public Map<String, Object> loadingMode(@Context GraphManager manager,
+                                          @PathParam("graphspace") String graphSpace,
+                                          @PathParam("name") String name) {
+        return graph(manager, graphSpace, name).loadingMode();
+    }
+
+    @PUT
+    @Timed
+    @Path("{name}/mode/owners")
+    @Consumes(APPLICATION_JSON)
+    @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed({"space", "$owner=$name"})
+    public Map<String, Object> loadingMode(@Context GraphManager manager,
+                                          @PathParam("graphspace") String graphSpace,
+                                          @PathParam("name") String name,
+                                          JsonLoadingOwner owner) {
+        E.checkArgument(owner != null && owner.epoch != null, "Loading owner body and epoch are required");
+        return graph(manager, graphSpace, name).loadingMode(owner.action, owner.instance,
+                                                            owner.epoch, owner.token, "");
+    }
+
+    public static class JsonLoadingOwner {
+
+        public String action;
+        public String instance;
+        public Long epoch;
+        public String token;
+    }
+
     @PUT
     @Timed
     @Path("{name}/graph_read_mode")
