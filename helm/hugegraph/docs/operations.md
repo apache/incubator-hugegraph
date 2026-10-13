@@ -114,8 +114,9 @@ PD membership changes and Store shrink require explicit member/shard operations;
 the chart rejects unsupported changes against initialized live StatefulSets.
 Fresh installs do not perform the upgrade-only StatefulSet query.
 
-For Store shrink, retire the leaving Store IDs through PD and run partition
-patrol on the PD leader. Wait until no shard group references a retired ID and
+For Store shrink, first confirm the remaining Stores can hold the configured
+shard replica count and data. Retire the leaving Store IDs through PD and run
+partition patrol on the PD leader. Wait until no shard group references a retired ID and
 all remaining groups have their full membership and one leader. Only then
 scale the live StatefulSet and upgrade with the matching `store.replicas`;
 PVC removal is a separate step after retirement. Keep the installed PD count

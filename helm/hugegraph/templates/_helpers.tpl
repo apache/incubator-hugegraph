@@ -787,7 +787,8 @@ and the upgrade passes.
 {{- $liveReplicas := int (dig "spec" "replicas" 0 $live) -}}
 {{- $desired := int (get (get $.Values $comp) "replicas") -}}
 {{- if and (gt $liveReplicas 0) (lt $desired $liveReplicas) -}}
-{{- fail (printf "%s.replicas cannot shrink from %d to %d through a helm upgrade: raft and shard membership are persisted, and removing Pods does not reconfigure them. Reconfigure persisted membership and drain leaving Stores before scaling the live StatefulSet; see docs/operations.md (Topology and scheduling). The upgrade passes once live replicas match the value" $comp $liveReplicas $desired) -}}
+{{- $procedure := ternary "Reconfigure the persisted PD voting membership before scaling the live StatefulSet" "Retire leaving Store IDs and migrate their shards before scaling the live StatefulSet" (eq $comp "pd") -}}
+{{- fail (printf "%s.replicas cannot shrink from %d to %d through a helm upgrade: persisted membership is not changed by removing Pods. %s; see docs/operations.md (Topology and scheduling). The upgrade passes once live replicas match the value" $comp $liveReplicas $desired $procedure) -}}
 {{- end -}}
 {{/*
 PD raft membership is the persisted voting configuration, and the peer list
