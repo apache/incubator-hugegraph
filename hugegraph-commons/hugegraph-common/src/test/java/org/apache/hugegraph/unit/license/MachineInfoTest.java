@@ -20,7 +20,6 @@ package org.apache.hugegraph.unit.license;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -144,21 +143,22 @@ public class MachineInfoTest {
     }
 
     @Test
-    public void testGetMacAddressRetriesAfterLookupFailure() throws UnknownHostException {
-        InetAddress unknown = InetAddress.getByAddress(new byte[]{0, 0, 0, 0});
-        List<InetAddress> localAddresses = machineInfo.getLocalAllInetAddress();
+    public void testGetMacAddressRetriesAfterLookupFailure() {
+        RuntimeException failure = new RuntimeException("Controlled interface enumeration failure");
         int[] attempts = {0};
         MachineInfo info = new MachineInfo() {
             @Override
             public List<InetAddress> getLocalAllInetAddress() {
                 if (++attempts[0] == 1) {
-                    return Collections.singletonList(unknown);
+                    throw failure;
                 }
-                return localAddresses;
+                return Collections.emptyList();
             }
         };
-        Assert.assertThrows(RuntimeException.class, info::getMacAddress);
-        Assert.assertTrue(info.getMacAddress().equals(new MachineInfo().getMacAddress()));
+        Assert.assertSame(failure, Assert.assertThrows(RuntimeException.class, info::getMacAddress));
+        List<String> addresses = info.getMacAddress();
+        Assert.assertTrue(addresses.isEmpty());
+        Assert.assertSame(addresses, info.getMacAddress());
         Assert.assertEquals(2, attempts[0]);
     }
 }
