@@ -114,6 +114,16 @@ PD membership changes and Store shrink require explicit member/shard operations;
 the chart rejects unsupported changes against initialized live StatefulSets.
 Fresh installs do not perform the upgrade-only StatefulSet query.
 
+For Store shrink, retire the leaving Store IDs through PD and run partition
+patrol on the PD leader. Wait until no shard group references a retired ID and
+all remaining groups have their full membership and one leader. Only then
+scale the live StatefulSet and upgrade with the matching `store.replicas`;
+PVC removal is a separate step after retirement. Keep the installed PD count
+unless its persisted voting configuration is reconfigured outside Helm; a
+fresh release with data migration is the alternative. The
+[PD management API](../../../hugegraph-pd/docs/api-reference.md) documents the
+Store state and task endpoints.
+
 Default preferred anti-affinity permits fewer nodes than replicas. The cluster
 preset requires separate nodes for PD/Store; explicit affinity overrides presets.
 Local PV node affinity must agree with scheduling rules. PDBs protect voluntary

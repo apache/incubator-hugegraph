@@ -787,7 +787,7 @@ and the upgrade passes.
 {{- $liveReplicas := int (dig "spec" "replicas" 0 $live) -}}
 {{- $desired := int (get (get $.Values $comp) "replicas") -}}
 {{- if and (gt $liveReplicas 0) (lt $desired $liveReplicas) -}}
-{{- fail (printf "%s.replicas cannot shrink from %d to %d through a helm upgrade: raft and shard membership are persisted, and removing Pods does not reconfigure them. Follow the manual scale-down procedure in the README (Scaling), which ends by scaling the live StatefulSet; the upgrade passes once the live replicas match the value" $comp $liveReplicas $desired) -}}
+{{- fail (printf "%s.replicas cannot shrink from %d to %d through a helm upgrade: raft and shard membership are persisted, and removing Pods does not reconfigure them. Reconfigure persisted membership and drain leaving Stores before scaling the live StatefulSet; see docs/operations.md (Topology and scheduling). The upgrade passes once live replicas match the value" $comp $liveReplicas $desired) -}}
 {{- end -}}
 {{/*
 PD raft membership is the persisted voting configuration, and the peer list
@@ -800,7 +800,7 @@ from no REST route, so the chart cannot perform it and does not pretend to.
 Growing Store is ordinary scale-out and stays allowed.
 */}}
 {{- if and (eq $comp "pd") (gt $liveReplicas 0) (gt $desired $liveReplicas) -}}
-{{- fail (printf "pd.replicas cannot grow from %d to %d through a helm upgrade: the rendered peer list reaches raft only as the initial configuration, so new Pods would start without joining the voting configuration. Change the persisted membership through PD first, then scale the live StatefulSet, then upgrade with the matching value; the README (Scaling) has the procedure and its limits. A fresh install at any replica count is unaffected" $liveReplicas $desired) -}}
+{{- fail (printf "pd.replicas cannot grow from %d to %d through a helm upgrade: the rendered peer list reaches raft only as the initial configuration, so new Pods would start without joining the voting configuration. Change the persisted membership through PD first, then scale the live StatefulSet, then upgrade with the matching value; see docs/operations.md (Topology and scheduling) for the supported lifecycle. A fresh install at any replica count is unaffected" $liveReplicas $desired) -}}
 {{- end -}}
 {{/*
 Raft identity. Every PD and Store names itself to its peers as

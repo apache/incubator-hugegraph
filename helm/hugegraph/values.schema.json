@@ -622,7 +622,7 @@
             },
             "allowInsecureExposure": {
               "type": "boolean",
-              "description": "Required acknowledgement for a non-ClusterIP PD Service: the exposed gRPC port has no authentication."
+              "description": "Legacy compatibility field; does not gate Service exposure."
             },
             "restNodePort": {
               "type": [
@@ -1191,7 +1191,7 @@
         },
         "allowInsecureExposure": {
           "type": "boolean",
-          "description": "Required acknowledgement for a non-ClusterIP Service: the exposed Server API or Hubble UI is plain HTTP, so credentials and tokens cross the network in cleartext, and Hubble has no login of its own."
+          "description": "Legacy compatibility field; does not gate Service exposure."
         },
         "nodePort": {
           "type": [
@@ -1296,7 +1296,8 @@
           "type": "object"
         },
         "allowPlainHttp": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Legacy compatibility field; HTTP Ingress needs no acknowledgement."
         }
       }
     },
@@ -1366,7 +1367,7 @@
         },
         "allowPlainHttp": {
           "type": "boolean",
-          "description": "Explicit opt-in to a TLS-less Server Ingress; without it the render fails when tls is empty."
+          "description": "Legacy compatibility field; HTTP Ingress needs no acknowledgement."
         }
       }
     },
