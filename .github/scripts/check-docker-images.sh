@@ -34,7 +34,7 @@ for pair in \
         # Check the same non-root/read-only tool environment as the Server test hook.
         if [[ "$dockerfile" == hugegraph-store/* || "$dockerfile" == hugegraph-server/* ]]; then
             docker run --rm --pull never --read-only --user 100:101 --entrypoint sh "$IMAGE_ID" -c '
-                for tool in curl getent base64 tr awk grep sort date sleep; do
+                for tool in curl getent base64 tr awk grep sort tail date sleep; do
                     command -v "$tool" >/dev/null || {
                         echo "Missing Helm tool: $tool" >&2
                         exit 1
