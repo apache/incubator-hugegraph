@@ -20,6 +20,7 @@ package org.apache.hugegraph.store.core;
 import org.apache.hugegraph.store.HeartbeatShutdownTest;
 import org.apache.hugegraph.store.StoreIdChangeTest;
 import org.apache.hugegraph.store.core.snapshot.HgSnapshotHandlerTest;
+import org.apache.hugegraph.store.core.store.meta.PartitionMetaCodecTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -49,7 +50,8 @@ import lombok.extern.slf4j.Slf4j;
         HeartbeatShutdownTest.class,
         MetricSessionTest.class,
         HgSnapshotHandlerTest.class,
-        StoreIdChangeTest.class
+        StoreIdChangeTest.class,
+        PartitionMetaCodecTest.class
 })
 @Slf4j
 public class CoreSuiteTest {

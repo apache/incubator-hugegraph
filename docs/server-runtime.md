@@ -28,6 +28,58 @@ uses G1 with an occupancy threshold of 45 when `JAVA_OPTIONS` is empty.
 Do not combine explicit `-g` selection with a different collector in `JAVA_OPTIONS`
 or `-j`; the JVM rejects conflicting collector selections.
 
+### Launcher memory budget
+
+The default launcher heap uses half the smaller of host available memory and the
+remaining budget under visible cgroup v1/v2 hard limits, with a 512 MiB minimum and a
+32 GiB maximum. It refuses startup when the effective budget is below 512 MiB.
+If a known hard limit has missing, unreadable or invalid usage, the budget is zero;
+the launcher refuses startup instead of using host memory. For cgroup v1, numeric
+unlimited values are recognized only when `uname -m` reports `x86_64`, `aarch64` or
+`riscv64` and `getconf PAGESIZE` returns a positive integer. The threshold is the
+signed 64-bit maximum rounded down to that page size. Recognized unlimited levels
+are skipped so readable finite ancestors still apply; without a finite limit,
+host sizing remains available. Unknown or masked machine names, or an unavailable
+or invalid page size, keep numeric limits on the finite-limit path.
+
+Inactive file cache can contribute to this budget on a warm restart. For a finite
+cgroup v2 limit, the launcher checks the immediate cgroup children of that reclaim
+target. If any child's `memory.min` is nonzero, missing, invalid or unreadable, it
+excludes cache credit at that limit: child cache may be protected from ancestor reclaim.
+If the target directory cannot be enumerated, or a child cannot be searched, cache
+credit is also excluded because child protection cannot be determined. Ordinary
+searchable directories without cgroup controller files are skipped.
+Unprotected children retain the existing warm-cache budget, including inherited and
+nested hard limits. A cgroup's own `memory.min` does not block cache credit for its
+own limit; another ancestor can still constrain it through child protection.
+The cgroup v1 cache calculation is unchanged.
+
+This is a startup estimate, not a guarantee against runtime OOM. Native allocations
+and concurrent processes also consume memory. Explicit heap options retain their
+existing precedence; see [container heap sizing](../docker/README.md#server-heap-sizing).
+
+### Arthas diagnostics
+
+Server bundles Arthas 4.1.5. Activate the agent with `PUT /arthas` using the Server's
+configured authentication. The existing `arthas.ip`, `arthas.httpPort`,
+`arthas.telnetPort` and `arthas.disabledCommands` options still configure the agent.
+HugeGraph disables the bundled agent's optional MCP endpoint and keeps the existing
+activation response and diagnostic HTTP/telnet interfaces.
+
+For a synchronous one-time command, POST `{"action":"exec","command":"version"}`
+to the agent's `/api` endpoint without a `sessionId`. Check `state=SUCCEEDED`, the
+`body.results` version and command status, and `body.jobStatus=TERMINATED`; HTTP 200
+alone also occurs for failed commands. Arthas 4.1.5 includes the upstream
+[terminal-process interrupt fix](https://github.com/alibaba/arthas/pull/3079) and
+[foreground-job cleanup fix](https://github.com/alibaba/arthas/pull/3094), so cleanup
+can remove a session whose foreground command has already terminated.
+It also includes the [MCP-disabled HTTP handler fix](https://github.com/alibaba/arthas/pull/3127).
+
+Clients that explicitly call `init_session` must call `close_session` when finished.
+After closing, `session_info` for that ID reports `state=FAILED` with `session not found`.
+[`ArthasApiTest`](../hugegraph-server/hugegraph-test/src/main/java/org/apache/hugegraph/api/ArthasApiTest.java)
+covers one-time execution, explicit session execution and removal.
+
 ### Serializer configuration
 
 Use the Gremlin configuration files shipped with the upgraded Server. Serializer classes
@@ -463,3 +515,23 @@ Structure or Process suites must execute tests; an all-skipped report is not
 compatibility evidence. Run the read-only application examples against representative
 existing data and validate the serializers, client versions and authentication
 combinations actually used by the application.
+
+
+## Deleting a graph with local tasks
+
+Stop application writes before deletion and keep them stopped during retries. The local
+scheduler closes task admission and waits for actual executions, cancellation callbacks
+and their transaction cleanup before data or metadata is removed. If draining times out,
+the graph stays registered with its data and configuration, but task admission remains
+closed: new asynchronous tasks are rejected even after the existing owners exit. Keep
+application writes stopped and retry deletion after those owners exit. If no destructive
+cleanup has begun, restart the Server to resume task admission instead of completing
+the deletion. Closing the scheduler alone leaves unstarted persistent work in storage.
+
+This is a local shutdown guarantee. For a graph shared by several Servers, stop writes
+and tasks on every Server before deletion; notification delivery is not a cluster-wide
+barrier. Do not recreate the same graph name until deletion finishes. Use a restart for
+configuration changes rather than hot reload, whose recovery is handled separately.
+Deletion is not transactional: a failure after destructive cleanup needs operator
+inspection, and retry does not restore removed data. An owner-cleanup failure must not
+be treated as a successful drain; inspect it instead of force-removing the scheduler.

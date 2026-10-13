@@ -19,9 +19,13 @@ package org.apache.hugegraph.api;
 
 import static org.apache.hugegraph.testutil.Assert.assertContains;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
@@ -30,10 +34,14 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
 
 public class CypherApiTest extends BaseApiTest {
@@ -393,6 +401,58 @@ public class CypherApiTest extends BaseApiTest {
     }
 
     @Test
+    public void testBasicAuthWithColonPassword() {
+        // The group, target and access setup below uses the standalone auth API; in PD mode
+        // groups are graphspace-scoped. The header parsing under test is backend-independent.
+        assumeStandaloneMode();
+        // CypherAPI parses the Basic header itself, apart from AuthenticationFilter
+        String user = "cypher_colon_user";
+        // With this user name these encode to standard Base64 containing '+' and '/'
+        Assert.assertTrue(basicCredential(user, "a:b:c~").contains("+"));
+        Assert.assertTrue(basicCredential(user, "a:b:c?").contains("/"));
+        Deque<String[]> created = new ArrayDeque<>();
+        RestClient noAuthClient = new RestClient(baseUrl(), false);
+        try {
+            String groupId = this.createAuth(created, "auth/groups",
+                                             "{\"group_name\":\"cypher_colon_group\"}");
+            String targetId = this.createAuth(created, "graphspaces/DEFAULT/auth/targets",
+                                              "{\"target_name\":\"cypher_colon_target\"," +
+                                              "\"target_graph\":\"hugegraph\"," +
+                                              "\"target_url\":\"127.0.0.1:8080\"," +
+                                              "\"target_resources\":[{\"type\":\"ALL\"}]}");
+            for (String permission : ImmutableList.of("READ", "EXECUTE")) {
+                this.createAuth(created, "graphspaces/DEFAULT/auth/accesses", String.format(
+                        "{\"group\":\"%s\",\"target\":\"%s\",\"access_permission\":\"%s\"}",
+                        groupId, targetId, permission));
+            }
+
+            for (String password : ImmutableList.of("a:b:c", "a:b:c~", "a:b:c?")) {
+                Deque<String[]> member = new ArrayDeque<>();
+                try {
+                    String userId = this.createAuth(member, "graphspaces/DEFAULT/auth/users",
+                                                    String.format("{\"user_name\":\"%s\"," +
+                                                                  "\"user_password\":\"%s\"}",
+                                                                  user, password));
+                    this.createAuth(member, "graphspaces/DEFAULT/auth/belongs", String.format(
+                            "{\"user\":\"%s\",\"group\":\"%s\"}", userId, groupId));
+
+                    Response r = basicAuthCypher(noAuthClient, user, password);
+                    assertColumn(assertCypherSuccessData(assertResponseStatus(200, r)),
+                                 "name", "marko", "peter");
+
+                    r = basicAuthCypher(noAuthClient, user, "wrong" + password);
+                    assertResponseStatus(401, r);
+                } finally {
+                    this.deleteAuth(member);
+                }
+            }
+        } finally {
+            noAuthClient.close();
+            this.deleteAuth(created);
+        }
+    }
+
+    @Test
     public void testSpecifiedGraphRouting() {
         assumeStandaloneMode();
         String graph = "cypher_route_test";
@@ -409,6 +469,40 @@ public class CypherApiTest extends BaseApiTest {
             assertResponseStatus(204, client().delete(path, ImmutableMap.of(
                     "confirm_message", "I'm sure to drop the graph")));
         }
+    }
+
+    private String createAuth(Deque<String[]> created, String path, String body) {
+        String content = assertResponseStatus(201, client().post(path, body));
+        String id = assertJsonContains(content, "id");
+        created.push(new String[]{path, id});
+        return id;
+    }
+
+    private void deleteAuth(Deque<String[]> created) {
+        // Attempt every deletion first, then fail on any record that was left behind
+        List<String> failures = new ArrayList<>();
+        while (!created.isEmpty()) {
+            String[] entry = created.pop();
+            Response r = client().delete(entry[0], entry[1]);
+            if (r.getStatus() != 204) {
+                failures.add(String.format("%s/%s: %s %s", entry[0], entry[1],
+                                           r.getStatus(), r.readEntity(String.class)));
+            }
+        }
+        Assert.assertTrue("Failed to delete auth records: " + failures, failures.isEmpty());
+    }
+
+    private static String basicCredential(String user, String password) {
+        byte[] credential = (user + ":" + password).getBytes(StandardCharsets.UTF_8);
+        return Base64.getEncoder().encodeToString(credential);
+    }
+
+    private static Response basicAuthCypher(RestClient client, String user, String password) {
+        // Built by hand: Jersey's HttpAuthenticationFeature encodes the credential as ISO-8859-1
+        MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
+        headers.add(HttpHeaders.AUTHORIZATION, "Basic " + basicCredential(user, password));
+        return client.target().path(PATH).queryParam("cypher", QUERY)
+                     .request().headers(headers).get();
     }
 
     private List<?> query(String cypher) {

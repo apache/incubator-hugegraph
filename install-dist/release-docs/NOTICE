@@ -3239,7 +3239,6 @@ The Apache Software Foundation (https://www.apache.org/).
 
 AWS SDK for Java 2.0 (software.amazon.awssdk 2.33.8) NOTICE
 
-========================================================================
 
 AWS SDK for Java 2.0
 Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
@@ -3267,9 +3266,9 @@ The licenses for these third party components are included in LICENSE.txt
   This product includes software developed at
   The Apache Software Foundation (https://www.apache.org/).
 
-========================================================================
 
 third-party-jackson-core-2.33.8 NOTICE
+Arthas 4.1.5 embedded Jackson 2.18.1 NOTICE
 
 ========================================================================
 
@@ -3307,6 +3306,9 @@ See FastDoubleParser-NOTICE for details of other source code included in FastDou
 and the licenses and copyrights that apply to that code.
 
 
+Arthas 4.1.5 embedded FastDoubleParser NOTICE
+
+
 # FastDoubleParser
 
 This is a Java port of Daniel Lemire's fast_float project.
@@ -3314,7 +3316,7 @@ This project provides parsers for double, float, BigDecimal and BigInteger value
 
 ## Copyright
 
-Copyright © 2023 Werner Randelshofer, Switzerland.
+Copyright © 2024 Werner Randelshofer, Switzerland.
 
 ## Licensing
 
@@ -3327,27 +3329,30 @@ Some portions of the code have been derived from other projects.
 All these projects require that we include a copyright notice, and some require that we also include some text of their
 license file.
 
-fast_double_parser, Copyright (c) 2022 Daniel Lemire. Apache 2.0 License.
-https://github.com/fastfloat/fast_float
-https://github.com/fastfloat/fast_float/blob/dc88f6f882ac7eb8ec3765f633835cb76afa0ac2/LICENSE-APACHE
+fast_double_parser, Copyright (c) 2022 Daniel Lemire. BSL License.
+https://github.com/lemire/fast_double_parser
+https://github.com/lemire/fast_double_parser/blob/07d9189a8fb815fe800cb15ca022e7a07093236e/LICENSE.BSL
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
 
-fast_float, Copyright (c) 2021 The fast_float authors. Apache 2.0 License.
+fast_float, Copyright (c) 2021 The fast_float authors. MIT License.
 https://github.com/fastfloat/fast_float
-https://github.com/lemire/fast_double_parser/blob/07d9189a8fb815fe800cb15ca022e7a07093236e/LICENSE
+https://github.com/fastfloat/fast_float/blob/cc1e01e9eee74128e48d51488a6b1df4a767a810/LICENSE-MIT
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
 
 bigint, Copyright 2020 Tim Buktu. 2-clause BSD License.
 https://github.com/tbuktu/bigint/tree/floatfft
 https://github.com/tbuktu/bigint/blob/617c8cd8a7c5e4fb4d919c6a4d11e2586107f029/LICENSE
 https://github.com/wrandelshofer/FastDoubleParser/blob/39e123b15b71f29a38a087d16a0bc620fc879aa6/bigint-LICENSE
 (We only use those portions of the bigint project that can be licensed under 2-clause BSD License.)
-(The file 'bigint-LICENSE' is included in the sources and classes Jar files that are released by this project
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
 - as is required by that license.)
 
 ========================================================================
 
 commons-codec-1.17.1 NOTICE
 
-========================================================================
 
 Apache Commons Codec
 Copyright 2002-2024 The Apache Software Foundation
@@ -3355,14 +3360,17 @@ Copyright 2002-2024 The Apache Software Foundation
 This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
-========================================================================
 
 httpcore-4.4.16 NOTICE
 
-========================================================================
 
 Apache HttpCore
 Copyright 2005-2022 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
+Arthas 4.1.5 embedded Logback 1.2.13 NOTICE
+
+
+Logback: the reliable, generic, fast and flexible logging framework.
+Copyright (C) 1999-2015, QOS.ch. All rights reserved.

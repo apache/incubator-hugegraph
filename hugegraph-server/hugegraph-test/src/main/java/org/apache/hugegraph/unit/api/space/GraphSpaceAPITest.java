@@ -19,7 +19,6 @@ package org.apache.hugegraph.unit.api.space;
 
 import static org.apache.hugegraph.HugeFactory.SYS_GRAPH;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
@@ -37,11 +36,15 @@ import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.auth.HugeUser;
 import org.apache.hugegraph.auth.RolePermission;
 import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.space.GraphSpace;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.junit.After;
 import org.junit.Test;
@@ -49,7 +52,6 @@ import org.mockito.Mockito;
 
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.core.SecurityContext;
-import sun.misc.Unsafe;
 
 public class GraphSpaceAPITest extends BaseUnitTest {
 
@@ -221,7 +223,7 @@ public class GraphSpaceAPITest extends BaseUnitTest {
 
     @Test
     public void testPdGraphsIncludesLoadedLocalConfigGraphs() {
-        GraphManager manager = allocateGraphManager();
+        GraphManager manager = newGraphManager();
         Whitebox.setInternalState(manager, "PDExist", true);
         Whitebox.setInternalState(manager, "localGraphs",
                                   Collections.emptySet());
@@ -276,7 +278,7 @@ public class GraphSpaceAPITest extends BaseUnitTest {
         HugeAuthenticator authenticator = Mockito.mock(HugeAuthenticator.class);
         Mockito.when(authenticator.authManager()).thenReturn(authManager);
 
-        GraphManager manager = allocateGraphManager();
+        GraphManager manager = newGraphManager();
         Whitebox.setInternalState(manager, "PDExist", true);
         Whitebox.setInternalState(manager, "authenticator", authenticator);
         Map<String, GraphSpace> spaces = new ConcurrentHashMap<>();
@@ -301,7 +303,7 @@ public class GraphSpaceAPITest extends BaseUnitTest {
 
     private static GraphManager managerWithLoadedDefaultGraph(String operator,
                                                              boolean admin) {
-        GraphManager manager = allocateGraphManager();
+        GraphManager manager = newGraphManager();
         Whitebox.setInternalState(manager, "PDExist", true);
         Whitebox.setInternalState(manager, "localGraphs",
                                   Collections.singleton("hugegraph"));
@@ -326,15 +328,11 @@ public class GraphSpaceAPITest extends BaseUnitTest {
         return manager;
     }
 
-    private static GraphManager allocateGraphManager() {
-        try {
-            Field field = Unsafe.class.getDeclaredField("theUnsafe");
-            field.setAccessible(true);
-            Unsafe unsafe = (Unsafe) field.get(null);
-            return (GraphManager) unsafe.allocateInstance(GraphManager.class);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+    private static GraphManager newGraphManager() {
+        HugeConfig config = FakeObjects.newConfig();
+        config.setProperty(ServerOptions.USE_PD.name(), false);
+        config.setProperty(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG.name(), false);
+        return new GraphManager(config, new EventHub("graph-space-api-test"));
     }
 
     private static void setContext(String username) {
