@@ -73,6 +73,13 @@ jobs:
         run: |
           mvn clean compile -pl hugegraph-server/hugegraph-test -am -U -Dmaven.javadoc.skip=true -ntp
 
+      - name: Check startup and native runtime contracts
+        if: inputs.backend == 'rocksdb'
+        run: |
+          "$TRAVIS_DIR/test-wait-storage.sh"
+          "$TRAVIS_DIR/test-riscv64-java-runtime.sh"
+          bash "$TRAVIS_DIR/test-tinkerpop-reports.sh"
+
       - name: Validate Docker integration
         if: ${{ env.BACKEND == 'rocksdb' }}
         run: |

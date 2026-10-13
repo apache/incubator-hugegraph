@@ -2,29 +2,26 @@ name: "HugeGraph-Commons CI"
 
 on:
   workflow_call:
-  workflow_dispatch:
+    inputs:
+      java-versions:
+        type: string
+        required: true
 
 permissions:
   contents: read
 
 jobs:
-  java-runtime:
-    uses: ./.github/workflows/java-runtime.yml
-    permissions:
-      contents: read
-
   build-commons:
     timeout-minutes: 20
     name: Commons tests (Java ${{ matrix.JAVA_VERSION }})
-    needs: java-runtime
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       USE_STAGE: 'false' # Whether to include the stage repository.
 
     strategy:
       fail-fast: false
       matrix:
-        JAVA_VERSION: ${{ fromJSON(needs.java-runtime.outputs.versions || '["unavailable"]') }}
+        JAVA_VERSION: ${{ fromJSON(inputs.java-versions) }}
 
     steps:
       - name: Checkout
@@ -43,8 +40,8 @@ jobs:
       - name: Use staged maven repo settings
         if: ${{ env.USE_STAGE == 'true' }}
         run: |
-          cp $HOME/.m2/settings.xml /tmp/settings.xml
-          cp -vf .github/configs/settings.xml $HOME/.m2/settings.xml && cat $HOME/.m2/settings.xml
+          cp "$HOME/.m2/settings.xml" /tmp/settings.xml
+          cp -vf .github/configs/settings.xml "$HOME/.m2/settings.xml" && cat "$HOME/.m2/settings.xml"
 
       - name: Install
         run: |

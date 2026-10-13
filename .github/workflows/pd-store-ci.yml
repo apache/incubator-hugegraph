@@ -2,26 +2,25 @@ name: "HugeGraph-PD & Store & Hstore CI"
 
 on:
   workflow_call:
-  workflow_dispatch:
-
+    inputs:
+      run-struct:
+        type: boolean
+        default: true
+      run-pd:
+        type: boolean
+        default: true
+      run-store:
+        type: boolean
+        default: true
+      run-hstore:
+        type: boolean
+        default: true
 permissions:
   contents: read
 
 jobs:
-  store-stop-shell-test:
-    permissions:
-      contents: read
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
-      - name: Verify Store stop failure propagation and PID retention
-        run: bash hugegraph-server/hugegraph-dist/src/assembly/travis/test-stop-hugegraph-store.sh
-
   rocksdb-compatibility:
+    if: inputs.run-pd || inputs.run-store || inputs.run-hstore
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -77,7 +76,8 @@ jobs:
             ${{ runner.temp }}/rocksdb-compatibility/cases/
 
   struct:
-    runs-on: ubuntu-latest
+    if: inputs.run-struct || inputs.run-store
+    runs-on: ubuntu-24.04
     env:
       USE_STAGE: 'false'
     steps:
@@ -93,6 +93,9 @@ jobs:
           distribution: 'zulu'
           cache: maven
           cache-jdk: false
+
+      - name: Verify Store stop failure propagation and PID retention
+        run: bash hugegraph-server/hugegraph-dist/src/assembly/travis/test-stop-hugegraph-store.sh
 
       - name: Run JaCoCo report validator tests
         run: hugegraph-server/hugegraph-dist/src/assembly/travis/test-check-jacoco-report.sh
@@ -129,9 +132,9 @@ jobs:
           mvn -U -ntp -pl hugegraph-struct test
 
   pd:
+    if: inputs.run-pd
     timeout-minutes: 30
-    needs: struct
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       # TODO: avoid duplicated env setup in pd & store
       USE_STAGE: 'false' # Whether to include the stage repository.
@@ -311,9 +314,9 @@ jobs:
           fail_ci_if_error: false
 
   store:
+    if: inputs.run-store
     timeout-minutes: 45
-    needs: struct
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       USE_STAGE: 'false' # Whether to include the stage repository.
       # TODO: remove outdated env
@@ -513,8 +516,8 @@ jobs:
           fail_ci_if_error: false
 
   hstore:
-    needs: struct
-    runs-on: ubuntu-latest
+    if: inputs.run-hstore
+    runs-on: ubuntu-24.04
     env:
       USE_STAGE: 'false' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
