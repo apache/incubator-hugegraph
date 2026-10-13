@@ -463,6 +463,14 @@ thread. A failure while closing one owner must not skip cleanup of other owners 
 server-info resources. Cleanup retains the first exception and attaches later cleanup
 failures as suppressed exceptions.
 
+Synchronous task cancellation preserves a transaction already open on its caller,
+including uncommitted graph writes. Cancellation still runs the normal completion and
+status callbacks, but their default cleanup does not close that existing transaction.
+The scheduler closes transactions opened by a cancellation callback when it had no
+transaction before starting, and a running task retains its worker owner until that
+worker's own cleanup finishes. The caller remains responsible for committing or rolling
+back its original transaction.
+
 Graph close attempts auth, scheduler and caller-transaction cleanup separately. If a
 scheduler remains registered or the graph reports active transactions, the graph remains
 open for a later close attempt. Pending local tasks retain their task database transaction
