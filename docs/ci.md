@@ -12,9 +12,10 @@ real failed results. Valid selection and Java outputs allow selected tests to ru
 the preflight license checks fail.
 
 For migration, preflight keeps the existing `check-license` check name on the same runner.
-Before merging this workflow change, ASF Infra must remove only the retired `Server memory tests`
-context from live protection, keeping `check-license` and all review settings unchanged.
-See [ASF's required-check migration guidance](https://github.com/apache/infrastructure-asfyaml#branch-protection).
+A temporary `Server memory tests` check verifies the selected Memory result while live protection
+still requires that name. It uses one lightweight `ubuntu-slim` runner and repeats no tests.
+After Gitbox applies the new configuration, this bridge skips without allocating a runner;
+no Infra intervention or change to review protection is needed.
 
 ## What runs
 
@@ -84,7 +85,7 @@ Plans and selection summaries describe this run; previous results are never reus
 
 A new PR head cancels the previous PR run, including its called workflows. Manual and weekly
 runs remain independent. Each job reports its own result; there are no separate post-test
-aggregation runners or end-of-run metadata checks.
+aggregation runners after the protection migration or end-of-run metadata checks.
 
 Startup contracts run inside RocksDB validation, and Store stop contracts run inside Struct.
 Docker's static checks, deployment contracts and current-image validation share one runner.

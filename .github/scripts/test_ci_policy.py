@@ -346,6 +346,30 @@ class PolicyTest(unittest.TestCase):
                 self.assertEqual({"helm"}, self.coordinator_jobs(full, java=state, result="failure"))
         self.assertEqual(set(), self.coordinator_jobs(full, cancelled=True))
 
+    def test_legacy_memory_bridge_requires_real_results_and_retires_without_a_runner(self):
+        docs = self.plan_for(["README.md"])
+        self.assertEqual(set(), self.coordinator_jobs(docs))
+        docs["legacy_memory_required"] = True
+        self.assertEqual({"legacy-server-memory"}, self.coordinator_jobs(docs))
+        self.assertEqual(set(), self.coordinator_jobs(docs, cancelled=True))
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
+        bridge = re.search(r"^  legacy-server-memory:\n(.*?)(?=^  [\w-]+:|\Z)", workflow, re.M | re.S).group(1)
+        self.assertEqual("Server memory tests", re.search(r"^    name: (.+)$", bridge, re.M).group(1))
+        script = textwrap.dedent(bridge.split("        run: |\n", 1)[1])
+        cases = [("success", "true", "success", "success", True),
+                 ("success", "false", "success", "skipped", True),
+                 ("failure", "false", "success", "skipped", False),
+                 ("success", "", "success", "skipped", False),
+                 ("success", "true", "failure", "skipped", False)]
+        cases += [("success", "true", "success", result, False)
+                  for result in ["failure", "cancelled", "skipped", ""]]
+        for selection, selected, java, memory, passes in cases:
+            with self.subTest(selection=selection, selected=selected, java=java, memory=memory):
+                result = subprocess.run(["bash", "-eo", "pipefail", "-c", script], capture_output=True,
+                                        env={**os.environ, "SELECTION_RESULT": selection, "SERVER_SELECTED": selected,
+                                             "JAVA_RESULT": java, "MEMORY_RESULT": memory})
+                self.assertEqual(passes, result.returncode == 0, result.stderr)
+
     def test_contract_scripts_reach_their_actual_inner_jobs_and_steps(self):
         workflows = Path(__file__).resolve().parents[1] / "workflows"
         cases = [("test-stop-hugegraph-store.sh", {"struct"}),
