@@ -470,8 +470,11 @@ combinations actually used by the application.
 Stop application writes before deletion and keep them stopped during retries. The local
 scheduler closes task admission and waits for actual executions, cancellation callbacks
 and their transaction cleanup before data or metadata is removed. If draining times out,
-the graph stays registered with its data and configuration; retry after its owners exit.
-Closing the scheduler alone leaves persistent work that has not started in storage.
+the graph stays registered with its data and configuration, but task admission remains
+closed: new asynchronous tasks are rejected even after the existing owners exit. Keep
+application writes stopped and retry deletion after those owners exit. If no destructive
+cleanup has begun, restart the Server to resume task admission instead of completing
+the deletion. Closing the scheduler alone leaves unstarted persistent work in storage.
 
 This is a local shutdown guarantee. For a graph shared by several Servers, stop writes
 and tasks on every Server before deletion; notification delivery is not a cluster-wide

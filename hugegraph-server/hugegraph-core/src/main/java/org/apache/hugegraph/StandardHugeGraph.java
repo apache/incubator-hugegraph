@@ -1217,8 +1217,16 @@ public class StandardHugeGraph implements HugeGraph {
         TaskScheduler scheduler = this.taskManager.getScheduler(this.params);
         if (scheduler != null && !scheduler.close()) {
             // Fence admission before waiting for actual task owners to exit.
-            this.waitUntilAllTasksCompleted();
-            E.checkState(scheduler.close(), "Tasks are still active in graph '%s', please retry later",
+            try {
+                scheduler.waitUntilAllTasksCompleted(this.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT));
+            } catch (TimeoutException e) {
+                throw new HugeException("Tasks are still active in graph '%s'; task admission remains closed. " +
+                                        "Retry deletion after owners exit, or restart to resume task admission",
+                                        e, this.spaceGraphName());
+            }
+            E.checkState(scheduler.close(),
+                         "Tasks are still active in graph '%s'; task admission remains closed. " +
+                         "Retry deletion after owners exit, or restart to resume task admission",
                          this.spaceGraphName());
         }
         this.clearBackend();

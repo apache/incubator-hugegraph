@@ -2265,10 +2265,13 @@ public final class GraphManager {
                 try {
                     scheduler.waitUntilAllTasksCompleted(g.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT));
                 } catch (TimeoutException e) {
-                    throw new HugeException("Tasks are still active in graph '%s', please retry later",
+                    throw new HugeException("Tasks are still active in graph '%s'; task admission remains closed. " +
+                                            "Retry deletion after owners exit, or restart to resume task admission",
                                             e, graphName);
                 }
-                E.checkState(scheduler.close(), "Tasks are still active in graph '%s', please retry later",
+                E.checkState(scheduler.close(),
+                             "Tasks are still active in graph '%s'; task admission remains closed. " +
+                             "Retry deletion after owners exit, or restart to resume task admission",
                              graphName);
             }
             this.removingGraphs.add(graphName);

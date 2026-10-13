@@ -18,6 +18,7 @@
 package org.apache.hugegraph;
 
 import java.util.ArrayList;
+import java.lang.reflect.Constructor;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -373,6 +374,53 @@ public class HugeFactoryTest {
             Mockito.verify(params, Mockito.atLeastOnce()).closeTx();
         } finally {
             schedulers.remove(params);
+        }
+    }
+
+    @Test
+    public void testShutdownDrainsWorkersWithRegisteredScheduler() throws Exception {
+        Constructor<TaskManager> constructor = TaskManager.class.getDeclaredConstructor(int.class);
+        constructor.setAccessible(true);
+        TaskManager manager = constructor.newInstance(1);
+        Map<HugeGraphParams, TaskScheduler> schedulers = Whitebox.getInternalState(manager, "schedulers");
+        HugeGraphParams params = Mockito.mock(HugeGraphParams.class);
+        TaskScheduler scheduler = Mockito.mock(TaskScheduler.class);
+        schedulers.put(params, scheduler);
+        ExecutorService workers = Whitebox.getInternalState(manager, "taskExecutor");
+        ExecutorService database = Whitebox.getInternalState(manager, "taskDbExecutor");
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean saved = new AtomicBoolean();
+        ExecutorService stoppedWorkers = Mockito.spy(workers);
+        Mockito.doAnswer(invocation -> {
+            release.countDown();
+            return invocation.callRealMethod();
+        }).when(stoppedWorkers).shutdown();
+        Whitebox.setInternalState(manager, "taskExecutor", stoppedWorkers);
+        try {
+            Future<?> task = workers.submit(() -> {
+                started.countDown();
+                Assert.assertTrue(release.await(10L, TimeUnit.SECONDS));
+                database.submit(() -> saved.set(true)).get(10L, TimeUnit.SECONDS);
+                return null;
+            });
+            Assert.assertTrue(started.await(10L, TimeUnit.SECONDS));
+            manager.closeScheduler(params);
+            Assert.assertSame(scheduler, manager.getScheduler(params));
+            manager.shutdown(10L);
+            task.get(10L, TimeUnit.SECONDS);
+            Assert.assertTrue(saved.get());
+            Assert.assertSame(scheduler, manager.getScheduler(params));
+            for (String field : new String[]{"taskExecutor", "taskDbExecutor", "schemaTaskExecutor",
+                                            "olapTaskExecutor", "ephemeralTaskExecutor",
+                                            "distributedSchedulerExecutor"}) {
+                ExecutorService executor = Whitebox.getInternalState(manager, field);
+                Assert.assertTrue(executor.isTerminated());
+            }
+        } finally {
+            release.countDown();
+            schedulers.clear();
+            manager.shutdown(10L);
         }
     }
 

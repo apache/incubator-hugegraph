@@ -62,7 +62,13 @@ public class GraphDropPendingTest {
             fixture.scheduler.cancel(job.task());
             Assert.assertTrue(job.task().isCancelled());
             HugeException refusal = Assert.assertThrows(HugeException.class, fixture::drop);
-            Assert.assertContains(fixture.pd ? "Tasks are still active" : "Failed to wait", refusal.getMessage());
+            Assert.assertContains("Tasks are still active", refusal.getMessage());
+            Assert.assertContains("task admission remains closed", refusal.getMessage());
+            Assert.assertContains("restart to resume task admission", refusal.getMessage());
+            BlockingJob late = new BlockingJob();
+            late.release.countDown();
+            Assert.assertThrows(IllegalStateException.class, () -> fixture.scheduler.schedule(
+                    new HugeTask<>(IdGenerator.of(9997001L), null, late)));
             fixture.assertRetained();
             job.release.countDown();
             fixture.scheduler.waitUntilAllTasksCompleted(10L);
@@ -79,7 +85,13 @@ public class GraphDropPendingTest {
         try (Fixture fixture = new Fixture("pd_pending", true)) {
             BlockingJob job = fixture.start();
             HugeException refusal = Assert.assertThrows(HugeException.class, fixture::drop);
-            Assert.assertContains(fixture.pd ? "Tasks are still active" : "Failed to wait", refusal.getMessage());
+            Assert.assertContains("Tasks are still active", refusal.getMessage());
+            Assert.assertContains("task admission remains closed", refusal.getMessage());
+            Assert.assertContains("restart to resume task admission", refusal.getMessage());
+            BlockingJob late = new BlockingJob();
+            late.release.countDown();
+            Assert.assertThrows(IllegalStateException.class, () -> fixture.scheduler.schedule(
+                    new HugeTask<>(IdGenerator.of(9997001L), null, late)));
             fixture.assertRetained();
             Assert.assertTrue(fixture.metadataPresent.get());
             job.release.countDown();

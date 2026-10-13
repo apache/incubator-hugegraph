@@ -251,8 +251,9 @@ public final class TaskManager {
     }
 
     public void shutdown(long timeout) {
-        E.checkState(this.schedulers.isEmpty(),
-                     "Task schedulers are still registered: %s", this.schedulers.size());
+        if (!this.schedulers.isEmpty()) {
+            LOG.warn("Stopping task executors with {} schedulers still registered", this.schedulers.size());
+        }
 
         Throwable ex = null;
         boolean terminated = this.distributedSchedulerExecutor.isTerminated();
