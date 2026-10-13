@@ -30,9 +30,11 @@ import org.apache.hugegraph.auth.ContextTaskTest;
 import org.apache.hugegraph.auth.StandardAuthManagerV2Test;
 import org.apache.hugegraph.auth.WsAndHttpBasicAuthHandlerTest;
 import org.apache.hugegraph.backend.page.QueryListTest;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBIteratorPoolTest;
 import org.apache.hugegraph.backend.store.rocksdb.RocksDBSnapshotRestoreTest;
 import org.apache.hugegraph.backend.tx.GraphIndexTransactionTest;
 import org.apache.hugegraph.backend.tx.GraphTransactionTest;
+import org.apache.hugegraph.core.memory.MemoryManageTest;
 import org.apache.hugegraph.meta.EtcdMetaDriverTest;
 import org.apache.hugegraph.meta.MetaManagerSchemaCacheClearEventTest;
 import org.apache.hugegraph.meta.managers.AuthMetaManagerTest;
@@ -77,6 +79,7 @@ import org.apache.hugegraph.unit.core.GraphManagerConfigTest;
 import org.apache.hugegraph.unit.core.GroovyScriptEngineCompatibilityTest;
 import org.apache.hugegraph.unit.core.HugeFeaturesTest;
 import org.apache.hugegraph.unit.core.HstoreSessionsTest;
+import org.apache.hugegraph.unit.core.HstoreTableRoutingTest;
 import org.apache.hugegraph.unit.core.HugeElementViewTest;
 import org.apache.hugegraph.unit.core.HugePrimaryKeyTest;
 import org.apache.hugegraph.unit.core.IdHolderTest;
@@ -103,6 +106,7 @@ import org.apache.hugegraph.unit.opencypher.CypherGremlinPredicatesTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBCountersTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBSessionTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBSessionsTest;
+import org.apache.hugegraph.unit.rocksdb.RocksDBStdSessionsLifecycleTest;
 import org.apache.hugegraph.unit.rocksdb.RocksDBTableQueryByIdsTest;
 import org.apache.hugegraph.unit.serializer.BinaryBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.BinaryScatterSerializerTest;
@@ -213,6 +217,7 @@ import org.junit.runners.Suite;
         GraphManagerAdminInitTest.class,
         GraphManagerConfigTest.class,
         HstoreSessionsTest.class,
+        HstoreTableRoutingTest.class,
         BackendStoreInfoTest.class,
         TraversalUtilTest.class,
         TraversalUtilOptimizeTest.class,
@@ -253,6 +258,11 @@ import org.junit.runners.Suite;
         RocksDBSessionTest.class,
         RocksDBCountersTest.class,
         RocksDBTableQueryByIdsTest.class,
+        RocksDBStdSessionsLifecycleTest.class,
+        RocksDBIteratorPoolTest.class,
+
+        /* memory */
+        MemoryManageTest.class,
 
         /* utils */
         ConsumersTest.class,
