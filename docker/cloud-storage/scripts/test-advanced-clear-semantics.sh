@@ -21,7 +21,7 @@
 set -euo pipefail
 
 GRAPH_NAME="${GRAPH_NAME:-hugegraph}"
-MC_IMAGE="${MC_IMAGE:-minio/mc:RELEASE.2025-08-13T08-35-41Z}"
+MC_IMAGE="${MC_IMAGE:-pgsty/mc:latest}"
 MINIO_USER="${MINIO_USER:-minioadmin}"
 MINIO_PASS="${MINIO_PASS:-minioadmin}"
 RESTART_WAIT_SECONDS="${RESTART_WAIT_SECONDS:-20}"
@@ -119,7 +119,7 @@ main() {
     [[ -n "$before_count" ]] || before_count="0"
     log "Objects before clear: ${before_count}"
 
-    mc_exec "mc ls --recursive local/${bucket}/${db_prefix} 2>/dev/null | head -20" || true
+    mc_exec "mc ls --recursive local/${bucket}/${db_prefix} 2>/dev/null" | head -20 || true
 
     if [[ "$before_count" == "0" ]]; then
         die "objects before clear is 0; load data first (Core Steps 3-5)"
@@ -138,7 +138,7 @@ main() {
     [[ -n "$after_count" ]] || after_count="0"
     log "Objects after clear (expected usually non-zero): ${after_count}"
 
-    mc_exec "mc ls --recursive local/${bucket}/${db_prefix} 2>/dev/null | head -20" || true
+    mc_exec "mc ls --recursive local/${bucket}/${db_prefix} 2>/dev/null" | head -20 || true
 
     immediate_count=$(vertex_count)
     log "Vertex count immediately after clear: ${immediate_count}"

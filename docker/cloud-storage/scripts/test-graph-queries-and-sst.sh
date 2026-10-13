@@ -33,8 +33,8 @@ export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-cloud-storage-test}"
 HG_PD_IMAGE="${HG_PD_IMAGE:-hugegraph/pd:cloud-storage-local}"
 HG_STORE_IMAGE="${HG_STORE_IMAGE:-hugegraph/store:cloud-storage-local}"
 HG_SERVER_IMAGE="${HG_SERVER_IMAGE:-hugegraph/server:1.7.0}"
-MINIO_IMAGE="${MINIO_IMAGE:-minio/minio:latest}"
-MINIO_MC_IMAGE="${MINIO_MC_IMAGE:-minio/mc:latest}"
+MINIO_IMAGE="${MINIO_IMAGE:-pgsty/minio:latest}"
+MINIO_MC_IMAGE="${MINIO_MC_IMAGE:-pgsty/mc:latest}"
 MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
 MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}"
 S3_BUCKET_STORE0="${S3_BUCKET_STORE0:-hugegraph-store0}"
@@ -555,7 +555,7 @@ prefix_has_only_recovery_metadata() {
         bad=0
         while IFS= read -r line; do
             [ -n "$line" ] || continue
-            key=$(echo "$line" | awk "{print \\$NF}")
+            key=${line##* }
             base=${key##*/}
             total=$((total + 1))
             case "$base" in
@@ -583,8 +583,8 @@ list_object_keys_in_prefix() {
     docker run --rm --entrypoint /bin/sh --network "$NETWORK" "$MINIO_MC_IMAGE" -c '
         mc alias set local http://minio:9000 '"$MINIO_ROOT_USER $MINIO_ROOT_PASSWORD"' >/dev/null 2>&1
         target="local/'"$bucket"'/'"$norm"'"
-        mc ls --recursive "$target" 2>/dev/null | awk "{print \\$NF}"
-    '
+        mc ls --recursive "$target" 2>/dev/null
+    ' | awk '{print $NF}'
 }
 
 object_exists_exact() {
@@ -722,8 +722,8 @@ detect_scope_prefix() {
     local prefix
     prefix=$(docker run --rm --entrypoint /bin/sh --network "$NETWORK" "$MINIO_MC_IMAGE" -c '
         mc alias set local http://minio:9000 '"$MINIO_ROOT_USER $MINIO_ROOT_PASSWORD"' >/dev/null 2>&1
-        mc ls local/'"$bucket"' 2>/dev/null | awk "NR==1 {print \$NF}" | sed "s#/$##"
-    ' 2>/dev/null || true)
+        mc ls local/'"$bucket"' 2>/dev/null
+    ' 2>/dev/null | awk 'NR==1 {print $NF}' | sed 's#/$##' || true)
     prefix="${prefix//$'\r'/}"
     prefix="${prefix//$'\n'/}"
     if [[ -z "$prefix" ]]; then
@@ -796,7 +796,7 @@ run_recovery_test() {
          local vol="${COMPOSE_PROJECT_NAME}_hg-store${i}-data"
          local count
          count=$(docker run --rm --entrypoint /bin/sh -v "${vol}:/s" "$MINIO_MC_IMAGE" -c '
-             find /s -name "*.hyd-tmp" 2>/dev/null | wc -l | tr -d " "
+             mc find /s --name "*.hyd-tmp" 2>/dev/null | wc -l | tr -d " "
          ' 2>/dev/null || echo "0")
          count="${count//[^0-9]/}"
          if [[ -n "$count" && "$count" -gt 0 ]]; then
@@ -1154,8 +1154,8 @@ run_db_delete_callbacks_test() {
         echo "ERROR: partition cloud prefix not purged after callbacks (remaining=${count_after})" >&2
         docker run --rm --entrypoint /bin/sh --network "$NETWORK" "$MINIO_MC_IMAGE" -c '
             mc alias set local http://minio:9000 '"$MINIO_ROOT_USER $MINIO_ROOT_PASSWORD"' >/dev/null 2>&1
-            mc ls --recursive local/'"$db_bucket"'/'"$db_prefix"' | head -30
-        ' || true
+            mc ls --recursive local/'"$db_bucket"'/'"$db_prefix"'
+        ' | head -30 || true
         rm -f "$before_keys_file" "$after_keys_file" >/dev/null 2>&1 || true
         return 1
     fi
@@ -1189,7 +1189,7 @@ log "generating docker-compose.yml..."
 cat > "$COMPOSE_FILE" << 'YAML'
 services:
   minio:
-    image: minio/minio:latest
+    image: pgsty/minio:latest
     container_name: cloud-storage-minio
     command: server /data --console-address ":9001"
     environment:

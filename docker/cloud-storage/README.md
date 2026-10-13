@@ -16,7 +16,7 @@ The goal is to validate that:
 ## Prerequisites
 
 - Docker + Docker Compose
-- Java 11+
+- Java 17+
 - Maven 3.5+
 - `curl` and `jq` (optional, for manual API testing)
 
@@ -317,7 +317,7 @@ type resolve_hg_net >/dev/null 2>&1 || { echo "Run Core Step 1 helper first"; ex
 resolve_hg_net
 
 echo "=== Assert bucket object + SST counts ==="
-docker run --rm --entrypoint /bin/sh --network "$HG_NET" minio/mc:RELEASE.2025-08-13T08-35-41Z \
+docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:latest \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -339,7 +339,7 @@ docker run --rm --entrypoint /bin/sh --network "$HG_NET" minio/mc:RELEASE.2025-0
       exit "$fail"'
 
 echo "=== Assert metadata set (CURRENT / MANIFEST-* / OPTIONS-*) ==="
-docker run --rm --entrypoint /bin/sh --network "$HG_NET" minio/mc:RELEASE.2025-08-13T08-35-41Z \
+docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:latest \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -406,7 +406,7 @@ BUCKET=""
 DB_PREFIX=""
 for CANDIDATE_BUCKET in hugegraph-store0 hugegraph-store1 hugegraph-store2; do
   MATCH=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-    minio/mc:RELEASE.2025-08-13T08-35-41Z \
+    pgsty/mc:latest \
     -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
           :; \
         elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -436,7 +436,7 @@ echo "Detected DB prefix: bucket=${BUCKET}, prefix=${DB_PREFIX}"
 
 ```bash
 BEFORE_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  minio/mc:RELEASE.2025-08-13T08-35-41Z \
+  pgsty/mc:latest \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -450,7 +450,7 @@ BEFORE_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
 echo "Objects before clear: ${BEFORE_COUNT}"
 
 docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  minio/mc:RELEASE.2025-08-13T08-35-41Z \
+  pgsty/mc:latest \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -459,7 +459,7 @@ docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
         echo "ERROR: cannot reach MinIO at minio:9000 or cloud-storage-minio:9000" >&2; \
         exit 1; \
       fi; \
-      mc ls --recursive local/'"$BUCKET"'/'"$DB_PREFIX"' 2>/dev/null | head -20'
+      mc ls --recursive local/'"$BUCKET"'/'"$DB_PREFIX"' 2>/dev/null' | head -20
 ```
 
 Optional UI view: open `http://localhost:9001`, go to `${BUCKET}/${DB_PREFIX}`, and note object
@@ -478,7 +478,7 @@ sleep 5
 
 ```bash
 AFTER_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  minio/mc:RELEASE.2025-08-13T08-35-41Z \
+  pgsty/mc:latest \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -492,7 +492,7 @@ AFTER_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
 echo "Objects after clear (expected non-zero): ${AFTER_COUNT}"
 
 docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  minio/mc:RELEASE.2025-08-13T08-35-41Z \
+  pgsty/mc:latest \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -501,7 +501,7 @@ docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
         echo "ERROR: cannot reach MinIO at minio:9000 or cloud-storage-minio:9000" >&2; \
         exit 1; \
       fi; \
-      mc ls --recursive local/'"$BUCKET"'/'"$DB_PREFIX"' 2>/dev/null | head -20'
+      mc ls --recursive local/'"$BUCKET"'/'"$DB_PREFIX"' 2>/dev/null' | head -20
 ```
 
 5. Manual no-orphan re-hydration verification.
@@ -746,7 +746,7 @@ This is the most common issue. Debug step-by-step:
    ```bash
    type resolve_hg_net >/dev/null 2>&1 || { echo "Run Core Step 1 helper first"; exit 1; }
    resolve_hg_net
-   docker run --rm --entrypoint /bin/sh --network "$HG_NET" minio/mc:RELEASE.2025-08-13T08-35-41Z \
+   docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:latest \
      -c 'mc alias set local http://minio:9000 minioadmin minioadmin && mc ls local/'
    ```
 

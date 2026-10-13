@@ -27,7 +27,7 @@ volumes:
 
 services:
   minio:
-    image: minio/minio:latest
+    image: pgsty/minio:latest
     container_name: cloud-storage-minio
     command: server /data --console-address ':9001'
     environment:
@@ -46,7 +46,7 @@ services:
       retries: 20
 
   minio-init:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
+    image: pgsty/mc:latest
     container_name: cloud-storage-minio-init
     depends_on:
       minio:
@@ -68,7 +68,7 @@ services:
       context: ../..
       dockerfile: docker/cloud-storage/images/pd.Dockerfile
       args:
-        JAVA_RUNTIME_IMAGE: ${HG_PD_JAVA_RUNTIME_IMAGE:-eclipse-temurin:11-jre}
+        JAVA_RUNTIME_IMAGE: ${HG_PD_JAVA_RUNTIME_IMAGE:-eclipse-temurin:17-jre-jammy}
     image: hugegraph/pd:cloud-storage-local
     container_name: cloud-storage-pd
     depends_on:
@@ -102,7 +102,7 @@ services:
       context: ../..
       dockerfile: docker/cloud-storage/images/store.Dockerfile
       args:
-        JAVA_RUNTIME_IMAGE: ${HG_STORE_JAVA_RUNTIME_IMAGE:-eclipse-temurin:11-jre}
+        JAVA_RUNTIME_IMAGE: ${HG_STORE_JAVA_RUNTIME_IMAGE:-eclipse-temurin:17-jre-jammy}
     image: hugegraph/store:cloud-storage-local
     container_name: cloud-storage-store0
     depends_on:

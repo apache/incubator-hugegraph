@@ -16,7 +16,7 @@
 #
 
 # syntax=docker/dockerfile:1.4
-ARG JAVA_RUNTIME_IMAGE=eclipse-temurin:11-jre
+ARG JAVA_RUNTIME_IMAGE=eclipse-temurin:17-jre-jammy
 FROM ${JAVA_RUNTIME_IMAGE}
 
 WORKDIR /hugegraph-pd
