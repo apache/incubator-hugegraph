@@ -19,6 +19,18 @@ suite: Practical access notes
 templates:
   - NOTES.txt
 tests:
+  - it: watches one resource type per command and links current operations docs
+    asserts:
+      - matchRegexRaw:
+          pattern: "kubectl get pods -n NAMESPACE -l app.kubernetes.io/instance=RELEASE-NAME -w"
+      - matchRegexRaw:
+          pattern: "kubectl get pvc -n NAMESPACE -w"
+      - notMatchRegexRaw:
+          pattern: "kubectl get pods,pvc.*-w"
+      - notMatchRegexRaw:
+          pattern: "see README"
+      - matchRegexRaw:
+          pattern: "helm/hugegraph/docs/operations.md#credentials"
   - it: reports automatic NodePort discovery and seven claims
     asserts:
       - matchRegexRaw:

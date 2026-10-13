@@ -25,9 +25,10 @@ limitations under the License.
   Hubble  1 replica (UI)
 {{- end }}
 
-Watch startup:
+Watch startup (run each command in a separate terminal):
 
-  kubectl get pods,pvc -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+  kubectl get pvc -n {{ .Release.Namespace }} -w
 {{- $claims := 0 }}
 {{- if .Values.pd.storage.enabled }}{{ $claims = add $claims (int .Values.pd.replicas) }}{{ end }}
 {{- if .Values.store.storage.enabled }}{{ $claims = add $claims (int .Values.store.replicas) }}{{ end }}
@@ -35,11 +36,11 @@ Watch startup:
 {{- if gt (int $claims) 0 }}
 
 This configuration needs {{ $claims }} persistent volume claim(s). A dynamic
-StorageClass or matching pre-created PVs must be available; see README, Global configuration and internal deployments.
+StorageClass or matching pre-created PVs must be available; see helm/hugegraph/examples/README.md#storage.
 {{- end }}
 
 Store waits for a PD quorum before startup. If a Pod remains in Init, inspect
-its init-container logs and PD readiness; see README, Troubleshooting.
+its init-container logs and PD readiness; see helm/hugegraph/docs/operations.md#troubleshooting.
 
 Access:
 {{- range $component := list "server" "hubble" "pd" }}
@@ -92,7 +93,7 @@ Credentials:
   curl --user "admin:${PASSWORD}" http://<server-address>/versions
 
 The admin Secret contains the initial password. Changing it does not reset an
-existing account; see README for account password changes and Secret synchronization.
+existing account; see helm/hugegraph/docs/operations.md#credentials for account password changes and Secret synchronization.
 {{- else }}
   Server authentication is disabled.
 {{- end }}
@@ -113,7 +114,7 @@ existing account; see README for account password changes and Secret synchroniza
 
 Chart-generated credentials are in use: {{ join ", " $generated }}.
 For GitOps/template-only pipelines use fixed credentials or existingSecret;
-see README, Template-only pipelines.
+see helm/hugegraph/examples/README.md#gitops-credentials.
 {{- end }}
 {{- if .Values.networkPolicy.enabled }}
 
@@ -123,7 +124,7 @@ networkPolicy.<component>.extraIngress; enforcement depends on the cluster netwo
 {{- if .Values.server.advertiseUrl }}
 
 Server registers {{ .Values.server.advertiseUrl }} with PD for external discovery.
-A standalone Hubble also needs a reachable PD endpoint; see README, PD discovery.
+A standalone Hubble also needs a reachable PD endpoint; see helm/hugegraph/docs/operations.md#networking-and-hubble.
 {{- end }}
 
 Verify all Server Gremlin endpoints:

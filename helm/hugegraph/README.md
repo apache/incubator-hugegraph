@@ -61,7 +61,7 @@ Inactive credential values may remain in the values file when auth is disabled.
 ### Internal image registry
 
 Mirror the four component images (`hugegraph/pd`, `hugegraph/store`,
-`hugegraph/hugegraph`, `hugegraph/hubble`) at the configured tags or digests:
+`hugegraph/server`, `hugegraph/hubble`) at the configured tags or digests:
 
 ```bash
 helm install hugegraph ./helm/hugegraph -n hugegraph --create-namespace \

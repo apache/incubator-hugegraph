@@ -334,4 +334,4 @@ for storage_timeout in '' 0 -1 1.5 abc 86401 999999999999999999999; do
     echo "  PASS invalid timeout '${storage_timeout}'"
 done
 
-echo "21 passed, 0 failed"
+echo "20 passed, 0 failed"

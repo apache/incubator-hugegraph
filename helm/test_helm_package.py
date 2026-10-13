@@ -17,6 +17,7 @@
 """Validate the artifact shipped to Helm, beyond source template tests."""
 
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tarfile
@@ -79,6 +80,25 @@ class HelmPackageTest(unittest.TestCase):
                 with self.subTest(template=name):
                     self.assertIn(name, self.files)
                     self.assertEqual(source.read_bytes(), self.files[name])
+
+    def test_internal_inventory_covers_workloads_and_helpers(self):
+        example = (CHART / "examples" / "README.md").read_text()
+        inventory = example.split("## Internal images", 1)[1].split("`global.imageRegistry`", 1)[0]
+        images = set(re.findall(r"`(hugegraph/[^`]+:[^`]+)`", inventory))
+        self.assertEqual(4, len(images), "Document all four default component images")
+        registry = "registry.internal.example.com"
+        rendered = subprocess.run(
+            ["helm", "template", "inventory-check", str(self.package),
+             "--values", str(CHART / "examples" / "values-internal-registry.yaml")],
+            check=True, capture_output=True, text=True).stdout
+        selected = set(re.findall(r'^\s+image:\s*["\']?([^"\'\s]+)', rendered, re.MULTILINE))
+        self.assertEqual({f"{registry}/{image}" for image in images}, selected,
+                         "Mirror inventory must cover workloads, init containers and test hooks")
+        for name in ("README.md", "examples/values-internal-registry.yaml"):
+            text = (CHART / name).read_text()
+            for image in images:
+                self.assertIn(image.split(":", 1)[0], text,
+                              f"{name} omits a required image repository")
 
     def test_packaged_chart_renders_each_preset(self):
         for preset in (None, "values-single.yaml", "values-cluster.yaml", "values-strict.yaml"):

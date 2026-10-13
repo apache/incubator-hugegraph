@@ -17,7 +17,7 @@
 
 
 # Mirror hugegraph/pd:latest, hugegraph/store:latest,
-# hugegraph/hugegraph:latest, hugegraph/hubble:latest at your private registry.
+# hugegraph/server:latest, hugegraph/hubble:latest at your private registry.
 global:
   imageRegistry: registry.internal.example.com
 store:

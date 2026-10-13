@@ -67,7 +67,7 @@ requires a separate data migration/recovery procedure.
 
 [values-internal-registry.yaml](values-internal-registry.yaml) mirrors the default
 four images: `hugegraph/pd:latest`, `hugegraph/store:latest`,
-`hugegraph/hugegraph:latest`, and `hugegraph/hubble:latest`. Tags follow the chart's
+`hugegraph/server:latest`, and `hugegraph/hubble:latest`. Tags follow the chart's
 current version policy; pin your own published tags/digests.
 
 `global.imageRegistry` prefixes repositories without an explicit registry.
@@ -108,7 +108,17 @@ backslashes. `existingSecret` takes priority over fixed values and is not manage
 by the chart. Ordinary Helm installations generate/reuse credentials; repeated
 offline renders cannot look up live generated Secrets and otherwise generate new
 random values. Changing the admin Secret alone does not change an already-created
-account; follow the README's password rotation procedure.
+account; follow the [account password and Secret synchronization steps](../docs/operations.md#credentials).
+
+Before moving an existing release to a declarative GitOps renderer, export and
+pin its effective values; offline rendering cannot apply Helm's `--reuse-values`.
+Keep the existing `server.service.type`, `hubble.service.type`, `hubble.enabled`
+and storage flags explicitly, as well as fixed/external credentials. Selecting
+`mode: strict` keeps inherited Services internal, but also enables NetworkPolicy;
+set `networkPolicy.enabled` explicitly to preserve the installed behavior.
+A legacy Hubble with no mounted data volume still has metadata in its container
+filesystem: keep `hubble.persistence.enabled: false` until a reviewed migration
+moves that metadata to a PVC. Do not use a default reset as a migration.
 
 ## Entry points and UI
 
