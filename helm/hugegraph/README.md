@@ -47,7 +47,7 @@ replacement for validating a real Helm installation with the intended values.
 | Server | Deployment | Gremlin and REST query layer |
 | Hubble | Deployment + optional PVC | Web UI, off by default; enable with `hubble.enabled` |
 
-![HugeGraph HStore architecture and Kubernetes workload types](https://raw.githubusercontent.com/apache/hugegraph/master/helm/hugegraph/images/architecture.png)
+![HugeGraph HStore architecture and Kubernetes workload types](../../.github/images/architecture.png)
 
 A distributed HugeGraph cluster has a startup contract that this chart encodes
 so operators do not have to:
