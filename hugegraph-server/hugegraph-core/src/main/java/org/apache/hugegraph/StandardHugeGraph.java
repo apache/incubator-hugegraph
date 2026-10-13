@@ -443,8 +443,8 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void mode(GraphMode mode) {
-        LOG.info("Graph {} will work in {} mode", this, mode);
         this.loadingMode.mode(mode);
+        LOG.info("Graph {} will work in {} mode", this, mode);
     }
 
     @Override
@@ -456,6 +456,11 @@ public class StandardHugeGraph implements HugeGraph {
     public Map<String, Object> loadingMode(String action, String instance, long epoch,
                                             String token, String principal) {
         return this.loadingMode.update(action, instance, epoch, token, principal);
+    }
+
+    @Override
+    public Map<String, Object> recoverLoadingMode(String instance, long epoch, long revision) {
+        return this.loadingMode.recover(instance, epoch, revision);
     }
 
     @Override

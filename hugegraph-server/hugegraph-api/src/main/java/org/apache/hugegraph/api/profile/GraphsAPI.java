@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.LoadingMode;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.StatusFilter;
 import org.apache.hugegraph.auth.AuthManager;
@@ -56,6 +57,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.GET;
@@ -68,6 +70,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.Response;
 
 @Path("graphspaces/{graphspace}/graphs")
 @Singleton
@@ -78,6 +81,7 @@ public class GraphsAPI extends API {
 
     private static final String CONFIRM_CLEAR = "I'm sure to delete all data";
     private static final String CONFIRM_DROP = "I'm sure to drop the graph";
+    private static final String CONFIRM_RECOVER = "I'm sure all imports have stopped";
     private static final String GRAPH_DESCRIPTION = "description";
     private static final String GRAPH_ACTION = "action";
     private static final String UPDATE = "update";
@@ -674,7 +678,11 @@ public class GraphsAPI extends API {
 
         E.checkArgument(mode != null, "Graph mode can't be null");
         HugeGraph g = graph(manager, graphSpace, name);
-        g.mode(mode);
+        try {
+            g.mode(mode);
+        } catch (LoadingMode.ConflictException e) {
+            throw new ClientErrorException(e.getMessage(), Response.Status.CONFLICT, e);
+        }
         return ImmutableMap.of("mode", mode);
     }
 
@@ -713,10 +721,27 @@ public class GraphsAPI extends API {
     public Map<String, Object> loadingMode(@Context GraphManager manager,
                                           @PathParam("graphspace") String graphSpace,
                                           @PathParam("name") String name,
-                                          JsonLoadingOwner owner) {
+                                          JsonLoadingOwner owner,
+                                          @Context SecurityContext securityContext) {
         E.checkArgument(owner != null && owner.epoch != null, "Loading owner body and epoch are required");
-        return graph(manager, graphSpace, name).loadingMode(owner.action, owner.instance,
-                                                            owner.epoch, owner.token, "");
+        if ("recover".equals(owner.action)) {
+            if (securityContext == null || !securityContext.isUserInRole("admin")) {
+                throw new ForbiddenException("Loading recovery requires administrator permission");
+            }
+            E.checkArgument(CONFIRM_RECOVER.equals(owner.confirm),
+                            "Stop and drain all related imports, then confirm with '%s'", CONFIRM_RECOVER);
+            E.checkArgument(owner.revision != null && owner.revision >= 0,
+                            "Current loading state revision is required for recovery");
+        }
+        try {
+            HugeGraph graph = graph(manager, graphSpace, name);
+            if ("recover".equals(owner.action)) {
+                return graph.recoverLoadingMode(owner.instance, owner.epoch, owner.revision);
+            }
+            return graph.loadingMode(owner.action, owner.instance, owner.epoch, owner.token, "");
+        } catch (LoadingMode.ConflictException e) {
+            throw new ClientErrorException(e.getMessage(), Response.Status.CONFLICT, e);
+        }
     }
 
     public static class JsonLoadingOwner {
@@ -725,6 +750,8 @@ public class GraphsAPI extends API {
         public String instance;
         public Long epoch;
         public String token;
+        public String confirm;
+        public Long revision;
     }
 
     @PUT

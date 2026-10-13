@@ -90,6 +90,12 @@ public class HugeGraphAuthProxyTest extends BaseUnitTest {
         proxy.loadingMode("acquire", "instance", 0, "token", "forged");
         Mockito.verify(graph).loadingMode();
         Mockito.verify(graph).loadingMode("acquire", "instance", 0, "token", "writer");
+        Assert.assertThrows(jakarta.ws.rs.ForbiddenException.class,
+                            () -> proxy.recoverLoadingMode("instance", 0, 0));
+        Mockito.verify(graph, Mockito.never()).recoverLoadingMode("instance", 0, 0);
+        setContext(new HugeGraphAuthProxy.Context(new HugeAuthenticator.User("admin", RolePermission.admin())));
+        proxy.recoverLoadingMode("instance", 0, 0);
+        Mockito.verify(graph).recoverLoadingMode("instance", 0, 0);
     }
 
     @Test

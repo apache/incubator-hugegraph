@@ -226,6 +226,10 @@ public interface HugeGraph extends Graph, HugeGraphSupplier {
         throw new UnsupportedOperationException("Loading ownership is not supported by this graph implementation");
     }
 
+    default Map<String, Object> recoverLoadingMode(String instance, long epoch, long revision) {
+        throw new UnsupportedOperationException("Loading recovery is not supported by this graph implementation");
+    }
+
     GraphReadMode readMode();
 
     void readMode(GraphReadMode readMode);

@@ -126,6 +126,58 @@ public class LoadingModeTest {
     }
 
     @Test
+    public void testRecoveryRetiresOwnersAndLateRequests() {
+        LoadingMode mode = new LoadingMode();
+        Map<String, Object> before = mode.capability();
+        String lost = token();
+        update(mode, before, lost, "acquire");
+
+        Map<String, Object> recovered = recover(mode, mode.capability());
+        Assert.assertEquals("recovered", recovered.get("state"));
+        Assert.assertEquals(1L, recovered.get("epoch"));
+        Assert.assertFalse(recovered.containsKey("token"));
+        Assert.assertEquals(GraphMode.NONE, mode.mode());
+        Assert.assertEquals("released", update(mode, before, lost, "acquire").get("state"));
+        Assert.assertEquals("released", update(mode, before, token(), "acquire").get("state"));
+        update(mode, before, lost, "release");
+
+        Map<String, Object> current = mode.capability();
+        update(mode, current, token(), "acquire");
+        Assert.assertThrows(IllegalStateException.class,
+                            () -> recover(mode, before));
+        Assert.assertEquals(GraphMode.LOADING, mode.mode());
+        Assert.assertEquals(1L, mode.capability().get("epoch"));
+    }
+
+    @Test
+    public void testRecoveryCannotClearOwnerAddedAfterInspection() {
+        LoadingMode mode = new LoadingMode();
+        Map<String, Object> capability = mode.capability();
+        String first = token();
+        String second = token();
+        update(mode, capability, first, "acquire");
+        Map<String, Object> inspected = mode.capability();
+        update(mode, inspected, second, "acquire");
+        Assert.assertThrows(IllegalStateException.class,
+                            () -> recover(mode, inspected));
+        Assert.assertEquals(GraphMode.LOADING, mode.mode());
+        update(mode, capability, first, "release");
+        Assert.assertEquals(GraphMode.LOADING, mode.mode());
+        update(mode, capability, second, "release");
+        Assert.assertEquals(GraphMode.NONE, mode.mode());
+    }
+
+    @Test
+    public void testRecoveryAllowsConfirmedManualModeReset() {
+        LoadingMode mode = new LoadingMode();
+        mode.mode(GraphMode.RESTORING);
+        Map<String, Object> before = mode.capability();
+        recover(mode, before);
+        Assert.assertEquals(GraphMode.NONE, mode.mode());
+        Assert.assertEquals("active", update(mode, mode.capability(), token(), "acquire").get("state"));
+    }
+
+    @Test
     public void testConcurrentAcquireAndLegacySetterAreAtomic() throws Exception {
         LoadingMode mode = new LoadingMode();
         Map<String, Object> capability = mode.capability();
@@ -163,6 +215,12 @@ public class LoadingModeTest {
 
     private static String token() {
         return UUID.randomUUID().toString();
+    }
+
+    private static Map<String, Object> recover(LoadingMode mode, Map<String, Object> capability) {
+        return mode.recover((String) capability.get("instance"),
+                            ((Number) capability.get("epoch")).longValue(),
+                            ((Number) capability.get("revision")).longValue());
     }
 
     private static Map<String, Object> update(LoadingMode mode, Map<String, Object> capability,

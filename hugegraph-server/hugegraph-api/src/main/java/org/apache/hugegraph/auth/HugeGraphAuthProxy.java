@@ -828,6 +828,12 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public Map<String, Object> recoverLoadingMode(String instance, long epoch, long revision) {
+        this.verifyAdminPermission();
+        return this.hugegraph.recoverLoadingMode(instance, epoch, revision);
+    }
+
+    @Override
     public GraphReadMode readMode() {
         this.verifyStatusPermission();
         return this.hugegraph.readMode();

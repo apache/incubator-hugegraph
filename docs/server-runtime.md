@@ -545,7 +545,7 @@ cannot be adopted. Original enum setters reject every request while owners are a
 including bare LOADING; their original behavior remains available without active owners.
 
 `GET /graphspaces/{space}/graphs/{graph}/mode/owners` returns
-`{"protocol":1,"instance":"<UUID>","epoch":0}`. `PUT` on that path accepts
+`{"protocol":1,"instance":"<UUID>","epoch":0,"revision":0}`. `PUT` on that path accepts
 `{"action":"acquire","instance":"<UUID>","epoch":0,"token":"<import UUID>"}`;
 `release` uses the same tuple. Receipts echo protocol/instance/epoch/token and return
 `state` (`active` or `released`) and the effective `mode`. Both operations use existing
@@ -562,7 +562,31 @@ Server and graph instance. It does not fence ordinary data requests across load
 balancers, node failover, graph replacement or Server restart. There is no automatic
 expiry: after kill -9 or permanent disconnection, stop the import and its in-flight
 writes before retrying release with the same handle and identity. If that handle is
-lost, stop all related imports before reopening the graph instance.
+lost, an administrator can recover without that token:
+
+1. Stop every related import and drain its in-flight writes. Keep ordinary writers
+   stopped too; the owner protocol does not fence graph data requests.
+2. Read the current instance, epoch and revision from the owners endpoint on the same Server.
+3. Send `PUT` to that endpoint with
+   `{"action":"recover","instance":"<UUID>","epoch":0,"revision":0,"confirm":"I'm sure all imports have stopped"}`.
+
+Recovery requires administrator permission at both the REST and graph-proxy layers,
+the exact current instance/epoch/revision and
+the explicit confirmation. It clears owners, advances the epoch and returns NONE;
+late acquire/release requests from the retired epoch cannot register an owner again.
+The receipt contains the new epoch and `state: recovered`, without tokens. A stale
+recovery request returns a conflict and cannot clear an import started in a newer
+epoch. Owner registration/release and manual mode changes advance the revision, so
+an import started after inspection also rejects the stale recovery request even within
+the same epoch. After an uncertain result, inspect current state rather than blindly
+retrying with a newly fetched epoch/revision. This operation does not stop or drain imports itself.
+
+The same recovery procedure can reset manual RESTORING or MERGING after that work
+has stopped and drained; restore completion keeps its historical RESTORING mode.
+Before ordinary import on an owner-capable Server, explicitly recover or set NONE
+only after inspecting the completed work and confirming there are no active imports.
+Expected loading-owner and manual-mode conflicts return HTTP 409; invalid requests
+return 400 and unauthorized recovery is rejected by the authentication layer.
 
 Loaders retain historical ordinary-import and restore behavior with Servers that do
 not provide this API. Concurrent owner protection applies only when this API is

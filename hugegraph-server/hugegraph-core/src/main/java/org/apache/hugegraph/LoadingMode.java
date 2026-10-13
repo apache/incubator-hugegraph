@@ -36,6 +36,7 @@ public final class LoadingMode {
     private final Map<String, String> active = new HashMap<>();
     private final Map<String, String> released = new HashMap<>();
     private long epoch;
+    private long revision;
     private volatile GraphMode mode = GraphMode.NONE;
 
     public GraphMode mode() {
@@ -44,12 +45,31 @@ public final class LoadingMode {
 
     public synchronized void mode(GraphMode mode) {
         Objects.requireNonNull(mode, "mode");
-        E.checkState(this.active.isEmpty(), "Loading owners are active; release them before setting graph mode");
+        checkState(this.active.isEmpty(), "Loading owners are active; release them before setting graph mode");
+        if (this.mode != mode) {
+            this.advanceRevision();
+        }
         this.mode = mode;
     }
 
     public synchronized Map<String, Object> capability() {
-        return ImmutableMap.of("protocol", 1, "instance", this.instance, "epoch", this.epoch);
+        return ImmutableMap.of("protocol", 1, "instance", this.instance, "epoch", this.epoch,
+                               "revision", this.revision);
+    }
+
+    public synchronized Map<String, Object> recover(String instance, long epoch, long revision) {
+        E.checkArgument(this.instance.equals(instance), "Loading owner belongs to another graph instance");
+        E.checkArgument(epoch >= 0 && revision >= 0, "Invalid loading recovery epoch or revision");
+        checkState(epoch == this.epoch && revision == this.revision,
+                   "Loading state changed; inspect it before recovery");
+        checkState(this.epoch < Long.MAX_VALUE, "Loading owner epoch exhausted");
+        this.advanceRevision();
+        this.epoch++;
+        this.active.clear();
+        this.released.clear();
+        this.mode = GraphMode.NONE;
+        return ImmutableMap.<String, Object>builder().putAll(this.capability())
+                           .put("state", "recovered").put("mode", this.mode).build();
     }
 
     public synchronized Map<String, Object> update(String action, String instance, long epoch,
@@ -64,13 +84,14 @@ public final class LoadingMode {
         String key = epoch + "/" + token;
         String owner = this.active.get(key);
         if (owner != null) {
-            E.checkState(owner.equals(principal), "Loading owner belongs to another authenticated principal");
+            checkState(owner.equals(principal), "Loading owner belongs to another authenticated principal");
             if ("acquire".equals(action)) {
                 return this.receipt(epoch, token, "active");
             }
             // Exhaustion must fail before changing an active registration.
-            E.checkState(epoch != this.epoch || this.released.size() < MAX_RELEASED ||
+            checkState(epoch != this.epoch || this.released.size() < MAX_RELEASED ||
                          this.epoch < Long.MAX_VALUE, "Loading owner epoch exhausted");
+            this.advanceRevision();
             this.active.remove(key);
             if (this.active.isEmpty()) {
                 this.mode = GraphMode.NONE;
@@ -79,8 +100,9 @@ public final class LoadingMode {
             if (epoch < this.epoch || this.released.containsKey(key)) {
                 return this.receipt(epoch, token, "released");
             }
-            E.checkState(this.active.isEmpty() ? this.mode == GraphMode.NONE : this.mode == GraphMode.LOADING,
+            checkState(this.active.isEmpty() ? this.mode == GraphMode.NONE : this.mode == GraphMode.LOADING,
                          "Cannot acquire loading ownership of manually set graph mode %s", this.mode);
+            this.advanceRevision();
             this.active.put(key, principal);
             this.mode = GraphMode.LOADING;
             return this.receipt(epoch, token, "active");
@@ -88,21 +110,45 @@ public final class LoadingMode {
         // Unknown release cancels an acquire which may still be in transit.
         if (epoch == this.epoch) {
             String releasedOwner = this.released.get(key);
-            E.checkState(releasedOwner == null || releasedOwner.equals(principal),
+            checkState(releasedOwner == null || releasedOwner.equals(principal),
                          "Loading owner belongs to another authenticated principal");
             if (releasedOwner != null) {
                 return this.receipt(epoch, token, "released");
             }
             if (this.released.size() == MAX_RELEASED) {
-                E.checkState(this.epoch < Long.MAX_VALUE, "Loading owner epoch exhausted");
+                checkState(this.epoch < Long.MAX_VALUE, "Loading owner epoch exhausted");
+                if (owner == null) {
+                    this.advanceRevision();
+                }
                 this.epoch++;
                 this.released.clear();
                 // Old nonactive tuples are terminal; active old tuples remain registered.
             } else {
+                if (owner == null) {
+                    this.advanceRevision();
+                }
                 this.released.put(key, principal);
             }
         }
         return this.receipt(epoch, token, "released");
+    }
+
+    private void advanceRevision() {
+        checkState(this.revision < Long.MAX_VALUE, "Loading state revision exhausted");
+        this.revision++;
+    }
+
+    private static void checkState(boolean condition, String message, Object... args) {
+        if (!condition) {
+            throw new ConflictException(String.format(message, args));
+        }
+    }
+
+    public static class ConflictException extends IllegalStateException {
+
+        public ConflictException(String message) {
+            super(message);
+        }
     }
 
     private Map<String, Object> receipt(long epoch, String token, String state) {

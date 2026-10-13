@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.LoadingMode;
 import org.apache.hugegraph.api.auth.ManagerAPI;
 import org.apache.hugegraph.api.profile.GraphsAPI;
 import org.apache.hugegraph.api.space.GraphSpaceAPI;
@@ -43,6 +44,7 @@ import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.space.GraphSpace;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.unit.BaseUnitTest;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -51,6 +53,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.SecurityContext;
 
 public class GraphSpaceAPITest extends BaseUnitTest {
@@ -241,6 +244,45 @@ public class GraphSpaceAPITest extends BaseUnitTest {
 
         Assert.assertTrue(result.contains("hugegraph"));
         Assert.assertFalse(result.contains(SYS_GRAPH));
+    }
+
+    @Test
+    public void testLoadingRecoveryConfirmationAndConflictResponse() {
+        GraphManager manager = Mockito.mock(GraphManager.class);
+        HugeGraph graph = Mockito.mock(HugeGraph.class);
+        Mockito.when(manager.graph("DEFAULT", "hugegraph")).thenReturn(graph);
+        GraphsAPI api = new GraphsAPI();
+        GraphsAPI.JsonLoadingOwner request = new GraphsAPI.JsonLoadingOwner();
+        request.action = "recover";
+        request.instance = "instance";
+        request.epoch = 0L;
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Assert.assertThrows(ForbiddenException.class,
+                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+        Mockito.verify(graph, Mockito.never()).recoverLoadingMode(Mockito.anyString(), Mockito.anyLong(),
+                                                                Mockito.anyLong());
+        Mockito.when(securityContext.isUserInRole("admin")).thenReturn(true);
+        Assert.assertThrows(IllegalArgumentException.class,
+                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+        Mockito.verify(graph, Mockito.never()).loadingMode(Mockito.anyString(), Mockito.anyString(),
+                                                         Mockito.anyLong(), Mockito.any(), Mockito.anyString());
+        request.confirm = "I'm sure all imports have stopped";
+        Assert.assertThrows(IllegalArgumentException.class,
+                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+        request.revision = 0L;
+        Map<String, Object> receipt = Collections.singletonMap("state", "recovered");
+        Mockito.when(graph.recoverLoadingMode("instance", 0, 0)).thenReturn(receipt);
+        Assert.assertSame(receipt, api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+
+        Mockito.when(graph.recoverLoadingMode("instance", 0, 0))
+               .thenThrow(new LoadingMode.ConflictException("stale epoch"));
+        ClientErrorException ownerConflict = org.junit.Assert.assertThrows(ClientErrorException.class,
+                () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+        Assert.assertEquals(409, ownerConflict.getResponse().getStatus());
+        Mockito.doThrow(new LoadingMode.ConflictException("active owners")).when(graph).mode(GraphMode.NONE);
+        ClientErrorException modeConflict = org.junit.Assert.assertThrows(ClientErrorException.class,
+                () -> api.mode(manager, "DEFAULT", "hugegraph", GraphMode.NONE));
+        Assert.assertEquals(409, modeConflict.getResponse().getStatus());
     }
 
     @Test
