@@ -374,7 +374,8 @@ public final class GraphManager {
         this.initK8sManagerIfNeeded(conf);
         if (shouldBootstrapAdmin(this.authenticator,
                                  conf.get(ServerOptions.AUTH_REMOTE_URL))) {
-            this.initAdminUserIfNeeded(conf.get(ServerOptions.ADMIN_PA));
+            this.initAdminUserIfNeeded(
+                    StandardAuthenticator.initialAdminPassword(conf));
         }
 
         this.createDefaultGraphSpaceIfNeeded(conf);
@@ -1877,7 +1878,9 @@ public final class GraphManager {
             if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
                 if (this.requireAuthentication()) {
-                    String adminPassword = config.get(ServerOptions.ADMIN_PA);
+                    // Outside the try so a bad password file names itself
+                    String adminPassword =
+                            StandardAuthenticator.initialAdminPassword(config);
                     try {
                         this.authenticator().initAdminUser(adminPassword);
                     } catch (Exception e) {

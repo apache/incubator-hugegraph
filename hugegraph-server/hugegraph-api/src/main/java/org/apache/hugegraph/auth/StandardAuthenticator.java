@@ -18,8 +18,14 @@
 package org.apache.hugegraph.auth;
 
 import java.io.Console;
+import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +33,7 @@ import java.util.Scanner;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
@@ -46,9 +53,11 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     private HugeGraph graph = null;
 
-    private void initAdminUser() throws Exception {
+    private void initAdminUser(HugeConfig config) throws Exception {
         if (this.requireInitAdminUser()) {
-            this.initAdminUser(this.inputPassword());
+            String file = config.get(ServerOptions.ADMIN_PA_FILE);
+            this.initAdminUser(file.isEmpty() ? this.inputPassword() :
+                               readAdminPasswordFile(file));
         }
         this.graph.close();
     }
@@ -202,8 +211,57 @@ public class StandardAuthenticator implements HugeAuthenticator {
         config.addProperty(INITING_STORE, true);
         auth.setup(config);
         if (auth.graph().backendStoreFeatures().supportsPersistence()) {
-            auth.initAdminUser();
+            auth.initAdminUser(config);
         }
+    }
+
+    /**
+     * The initial admin password for the bootstrap paths that cannot prompt.
+     * auth.admin_pa goes through the properties grammar, which trims it,
+     * processes backslash escapes and decodes it as ISO-8859-1, so
+     * auth.admin_pa_file takes precedence when both are set.
+     */
+    public static String initialAdminPassword(HugeConfig config) {
+        String file = config.get(ServerOptions.ADMIN_PA_FILE);
+        if (!file.isEmpty()) {
+            return readAdminPasswordFile(file);
+        }
+        return config.get(ServerOptions.ADMIN_PA);
+    }
+
+    private static String readAdminPasswordFile(String file) {
+        String option = ServerOptions.ADMIN_PA_FILE.name();
+        byte[] bytes;
+        try {
+            bytes = Files.readAllBytes(Paths.get(file));
+        } catch (IOException e) {
+            throw new ConfigException("Failed to read the file '%s' set by '%s'",
+                                      e, file, option);
+        }
+
+        String password;
+        try {
+            password = StandardCharsets.UTF_8.newDecoder()
+                                             .onMalformedInput(CodingErrorAction.REPORT)
+                                             .onUnmappableCharacter(CodingErrorAction.REPORT)
+                                             .decode(ByteBuffer.wrap(bytes))
+                                             .toString();
+        } catch (CharacterCodingException e) {
+            throw new ConfigException("The file '%s' set by '%s' is not valid UTF-8",
+                                      e, file, option);
+        }
+
+        // Drop the line break that echo, editors and most secret tools append
+        if (password.endsWith("\r\n")) {
+            password = password.substring(0, password.length() - 2);
+        } else if (password.endsWith("\n")) {
+            password = password.substring(0, password.length() - 1);
+        }
+        if (password.isEmpty()) {
+            throw new ConfigException("The file '%s' set by '%s' is empty",
+                                      file, option);
+        }
+        return password;
     }
 
     private class TokenSaslAuthenticator implements SaslNegotiator {

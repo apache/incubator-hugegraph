@@ -50,6 +50,7 @@ import org.apache.hugegraph.unit.api.filter.VertexAuthorizationTest;
 import org.apache.hugegraph.unit.api.gremlin.GremlinQueryAPITest;
 import org.apache.hugegraph.unit.api.space.GraphSpaceAPITest;
 import org.apache.hugegraph.unit.api.space.SchemaTemplateAPITest;
+import org.apache.hugegraph.unit.auth.AdminPasswordFileTest;
 import org.apache.hugegraph.unit.auth.HugeGraphAuthProxyTest;
 import org.apache.hugegraph.unit.cache.CacheManagerTest;
 import org.apache.hugegraph.unit.cache.CacheTest;
@@ -227,6 +228,7 @@ import org.junit.runners.Suite;
         ServerInfoManagerTest.class,
         TaskSchedulerServerInfoTest.class,
         HugeGraphAuthProxyTest.class,
+        AdminPasswordFileTest.class,
         SchemaElementTest.class,
         HugeGraphTestInfrastructureTest.class,
         HugeElementViewTest.class,

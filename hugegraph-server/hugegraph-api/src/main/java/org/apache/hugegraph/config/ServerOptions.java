@@ -480,11 +480,10 @@ public class ServerOptions extends OptionHolder {
                     ""
             );
 
-    // TODO: accept the initial admin password from the environment (or document the properties
-    // contract): read through PropertiesConfiguration, the value is trimmed, backslash-unescaped
-    // and decoded as ISO-8859-1, so the stored password can differ from what the operator set.
-    // The Helm chart (helm/hugegraph) refuses padded, backslash or non-ASCII admin passwords in
-    // its schema and Server wrapper; relax that guard once the credential bypasses the file.
+    // Read through PropertiesConfiguration: the value is trimmed, backslash-unescaped and decoded
+    // as ISO-8859-1, so a password outside printable ASCII needs Unicode escapes in the file.
+    // ADMIN_PA_FILE skips that grammar. The Helm chart (helm/hugegraph) still refuses padded,
+    // backslash or non-ASCII admin passwords; relax that guard once it passes ADMIN_PA_FILE.
     public static final ConfigOption<String> ADMIN_PA =
             new ConfigOption<>(
                     "auth.admin_pa",
@@ -492,6 +491,18 @@ public class ServerOptions extends OptionHolder {
                     "takes effect on first startup.",
                     null,
                     "pa"
+            );
+
+    public static final ConfigOption<String> ADMIN_PA_FILE =
+            new ConfigOption<>(
+                    "auth.admin_pa_file",
+                    "The path of a file holding the default password for " +
+                    "built-in admin account, read as raw UTF-8 with one " +
+                    "trailing line break removed. When set, it takes " +
+                    "precedence over auth.admin_pa and the init-store prompt; " +
+                    "takes effect on first startup.",
+                    null,
+                    ""
             );
 
     public static final ConfigOption<String> SSL_KEYSTORE_FILE =

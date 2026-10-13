@@ -130,7 +130,8 @@ public final class HugeFactoryAuthProxy {
         // HugeGraph
         Reflection.registerFieldsToFilter(StandardAuthenticator.class, "graph");
         Reflection.registerMethodsToFilter(StandardAuthenticator.class, "initAdminUser",
-                                           "inputPassword", "graph");
+                                           "inputPassword", "graph", "initialAdminPassword",
+                                           "readAdminPasswordFile");
         Reflection.registerFieldsToFilter(HugeFactoryAuthProxy.class, "PROTECT_METHODS");
         Reflection.registerMethodsToFilter(HugeFactoryAuthProxy.class, "genRegisterPrivateActions",
                                            "registerClass", "registerPrivateActions",

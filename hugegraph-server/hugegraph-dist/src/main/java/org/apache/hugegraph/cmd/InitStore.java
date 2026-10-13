@@ -223,13 +223,22 @@ public class InitStore {
                                              "', not 'hstore'");
         }
 
+        // A password file is read now, so an unreadable or empty one fails
+        // here instead of after the server has started
+        if (!conf.get(ServerOptions.ADMIN_PA_FILE).isEmpty()) {
+            StandardAuthenticator.initialAdminPassword(conf);
+            return;
+        }
+
         // The server creates the admin from this value and cannot prompt for
         // it, and Docker PASSWORD never reaches this path. An absent or empty
         // one would hand out the public 'pa' default, so fail instead. Checked
         // with containsKey because the default is not a configured secret.
         if (!conf.containsKey(ServerOptions.ADMIN_PA.name()) ||
             conf.get(ServerOptions.ADMIN_PA).isEmpty()) {
-            throw unreachableAdmin(restConf, "no explicit non-empty '" +
+            throw unreachableAdmin(restConf, "neither '" +
+                                             ServerOptions.ADMIN_PA_FILE.name() +
+                                             "' nor an explicit non-empty '" +
                                              ServerOptions.ADMIN_PA.name() +
                                              "' is configured, so the admin " +
                                              "would be created with the " +

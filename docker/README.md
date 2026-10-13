@@ -59,6 +59,11 @@ compatible with the existing authentication protocol and the chart's documented
 password constraints. When the signing-key environment variable is omitted,
 the image reuses the configured key instead of rotating it.
 
+Instead of `auth.admin_pa`, a REST configuration you mount yourself can set
+`auth.admin_pa_file` to the path of a mounted secret. The Server reads that file as
+raw UTF-8 and drops one trailing line break, so the password needs no properties
+escaping. When set, it overrides `auth.admin_pa` and the init-store password prompt.
+
 Older images could change signing keys containing spaces or Unicode, and a
 trailing space could hide the following configuration property. On upgrade,
 explicitly provide the intended key for those deployments. Tokens signed with

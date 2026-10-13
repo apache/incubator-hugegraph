@@ -395,6 +395,47 @@ public class InitStoreConfigTest {
         }
     }
 
+    @Test
+    public void testDisabledInitStoreAllowsAdminPasswordFile()
+                                                        throws Exception {
+        Path graphsDir = this.writeAuthGraphConfig("hstore");
+        Path passwordFile = this.workDir.resolve("admin.pa");
+        Files.write(passwordFile, "p\u00e4ssword\n".getBytes(StandardCharsets.UTF_8));
+        String restConf = this.writeDisabledRestServerConfForGraphs(
+                graphsDir,
+                ServerOptions.AUTHENTICATOR.name() +
+                "=" + StandardAuthenticator.class.getName(),
+                ServerOptions.AUTH_GRAPH_STORE.name() + "=hugegraph",
+                ServerOptions.USE_PD.name() + "=true",
+                ServerOptions.ADMIN_PA_FILE.name() + "=" + passwordFile);
+
+        InitStore.main(new String[]{restConf});
+    }
+
+    /**
+     * The server would only read the file after it starts, so init-store
+     * reads it first and fails on a file the server could not use.
+     */
+    @Test
+    public void testDisabledInitStoreRejectsUnreadableAdminPasswordFile()
+                                                        throws IOException {
+        Path graphsDir = this.writeAuthGraphConfig("hstore");
+        String restConf = this.writeDisabledRestServerConfForGraphs(
+                graphsDir,
+                ServerOptions.AUTHENTICATOR.name() +
+                "=" + StandardAuthenticator.class.getName(),
+                ServerOptions.AUTH_GRAPH_STORE.name() + "=hugegraph",
+                ServerOptions.USE_PD.name() + "=true",
+                ServerOptions.ADMIN_PA.name() + "=secret",
+                ServerOptions.ADMIN_PA_FILE.name() + "=" +
+                this.workDir.resolve("missing.pa"));
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            InitStore.main(new String[]{restConf});
+        }, e -> Assert.assertContains(ServerOptions.ADMIN_PA_FILE.name(),
+                                      e.getMessage()));
+    }
+
     /**
      * Remote auth delegates to another service, so there is no local admin to
      * create and the check above must not fire.
