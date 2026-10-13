@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutionException;
 import org.apache.hugegraph.api.cypher.CypherErrorMapper;
 import org.apache.hugegraph.api.cypher.CypherModel;
 import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
-import org.apache.tinkerpop.gremlin.driver.message.ResponseStatusCode;
+import org.apache.tinkerpop.gremlin.util.message.ResponseStatusCode;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opencypher.gremlin.translation.CypherAst;
