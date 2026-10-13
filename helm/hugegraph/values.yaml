@@ -409,13 +409,8 @@ server:
     targetCPUUtilizationPercentage: 70
   probes:
     startup:
-      # The guaranteed probe budget is (failureThreshold - 1) * periodSeconds,
-      # because kubelet may run the first probe immediately; 91 x 5 guarantees
-      # 450s, covering the 300s storage wait and Server process startup. The
-      # chart passes the guaranteed budget minus the storage wait to the image
-      # as HG_SERVER_STARTUP_TIMEOUT_S, so the start command and the probe
-      # give up together instead of the command self-killing at the image
-      # default of 120s.
+      # A first probe can run immediately; (failureThreshold - 1) * periodSeconds
+      # must cover the storage wait plus at least 120 seconds for Server startup.
       # Unset derives a budget from storageWaitTimeoutSeconds.
       failureThreshold:
       periodSeconds: 5

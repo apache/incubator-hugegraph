@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-{{- include "hugegraph.resolveValues" . }}
+{{ include "hugegraph.resolveValues" . }}
 {{- $svc := get .Values.pd "service" | default dict }}
 apiVersion: v1
 kind: Service

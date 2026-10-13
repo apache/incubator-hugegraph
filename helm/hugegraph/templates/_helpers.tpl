@@ -664,10 +664,14 @@ kubelet give up together instead of the image outliving the probe. Floored
 at the image's own 120-second default, and capped at the entrypoint's 86400
 maximum rather than rendered into a Pod that refuses to start.
 */}}
+{{- define "hugegraph.server.startupProbeBudget" -}}
+{{- $startup := .Values.server.probes.startup -}}
+{{- add (int ($startup.initialDelaySeconds | default 0)) (mul (sub (int $startup.failureThreshold) 1) (int $startup.periodSeconds)) -}}
+{{- end }}
+
 {{- define "hugegraph.server.startupTimeoutSeconds" -}}
-{{- $period := int .Values.server.probes.startup.periodSeconds -}}
-{{- $threshold := include "hugegraph.server.startupFailureThreshold" . | int -}}
-{{- min 86400 (max 120 (sub (mul (sub $threshold 1) $period) (int .Values.server.storageWaitTimeoutSeconds))) -}}
+{{- $budget := include "hugegraph.server.startupProbeBudget" . | int -}}
+{{- min 86400 (max 120 (sub $budget (int .Values.server.storageWaitTimeoutSeconds))) -}}
 {{- end }}
 
 {{/*
@@ -719,7 +723,7 @@ Cross-field validation that JSON Schema draft-07 cannot express.
 */}}
 {{- define "hugegraph.validateValues" -}}
 {{- include "hugegraph.resolveValues" . -}}
-{{- $startupBudget := mul (sub (int .Values.server.probes.startup.failureThreshold) 1) (int .Values.server.probes.startup.periodSeconds) -}}
+{{- $startupBudget := include "hugegraph.server.startupProbeBudget" . | int -}}
 {{- if lt $startupBudget (add (int .Values.server.storageWaitTimeoutSeconds) 120) -}}
 {{- fail "server.probes.startup.failureThreshold and periodSeconds must leave at least server.storageWaitTimeoutSeconds + 120 seconds to wait for storage and start Server; increase the probe budget or reduce server.storageWaitTimeoutSeconds" -}}
 {{- end -}}

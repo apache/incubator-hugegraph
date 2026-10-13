@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-{{- include "hugegraph.resolveValues" . }}
+{{ include "hugegraph.resolveValues" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:

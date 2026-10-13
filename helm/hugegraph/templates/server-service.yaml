@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-{{- include "hugegraph.resolveValues" . }}
+{{ include "hugegraph.resolveValues" . }}
 apiVersion: v1
 kind: Service
 metadata:

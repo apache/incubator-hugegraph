@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-{{- include "hugegraph.resolveValues" . -}}
+{{ include "hugegraph.resolveValues" . }}
 {{- if .Values.server.hpa.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

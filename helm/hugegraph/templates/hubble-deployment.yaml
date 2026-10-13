@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-{{- include "hugegraph.resolveValues" . }}
+{{ include "hugegraph.resolveValues" . }}
 {{- if get (get .Values "hubble" | default dict) "enabled" | default false }}
 {{- include "hugegraph.validateValues" . }}
 {{- $customPort := ne (int .Values.hubble.port) 8088 }}

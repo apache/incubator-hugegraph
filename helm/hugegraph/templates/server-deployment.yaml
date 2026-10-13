@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-{{- include "hugegraph.resolveValues" . -}}
+{{ include "hugegraph.resolveValues" . }}
 {{- include "hugegraph.validateValues" . }}
 {{- $customPort := ne (int .Values.server.port) 8080 }}
 {{/*

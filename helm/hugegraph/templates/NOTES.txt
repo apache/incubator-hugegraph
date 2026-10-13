@@ -14,9 +14,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */}}
-{{- include "hugegraph.resolveValues" . }}
+{{ include "hugegraph.resolveValues" . }}
 {{- $hubbleEnabled := .Values.hubble.enabled }}
-{{ .Release.Name }} installed in namespace {{ .Release.Namespace }} ({{ .Values.mode }} mode).
+{{ .Release.Name }} installed in namespace {{ .Release.Namespace }} ({{ .Values.mode | default "legacy" }} mode).
 
   PD      {{ .Values.pd.replicas }} replica(s)
   Store   {{ .Values.store.replicas }} replica(s)

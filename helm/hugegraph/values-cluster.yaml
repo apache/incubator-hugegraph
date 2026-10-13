@@ -121,10 +121,8 @@ server:
     token:
       autoGenerate: true
 
-# The optional Hubble UI is not enabled here: authentication is already on
-# by default, so turn Hubble on with --set hubble.enabled=true (or the
-# snippet below) when the browser UI is wanted. Current Hubble images still
-# refuse to render if server.auth is explicitly disabled.
+# Hubble is enabled by default. Disable with --set hubble.enabled=false.
+# The optional resource override below remains available when needed.
 #
 # hubble:
 #   enabled: true

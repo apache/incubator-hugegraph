@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-{{- include "hugegraph.resolveValues" . -}}
+{{ include "hugegraph.resolveValues" . }}
 {{- /*
 One NetworkPolicy per component. Each object isolates its own Pods in both
 directions and carries all of their allows, so no object ever denies a Pod

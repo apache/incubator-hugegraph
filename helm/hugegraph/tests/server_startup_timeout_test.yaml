@@ -131,3 +131,17 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "server.extraEnv must not set the chart-managed variable WAIT_STORAGE_TIMEOUT_S"
+
+  - it: accepts an explicit delayed first probe with a sufficient total budget
+    set:
+      server.probes.startup.initialDelaySeconds: 600
+      server.probes.startup.failureThreshold: 1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HG_SERVER_STARTUP_TIMEOUT_S
+            value: "300"
