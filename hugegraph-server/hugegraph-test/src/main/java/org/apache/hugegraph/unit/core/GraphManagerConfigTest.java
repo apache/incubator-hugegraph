@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -46,6 +47,7 @@ import org.apache.hugegraph.auth.AuthContext;
 import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.auth.HugePermission;
+import org.apache.hugegraph.auth.HugeResource;
 import org.apache.hugegraph.auth.RolePermission;
 import org.apache.hugegraph.backend.store.BackendFeatures;
 import org.apache.hugegraph.config.CoreOptions;
@@ -65,6 +67,10 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
+import org.apache.hugegraph.meta.MetaManager;
+import org.apache.tinkerpop.gremlin.server.Settings;
+import org.apache.tinkerpop.gremlin.server.util.DefaultGraphManager;
+import org.mockito.Mockito;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -183,6 +189,78 @@ public class GraphManagerConfigTest {
         }
     }
 
+    @Test
+    public void testAuthenticatedPublicationPreservesCallerScope() throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        OptionSpace.register("rpc", RpcOptions.instance());
+        OptionSpace.register("server", ServerOptions.instance());
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(ServerOptions.GRAPHS.name(), this.temporary.newFolder("lazy").getPath());
+        properties.setProperty(ServerOptions.USE_PD.name(), false);
+        properties.setProperty(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG.name(), false);
+        properties.setProperty(RpcOptions.RPC_SERVER_HOST.name(), "127.0.0.1");
+        properties.setProperty(RpcOptions.RPC_SERVER_PORT.name(), 0);
+        try (ServerSocket reservation = new ServerSocket(0)) {
+            properties.setProperty(RpcOptions.RPC_REMOTE_URL.name(), "127.0.0.1:" + reservation.getLocalPort());
+        }
+        GraphManager manager = new GraphManager(new HugeConfig(properties), new EventHub("lazy-auth-rpc"));
+        SharedMemoryGraph warm = null;
+        try {
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            String space = "rpcscope";
+            String name = "lazy_auth";
+            PropertiesConfiguration config = new PropertiesConfiguration();
+            config.setProperty(CoreOptions.BACKEND.name(), "memory");
+            config.setProperty(CoreOptions.STORE.name(), name);
+            config.setProperty(CoreOptions.GRAPH_SPACE.name(), space);
+            warm = new SharedMemoryGraph(new HugeConfig(config));
+            warm.initBackend();
+            HugeGraph owner = new HugeGraphAuthProxy(warm);
+            RolePermission role = new WriterRole(space, name);
+            Assert.assertFalse(RolePermission.isAdmin(role));
+            String caller = new HugeAuthenticator.User("writer", role).toJson();
+            AuthContext.setContext(caller);
+            TaskManager.setContext(caller);
+            HugeGraphAuthProxy.setRequestGraphSpace(space);
+            Whitebox.invoke(GraphManager.class, new Class<?>[]{String.class, HugeGraph.class},
+                            "publishGraph", manager, owner.spaceGraphName(), owner);
+            Assert.assertSame(owner, manager.graph(space + "-" + name));
+            Assert.assertEquals(caller, AuthContext.getContext());
+            Assert.assertEquals(caller, TaskManager.getContext());
+            Assert.assertEquals(space, HugeGraphAuthProxy.getRequestGraphSpace());
+            Assert.assertEquals("writer", HugeGraphAuthProxy.username());
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 2);
+            Assert.assertThrows(jakarta.ws.rs.ForbiddenException.class, owner::unregisterRpcServices);
+            assertRpcResources(server, client, 2);
+        } finally {
+            HugeGraph retained = warm;
+            HugeGraphAuthProxy.runAsAdmin(() -> {
+                manager.close();
+                if (retained != null) {
+                    try {
+                        retained.close();
+                    } catch (Exception failure) {
+                        throw new IllegalStateException(failure);
+                    } finally {
+                        HugeFactory.remove(retained);
+                    }
+                }
+            });
+            HugeGraphAuthProxy.resetContext();
+            TaskManager.resetContext();
+        }
+    }
+
+    private static class WriterRole extends RolePermission {
+
+        WriterRole(String space, String graph) {
+            this.add(space, graph, HugePermission.READ, HugeResource.ALL_RES);
+            this.add(space, graph, HugePermission.WRITE, HugeResource.ALL_RES);
+        }
+    }
+
     public static class AuthSharedMemoryGraph {
 
         public static HugeGraph open(Configuration config) {
@@ -192,15 +270,29 @@ public class GraphManagerConfigTest {
 
     @Test
     public void testLegacyDefaultCleanupDoesNotAbortDropWithoutRpc() throws Exception {
-        this.checkLegacyDrop(false);
+        this.checkLegacyDrop(false, false);
     }
 
     @Test
     public void testActualCleanupFailureStillPropagates() throws Exception {
-        this.checkLegacyDrop(true);
+        this.checkLegacyDrop(true, false);
     }
 
-    private void checkLegacyDrop(boolean failCleanup) throws Exception {
+    @Test
+    public void testClearCleanupFailurePreservesOwnerForRetry() throws Exception {
+        this.checkLegacyDrop(true, true);
+    }
+
+    @Test
+    public void testQuotaUpdateFailurePreservesOwnerAndCountForRetry() throws Exception {
+        this.checkLegacyDrop(false, false, true);
+    }
+
+    private void checkLegacyDrop(boolean failCleanup, boolean clear) throws Exception {
+        this.checkLegacyDrop(failCleanup, clear, false);
+    }
+
+    private void checkLegacyDrop(boolean failCleanup, boolean clear, boolean failQuota) throws Exception {
         OptionSpace.register("core", CoreOptions.instance());
         OptionSpace.register("rpc", RpcOptions.instance());
         OptionSpace.register("server", ServerOptions.instance());
@@ -220,10 +312,11 @@ public class GraphManagerConfigTest {
                                                                   "\nbackend=memory\nstore=legacy_cleanup\n");
             HugeGraph owner = delegate;
             IllegalStateException failure = new IllegalStateException("actual owner cleanup failed");
+            AtomicBoolean failing = new AtomicBoolean(failCleanup);
             HugeGraph legacy = (HugeGraph) Proxy.newProxyInstance(HugeGraph.class.getClassLoader(),
                     new Class<?>[]{HugeGraph.class}, (proxy, method, args) -> {
                         if ("unregisterRpcServices".equals(method.getName())) {
-                            if (failCleanup) {
+                            if (failing.get()) {
                                 throw failure;
                             }
                             return InvocationHandler.invokeDefault(proxy, method, args);
@@ -236,6 +329,22 @@ public class GraphManagerConfigTest {
                     });
             Map<String, HugeGraph> graphs = Whitebox.getInternalState(manager, "graphs");
             graphs.put(legacy.spaceGraphName(), legacy);
+            DefaultGraphManager bindings = new DefaultGraphManager(new Settings());
+            bindings.putGraph(legacy.spaceGraphName(), legacy);
+            CountDownLatch dropped = new CountDownLatch(1);
+            hub.listen(Events.GRAPH_DROP, event -> {
+                if (bindings.getGraph(legacy.spaceGraphName()) == legacy) {
+                    try {
+                        bindings.removeGraph(legacy.spaceGraphName());
+                    } catch (Exception failureToUnbind) {
+                        throw new IllegalStateException(failureToUnbind);
+                    }
+                }
+                dropped.countDown();
+                return true;
+            });
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Whitebox.setInternalState(manager, "metaManager", meta);
             RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
             RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
             Assert.assertFalse(server.enabled());
@@ -243,25 +352,40 @@ public class GraphManagerConfigTest {
             // Reach the normal PD-drop branch without booting PD or writing placement metadata.
             Whitebox.setInternalState(manager, "PDExist", true);
             Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
-            spaces.put("DEFAULT", new GraphSpace("DEFAULT"));
-            Thread.currentThread().setName("grpc-legacy-cleanup-test");
-            if (failCleanup) {
-                Assert.assertThrows(IllegalStateException.class, () -> manager.dropGraph(
-                        "DEFAULT", "legacy_cleanup", false), caught -> Assert.assertSame(failure, caught));
-                Assert.assertFalse(owner.closed());
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            spaces.put("DEFAULT", space);
+            if (failQuota) {
+                Mockito.doThrow(failure).doNothing().when(meta).updateGraphSpaceConfig("DEFAULT", space);
             } else {
-                CountDownLatch dropped = new CountDownLatch(1);
-                hub.listen(Events.GRAPH_DROP, event -> {
-                    dropped.countDown();
-                    return true;
-                });
-                manager.dropGraph("DEFAULT", "legacy_cleanup", false);
-                Assert.assertTrue(dropped.await(5, TimeUnit.SECONDS));
-                Assert.assertTrue(owner.closed());
-                Map<?, ?> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
-                Assert.assertFalse(factory.containsKey(legacy.spaceGraphName()));
+                Thread.currentThread().setName("grpc-legacy-cleanup-test");
             }
+            if (failCleanup || failQuota) {
+                Assert.assertThrows(IllegalStateException.class, () -> manager.dropGraph(
+                        "DEFAULT", "legacy_cleanup", clear), caught -> Assert.assertSame(failure, caught));
+                Assert.assertEquals(!clear, owner.closed());
+                Assert.assertSame(legacy, manager.graph(legacy.spaceGraphName()));
+                Assert.assertSame(legacy, bindings.getGraph(legacy.spaceGraphName()));
+                Map<?, ?> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+                Assert.assertSame(owner, factory.get(legacy.spaceGraphName()));
+                Assert.assertEquals(1L, dropped.getCount());
+                if (failCleanup) {
+                    Mockito.verifyNoInteractions(meta);
+                }
+                Assert.assertEquals(5, space.graphNumberUsed());
+                failing.set(false);
+            }
+            manager.dropGraph("DEFAULT", "legacy_cleanup", clear);
+            Assert.assertTrue(dropped.await(5, TimeUnit.SECONDS));
+            Assert.assertTrue(owner.closed());
+            Map<?, ?> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Assert.assertFalse(factory.containsKey(legacy.spaceGraphName()));
+            Assert.assertNull(bindings.getGraph(legacy.spaceGraphName()));
             Assert.assertFalse(manager.graphs().contains(legacy.spaceGraphName()));
+            if (failQuota) {
+                Assert.assertEquals(4, space.graphNumberUsed());
+                Mockito.verify(meta, Mockito.times(2)).updateGraphSpaceConfig("DEFAULT", space);
+            }
         } finally {
             Thread.currentThread().setName(originalThreadName);
             manager.close();

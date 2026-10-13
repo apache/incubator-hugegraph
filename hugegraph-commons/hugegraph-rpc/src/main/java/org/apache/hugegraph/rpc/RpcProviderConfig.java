@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.alipay.sofa.rpc.config.ProviderConfig;
+import com.alipay.sofa.rpc.config.ServerConfig;
 import org.apache.hugegraph.util.E;
 
 public class RpcProviderConfig implements RpcServiceConfig4Server {
@@ -62,10 +63,13 @@ public class RpcProviderConfig implements RpcServiceConfig4Server {
 
     @Override
     public void removeService(String serviceId) {
-        ProviderConfig<?> config = this.configs.remove(serviceId);
-        E.checkArgument(config != null,
-                        "The service '%s' doesn't exist", serviceId);
-        config.unExport();
+        boolean[] removed = {false};
+        this.configs.computeIfPresent(serviceId, (key, config) -> {
+            config.unExport();
+            removed[0] = true;
+            return null;
+        });
+        E.checkArgument(removed[0], "The service '%s' doesn't exist", serviceId);
     }
 
     @Override
@@ -84,10 +88,21 @@ public class RpcProviderConfig implements RpcServiceConfig4Server {
 
     @Override
     public void removeAllService() {
-        for (ProviderConfig<?> config : this.configs.values()) {
-            config.unExport();
+        for (String serviceId : this.configs.keySet()) {
+            this.configs.computeIfPresent(serviceId, (key, config) -> {
+                config.unExport();
+                return null;
+            });
         }
-        this.configs.clear();
+    }
+
+    void exportAll(ServerConfig server, int timeout) {
+        for (String serviceId : this.configs.keySet()) {
+            this.configs.computeIfPresent(serviceId, (key, config) -> {
+                config.setServer(server).setTimeout(timeout).export();
+                return config;
+            });
+        }
     }
 
     public Map<String, ProviderConfig<?>> configs() {

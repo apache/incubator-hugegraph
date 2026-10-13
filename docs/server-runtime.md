@@ -542,11 +542,23 @@ graph and schema cache notifiers for graphs loaded during startup and graphs cre
 loaded later. A new graph's RPC registration must succeed before its local publication.
 Graph services use the graph space and graph name together as their service identity.
 
+Internal graph loading registers RPC services in Server's administrative scope and
+restores the caller's identity afterward. Direct registration and cleanup remain
+administrative operations.
+
 Successful graph close releases that graph's notifier listeners, providers and consumer
-proxies. A failed close that retains the graph owner also retains its RPC resources.
+proxies. A failed task drain during ordinary close or non-clearing local removal retains
+the owner and its RPC resources. RPC cleanup failures during drop retain the local owner
+and bindings for retry; partial cleanup does not imply a healthy service. The graph DELETE
+API cleans up RPC before metadata deletion and backend clearing, so this cleanup failure
+can be retried with the same DELETE. A later task-drain or close failure can retain the
+owner after RPC has already been removed. Failures after backend clearing do not undo
+deletion; retrying DELETE is not guaranteed to recover subsequent metadata, quota or
+close failures.
+
 Failed creation releases the candidate's resources, and an old graph's cleanup cannot
-remove a replacement graph's services. Events queued for a closed notifier are ignored;
-an RPC request already sent cannot be recalled.
+remove or re-export a replacement graph's services. Events queued for a closed notifier
+are ignored; an RPC request already sent cannot be recalled.
 
 Cache RPC uses the configured peer addresses; local provider export does not establish
 that every remote consumer connection is ready. Notifications are asynchronous, and
