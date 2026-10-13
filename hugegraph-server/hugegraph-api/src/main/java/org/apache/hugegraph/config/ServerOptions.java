@@ -497,9 +497,11 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> ADMIN_PA_FILE =
             new ConfigOption<>(
                     "auth.admin_pa_file",
-                    "The path of a file holding the default password for " +
-                    "built-in admin account, read as raw UTF-8 with a " +
-                    "leading BOM and one trailing line break removed. When " +
+                    "The path of a regular file (symlinks are followed) " +
+                    "holding the default password for built-in admin " +
+                    "account, read as raw UTF-8 with a leading BOM and one " +
+                    "trailing line break removed. The password may be at " +
+                    "most 72 bytes in UTF-8, the most the hash uses. When " +
                     "set, it takes precedence over auth.admin_pa and the " +
                     "init-store prompt; takes effect on first startup. PD " +
                     "and non-persistent backends read it on every start, so " +

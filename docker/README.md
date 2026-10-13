@@ -62,7 +62,10 @@ the image reuses the configured key instead of rotating it.
 Instead of `auth.admin_pa`, a REST configuration you mount yourself can set
 `auth.admin_pa_file` to the path of a mounted secret. The Server reads that file as
 raw UTF-8 and drops a leading BOM and one trailing line break, so the password
-needs no properties escaping. When set, it overrides `auth.admin_pa` and the
+needs no properties escaping. The path must lead to a regular file, though
+symlinks such as the ones Kubernetes uses for mounted Secrets are followed. The
+password may be at most 72 bytes in UTF-8, because the password hash ignores
+anything after that. When set, it overrides `auth.admin_pa` and the
 init-store password prompt. With PD (hstore), including when init-store is
 disabled, the file is read on every start, so keep the secret mounted for as long
 as the option is set. With init-store disabled, startup also requires this option

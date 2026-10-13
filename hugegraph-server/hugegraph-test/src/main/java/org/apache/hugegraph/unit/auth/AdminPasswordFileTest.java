@@ -40,6 +40,7 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.util.StringEncoding;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -154,19 +155,83 @@ public class AdminPasswordFileTest {
     }
 
     /**
-     * A path pointing at a log or a device must not be read whole into memory.
+     * A path pointing at a large file must not be read whole into memory.
      */
     @Test
     public void testOversizedFileFails() throws IOException {
-        byte[] limit = new byte[4096];
-        Arrays.fill(limit, (byte) 'a');
-        Assert.assertEquals(4096, initialAdminPassword(
-                this.write(limit), null).length());
-
-        Path file = this.write(Arrays.copyOf(limit, limit.length + 1));
+        byte[] content = new byte[4097];
+        Arrays.fill(content, (byte) 'a');
+        Path file = this.write(content);
         Assert.assertThrows(ConfigException.class, () -> {
             initialAdminPassword(file, "secret");
         }, e -> Assert.assertContains("larger than 4096 bytes", e.getMessage()));
+    }
+
+    /**
+     * jBCrypt hashes only the first 72 bytes, so a longer password would also
+     * accept every password sharing that prefix. The limit counts UTF-8 bytes
+     * after the BOM and line break are dropped.
+     */
+    @Test
+    public void testPasswordOverBcryptLimitFails() throws IOException {
+        String ascii = "a".repeat(72);
+        String umlauts = "\u00e4".repeat(36);
+        Assert.assertEquals(ascii, initialAdminPassword(
+                this.write(utf8("\uFEFF" + ascii + "\r\n")), null));
+        Assert.assertEquals(umlauts, initialAdminPassword(
+                this.write(utf8(umlauts)), null));
+
+        for (String password : Arrays.asList(ascii + "a", umlauts + "a")) {
+            Path file = this.write(utf8(password));
+            Assert.assertThrows(ConfigException.class, () -> {
+                initialAdminPassword(file, "secret");
+            }, e -> Assert.assertContains("longer than 72 bytes", e.getMessage()));
+        }
+    }
+
+    @Test
+    public void testDirectoryFails() {
+        Assert.assertThrows(ConfigException.class, () -> {
+            initialAdminPassword(this.workDir, "secret");
+        }, e -> Assert.assertContains("not a regular file", e.getMessage()));
+    }
+
+    /**
+     * Opening a FIFO blocks until a writer connects, so it must be refused
+     * from its attributes before it is opened. The timeout turns a
+     * regression into a failure instead of a hung build.
+     */
+    @Test(timeout = 10000)
+    public void testFifoFailsWithoutBlocking() throws Exception {
+        Path fifo = this.workDir.resolve("fifo");
+        int exit;
+        try {
+            exit = new ProcessBuilder("mkfifo", fifo.toString()).start()
+                                                               .waitFor();
+        } catch (IOException e) {
+            exit = -1;
+        }
+        Assume.assumeTrue("mkfifo is not available", exit == 0);
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            initialAdminPassword(fifo, "secret");
+        }, e -> Assert.assertContains("not a regular file", e.getMessage()));
+    }
+
+    /**
+     * Kubernetes mounts each Secret key as a symlink into a ..data directory,
+     * so the regular-file check has to follow links.
+     */
+    @Test
+    public void testSymlinkToRegularFileIsFollowed() throws IOException {
+        Path target = this.write(utf8("secret\n"));
+        Path link = this.workDir.resolve("link");
+        try {
+            Files.createSymbolicLink(link, target);
+        } catch (UnsupportedOperationException | IOException e) {
+            Assume.assumeNoException("symlinks are not supported", e);
+        }
+        Assert.assertEquals("secret", initialAdminPassword(link, null));
     }
 
     /**

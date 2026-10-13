@@ -27,7 +27,9 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +55,7 @@ public class StandardAuthenticator implements HugeAuthenticator {
 
     private static final String INITING_STORE = "initing_store";
     private static final int MAX_ADMIN_PA_FILE_BYTES = 4096;
+    private static final int MAX_ADMIN_PASSWORD_BYTES = 72;
 
     private HugeGraph graph = null;
 
@@ -247,9 +250,20 @@ public class StandardAuthenticator implements HugeAuthenticator {
     private static String readAdminPasswordFile(String file) {
         String option = ServerOptions.ADMIN_PA_FILE.name();
         byte[] bytes;
-        // Bounded, so a path that points at a log or a device fails quickly
-        try (InputStream in = Files.newInputStream(Paths.get(file))) {
-            bytes = in.readNBytes(MAX_ADMIN_PA_FILE_BYTES + 1);
+        try {
+            Path path = Paths.get(file);
+            // Checked before opening, because opening a FIFO blocks until a
+            // writer connects. Symlinks are followed, so a Kubernetes secret
+            // mounted through ..data links still counts as a regular file
+            if (!Files.readAttributes(path, BasicFileAttributes.class)
+                      .isRegularFile()) {
+                throw new ConfigException("The file '%s' set by '%s' is not a regular file",
+                                          file, option);
+            }
+            // Bounded, so a path that points at a large file fails quickly
+            try (InputStream in = Files.newInputStream(path)) {
+                bytes = in.readNBytes(MAX_ADMIN_PA_FILE_BYTES + 1);
+            }
         } catch (IOException | InvalidPathException e) {
             throw new ConfigException("Failed to read the file '%s' set by '%s' (%s)",
                                       e, file, option, e.getClass().getSimpleName());
@@ -285,6 +299,14 @@ public class StandardAuthenticator implements HugeAuthenticator {
         if (password.isEmpty()) {
             throw new ConfigException("The file '%s' set by '%s' is empty",
                                       file, option);
+        }
+        // jBCrypt hashes only the first 72 bytes, so a longer password would
+        // also accept anything that shares its first 72 bytes
+        if (password.getBytes(StandardCharsets.UTF_8).length > MAX_ADMIN_PASSWORD_BYTES) {
+            throw new ConfigException("The password in the file '%s' set by '%s' is " +
+                                      "longer than %s bytes in UTF-8, the most that " +
+                                      "the password hash uses",
+                                      file, option, MAX_ADMIN_PASSWORD_BYTES);
         }
         return password;
     }
