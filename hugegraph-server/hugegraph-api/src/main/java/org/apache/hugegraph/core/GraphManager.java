@@ -1452,7 +1452,8 @@ public final class GraphManager {
             // Init graph and start it
             graph.create(this.graphsDir, this.globalNodeRoleInfo);
 
-            // Let gremlin server and rest server add graph to context
+            // Complete RPC registration before Gremlin listeners expose the graph.
+            this.publishGraph(graph);
             this.notifyEvent(Events.GRAPH_CREATE, graph);
         } catch (Throwable e) {
             LOG.error("Failed to create graph '{}' due to: {}",
@@ -2020,6 +2021,11 @@ public final class GraphManager {
         if (this.graphs.get(name) == graph) {
             return;
         }
+        this.registerRpcServices(graph);
+        this.graphs.put(name, graph);
+    }
+
+    private void registerRpcServices(HugeGraph graph) {
         if (this.rpcInitialized && this.rpcServer.enabled() && this.rpcClient.enabled()) {
             try {
                 HugeGraphAuthProxy.runAsAdmin(() -> graph.registerRpcServices(this.rpcServer.config(),
@@ -2034,7 +2040,6 @@ public final class GraphManager {
                 throw failure;
             }
         }
-        this.graphs.put(name, graph);
     }
 
     private void unregisterRpcServices(HugeGraph graph) {
@@ -2354,8 +2359,20 @@ public final class GraphManager {
                 this.metaManager.removeGraphConfig(graphSpace, name);
                 this.metaManager.notifyGraphRemove(graphSpace, name);
             } catch (Exception e) {
+                // No backend clear has started; retain RPC for the same open local owner.
+                synchronized (this) {
+                    if (this.graphs.get(graphName) == g && !g.closed()) {
+                        try {
+                            this.registerRpcServices(g);
+                        } catch (RuntimeException | Error restoration) {
+                            if (e != restoration) {
+                                e.addSuppressed(restoration);
+                            }
+                        }
+                    }
+                }
                 throw new HugeException(
-                        "Failed to remove graph config of '%s'", name, e);
+                        "Failed to remove graph config of '%s'", e, name);
             }
 
             g.clearBackend();

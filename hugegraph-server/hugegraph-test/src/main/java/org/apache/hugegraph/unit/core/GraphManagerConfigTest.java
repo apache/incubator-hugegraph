@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -47,6 +48,7 @@ import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.auth.AuthContext;
+import org.apache.hugegraph.auth.ContextGremlinServer;
 import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.auth.HugePermission;
@@ -608,6 +610,194 @@ public class GraphManagerConfigTest {
                 delegate.close();
                 HugeFactory.remove(delegate);
             }
+        }
+    }
+
+    @Test
+    public void testMetadataDeleteFailureRestoresRetainedOwnerRpc() throws Exception {
+        this.checkMetadataDeleteFailure(false, false);
+    }
+
+    @Test
+    public void testRemoveNotificationFailureRestoresRetainedOwnerRpc() throws Exception {
+        this.checkMetadataDeleteFailure(true, false);
+    }
+
+    @Test
+    public void testMetadataDeleteFailurePreservesRpcRestoreFailure() throws Exception {
+        this.checkMetadataDeleteFailure(false, true);
+    }
+
+    private void checkMetadataDeleteFailure(boolean notify, boolean failRestore) throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        OptionSpace.register("rpc", RpcOptions.instance());
+        OptionSpace.register("server", ServerOptions.instance());
+        String name = notify ? "rpc_notify_fail" : failRestore ? "rpc_restore_fail" : "rpc_metadata_fail";
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(ServerOptions.GRAPHS.name(), this.temporary.newFolder(name).getPath());
+        properties.setProperty(ServerOptions.USE_PD.name(), false);
+        properties.setProperty(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG.name(), false);
+        properties.setProperty(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP.name(), true);
+        properties.setProperty(RpcOptions.RPC_SERVER_HOST.name(), "127.0.0.1");
+        properties.setProperty(RpcOptions.RPC_SERVER_PORT.name(), 0);
+        properties.setProperty(RpcOptions.RPC_REMOTE_URL.name(), "127.0.0.1:1");
+        EventHub hub = new EventHub(name);
+        GraphManager manager = new GraphManager(new HugeConfig(properties), hub);
+        HugeGraph graph = null;
+        String threadName = Thread.currentThread().getName();
+        try {
+            graph = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            RpcServer original = Whitebox.getInternalState(manager, "rpcServer");
+            RpcServer server = Mockito.spy(original);
+            Whitebox.setInternalState(manager, "rpcServer", server);
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 2);
+            IllegalStateException failure = new IllegalStateException("metadata fault before clear");
+            IllegalStateException restoration = new IllegalStateException("RPC restoration export failed");
+            if (failRestore) {
+                Mockito.doThrow(restoration).when(server).exportAll();
+            }
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            if (notify) {
+                Mockito.doThrow(failure).doNothing().when(meta).notifyGraphRemove("DEFAULT", name);
+            } else {
+                Mockito.doThrow(failure).doNothing().when(meta).removeGraphConfig("DEFAULT", name);
+            }
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            AtomicReference<Throwable> rejected = new AtomicReference<>();
+            Assert.assertThrows(HugeException.class, () -> manager.dropGraph("DEFAULT", name, true), rejected::set);
+            Mockito.verify(meta).removeGraphConfig("DEFAULT", name);
+            if (notify) {
+                Mockito.verify(meta).notifyGraphRemove("DEFAULT", name);
+            } else {
+                Mockito.verify(meta, Mockito.never()).notifyGraphRemove("DEFAULT", name);
+            }
+            Assert.assertFalse(graph.closed());
+            Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+            assertRpcResources(server, client, failRestore ? 0 : 2);
+            Assert.assertSame(failure, rejected.get().getCause());
+            Mockito.verify(server).exportAll();
+            Assert.assertEquals(failRestore ? 1 : 0, failure.getSuppressed().length);
+            if (failRestore) {
+                Assert.assertSame(restoration, failure.getSuppressed()[0]);
+            }
+            // Retry the fenced deletion; successful clear must not re-export the removed owner.
+            Thread.currentThread().setName("grpc-rpc-metadata-retry");
+            manager.dropGraph("DEFAULT", name, true);
+            Assert.assertTrue(graph.closed());
+            Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
+            assertRpcResources(server, client, 0);
+            Mockito.verify(server).exportAll();
+        } finally {
+            Thread.currentThread().setName(threadName);
+            manager.close();
+            if (graph != null) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
+    public void testLocalGraphGremlinPublicationWaitsForRpc() throws Exception {
+        this.checkLocalGraphGremlinPublication(false);
+    }
+
+    @Test
+    public void testLocalGraphRpcFailureNeverPublishesToGremlin() throws Exception {
+        this.checkLocalGraphGremlinPublication(true);
+    }
+
+    private void checkLocalGraphGremlinPublication(boolean failExport) throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        OptionSpace.register("rpc", RpcOptions.instance());
+        OptionSpace.register("server", ServerOptions.instance());
+        String name = failExport ? "rpc_export_failure" : "rpc_export_success";
+        String graphName = "DEFAULT-" + name;
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(ServerOptions.GRAPHS.name(), this.temporary.newFolder(name).getPath());
+        properties.setProperty(ServerOptions.USE_PD.name(), false);
+        properties.setProperty(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG.name(), false);
+        properties.setProperty(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP.name(), true);
+        properties.setProperty(RpcOptions.RPC_SERVER_HOST.name(), "127.0.0.1");
+        properties.setProperty(RpcOptions.RPC_SERVER_PORT.name(), 0);
+        properties.setProperty(RpcOptions.RPC_REMOTE_URL.name(), "127.0.0.1:1");
+        EventHub hub = new EventHub(name);
+        Settings settings = new Settings();
+        settings.gremlinPool = 1;
+        settings.threadPoolBoss = 1;
+        settings.threadPoolWorker = 1;
+        // Production constructs Gremlin before REST/GraphManager, registering its listener first.
+        ContextGremlinServer gremlin = new ContextGremlinServer(settings, hub);
+        GraphManager manager = new GraphManager(new HugeConfig(properties), hub);
+        RpcServer original = Whitebox.getInternalState(manager, "rpcServer");
+        RpcServer server = Mockito.spy(original);
+        RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+        Whitebox.setInternalState(manager, "rpcServer", server);
+        Whitebox.setInternalState(manager, "rpcInitialized", true);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        IllegalStateException failure = new IllegalStateException("RPC export rejected");
+        Mockito.doAnswer(invocation -> {
+            entered.countDown();
+            E.checkState(release.await(10, TimeUnit.SECONDS), "RPC export barrier timed out");
+            if (failExport) {
+                throw failure;
+            }
+            return invocation.callRealMethod();
+        }).when(server).exportAll();
+        ExecutorService initializer = Executors.newSingleThreadExecutor();
+        AtomicReference<HugeGraph> candidate = new AtomicReference<>();
+        org.apache.tinkerpop.gremlin.server.GraphManager bindings =
+                gremlin.getServerGremlinExecutor().getGraphManager();
+        try {
+            Future<HugeGraph> publication = initializer.submit(() -> {
+                try {
+                    HugeGraph graph = manager.createGraphLocal(name, sharedMemoryConfig(name));
+                    candidate.set(graph);
+                    return graph;
+                } finally {
+                    Map<String, HugeGraph> owners = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+                    HugeGraph graph = owners.get(graphName);
+                    if (graph != null) {
+                        Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+                    }
+                }
+            });
+            Assert.assertTrue(entered.await(5, TimeUnit.SECONDS));
+            Assert.assertNull(bindings.getGraph(graphName));
+            Assert.assertNull(bindings.getTraversalSource("__g_" + graphName));
+            Assert.assertFalse(bindings.getAsBindings().containsKey(graphName));
+            Assert.assertFalse(manager.graphs().contains(graphName));
+            assertRpcResources(server, client, 2);
+            release.countDown();
+            if (failExport) {
+                Assert.assertThrows(ExecutionException.class, () -> publication.get(5, TimeUnit.SECONDS),
+                                    caught -> Assert.assertSame(failure, caught.getCause()));
+                Assert.assertNull(bindings.getGraph(graphName));
+                Assert.assertNull(bindings.getTraversalSource("__g_" + graphName));
+                Assert.assertFalse(manager.graphs().contains(graphName));
+                Map<?, ?> owners = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+                Assert.assertFalse(owners.containsKey(graphName));
+                assertRpcResources(server, client, 0);
+            } else {
+                HugeGraph graph = publication.get(5, TimeUnit.SECONDS);
+                Assert.assertSame(graph, bindings.getGraph(graphName));
+                Assert.assertNotNull(bindings.getTraversalSource("__g_" + graphName));
+                Assert.assertSame(graph, manager.graph(graphName));
+                assertRpcResources(server, client, 2);
+            }
+        } finally {
+            release.countDown();
+            initializer.shutdown();
+            Assert.assertTrue(initializer.awaitTermination(10, TimeUnit.SECONDS));
+            manager.close();
+            gremlin.stop().get(30, TimeUnit.SECONDS);
+            if (candidate.get() != null) {
+                HugeFactory.remove(candidate.get());
+            }
+            HugeGraphAuthProxy.resetContext();
         }
     }
 
