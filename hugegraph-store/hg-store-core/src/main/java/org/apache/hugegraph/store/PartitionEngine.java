@@ -45,6 +45,7 @@ import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.MetaTask;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.raft.RaftReflectionUtil;
+import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.store.business.BusinessHandler;
 import org.apache.hugegraph.store.business.BusinessHandlerImpl;
@@ -272,12 +273,19 @@ public class PartitionEngine implements Lifecycle<PartitionEngineOptions>, RaftS
     }
 
     private void checkLegacyGraphIdData(int partitionId) {
+        String dbName = BusinessHandlerImpl.getDbName(partitionId);
+        try (RocksDBSession cached = RocksDBFactory.getInstance().queryGraphDB(dbName)) {
+            if (cached != null) {
+                // Use the primary's view, including unflushed writes made with WAL disabled.
+                GraphIdManager.checkLegacyGraphIdData(cached, partitionId);
+                return;
+            }
+        }
         Metapb.PartitionStore location =
                 this.partitionManager.getStoreMetadata().getPartitionStore(partitionId);
         // Looking up or assigning a new store location would write metadata before inspection.
         String[] roots = location != null ? new String[]{location.getStoreLocation()} :
                          this.storeEngine.getOption().getDataPath().split(",");
-        String dbName = BusinessHandlerImpl.getDbName(partitionId);
         for (String root : roots) {
             String dataPath = Paths.get(root, HgStoreEngineOptions.DB_Path_Prefix).toString();
             String existing = RocksDBSession.resolveExistingDBPath(

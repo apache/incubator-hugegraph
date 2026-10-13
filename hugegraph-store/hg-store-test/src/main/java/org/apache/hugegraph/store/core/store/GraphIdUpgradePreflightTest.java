@@ -379,6 +379,61 @@ public class GraphIdUpgradePreflightTest {
     }
 
     @Test
+    public void testCachedMemtableLegacyDataRejectsBeforeRaft() throws Exception {
+        Path location = this.temporary.newFolder("cached-legacy-location").toPath();
+        Path data = Files.createDirectory(location.resolve("db"));
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        try (RocksDBSession cached = factory.createGraphDB(data.toString(), DB_NAME, 0L)) {
+            cached.setDisableWAL(true);
+            putRows(cached, 65534);
+            // A separate RO instance cannot see WAL-disabled writes still in this primary's memtable.
+            GraphIdManager.checkLegacyGraphIdData(cached.getDbPath(), PARTITION_ID);
+            assertThrows(HgStoreException.class, () -> GraphIdManager.checkLegacyGraphIdData(cached, PARTITION_ID));
+            int references = cached.getRefCount();
+            PartitionEngine engine = partitionEngine(location, true);
+            PartitionEngineOptions options = new PartitionEngineOptions();
+            options.setGroupId(PARTITION_ID);
+
+            HgStoreException failure = assertThrows(HgStoreException.class, () -> engine.init(options));
+
+            assertTrue(failure.getMessage().contains("GraphID"));
+            assertNull(engine.getRaftNode());
+            assertNull(field(engine, "stateMachine"));
+            assertNull(engine.getTaskManager());
+            assertEquals(references, cached.getRefCount());
+            assertTrue(cached.getDB().isOwningHandle());
+            assertRows(cached, 65534);
+        } finally {
+            factory.releaseGraphDB(DB_NAME);
+        }
+    }
+
+    @Test
+    public void testCachedValidSessionPreflightAvoidsPathResolution() throws Exception {
+        Path location = this.temporary.newFolder("cached-valid-location").toPath();
+        Path data = Files.createDirectory(location.resolve("db"));
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        try (RocksDBSession cached = factory.createGraphDB(data.toString(), DB_NAME, 0L)) {
+            cached.setDisableWAL(true);
+            putRows(cached, 1);
+            int references = cached.getRefCount();
+            PartitionEngine engine = partitionEngine(location, true);
+            // Cached native handles already identify the active DB; do not resolve another disk view.
+            when(engine.getStoreEngine().getPartitionManager().getStoreMetadata().getPartitionStore(PARTITION_ID))
+                    .thenThrow(new AssertionError("Cached preflight must not resolve a DB path"));
+            var check = PartitionEngine.class.getDeclaredMethod("checkLegacyGraphIdData", int.class);
+            check.setAccessible(true);
+            check.invoke(engine, PARTITION_ID);
+
+            assertEquals(references, cached.getRefCount());
+            assertTrue(cached.getDB().isOwningHandle());
+            assertRows(cached, 1);
+        } finally {
+            factory.releaseGraphDB(DB_NAME);
+        }
+    }
+
+    @Test
     public void testNewPartitionDatabaseStillCreatesNormally() throws Exception {
         Path location = this.temporary.newFolder("bootstrap-new").toPath();
         try (Bootstrap bootstrap = new Bootstrap(location);
