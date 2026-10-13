@@ -17,10 +17,10 @@
 
 package org.apache.hugegraph.store.node.cloud;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -47,13 +47,10 @@ import org.apache.hugegraph.rocksdb.access.RocksDBFactory.LiveSstFile;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory.MetadataSnapshot;
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
 import org.apache.hugegraph.store.cloud.CloudStorageProvider;
-import org.apache.hugegraph.store.cloud.CloudStorageProviderFactory;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * In-process integration test suite for the cloud storage subsystem.
@@ -91,22 +88,16 @@ import org.junit.rules.TemporaryFolder;
 @SuppressWarnings({"BusyWait", "ResultOfMethodCallIgnored"})
 public class CloudStorageIntegrationTest {
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+    @TempDir
+    Path tmp;
 
     private Path dataRoot;
     private FakeCloudStore store;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
-        dataRoot = tmp.newFolder("storage").toPath();
+        dataRoot = Files.createDirectory(tmp.resolve("storage"));
         store = new FakeCloudStore();
-        CloudStorageProviderFactory.setActiveProviderForTest(store);
-    }
-
-    @After
-    public void tearDown() {
-        CloudStorageProviderFactory.reset();
     }
 
     // =========================================================================
@@ -118,20 +109,20 @@ public class CloudStorageIntegrationTest {
         Path dbDir = mkdirs("hugegraph/db");
         Path sst = writeSst(dbDir, "000001.sst", "row1=v1;row2=v2");
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         listener.onTableFileCreated("hugegraph", "default", sst.toString(), Files.size(sst));
         awaitUpload(store);
 
         // Remote key must be relative to dataRoot.
         String relKey = dataRoot.relativize(sst).toString();
-        assertTrue("SST must be uploaded to cloud", store.fileExists(relKey));
+        assertTrue(store.fileExists(relKey), "SST must be uploaded to cloud");
 
         // Download back to a different path and verify content.
         Path recovered = dataRoot.resolve("recovered.sst");
         store.downloadFile(relKey, recovered.toString());
-        assertEquals("Recovered content must match original",
-                     Files.readString(sst),
-                     Files.readString(recovered));
+        assertEquals(Files.readString(sst),
+                     Files.readString(recovered),
+                     "Recovered content must match original");
     }
 
     // =========================================================================
@@ -178,20 +169,22 @@ public class CloudStorageIntegrationTest {
         atomicityChecker.put(sstKey, bytes("sst-body"));
         atomicityChecker.put(currentKey, bytes("MANIFEST-000001"));
         atomicityChecker.put(manifestKey, bytes("manifest-body"));
-        CloudStorageProviderFactory.setActiveProviderForTest(atomicityChecker);
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(atomicityChecker, dataRoot);
         listener.onDBOpening("hugegraph", dbDir.toString());
 
-        assertTrue("Atomicity violations detected: " + violations, violations.isEmpty());
+        assertTrue(violations.isEmpty(), "Atomicity violations detected: " + violations);
 
         // All files must be present at their final paths with the correct content.
-        assertEquals("SST content must match after atomic hydration",
-                     "sst-body", Files.readString(dataRoot.resolve(sstKey)));
-        assertEquals("CURRENT content must match after atomic hydration",
-                     "MANIFEST-000001", Files.readString(dataRoot.resolve(currentKey)));
-        assertEquals("MANIFEST content must match after atomic hydration",
-                     "manifest-body", Files.readString(dataRoot.resolve(manifestKey)));
+        assertEquals("sst-body",
+                     Files.readString(dataRoot.resolve(sstKey)),
+                     "SST content must match after atomic hydration");
+        assertEquals("MANIFEST-000001",
+                     Files.readString(dataRoot.resolve(currentKey)),
+                     "CURRENT content must match after atomic hydration");
+        assertEquals("manifest-body",
+                     Files.readString(dataRoot.resolve(manifestKey)),
+                     "MANIFEST content must match after atomic hydration");
 
         // No hydration temp files must remain (atomic-move clean-up).
         assertNoHydTmpFiles(dataRoot);
@@ -212,17 +205,17 @@ public class CloudStorageIntegrationTest {
         // (.hyd-tmp-<threadId>-<nanoTime>) to verify cleanup handles the real format.
         Path staleTemp = dbDir.resolve("000001.sst.hyd-tmp-1-9999999999999");
         Files.write(staleTemp, bytes("partial-crash-data"));
-        assertTrue("Stale temp file must exist before hydration", Files.exists(staleTemp));
+        assertTrue(Files.exists(staleTemp), "Stale temp file must exist before hydration");
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         listener.onDBOpening("hugegraph", dbDir.toString());
 
         // The stale temp file must have been removed.
-        assertFalse("Stale .hyd-tmp must be removed before fresh download",
-                    Files.exists(staleTemp));
+        assertFalse(Files.exists(staleTemp),
+                    "Stale .hyd-tmp must be removed before fresh download");
 
         // The correct content must be at the final path.
-        assertTrue("SST must be hydrated correctly", Files.exists(dbDir.resolve("000001.sst")));
+        assertTrue(Files.exists(dbDir.resolve("000001.sst")), "SST must be hydrated correctly");
         assertEquals("sst-body",
                      Files.readString(dbDir.resolve("000001.sst")));
     }
@@ -234,8 +227,8 @@ public class CloudStorageIntegrationTest {
     @Test
     public void preHydration_multiRoot_usesCorrectDataRoot() throws Exception {
         // Two data roots: primary and secondary.
-        Path primaryRoot = tmp.newFolder("storage0").toPath();
-        Path secondaryRoot = tmp.newFolder("storage1").toPath();
+        Path primaryRoot = Files.createDirectory(tmp.resolve("storage0"));
+        Path secondaryRoot = Files.createDirectory(tmp.resolve("storage1"));
 
         // DB lives under the secondary root.
         Path dbDir = secondaryRoot.resolve("hugegraph/db");
@@ -247,16 +240,16 @@ public class CloudStorageIntegrationTest {
         store.put("hugegraph/db/CURRENT", bytes("MANIFEST-000001"));
         store.put("hugegraph/db/MANIFEST-000001", bytes("manifest"));
 
-        CloudStorageEventListener listener = listenerFor(
+        CloudStorageEventListener listener = listenerFor(store,
                 Arrays.asList(primaryRoot.toString(), secondaryRoot.toString()));
 
         listener.onDBOpening("hugegraph", dbDir.toString());
 
         // File must land under secondaryRoot, not primaryRoot.
-        assertTrue("SST must be hydrated under the matching secondary data root",
-                   Files.exists(secondaryRoot.resolve(sstKey)));
-        assertFalse("SST must NOT be placed under the primary data root",
-                    Files.exists(primaryRoot.resolve(sstKey)));
+        assertTrue(Files.exists(secondaryRoot.resolve(sstKey)),
+                   "SST must be hydrated under the matching secondary data root");
+        assertFalse(Files.exists(primaryRoot.resolve(sstKey)),
+                    "SST must NOT be placed under the primary data root");
     }
 
     // =========================================================================
@@ -266,19 +259,19 @@ public class CloudStorageIntegrationTest {
     @Test
     public void tombstone_writtenAsSiblingOfDataPrefix() throws Exception {
         Path dbDir = mkdirs("hugegraph/db");
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
 
         listener.onDBDeleteBegin("hugegraph", dbDir.toString());
 
         // Sibling key must be uploaded.
         String siblingKey = "hugegraph/db" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX;
-        assertTrue("Tombstone must be written as sibling key '" + siblingKey + "'",
-                   store.fileExists(siblingKey));
+        assertTrue(store.fileExists(siblingKey),
+                   "Tombstone must be written as sibling key '" + siblingKey + "'");
 
         // Inner key must NOT be uploaded.
         String innerKey = "hugegraph/db/" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX;
-        assertFalse("Tombstone must NOT be written inside the data prefix '" + innerKey + "'",
-                    store.fileExists(innerKey));
+        assertFalse(store.fileExists(innerKey),
+                    "Tombstone must NOT be written inside the data prefix '" + innerKey + "'");
     }
 
     // =========================================================================
@@ -294,18 +287,18 @@ public class CloudStorageIntegrationTest {
                   bytes("deleted"));
 
         Path dbDir = mkdirs("hugegraph/db");
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         listener.onDBOpening("hugegraph", dbDir.toString());
 
         // Stale SST must NOT be downloaded.
-        assertFalse("Stale SST must not be hydrated when tombstone is present",
-                    Files.exists(dbDir.resolve("000001.sst")));
-        assertFalse("Stale CURRENT must not be hydrated when tombstone is present",
-                    Files.exists(dbDir.resolve("CURRENT")));
+        assertFalse(Files.exists(dbDir.resolve("000001.sst")),
+                    "Stale SST must not be hydrated when tombstone is present");
+        assertFalse(Files.exists(dbDir.resolve("CURRENT")),
+                    "Stale CURRENT must not be hydrated when tombstone is present");
 
         // Stale data prefix must be purged.
-        assertFalse("Stale SST must be purged from cloud after tombstone detection",
-                    store.fileExists("hugegraph/db/000001.sst"));
+        assertFalse(store.fileExists("hugegraph/db/000001.sst"),
+                    "Stale SST must be purged from cloud after tombstone detection");
     }
 
     // =========================================================================
@@ -325,30 +318,30 @@ public class CloudStorageIntegrationTest {
         store.setPrefixDeleteFailure(true);
 
         Path dbDir = mkdirs("hugegraph/db");
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         listener.onDBDeleted("hugegraph", dbDir.toString());
 
         // Purge failed → tombstone must still be present in cloud.
-        assertTrue("Tombstone must survive a failed prefix purge",
-                   store.fileExists(tombstoneKey));
+        assertTrue(store.fileExists(tombstoneKey),
+                   "Tombstone must survive a failed prefix purge");
         // Stale SST must still be present (purge failed).
-        assertTrue("Stale SST must remain when purge fails",
-                   store.fileExists("hugegraph/db/000001.sst"));
+        assertTrue(store.fileExists("hugegraph/db/000001.sst"),
+                   "Stale SST must remain when purge fails");
 
         // Now a re-open must be blocked by the surviving tombstone: the listener finds the
         // tombstone, tries to purge (still fails), and throws IllegalStateException to fail
         // DB open rather than silently proceeding on empty local state.
         Files.createDirectories(dbDir);
-        CloudStorageEventListener listener2 = listenerFor(dataRoot);
+        CloudStorageEventListener listener2 = listenerFor(store, dataRoot);
         try {
             listener2.onDBOpening("hugegraph", dbDir.toString());
             fail("Expected IllegalStateException: purge failure must block DB open");
         } catch (IllegalStateException e) {
-            assertTrue("Exception message must describe purge failure",
-                       e.getMessage().contains("purge failed"));
+            assertTrue(e.getMessage().contains("purge failed"),
+                       "Exception message must describe purge failure");
         }
-        assertFalse("Stale SST must NOT be hydrated when tombstone-guarded purge fails",
-                    Files.exists(dbDir.resolve("000001.sst")));
+        assertFalse(Files.exists(dbDir.resolve("000001.sst")),
+                    "Stale SST must NOT be hydrated when tombstone-guarded purge fails");
     }
 
     // =========================================================================
@@ -362,13 +355,13 @@ public class CloudStorageIntegrationTest {
         store.put(tombstoneKey, bytes("deleted"));
 
         Path dbDir = mkdirs("hugegraph/db");
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         listener.onDBDeleted("hugegraph", dbDir.toString());
 
         // Purge succeeded → tombstone must be cleaned up.
-        assertFalse("Tombstone must be removed after successful purge",
-                    store.fileExists(tombstoneKey));
-        assertFalse("Data SST must be purged", store.fileExists("hugegraph/db/000001.sst"));
+        assertFalse(store.fileExists(tombstoneKey),
+                    "Tombstone must be removed after successful purge");
+        assertFalse(store.fileExists("hugegraph/db/000001.sst"), "Data SST must be purged");
     }
 
     // =========================================================================
@@ -387,15 +380,15 @@ public class CloudStorageIntegrationTest {
             store.deletePrefix("hugegraph/db/");
             fail("Expected IOException for partial delete failure");
         } catch (IOException e) {
-            assertTrue("Error must name the failed key",
-                       e.getMessage().contains("000002.sst"));
+            assertTrue(e.getMessage().contains("000002.sst"),
+                       "Error must name the failed key");
         }
 
         // The two successfully deleted keys must be gone; the failed one must survive.
-        assertFalse("000001.sst must be deleted", store.fileExists("hugegraph/db/000001.sst"));
-        assertFalse("000003.sst must be deleted", store.fileExists("hugegraph/db/000003.sst"));
-        assertTrue("000002.sst must survive a per-key delete failure",
-                   store.fileExists("hugegraph/db/000002.sst"));
+        assertFalse(store.fileExists("hugegraph/db/000001.sst"), "000001.sst must be deleted");
+        assertFalse(store.fileExists("hugegraph/db/000003.sst"), "000003.sst must be deleted");
+        assertTrue(store.fileExists("hugegraph/db/000002.sst"),
+                   "000002.sst must survive a per-key delete failure");
     }
 
     // =========================================================================
@@ -425,12 +418,11 @@ public class CloudStorageIntegrationTest {
 
         // Use a recording store to capture upload order.
         OrderedRecordingStore ordered = new OrderedRecordingStore(store);
-        CloudStorageProviderFactory.setActiveProviderForTest(ordered);
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(ordered, dataRoot);
         boolean published = listener.uploadMetadataSnapshot(ordered, "hugegraph", snapshot);
 
-        assertTrue("Metadata publish must succeed", published);
+        assertTrue(published, "Metadata publish must succeed");
 
         List<String> uploadOrder = ordered.uploadOrder();
         // CURRENT must be the last metadata file uploaded.
@@ -438,8 +430,8 @@ public class CloudStorageIntegrationTest {
         int manifestIdx = lastIndexOf(uploadOrder, "MANIFEST-000001");
         int sstIdx      = lastIndexOf(uploadOrder, "000001.sst");
 
-        assertTrue("SSTs must be uploaded before MANIFEST", sstIdx < manifestIdx);
-        assertTrue("MANIFEST must be uploaded before CURRENT", manifestIdx < currentIdx);
+        assertTrue(sstIdx < manifestIdx, "SSTs must be uploaded before MANIFEST");
+        assertTrue(manifestIdx < currentIdx, "MANIFEST must be uploaded before CURRENT");
     }
 
     // =========================================================================
@@ -451,12 +443,12 @@ public class CloudStorageIntegrationTest {
         Path dbDir = mkdirs("hugegraph/db");
         Path tempDir = mkdirs("hugegraph/db-checkpoint");
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
 
         // Publish generation 10 to establish the watermark.
         MetadataSnapshot gen10 = snapshot(dbDir, tempDir, "MANIFEST-000010", 10L);
-        assertTrue("Generation 10 must publish successfully",
-                   listener.uploadMetadataSnapshot(store, "hugegraph", gen10));
+        assertTrue(listener.uploadMetadataSnapshot(store, "hugegraph", gen10),
+                   "Generation 10 must publish successfully");
 
         // Attempt to publish generation 5 (older than the watermark).
         // uploadMetadataSnapshot itself does not carry the generation guard — that lives in
@@ -474,13 +466,13 @@ public class CloudStorageIntegrationTest {
 
         // Now re-publish gen10 — the high-water mark must stay at 10 (not regress to 5).
         // Verify by publishing gen10 again; it must succeed and not corrupt the watermark.
-        assertTrue("Re-publishing generation 10 must succeed after gen5 direct upload",
-                   listener.uploadMetadataSnapshot(store, "hugegraph", gen10));
+        assertTrue(listener.uploadMetadataSnapshot(store, "hugegraph", gen10),
+                   "Re-publishing generation 10 must succeed after gen5 direct upload");
 
         // Build a second listener that has the watermark already at 10 and attempt
         // to push gen5 through syncMetadataSnapshotInline using an override.
         // We use a subclass seam: override captureMetadataSnapshot to supply gen5.
-        CloudStorageEventListener guardedListener = new CloudStorageEventListener(
+        CloudStorageEventListener guardedListener = new CloudStorageEventListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
@@ -505,8 +497,9 @@ public class CloudStorageIntegrationTest {
 
         // Second sync presents generation 5 — the guard must reject it without uploading.
         guardedListener.syncMetadataSnapshotInline(store, "hugegraph");
-        assertEquals("No uploads must occur when a stale generation is rejected",
-                     uploadsAtWatermark, store.totalUploads());
+        assertEquals(uploadsAtWatermark,
+                     store.totalUploads(),
+                     "No uploads must occur when a stale generation is rejected");
     }
 
     // =========================================================================
@@ -534,7 +527,7 @@ public class CloudStorageIntegrationTest {
         // Each worker thread publishes exactly one fixed generation; captureMetadataSnapshot returns
         // the calling thread's snapshot so syncMetadataSnapshotInline's guard is exercised.
         ThreadLocal<MetadataSnapshot> perThread = new ThreadLocal<>();
-        CloudStorageEventListener listener = new CloudStorageEventListener(
+        CloudStorageEventListener listener = new CloudStorageEventListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
@@ -565,29 +558,30 @@ public class CloudStorageIntegrationTest {
             });
         }
 
-        assertTrue("Workers must be ready in 5s", ready.await(5, TimeUnit.SECONDS));
+        assertTrue(ready.await(5, TimeUnit.SECONDS), "Workers must be ready in 5s");
         go.countDown();
         pool.shutdown();
-        assertTrue("All threads must finish in 10s", pool.awaitTermination(10, TimeUnit.SECONDS));
+        assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS), "All threads must finish in 10s");
 
-        assertTrue("No concurrent publish errors: " + errors, errors.isEmpty());
+        assertTrue(errors.isEmpty(), "No concurrent publish errors: " + errors);
 
         // The highest generation can never be stale, so it always publishes; once it does, every
         // lower generation captured afterwards is rejected by the guard. Whatever the
         // (nondeterministic) lock-acquisition order, the durable CURRENT must therefore point at the
         // MAX generation's MANIFEST — a stale generation can never be the last writer.
         String winningManifest = String.format("MANIFEST-%06d", (long) threads);
-        assertTrue("CURRENT must be present in cloud after concurrent publishes",
-                   store.fileExists("hugegraph/db/CURRENT"));
-        assertEquals("Cloud CURRENT must point at the highest generation's manifest — only the "
-                     + "non-stale generation may win",
-                     winningManifest, store.readCurrentUtf8());
-        assertTrue("The winning manifest object must be durable in cloud",
-                   store.fileExists("hugegraph/db/" + winningManifest));
+        assertTrue(store.fileExists("hugegraph/db/CURRENT"),
+                   "CURRENT must be present in cloud after concurrent publishes");
+        assertEquals(winningManifest,
+                     store.readCurrentUtf8(),
+                     "Cloud CURRENT must point at the highest generation's manifest — only the "
+                     + "non-stale generation may win");
+        assertTrue(store.fileExists("hugegraph/db/" + winningManifest),
+                   "The winning manifest object must be durable in cloud");
 
         long published = publishResults.stream().filter(Boolean::booleanValue).count();
-        assertTrue("At least the max generation must have published", published >= 1);
-        assertTrue("No more successful publishes than offered generations", published <= threads);
+        assertTrue(published >= 1, "At least the max generation must have published");
+        assertTrue(published <= threads, "No more successful publishes than offered generations");
     }
 
     // =========================================================================
@@ -610,13 +604,12 @@ public class CloudStorageIntegrationTest {
                 super.uploadFile(localPath, remoteKey);
             }
         };
-        CloudStorageProviderFactory.setActiveProviderForTest(flakyStore);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
         // Wire the SAME epoch-aware callback production uses (AppConfig wires
         // syncTracker::markConfirmedIfEpoch). This ensures the test fails if the retry path drops
         // the epoch — the plain 2-arg callback would confirm regardless and hide that defect.
-        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
+        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(flakyStore,
                 3, 10L, 100L,
                 dataRoot.toString(),
                 tracker::markConfirmedIfEpoch);
@@ -631,52 +624,11 @@ public class CloudStorageIntegrationTest {
         // Wait for the retry queue to process.
         boolean confirmed = awaitCondition(() -> tracker.isConfirmed("hugegraph", sst.toString()),
                                            3_000);
-        assertTrue("SST must be confirmed after retry", confirmed);
-        assertTrue("SST must be in cloud after retry",
-                   flakyStore.fileExists("hugegraph/db/000001.sst"));
+        assertTrue(confirmed, "SST must be confirmed after retry");
+        assertTrue(flakyStore.fileExists("hugegraph/db/000001.sst"),
+                   "SST must be in cloud after retry");
 
         retryQueue.close();
-    }
-
-    @Test
-    public void tableCreate_providerUnavailableInitially_recoversWhenProviderReturns()
-            throws Exception {
-        // If the provider is briefly unavailable when a new SST appears, the upload must be
-        // staged through the retry queue (not silently dropped) and complete once provider
-        // availability recovers.
-        Path dbDir = mkdirs("hugegraph/db");
-        Path sst = writeSst(dbDir, "000011.sst", "retry-after-provider-down");
-
-        CloudSyncTracker tracker = new CloudSyncTracker();
-        try (CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
-                4, 100L, 400L, dataRoot.toString(), tracker::markConfirmedIfEpoch)) {
-
-            CloudStorageEventListener listener = CloudStorageTestFactory.newListener(
-                    Collections.singletonList(dataRoot.toString()), true, 0L, retryQueue, tracker);
-
-            CloudStorageProviderFactory.setActiveProviderForTest(null);
-            listener.onTableFileCreated("hugegraph", "default", sst.toString(), Files.size(sst));
-
-            // Restore provider after the first retry(s) have seen the outage.
-            Thread restorer = new Thread(() -> {
-                try {
-                    Thread.sleep(350L);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-                CloudStorageProviderFactory.setActiveProviderForTest(store);
-            });
-            restorer.setDaemon(true);
-            restorer.start();
-
-            boolean uploaded = awaitCondition(
-                    () -> store.fileExists("hugegraph/db/000011.sst"), 8_000);
-            restorer.join(2_000);
-
-            assertTrue("SST upload must recover automatically once provider returns", uploaded);
-            assertEquals("Recovered upload must not be stranded in DLQ", 0, retryQueue.getDlqSize());
-        }
     }
 
     @Test
@@ -699,13 +651,12 @@ public class CloudStorageIntegrationTest {
                 super.uploadFile(localPath, remoteKey);
             }
         };
-        CloudStorageProviderFactory.setActiveProviderForTest(flakyStore);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
+        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(flakyStore,
                 3, 10L, 100L, dataRoot.toString(),
                 tracker::markConfirmedIfEpoch);
-        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(flakyStore,
                 Collections.singletonList(dataRoot.toString()), true, 0L, retryQueue, tracker);
 
         // Dispatch the async upload: onTableFileCreated creates the staged pin, then the first
@@ -715,14 +666,15 @@ public class CloudStorageIntegrationTest {
         // Simulate compaction deleting the original SST before the retry fires. The pin (a hard link)
         // keeps the byteset alive, so the retry must still succeed.
         Files.deleteIfExists(sst);
-        assertFalse("Original SST must be gone (compacted) before the retry", Files.exists(sst));
+        assertFalse(Files.exists(sst), "Original SST must be gone (compacted) before the retry");
 
         boolean confirmed = awaitCondition(
                 () -> tracker.isConfirmed("hugegraph", sst.toString()), 5_000);
-        assertTrue("Retry must upload from the staged pin and confirm even after the original SST "
-                   + "is deleted", confirmed);
-        assertTrue("SST must be present in cloud after the pin-based retry",
-                   flakyStore.fileExists("hugegraph/db/000001.sst"));
+        assertTrue(confirmed,
+                   "Retry must upload from the staged pin and confirm even after the original SST "
+                   + "is deleted");
+        assertTrue(flakyStore.fileExists("hugegraph/db/000001.sst"),
+                   "SST must be present in cloud after the pin-based retry");
 
         retryQueue.close();
     }
@@ -746,10 +698,9 @@ public class CloudStorageIntegrationTest {
                 super.uploadFile(localPath, remoteKey);
             }
         };
-        CloudStorageProviderFactory.setActiveProviderForTest(flakyStore);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        CloudUploadRetryQueue retryQueue = createRetryQueue(tracker, dbDir, tempDir);
+        CloudUploadRetryQueue retryQueue = createRetryQueue(flakyStore, tracker, dbDir, tempDir);
 
         long epoch = tracker.currentEpoch("hugegraph");
         retryQueue.submit("hugegraph", "default", sst.toString(), "hugegraph/db/000001.sst",
@@ -757,26 +708,29 @@ public class CloudStorageIntegrationTest {
 
         boolean confirmed = awaitCondition(
                 () -> tracker.isConfirmed("hugegraph", sst.toString()), 5_000);
-        assertTrue("SST must be confirmed after retry", confirmed);
+        assertTrue(confirmed, "SST must be confirmed after retry");
 
         // The retry success must ALSO trigger a metadata publish so cloud CURRENT catches up.
         boolean published = awaitCondition(
                 () -> flakyStore.fileExists("hugegraph/db/CURRENT"), 5_000);
-        assertTrue("Retry success must publish CURRENT/MANIFEST (recovery point must advance, not "
-                   + "just the tracker confirmation)", published);
-        assertEquals("Published CURRENT must reference the captured generation's manifest",
-                     "MANIFEST-000005", flakyStore.readCurrentUtf8());
+        assertTrue(published,
+                   "Retry success must publish CURRENT/MANIFEST (recovery point must advance, not "
+                   + "just the tracker confirmation)");
+        assertEquals("MANIFEST-000005",
+                     flakyStore.readCurrentUtf8(),
+                     "Published CURRENT must reference the captured generation's manifest");
 
         retryQueue.close();
     }
 
-    private @NotNull CloudUploadRetryQueue createRetryQueue(CloudSyncTracker tracker, Path dbDir,
+    private @NotNull CloudUploadRetryQueue createRetryQueue(CloudStorageProvider provider,
+                                                            CloudSyncTracker tracker, Path dbDir,
                                                             Path tempDir) {
-        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
+        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(provider,
                 3, 10L, 100L, dataRoot.toString(),
                 tracker::markConfirmedIfEpoch);
 
-        CloudStorageEventListener listener = new CloudStorageEventListener(
+        CloudStorageEventListener listener = new CloudStorageEventListener(provider,
                 Collections.singletonList(dataRoot.toString()), true, 0L, retryQueue, tracker,
                 null, CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
@@ -810,10 +764,9 @@ public class CloudStorageIntegrationTest {
                 throw new IOException("permanent failure");
             }
         };
-        CloudStorageProviderFactory.setActiveProviderForTest(alwaysFail);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
+        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(alwaysFail,
                 2, 10L, 50L,
                 dataRoot.toString(),
                 tracker::markConfirmed);
@@ -823,9 +776,9 @@ public class CloudStorageIntegrationTest {
 
         // Wait until the DLQ grows.
         boolean inDlq = awaitCondition(() -> retryQueue.getDlqSize() > 0, 5_000);
-        assertTrue("Exhausted upload must be in DLQ", inDlq);
-        assertFalse("File must not be confirmed when in DLQ",
-                    tracker.isConfirmed("hugegraph", sst.toString()));
+        assertTrue(inDlq, "Exhausted upload must be in DLQ");
+        assertFalse(tracker.isConfirmed("hugegraph", sst.toString()),
+                    "File must not be confirmed when in DLQ");
 
         retryQueue.close();
     }
@@ -844,7 +797,7 @@ public class CloudStorageIntegrationTest {
         store.put(remoteKey, bytes("row1=v1;row2=v2"));
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, tracker);
 
@@ -853,12 +806,12 @@ public class CloudStorageIntegrationTest {
 
         int restored = listener.restoreMissingLiveFiles(store, "hugegraph", liveFiles);
 
-        assertEquals("One live SST must be restored", 1, restored);
-        assertTrue("Restored SST must exist at original path", Files.exists(sst));
+        assertEquals(1, restored, "One live SST must be restored");
+        assertTrue(Files.exists(sst), "Restored SST must exist at original path");
         assertEquals("row1=v1;row2=v2",
                      Files.readString(sst));
-        assertTrue("Restored SST must be marked confirmed in tracker",
-                   tracker.isConfirmed("hugegraph", sst.toString()));
+        assertTrue(tracker.isConfirmed("hugegraph", sst.toString()),
+                   "Restored SST must be marked confirmed in tracker");
     }
 
     // =========================================================================
@@ -868,22 +821,22 @@ public class CloudStorageIntegrationTest {
     @Test
     public void readMiss_guardWindow_suppressesRepeatAttempts() throws Exception {
         long guardWindowMs = 1_000L;
-        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, guardWindowMs, null, new CloudSyncTracker());
 
         // First attempt: allowed.
-        assertTrue("First read-miss attempt must be allowed",
-                   listener.shouldAttemptReadMissHydration("hugegraph", "default"));
+        assertTrue(listener.shouldAttemptReadMissHydration("hugegraph", "default"),
+                   "First read-miss attempt must be allowed");
 
         // Second attempt within the guard window: suppressed.
-        assertFalse("Second read-miss within guard window must be suppressed",
-                    listener.shouldAttemptReadMissHydration("hugegraph", "default"));
+        assertFalse(listener.shouldAttemptReadMissHydration("hugegraph", "default"),
+                    "Second read-miss within guard window must be suppressed");
 
         // After the guard window expires: allowed again.
         Thread.sleep(guardWindowMs + 50);
-        assertTrue("Read-miss attempt after guard window expiry must be allowed",
-                   listener.shouldAttemptReadMissHydration("hugegraph", "default"));
+        assertTrue(listener.shouldAttemptReadMissHydration("hugegraph", "default"),
+                   "Read-miss attempt after guard window expiry must be allowed");
     }
 
     // =========================================================================
@@ -902,7 +855,7 @@ public class CloudStorageIntegrationTest {
 
         store.put("hugegraph/db/000001.sst", bytes("old-data"));
 
-        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, tracker);
 
@@ -913,11 +866,11 @@ public class CloudStorageIntegrationTest {
         // Live set not fully durable (sst2 unconfirmed and present locally).
         // ensureLiveSetUploaded must upload sst2 and return true.
         boolean durable = listener.ensureLiveSetUploaded(store, "hugegraph", liveFiles);
-        assertTrue("Live set must be durable after ensureLiveSetUploaded", durable);
-        assertTrue("sst2 must be uploaded to cloud",
-                   store.fileExists("hugegraph/db/000002.sst"));
-        assertTrue("sst2 must be marked confirmed after upload",
-                   tracker.isConfirmed("hugegraph", sst2.toString()));
+        assertTrue(durable, "Live set must be durable after ensureLiveSetUploaded");
+        assertTrue(store.fileExists("hugegraph/db/000002.sst"),
+                   "sst2 must be uploaded to cloud");
+        assertTrue(tracker.isConfirmed("hugegraph", sst2.toString()),
+                   "sst2 must be marked confirmed after upload");
     }
 
     // =========================================================================
@@ -933,27 +886,27 @@ public class CloudStorageIntegrationTest {
         // this DB for the lifetime of the process. The fix bounds the latch with a max window.
         Path dbDir = mkdirs("hugegraph/db");
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         // Shrink the stale-latch window so the test does not wait a real minute.
         listener.setMaxTruncationDurationMsForTest();
 
         // Begin truncation but never complete it — the latch is now set and, without the fix,
         // would stay set forever.
         listener.onDBTruncateBegin("hugegraph", dbDir.toString());
-        assertTrue("Latch must be active immediately after truncate begins",
-                   listener.isActivelyTruncating("hugegraph"));
+        assertTrue(listener.isActivelyTruncating("hugegraph"),
+                   "Latch must be active immediately after truncate begins");
 
         // Wait past the stale-latch window: the leaked latch must self-heal so cloud metadata
         // mirroring, object deletion, and the delete guard resume for this DB.
         Thread.sleep(80L);
-        assertFalse("Stale truncating latch must self-heal after the max window (else cloud "
-                    + "mirroring/deletes are disabled for this DB forever)",
-                    listener.isActivelyTruncating("hugegraph"));
+        assertFalse(listener.isActivelyTruncating("hugegraph"),
+                    "Stale truncating latch must self-heal after the max window (else cloud "
+                    + "mirroring/deletes are disabled for this DB forever)");
 
         // A brand-new truncation still latches correctly (self-heal must not be sticky).
         listener.onDBTruncateBegin("hugegraph", dbDir.toString());
-        assertTrue("A fresh truncate must re-arm the latch",
-                   listener.isActivelyTruncating("hugegraph"));
+        assertTrue(listener.isActivelyTruncating("hugegraph"),
+                   "A fresh truncate must re-arm the latch");
     }
 
     @Test
@@ -965,21 +918,21 @@ public class CloudStorageIntegrationTest {
         // Seed remote data that a wrongful purge-on-abort would destroy.
         store.put("hugegraph/db/000001.sst", bytes("still-needed"));
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
 
         listener.onDBTruncateBegin("hugegraph", dbDir.toString());
-        assertTrue("Latch must be active after truncate begins",
-                   listener.isActivelyTruncating("hugegraph"));
+        assertTrue(listener.isActivelyTruncating("hugegraph"),
+                   "Latch must be active after truncate begins");
 
         // Simulate truncate() failing partway → finally fires the abort notification.
         listener.onDBTruncateAbort("hugegraph", dbDir.toString());
 
-        assertFalse("Abort must clear the truncating latch immediately",
-                    listener.isActivelyTruncating("hugegraph"));
-        assertFalse("Abort must not leave the DB in the truncation grace period",
-                    listener.isInTruncationGracePeriodForTest("hugegraph"));
-        assertTrue("Abort must NOT purge remote state (data may still be present locally)",
-                   store.fileExists("hugegraph/db/000001.sst"));
+        assertFalse(listener.isActivelyTruncating("hugegraph"),
+                    "Abort must clear the truncating latch immediately");
+        assertFalse(listener.isInTruncationGracePeriodForTest("hugegraph"),
+                    "Abort must not leave the DB in the truncation grace period");
+        assertTrue(store.fileExists("hugegraph/db/000001.sst"),
+                   "Abort must NOT purge remote state (data may still be present locally)");
     }
 
     @Test
@@ -991,164 +944,61 @@ public class CloudStorageIntegrationTest {
         store.put("hugegraph/db/000001.sst", bytes("cleared-data"));
         store.put("hugegraph/db/CURRENT", bytes("MANIFEST-000001"));
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
 
         // First purge attempt fails (simulated transient cloud error).
         store.setPrefixDeleteFailure(true);
         listener.onDBTruncateBegin("hugegraph", dbDir.toString());
         listener.onDBTruncated("hugegraph", dbDir.toString());
 
-        assertTrue("Stale object must still be present right after a failed purge",
-                   store.fileExists("hugegraph/db/000001.sst"));
+        assertTrue(store.fileExists("hugegraph/db/000001.sst"),
+                   "Stale object must still be present right after a failed purge");
 
         // Recovery: subsequent purges succeed; the scheduled retry must clean up the stale objects.
         store.setPrefixDeleteFailure(false);
         boolean purged = awaitCondition(
                 () -> !store.fileExists("hugegraph/db/000001.sst"), 8_000);
-        assertTrue("A failed truncate purge must be retried until the stale remote prefix is clean",
-                   purged);
+        assertTrue(purged,
+                   "A failed truncate purge must be retried until the stale remote prefix "
+                   + "is clean");
     }
 
     @Test
-    public void truncatePurgeRetry_survivesTransientNullProvider() throws Exception {
-        // A transient "provider unavailable" window (getActiveProvider() == null) during the retry
-        // must NOT abandon the purge — the retry chain must reschedule and eventually complete once
-        // the provider is back. Otherwise stale pre-truncate objects would remain permanently and
-        // could resurrect cleared data after the suppression windows expire.
-        Path dbDir = mkdirs("hugegraph/db");
-        store.put("hugegraph/db/000001.sst", bytes("cleared-data"));
-
-        CloudStorageEventListener listener = listenerFor(dataRoot);
-
-        // First purge attempt fails → schedules a retry.
-        store.setPrefixDeleteFailure(true);
-        listener.onDBTruncateBegin("hugegraph", dbDir.toString());
-        listener.onDBTruncated("hugegraph", dbDir.toString());
-        assertTrue("Stale object must remain after the failed purge",
-                   store.fileExists("hugegraph/db/000001.sst"));
-
-        // Simulate the provider being unavailable during the early retry attempts.
-        CloudStorageProviderFactory.setActiveProviderForTest(null);
-
-        // Restore a healthy provider shortly after, from a background thread.
-        Thread restorer = new Thread(() -> {
-            try {
-                Thread.sleep(900L);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-            store.setPrefixDeleteFailure(false);
-            CloudStorageProviderFactory.setActiveProviderForTest(store);
-        });
-        restorer.setDaemon(true);
-        restorer.start();
-
-        boolean purged = awaitCondition(
-                () -> !store.fileExists("hugegraph/db/000001.sst"), 12_000);
-        restorer.join(2_000);
-        assertTrue("Retry chain must survive a transient null-provider window and eventually purge",
-                   purged);
-    }
-
-    @Test
-    public void truncatePurgeRetry_providerOutageLongerThanRetryBudget_stillPurges()
+    public void delete_purgeFailing_marksPendingAndBlocksHydrationUntilCleanup()
             throws Exception {
-        // Regression guard: provider-unavailable windows must not consume truncate purge attempts.
-        // Old behavior consumed retries on null provider and could stop after ~15.5s
-        // (0.5 + 1 + 2 + 4 + 8) before provider recovery.
-        Path dbDir = mkdirs("longoutage/db");
-        store.put("longoutage/db/000001.sst", bytes("cleared-data"));
-
-        CloudStorageEventListener listener = listenerFor(dataRoot);
-
-        // First purge attempt fails and schedules retry chain.
-        store.setPrefixDeleteFailure(true);
-        listener.onDBTruncateBegin("longoutage", dbDir.toString());
-        listener.onDBTruncated("longoutage", dbDir.toString());
-        assertTrue("Stale object must remain after initial failed purge",
-                   store.fileExists("longoutage/db/000001.sst"));
-
-        // Allow purges to succeed once provider comes back, but keep provider unavailable longer
-        // than the old bounded retry budget window.
-        store.setPrefixDeleteFailure(false);
-        CloudStorageProviderFactory.setActiveProviderForTest(null);
-
-        Thread restorer = new Thread(() -> {
-            try {
-                Thread.sleep(18_000L);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-            CloudStorageProviderFactory.setActiveProviderForTest(store);
-        });
-        restorer.setDaemon(true);
-        restorer.start();
-
-        boolean purged = awaitCondition(
-                () -> !store.fileExists("longoutage/db/000001.sst"), 26_000L);
-        restorer.join(2_000L);
-        assertTrue("Truncate purge must still complete after an outage longer than retry budget",
-                   purged);
-    }
-
-    @Test
-    public void truncatePurgeRetry_whenProviderMissingInitially_stillPurgesLater() throws Exception {
-        // If provider is unavailable on the initial onDBTruncated callback, purge must still be
-        // scheduled and completed once provider comes back.
-        Path dbDir = mkdirs("nullfirst/db");
-        store.put("nullfirst/db/000001.sst", bytes("stale-data"));
-
-        CloudStorageEventListener listener = listenerFor(dataRoot);
-
-        CloudStorageProviderFactory.setActiveProviderForTest(null);
-        listener.onDBTruncateBegin("nullfirst", dbDir.toString());
-        listener.onDBTruncated("nullfirst", dbDir.toString());
-
-        assertTrue("Stale object must remain until provider recovers",
-                   store.fileExists("nullfirst/db/000001.sst"));
-
-        CloudStorageProviderFactory.setActiveProviderForTest(store);
-        boolean purged = awaitCondition(
-                () -> !store.fileExists("nullfirst/db/000001.sst"), 12_000);
-        assertTrue("Initial null-provider truncate must still purge once provider returns", purged);
-    }
-
-    @Test
-    public void delete_providerUnavailable_marksPendingAndBlocksHydrationUntilCleanup()
-            throws Exception {
-        // Deleting while the provider is unavailable must still leave a durable anti-resurrection
+        // Deleting while the remote purge is failing must still leave a durable anti-resurrection
         // guard (a local pending-delete marker) that blocks re-hydration until remote cleanup is
-        // confirmed once a provider returns. Unique prefix so any late retry cannot touch other tests.
+        // confirmed once purges succeed again. Unique prefix so any late retry cannot touch other
+        // tests.
         Path dbDir = mkdirs("provdown/db");
         store.put("provdown/db/000001.sst", bytes("stale"));
         store.put("provdown/db/CURRENT", bytes("MANIFEST-000001"));
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         Path markerDir = dataRoot.resolve(CloudStorageEventListener.PENDING_DELETE_DIR);
 
-        // Delete while the provider is unavailable.
-        CloudStorageProviderFactory.setActiveProviderForTest(null);
+        // Delete while the remote purge fails.
+        store.setPrefixDeleteFailure(true);
         listener.onDBDeleteBegin("provdown/db", dbDir.toString());
         listener.onDBDeleted("provdown/db", dbDir.toString());
 
-        assertTrue("A pending-delete marker must guard the delete during provider outage",
-                   markerDirHasEntry(markerDir));
+        assertTrue(markerDirHasEntry(markerDir),
+                   "A pending-delete marker must guard the delete while the purge is failing");
 
-        // Re-open while still unavailable: hydration stays blocked (marker persists, no exception).
+        // Re-open while the purge still fails: hydration stays blocked (marker persists, no
+        // exception).
         listener.onDBOpening("provdown/db", dbDir.toString());
-        assertTrue("Marker must persist (hydration blocked) while cleanup is unconfirmed",
-                   markerDirHasEntry(markerDir));
+        assertTrue(markerDirHasEntry(markerDir),
+                   "Marker must persist (hydration blocked) while cleanup is unconfirmed");
 
-        // Provider returns: opening completes the cleanup inline (purge + marker removal).
-        CloudStorageProviderFactory.setActiveProviderForTest(store);
+        // Purge recovers: opening completes the cleanup inline (purge + marker removal).
+        store.setPrefixDeleteFailure(false);
         listener.onDBOpening("provdown/db", dbDir.toString());
 
-        assertFalse("Marker must be cleared once remote cleanup completes",
-                    markerDirHasEntry(markerDir));
-        assertFalse("Stale remote object must be purged on cleanup",
-                    store.fileExists("provdown/db/000001.sst"));
+        assertFalse(markerDirHasEntry(markerDir),
+                    "Marker must be cleared once remote cleanup completes");
+        assertFalse(store.fileExists("provdown/db/000001.sst"),
+                    "Stale remote object must be purged on cleanup");
     }
 
     @Test
@@ -1158,7 +1008,7 @@ public class CloudStorageIntegrationTest {
         Path dbDir = mkdirs("delfail/db");
         store.put("delfail/db/000001.sst", bytes("stale"));
 
-        CloudStorageEventListener listener = listenerFor(dataRoot);
+        CloudStorageEventListener listener = listenerFor(store, dataRoot);
         Path markerDir = dataRoot.resolve(CloudStorageEventListener.PENDING_DELETE_DIR);
 
         // First purge attempt fails.
@@ -1166,17 +1016,18 @@ public class CloudStorageIntegrationTest {
         listener.onDBDeleteBegin("delfail/db", dbDir.toString());
         listener.onDBDeleted("delfail/db", dbDir.toString());
 
-        assertTrue("Marker must remain while purge is failing", markerDirHasEntry(markerDir));
-        assertTrue("Stale object remains after a failed purge",
-                   store.fileExists("delfail/db/000001.sst"));
+        assertTrue(markerDirHasEntry(markerDir), "Marker must remain while purge is failing");
+        assertTrue(store.fileExists("delfail/db/000001.sst"),
+                   "Stale object remains after a failed purge");
 
         // Recovery: purge now succeeds; the scheduled retry must purge and clear the marker.
         store.setPrefixDeleteFailure(false);
         boolean cleaned = awaitCondition(
                 () -> !store.fileExists("delfail/db/000001.sst") && !markerDirHasEntry(markerDir),
                 8_000);
-        assertTrue("Delete purge must retry until the stale prefix is purged and the marker cleared",
-                   cleaned);
+        assertTrue(cleaned,
+                   "Delete purge must retry until the stale prefix is purged and the marker "
+                   + "cleared");
     }
 
     @Test
@@ -1192,12 +1043,12 @@ public class CloudStorageIntegrationTest {
         Files.write(markerDir.resolve(markerName), prefix.getBytes(StandardCharsets.UTF_8));
 
         // New listener instance => startup marker scan + deferred purge scheduling.
-        listenerFor(dataRoot);
+        listenerFor(store, dataRoot);
 
         boolean cleaned = awaitCondition(
                 () -> !store.fileExists("startup/db/000001.sst") && !markerDirHasEntry(markerDir),
                 8_000);
-        assertTrue("A valid startup marker must trigger purge replay and marker cleanup", cleaned);
+        assertTrue(cleaned, "A valid startup marker must trigger purge replay and marker cleanup");
     }
 
     @Test
@@ -1212,14 +1063,14 @@ public class CloudStorageIntegrationTest {
         Files.write(markerDir.resolve(wrongEncodedName),
                     payloadPrefix.getBytes(StandardCharsets.UTF_8));
 
-        listenerFor(dataRoot);
+        listenerFor(store, dataRoot);
 
         // No purge should be scheduled from an invalid marker.
         Thread.sleep(700L);
-        assertTrue("Invalid startup marker must not trigger remote purge",
-                   store.fileExists("badmarker/db/000001.sst"));
-        assertTrue("Invalid marker should remain for explicit operator inspection",
-                   markerDirHasEntry(markerDir));
+        assertTrue(store.fileExists("badmarker/db/000001.sst"),
+                   "Invalid startup marker must not trigger remote purge");
+        assertTrue(markerDirHasEntry(markerDir),
+                   "Invalid marker should remain for explicit operator inspection");
     }
 
     @Test
@@ -1235,13 +1086,13 @@ public class CloudStorageIntegrationTest {
         Files.write(markerDir.resolve(markerName), prefix.getBytes(StandardCharsets.UTF_8));
 
         // New listener instance => startup marker scan + deferred truncate purge scheduling.
-        listenerFor(dataRoot);
+        listenerFor(store, dataRoot);
 
         boolean cleaned = awaitCondition(
                 () -> !store.fileExists("truncstart/db/000001.sst") && !markerDirHasEntry(markerDir),
                 10_000);
-        assertTrue("A valid startup truncate marker must trigger purge replay and marker cleanup",
-                   cleaned);
+        assertTrue(cleaned,
+                   "A valid startup truncate marker must trigger purge replay and marker cleanup");
     }
 
     /** True if {@code dir} exists and contains at least one entry. */
@@ -1263,7 +1114,7 @@ public class CloudStorageIntegrationTest {
     @Test
     public void metadataSync_debounced_coalescesBurstThenPublishesTrailing() throws Exception {
         AtomicInteger syncCount = new AtomicInteger(0);
-        CloudStorageEventListener listener = new CloudStorageEventListener(
+        CloudStorageEventListener listener = new CloudStorageEventListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
@@ -1281,22 +1132,25 @@ public class CloudStorageIntegrationTest {
         for (int i = 0; i < 5; i++) {
             listener.requestDebouncedMetadataSync(store, "hugegraph");
         }
-        assertEquals("Burst within the debounce window must publish exactly once (leading edge)",
-                     1, syncCount.get());
+        assertEquals(1,
+                     syncCount.get(),
+                     "Burst within the debounce window must publish exactly once (leading edge)");
 
         // The trailing sync must eventually fire so the final state is published even though the
         // burst was coalesced.
         boolean trailing = awaitCondition(() -> syncCount.get() >= 2, 3_000);
-        assertTrue("A trailing metadata sync must publish the final state after the window",
-                   trailing);
-        assertEquals("Exactly one trailing sync must fire for the coalesced burst",
-                     2, syncCount.get());
+        assertTrue(trailing,
+                   "A trailing metadata sync must publish the final state after the window");
+        assertEquals(2,
+                     syncCount.get(),
+                     "Exactly one trailing sync must fire for the coalesced burst");
 
         // After the window has elapsed, a fresh request publishes immediately again (leading edge).
         Thread.sleep(350L);
         listener.requestDebouncedMetadataSync(store, "hugegraph");
-        assertEquals("A request after the window must publish immediately",
-                     3, syncCount.get());
+        assertEquals(3,
+                     syncCount.get(),
+                     "A request after the window must publish immediately");
     }
 
     // =========================================================================
@@ -1320,13 +1174,15 @@ public class CloudStorageIntegrationTest {
             listener.requestDebouncedMetadataSync(store, "hugegraph");
         }
 
-        assertEquals("count bound must force a publish every 3 unmirrored uploads plus the leading "
-                     + "publish (requests 1, 4, 7)", 3, publishes.get());
+        assertEquals(3,
+                     publishes.get(),
+                     "count bound must force a publish every 3 unmirrored uploads plus the leading "
+                     + "publish (requests 1, 4, 7)");
     }
 
     private @NotNull CloudStorageEventListener createListener(MetadataSnapshot fake,
                                                               AtomicInteger publishes) {
-        CloudStorageEventListener listener = new CloudStorageEventListener(
+        CloudStorageEventListener listener = new CloudStorageEventListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
@@ -1366,14 +1222,13 @@ public class CloudStorageIntegrationTest {
                 super.uploadFile(localPath, remoteKey);
             }
         };
-        CloudStorageProviderFactory.setActiveProviderForTest(blockingStore);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
         // maxAttempts=0 => handed-off tasks land directly in the DLQ where the test can observe them.
-        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
+        CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(blockingStore,
                 0, 10L, 100L, dataRoot.toString(),
                 tracker::markConfirmedIfEpoch);
-        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener listener = CloudStorageTestFactory.newListener(blockingStore,
                 Collections.singletonList(dataRoot.toString()), true, 0L, retryQueue, tracker);
 
         Path dbDir = mkdirs("hugegraph/db");
@@ -1389,7 +1244,8 @@ public class CloudStorageIntegrationTest {
         block.countDown();
 
         boolean handed = awaitCondition(() -> retryQueue.getDlqSize() > 0, 5_000);
-        assertTrue("Queued upload tasks dropped at shutdown must be handed off to the DLQ", handed);
+        assertTrue(handed,
+                   "Queued upload tasks dropped at shutdown must be handed off to the DLQ");
         retryQueue.close();
     }
 
@@ -1397,13 +1253,14 @@ public class CloudStorageIntegrationTest {
     // Helpers
     // =========================================================================
 
-    private CloudStorageEventListener listenerFor(Path root) {
-        return listenerFor(Collections.singletonList(root.toString()));
+    private CloudStorageEventListener listenerFor(CloudStorageProvider provider, Path root) {
+        return listenerFor(provider, Collections.singletonList(root.toString()));
     }
 
-    private CloudStorageEventListener listenerFor(List<String> roots) {
-        return CloudStorageTestFactory.newListener(roots, true, 0L, null,
-                                             new CloudSyncTracker());
+    private CloudStorageEventListener listenerFor(CloudStorageProvider provider,
+                                                  List<String> roots) {
+        return CloudStorageTestFactory.newListener(provider, roots, true, 0L, null,
+                                                   new CloudSyncTracker());
     }
 
     private Path mkdirs(String relative) throws Exception {
@@ -1456,7 +1313,7 @@ public class CloudStorageIntegrationTest {
                         return name.contains(".hyd-tmp") || name.contains(".hydrate");
                     })
                     .collect(Collectors.toList());
-            assertTrue("No stale hydration temp files must remain: " + stale, stale.isEmpty());
+            assertTrue(stale.isEmpty(), "No stale hydration temp files must remain: " + stale);
         }
     }
 

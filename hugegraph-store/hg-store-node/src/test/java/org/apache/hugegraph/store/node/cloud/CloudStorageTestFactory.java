@@ -20,6 +20,8 @@ package org.apache.hugegraph.store.node.cloud;
 import java.util.List;
 import java.util.function.BiConsumer;
 
+import org.apache.hugegraph.store.cloud.CloudStorageProvider;
+
 /**
  * Shared construction helpers for {@link CloudStorageEventListener} and
  * {@link CloudUploadRetryQueue} tests. Both classes expose exactly one production constructor
@@ -32,53 +34,61 @@ final class CloudStorageTestFactory {
     private CloudStorageTestFactory() {
     }
 
-    static CloudStorageEventListener newListener(List<String> dataRoots) {
-        return newListener(dataRoots, true, CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS,
-                            null);
-    }
-
-    static CloudStorageEventListener newListener(List<String> dataRoots,
-                                                  boolean startupHydrationEnabled) {
-        return newListener(dataRoots, startupHydrationEnabled,
+    static CloudStorageEventListener newListener(CloudStorageProvider provider,
+                                                  List<String> dataRoots) {
+        return newListener(provider, dataRoots, true,
                             CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null);
     }
 
-    static CloudStorageEventListener newListener(List<String> dataRoots,
-                                                  boolean startupHydrationEnabled,
-                                                  long readMissGuardWindowMs) {
-        return newListener(dataRoots, startupHydrationEnabled, readMissGuardWindowMs, null);
+    static CloudStorageEventListener newListener(CloudStorageProvider provider,
+                                                  List<String> dataRoots,
+                                                  boolean startupHydrationEnabled) {
+        return newListener(provider, dataRoots, startupHydrationEnabled,
+                            CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null);
     }
 
-    static CloudStorageEventListener newListener(List<String> dataRoots,
+    static CloudStorageEventListener newListener(CloudStorageProvider provider,
+                                                  List<String> dataRoots,
+                                                  boolean startupHydrationEnabled,
+                                                  long readMissGuardWindowMs) {
+        return newListener(provider, dataRoots, startupHydrationEnabled, readMissGuardWindowMs,
+                            null);
+    }
+
+    static CloudStorageEventListener newListener(CloudStorageProvider provider,
+                                                  List<String> dataRoots,
                                                   boolean startupHydrationEnabled,
                                                   long readMissGuardWindowMs,
                                                   CloudUploadRetryQueue retryQueue) {
-        return newListener(dataRoots, startupHydrationEnabled, readMissGuardWindowMs, retryQueue,
-                            new CloudSyncTracker(), null);
+        return newListener(provider, dataRoots, startupHydrationEnabled, readMissGuardWindowMs,
+                            retryQueue, new CloudSyncTracker(), null);
     }
 
-    static CloudStorageEventListener newListener(List<String> dataRoots,
+    static CloudStorageEventListener newListener(CloudStorageProvider provider,
+                                                  List<String> dataRoots,
                                                   boolean startupHydrationEnabled,
                                                   long readMissGuardWindowMs,
                                                   CloudUploadRetryQueue retryQueue,
                                                   CloudSyncTracker syncTracker) {
-        return newListener(dataRoots, startupHydrationEnabled, readMissGuardWindowMs, retryQueue,
-                            syncTracker, null);
+        return newListener(provider, dataRoots, startupHydrationEnabled, readMissGuardWindowMs,
+                            retryQueue, syncTracker, null);
     }
 
-    static CloudStorageEventListener newListener(List<String> dataRoots,
+    static CloudStorageEventListener newListener(CloudStorageProvider provider,
+                                                  List<String> dataRoots,
                                                   boolean startupHydrationEnabled,
                                                   long readMissGuardWindowMs,
                                                   CloudUploadRetryQueue retryQueue,
                                                   CloudSyncTracker syncTracker,
                                                   String storeScopePrefix) {
-        return newListener(dataRoots, startupHydrationEnabled, readMissGuardWindowMs, retryQueue,
-                            syncTracker, storeScopePrefix,
+        return newListener(provider, dataRoots, startupHydrationEnabled, readMissGuardWindowMs,
+                            retryQueue, syncTracker, storeScopePrefix,
                             CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
                             CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED);
     }
 
-    static CloudStorageEventListener newListener(List<String> dataRoots,
+    static CloudStorageEventListener newListener(CloudStorageProvider provider,
+                                                  List<String> dataRoots,
                                                   boolean startupHydrationEnabled,
                                                   long readMissGuardWindowMs,
                                                   CloudUploadRetryQueue retryQueue,
@@ -86,15 +96,16 @@ final class CloudStorageTestFactory {
                                                   String storeScopePrefix,
                                                   long metadataSyncDebounceMs,
                                                   int metadataSyncMaxUnpublished) {
-        return new CloudStorageEventListener(dataRoots, startupHydrationEnabled,
+        return new CloudStorageEventListener(provider, dataRoots, startupHydrationEnabled,
                                               readMissGuardWindowMs, retryQueue, syncTracker,
                                               storeScopePrefix, metadataSyncDebounceMs,
                                               metadataSyncMaxUnpublished);
     }
 
-    static CloudUploadRetryQueue newRetryQueue(int maxAttempts, long initialDelayMs,
-                                               long maxDelayMs, String dataRoot) {
-        return newRetryQueue(maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
+    static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
+                                               long initialDelayMs, long maxDelayMs,
+                                               String dataRoot) {
+        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
                               (CloudUploadRetryQueue.UploadConfirmedCallback) null);
     }
 
@@ -103,28 +114,31 @@ final class CloudStorageTestFactory {
      * not forwarded; use the {@link CloudUploadRetryQueue.UploadConfirmedCallback} overload for
      * epoch-safe confirmation.
      */
-    static CloudUploadRetryQueue newRetryQueue(int maxAttempts, long initialDelayMs,
-                                               long maxDelayMs, String dataRoot,
+    static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
+                                               long initialDelayMs, long maxDelayMs,
+                                               String dataRoot,
                                                BiConsumer<String, String> onUploadConfirmed) {
-        return newRetryQueue(maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
+        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
                               onUploadConfirmed == null ? null
                                       : (db, path, epoch) -> onUploadConfirmed.accept(db, path));
     }
 
-    static CloudUploadRetryQueue newRetryQueue(int maxAttempts, long initialDelayMs,
-                                               long maxDelayMs, String dataRoot,
+    static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
+                                               long initialDelayMs, long maxDelayMs,
+                                               String dataRoot,
                                                CloudUploadRetryQueue.UploadConfirmedCallback
                                                        onUploadConfirmed) {
-        return newRetryQueue(maxAttempts, initialDelayMs, maxDelayMs, dataRoot, onUploadConfirmed,
-                              CloudUploadRetryQueue.DEFAULT_MAX_DLQ_SIZE);
+        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
+                              onUploadConfirmed, CloudUploadRetryQueue.DEFAULT_MAX_DLQ_SIZE);
     }
 
-    static CloudUploadRetryQueue newRetryQueue(int maxAttempts, long initialDelayMs,
-                                               long maxDelayMs, String dataRoot,
+    static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
+                                               long initialDelayMs, long maxDelayMs,
+                                               String dataRoot,
                                                CloudUploadRetryQueue.UploadConfirmedCallback
                                                        onUploadConfirmed,
                                                int maxDlqSize) {
-        return new CloudUploadRetryQueue(maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
-                                          onUploadConfirmed, maxDlqSize);
+        return new CloudUploadRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs,
+                                          dataRoot, onUploadConfirmed, maxDlqSize);
     }
 }

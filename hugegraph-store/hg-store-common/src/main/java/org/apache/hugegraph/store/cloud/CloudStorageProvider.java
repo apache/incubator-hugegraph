@@ -31,9 +31,9 @@ import java.util.List;
  * {@code META-INF/services/org.apache.hugegraph.store.cloud.CloudStorageProvider}
  * listing the fully-qualified implementation class.
  *
- * <p>The active provider is selected at runtime through
- * {@link CloudStorageConfig#getProvider()} and initialized once by
- * {@link CloudStorageProviderFactory#initialize(CloudStorageConfig)}.
+ * <p>The provider whose {@link #providerName()} matches {@link CloudStorageConfig#getProvider()}
+ * is selected once at store startup, initialized via {@link #init(CloudStorageConfig)}, and passed
+ * to its consumers; it is never reconfigured at runtime.
  */
 public interface CloudStorageProvider extends Closeable {
 

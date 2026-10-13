@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -35,7 +36,7 @@ import org.apache.hugegraph.store.node.cloud.CloudStorageMetrics;
 import org.apache.hugegraph.store.node.cloud.CloudSyncTracker;
 import org.apache.hugegraph.store.node.cloud.CloudUploadRetryQueue;
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
-import org.apache.hugegraph.store.cloud.CloudStorageProviderFactory;
+import org.apache.hugegraph.store.cloud.CloudStorageProvider;
 import org.apache.hugegraph.store.options.JobOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -118,6 +119,10 @@ public class AppConfig {
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
 
+    /** Provider resolved and initialized during {@link #initCloudStorage()}; closed last on
+     *  {@link #onDestroy()}. */
+    private volatile CloudStorageProvider cloudStorageProvider;
+
     /** Retry queue created during {@link #initCloudStorage()}; closed on {@link #onDestroy()}. */
     private volatile CloudUploadRetryQueue cloudUploadRetryQueue;
 
@@ -177,7 +182,15 @@ public class AppConfig {
             return;
         }
         try {
-            CloudStorageProviderFactory.initialize(cfg);
+            CloudStorageProvider provider = ServiceLoader.load(CloudStorageProvider.class).stream()
+                    .map(ServiceLoader.Provider::get)
+                    .filter(p -> p.providerName().equals(cfg.getProvider()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "No cloud storage provider '" + cfg.getProvider()
+                            + "' on the classpath"));
+            this.cloudStorageProvider = provider;
+            provider.init(cfg);
             // Parse comma-separated dataPath into individual roots. Filter blank tokens so a
             // trailing/duplicate comma (e.g. "store," or "a,,b") does not resolve "" to the JVM
             // working directory and inject it as a bogus data root.
@@ -201,6 +214,7 @@ public class AppConfig {
             String primaryDataRoot = resolvedDataRoots.get(0);
 
             CloudUploadRetryQueue retryQueue = new CloudUploadRetryQueue(
+                    provider,
                     cfg.getUploadRetryMaxAttempts(),
                     cfg.getUploadRetryInitialDelayMs(),
                     cfg.getUploadRetryMaxDelayMs(),
@@ -213,6 +227,7 @@ public class AppConfig {
                                                                     primaryDataRoot);
 
             CloudStorageEventListener listener = new CloudStorageEventListener(
+                    provider,
                     resolvedDataRoots,
                     cfg.isStartupHydrationEnabled(),
                     cfg.getReadMissGuardWindowMs(),
@@ -274,11 +289,7 @@ public class AppConfig {
                 }
                 this.cloudUploadRetryQueue = null;
             }
-            try {
-                CloudStorageProviderFactory.shutdown();
-            } catch (Exception ignore) {
-                // best-effort cleanup on the failure path
-            }
+            closeCloudStorageProvider();
             // Fail startup: an explicitly-enabled provider that cannot initialize leaves
             // the node silently uploading nothing, making durability failures invisible.
             throw new IllegalStateException(
@@ -437,7 +448,21 @@ public class AppConfig {
         // Close the active provider LAST — after uploads and retries have drained — so its client
         // (e.g. the S3 SDK connection pool and threads) is released rather than leaked on context
         // shutdown/restart. Doing it last ensures in-flight uploads/retries above could still use it.
-        CloudStorageProviderFactory.shutdown();
+        closeCloudStorageProvider();
+    }
+
+    private void closeCloudStorageProvider() {
+        CloudStorageProvider provider = this.cloudStorageProvider;
+        if (provider == null) {
+            return;
+        }
+        this.cloudStorageProvider = null;
+        try {
+            provider.close();
+            log.info("Cloud storage provider '{}' closed", provider.providerName());
+        } catch (IOException e) {
+            log.warn("Error closing cloud storage provider '{}'", provider.providerName(), e);
+        }
     }
 
     @Override

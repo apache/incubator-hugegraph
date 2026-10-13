@@ -15,7 +15,7 @@ object store and hydrating missing files back when needed (startup and read-miss
 
 - Existing path: local RocksDB is the primary online read/write path.
 - New extension: cloud object storage acts as a pluggable SST mirror and recovery source.
-- Provider model: runtime-selected SPI provider via `CloudStorageProviderFactory`.
+- Provider model: SPI provider selected once at startup via `ServiceLoader` and injected into its consumers.
 
 ## Architecture Diagram
 
@@ -40,7 +40,6 @@ object store and hydrating missing files back when needed (startup and read-miss
 | +-----------------------------------------+  |
 | | Pluggable Cloud Storage Workflow (NEW)  |  |
 | | CloudStorageEventListener (NEW)         |  |
-| | -> CloudStorageProviderFactory (NEW)    |  |
 | | -> CloudStorageProvider (NEW)           |  |
 | +-----------------------------------------+  |
 +----------------------|-----------------------+
@@ -61,7 +60,6 @@ object store and hydrating missing files back when needed (startup and read-miss
 - `Raft log + MemTable -> Local RocksDB SST`: Local write pipeline in each Store node. The Raft log is the durability source for recent writes (the RocksDB WAL is disabled under Raft); the MemTable is flushed/compacted into SSTs.
 - `Pluggable Cloud Storage Workflow (NEW)`: SST lifecycle hook path for upload/delete/download/list.
 - `CloudStorageEventListener (NEW)`: Captures RocksDB file events and triggers cloud operations.
-- `CloudStorageProviderFactory (NEW)`: SPI loader that selects and initializes the active provider.
 - `CloudStorageProvider (NEW)`: Provider implementation (`s3`, etc.) used for object operations.
 - `Cloud Storage (NEW)`: Remote object backend options (S3 compatible, ADSL, GCP).
 
@@ -89,7 +87,7 @@ The pluggable cloud-storage behavior is controlled from `application.yml` under
 Notes:
 
 - Keep `path-prefix` stable across restarts to preserve object-key continuity.
-- If `provider` is not found on classpath, initialization fails fast in `CloudStorageProviderFactory`.
+- If `provider` is not found on classpath, initialization fails fast in `AppConfig`.
 - Upload retry uses a two-layer model: S3 part-level retries (inside one `uploadFile()` call) are handled by the provider; whole-file retries are handled by `CloudUploadRetryQueue` when `upload-retry-max-attempts > 0` (default `3`).
 - `CloudStorageNonRetryableException` thrown by a provider bypasses immediate retries. The file remains unconfirmed and is automatically retried on the next compaction via the delete guard.
 - Failed uploads are tracked via metrics (`cloud_storage_upload_failures_total`) and structured logs. Automatic retry occurs on subsequent compactions; no manual recovery needed.
@@ -459,7 +457,7 @@ metrics and structured logs:
 - `cloud_storage_sync_latency_ms` (histogram, labeled by `db_name`) — Time from SST file creation (onTableFileCreated) to bitmap confirmation (markConfirmed). Measures sync speed.
 - `cloud_storage_delete_guard_reupload_count` (counter, labeled by `db_name`) — Number of files re-uploaded by the delete guard when live set was not fully durable. Indicates frequent upload failures.
 - `cloud_storage_dlq_persistence_healthy` (gauge, `1`=healthy / `0`=degraded) — Health of the DLQ's on-disk persistence. `0` means a DLQ append/rewrite failed, so retry intent may not survive a crash. Alert on `0`.
-- `cloud_storage_delete_marker_healthy` (gauge, `1`=healthy / `0`=degraded) — Health of pending-delete marker persistence. `0` means a marker could not be durably written, so a DB delete during a provider-unavailable window may not be guarded against re-hydration after a crash. This is a hard error state: **delete progression is held while degraded.** Alert on `0`.
+- `cloud_storage_delete_marker_healthy` (gauge, `1`=healthy / `0`=degraded) — Health of pending-delete marker persistence. `0` means a marker could not be durably written, so a DB delete whose remote cleanup fails may not be guarded against re-hydration after a crash. This is a hard error state: **delete progression is held while degraded.** Alert on `0`.
 
 **Structured Logs:**
 
@@ -556,12 +554,9 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 
 ### Provider lifecycle / config failures
 
-- Unknown provider name or missing plugin JAR fails initialization in `CloudStorageProviderFactory`.
-- Provider switching/re-init is handled with close-and-reinitialize semantics.
-- **Disabling cloud storage deactivates the active provider.** A reconfiguration/context refresh that flips `enabled=false` closes the currently active provider (best-effort) and drops the reference, so no stale provider keeps servicing cloud I/O or leaks SDK resources.
-- **Init failure leaves a safe state.** The factory clears `activeProvider` *before* closing the previous provider or initializing the new one, and only re-sets it once `init()` succeeds. A failed reconfiguration therefore leaves `activeProvider == null` rather than a non-null-but-unusable provider.
-- **Failed `@PostConstruct` cleanup.** If cloud-storage wiring throws during startup, `AppConfig` closes the retry queue and calls `CloudStorageProviderFactory.shutdown()` so a failed init does not leak the provider's client/threads (Spring does not invoke `@PreDestroy` when `@PostConstruct` throws), then fails startup.
-- If no active provider is found at runtime (provider is `null`), all event callbacks (`onTableFileCreated`, `onTableFileDeleted`, `onReadMiss`) return immediately without error, so RocksDB continues normally without cloud mirroring.
+- Unknown provider name or missing plugin JAR fails initialization in `AppConfig`.
+- **Resolved once, never reconfigured.** `AppConfig` selects the provider via `ServiceLoader`, calls `init()` once, and passes it to `CloudUploadRetryQueue` and `CloudStorageEventListener` as a final, non-null field. When `cloud.storage.enabled=false`, neither is constructed and no provider is loaded.
+- **Failed `@PostConstruct` cleanup.** If cloud-storage wiring throws during startup, `AppConfig` closes the retry queue and the provider so a failed init does not leak the provider's client/threads (Spring does not invoke `@PreDestroy` when `@PostConstruct` throws), then fails startup.
 - **`deletePrefix` now surfaces failures.** The default `CloudStorageProvider.deletePrefix()` still attempts every key, but throws an `IOException` summarizing the failed keys if any deletion failed (previously it swallowed per-key errors best-effort), so callers such as the DB-purge path can detect an incomplete purge and keep the tombstone + local marker.
 
 ### Non-retryable upload failures (`CloudStorageNonRetryableException`)
@@ -742,8 +737,8 @@ HugeGraph uses a **Service Provider Interface (SPI)** pattern to discover and lo
 
 1. **CloudStorageProvider interface**: Located in `hugegraph-store/hg-store-common`, defines the contract all providers must implement.
 2. **ServiceLoader discovery**: Store node uses `java.util.ServiceLoader` to find all `CloudStorageProvider` implementations on the classpath.
-3. **SPI selection**: At Store startup, `CloudStorageProviderFactory` loads the provider specified in `cloud.storage.provider` config.
-4. **Plugin packaging/runtime classpath**: Provider implementations are packaged as separate JAR modules and must be discoverable by Store at startup — either bundled into the distribution (Option A) or dropped into the `plugins/` directory, which `CloudStorageProviderFactory` itself scans on the Java side at class-init time (Option B). See [Step 5](#step-5-package-for-runtime-classpath) below.
+3. **SPI selection**: At Store startup, `AppConfig` loads the provider specified in `cloud.storage.provider` config via `ServiceLoader`.
+4. **Plugin packaging/runtime classpath**: Provider implementations are packaged as separate JAR modules and must be discoverable by Store at startup — either bundled into the distribution (Option A) or placed on the JVM launch classpath (Option B). There is no `plugins/` directory scan. See [Step 5](#step-5-package-for-runtime-classpath) below.
 
 ### CloudStorageProvider Interface
 
@@ -968,14 +963,17 @@ Use one of these runtime models:
 Notes:
 
 - Simply copying a provider jar without its runtime dependencies can cause `ClassNotFoundException` during SPI loading.
-- Drop the provider jar and its runtime dependency jars into the `plugins/` directory (relative to
-  the Store install root, `$TOP/plugins`) and set `cloud.storage.provider` in configuration. No
-  shell script or JVM flag is involved: `CloudStorageProviderFactory` itself locates `$TOP/plugins`
-  (by resolving the running `hg-store-node` fat jar's own directory via
-  `java.class.path`), builds a `URLClassLoader` over any jars found there, and runs the same
-  `ServiceLoader` scan against it that it runs against the ambient classpath — so the provider is
-  discovered automatically as soon as the JVM starts. This only happens once, at class-init time,
-  so a jar dropped in after the process has started requires a restart to be picked up.
+- Store does not scan a `plugins/` directory. `AppConfig` calls
+  `ServiceLoader.load(CloudStorageProvider.class)` once at startup, which only sees jars inside the
+  `hg-store-node` boot jar (`BOOT-INF/lib`, i.e. Option A) or on the JVM launch classpath.
+- The shipped `bin/start-hugegraph-store.sh` builds the launch classpath from only the rocksdbjni
+  jar and the `hg-store-node` boot jar (`-cp "<rocksdbjni>:<hg-store-node>" JarLauncher`), so there
+  is no supported drop-in location for an external provider; Option A is the supported path.
+- Appending a provider jar to that `-cp` is not enough by itself: classes on `-cp` are loaded by
+  the system classloader, which cannot see `CloudStorageProvider` (it lives in `hg-store-common`
+  inside `BOOT-INF/lib`), so loading the provider fails with `NoClassDefFoundError`. The
+  `hg-store-common` jar would have to be on `-cp` as well.
+- The provider is resolved once, so adding or replacing a provider jar requires a restart.
 
 ### Step 6: Configure and Activate
 

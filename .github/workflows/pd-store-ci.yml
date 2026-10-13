@@ -412,10 +412,14 @@ jobs:
           $TRAVIS_DIR/start-pd.sh
           $TRAVIS_DIR/start-store.sh
 
-      - name: Run historical Store ingress tests
+      # -Dtest scopes the run to hg-store-node's own tests; without it -am would also run the test
+      # suites of every upstream module. StoredRowIngressTest is listed by name because
+      # hg-store-core also has tests in org.apache.hugegraph.store.business.
+      - name: Run store-node tests
         run: |
           mvn test -pl hugegraph-store/hg-store-node -am \
-            -Dtest=StoredRowIngressTest -Dsurefire.failIfNoSpecifiedTests=false \
+            -Dtest='org/apache/hugegraph/store/node/**/*Test,StoredRowIngressTest' \
+            -Dsurefire.failIfNoSpecifiedTests=false -DreuseForks=false \
             -Djacoco.sessionId=store-node-test \
             -Djacoco.destFile="$PWD/hugegraph-store/hg-store-test/target/store-node-test.exec"
 

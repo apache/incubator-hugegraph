@@ -17,12 +17,12 @@
 
 package org.apache.hugegraph.store.node.cloud;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,11 +50,10 @@ import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.rocksdb.access.SessionOperator;
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
 import org.apache.hugegraph.store.cloud.CloudStorageProvider;
-import org.apache.hugegraph.store.cloud.CloudStorageProviderFactory;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * End-to-end cloud recovery/mirroring against a <em>real</em> {@link RocksDBSession} plus an
@@ -80,7 +79,7 @@ public class CloudRecoveryIntegrationTest {
     private CloudStorageEventListener listener;
     private CloudUploadRetryQueue retryQueue;
 
-    @BeforeClass
+    @BeforeAll
     public static void initFactory() {
         OptionSpace.register("rocksdb",
                              "org.apache.hugegraph.rocksdb.access.RocksDBOptions");
@@ -94,12 +93,12 @@ public class CloudRecoveryIntegrationTest {
         factory.setHugeConfig(new HugeConfig(new MapConfiguration(cfg)));
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         this.baseDir = Files.createTempDirectory("hg-cloudrec-");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (this.listener != null && factory != null) {
             factory.removeRocksdbChangedListener(this.listener);
@@ -115,7 +114,6 @@ public class CloudRecoveryIntegrationTest {
             this.retryQueue.close();
             this.retryQueue = null;
         }
-        CloudStorageProviderFactory.reset();
         if (this.baseDir != null) {
             deleteRecursively(this.baseDir.toFile());
         }
@@ -131,10 +129,9 @@ public class CloudRecoveryIntegrationTest {
     public void testReopenAfterLocalDiskLossRecoversDataFromCloud() {
         this.dbName = "recdb";
         InMemoryCloudStore cloud = new InMemoryCloudStore();
-        CloudStorageProviderFactory.setActiveProviderForTest(cloud);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        this.listener = CloudStorageTestFactory.newListener(
+        this.listener = CloudStorageTestFactory.newListener(cloud,
                 Collections.singletonList(this.baseDir.toString()),
                 true, 0L, null, tracker);
         factory.addRocksdbChangedListener(this.listener);
@@ -157,23 +154,24 @@ public class CloudRecoveryIntegrationTest {
         session.flush(true); // create SST files
 
         // Mirror a consistent set (referenced SSTs + OPTIONS + MANIFEST + CURRENT) to cloud.
-        assertTrue("metadata mirror must succeed",
-                   this.listener.syncMetadataSnapshotInline(cloud, this.dbName));
-        assertTrue("cloud must contain the CURRENT pointer after mirroring",
-                   cloud.fileExists(this.dbName + "/CURRENT"));
+        assertTrue(this.listener.syncMetadataSnapshotInline(cloud, this.dbName),
+                   "metadata mirror must succeed");
+        assertTrue(cloud.fileExists(this.dbName + "/CURRENT"),
+                   "cloud must contain the CURRENT pointer after mirroring");
 
         // --- Phase 2: simulate local disk loss (no cloud purge) ---
         session.close();                       // release our clone's ref
         factory.releaseGraphDB(this.dbName);   // close the DB handle, remove from map (no purge)
         deleteRecursively(new File(resolvedPath));
-        assertFalse("local DB directory must be gone (simulated disk loss)",
-                    new File(resolvedPath, "CURRENT").exists());
+        assertFalse(new File(resolvedPath, "CURRENT").exists(),
+                    "local DB directory must be gone (simulated disk loss)");
 
         // --- Phase 3: reopen at the same path — must hydrate from cloud BEFORE open ---
         RocksDBSession recovered = factory.createGraphDB(this.baseDir.toString(), this.dbName, 0);
         assertNotNull(recovered);
-        assertEquals("recovery must resolve to the same DB path so cloud keys match",
-                     resolvedPath, recovered.getDbPath());
+        assertEquals(resolvedPath,
+                     recovered.getDbPath(),
+                     "recovery must resolve to the same DB path so cloud keys match");
 
         // --- Phase 4: every key must be readable from the recovered DB ---
         recovered.checkTable("t");
@@ -181,11 +179,12 @@ public class CloudRecoveryIntegrationTest {
         int recoveredCount = 0;
         for (Map.Entry<String, String> e : expected.entrySet()) {
             byte[] got = rop.get("t", e.getKey().getBytes(StandardCharsets.UTF_8));
-            assertArrayEquals("recovered value mismatch for " + e.getKey(),
-                              e.getValue().getBytes(StandardCharsets.UTF_8), got);
+            assertArrayEquals(e.getValue().getBytes(StandardCharsets.UTF_8),
+                              got,
+                              "recovered value mismatch for " + e.getKey());
             recoveredCount++;
         }
-        assertEquals("all keys must be recovered from cloud", expected.size(), recoveredCount);
+        assertEquals(expected.size(), recoveredCount, "all keys must be recovered from cloud");
     }
 
     // =========================================================================
@@ -200,30 +199,35 @@ public class CloudRecoveryIntegrationTest {
 
         // maxAttempts=0 → an async upload failure is routed straight to the DLQ, giving a
         // deterministic postcondition instead of a timing-dependent retry cycle.
-        this.retryQueue = CloudStorageTestFactory.newRetryQueue(0, 50L, 50L, this.baseDir.toString());
+        // The provider starts healthy and is only switched to failing after the DB is open, so
+        // that ONLY the real onTableFileCreated callback (fired by the flush below) exercises the
+        // failure path.
+        AtomicInteger uploadAttempts = new AtomicInteger(0);
+        ToggleableFailingUploadProvider provider =
+                new ToggleableFailingUploadProvider(uploadAttempts);
+        this.retryQueue = CloudStorageTestFactory.newRetryQueue(provider, 0, 50L, 50L,
+                                                                this.baseDir.toString());
         // Data root = baseDir so the SST files RocksDB writes under dbPath (a child of
         // baseDir) can be hard-link staged for async upload.
-        this.listener = CloudStorageTestFactory.newListener(
+        this.listener = CloudStorageTestFactory.newListener(provider,
                 List.of(this.baseDir.toString()), false, 0L, this.retryQueue);
 
         // The listener must be registered BEFORE the DB is opened: RocksDBSession#openRocksDB
         // only wires the native RocksdbChangedListener into dbOptions when
         // RocksDBFactory#hasRocksdbChangedListeners() is true AT OPEN TIME (a one-time decision,
         // to avoid ever exercising the native callback — and its classloading — when no listener
-        // feature is enabled). No provider is active yet, so onDBOpening/onDBCreated still see a
-        // null active provider and no-op; only the flush below exercises the injected failure.
+        // feature is enabled). The provider is still healthy at this point, so onDBOpening and
+        // onDBCreated succeed; only the flush below exercises the injected failure.
         factory.addRocksdbChangedListener(this.listener);
 
         RocksDBSession session = factory.createGraphDB(dbPath.toString(), this.dbName);
 
         try (session) {
-            assertNotNull("expected a real RocksDB session", session);
+            assertNotNull(session, "expected a real RocksDB session");
 
-            // Inject an always-failing provider now, so ONLY the real onTableFileCreated callback
+            // Switch the provider to failing now, so ONLY the real onTableFileCreated callback
             // (fired by the flush below) exercises the failure path.
-            AtomicInteger uploadAttempts = new AtomicInteger(0);
-            CloudStorageProviderFactory.setActiveProviderForTest(
-                    new AlwaysFailingUploadProvider(uploadAttempts));
+            provider.startFailing();
 
             // Write a batch and flush: RocksDB creates a real SST and invokes onTableFileCreated
             // across the JNI boundary on its own background thread.
@@ -239,10 +243,10 @@ public class CloudRecoveryIntegrationTest {
             // The real callback must have driven an upload attempt that failed and was captured.
             waitForCondition(() -> this.retryQueue.getDlqSize() > 0
             );
-            assertTrue("provider.uploadFile must have been invoked by the real callback",
-                       uploadAttempts.get() > 0);
-            assertTrue("upload failure must be captured on the durability path (DLQ)",
-                       this.retryQueue.getDlqSize() > 0);
+            assertTrue(uploadAttempts.get() > 0,
+                       "provider.uploadFile must have been invoked by the real callback");
+            assertTrue(this.retryQueue.getDlqSize() > 0,
+                       "upload failure must be captured on the durability path (DLQ)");
 
             // Process/session stability: the DB must remain fully usable after the callback-path
             // failure — a JNI-boundary regression would typically crash the JVM or corrupt state.
@@ -252,8 +256,10 @@ public class CloudRecoveryIntegrationTest {
             after.commit();
 
             byte[] readBack = session.sessionOp().get("t", "post-failure".getBytes());
-            assertArrayEquals("DB must remain readable/writable after callback-path upload failure",
-                              "still-alive".getBytes(), readBack);
+            assertArrayEquals("still-alive".getBytes(),
+                              readBack,
+                              "DB must remain readable/writable after callback-path upload "
+                              + "failure");
         }
     }
 
@@ -367,13 +373,21 @@ public class CloudRecoveryIntegrationTest {
         }
     }
 
-    /** Provider whose upload always fails, simulating a persistent cloud outage. */
-    private static final class AlwaysFailingUploadProvider implements CloudStorageProvider {
+    /**
+     * Provider whose uploads succeed until {@link #startFailing()} is called, after which every
+     * upload fails, simulating a persistent cloud outage that begins mid-test.
+     */
+    private static final class ToggleableFailingUploadProvider implements CloudStorageProvider {
 
         private final AtomicInteger uploadAttempts;
+        private volatile boolean failing;
 
-        AlwaysFailingUploadProvider(AtomicInteger uploadAttempts) {
+        ToggleableFailingUploadProvider(AtomicInteger uploadAttempts) {
             this.uploadAttempts = uploadAttempts;
+        }
+
+        void startFailing() {
+            this.failing = true;
         }
 
         @Override
@@ -388,6 +402,9 @@ public class CloudRecoveryIntegrationTest {
 
         @Override
         public void uploadFile(String localPath, String remoteKey) throws IOException {
+            if (!this.failing) {
+                return;
+            }
             this.uploadAttempts.incrementAndGet();
             throw new IOException("simulated persistent cloud outage");
         }

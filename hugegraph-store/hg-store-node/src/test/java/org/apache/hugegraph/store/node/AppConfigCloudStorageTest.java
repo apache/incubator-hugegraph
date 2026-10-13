@@ -17,18 +17,19 @@
 
 package org.apache.hugegraph.store.node;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.mock.env.MockEnvironment;
@@ -38,7 +39,7 @@ public class AppConfigCloudStorageTest {
     private AppConfig.CloudStorageSpringConfig springConfig;
     private MockEnvironment mockEnv;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         AppConfig appConfig = new AppConfig();
         springConfig = appConfig.new CloudStorageSpringConfig();
@@ -154,8 +155,8 @@ public class AppConfigCloudStorageTest {
         assertEquals("gcs-bucket", cfg.getProviderProperties().get("bucket"));
         assertEquals("/path/creds.json",
                      cfg.getProviderProperties().get("credentials-file-path"));
-        assertFalse("s3 keys must not bleed into gcs namespace",
-                    cfg.getProviderProperties().containsKey("cloud.storage.s3.bucket"));
+        assertFalse(cfg.getProviderProperties().containsKey("cloud.storage.s3.bucket"),
+                    "s3 keys must not bleed into gcs namespace");
     }
 
     /**
@@ -255,11 +256,11 @@ public class AppConfigCloudStorageTest {
         try {
             // No node-id and no marker: seed from identity, persist, and reuse on the next start.
             String first = appConfig.resolveStableStoreScopePrefix(null, dataRoot.toString());
-            assertTrue("Seeded scope must use the store- prefix", first.startsWith("store-"));
-            assertTrue("First start must persist the marker",
-                       Files.exists(dataRoot.resolve(AppConfig.CLOUD_SCOPE_MARKER_FILE)));
+            assertTrue(first.startsWith("store-"), "Seeded scope must use the store- prefix");
+            assertTrue(Files.exists(dataRoot.resolve(AppConfig.CLOUD_SCOPE_MARKER_FILE)),
+                       "First start must persist the marker");
             String second = appConfig.resolveStableStoreScopePrefix(null, dataRoot.toString());
-            assertEquals("Second start must reuse the persisted scope", first, second);
+            assertEquals(first, second, "Second start must reuse the persisted scope");
         } finally {
             deleteRecursively(dataRoot);
         }
@@ -272,11 +273,12 @@ public class AppConfigCloudStorageTest {
         try {
             Files.writeString(dataRoot.resolve(AppConfig.CLOUD_SCOPE_MARKER_FILE), "store-seeded");
             String prefix = appConfig.resolveStableStoreScopePrefix("explicit", dataRoot.toString());
-            assertEquals("An explicit node-id must win over a persisted marker",
-                         "store-explicit", prefix);
-            assertEquals("The marker must be updated to the configured scope", "store-explicit",
+            assertEquals("store-explicit", prefix,
+                         "An explicit node-id must win over a persisted marker");
+            assertEquals("store-explicit",
                          Files.readString(dataRoot.resolve(AppConfig.CLOUD_SCOPE_MARKER_FILE))
-                              .trim());
+                              .trim(),
+                         "The marker must be updated to the configured scope");
         } finally {
             deleteRecursively(dataRoot);
         }

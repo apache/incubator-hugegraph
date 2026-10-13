@@ -17,9 +17,10 @@
 
 package org.apache.hugegraph.store.node.metrics;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Field;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,9 +30,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.hugegraph.store.node.cloud.CloudStorageMetrics;
 import org.apache.hugegraph.store.node.cloud.CloudStorageMetricsConst;
 import org.apache.hugegraph.store.node.cloud.CloudSyncTracker;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -52,14 +53,14 @@ public class CloudStorageMetricsTest {
     private SimpleMeterRegistry registry;
     private CloudSyncTracker syncTracker;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         registry = new SimpleMeterRegistry();
         syncTracker = new CloudSyncTracker();
         resetStaticState();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         resetStaticState();
     }
@@ -72,12 +73,12 @@ public class CloudStorageMetricsTest {
     public void testInitRegistersGlobalMetrics() {
         CloudStorageMetrics.init(registry, syncTracker);
 
-        assertNotNull("upload failures counter must be registered",
-                registry.find(CloudStorageMetricsConst.UPLOAD_FAILURES).counter());
-        assertNotNull("sync latency timer must be registered",
-                registry.find(CloudStorageMetricsConst.SYNC_LATENCY_MS).timer());
-        assertNotNull("retry queue size gauge must be registered",
-                registry.find(CloudStorageMetricsConst.RETRY_QUEUE_SIZE).gauge());
+        assertNotNull(registry.find(CloudStorageMetricsConst.UPLOAD_FAILURES).counter(),
+                      "upload failures counter must be registered");
+        assertNotNull(registry.find(CloudStorageMetricsConst.SYNC_LATENCY_MS).timer(),
+                      "sync latency timer must be registered");
+        assertNotNull(registry.find(CloudStorageMetricsConst.RETRY_QUEUE_SIZE).gauge(),
+                      "retry queue size gauge must be registered");
     }
 
     @Test
@@ -94,14 +95,16 @@ public class CloudStorageMetricsTest {
         assertEquals(0, secondRegistry.getMeters().size());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInitNullRegistryThrowsIllegalArgument() {
-        CloudStorageMetrics.init(null, syncTracker);
+        assertThrows(IllegalArgumentException.class,
+                     () -> CloudStorageMetrics.init(null, syncTracker));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInitNullTrackerThrowsIllegalArgument() {
-        CloudStorageMetrics.init(registry, null);
+        assertThrows(IllegalArgumentException.class,
+                     () -> CloudStorageMetrics.init(registry, null));
     }
 
     // -----------------------------------------------------------------------
@@ -123,7 +126,7 @@ public class CloudStorageMetricsTest {
         Gauge gauge = registry.find(CloudStorageMetricsConst.CONFIRMED_FILES)
                               .tag(CloudStorageMetricsConst.TAG_DB_NAME, "mydb")
                               .gauge();
-        assertNotNull("confirmed_files gauge must be registered for the database", gauge);
+        assertNotNull(gauge, "confirmed_files gauge must be registered for the database");
     }
 
     @Test
@@ -134,8 +137,8 @@ public class CloudStorageMetricsTest {
         Gauge gauge = registry.find(CloudStorageMetricsConst.DELETE_GUARD_REUPLOAD_COUNT)
                               .tag(CloudStorageMetricsConst.TAG_DB_NAME, "mydb")
                               .gauge();
-        assertNotNull("delete_guard_reupload_count gauge must be registered for the database",
-                gauge);
+        assertNotNull(gauge,
+                      "delete_guard_reupload_count gauge must be registered for the database");
     }
 
     @Test
@@ -346,19 +349,21 @@ public class CloudStorageMetricsTest {
         CloudStorageMetrics.registerDatabaseMetrics("db-A");
         CloudStorageMetrics.registerDatabaseMetrics("db-B");
 
-        assertEquals("both DBs must have per-DB meters registered",
-                     2, registeredDbMetricCount());
-        assertNotNull("db-A confirmed-files gauge must exist", confirmedFilesGaugeFor("db-A"));
-        assertNotNull("db-B confirmed-files gauge must exist", confirmedFilesGaugeFor("db-B"));
+        assertEquals(2,
+                     registeredDbMetricCount(),
+                     "both DBs must have per-DB meters registered");
+        assertNotNull(confirmedFilesGaugeFor("db-A"), "db-A confirmed-files gauge must exist");
+        assertNotNull(confirmedFilesGaugeFor("db-B"), "db-B confirmed-files gauge must exist");
 
         // Simulate DB deletion for db-A.
         CloudStorageMetrics.unregisterDatabaseMetrics("db-A");
 
-        assertEquals("only db-B must remain after db-A is unregistered",
-                     1, registeredDbMetricCount());
-        assertNull("db-A gauge must be removed from the registry (no cardinality leak)",
-                   confirmedFilesGaugeFor("db-A"));
-        assertNotNull("db-B gauge must be untouched", confirmedFilesGaugeFor("db-B"));
+        assertEquals(1,
+                     registeredDbMetricCount(),
+                     "only db-B must remain after db-A is unregistered");
+        assertNull(confirmedFilesGaugeFor("db-A"),
+                   "db-A gauge must be removed from the registry (no cardinality leak)");
+        assertNotNull(confirmedFilesGaugeFor("db-B"), "db-B gauge must be untouched");
     }
 
     @Test
@@ -370,7 +375,7 @@ public class CloudStorageMetricsTest {
 
         // A DB recreated at the same name must get fresh metrics.
         CloudStorageMetrics.registerDatabaseMetrics("db-A");
-        assertNotNull("recreated DB must re-register its metrics", confirmedFilesGaugeFor("db-A"));
+        assertNotNull(confirmedFilesGaugeFor("db-A"), "recreated DB must re-register its metrics");
         assertEquals(1, registeredDbMetricCount());
     }
 

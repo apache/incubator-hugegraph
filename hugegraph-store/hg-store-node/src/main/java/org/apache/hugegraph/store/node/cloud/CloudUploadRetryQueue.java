@@ -31,6 +31,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
@@ -42,7 +43,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.hugegraph.store.cloud.CloudStorageProvider;
 import org.apache.hugegraph.store.cloud.CloudStorageNonRetryableException;
-import org.apache.hugegraph.store.cloud.CloudStorageProviderFactory;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -104,11 +104,6 @@ public class CloudUploadRetryQueue implements Closeable {
             + "failedAt\\tattemptCount\\tdbName\\tcfName\\tfilePath\\tremoteKey\\tlastError"
             + "\\tsourceSstPath\\tuploadEpoch";
 
-    /** Max provider-unavailable reschedules before surfacing a terminal local-only DLQ signal. */
-    private static final int DEFAULT_MAX_PROVIDER_UNAVAILABLE_RETRIES = 256;
-    /** Backoff cap for provider-unavailable reschedules (ms), independent of upload-attempt cap. */
-    private static final long DEFAULT_PROVIDER_UNAVAILABLE_MAX_DELAY_MS = 30_000L;
-
     // -----------------------------------------------------------------------
     // Configuration
     // -----------------------------------------------------------------------
@@ -116,10 +111,7 @@ public class CloudUploadRetryQueue implements Closeable {
     private final int maxAttempts;
     private final long initialDelayMs;
     private final long maxDelayMs;
-    private volatile int maxProviderUnavailableRetries =
-            DEFAULT_MAX_PROVIDER_UNAVAILABLE_RETRIES;
-    private volatile long providerUnavailableMaxDelayMs =
-            DEFAULT_PROVIDER_UNAVAILABLE_MAX_DELAY_MS;
+    private final CloudStorageProvider provider;
 
     /**
      * Invoked with {@code (dbName, sourceSstPath, uploadEpoch)} whenever an upload succeeds via
@@ -230,6 +222,7 @@ public class CloudUploadRetryQueue implements Closeable {
      * DLQ is loaded, so a large persisted file is bounded to the configured cap during the load
      * itself — avoiding the post-load trim-and-rewrite the setter must perform.
      *
+     * @param provider          initialized cloud storage provider used for retries and DLQ replay
      * @param maxAttempts       maximum whole-file upload retries after a first failure.
      *                          {@code 0} means no retries – failures go directly to DLQ
      *                          (provider is expected to handle its own retries internally).
@@ -246,9 +239,10 @@ public class CloudUploadRetryQueue implements Closeable {
      *                          a non-positive value falls back to {@link #DEFAULT_MAX_DLQ_SIZE} so a
      *                          misconfiguration cannot turn the DLQ into a zero-capacity queue.
      */
-    public CloudUploadRetryQueue(int maxAttempts, long initialDelayMs,
-                                 long maxDelayMs, String dataRoot,
+    public CloudUploadRetryQueue(CloudStorageProvider provider, int maxAttempts,
+                                 long initialDelayMs, long maxDelayMs, String dataRoot,
                                  UploadConfirmedCallback onUploadConfirmed, int maxDlqSize) {
+        this.provider = Objects.requireNonNull(provider, "provider");
         this.maxAttempts = Math.max(0, maxAttempts);
         this.initialDelayMs = Math.max(100L, initialDelayMs);
         this.maxDelayMs = Math.max(this.initialDelayMs, maxDelayMs);
@@ -363,7 +357,7 @@ public class CloudUploadRetryQueue implements Closeable {
         // (best-effort disk append) so the retry intent is not lost, and return normally.
         try {
             scheduleRetry(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, uploadEpoch,
-                          1, 0);
+                          1);
         } catch (RejectedExecutionException e) {
             log.warn("Cloud upload retry scheduling rejected (scheduler shutting down); "
                      + "persisting directly to DLQ: db={}, cf={}, path={}",
@@ -448,18 +442,6 @@ public class CloudUploadRetryQueue implements Closeable {
         }
     }
 
-    /** Test seam: cap provider-unavailable reschedules so terminal behavior is deterministic. */
-    @SuppressWarnings("SameParameterValue")
-    void setMaxProviderUnavailableRetriesForTest(int retries) {
-        this.maxProviderUnavailableRetries = Math.max(1, retries);
-    }
-
-    /** Test seam: speed up provider-unavailable retry cadence for deterministic timing tests. */
-    @SuppressWarnings("SameParameterValue")
-    void setProviderUnavailableMaxDelayMsForTest(long maxDelayMs) {
-        this.providerUnavailableMaxDelayMs = Math.max(10L, maxDelayMs);
-    }
-
     /**
      * Returns the number of retry tasks currently scheduled or executing.
      */
@@ -496,8 +478,6 @@ public class CloudUploadRetryQueue implements Closeable {
         int dropped = 0;
         int requeued = 0;
 
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-
         // Process each task. Re-queue failures back into dlq BEFORE rewriting the file so
         // that a JVM crash during replay doesn't lose tasks that are in-flight in the scheduler.
         for (FailedUploadTask task : snapshot) {
@@ -522,12 +502,6 @@ public class CloudUploadRetryQueue implements Closeable {
                          + "db={}, pin={}, source={}", task.getDbName(), task.getFilePath(),
                          task.getSourceSstPath());
                 dropped++;
-                continue;
-            }
-            if (provider == null) {
-                // No provider — put back on DLQ (will be persisted below).
-                dlq.addLast(task);
-                requeued++;
                 continue;
             }
             try {
@@ -651,23 +625,17 @@ public class CloudUploadRetryQueue implements Closeable {
 
     private void scheduleRetry(String dbName, String cfName, String filePath,
                                 String sourceSstPath, String remoteKey,
-                                long uploadEpoch, int attempt,
-                                int providerUnavailableRetries) {
-        long delayMs = providerUnavailableRetries > 0
-                       ? computeProviderUnavailableDelay(providerUnavailableRetries)
-                       : computeDelay(attempt);
-        log.info("Cloud upload retry scheduled: db={}, cf={}, path={}, attempt={}/{}, "
-                 + "providerUnavailableRetries={}, delayMs={}",
-                 dbName, cfName, filePath, attempt, maxAttempts,
-                 providerUnavailableRetries, delayMs);
+                                long uploadEpoch, int attempt) {
+        long delayMs = computeDelay(attempt);
+        log.info("Cloud upload retry scheduled: db={}, cf={}, path={}, attempt={}/{}, delayMs={}",
+                 dbName, cfName, filePath, attempt, maxAttempts, delayMs);
         // Increment before schedule; decrement here on rejection (executeRetry's finally
         // handles the decrement on the happy path, but RejectedExecutionException bypasses it).
         inFlightCount.incrementAndGet();
         // Record the payload so a forced shutdown can rescue this retry into the DLQ if it never
         // runs. Removed when the task starts executing (see wrapper below).
         RetryContext ctx = new RetryContext(dbName, cfName, filePath, sourceSstPath, remoteKey,
-                                            uploadEpoch, attempt,
-                                            providerUnavailableRetries);
+                                            uploadEpoch, attempt);
         pendingRetries.add(ctx);
         try {
             scheduler.schedule(() -> {
@@ -677,7 +645,7 @@ public class CloudUploadRetryQueue implements Closeable {
                 inFlightRetries.add(ctx);
                 try {
                     executeRetry(dbName, cfName, filePath, sourceSstPath, remoteKey,
-                                 uploadEpoch, attempt, providerUnavailableRetries);
+                                 uploadEpoch, attempt);
                 } finally {
                     inFlightRetries.remove(ctx);
                 }
@@ -698,11 +666,9 @@ public class CloudUploadRetryQueue implements Closeable {
         final String remoteKey;
         final long uploadEpoch;
         final int attempt;
-        final int providerUnavailableRetries;
 
         RetryContext(String dbName, String cfName, String filePath, String sourceSstPath,
-                     String remoteKey, long uploadEpoch, int attempt,
-                     int providerUnavailableRetries) {
+                     String remoteKey, long uploadEpoch, int attempt) {
             this.dbName = dbName;
             this.cfName = cfName;
             this.filePath = filePath;
@@ -710,53 +676,17 @@ public class CloudUploadRetryQueue implements Closeable {
             this.remoteKey = remoteKey;
             this.uploadEpoch = uploadEpoch;
             this.attempt = attempt;
-            this.providerUnavailableRetries = providerUnavailableRetries;
         }
     }
 
     private void executeRetry(String dbName, String cfName, String filePath,
                                String sourceSstPath, String remoteKey,
-                               long uploadEpoch, int attempt,
-                               int providerUnavailableRetries) {
+                               long uploadEpoch, int attempt) {
         try {
             // If the local SST (or staging pin) is gone, drop silently – nothing to upload.
             if (!Files.exists(Paths.get(filePath))) {
                 log.info("Cloud upload retry: local file no longer exists (compacted?), "
                          + "dropping: db={}, cf={}, path={}", dbName, cfName, filePath);
-                return;
-            }
-
-            CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-            if (provider == null) {
-                int nextUnavailableRetries = providerUnavailableRetries + 1;
-                if (nextUnavailableRetries > maxProviderUnavailableRetries) {
-                    log.error("Cloud upload retry: provider unavailable for {} consecutive cycle(s); "
-                              + "moving to DLQ: db={}, cf={}, path={}",
-                              providerUnavailableRetries, dbName, cfName, filePath);
-                    moveToDlq(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
-                              attempt, "No active provider (exceeded unavailable retry limit)");
-                    return;
-                }
-                // Provider-unavailable windows are infrastructure/transient state, not upload
-                // attempts. Keep the same upload-attempt number, but use a dedicated backoff
-                // counter so long outages do not hot-loop the scheduler.
-                log.warn("Cloud upload retry: no active provider (upload attempt {}/{}; "
-                         + "providerUnavailableRetries={}/{}), rescheduling without consuming "
-                         + "retry budget: db={}, cf={}, path={}",
-                         attempt, maxAttempts,
-                         providerUnavailableRetries, maxProviderUnavailableRetries,
-                         dbName, cfName, filePath);
-                try {
-                    scheduleRetry(dbName, cfName, filePath, sourceSstPath, remoteKey,
-                                  uploadEpoch, attempt, nextUnavailableRetries);
-                } catch (RejectedExecutionException ree) {
-                    // Same shutdown-race handling as the generic failure path below: ensure the
-                    // upload intent is still durable via DLQ.
-                    log.warn("Cloud upload retry reschedule rejected (scheduler shutting down); "
-                             + "moving to DLQ: db={}, cf={}, path={}", dbName, cfName, filePath);
-                    moveToDlq(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
-                              attempt, "retry reschedule rejected during shutdown");
-                }
                 return;
             }
 
@@ -802,7 +732,7 @@ public class CloudUploadRetryQueue implements Closeable {
             } else {
                 try {
                     scheduleRetry(dbName, cfName, filePath, sourceSstPath, remoteKey,
-                                  uploadEpoch, attempt + 1, 0);
+                                  uploadEpoch, attempt + 1);
                 } catch (RejectedExecutionException ree) {
                     // Scheduler is shutting down. scheduleRetry rethrows the rejection; if we let
                     // it escape here it would propagate out of this scheduler task and be silently
@@ -867,13 +797,6 @@ public class CloudUploadRetryQueue implements Closeable {
         int exp = Math.min(attempt - 1, 30);
         long delay = initialDelayMs * (1L << exp);
         return Math.min(delay, maxDelayMs);
-    }
-
-    /** Backoff for provider-unavailable cycles (separate from upload-attempt backoff). */
-    private long computeProviderUnavailableDelay(int providerUnavailableRetries) {
-        int exp = Math.min(Math.max(providerUnavailableRetries - 1, 0), 30);
-        long delay = initialDelayMs * (1L << exp);
-        return Math.min(delay, providerUnavailableMaxDelayMs);
     }
 
     // -----------------------------------------------------------------------

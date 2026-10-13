@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,7 +51,6 @@ import org.apache.hugegraph.rocksdb.access.RocksDBFactory.MetadataSnapshot;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener;
 import org.apache.hugegraph.rocksdb.access.RocksDBSession;
 import org.apache.hugegraph.store.cloud.CloudStorageProvider;
-import org.apache.hugegraph.store.cloud.CloudStorageProviderFactory;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -117,20 +117,23 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      */
     private final CloudUploadRetryQueue retryQueue;
 
+    /** Initialized cloud storage provider; resolved once at startup and never reconfigured. */
+    private final CloudStorageProvider provider;
+
     /** Tracks which SST files are confirmed present in cloud (per-DB confirmed-file-number set). */
     private final CloudSyncTracker syncTracker;
 
     /**
      * Hard health flag for pending-delete marker durability. Flips to {@code false} when a marker
-     * cannot be durably persisted (write + fsync) — a state in which a DB delete during a
-     * provider-unavailable window may be unguarded against re-hydration after a crash — and back to
+     * cannot be durably persisted (write + fsync) — a state in which a DB delete whose remote
+     * cleanup fails may be unguarded against re-hydration after a crash — and back to
      * {@code true} once a marker is durably persisted again. Surfaced via
      * {@link CloudStorageMetricsConst#DELETE_MARKER_HEALTHY}. {@code volatile}: written from delete
      * callbacks, read from metric-scrape threads.
      * -- GETTER --
      *  Whether pending-delete marker persistence is currently healthy.
      *  indicates a
-     *  marker could not be durably written, so a delete during a provider-unavailable window may not
+     *  marker could not be durably written, so a delete whose remote cleanup fails may not
      *  survive a crash as a hydration guard. Bound to
      * <p>
      * .
@@ -324,6 +327,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      * tuning setters not yet applied. The equivalent {@code set*} methods remain for tests and
      * runtime overrides.
      *
+     * @param provider initialized cloud storage provider
      * @param dataRoots configured store data roots (typically parsed from comma-separated
      *                  {@code app.data-path})
      * @param readMissGuardWindowMs guard window in ms for repeated read-miss hydration attempts
@@ -341,7 +345,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      * @param metadataSyncMaxUnpublished backlog bound on the debounce; see
      *                                   {@link #setMetadataSyncMaxUnpublished(int)}
      */
-    public CloudStorageEventListener(List<String> dataRoots,
+    public CloudStorageEventListener(CloudStorageProvider provider,
+                                     List<String> dataRoots,
                                      boolean startupHydrationEnabled,
                                      long readMissGuardWindowMs,
                                      CloudUploadRetryQueue retryQueue,
@@ -370,6 +375,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
             this.allDataRoots.add(normalised);
         }
         this.primaryDataRoot = this.allDataRoots.get(0);
+        this.provider = Objects.requireNonNull(provider, "provider");
         this.startupHydrationEnabled = startupHydrationEnabled;
         this.readMissGuardWindowMs = Math.max(0L, readMissGuardWindowMs);
         this.readMissAttemptTs = new ConcurrentHashMap<>();
@@ -501,27 +507,20 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         if (!startupHydrationEnabled) {
             return;
         }
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        // Pending-delete guard: a prior delete's remote cleanup may not be confirmed (provider was
-        // down, or the purge failed and is being retried). Checked BEFORE the provider-null return
-        // so a re-create during a provider outage still cannot re-hydrate the deleted generation.
+        // Pending-delete guard: a prior delete's remote cleanup may not be confirmed (the purge
+        // failed and is being retried), so a re-create must not re-hydrate the deleted generation.
         String prefix = dbPrefix(dbPath);
         if (hasPendingDeleteMarker(prefix)) {
-            if (provider != null) {
-                // Finish cleanup inline (under the per-prefix lock) BEFORE the open proceeds, so the
-                // re-created DB's later uploads cannot be purged by the async retry. If it succeeds
-                // the marker is removed and it is safe to hydrate (the prefix is now empty).
-                tryCompletePendingDelete(provider, dbName, prefix);
-            }
+            // Finish cleanup inline (under the per-prefix lock) BEFORE the open proceeds, so the
+            // re-created DB's later uploads cannot be purged by the async retry. If it succeeds
+            // the marker is removed and it is safe to hydrate (the prefix is now empty).
+            tryCompletePendingDelete(provider, dbName, prefix);
             if (hasPendingDeleteMarker(prefix)) {
                 log.warn("Cloud pre-hydration skipped for db={}: remote-delete cleanup not yet "
                          + "confirmed — opening fresh and blocking re-hydration of deleted data.",
                          dbName);
                 return;
             }
-        }
-        if (provider == null) {
-            return;
         }
         preHydrateDbFiles(provider, dbName, dbPath);
     }
@@ -543,10 +542,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     public boolean onReadMiss(RocksDBSession session, String table, byte[] key) {
         String dbName = session.getGraphName();
         if (!shouldAttemptReadMissHydration(dbName, table)) {
-            return false;
-        }
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
             return false;
         }
         int restored = restoreMissingLiveFiles(provider, dbName,
@@ -640,10 +635,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     @Override
     public void onDBCreated(String dbName, String dbPath) {
         recordDb(dbName, dbPath);
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            return;
-        }
         // Do not propagate upload failures: the session is already live in dbSessionMap at
         // this point, so throwing here would cause the createGraphDB caller to receive an
         // error while the DB is actually open and usable by other threads (split-brain).
@@ -675,7 +666,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     public void onDBDeleteBegin(String dbName, String dbPath) {
         String prefix = dbPrefix(dbPath);
         // ALWAYS persist a LOCAL pending-delete marker first. This is the durable anti-resurrection
-        // guard that survives a provider-unavailable window: even if we cannot write the remote
+        // guard that survives a failed remote cleanup: even if we cannot write the remote
         // tombstone or purge below, the marker blocks hydration of this DB (see onDBOpening) and
         // drives async cleanup until confirmed. It is removed once the remote purge succeeds.
         //
@@ -696,14 +687,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                     + "; holding delete to preserve the anti-resurrection guard", e);
         }
 
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            // No provider now — the local marker keeps hydration blocked and onDBDeleted will
-            // schedule the retry that writes the tombstone + purges once a provider returns.
-            log.warn("Cloud DB delete begin with no active provider: db={} — persisted local "
-                     + "pending-delete marker to block re-hydration until cleanup completes.", dbName);
-            return;
-        }
         // Tombstone lives OUTSIDE the data prefix (sibling, not child) so it is not
         // accidentally deleted by purgeRemotePrefix when SST objects are still present.
         String tombstoneKey = prefix + DB_TOMBSTONE_SUFFIX;
@@ -758,16 +741,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         CloudStorageMetrics.unregisterDatabaseMetrics(dbName);
 
         String prefix = dbPrefix(dbPath);
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            // Provider unavailable: cannot purge now. The local pending-delete marker (written in
-            // onDBDeleteBegin) keeps hydration blocked; schedule a bounded retry that purges once a
-            // provider returns, so stale remote data cannot be resurrected.
-            log.warn("Cloud DB delete with no active provider: db={} — scheduling deferred remote "
-                     + "purge; local pending-delete marker guards re-hydration meanwhile.", dbName);
-            scheduleDeletePurgeRetry(dbName, prefix, 1);
-            return;
-        }
         boolean purgeSucceeded = purgeRemotePrefix(provider, dbName, prefix);
         if (purgeSucceeded) {
             // Remote data is gone: drop the sibling tombstone and the local marker (cleanup done).
@@ -829,15 +802,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                           + "persist.",
                           dbName, prefix, e.getMessage());
             }
-            CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-            if (provider == null) {
-                // Provider can be transiently unavailable during reconfiguration; keep the bounded
-                // retry chain alive so stale pre-truncate objects are still purged once it returns.
-                log.warn("Cloud truncate purge for db={} found no active provider; scheduling "
-                         + "bounded retries for prefix={}", dbName, prefix);
-                scheduleTruncatePurgeRetry(dbName, prefix);
-                return;
-            }
             boolean purged = purgeRemotePrefix(provider, dbName, prefix);
             if (purged) {
                 removePendingTruncateMarker(prefix);
@@ -864,8 +828,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     private static final int MAX_TRUNCATE_PURGE_RETRIES = 5;
     /** Base backoff (ms) for truncate-purge retries; doubles each attempt up to a small cap. */
     private static final long TRUNCATE_PURGE_RETRY_BASE_MS = 500L;
-    /** Cap for provider-unavailable truncate-retry backoff (ms), separate from purge failures. */
-    private static final long TRUNCATE_PROVIDER_UNAVAILABLE_MAX_DELAY_MS = 8_000L;
 
     /**
      * Retries a failed truncate purge asynchronously with capped exponential backoff. Each attempt
@@ -875,11 +837,10 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      * then require manual cleanup, but the failure is at least visible rather than silent.
      */
     private void scheduleTruncatePurgeRetry(String dbName, String prefix) {
-        scheduleTruncatePurgeRetry(dbName, prefix, 1, 0);
+        scheduleTruncatePurgeRetry(dbName, prefix, 1);
     }
 
-    private void scheduleTruncatePurgeRetry(String dbName, String prefix, int attempt,
-                                            int providerUnavailableRetries) {
+    private void scheduleTruncatePurgeRetry(String dbName, String prefix, int attempt) {
         if (attempt > MAX_TRUNCATE_PURGE_RETRIES) {
             log.error("Cloud truncate purge for db={} still failing after {} attempt(s) — remote "
                       + "prefix '{}' may retain stale objects that could be re-hydrated on restore. "
@@ -887,12 +848,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                       dbName, MAX_TRUNCATE_PURGE_RETRIES, prefix);
             return;
         }
-        int exp = providerUnavailableRetries > 0 ? providerUnavailableRetries - 1 : attempt - 1;
-        exp = Math.min(Math.max(exp, 0), 30);
-        long cap = providerUnavailableRetries > 0
-                   ? TRUNCATE_PROVIDER_UNAVAILABLE_MAX_DELAY_MS
-                   : 8_000L;
-        long delay = Math.min(TRUNCATE_PURGE_RETRY_BASE_MS * (1L << exp), cap);
+        int exp = Math.min(Math.max(attempt - 1, 0), 30);
+        long delay = Math.min(TRUNCATE_PURGE_RETRY_BASE_MS * (1L << exp), 8_000L);
         // Keep the grace window fresh so we do not mirror new metadata over the still-stale prefix.
         truncationTimes.put(dbName, System.currentTimeMillis());
         ScheduledExecutorService scheduler = metadataSyncScheduler();
@@ -906,26 +863,12 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         }
         try {
             scheduler.schedule(() -> {
-                CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-                if (provider == null) {
-                    // Provider temporarily unavailable (e.g. reconfiguration window). This is NOT a
-                    // remote purge failure, so do not consume the bounded purge-attempt budget here;
-                    // otherwise a long outage can exhaust retries before the provider returns and
-                    // leave stale pre-truncate objects behind indefinitely.
-                    log.warn("Cloud truncate purge retry for db={} found no active provider "
-                             + "(attempt {}, providerUnavailableRetries={}); rescheduling "
-                             + "without consuming retry budget.",
-                             dbName, attempt, providerUnavailableRetries);
-                    scheduleTruncatePurgeRetry(dbName, prefix, attempt,
-                                              providerUnavailableRetries + 1);
-                    return;
-                }
                 if (purgeRemotePrefix(provider, dbName, prefix)) {
                     removePendingTruncateMarker(prefix);
                     log.info("Cloud truncate purge succeeded on retry for db={} (attempt {})",
                              dbName, attempt);
                 } else {
-                    scheduleTruncatePurgeRetry(dbName, prefix, attempt + 1, 0);
+                    scheduleTruncatePurgeRetry(dbName, prefix, attempt + 1);
                 }
             }, delay, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
@@ -1062,7 +1005,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
 
     /**
      * Crash-safely persists a local pending-truncate marker for {@code prefix}. This keeps remote
-     * truncate-purge intent durable across process restarts while the provider is unavailable.
+     * truncate-purge intent durable across process restarts until the remote purge succeeds.
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void writePendingTruncateMarker(String dbName, String prefix) throws IOException {
@@ -1146,11 +1089,10 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
 
     /**
      * Retries the remote purge for a deleted DB with capped exponential backoff — the same safety
-     * level as the truncate purge. A {@code null} provider is treated as a failed attempt and
-     * rescheduled (transient reconfiguration window) rather than abandoned. While retries are
-     * pending, the local pending-delete marker keeps {@link #onDBOpening} from re-hydrating stale
-     * data. After {@link #MAX_DELETE_PURGE_RETRIES} failures it logs loudly for operator action; the
-     * marker and tombstone remain, so re-hydration stays blocked until manual cleanup.
+     * level as the truncate purge. While retries are pending, the local pending-delete marker keeps
+     * {@link #onDBOpening} from re-hydrating stale data. After {@link #MAX_DELETE_PURGE_RETRIES}
+     * failures it logs loudly for operator action; the marker and tombstone remain, so
+     * re-hydration stays blocked until manual cleanup.
      */
     private void scheduleDeletePurgeRetry(String dbName, String prefix, int attempt) {
         if (attempt > MAX_DELETE_PURGE_RETRIES) {
@@ -1170,13 +1112,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         }
         try {
             scheduler.schedule(() -> {
-                CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-                if (provider == null) {
-                    log.warn("Cloud DB delete purge retry for db={} found no active provider "
-                             + "(attempt {}); rescheduling.", dbName, attempt);
-                    scheduleDeletePurgeRetry(dbName, prefix, attempt + 1);
-                    return;
-                }
                 // tryCompletePendingDelete is a no-op (returns true) if the marker was already
                 // cleared (e.g. by an inline open-time cleanup), so the retry never purges a prefix
                 // a re-created DB may have taken over.
@@ -1476,30 +1411,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         // with reused file numbers is silently dropped instead of producing stale durability state.
         long uploadEpoch = syncTracker.currentEpoch(dbName);
 
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            CloudStorageMetrics.recordUploadFailure(dbName, cfName, "NoActiveProvider");
-            if (retryQueue != null) {
-                try {
-                    Path pinned = pinForAsyncUpload(filePath);
-                    retryQueue.submitPinned(dbName, cfName, pinned.toString(), filePath, remoteKey,
-                                            uploadEpoch,
-                                            new IOException("no active cloud provider"));
-                    log.warn("Cloud upload deferred due to missing provider: db={}, cf={}, path={}"
-                             + " (staged pin routed to retry queue)", dbName, cfName, filePath);
-                } catch (Exception pinError) {
-                    log.warn("Cloud upload deferred due to missing provider and staging failed: "
-                             + "db={}, cf={}, path={} — routing original SST to retry queue: {}",
-                             dbName, cfName, filePath, pinError.getMessage());
-                    retryQueue.submit(dbName, cfName, filePath, remoteKey, uploadEpoch,
-                                      new IOException("no active cloud provider", pinError));
-                }
-            } else {
-                log.warn("Cloud upload skipped: no active provider and no retry queue: db={}, cf={}, "
-                         + "path={}", dbName, cfName, filePath);
-            }
-            return;
-        }
 
         Path pinned;
         try {
@@ -1711,10 +1622,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         // is absent from dbSessionMap, so every superseded-SST removal is silently skipped and the
         // object leaks in cloud forever (with an endless deferred-delete retry loop).
         String dbName = resolveDbName(dbNameOrPath, filePath);
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            return;
-        }
         // Skip file deletion during truncation or grace period; the entire DB prefix will be purged anyway
         if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
             log.debug("Skipping delete during truncation: db={}, path={}", dbName, filePath);
@@ -1817,11 +1724,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     /** Retries superseded-SST deletes that were deferred on transient cloud/metadata failures. */
     private void retryDeferredSstDeletes() {
         if (deferredSstDeletes.isEmpty()) {
-            return;
-        }
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            scheduleDeferredSstDeleteRetry(DEFERRED_SST_DELETE_RETRY_MS);
             return;
         }
         int succeeded = 0;
@@ -1971,10 +1873,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      */
     @Override
     public void onCompacted(String dbNameOrPath) {
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            return;
-        }
         String dbName = resolveDbName(dbNameOrPath, null);
         // Skip metadata sync during truncation or grace period to allow purge to complete cleanly
         if (!isActivelyTruncating(dbName) && !isInTruncationGracePeriod(dbName)) {
@@ -2138,10 +2036,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      * cloud could hold the SST but keep exposing a stale CURRENT. Runs on the retry-queue thread.
      */
     public void onRetryUploadDurable(String dbName) {
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
-            return;
-        }
         // During shutdown the retry queue is closed AFTER the upload executor drains and BEFORE the
         // provider is closed, so a retry that becomes durable in that window must still advance the
         // pointer. requestDebouncedMetadataSync now publishes inline (no scheduler resurrection) when
@@ -2155,10 +2049,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     private void runTrailingMetadataSync(String dbName) {
         pendingMetadataSync.remove(dbName);
         if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
-            return;
-        }
-        CloudStorageProvider provider = CloudStorageProviderFactory.getActiveProvider();
-        if (provider == null) {
             return;
         }
         lastMetadataSyncMs.put(dbName, System.currentTimeMillis());

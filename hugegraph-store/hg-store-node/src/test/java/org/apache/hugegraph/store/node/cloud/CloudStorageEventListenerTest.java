@@ -17,10 +17,10 @@
 
 package org.apache.hugegraph.store.node.cloud;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,11 +49,9 @@ import org.apache.hugegraph.rocksdb.access.RocksDBFactory.MetadataSnapshot;
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
 import org.apache.hugegraph.store.cloud.CloudStorageNonRetryableException;
 import org.apache.hugegraph.store.cloud.CloudStorageProvider;
-import org.apache.hugegraph.store.cloud.CloudStorageProviderFactory;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link CloudStorageEventListener}.
@@ -69,15 +67,9 @@ public class CloudStorageEventListenerTest {
 
     private CloudStorageEventListener listener;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        listener = CloudStorageTestFactory.newListener(List.of(DATA_ROOT));
-    }
-
-    @After
-    public void tearDown() {
-        // Reset active provider between tests
-        CloudStorageProviderFactory.reset();
+        listener = CloudStorageTestFactory.newListener(new CapturingProvider(), List.of(DATA_ROOT));
     }
 
     // -----------------------------------------------------------------------
@@ -94,21 +86,32 @@ public class CloudStorageEventListenerTest {
     public void constructor_rejectsEmptyDataRoots() {
         // Fail fast with a clear config error instead of an opaque IndexOutOfBoundsException later.
         try {
-            CloudStorageTestFactory.newListener(Collections.emptyList());
+            CloudStorageTestFactory.newListener(new CapturingProvider(), Collections.emptyList());
             fail("Expected IllegalArgumentException for empty data-root list");
         } catch (IllegalArgumentException expected) {
-            assertTrue("Message should mention data root: " + expected.getMessage(),
-                       expected.getMessage().toLowerCase().contains("data root"));
+            assertTrue(expected.getMessage().toLowerCase().contains("data root"),
+                       "Message should mention data root: " + expected.getMessage());
         }
     }
 
     @Test
     public void constructor_rejectsNullDataRoots() {
         try {
-            CloudStorageTestFactory.newListener(null);
+            CloudStorageTestFactory.newListener(new CapturingProvider(), null);
             fail("Expected IllegalArgumentException for null data-root list");
         } catch (IllegalArgumentException expected) {
             // expected
+        }
+    }
+
+    @Test
+    public void constructor_rejectsNullProvider() {
+        try {
+            CloudStorageTestFactory.newListener(null, List.of(DATA_ROOT));
+            fail("Expected NullPointerException for null provider");
+        } catch (NullPointerException expected) {
+            assertTrue(String.valueOf(expected.getMessage()).contains("provider"),
+                       "Message should mention provider: " + expected.getMessage());
         }
     }
 
@@ -127,35 +130,19 @@ public class CloudStorageEventListenerTest {
     @Test
     public void toRelativeKey_handlesDataRootWithTrailingSlash() {
         CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(DATA_ROOT + File.separator));
+                CloudStorageTestFactory.newListener(new CapturingProvider(),
+                                                    List.of(DATA_ROOT + File.separator));
         assertEquals("hgstore-metadata/000008.sst",
                      l.toRelativeKey(DATA_ROOT + "/hgstore-metadata/000008.sst"));
     }
 
     @Test
     public void toRelativeKey_appliesStoreScopePrefix() {
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(new CapturingProvider(),
                 List.of(DATA_ROOT), true, 0L, null, new CloudSyncTracker(),
                 "store-127.0.0.1_8501");
         String filePath = DATA_ROOT + "/0/000042.sst";
         assertEquals("store-127.0.0.1_8501/0/000042.sst", l.toRelativeKey(filePath));
-    }
-
-    // -----------------------------------------------------------------------
-    // onTableFileCreated / onTableFileDeleted – no active provider (no-op)
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void onTableFileCreated_noActiveProvider_doesNotThrow() {
-        // No provider registered → method must be a silent no-op.
-        listener.onTableFileCreated("hgstore-metadata", "default",
-                                    DATA_ROOT + "/hgstore-metadata/000008.sst", 1234L);
-    }
-
-    @Test
-    public void onTableFileDeleted_noActiveProvider_doesNotThrow() {
-        listener.onTableFileDeleted("hgstore-metadata", "default",
-                                    DATA_ROOT + "/hgstore-metadata/000008.sst");
     }
 
     // -----------------------------------------------------------------------
@@ -171,8 +158,8 @@ public class CloudStorageEventListenerTest {
         Files.write(sst, "sst".getBytes());
 
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()));
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()));
 
         try {
             l.onTableFileCreated("hgstore-metadata", "default", sst.toString(), 512L);
@@ -197,8 +184,7 @@ public class CloudStorageEventListenerTest {
         Files.write(sst, "sst".getBytes());
 
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                 List.of(tmpRoot.toString()), true, 0L, null, new CloudSyncTracker(),
                 "store-127.0.0.1_8501");
         try {
@@ -224,7 +210,9 @@ public class CloudStorageEventListenerTest {
 
         CountDownLatch metadataSyncCalled = new CountDownLatch(1);
         AtomicReference<String> observedDbName = new AtomicReference<>();
-        CloudStorageEventListener l = new CloudStorageEventListener(List.of(tmpRoot.toString()),
+        CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                new CloudStorageEventListener(provider, List.of(tmpRoot.toString()),
                 true, CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null,
                 new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
@@ -238,16 +226,12 @@ public class CloudStorageEventListenerTest {
 
         try {
             // Seed the dir->logical mapping as happens when the DB opens.
-            CloudStorageProviderFactory.reset();
             l.onDBCreated("00001", dbDir.toString());
-
-            CapturingProvider provider = new CapturingProvider();
-            CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
             l.onTableFileCreated(dbDir.toString(), "default", sst.toString(), Files.size(sst));
 
-            assertTrue("Expected async metadata-sync trigger after upload",
-                       metadataSyncCalled.await(2, TimeUnit.SECONDS));
+            assertTrue(metadataSyncCalled.await(2, TimeUnit.SECONDS),
+                       "Expected async metadata-sync trigger after upload");
             assertEquals("00001", observedDbName.get());
         } finally {
             deleteRecursively(tmpRoot.toFile());
@@ -265,7 +249,9 @@ public class CloudStorageEventListenerTest {
         Files.createDirectories(dbDir);
 
         AtomicReference<String> observedDbName = new AtomicReference<>();
-        CloudStorageEventListener l = new CloudStorageEventListener(List.of(tmpRoot.toString()),
+        CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                new CloudStorageEventListener(provider, List.of(tmpRoot.toString()),
                 true, CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null,
                 new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
@@ -277,18 +263,15 @@ public class CloudStorageEventListenerTest {
             }
         };
 
-        CloudStorageProviderFactory.reset();
         // Seed the dir->logical mapping as happens when the DB opens.
         l.onDBCreated("00001", dbDir.toString());
-
-        CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             // Pass the path form, as RocksDB does in production.
             l.onTableFileDeleted(dbDir.toString(), "default", dbDir.resolve("000001.sst").toString());
-            assertEquals("delete guard/metadata sync must key off the resolved logical name",
-                         "00001", observedDbName.get());
+            assertEquals("00001",
+                         observedDbName.get(),
+                         "delete guard/metadata sync must key off the resolved logical name");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -309,11 +292,11 @@ public class CloudStorageEventListenerTest {
 
         // maxAttempts=0 → after the async upload fails, the task is routed straight to the DLQ,
         // giving a deterministic, observable postcondition (no timing-dependent retry cycle).
-        try (CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
+        FailingUploadProvider provider = new FailingUploadProvider();
+        try (CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(provider,
                 0, 50L, 50L, tmpRoot.toString())) {
-            CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+            CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                     List.of(tmpRoot.toString()), true, 0L, retryQueue);
-            CloudStorageProviderFactory.setActiveProviderForTest(new FailingUploadProvider());
             // Must NOT throw – the provider failure is handled asynchronously.
             l.onTableFileCreated("hgstore-metadata", "default", sst.toString(),
                                  Files.size(sst));
@@ -324,8 +307,9 @@ public class CloudStorageEventListenerTest {
             waitForCondition(() -> retryQueue.getDlqSize() > 0,
                              "async provider upload failure should be submitted to the DLQ");
 
-            assertEquals("Provider upload failure must land in the DLQ",
-                         1, retryQueue.getDlqSize());
+            assertEquals(1,
+                         retryQueue.getDlqSize(),
+                         "Provider upload failure must land in the DLQ");
             FailedUploadTask entry = retryQueue.getDlqEntries().get(0);
             assertEquals("hgstore-metadata", entry.getDbName());
             assertEquals("hgstore-metadata/000008.sst", entry.getRemoteKey());
@@ -345,23 +329,24 @@ public class CloudStorageEventListenerTest {
         Path sst = dbDir.resolve("000002.sst");
         Files.write(sst, "sst-body".getBytes());
 
-        try (CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(
+        NonRetryableUploadProvider provider = new NonRetryableUploadProvider();
+        try (CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(provider,
                 3, 50L, 5000L, tmpRoot.toString())) {
-            CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+            CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                     List.of(tmpRoot.toString()), true, 0L, retryQueue);
-            CloudStorageProviderFactory.setActiveProviderForTest(new NonRetryableUploadProvider());
             // Must NOT throw – the provider failure is handled asynchronously.
             l.onTableFileCreated("hgstore-metadata", "default", sst.toString(), Files.size(sst));
 
             waitForCondition(() -> retryQueue.getDlqSize() > 0,
                              "non-retryable upload failure should land in the DLQ immediately");
 
-            assertEquals("non-retryable failure must go directly to the DLQ (no retries)",
-                         1, retryQueue.getDlqSize());
+            assertEquals(1,
+                         retryQueue.getDlqSize(),
+                         "non-retryable failure must go directly to the DLQ (no retries)");
             FailedUploadTask entry = retryQueue.getDlqEntries().get(0);
             assertEquals("hgstore-metadata", entry.getDbName());
-            assertTrue("DLQ entry must record the non-retryable cause",
-                       entry.getLastError().contains("credentials"));
+            assertTrue(entry.getLastError().contains("credentials"),
+                       "DLQ entry must record the non-retryable cause");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -370,9 +355,9 @@ public class CloudStorageEventListenerTest {
     @Test
     public void onTableFileCreated_uploadFailure_noRetryQueue_doesNotThrow() {
         // A listener without a retry queue: failure must still not throw (just logs).
-        CloudStorageProviderFactory.setActiveProviderForTest(new FailingUploadProvider());
-        // listener is created in setUp() with no retry queue.
-        listener.onTableFileCreated("hgstore-metadata", "default",
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+                new FailingUploadProvider(), List.of(DATA_ROOT));
+        l.onTableFileCreated("hgstore-metadata", "default",
                                     DATA_ROOT + "/hgstore-metadata/000008.sst", 512L);
         // If we reached here without an exception the test passes.
     }
@@ -388,10 +373,10 @@ public class CloudStorageEventListenerTest {
         Files.write(sst, "sst".getBytes());
 
         try {
-            CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()));
             long sleepDurationMs = 1000L;  // Provider will sleep for 1 second
-            CloudStorageProviderFactory.setActiveProviderForTest(
-                    new SlowUploadProvider(sleepDurationMs));
+            SlowUploadProvider provider = new SlowUploadProvider(sleepDurationMs);
+            CloudStorageEventListener l =
+                    CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()));
 
             // Measure how long onTableFileCreated takes to return
             long startNs = System.nanoTime();
@@ -401,10 +386,10 @@ public class CloudStorageEventListenerTest {
             // The callback must return in a fraction of the provider's sleep time.
             // Allow a small buffer (100ms) for overhead, but the bulk of the sleep
             // should happen asynchronously in the background executor.
-            assertTrue("onTableFileCreated should return quickly without blocking on upload; "
+            assertTrue(callDurationMs < 200L,
+                       "onTableFileCreated should return quickly without blocking on upload; "
                        + "call took " + callDurationMs + "ms (provider sleeps for "
-                       + sleepDurationMs + "ms)",
-                       callDurationMs < 200L);
+                       + sleepDurationMs + "ms)");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -413,8 +398,7 @@ public class CloudStorageEventListenerTest {
     @Test
     public void onTableFileDeleted_delegatesToProvider_withRelativeKey() {
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
-        CloudStorageEventListener l = new CloudStorageEventListener(List.of(DATA_ROOT),
+        CloudStorageEventListener l = new CloudStorageEventListener(provider, List.of(DATA_ROOT),
                 true, CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null,
                 new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
@@ -445,10 +429,9 @@ public class CloudStorageEventListenerTest {
         Files.createFile(partitionDir.resolve("000001.sst"));
         Files.createFile(partitionDir.resolve("000002.sst"));
 
-        CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()));
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()));
 
         try {
             // Trigger onDBCreated; startup backfill should upload both SST files synchronously.
@@ -461,8 +444,8 @@ public class CloudStorageEventListenerTest {
             }
             // Keys should be relative (e.g. "0/000001.sst")
             for (String key : remoteKeys) {
-                assertFalse("Remote key must not start with '/': " + key, key.startsWith("/"));
-                assertTrue("Remote key must end with .sst: " + key, key.endsWith(".sst"));
+                assertFalse(key.startsWith("/"), "Remote key must not start with '/': " + key);
+                assertTrue(key.endsWith(".sst"), "Remote key must end with .sst: " + key);
             }
         } finally {
             deleteRecursively(tmpRoot.toFile());
@@ -479,9 +462,9 @@ public class CloudStorageEventListenerTest {
         Files.createDirectories(partitionDir);
         Files.createFile(partitionDir.resolve("000001.sst"));
 
+        FailingUploadProvider provider = new FailingUploadProvider();
         CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()));
-        CloudStorageProviderFactory.setActiveProviderForTest(new FailingUploadProvider());
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()));
 
         try {
             // Should not throw even though the upload fails.
@@ -494,9 +477,9 @@ public class CloudStorageEventListenerTest {
     // -----------------------------------------------------------------------
     // metadata mirroring (upload order, CURRENT-last, prune, consistent restore)
     // -----------------------------------------------------------------------
-    private static CloudStorageEventListener metadataListener() {
-        return CloudStorageTestFactory.newListener(List.of(DATA_ROOT), false, 0L,
-                                             null, new CloudSyncTracker());
+    private static CloudStorageEventListener metadataListener(CloudStorageProvider provider) {
+        return CloudStorageTestFactory.newListener(provider, List.of(DATA_ROOT), false, 0L,
+                                                   null, new CloudSyncTracker());
     }
 
     private static MetadataSnapshot snapshot(List<String> options, List<String> ssts) {
@@ -506,8 +489,8 @@ public class CloudStorageEventListenerTest {
 
     @Test
     public void uploadMetadataSnapshot_uploadsReferencedSstsThenMetadataThenCurrentLast() {
-        CloudStorageEventListener l = metadataListener();
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l = metadataListener(provider);
         // The referenced SST is already durable in cloud → no re-upload, but metadata must follow.
         provider.putRemoteFile("0/000003.sst", "sst".getBytes());
 
@@ -527,9 +510,9 @@ public class CloudStorageEventListenerTest {
 
     @Test
     public void uploadMetadataSnapshot_holdsManifestAndCurrentWhenReferencedSstUploadFails() {
-        CloudStorageEventListener l = metadataListener();
         // Referenced SST is neither in cloud nor uploadable → the whole publish must be held.
         FailingUploadProvider provider = new FailingUploadProvider();
+        CloudStorageEventListener l = metadataListener(provider);
 
         MetadataSnapshot snap = snapshot(
                 List.of("OPTIONS-000004"), List.of("000003.sst"));
@@ -546,8 +529,6 @@ public class CloudStorageEventListenerTest {
     @Test
     public void uploadMetadataSnapshot_holdsPublishWhenSstConfirmationEpochTurnsStale() {
         CloudSyncTracker tracker = new CloudSyncTracker();
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
-                List.of(DATA_ROOT), false, 0L, null, tracker);
         CapturingProvider provider = new CapturingProvider() {
             @Override
             public void uploadFile(String localPath, String remoteKey) throws IOException {
@@ -558,25 +539,28 @@ public class CloudStorageEventListenerTest {
                 }
             }
         };
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
+                List.of(DATA_ROOT), false, 0L, null, tracker);
 
         MetadataSnapshot snap = snapshot(
                 List.of("OPTIONS-000004"), List.of("000003.sst"));
 
         boolean durable = l.uploadMetadataSnapshot(provider, "0", snap);
 
-        assertFalse("Stale epoch confirmation must hold metadata publish", durable);
+        assertFalse(durable, "Stale epoch confirmation must hold metadata publish");
         List<String> keys = new ArrayList<>();
         for (String[] up : provider.uploads) {
             keys.add(up[1]);
         }
-        assertEquals("Only the SST upload may have happened before stale confirmation was dropped",
-                     List.of("0/000003.sst"), keys);
+        assertEquals(List.of("0/000003.sst"),
+                     keys,
+                     "Only the SST upload may have happened before stale confirmation was dropped");
     }
 
     @Test
     public void uploadMetadataSnapshot_prunesSupersededRemoteMetadataButKeepsCurrentAndSst() {
-        CloudStorageEventListener l = metadataListener();
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l = metadataListener(provider);
         provider.putRemoteFile("0/000003.sst", "sst".getBytes());
         // Superseded remote metadata from a previous generation, plus files that must be kept.
         provider.putRemoteFile("0/MANIFEST-000001", "old".getBytes());
@@ -601,11 +585,11 @@ public class CloudStorageEventListenerTest {
         Path partitionDir = tmpRoot.resolve("0");
         Files.createDirectories(partitionDir);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         // CURRENT points at a manifest that was never mirrored → restore must refuse to open.
         provider.putRemoteFile("0/CURRENT", "MANIFEST-000009\n".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             l.onDBOpening("0", partitionDir.toString());
@@ -638,21 +622,22 @@ public class CloudStorageEventListenerTest {
         try {
             Future<Boolean> newerResult = executor.submit(
                     () -> controlled.syncMetadataSnapshotInline(provider, "db0"));
-            assertTrue("newer publish did not start",
-                       newerUploadEntered.await(2, TimeUnit.SECONDS));
+            assertTrue(newerUploadEntered.await(2, TimeUnit.SECONDS),
+                       "newer publish did not start");
 
             Future<Boolean> olderResult = executor.submit(
                     () -> controlled.syncMetadataSnapshotInline(provider, "db0"));
 
             // Second call must be blocked on the same db lock until the first publication exits.
             Thread.sleep(100L);
-            assertEquals("second sync must not capture before first publish is released",
-                         1, controlled.captureCalls());
+            assertEquals(1,
+                         controlled.captureCalls(),
+                         "second sync must not capture before first publish is released");
 
             releaseNewerUpload.countDown();
 
-            assertTrue("newer generation must publish", newerResult.get(2, TimeUnit.SECONDS));
-            assertFalse("older generation must be rejected", olderResult.get(2, TimeUnit.SECONDS));
+            assertTrue(newerResult.get(2, TimeUnit.SECONDS), "newer generation must publish");
+            assertFalse(olderResult.get(2, TimeUnit.SECONDS), "older generation must be rejected");
             assertEquals(List.of(200L), controlled.publishedGenerations());
         } finally {
             executor.shutdownNow();
@@ -668,12 +653,13 @@ public class CloudStorageEventListenerTest {
                                                                        .build();
         CapturingProvider provider = new CapturingProvider();
 
-        assertTrue("first publish should succeed",
-                   listener.syncMetadataSnapshotInline(provider, "db0"));
-        assertTrue("equal-generation re-publish should remain allowed",
-                   listener.syncMetadataSnapshotInline(provider, "db0"));
-        assertEquals("both equal-generation publications should execute",
-                     List.of(200L, 200L), listener.publishedGenerations());
+        assertTrue(listener.syncMetadataSnapshotInline(provider, "db0"),
+                   "first publish should succeed");
+        assertTrue(listener.syncMetadataSnapshotInline(provider, "db0"),
+                   "equal-generation re-publish should remain allowed");
+        assertEquals(List.of(200L, 200L),
+                     listener.publishedGenerations(),
+                     "both equal-generation publications should execute");
     }
 
     @Test
@@ -683,12 +669,13 @@ public class CloudStorageEventListenerTest {
         GenerationSequenceListener listener = GenerationSequenceListener.sequential(newer, older);
         CapturingProvider provider = new CapturingProvider();
 
-        assertTrue("newer generation publish should succeed",
-                   listener.syncMetadataSnapshotInline(provider, "db0"));
-        assertFalse("older generation must be rejected after newer publish",
-                    listener.syncMetadataSnapshotInline(provider, "db0"));
-        assertEquals("only newer generation should be published",
-                     List.of(300L), listener.publishedGenerations());
+        assertTrue(listener.syncMetadataSnapshotInline(provider, "db0"),
+                   "newer generation publish should succeed");
+        assertFalse(listener.syncMetadataSnapshotInline(provider, "db0"),
+                    "older generation must be rejected after newer publish");
+        assertEquals(List.of(300L),
+                     listener.publishedGenerations(),
+                     "only newer generation should be published");
     }
 
     // -----------------------------------------------------------------------
@@ -717,7 +704,9 @@ public class CloudStorageEventListenerTest {
                                            long blockedGeneration,
                                            CountDownLatch blockedEntered,
                                            CountDownLatch blockedRelease) {
-            super(List.of(DATA_ROOT), true, DEFAULT_READ_MISS_GUARD_WINDOW_MS, null,
+            super(new CapturingProvider(), List.of(DATA_ROOT), true,
+                  DEFAULT_READ_MISS_GUARD_WINDOW_MS,
+                  null,
                   new CloudSyncTracker(), null, DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
                   DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED);
             this.snapshots = snapshots;
@@ -759,8 +748,8 @@ public class CloudStorageEventListenerTest {
                 && blockedRelease != null) {
                 blockedEntered.countDown();
                 try {
-                    assertTrue("timed out waiting to release blocked publish",
-                               blockedRelease.await(2, TimeUnit.SECONDS));
+                    assertTrue(blockedRelease.await(2, TimeUnit.SECONDS),
+                               "timed out waiting to release blocked publish");
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     fail("interrupted while waiting to release blocked publish");
@@ -975,13 +964,12 @@ public class CloudStorageEventListenerTest {
         Path partitionDir = tmpRoot.resolve("0");
         Files.createDirectories(partitionDir);
 
-        CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         provider.putRemoteFile("0/CURRENT", "MANIFEST-000001".getBytes());
         provider.putRemoteFile("0/MANIFEST-000001", "manifest-body".getBytes());
         provider.putRemoteFile("0/000001.sst", "sst-body".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             l.onDBOpening("0", partitionDir.toString());
@@ -999,14 +987,13 @@ public class CloudStorageEventListenerTest {
         Path partitionDir = tmpRoot.resolve("0");
         Files.createDirectories(partitionDir);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+        CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                 List.of(tmpRoot.toString()), true, 0L, null, new CloudSyncTracker(),
                 "store-127.0.0.1_8501");
-        CapturingProvider provider = new CapturingProvider();
         provider.putRemoteFile("store-127.0.0.1_8501/0/CURRENT", "MANIFEST-000001".getBytes());
         provider.putRemoteFile("store-127.0.0.1_8501/0/MANIFEST-000001", "manifest-body".getBytes());
         provider.putRemoteFile("store-127.0.0.1_8501/0/000001.sst", "sst-body".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             l.onDBOpening("0", partitionDir.toString());
@@ -1028,25 +1015,24 @@ public class CloudStorageEventListenerTest {
         Files.write(partitionDir.resolve("CURRENT"), "MANIFEST-000005".getBytes());
         Files.write(partitionDir.resolve("MANIFEST-000005"), "manifest-5".getBytes());
 
-        CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         // Cloud holds a strictly newer generation 10.
         provider.putRemoteFile("0/CURRENT", "MANIFEST-000010".getBytes());
         provider.putRemoteFile("0/MANIFEST-000010", "manifest-10".getBytes());
         provider.putRemoteFile("0/000010.sst", "sst-10".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             l.onDBOpening("0", partitionDir.toString());
             // The newer generation's manifest is hydrated ...
-            assertTrue("Newer remote MANIFEST must be hydrated",
-                       Files.exists(partitionDir.resolve("MANIFEST-000010")));
+            assertTrue(Files.exists(partitionDir.resolve("MANIFEST-000010")),
+                       "Newer remote MANIFEST must be hydrated");
             // ... and the fixed-name CURRENT pointer must be advanced to it (no silent rollback to
             // the older local generation that skip-on-exists would otherwise have preserved).
-            assertEquals("CURRENT must point at the newer remote generation",
-                         "MANIFEST-000010",
-                         Files.readString(partitionDir.resolve("CURRENT")).trim());
+            assertEquals("MANIFEST-000010",
+                         Files.readString(partitionDir.resolve("CURRENT")).trim(),
+                         "CURRENT must point at the newer remote generation");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1062,20 +1048,19 @@ public class CloudStorageEventListenerTest {
         Files.write(partitionDir.resolve("CURRENT"), "MANIFEST-000010".getBytes());
         Files.write(partitionDir.resolve("MANIFEST-000010"), "manifest-10".getBytes());
 
-        CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         // Cloud lags at an older generation 5.
         provider.putRemoteFile("0/CURRENT", "MANIFEST-000005".getBytes());
         provider.putRemoteFile("0/MANIFEST-000005", "manifest-5".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             l.onDBOpening("0", partitionDir.toString());
-            assertEquals("Newer local CURRENT must be preserved; hydration must not roll the DB "
-                         + "back to an older cloud generation",
-                         "MANIFEST-000010",
-                         Files.readString(partitionDir.resolve("CURRENT")).trim());
+            assertEquals("MANIFEST-000010",
+                         Files.readString(partitionDir.resolve("CURRENT")).trim(),
+                         "Newer local CURRENT must be preserved; hydration must not roll the DB "
+                         + "back to an older cloud generation");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1089,8 +1074,6 @@ public class CloudStorageEventListenerTest {
         // Orphan SST but NO valid CURRENT->MANIFEST lineage (partial/rolled-back directory).
         Files.write(partitionDir.resolve("000001.sst"), "orphan".getBytes());
 
-        CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider() {
             @Override
             public boolean fileExists(String remoteKey) {
@@ -1102,15 +1085,17 @@ public class CloudStorageEventListenerTest {
                 throw new IOException("cloud unreachable");
             }
         };
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
 
         try {
             l.onDBOpening("0", partitionDir.toString());
             fail("Must fail loudly when cloud is unreachable and local metadata is inconsistent");
         } catch (IllegalStateException expected) {
-            assertTrue("Failure must cite the inconsistent local metadata: " + expected.getMessage(),
-                       expected.getMessage().contains("self-consistent")
-                       || expected.getMessage().contains("CURRENT"));
+            assertTrue(expected.getMessage().contains("self-consistent")
+                       || expected.getMessage().contains("CURRENT"),
+                       "Failure must cite the inconsistent local metadata: "
+                       + expected.getMessage());
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1126,8 +1111,6 @@ public class CloudStorageEventListenerTest {
         Files.write(partitionDir.resolve("MANIFEST-000001"), "manifest".getBytes());
         Files.write(partitionDir.resolve("000001.sst"), "data".getBytes());
 
-        CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider() {
             @Override
             public boolean fileExists(String remoteKey) {
@@ -1139,13 +1122,14 @@ public class CloudStorageEventListenerTest {
                 throw new IOException("cloud unreachable");
             }
         };
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
 
         try {
             // Must NOT throw: local state is self-consistent, so falling back is safe.
             l.onDBOpening("0", partitionDir.toString());
-            assertTrue("Local CURRENT must be preserved on the safe fallback path",
-                       Files.exists(partitionDir.resolve("CURRENT")));
+            assertTrue(Files.exists(partitionDir.resolve("CURRENT")),
+                       "Local CURRENT must be preserved on the safe fallback path");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1161,10 +1145,10 @@ public class CloudStorageEventListenerTest {
         Path partitionDir = tmpRoot.resolve("0");
         Files.createDirectories(partitionDir);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         provider.putRemoteFile("0/000001.sst", "sst-body".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         String localPath = partitionDir.resolve("000001.sst").toString();
         List<LiveSstFile> live = List.of(new LiveSstFile(localPath, "default"));
@@ -1185,11 +1169,11 @@ public class CloudStorageEventListenerTest {
         Path partitionDir = tmpRoot.resolve("0");
         Files.createDirectories(partitionDir);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         provider.putRemoteFile("0/000001.sst", "g-body".getBytes());
         provider.putRemoteFile("0/000002.sst", "q-body".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         // Two live files belonging to different column families.
         List<LiveSstFile> live = List.of(
@@ -1216,10 +1200,10 @@ public class CloudStorageEventListenerTest {
         Files.createDirectories(partitionDir);
         Files.write(partitionDir.resolve("000001.sst"), "already-here".getBytes());
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         provider.putRemoteFile("0/000001.sst", "cloud-body".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         List<LiveSstFile> live = List.of(
                 new LiveSstFile(partitionDir.resolve("000001.sst").toString(), "default"));
@@ -1238,7 +1222,8 @@ public class CloudStorageEventListenerTest {
     @Test
     public void readMissGuard_skipsRepeatedAttemptsWithinWindow() {
         CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(DATA_ROOT), true, 60_000L);
+                CloudStorageTestFactory.newListener(new CapturingProvider(), List.of(DATA_ROOT),
+                                                    true, 60_000L);
         assertTrue(l.shouldAttemptReadMissHydration("0", "default"));
         assertFalse(l.shouldAttemptReadMissHydration("0", "default"));
         // A different table is not throttled by the first table's attempt.
@@ -1250,7 +1235,8 @@ public class CloudStorageEventListenerTest {
         // The guard must admit ONLY ONE caller per DB/table window even under a concurrent read
         // storm; a non-atomic get-then-put would let multiple callers pass on the race boundary.
         CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(DATA_ROOT), true, 60_000L);
+                CloudStorageTestFactory.newListener(new CapturingProvider(), List.of(DATA_ROOT),
+                                                    true, 60_000L);
 
         int threads = 32;
         ExecutorService pool = Executors.newFixedThreadPool(threads);
@@ -1271,15 +1257,16 @@ public class CloudStorageEventListenerTest {
                     }
                 });
             }
-            assertTrue("Workers must be ready", ready.await(5, TimeUnit.SECONDS));
+            assertTrue(ready.await(5, TimeUnit.SECONDS), "Workers must be ready");
             go.countDown();
             pool.shutdown();
-            assertTrue("Workers must finish", pool.awaitTermination(10, TimeUnit.SECONDS));
+            assertTrue(pool.awaitTermination(10, TimeUnit.SECONDS), "Workers must finish");
         } finally {
             pool.shutdownNow();
         }
-        assertEquals("Exactly one caller may be admitted within a single guard window",
-                     1, admitted.get());
+        assertEquals(1,
+                     admitted.get(),
+                     "Exactly one caller may be admitted within a single guard window");
     }
 
     @Test
@@ -1292,16 +1279,15 @@ public class CloudStorageEventListenerTest {
         Files.write(liveLocal, "live".getBytes());
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
-                List.of(tmpRoot.toString()), true, 0L, null, tracker);
         FailingUploadProvider provider = new FailingUploadProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
+                List.of(tmpRoot.toString()), true, 0L, null, tracker);
 
         List<LiveSstFile> live = List.of(new LiveSstFile(liveLocal.toString(), "default"));
 
         try {
             boolean durable = l.ensureLiveSetUploaded(provider, "0", live);
-            assertFalse("Guard must report the live set as NOT durable", durable);
+            assertFalse(durable, "Guard must report the live set as NOT durable");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1318,16 +1304,15 @@ public class CloudStorageEventListenerTest {
         CloudSyncTracker tracker = new CloudSyncTracker();
         // Pre-mark the live file as already confirmed in cloud.
         tracker.markConfirmed("0", liveLocal.toString());
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
-                List.of(tmpRoot.toString()), true, 0L, null, tracker);
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
+                List.of(tmpRoot.toString()), true, 0L, null, tracker);
 
         List<LiveSstFile> live = List.of(new LiveSstFile(liveLocal.toString(), "default"));
 
         try {
             boolean durable = l.ensureLiveSetUploaded(provider, "0", live);
-            assertTrue("Guard must pass when the whole live set is confirmed", durable);
+            assertTrue(durable, "Guard must pass when the whole live set is confirmed");
             // No upload needed since it was already confirmed.
             assertEquals(0, provider.uploads.size());
         } finally {
@@ -1344,10 +1329,9 @@ public class CloudStorageEventListenerTest {
         Files.write(liveLocal, "live".getBytes());
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
-                List.of(tmpRoot.toString()), true, 0L, null, tracker);
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
+                List.of(tmpRoot.toString()), true, 0L, null, tracker);
 
         List<LiveSstFile> live = List.of(new LiveSstFile(liveLocal.toString(), "default"));
 
@@ -1384,19 +1368,18 @@ public class CloudStorageEventListenerTest {
         tracker.markConfirmed("0", sst1.toString());
         tracker.markConfirmed("0", sst2.toString());
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
-                List.of(tmpRoot.toString()), true, 0L, null, tracker);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
+                List.of(tmpRoot.toString()), true, 0L, null, tracker);
         provider.putRemoteFile("0/000001.sst", "sst1".getBytes());
         provider.putRemoteFile("0/000002.sst", "sst2".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         // Post-compaction live set contains only MERGED_SST.
         List<LiveSstFile> live = List.of(new LiveSstFile(merged.toString(), "default"));
 
         try {
             boolean durable = l.ensureLiveSetUploaded(provider, "0", live);
-            assertFalse("Merged output is not durable; old SST delete must be blocked", durable);
+            assertFalse(durable, "Merged output is not durable; old SST delete must be blocked");
             // MERGED_SST is absent locally, so guard cannot self-heal by upload.
             assertEquals(0, provider.uploads.size());
         } finally {
@@ -1417,8 +1400,9 @@ public class CloudStorageEventListenerTest {
         final List<String> callOrder = new ArrayList<>();
         private final boolean syncResult;
 
-        OrderingListener(String dataRoot, CloudSyncTracker tracker, boolean syncResult) {
-            super(List.of(dataRoot), false, 0L, null, tracker, null,
+        OrderingListener(CloudStorageProvider provider, String dataRoot, CloudSyncTracker tracker,
+                         boolean syncResult) {
+            super(provider, List.of(dataRoot), false, 0L, null, tracker, null,
                   DEFAULT_METADATA_SYNC_DEBOUNCE_MS, DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED);
             this.syncResult = syncResult;
         }
@@ -1453,22 +1437,22 @@ public class CloudStorageEventListenerTest {
             }
         };
         provider.putRemoteFile(sst1Remote, "sst1".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         OrderingListener l = getOrderingListener(provider);
 
-        assertEquals("sync must have been called once", List.of("sync"), l.callOrder);
-        assertTrue("SST1 must be deleted from cloud", provider.deletes.contains(sst1Remote));
+        assertEquals(List.of("sync"), l.callOrder, "sync must have been called once");
+        assertTrue(provider.deletes.contains(sst1Remote), "SST1 must be deleted from cloud");
     }
 
     private static @NotNull OrderingListener getOrderingListener(CapturingProvider provider) {
         CloudSyncTracker tracker = new CloudSyncTracker();
-        OrderingListener l = new OrderingListener(DATA_ROOT, tracker, /* syncResult */ true) {
+        OrderingListener l =
+                new OrderingListener(provider, DATA_ROOT, tracker, /* syncResult */ true) {
             @Override
             boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
                 boolean result = super.syncMetadataSnapshotInline(p, dbName);
                 // Verify no delete has happened yet when sync fires.
-                assertTrue("delete must not precede sync", provider.deletes.isEmpty());
+                assertTrue(provider.deletes.isEmpty(), "delete must not precede sync");
                 return result;
             }
         };
@@ -1486,16 +1470,16 @@ public class CloudStorageEventListenerTest {
         String sst1Remote = "db0/000001.sst";
         CapturingProvider provider = new CapturingProvider();
         provider.putRemoteFile(sst1Remote, "sst1".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
         // syncResult=false: metadata sync fails → delete must be suppressed.
-        OrderingListener l = new OrderingListener(DATA_ROOT, tracker, /* syncResult */ false);
+        OrderingListener l =
+                new OrderingListener(provider, DATA_ROOT, tracker, /* syncResult */ false);
 
         l.onTableFileDeleted("db0", "default", DATA_ROOT + "/db0/000001.sst");
 
-        assertEquals("sync must have been called", List.of("sync"), l.callOrder);
-        assertTrue("SST must NOT be deleted when metadata sync fails", provider.deletes.isEmpty());
+        assertEquals(List.of("sync"), l.callOrder, "sync must have been called");
+        assertTrue(provider.deletes.isEmpty(), "SST must NOT be deleted when metadata sync fails");
     }
 
     @Test
@@ -1507,10 +1491,9 @@ public class CloudStorageEventListenerTest {
 
         CapturingProvider provider = new CapturingProvider();
         provider.putRemoteFile("db0/000001.sst", "sst1".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         AtomicBoolean metadataHealthy = new AtomicBoolean(false);
-        CloudStorageEventListener l = new CloudStorageEventListener(
+        CloudStorageEventListener l = new CloudStorageEventListener(provider,
                 List.of(tmpRoot.toString()), true, 0L, null, new CloudSyncTracker(), null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
@@ -1527,8 +1510,8 @@ public class CloudStorageEventListenerTest {
 
         try {
             l.onTableFileDeleted("db0", "default", oldSst.toString());
-            assertTrue("Initial delete must be deferred while metadata sync is failing",
-                       provider.deletes.isEmpty());
+            assertTrue(provider.deletes.isEmpty(),
+                       "Initial delete must be deferred while metadata sync is failing");
 
             metadataHealthy.set(true);
             waitForCondition(() -> provider.deletes.contains("db0/000001.sst"),
@@ -1560,9 +1543,8 @@ public class CloudStorageEventListenerTest {
             }
         };
         provider.putRemoteFile("db0/000001.sst", "old".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
-        CloudStorageEventListener l = new CloudStorageEventListener(
+        CloudStorageEventListener l = new CloudStorageEventListener(provider,
                 List.of(tmpRoot.toString()), true, 0L, null, tracker, null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
@@ -1580,8 +1562,8 @@ public class CloudStorageEventListenerTest {
         try {
             l.onTableFileDeleted("db0", "default", oldSst.toString());
 
-            assertTrue("Delete must be held when live-set confirmation is stale",
-                       provider.deletes.isEmpty());
+            assertTrue(provider.deletes.isEmpty(),
+                       "Delete must be held when live-set confirmation is stale");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1600,13 +1582,12 @@ public class CloudStorageEventListenerTest {
         String sst1Remote = "db0/000001.sst";
         CapturingProvider provider = new CapturingProvider();
         provider.putRemoteFile(sst1Remote, "sst1".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         CloudSyncTracker tracker = new CloudSyncTracker();
         List<String> syncCalls = new ArrayList<>();
         // Compaction output 000010.sst is live but neither confirmed nor present locally / in cloud,
         // so the live set is not durable.
-        CloudStorageEventListener l = new CloudStorageEventListener(
+        CloudStorageEventListener l = new CloudStorageEventListener(provider,
                 List.of(DATA_ROOT), false, 0L, null, tracker, null,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
                 CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
@@ -1624,10 +1605,10 @@ public class CloudStorageEventListenerTest {
 
         l.onTableFileDeleted("db0", "default", DATA_ROOT + "/db0/000001.sst");
 
-        assertTrue("Superseded SST must NOT be deleted while the live set is not durable in cloud",
-                   provider.deletes.isEmpty());
-        assertTrue("MANIFEST publish must not be attempted when the durability guard blocks first",
-                   syncCalls.isEmpty());
+        assertTrue(provider.deletes.isEmpty(),
+                   "Superseded SST must NOT be deleted while the live set is not durable in cloud");
+        assertTrue(syncCalls.isEmpty(),
+                   "MANIFEST publish must not be attempted when the durability guard blocks first");
     }
 
     // -----------------------------------------------------------------------
@@ -1641,20 +1622,20 @@ public class CloudStorageEventListenerTest {
         Path tmpRoot = Files.createTempDirectory("hgstore-test-deletebegin");
         try {
             CapturingProvider provider = new CapturingProvider();
-            CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
             CloudStorageEventListener l =
-                    CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()));
+                    CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()));
             l.onDBDeleteBegin("mydb", tmpRoot.resolve("mydb").toString());
 
             // Tombstone key is now a sibling of the data prefix, not inside it.
             String expectedTombstone = "mydb" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX;
             boolean tombstoneUploaded = provider.uploads.stream()
                     .anyMatch(pair -> expectedTombstone.equals(pair[1]));
-            assertTrue("Tombstone must be uploaded as a sibling of the cloud prefix",
-                       tombstoneUploaded);
-            assertTrue("A durable pending-delete marker must be written", l.hasPendingDeleteMarker("mydb"));
-            assertTrue("Delete-marker health must remain healthy", l.isDeleteMarkerHealthy());
+            assertTrue(tombstoneUploaded,
+                       "Tombstone must be uploaded as a sibling of the cloud prefix");
+            assertTrue(l.hasPendingDeleteMarker("mydb"),
+                       "A durable pending-delete marker must be written");
+            assertTrue(l.isDeleteMarkerHealthy(), "Delete-marker health must remain healthy");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1665,9 +1646,8 @@ public class CloudStorageEventListenerTest {
         Path tmpRoot = Files.createTempDirectory("hgstore-test-deletebegin-scoped");
         try {
             CapturingProvider provider = new CapturingProvider();
-            CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
-            CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+            CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                     List.of(tmpRoot.toString()), true, 0L, null, new CloudSyncTracker(),
                     "store-127.0.0.1_8501");
             l.onDBDeleteBegin("mydb", tmpRoot.resolve("mydb").toString());
@@ -1676,7 +1656,7 @@ public class CloudStorageEventListenerTest {
                                        + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX;
             boolean tombstoneUploaded = provider.uploads.stream()
                     .anyMatch(pair -> expectedTombstone.equals(pair[1]));
-            assertTrue("Tombstone must include store scope prefix", tombstoneUploaded);
+            assertTrue(tombstoneUploaded, "Tombstone must include store scope prefix");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1688,26 +1668,25 @@ public class CloudStorageEventListenerTest {
         // writable), the delete MUST be held (throw) rather than proceeding unguarded, and the
         // delete-marker health signal must flip to degraded.
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         // A data root pointing at a plain FILE makes createDirectories(<root>/.cloud-pending-delete)
         // fail deterministically on every platform.
         Path notADir = Files.createTempFile("hgstore-notadir", ".tmp");
         try {
             CloudStorageEventListener l =
-                    CloudStorageTestFactory.newListener(List.of(notADir.toString()));
+                    CloudStorageTestFactory.newListener(provider, List.of(notADir.toString()));
             try {
                 l.onDBDeleteBegin("mydb", notADir.resolve("mydb").toString());
                 fail("Expected delete to be held when the marker cannot be durably persisted");
             } catch (IllegalStateException expected) {
-                assertTrue("Message should explain the held delete: " + expected.getMessage(),
-                           expected.getMessage().toLowerCase().contains("marker"));
+                assertTrue(expected.getMessage().toLowerCase().contains("marker"),
+                           "Message should explain the held delete: " + expected.getMessage());
             }
-            assertFalse("Delete-marker health must be degraded after a persistence failure",
-                        l.isDeleteMarkerHealthy());
+            assertFalse(l.isDeleteMarkerHealthy(),
+                        "Delete-marker health must be degraded after a persistence failure");
             // The unguarded tombstone/purge must NOT have run.
-            assertTrue("No tombstone must be uploaded when the delete is held",
-                       provider.uploads.isEmpty());
+            assertTrue(provider.uploads.isEmpty(),
+                       "No tombstone must be uploaded when the delete is held");
         } finally {
             Files.deleteIfExists(notADir);
         }
@@ -1722,9 +1701,9 @@ public class CloudStorageEventListenerTest {
         // Tombstone is now a sibling of the data prefix, not inside it.
         provider.putRemoteFile("mydb" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX,
                                "deleted".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(DATA_ROOT));
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(DATA_ROOT));
         l.onDBDeleted("mydb", DATA_ROOT + "/mydb");
 
         // Data prefix objects are purged by deletePrefix; tombstone is deleted individually.
@@ -1732,8 +1711,8 @@ public class CloudStorageEventListenerTest {
                 "mydb/000001.sst", "mydb/CURRENT", "mydb/MANIFEST-000001",
                 "mydb" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX);
         for (String key : expectedDeleted) {
-            assertTrue("Remote object must be deleted after DB destroy: " + key,
-                       provider.deletes.contains(key));
+            assertTrue(provider.deletes.contains(key),
+                       "Remote object must be deleted after DB destroy: " + key);
         }
     }
 
@@ -1752,13 +1731,13 @@ public class CloudStorageEventListenerTest {
         };
         provider.putRemoteFile("mydb/000001.sst", "sst".getBytes());
         provider.putRemoteFile(tombstoneKey, "deleted".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(DATA_ROOT));
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(DATA_ROOT));
         l.onDBDeleted("mydb", DATA_ROOT + "/mydb");
 
-        assertFalse("Tombstone must be preserved when the prefix purge is incomplete",
-                    provider.deletes.contains(tombstoneKey));
+        assertFalse(provider.deletes.contains(tombstoneKey),
+                    "Tombstone must be preserved when the prefix purge is incomplete");
     }
 
     @Test
@@ -1768,14 +1747,14 @@ public class CloudStorageEventListenerTest {
         assertEquals(1L, tracker.confirmedCount("mydb"));
 
         CapturingProvider provider = new CapturingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                 List.of(DATA_ROOT), true, 0L, null, tracker);
         l.onDBDeleted("mydb", DATA_ROOT + "/mydb");
 
-        assertEquals("Sync tracker must be cleared for the deleted DB",
-                     0L, tracker.confirmedCount("mydb"));
+        assertEquals(0L,
+                     tracker.confirmedCount("mydb"),
+                     "Sync tracker must be cleared for the deleted DB");
     }
 
     @Test
@@ -1784,29 +1763,29 @@ public class CloudStorageEventListenerTest {
         Path partitionDir = tmpRoot.resolve("mydb");
         Files.createDirectories(partitionDir);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         // Populate cloud with stale data from a previous deleted generation + sibling tombstone.
         provider.putRemoteFile("mydb/000001.sst", "stale-sst".getBytes());
         provider.putRemoteFile("mydb/CURRENT", "MANIFEST-000001".getBytes());
         // Tombstone is a sibling key outside the data prefix.
         provider.putRemoteFile("mydb" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX,
                                "deleted".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             l.onDBOpening("mydb", partitionDir.toString());
 
             // Hydration must be skipped — stale SST and CURRENT must NOT be downloaded.
-            assertFalse("Stale SST must not be hydrated when tombstone is present",
-                        Files.exists(partitionDir.resolve("000001.sst")));
-            assertFalse("Stale CURRENT must not be hydrated when tombstone is present",
-                        Files.exists(partitionDir.resolve("CURRENT")));
+            assertFalse(Files.exists(partitionDir.resolve("000001.sst")),
+                        "Stale SST must not be hydrated when tombstone is present");
+            assertFalse(Files.exists(partitionDir.resolve("CURRENT")),
+                        "Stale CURRENT must not be hydrated when tombstone is present");
             // All stale remote objects in the data prefix must be purged.
-            assertTrue("Stale SST must be purged",
-                       provider.deletes.contains("mydb/000001.sst"));
-            assertTrue("Stale CURRENT must be purged",
-                       provider.deletes.contains("mydb/CURRENT"));
+            assertTrue(provider.deletes.contains("mydb/000001.sst"),
+                       "Stale SST must be purged");
+            assertTrue(provider.deletes.contains("mydb/CURRENT"),
+                       "Stale CURRENT must be purged");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1818,21 +1797,21 @@ public class CloudStorageEventListenerTest {
         Path partitionDir = tmpRoot.resolve("mydb");
         Files.createDirectories(partitionDir);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
         CapturingProvider provider = new CapturingProvider();
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
         // Normal cloud state — no tombstone.
         provider.putRemoteFile("mydb/000001.sst", "sst-body".getBytes());
         provider.putRemoteFile("mydb/CURRENT", "MANIFEST-000001".getBytes());
         provider.putRemoteFile("mydb/MANIFEST-000001", "manifest".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
         try {
             l.onDBOpening("mydb", partitionDir.toString());
 
-            assertTrue("SST must be hydrated in normal open",
-                       Files.exists(partitionDir.resolve("000001.sst")));
-            assertTrue("CURRENT must be hydrated in normal open",
-                       Files.exists(partitionDir.resolve("CURRENT")));
+            assertTrue(Files.exists(partitionDir.resolve("000001.sst")),
+                       "SST must be hydrated in normal open");
+            assertTrue(Files.exists(partitionDir.resolve("CURRENT")),
+                       "CURRENT must be hydrated in normal open");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -1852,15 +1831,15 @@ public class CloudStorageEventListenerTest {
         // Stale objects from the old generation.
         provider.putRemoteFile("graph0/000001.sst", "old-data".getBytes());
         provider.putRemoteFile("graph0/CURRENT", "MANIFEST-000001".getBytes());
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
 
-        CloudStorageEventListener l = CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
 
         // Step 1: begin delete — tombstone uploaded as a sibling key.
         l.onDBDeleteBegin("graph0", dbDir.toString());
         boolean tombstoneUploaded = provider.uploads.stream()
                 .anyMatch(p -> p[1].equals("graph0" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX));
-        assertTrue("Tombstone must be uploaded during deleteBegin", tombstoneUploaded);
+        assertTrue(tombstoneUploaded, "Tombstone must be uploaded during deleteBegin");
 
         // Simulate tombstone appearing in cloud (as it would after a real upload).
         provider.putRemoteFile("graph0" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX,
@@ -1868,11 +1847,11 @@ public class CloudStorageEventListenerTest {
 
         // Step 2: deletion complete — cloud data prefix purged, then tombstone deleted.
         l.onDBDeleted("graph0", dbDir.toString());
-        assertTrue("Old SST must be deleted", provider.deletes.contains("graph0/000001.sst"));
-        assertTrue("Old CURRENT must be deleted", provider.deletes.contains("graph0/CURRENT"));
-        assertTrue("Tombstone must be deleted after purge",
-                   provider.deletes.contains(
-                           "graph0" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX));
+        assertTrue(provider.deletes.contains("graph0/000001.sst"), "Old SST must be deleted");
+        assertTrue(provider.deletes.contains("graph0/CURRENT"), "Old CURRENT must be deleted");
+        assertTrue(provider.deletes.contains(
+                           "graph0" + CloudStorageEventListener.DB_TOMBSTONE_SUFFIX),
+                   "Tombstone must be deleted after purge");
 
         // Step 3: simulate a crash-recovery scenario where the tombstone guard is needed.
         // The tombstone is re-injected alongside stale SST objects (mimicking a case where
@@ -1892,14 +1871,14 @@ public class CloudStorageEventListenerTest {
         l.onDBOpening("graph0", dbDir.toString());
 
         // Tombstone guard must have fired: stale files must NOT be hydrated locally.
-        assertFalse("Stale SST must not be hydrated into recreated DB dir",
-                    Files.exists(dbDir.resolve("000001.sst")));
-        assertFalse("Stale CURRENT must not be hydrated into recreated DB dir",
-                    Files.exists(dbDir.resolve("CURRENT")));
+        assertFalse(Files.exists(dbDir.resolve("000001.sst")),
+                    "Stale SST must not be hydrated into recreated DB dir");
+        assertFalse(Files.exists(dbDir.resolve("CURRENT")),
+                    "Stale CURRENT must not be hydrated into recreated DB dir");
         // Tombstone must have been cleaned up specifically by step 3's preHydrateDbFiles.
         // provider.deletes was cleared before this step, so this proves step 3 called deleteFile.
-        assertTrue("Tombstone must be deleted by preHydrateDbFiles in step 3",
-                   provider.deletes.contains(tombstoneKey));
+        assertTrue(provider.deletes.contains(tombstoneKey),
+                   "Tombstone must be deleted by preHydrateDbFiles in step 3");
 
         deleteRecursively(tmpRoot.toFile());
     }
@@ -1920,21 +1899,20 @@ public class CloudStorageEventListenerTest {
         Files.write(dbDir.resolve("000001.sst"), "orphan".getBytes());
 
         TombstoneCheckFailingProvider provider = new TombstoneCheckFailingProvider();
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
         CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
 
         try {
             l.onDBOpening("graph0", dbDir.toString());
             fail("Expected IllegalStateException when tombstone check fails and local metadata "
                  + "is not self-consistent");
         } catch (IllegalStateException e) {
-            assertTrue("Message must explain the DB open was blocked for safety, got: "
-                       + e.getMessage(),
-                       e.getMessage().contains("not self-consistent"));
+            assertTrue(e.getMessage().contains("not self-consistent"),
+                       "Message must explain the DB open was blocked for safety, got: "
+                       + e.getMessage());
         } finally {
-            assertTrue("Tombstone check must have been attempted",
-                       provider.fileExistsCalls.get() > 0);
+            assertTrue(provider.fileExistsCalls.get() > 0,
+                       "Tombstone check must have been attempted");
             deleteRecursively(tmpRoot.toFile());
         }
     }
@@ -1957,19 +1935,18 @@ public class CloudStorageEventListenerTest {
 
         TombstoneCheckFailingProvider provider = new TombstoneCheckFailingProvider();
         // No remote files: after the fall-through, listRemoteKeys is empty and hydration is a no-op.
-        CloudStorageProviderFactory.setActiveProviderForTest(provider);
         CloudStorageEventListener l =
-                CloudStorageTestFactory.newListener(List.of(tmpRoot.toString()), true);
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
 
         try {
             // Must NOT throw despite the tombstone-check IOException.
             l.onDBOpening("graph0", dbDir.toString());
-            assertTrue("Tombstone check must have been attempted",
-                       provider.fileExistsCalls.get() > 0);
+            assertTrue(provider.fileExistsCalls.get() > 0,
+                       "Tombstone check must have been attempted");
             // Self-consistent local state must be left intact.
-            assertTrue("Local CURRENT must remain", Files.exists(dbDir.resolve("CURRENT")));
-            assertTrue("Local MANIFEST must remain",
-                       Files.exists(dbDir.resolve("MANIFEST-000001")));
+            assertTrue(Files.exists(dbDir.resolve("CURRENT")), "Local CURRENT must remain");
+            assertTrue(Files.exists(dbDir.resolve("MANIFEST-000001")),
+                       "Local MANIFEST must remain");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
