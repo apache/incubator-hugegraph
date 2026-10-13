@@ -18,10 +18,15 @@
 package org.apache.hugegraph.unit.license;
 
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import org.apache.hugegraph.license.MachineInfo;
@@ -73,15 +78,87 @@ public class MachineInfoTest {
     }
 
     @Test
-    public void testGetMacByInetAddress() throws UnknownHostException {
+    public void testGetMacByInetAddress() throws Exception {
         List<InetAddress> addressList = machineInfo.getLocalAllInetAddress();
         for (InetAddress address : addressList) {
-            String mac = machineInfo.getMacByInetAddress(address);
-            Assert.assertTrue(MAC_PATTERN.matcher(mac).matches());
+            byte[] hardwareAddress = NetworkInterface.getByInetAddress(address)
+                                                     .getHardwareAddress();
+            if (hardwareAddress == null) {
+                Throwable exception = Assert.assertThrows(RuntimeException.class,
+                                                          () -> machineInfo.getMacByInetAddress(address));
+                Assert.assertFalse(exception instanceof NullPointerException);
+            } else {
+                String mac = machineInfo.getMacByInetAddress(address);
+                Assert.assertTrue(MAC_PATTERN.matcher(mac).matches());
+            }
         }
         InetAddress address = InetAddress.getByAddress(new byte[]{0, 0, 0, 0});
-        Assert.assertThrows(RuntimeException.class, () -> {
-            machineInfo.getMacByInetAddress(address);
-        });
+        Throwable exception = Assert.assertThrows(RuntimeException.class,
+                                                  () -> machineInfo.getMacByInetAddress(address));
+        Assert.assertFalse(exception instanceof NullPointerException);
+    }
+
+    @Test
+    public void testGetMacAddressWithoutMac() throws SocketException {
+        InetAddress loopback = InetAddress.getLoopbackAddress();
+        Assume.assumeTrue(NetworkInterface.getByInetAddress(loopback)
+                                          .getHardwareAddress() == null);
+        MachineInfo info = new MachineInfo() {
+            @Override
+            public List<InetAddress> getLocalAllInetAddress() {
+                return Collections.singletonList(loopback);
+            }
+        };
+        Throwable exception = Assert.assertThrows(RuntimeException.class,
+                                                  () -> info.getMacByInetAddress(loopback));
+        Assert.assertFalse(exception instanceof NullPointerException);
+        List<String> addresses = info.getMacAddress();
+        Assert.assertTrue(addresses.isEmpty());
+        Assert.assertSame(addresses, info.getMacAddress());
+    }
+
+    @Test
+    public void testGetMacAddressSkipsMissingAndDuplicateMac() throws SocketException {
+        InetAddress loopback = InetAddress.getLoopbackAddress();
+        Assume.assumeTrue(NetworkInterface.getByInetAddress(loopback)
+                                          .getHardwareAddress() == null);
+        InetAddress addressWithMac = null;
+        for (InetAddress address : machineInfo.getLocalAllInetAddress()) {
+            if (NetworkInterface.getByInetAddress(address).getHardwareAddress() != null) {
+                addressWithMac = address;
+                break;
+            }
+        }
+        Assume.assumeNotNull(addressWithMac);
+        InetAddress address = addressWithMac;
+        MachineInfo info = new MachineInfo() {
+            @Override
+            public List<InetAddress> getLocalAllInetAddress() {
+                return Arrays.asList(loopback, address, loopback, address);
+            }
+        };
+        List<String> addresses = info.getMacAddress();
+        Assert.assertEquals(1, addresses.size());
+        Assert.assertTrue(addresses.contains(machineInfo.getMacByInetAddress(address)));
+        Assert.assertSame(addresses, info.getMacAddress());
+    }
+
+    @Test
+    public void testGetMacAddressRetriesAfterLookupFailure() throws UnknownHostException {
+        InetAddress unknown = InetAddress.getByAddress(new byte[]{0, 0, 0, 0});
+        List<InetAddress> localAddresses = machineInfo.getLocalAllInetAddress();
+        int[] attempts = {0};
+        MachineInfo info = new MachineInfo() {
+            @Override
+            public List<InetAddress> getLocalAllInetAddress() {
+                if (++attempts[0] == 1) {
+                    return Collections.singletonList(unknown);
+                }
+                return localAddresses;
+            }
+        };
+        Assert.assertThrows(RuntimeException.class, info::getMacAddress);
+        Assert.assertTrue(info.getMacAddress().equals(new MachineInfo().getMacAddress()));
+        Assert.assertEquals(2, attempts[0]);
     }
 }
