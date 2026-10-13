@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+{{- include "hugegraph.resolveValues" . }}
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -30,9 +31,11 @@ spec:
   updateStrategy:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  {{- if .Values.store.storage.enabled }}
   {{- with .Values.store.persistentVolumeClaimRetentionPolicy }}
   persistentVolumeClaimRetentionPolicy:
     {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- end }}
   selector:
     matchLabels:
@@ -189,14 +192,23 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      {{- if not .Values.store.storage.enabled }}
+      volumes:
+        - name: store-data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.store.storage.enabled }}
   volumeClaimTemplates:
     - metadata:
         name: store-data
       spec:
         accessModes: ["ReadWriteOnce"]
-        {{- if .Values.store.storage.storageClassName }}
+        {{- if eq .Values.store.storage.storageClassName "-" }}
+        storageClassName: ""
+        {{- else if .Values.store.storage.storageClassName }}
         storageClassName: {{ .Values.store.storage.storageClassName | quote }}
         {{- end }}
         resources:
           requests:
             storage: {{ .Values.store.storage.size }}
+  {{- end }}

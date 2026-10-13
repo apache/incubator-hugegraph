@@ -139,7 +139,4 @@ server:
 #       cpu: "1"
 #       memory: 1536Mi
 
-# Production-shaped installs isolate the release; list outside clients in
-# networkPolicy.<component>.extraIngress (see README, NetworkPolicy).
-networkPolicy:
-  enabled: true
+# Network isolation is selected by mode or an explicit enabled override.

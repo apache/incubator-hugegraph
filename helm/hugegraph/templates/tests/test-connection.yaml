@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+{{- include "hugegraph.resolveValues" . -}}
 # Official Helm chart test hook — only runs with: helm test <release>
 # Not an install-time hook. Safe with --wait (no init Job in no-init design).
 apiVersion: v1

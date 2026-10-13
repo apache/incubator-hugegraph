@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+{{- include "hugegraph.resolveValues" . -}}
 {{- include "hugegraph.validateValues" . }}
 {{- $customPort := ne (int .Values.server.port) 8080 }}
 {{/*
@@ -276,6 +277,8 @@ spec:
             # The image would otherwise give the start command 120 seconds,
             # less than the storage wait, and kill a Server that is still
             # coming up. Track the startup probe's own budget instead.
+            - name: WAIT_STORAGE_TIMEOUT_S
+              value: {{ .Values.server.storageWaitTimeoutSeconds | quote }}
             - name: HG_SERVER_STARTUP_TIMEOUT_S
               value: {{ include "hugegraph.server.startupTimeoutSeconds" . | quote }}
             - name: HG_SERVER_URLS_TO_PD

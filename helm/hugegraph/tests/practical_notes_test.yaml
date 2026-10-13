@@ -1,0 +1,68 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+suite: Practical access notes
+templates:
+  - NOTES.txt
+tests:
+  - it: reports automatic NodePort discovery and seven claims
+    asserts:
+      - matchRegexRaw:
+          pattern: "needs 7 persistent volume claim"
+      - matchRegexRaw:
+          pattern: "kubectl get nodes -o wide"
+      - matchRegexRaw:
+          pattern: "http://<reachable-node-ip>:<nodePort>"
+      - notMatchRegexRaw:
+          pattern: "never expose"
+  - it: explains ClusterIP for strict mode
+    set:
+      mode: strict
+    asserts:
+      - matchRegexRaw:
+          pattern: "ClusterIP is reachable inside the cluster"
+  - it: shows LoadBalancer status discovery
+    set:
+      server.service.type: LoadBalancer
+    asserts:
+      - matchRegexRaw:
+          pattern: "status.loadBalancer.ingress"
+  - it: reports zero Hubble persistence after disabling the UI
+    set:
+      hubble.enabled: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "needs 6 persistent volume claim"
+      - notMatchRegexRaw:
+          pattern: "Hubble  1 replica"
+  - it: uses HTTP for an ingress without TLS
+    set:
+      server.ingress.enabled: true
+      server.ingress.hosts: [{host: internal.example, paths: [{path: /, pathType: Prefix}]}]
+    asserts:
+      - matchRegexRaw:
+          pattern: "http://internal.example/"
+      - notMatchRegexRaw:
+          pattern: "https://internal.example/"
+  - it: uses HTTPS for the configured TLS host
+    set:
+      server.ingress.enabled: true
+      server.ingress.hosts: [{host: internal.example, paths: [{path: /, pathType: Prefix}]}]
+      server.ingress.tls: [{hosts: [internal.example], secretName: example-tls}]
+    asserts:
+      - matchRegexRaw:
+          pattern: "https://internal.example/"

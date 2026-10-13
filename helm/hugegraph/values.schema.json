@@ -30,31 +30,47 @@
       "$ref": "#/definitions/server"
     },
     "global": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "imageRegistry": {
+          "type": "string"
+        }
+      }
     },
     "hubble": {
       "$ref": "#/definitions/hubble"
     },
     "networkPolicy": {
       "$ref": "#/definitions/networkPolicy"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "strict"
+      ]
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
     }
   },
   "definitions": {
     "networkPolicyPeers": {
       "type": "array",
-      "minItems": 1,
       "items": {
-        "type": "object",
-        "minProperties": 1
+        "type": "object"
       }
     },
     "networkPolicyIngressRules": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "from"
-        ],
         "properties": {
           "from": {
             "$ref": "#/definitions/networkPolicyPeers"
@@ -66,9 +82,6 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "to"
-        ],
         "properties": {
           "to": {
             "$ref": "#/definitions/networkPolicyPeers"
@@ -90,7 +103,10 @@
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "pd": {
           "$ref": "#/definitions/networkPolicyComponent"
@@ -280,6 +296,12 @@
         },
         "storageClassName": {
           "type": "string"
+        },
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },
@@ -341,8 +363,16 @@
       "properties": {
         "startup": {
           "allOf": [
-            { "$ref": "#/definitions/probe" },
-            { "properties": { "successThreshold": { "maximum": 1 } } }
+            {
+              "$ref": "#/definitions/probe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
           ]
         },
         "readiness": {
@@ -350,8 +380,16 @@
         },
         "liveness": {
           "allOf": [
-            { "$ref": "#/definitions/probe" },
-            { "properties": { "successThreshold": { "maximum": 1 } } }
+            {
+              "$ref": "#/definitions/probe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
           ]
         }
       }
@@ -591,16 +629,44 @@
                 "integer",
                 "null"
               ],
-              "minimum": 30000,
-              "maximum": 32767
+              "minimum": 0,
+              "maximum": 65535
             },
             "grpcNodePort": {
               "type": [
                 "integer",
                 "null"
               ],
-              "minimum": 30000,
-              "maximum": 32767
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "externalTrafficPolicy": {
+              "type": "string",
+              "enum": [
+                "Cluster",
+                "Local"
+              ]
+            },
+            "loadBalancerClass": {
+              "type": "string"
+            },
+            "loadBalancerIP": {
+              "type": "string"
+            },
+            "loadBalancerSourceRanges": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "externalIPs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "allocateLoadBalancerNodePorts": {
+              "type": "boolean"
             }
           }
         },
@@ -668,8 +734,7 @@
           "$ref": "#/definitions/pdb"
         },
         "waitImage": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "waitResources": {
           "$ref": "#/definitions/resources"
@@ -786,7 +851,6 @@
         },
         "waitImage": {
           "type": "string",
-          "minLength": 1,
           "description": "Image used by the Helm test hook"
         },
         "waitResources": {
@@ -945,39 +1009,6 @@
                   }
                 }
               }
-            },
-            {
-              "if": {
-                "properties": {
-                  "enabled": {
-                    "const": false
-                  }
-                }
-              },
-              "then": {
-                "properties": {
-                  "admin": {
-                    "properties": {
-                      "existingSecret": {
-                        "const": ""
-                      },
-                      "password": {
-                        "const": ""
-                      }
-                    }
-                  },
-                  "token": {
-                    "properties": {
-                      "existingSecret": {
-                        "const": ""
-                      },
-                      "value": {
-                        "const": ""
-                      }
-                    }
-                  }
-                }
-              }
             }
           ]
         },
@@ -1018,7 +1049,7 @@
           "description": "HTTP path for the Server readinessProbe; /readiness (apache/hugegraph#3212) on Server images that serve it, /versions (default) on older ones"
         },
         "probes": {
-          "$ref": "#/definitions/probes"
+          "$ref": "#/definitions/serverProbes"
         },
         "antiAffinity": {
           "type": "string",
@@ -1091,6 +1122,11 @@
         "advertiseUrl": {
           "type": "string",
           "description": "URL registered with PD via server.urls_to_pd. Empty uses the in-cluster Server Service URL. Set to an externally reachable URL for outside Hubble PD discovery."
+        },
+        "storageWaitTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
         }
       }
     },
@@ -1099,11 +1135,15 @@
       "additionalProperties": false,
       "properties": {
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "ClusterIP",
             "NodePort",
-            "LoadBalancer"
+            "LoadBalancer",
+            null
           ]
         },
         "annotations": {
@@ -1118,8 +1158,36 @@
             "integer",
             "null"
           ],
-          "minimum": 30000,
-          "maximum": 32767
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "externalTrafficPolicy": {
+          "type": "string",
+          "enum": [
+            "Cluster",
+            "Local"
+          ]
+        },
+        "loadBalancerClass": {
+          "type": "string"
+        },
+        "loadBalancerIP": {
+          "type": "string"
+        },
+        "loadBalancerSourceRanges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "externalIPs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allocateLoadBalancerNodePorts": {
+          "type": "boolean"
         }
       }
     },
@@ -1145,13 +1213,11 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "host",
               "paths"
             ],
             "properties": {
               "host": {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               "paths": {
                 "type": "array",
@@ -1216,13 +1282,11 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "host",
               "paths"
             ],
             "properties": {
               "host": {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               "paths": {
                 "type": "array",
@@ -1306,13 +1370,15 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "enabled",
             "size",
             "storageClassName"
           ],
           "properties": {
             "enabled": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "size": {
               "type": "string",
@@ -1385,6 +1451,80 @@
         },
         "probes": {
           "$ref": "#/definitions/probes"
+        }
+      }
+    },
+    "serverStartupProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "periodSeconds"
+      ],
+      "properties": {
+        "periodSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failureThreshold": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successThreshold": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "serverProbes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startup",
+        "readiness",
+        "liveness"
+      ],
+      "properties": {
+        "startup": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/serverStartupProbe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
+          ]
+        },
+        "readiness": {
+          "$ref": "#/definitions/probe"
+        },
+        "liveness": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/probe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
+          ]
         }
       }
     }

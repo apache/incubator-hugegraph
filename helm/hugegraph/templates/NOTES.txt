@@ -14,8 +14,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */}}
-{{- $hubbleEnabled := get (get .Values "hubble" | default dict) "enabled" | default false }}
-{{ .Release.Name }} installed in namespace {{ .Release.Namespace }}.
+{{- include "hugegraph.resolveValues" . }}
+{{- $hubbleEnabled := .Values.hubble.enabled }}
+{{ .Release.Name }} installed in namespace {{ .Release.Namespace }} ({{ .Values.mode }} mode).
 
   PD      {{ .Values.pd.replicas }} replica(s)
   Store   {{ .Values.store.replicas }} replica(s)
@@ -24,124 +25,112 @@ limitations under the License.
   Hubble  1 replica (UI)
 {{- end }}
 
-Watch the cluster come up:
+Watch startup:
 
-  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+  kubectl get pods,pvc -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }} -w
+{{- $claims := 0 }}
+{{- if .Values.pd.storage.enabled }}{{ $claims = add $claims (int .Values.pd.replicas) }}{{ end }}
+{{- if .Values.store.storage.enabled }}{{ $claims = add $claims (int .Values.store.replicas) }}{{ end }}
+{{- if and $hubbleEnabled .Values.hubble.persistence.enabled }}{{ $claims = add $claims 1 }}{{ end }}
+{{- if gt (int $claims) 0 }}
 
-Store Pods stay in Init until a majority of PD peers answer store.waitPath
-(/v1/ready by default, which stays 503 until a raft leader exists, so the
-majority counted is a quorum and not merely a set of live listeners).
-
-PD's management REST API (Disaster Recovery calls in the README) takes the
-release's PD secret as the Basic-auth password:
-
-  PD_SECRET="$(kubectl get secret -n {{ .Release.Namespace }} {{ include "hugegraph.pd.authSecretName" . }} -o jsonpath='{.data.{{ include "hugegraph.pd.authSecretKey" . | replace "." "\\." }}}' | base64 --decode)"
-
-Verify the release:
-
-  helm test {{ .Release.Name }} --namespace {{ .Release.Namespace }} --logs --timeout 5m
-
-Kubernetes Ready and helm --wait cover component probes only.
-{{- if $hubbleEnabled }}
-The hook verifies Server Gremlin, not Hubble login: also confirm a fresh Hubble
-login and graph query after installation or recovery.
+This configuration needs {{ $claims }} persistent volume claim(s). A dynamic
+StorageClass or matching pre-created PVs must be available; see README, Global configuration and internal deployments.
 {{- end }}
 
-Run it again after every upgrade that rolls PD and Server together: a
-Server that started while PD was rolling can pass readiness with a dead
-Gremlin binding (README, Troubleshooting), and the test checks every Server
-Pod for exactly that.
-{{- $pdAuth := get .Values.pd "auth" | default dict }}
-{{- $srvAuth := get .Values.server "auth" | default dict }}
-{{- $adminCfg := get $srvAuth "admin" | default dict }}
-{{- $tokenCfg := get $srvAuth "token" | default dict }}
+Store waits for a PD quorum before startup. If a Pod remains in Init, inspect
+its init-container logs and PD readiness; see README, Troubleshooting.
+
+Access:
+{{- range $component := list "server" "hubble" "pd" }}
+{{- if or (ne $component "hubble") $hubbleEnabled }}
+{{- $cfg := get $.Values $component }}
+{{- $name := include (printf "hugegraph.%s.name" $component) $ }}
+{{- if eq $component "pd" }}{{ $name = include "hugegraph.pd.clientName" $ }}{{ end }}
+{{- $portName := "http" }}
+{{- $port := get $cfg "port" }}
+{{- if eq $component "pd" }}{{ $portName = "rest" }}{{ $port = $cfg.ports.rest }}{{ end }}
+{{- $svc := $cfg.service }}
+
+  {{ $component | title }}:
+{{- if eq $svc.type "NodePort" }}
+    kubectl get svc -n {{ $.Release.Namespace }} {{ $name }} -o jsonpath='{.spec.ports[?(@.name=="{{ $portName }}")].nodePort}{"\n"}'
+    kubectl get nodes -o wide
+    Open http://<reachable-node-ip>:<nodePort>{{ if eq $component "server" }}/versions{{ end }}
+{{- else if eq $svc.type "LoadBalancer" }}
+    kubectl get svc -n {{ $.Release.Namespace }} {{ $name }} -o wide
+    kubectl get svc -n {{ $.Release.Namespace }} {{ $name }} -o jsonpath='{.status.loadBalancer.ingress}{"\n"}'
+    Once an address is assigned, use http://<load-balancer-address>:{{ $port }}{{ if eq $component "server" }}/versions{{ end }}
+{{- else }}
+    In-cluster address: http://{{ $name }}.{{ $.Release.Namespace }}.svc:{{ $port }}
+    ClusterIP is reachable inside the cluster; use port-forward below from your workstation.
+{{- end }}
+{{- $ingress := get $cfg "ingress" | default dict }}
+{{- if get $ingress "enabled" }}
+    Ingress address/status: kubectl get ingress -n {{ $.Release.Namespace }} {{ $name }} -o wide
+{{- $tlsHosts := list }}
+{{- range (get $ingress "tls" | default list) }}
+{{- range (.hosts | default list) }}{{ $tlsHosts = append $tlsHosts . }}{{ end }}
+{{- end }}
+{{- range (get $ingress "hosts" | default (list (dict "host" ""))) }}
+{{- $host := .host | default "" }}
+{{- $scheme := "http" }}
+{{- if or (has $host $tlsHosts) (and (empty $host) (not (empty (get $ingress "tls")))) }}{{ $scheme = "https" }}{{ end }}
+    {{ $scheme }}://{{ $host | default "<ingress-address>" }}{{ (first (.paths | default (list (dict "path" "/")))).path | default "/" }}
+{{- end }}
+{{- end }}
+    Port-forward: kubectl port-forward -n {{ $.Release.Namespace }} svc/{{ $name }} {{ $port }}:{{ $port }}
+    Local address: http://127.0.0.1:{{ $port }}
+{{- end }}
+{{- end }}
+
+Credentials:
+
+  PD_SECRET="$(kubectl get secret -n {{ .Release.Namespace }} {{ include "hugegraph.pd.authSecretName" . }} -o jsonpath='{.data.{{ include "hugegraph.pd.authSecretKey" . | replace "." "\\." }}}' | base64 --decode)"
+{{- if .Values.server.auth.enabled }}
+  PASSWORD="$(kubectl get secret -n {{ .Release.Namespace }} {{ include "hugegraph.server.authSecretName" . }} -o jsonpath='{.data.{{ include "hugegraph.server.authSecretKey" . | replace "." "\\." }}}' | base64 --decode)"
+  curl --user "admin:${PASSWORD}" http://<server-address>/versions
+
+The admin Secret contains the initial password. Changing it does not reset an
+existing account; see README for account password changes and Secret synchronization.
+{{- else }}
+  Server authentication is disabled.
+{{- end }}
+{{- if and $hubbleEnabled (not .Values.server.auth.enabled) }}
+  Current Hubble images require Server authentication to complete login.
+  Enable server.auth.enabled or set hubble.enabled=false for API-only deployment.
+{{- end }}
+{{- if and $hubbleEnabled (not .Values.hubble.persistence.enabled) }}
+  Hubble connection metadata uses temporary storage and is lost on Pod replacement.
+{{- end }}
+{{- $pdAuth := .Values.pd.auth }}
+{{- $srvAuth := .Values.server.auth }}
 {{- $generated := list }}
-{{- if and (not (get $pdAuth "existingSecret" | default "")) (not (get $pdAuth "value" | default "")) }}{{ $generated = append $generated "pd.auth" }}{{ end }}
-{{- if and (get $srvAuth "enabled" | default false) (not (get $adminCfg "existingSecret" | default "")) (not (get $adminCfg "password" | default "")) }}{{ $generated = append $generated "server.auth.admin" }}{{ end }}
-{{- if and (get $srvAuth "enabled" | default false) (not (get $tokenCfg "existingSecret" | default "")) (not (get $tokenCfg "value" | default "")) }}{{ $generated = append $generated "server.auth.token" }}{{ end }}
+{{- if and (not $pdAuth.existingSecret) (not $pdAuth.value) }}{{ $generated = append $generated "pd.auth" }}{{ end }}
+{{- if and $srvAuth.enabled (not $srvAuth.admin.existingSecret) (not $srvAuth.admin.password) }}{{ $generated = append $generated "server.auth.admin" }}{{ end }}
+{{- if and $srvAuth.enabled (not $srvAuth.token.existingSecret) (not $srvAuth.token.value) }}{{ $generated = append $generated "server.auth.token" }}{{ end }}
 {{- if $generated }}
 
 Chart-generated credentials are in use: {{ join ", " $generated }}.
-They are stable only while Helm renders against the cluster. A template-only
-pipeline (helm template, Argo CD, Flux in template mode) cannot see the live
-Secret and generates a new value on every render, so every sync changes the
-Secret, rolls the Pods that read it, and leaves the admin account created at
-first start out of step with the Secret. For such a pipeline, pre-create the
-Secrets and set the existingSecret values (README, Template-only pipelines).
+For GitOps/template-only pipelines use fixed credentials or existingSecret;
+see README, Template-only pipelines.
+{{- end }}
+{{- if .Values.networkPolicy.enabled }}
+
+NetworkPolicy is enabled. Add application or monitoring clients through
+networkPolicy.<component>.extraIngress; enforcement depends on the cluster network plugin.
+{{- end }}
+{{- if .Values.server.advertiseUrl }}
+
+Server registers {{ .Values.server.advertiseUrl }} with PD for external discovery.
+A standalone Hubble also needs a reachable PD endpoint; see README, PD discovery.
 {{- end }}
 
-Reach the Server API:
+Verify all Server Gremlin endpoints:
 
-  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "hugegraph.server.name" . }} {{ .Values.server.port }}:{{ .Values.server.port }}
-{{- if .Values.server.auth.enabled }}
-  PASSWORD="$(kubectl get secret -n {{ .Release.Namespace }} {{ include "hugegraph.server.authSecretName" . }} -o jsonpath='{.data.{{ include "hugegraph.server.authSecretKey" . | replace "." "\\." }}}' | base64 --decode)"
-  curl --user "admin:${PASSWORD}" http://127.0.0.1:{{ .Values.server.port }}/versions
-{{- else }}
-  curl http://127.0.0.1:{{ .Values.server.port }}/versions
-{{- end }}
+  helm test {{ .Release.Name }} --namespace {{ .Release.Namespace }} --logs --timeout 5m
+
+Run this after upgrades too. Ready probes alone do not verify Gremlin binding.
 {{- if $hubbleEnabled }}
-
-Reach the Hubble UI:
-
-  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "hugegraph.hubble.name" . }} {{ .Values.hubble.port }}:{{ .Values.hubble.port }}
-
-  then open http://127.0.0.1:{{ .Values.hubble.port }}
-
-{{- if not .Values.server.auth.enabled }}
-
-Server authentication is disabled, so the Hubble login cannot complete on
-this release: current Hubble images authenticate against the cluster.
-Enable server.auth to use Hubble.
-{{- end }}
-
-Hubble serves plain HTTP. Reach it through port-forward or an
-HTTPS-terminating Ingress; never expose it directly to an untrusted network.
-{{- if not .Values.hubble.persistence.enabled }}
-Hubble persistence is disabled: UI connection metadata is lost when the
-Hubble Pod is replaced. Graph data is unaffected.
-{{- end }}
-{{- end }}
-{{- if not .Values.server.auth.enabled }}
-
-Authentication is disabled. Do not expose this release to untrusted networks.
-{{- end }}
-{{- if (get (get .Values "networkPolicy" | default dict) "enabled") }}
-
-NetworkPolicy is on: only this release's components, Hubble and the helm test
-Pod reach each other. List other clients (applications, Prometheus, Vermeer)
-in networkPolicy.<component>.extraIngress; see README, NetworkPolicy. The
-policies are only enforced by a network plugin that implements NetworkPolicy.
-{{- end }}
-{{- $advertiseUrl := trim (default "" .Values.server.advertiseUrl) }}
-{{- if $advertiseUrl }}
-
-Outside PD discovery: Server registers this URL with PD:
-
-  {{ $advertiseUrl }}
-
-Keep server.auth.enabled=true so this registration stays active. Expose the
-PD client Service (pd.service.type=NodePort or LoadBalancer) and point a
-standalone Hubble at that PD endpoint with pd.enabled=true. Graph UI works
-via PD discovery; Store Operations metrics are unchanged and still use
-in-cluster Store URLs unless configured separately.
-{{- end }}
-
-{{- if and (gt (int .Values.pd.replicas) 1) (ne (get .Values.pd "antiAffinity" | default "") "required") (empty (get .Values.pd "affinity")) }}
-
-pd.antiAffinity is not "required", so the scheduler may co-locate PD quorum
-members on one node and a single node loss can take down the PD quorum. The
-PD PodDisruptionBudget only limits voluntary disruption (drains, evictions),
-not node failure. On clusters with at least {{ .Values.pd.replicas }} nodes,
-set pd.antiAffinity=required; see values-cluster.yaml.
-{{- end }}
-{{- if or (empty .Values.pd.resources) (empty .Values.store.resources) (empty .Values.server.resources) }}
-
-One or more components have no resource requests or limits. Set them before
-production use; see values-cluster.yaml.
-{{- end }}
-
-{{- if and (empty .Values.pd.resources) (empty .Values.store.resources) (empty .Values.server.resources) }}
-WARNING: no resources are set, so every pod is BestEffort and each JVM sizes its
-heap against total node memory. On a multi-node cluster this oversubscribes the
-nodes and pods may abort. Use values-cluster.yaml or set resources explicitly.
+Also verify a fresh Hubble login and graph query; the hook checks Server, not UI login.
 {{- end }}

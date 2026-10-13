@@ -13,8 +13,7 @@ and
 [operating on Kubernetes](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm-operations/).
 The operations page carries the walkthroughs this README links to below.
 
-Note that this chart requires Helm 3. `--reset-then-reuse-values`, referenced
-under Upgrading, requires Helm 3.14 or later.
+This chart requires Helm 3 and Kubernetes 1.23 or later.
 
 ### Packaging
 
@@ -33,7 +32,7 @@ replacement for validating a real Helm installation with the intended values.
 
 * Kubernetes 1.23+ (the chart renders `autoscaling/v2` and `policy/v1`)
 * PV support on the underlying infrastructure: a default StorageClass, or an
-  explicit `storageClassName` for PD and Store
+  explicit `storageClassName` for PD, Store and Hubble
 * Sufficient memory for nine JVM processes in the default topology.
   Insufficient memory causes OOM kills that surface as silent Raft failures
   rather than as clear errors.
@@ -45,7 +44,7 @@ replacement for validating a real Helm installation with the intended values.
 | PD | StatefulSet + PVC | Placement driver; Raft group tracking Stores and partitions |
 | Store | StatefulSet + PVC | Graph data storage (HStore) |
 | Server | Deployment | Gremlin and REST query layer |
-| Hubble | Deployment + optional PVC | Web UI, off by default; enable with `hubble.enabled` |
+| Hubble | Deployment + PVC | Web UI, enabled by default; disable with `hubble.enabled=false` |
 
 ![HugeGraph HStore architecture and Kubernetes workload types](../../.github/images/architecture.png)
 
@@ -75,15 +74,14 @@ so operators do not have to:
   to the Server storage wait as `PD_AUTH_PASSWORD`, and to Hubble as
   `operations.pd.password`; a `checksum/pd-auth` annotation rolls all three
   when the Secret changes.
-- **The Server startup probe guarantees at least 450 seconds, and the
-  image start command fits inside it.** The guaranteed budget is
-  `(failureThreshold - 1) * periodSeconds`, because kubelet may run the
-  first probe immediately; the chart raises a lower configured threshold to
-  that floor, and sets `HG_SERVER_STARTUP_TIMEOUT_S` to the guaranteed
-  budget minus the 300-second storage wait the entrypoint runs first, so
-  the image's 120-second default cannot self-kill a Server that is still
-  starting and the start command never outlives the probe. The variable is
-  chart-managed; change the probe, not `server.extraEnv`.
+- **Server waits for storage for up to 300 seconds by default.** Set
+  `server.storageWaitTimeoutSeconds` to adjust this deadline. The chart passes
+  `WAIT_STORAGE_TIMEOUT_S` to the entrypoint and derives the startup probe
+  budget from the storage wait plus a 150-second Server startup allowance.
+  Explicit probe values win; a budget that cannot cover the storage wait and
+  minimum 120-second Server startup budget fails rendering with the relevant
+  parameter names.
+  `HG_SERVER_STARTUP_TIMEOUT_S` remains chart-managed.
 - **The wrapper writes `auth.admin_pa` from the auth Secret.** With
   `init_store.enabled=false` the admin credential is created on the PD startup
   path from `auth.admin_pa`, which applies only when the admin is first
@@ -103,7 +101,8 @@ so operators do not have to:
 ## Installing the Chart
 
 Before installing, confirm `kubectl` points at the intended cluster and that
-it can provision volumes. The default topology needs 3 PD and 3 Store PVCs,
+it can provision volumes. The default topology needs seven volumes: 3 PD PVCs (10 GiB each),
+3 Store PVCs (50 GiB each), and 1 Hubble PVC (1 GiB),
 and PVCs stuck `Pending` for want of a StorageClass are the most common
 first-run failure:
 
@@ -118,9 +117,12 @@ helm install hugegraph ./helm/hugegraph --namespace hugegraph \
     --create-namespace --wait --timeout 15m
 ```
 
-This deploys 3 PD + 3 Store + 3 Server, preserves the image's automatic JVM
-sizing, and sets no resource requests or limits. Set resources before
-production use.
+This deploys 3 PD + 3 Store + 3 Server and Hubble, with authentication and
+persistence enabled. Server and Hubble use automatically allocated NodePorts,
+PD stays internal, and HTTP works directly. It preserves the image's automatic
+JVM sizing and sets no resource requests or limits. Set resources before
+production use. See [storage examples](examples/README.md#storage) for static
+local PVs and [internal images](examples/README.md#internal-images) for private registries.
 
 The command examples in this document assume the release is named
 `hugegraph`. With a different release name, substitute the release-prefixed
@@ -160,17 +162,46 @@ kubectl port-forward -n hugegraph svc/hugegraph-server 8080:8080
 curl --user "admin:${PASSWORD}" http://127.0.0.1:8080/versions
 ```
 
-**Hubble is not installed by default.** Enable the optional UI after install:
+**Hubble is installed by default.** Retrieve the assigned ports and a reachable
+node address, then open `http://<node-ip>:<hubble-node-port>`:
 
 ```bash
-helm upgrade hugegraph ./helm/hugegraph --namespace hugegraph \
-    --reuse-values --set hubble.enabled=true --wait --timeout 15m
+kubectl -n hugegraph get svc hugegraph-server hugegraph-hubble
+kubectl get nodes -o wide
 ```
 
-`--reuse-values` keeps the release's existing overrides (presets, images,
-resources, Secrets); without it the upgrade rebuilds the release from chart
-defaults. Auth is already on, so that single flag is enough. Login uses the same admin
-credential from the chart-managed (or BYO) Secret.
+A NodePort accepts connections on reachable node IPs, then forwards to a ready
+Pod through the Service. The node need not host that Pod with the default
+`externalTrafficPolicy: Cluster`. A ClusterIP is an internal virtual Service IP;
+Pods use it through Service DNS, but an ordinary laptop cannot reach it directly.
+Choose ClusterIP for an existing gateway or port-forward, NodePort for direct
+node access, LoadBalancer for an infrastructure-managed address, or Ingress
+for HTTP routing through an installed controller. HTTP and hostless Ingress are
+supported; TLS is optional and configured explicitly.
+
+To use only the API, add `--set hubble.enabled=false`. To disable authentication
+as well, also add `--set server.auth.enabled=false`; stored credential values
+may remain in your values file. Current Hubble login still requires Server
+authentication, so disable the UI when using the current unauthenticated API.
+
+### Modes and explicit overrides
+
+`mode: easy` is the default. `mode: strict` defaults Server and Hubble to
+ClusterIP and enables NetworkPolicy. Both retain authentication, persistence
+and Hubble. Install the stricter preset with `-f helm/hugegraph/values-strict.yaml`.
+The resolved priority is **component explicit value > global value > mode
+value**. An explicit `false` is an override, not an inheritance request; nullable
+component defaults inherit. PD remains ClusterIP unless `pd.service.type` is set.
+
+```bash
+# strict defaults with one explicit, HTTP NodePort UI override
+helm install hugegraph ./helm/hugegraph -n hugegraph --create-namespace \
+  --set mode=strict --set hubble.service.type=NodePort \
+  --set networkPolicy.enabled=false
+```
+
+Legacy `allowInsecureExposure` and `ingress.allowPlainHttp` fields remain
+accepted but no longer gate rendering. No mode requires HTTPS or a domain.
 
 The default anti-affinity for `pd`, `store`, and `server` is `preferred`
 (Server always was; Hubble has no anti-affinity knob because it is
@@ -212,9 +243,10 @@ fleets may need `helm test --timeout` above the default.
 
 | File | Purpose |
 |---|---|
-| `values.yaml` | Default 3+3+3 topology with preferred anti-affinity, authentication on, and Hubble off |
-| `values-single.yaml` | Single-node 1+1+1 example with authentication on |
-| `values-cluster.yaml` | Production 3+3+3 starting point with JVM/resources, PD/Store PDBs, required anti-affinity for PD and Store, and NetworkPolicy on; authentication on, Hubble still opt-in |
+| `values.yaml` | Default 3+3+3 topology with preferred anti-affinity, authentication, Hubble and persistence on; automatic Server/Hubble NodePorts |
+| `values-single.yaml` | Single-node 1+1+1 example with authentication and Hubble on |
+| `values-strict.yaml` | Strict mode: internal ClusterIP entry points and NetworkPolicy on; explicit overrides still win |
+| `values-cluster.yaml` | Production 3+3+3 starting point with JVM/resources, PD/Store PDBs, required anti-affinity for PD and Store, NetworkPolicy inherits easy mode (off); authentication, Hubble and persistence on |
 
 `values-cluster.yaml` is a production starting point, not a capacity
 guarantee. Recalculate capacity for the graph size, traffic, failure budget,
@@ -251,6 +283,32 @@ Server uses `Dockerfile-hstore` so the image's default backend is HStore.
 Skipping the load step fails the Pods with `ErrImageNeverPull`; do not retag
 Docker Hub images as `local`.
 
+## Global configuration and internal deployments
+
+| Parameter | Meaning | Default |
+|---|---|---|
+| `mode` | Mode defaults; explicit component values win | `easy` |
+| `global.imageRegistry` | Prefix unqualified image repositories; qualified component repositories win | `""` |
+| `persistence.enabled` | Global persistent storage; component enabled overrides win | `true` |
+| `pd.storage.enabled` / `store.storage.enabled` | Null inherits global persistence; false uses `emptyDir` | `null` |
+| `networkPolicy.enabled` | Null inherits mode; explicit true/false wins | `null` |
+
+All three client Services accept native Kubernetes settings:
+`externalTrafficPolicy`, `loadBalancerClass`, `loadBalancerIP`,
+`loadBalancerSourceRanges`, `externalIPs`, and `allocateLoadBalancerNodePorts`.
+Set them under `pd.service`, `server.service` or `hubble.service`; use
+LoadBalancer-only fields with that Service type. Their availability and behavior
+also depend on the cluster and load balancer implementation. NodePorts may use
+any valid port number configured in the cluster's range; omission or `0` means
+automatic allocation. The chart does not impose Kubernetes' default range.
+
+See [complete configuration examples](examples/README.md) for private images,
+fixed GitOps credentials, hostless HTTP Ingress, dynamic storage and seven static
+local PVs. Ordinary Helm installs generate/reuse Secrets; offline renderers
+cannot look up an installed Secret, so GitOps must use fixed values or an
+`existingSecret`. The admin Secret is an **initial** credential, not an automatic
+password rotation mechanism.
+
 ## Upgrading the Chart
 
 ```bash
@@ -259,14 +317,27 @@ helm upgrade hugegraph ./helm/hugegraph --namespace hugegraph --reuse-values
 
 Any upgrade that changes a Pod template rolls that workload once.
 
-A release created before the exposure gates existed can hit them on its
-next upgrade, `--reuse-values` included: a non-ClusterIP `pd.service.type`
-now needs `pd.service.allowInsecureExposure=true`, a non-ClusterIP
-`server.service.type` needs `server.service.allowInsecureExposure=true`, a
-non-ClusterIP `hubble.service.type` needs
-`hubble.service.allowInsecureExposure=true`, and a TLS-less Server Ingress
-needs `server.ingress.allowPlainHttp=true`.
-The render error names the value to set.
+`--reuse-values` retains the previous release's effective values, including
+an old `hubble.enabled=false`, ClusterIP entry points, Hubble persistence,
+StorageClasses and credential sources. New mode defaults do not silently
+replace those settings. To adopt the new defaults deliberately, use
+`--reset-values` together with a reviewed values file containing every existing
+image, credential, storage and topology setting you need to preserve. Inspect
+`helm get values hugegraph -n hugegraph --all` first. Legacy HTTP exposure flags
+remain compatible and no longer require an acknowledgement. Older releases
+may retain explicit helper images under `--reuse-values`; clear both overrides
+to reuse the component images:
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set-string store.waitImage= --set-string server.waitImage=
+```
+
+Do not toggle initialized PD/Store between PVC and `emptyDir`; the chart
+rejects that upgrade rather than silently making persisted graph data disappear.
+For temporary new installations, `--set persistence.enabled=false` uses
+`emptyDir` for PD, Store and Hubble. A component's explicit storage setting
+wins over that global flag. PVC failures never trigger an automatic fallback.
 
 PD and Store storage sizes live in the StatefulSet `volumeClaimTemplates`,
 which Kubernetes forbids changing, so an upgrade with a new size is
@@ -348,8 +419,7 @@ Every optional field stays optional, so a release created by an earlier
 revision continues to render under `--reuse-values`. That flag keeps the old
 values as the complete base, so such a release does **not** pick up new
 values defaults (the hardened `securityContext`, ServiceAccounts,
-`terminationGracePeriodSeconds`); use `-f` with your own values, or
-`--reset-then-reuse-values`, to adopt them. Template-derived settings
+`terminationGracePeriodSeconds`); use `-f` with your own values, with `--reset-values`, to adopt them deliberately. Template-derived settings
 **are** applied either way, because they are computed at render time from
 whatever values are in effect.
 
@@ -481,7 +551,7 @@ default values.
 | `pd.ports.raft` | PD Raft port. Install-time identity: part of every PD's persisted raft address, refused on an initialized release (see Settings by lifecycle) | `8610` |
 | `pd.dataPath` | PD data directory inside the container | `/hugegraph-pd/pd_data` |
 | `pd.storage.size` | PD PersistentVolumeClaim size. Applies at install; see Upgrading for the resize procedure | `10Gi` |
-| `pd.storage.storageClassName` | Empty uses the cluster default StorageClass | `""` |
+| `pd.storage.storageClassName` | Empty inherits the cluster default; `"-"` explicitly requests no StorageClass | `""` |
 | `pd.resources` | PD container resources. Set these for production | `{}` |
 | `pd.podSecurityContext` | Pod-level securityContext, rendered only when set | `{}` |
 | `pd.securityContext` | Container-level securityContext. Hardened by default; `runAsNonRoot` is not set because the published images run as root | `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, `seccompProfile: RuntimeDefault` |
@@ -528,7 +598,7 @@ default values.
 | `store.ports.rest` | Store REST port | `8520` |
 | `store.dataPath` | Store data directory | `/hugegraph-store/storage` |
 | `store.storage.size` | Store PersistentVolumeClaim size. Applies at install; see Upgrading for the resize procedure | `50Gi` |
-| `store.storage.storageClassName` | Empty uses the cluster default StorageClass | `""` |
+| `store.storage.storageClassName` | Empty inherits the cluster default; `"-"` explicitly requests no StorageClass | `""` |
 | `store.resources` | Store container resources. Set these for production | `{}` |
 | `store.podSecurityContext` | Pod-level securityContext, rendered only when set | `{}` |
 | `store.securityContext` | Container-level securityContext; also applied to the PD wait init container. Hardened by default; `runAsNonRoot` is not set because the published images run as root | `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, `seccompProfile: RuntimeDefault` |
@@ -550,7 +620,7 @@ default values.
 | `store.serviceAccount.automountServiceAccountToken` | Mount an API token. The chart makes no API calls | `false` |
 | `store.pdb.enabled` | Create a PodDisruptionBudget for Store | `true` |
 | `store.pdb.minAvailable` | Must be strictly less than `store.replicas` and at least `store.replicas - 1`, so voluntary evictions cannot remove two copies of one shard at once. No PDB is rendered when `store.replicas` is 1 | `2` |
-| `store.waitImage` | Image for the PD wait init container | `curlimages/curl:8.5.0` |
+| `store.waitImage` | Empty reuses Store image for the wait init container; optional explicit override | `""` |
 | `store.waitResources` | Resources for the init container | `{}` |
 | `store.probes.*` | Same probe keys as PD | see `values.yaml` |
 
@@ -586,7 +656,7 @@ default values.
 | `server.serviceAccount.name` | Use an existing ServiceAccount instead | `""` |
 | `server.serviceAccount.annotations` | Annotations on the created ServiceAccount | `{}` |
 | `server.serviceAccount.automountServiceAccountToken` | Mount an API token. The chart makes no API calls | `false` |
-| `server.waitImage` | Image for the Helm test hook | `curlimages/curl:8.5.0` |
+| `server.waitImage` | Empty reuses Server image for Helm test; optional explicit override | `""` |
 | `server.testResources` | Resources for the Helm test hook container | requests `25m`/`32Mi`, limits `250m`/`64Mi` |
 | `server.initStoreEnabled` | Must remain `false` for distributed HStore | `false` |
 | `server.auth.enabled` | Enable admin authentication | `true` |
@@ -602,17 +672,18 @@ default values.
 | `server.ingress.className` | IngressClass name | `""` |
 | `server.ingress.annotations` | Ingress annotations (cert-manager, nginx, ALB) | `{}` |
 | `server.advertiseUrl` | Absolute Server URL registered with PD (`server.urls_to_pd`). Empty registers each Server Pod IP for in-cluster discovery | `""` |
-| `server.service.type` | Server Service type. A non-ClusterIP type requires `server.service.allowInsecureExposure` | `ClusterIP` |
-| `server.service.allowInsecureExposure` | Acknowledgement that a NodePort or LoadBalancer Service publishes the plain-HTTP Server API, so Basic-auth credentials and JWTs cross the network in cleartext; prefer a TLS Ingress, or restrict reachability by other means first | `false` |
+| `server.service.type` | Explicit Service type; null inherits mode | easy: `NodePort`; strict: `ClusterIP` |
+| `server.service.allowInsecureExposure` | Legacy compatibility field; no longer required for HTTP exposure | `false` / unset |
 | `server.service.annotations` | Server Service annotations | `{}` |
 | `server.ingress.hosts` | Ingress hosts and paths | see `values.yaml` |
-| `server.ingress.tls` | Ingress TLS configuration. Empty is refused unless `allowPlainHttp` opts in: the Server carries Basic-auth credentials and JWTs | `[]` |
-| `server.ingress.allowPlainHttp` | Explicit opt-in to a TLS-less Server Ingress on a trusted network | unset |
+| `server.ingress.tls` | Optional Ingress TLS configuration | `[]` |
+| `server.ingress.allowPlainHttp` | Legacy compatibility field; no longer required for HTTP exposure | `false` / unset |
 | `server.hpa.enabled` | Create a HorizontalPodAutoscaler | `false` |
 | `server.hpa.minReplicas` | HPA minimum replicas | `3` |
 | `server.hpa.maxReplicas` | HPA maximum replicas | `10` |
 | `server.hpa.targetCPUUtilizationPercentage` | HPA CPU utilization target | `70` |
-| `server.probes.startup.failureThreshold` | Raised automatically so the guaranteed budget, `(failureThreshold - 1) * periodSeconds` (the first probe can fail immediately), is at least 450s | `91` |
+| `server.storageWaitTimeoutSeconds` | Storage-ready deadline, passed as `WAIT_STORAGE_TIMEOUT_S` | `300` |
+| `server.probes.startup.failureThreshold` | Null derives from storage wait plus startup allowance; explicit thresholds are preserved and validated | default resolved: `91` |
 | `server.probes.startup.periodSeconds` | Startup probe interval | `5` |
 | `server.probes.*` | Same optional probe keys as PD | see `values.yaml` |
 
@@ -630,36 +701,30 @@ PD. Store Operations metrics from outside the cluster are out of scope here.
 
 #### 1. In-cluster Hubble (recommended)
 
-Set `hubble.enabled=true` (off by default so API-only clusters stay lean);
-the chart wires PD/Server for you. Open the UI with one port-forward, then
-open `http://127.0.0.1:8088` and log in with the chart admin password:
+Hubble is already enabled and wired to PD/Server. In easy mode, use the
+Hubble Service's assigned NodePort on a reachable node IP. Port-forward works
+in either mode:
 
 ```bash
 kubectl -n <namespace> port-forward svc/<fullname>-hubble 8088:8088
 ```
 
-For a shared environment, expose Hubble through `hubble.ingress` with
-`tls` instead of port-forward. A NodePort or LoadBalancer
-`hubble.service.type` publishes the plain-HTTP UI directly and is refused
-unless `hubble.service.allowInsecureExposure=true` acknowledges it.
+Open `http://127.0.0.1:8088` and log in with the chart admin password. For shared
+access, NodePort, LoadBalancer and HTTP or HTTPS Ingress are supported.
 
 #### 2 and 3. Outside Hubble (direct Server URL, or PD discovery)
 
-A non-ClusterIP PD Service requires `pd.service.allowInsecureExposure=true`
-(PD gRPC has no authentication; restrict who can reach it first), a
-non-ClusterIP Server Service requires
-`server.service.allowInsecureExposure=true` (plain HTTP; prefer a TLS
-`server.ingress`), and a set
-`server.advertiseUrl` registers that one URL with PD for every discovery
-client, an in-cluster Hubble included. The walkthrough for both paths is on
+Choose a reachable Server entry point. PD discovery additionally requires a
+reachable PD gRPC entry point. Setting `server.advertiseUrl` registers that one
+URL with PD for every discovery client, an in-cluster Hubble included. The walkthrough for both paths is on
 the
 [operations page](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm-operations/#9-running-hubble-outside-the-cluster).
 
 | Parameter | Description | Default |
 |---|---|---|
 | `server.advertiseUrl` | Absolute Server URL registered with PD for discovery clients. Empty registers each Server Pod IP for in-cluster discovery | `""` |
-| `pd.service.type` | PD client Service type (`ClusterIP`, `NodePort`, `LoadBalancer`). A non-ClusterIP type requires `pd.service.allowInsecureExposure` | `ClusterIP` |
-| `pd.service.allowInsecureExposure` | Acknowledgement that a non-ClusterIP PD Service exposes the unauthenticated gRPC port; restrict reachability by other means first | `false` |
+| `pd.service.type` | PD client Service type (`ClusterIP`, `NodePort`, `LoadBalancer`) | `ClusterIP` |
+| `pd.service.allowInsecureExposure` | Legacy compatibility field; no longer required for HTTP exposure | `false` / unset |
 | `pd.service.annotations` | Annotations on the PD client Service | `{}` |
 | `pd.service.restNodePort` | Optional fixed NodePort for PD REST; requires NodePort/LoadBalancer | unset |
 | `pd.service.grpcNodePort` | Optional fixed NodePort for PD gRPC; requires NodePort/LoadBalancer | unset |
@@ -685,7 +750,7 @@ next upgrade.
 
 Hubble is one replica by design: it keeps UI connection metadata, including
 any graph credentials entered in the UI, in an embedded per-instance H2
-database. Enable `hubble.persistence` to keep that metadata across Pod
+database. Persistence is enabled by default to keep that metadata across Pod
 replacement; the chart then redirects the H2 location into the mounted
 volume through Spring's environment binding. The Deployment uses the
 `Recreate` strategy so two Hubble instances never attach the same database.
@@ -700,14 +765,13 @@ authenticates against the cluster, so the chart refuses to render
 `hubble.allowWithoutServerAuth=true` overrides it for images whose login
 does not need cluster authentication.
 
-**Hubble serves plain HTTP.** Reach it through a port-forward or an
-HTTPS-terminating Ingress, never directly from an untrusted network; an
-Ingress without `tls` is rejected unless `hubble.ingress.allowPlainHttp=true`
-opts in.
+**Hubble serves plain HTTP by default.** TLS termination is optional through
+an Ingress or another gateway. The chart does not require TLS or an exposure
+acknowledgement for internal node access.
 
 | Parameter | Description | Default |
 |---|---|---|
-| `hubble.enabled` | Deploy the Hubble UI. Requires `server.auth` (see below) | `false` |
+| `hubble.enabled` | Deploy the Hubble UI. Current login requires `server.auth` | `true` |
 | `hubble.mode` | `pd` discovers the cluster through PD and enables the operations view; `direct` talks to the Server client Service only | `pd` |
 | `hubble.allowWithoutServerAuth` | Renders Hubble without `server.auth`, for future images whose login does not require cluster authentication | `false` |
 | `hubble.image.repository` | Hubble image repository | `hugegraph/hubble` |
@@ -715,14 +779,14 @@ opts in.
 | `hubble.image.digest` | Optional immutable digest such as `sha256:...`; when set it takes priority over the tag | `""` |
 | `hubble.image.pullPolicy` | Hubble image pull policy | `Always` |
 | `hubble.port` | Hubble HTTP port, container port, and Service port | `8088` |
-| `hubble.persistence.enabled` | Persist UI connection metadata in a PVC | `false` |
+| `hubble.persistence.enabled` | Null inherits `persistence.enabled`; explicit false uses `emptyDir` | resolved `true` |
 | `hubble.persistence.size` | PVC size | `1Gi` |
-| `hubble.persistence.storageClassName` | Empty uses the cluster default StorageClass | `""` |
+| `hubble.persistence.storageClassName` | Empty inherits the cluster default; `"-"` explicitly requests no StorageClass | `""` |
 | `hubble.resources` | Hubble resources | `{}` |
 | `hubble.podSecurityContext` | Pod-level securityContext, rendered only when set | `{}` |
 | `hubble.securityContext` | Container-level securityContext, hardened like the other components | see `values.yaml` |
-| `hubble.service.type` | Hubble Service type. A non-ClusterIP type requires `hubble.service.allowInsecureExposure` | `ClusterIP` |
-| `hubble.service.allowInsecureExposure` | Acknowledgement that a NodePort or LoadBalancer Service publishes the plain-HTTP Hubble UI, which has no login of its own; restrict reachability by other means first | `false` |
+| `hubble.service.type` | Explicit Service type; null inherits mode | easy: `NodePort`; strict: `ClusterIP` |
+| `hubble.service.allowInsecureExposure` | Legacy compatibility field; no longer required for HTTP exposure | `false` / unset |
 | `hubble.service.annotations` | Hubble Service annotations | `{}` |
 | `hubble.service.nodePort` | Requires a `NodePort` or `LoadBalancer` Service type | unset |
 | `hubble.ingress.*` | Same Ingress keys as `server.ingress.*`, including `allowPlainHttp` | `enabled: false` |
@@ -750,10 +814,8 @@ before anything reaches the cluster:
   `server.auth.admin.password` must be set, or `server.auth.admin.autoGenerate`
   must be true. The same shape applies to `server.auth.token` (`existingSecret`
   / `value` / `autoGenerate`). With authentication disabled,
-  `admin.existingSecret`, `admin.password`, `token.existingSecret`, and
-  `token.value` must be empty, so a configured but inactive Secret reference
-  cannot be overlooked. A missing Secret fails when Kubernetes configures the
-  container; an empty `password` fails in the Server startup wrapper.
+  inactive credential settings may remain configured and are ignored. A missing
+  Secret fails when Kubernetes configures the container; an empty `password` fails in the Server startup wrapper.
 - `server.hpa.minReplicas` must not exceed `maxReplicas`, and enabling
   utilization-based HPA requires a strictly positive
   `server.resources.requests.cpu`.
@@ -780,9 +842,7 @@ before anything reaches the cluster:
   non-empty, and `hubble.service.nodePort` requires a `NodePort` or
   `LoadBalancer` Service type.
 - `hubble.image` needs a tag or a digest (the chart `appVersion` tracks the
-  Server release, not Hubble), and an Ingress without `tls` is rejected for
-  Server and Hubble alike unless the matching `ingress.allowPlainHttp=true`
-  opts in.
+  Server release, not Hubble). Ingress host and TLS are optional.
 - `hubble.enabled` without `server.auth.enabled` is rejected unless
   `hubble.allowWithoutServerAuth=true`, and
   `securityContext.readOnlyRootFilesystem=true` is rejected for Server and
@@ -803,10 +863,6 @@ before anything reaches the cluster:
   `1`: a larger value or a percentage lets the controller disrupt two
   members of a three-member raft group or shard at once, and a
   PodDisruptionBudget does not constrain controller rollouts.
-- With `networkPolicy.enabled`, an in-cluster Hubble in `pd` mode combined
-  with `server.advertiseUrl` requires `networkPolicy.hubble.extraEgress`:
-  PD hands Hubble the advertised external URL, which Hubble's egress
-  policy would otherwise block.
 - In `pd` mode the Hubble wrapper refuses a PD REST secret that is not
   printable ASCII, contains backslashes, or starts or ends with
   whitespace, the same constraint the schema puts on inline values; an
@@ -829,17 +885,6 @@ before anything reaches the cluster:
   the entrypoint writes spaces so they read back unchanged (Server side:
   apache/hugegraph#3284, once the image this chart deploys includes that
   fix; the TODO at `encode_prop_value` is in apache/hugegraph#3260).
-- A non-ClusterIP `pd.service.type` requires
-  `pd.service.allowInsecureExposure=true`, a non-ClusterIP
-  `server.service.type` requires `server.service.allowInsecureExposure=true`
-  (the Server serves plain HTTP, so Basic-auth credentials and JWTs travel
-  in cleartext), and a non-ClusterIP `hubble.service.type` requires
-  `hubble.service.allowInsecureExposure=true`: Hubble serves plain HTTP with
-  no login of its own.
-- With `networkPolicy.enabled`, exposing PD, Server or Hubble (a NodePort
-  or LoadBalancer Service, a Server or Hubble Ingress, or a set
-  `server.advertiseUrl`) requires a non-empty
-  `networkPolicy.<component>.extraIngress` naming who may connect.
 - An upgrade may not shrink `pd.replicas` or `store.replicas` below the
   live StatefulSet, or grow `pd.replicas`; see Scaling for the manual
   procedure.
@@ -856,8 +901,8 @@ before anything reaches the cluster:
 `networkPolicy.enabled` renders one NetworkPolicy per component (PD, Store,
 Server, and Hubble when enabled). Each one isolates its own Pods in both
 directions and lists the traffic they need, so the policies take effect in any
-apply order. It is off in `values.yaml`, because the base values cannot know
-who your clients are, and on in `values-cluster.yaml`.
+apply order. It defaults off in easy mode, including `values-cluster.yaml`,
+and on in strict mode; an explicit `networkPolicy.enabled` overrides either.
 
 It only works when the cluster's network plugin enforces NetworkPolicy (kind
 v0.25 or later, k3s, Calico, Cilium). Other plugins accept the objects and
@@ -866,9 +911,9 @@ namespace and `curl` the PD client Service on the REST port: it must time out.
 
 With it on, the release admits only its own traffic plus DNS; anything
 else, the Ingress controller and NodePort or LoadBalancer clients included,
-must be listed in `networkPolicy.<component>.extraIngress`, and exposing
-PD, Server or Hubble (or setting `server.advertiseUrl`) with an empty
-`extraIngress` fails the render instead of opening the port. The
+can be admitted with native `networkPolicy.<component>.extraIngress` rules.
+An empty rule list is valid and may block external clients; rendering does not
+require an extra source acknowledgement. The
 admitted-traffic matrix, the egress notes, and worked `extraIngress`
 examples with the per-plugin NodePort client addresses are on the
 [operations page](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm-operations/#5-networkpolicy).
@@ -1022,7 +1067,7 @@ kubectl -n <provisioner-namespace> get pods
 
 The Server readiness probe uses `/versions`, which can report ready before the
 graph is fully able to serve index-backed queries. Confirm the graph is live
-(the server image does not ship `curl`, so probe through a port-forward):
+(use a port-forward to probe with your local HTTP client):
 
 ```bash
 kubectl port-forward -n hugegraph svc/hugegraph-server 8080:8080
