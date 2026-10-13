@@ -163,10 +163,6 @@ public class SystemMetricService {
         Set<String> names = dbFactory.getGraphNames();
         if (names != null) {
             for (String name : names) {
-                // queryGraphDB() returns a ref-counted clone; it MUST be closed or the
-                // session's refCount never returns to 0. A leaked reference blocks
-                // RocksDBFactory's destroy watcher from firing onDBDeleted (local dir
-                // deletion + cloud prefix purge) until the 30-min force-reset kicks in.
                 try (RocksDBSession session = dbFactory.queryGraphDB(name)) {
                     if (session == null) {
                         continue;

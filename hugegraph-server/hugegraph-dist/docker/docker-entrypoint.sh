@@ -26,6 +26,13 @@ mkdir -p "${DOCKER_FOLDER}"
 
 log() { echo "[hugegraph-server-entrypoint] $*"; }
 
+# TODO: write values so the Server reads them back unchanged. A space is escaped as "\ " here,
+# which java.util.Properties would unescape, but the Server reads these files through Commons
+# Configuration's PropertiesConfiguration, which keeps the backslash before a space: PASSWORD
+# "a b" becomes auth.admin_pa "a\ b" and the admin login with "a b" answers 401. Emit interior
+# spaces as-is (they round-trip) and add a write-then-read test through HugeConfig for the keys
+# this script sets. The Helm chart (helm/hugegraph) refuses admin passwords containing spaces in
+# its schema and Server wrapper; drop that guard once this is fixed.
 encode_prop_value() {
     local value="$1" encoded="" char
     local i
@@ -146,6 +153,11 @@ if [[ -n "${PASSWORD:-}" && -z "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
 fi
 
 # ── Map env → properties file ─────────────────────────────────────────
+# TODO: map server.urls_to_pd and server.deploy_in_k8s from the environment here, as PASSWORD is
+# mapped to auth.admin_pa below. Without them the Helm chart (helm/hugegraph) rewrites
+# rest-server.properties in a wrapper before exec'ing this script; drop that wrapper once both keys
+# have a mapping. A read-only root filesystem also needs the conf files on a writable path, since
+# set_prop in this script edits them in place; the chart refuses readOnlyRootFilesystem until then.
 [[ -n "${HG_SERVER_BACKEND:-}"  ]] && set_prop "backend"  "${HG_SERVER_BACKEND}"  "${GRAPH_CONF}"
 [[ -n "${HG_SERVER_PD_PEERS:-}" ]] && set_prop "pd.peers" "${HG_SERVER_PD_PEERS}" "${GRAPH_CONF}"
 [[ -n "${HG_SERVER_USE_PD:-}" ]] && \
@@ -240,19 +252,83 @@ else
     ./bin/init-store.sh
 fi
 
-./bin/start-hugegraph.sh -j "${JAVA_OPTS:-}" -t "${SERVER_STARTUP_TIMEOUT_S}"
+# Own the foreground launcher so wait can recover the JVM's actual status.
+# A daemon JVM is not our child; watching its PID with tail loses that status.
+source ./bin/util.sh
+LAUNCHER_PID=""
+READINESS_PID=""
+PARTITION_PID=""
+stop_server_and_exit() {
+    local exit_code="$1"
+    # dumb-init can signal the group before we forward to its children.
+    # Ignore duplicate signals while those children finish shutting down.
+    trap '' TERM INT
+    if [[ -n "$READINESS_PID" ]]; then
+        kill -TERM "$READINESS_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$PARTITION_PID" ]]; then
+        kill -TERM "$PARTITION_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$LAUNCHER_PID" ]]; then
+        kill -TERM "$LAUNCHER_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$PARTITION_PID" ]]; then
+        wait "$PARTITION_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$READINESS_PID" ]]; then
+        wait "$READINESS_PID" 2>/dev/null || true
+    fi
+    if [[ -n "$LAUNCHER_PID" ]]; then
+        wait "$LAUNCHER_PID" 2>/dev/null || true
+    fi
+    exit "$exit_code"
+}
+trap 'stop_server_and_exit 143' TERM
+trap 'stop_server_and_exit 130' INT
+
+./bin/start-hugegraph.sh -d false -j "${JAVA_OPTS:-}" -t "${SERVER_STARTUP_TIMEOUT_S}" &
+LAUNCHER_PID=$!
+REST_SERVER_URL=$(read_property "$REST_SERVER_CONF" "restserver.url")
+# GNU timeout owns the probe group, including a stalled curl. Background it
+# so wait is interruptible; a foreground probe would defer our signal traps.
+timeout "${SERVER_STARTUP_TIMEOUT_S}s" bash -c '
+    source ./bin/util.sh
+    wait_for_startup "$@"
+' bash "$LAUNCHER_PID" 'HugeGraphServer' "$REST_SERVER_URL/graphs" \
+       "$SERVER_STARTUP_TIMEOUT_S" &
+READINESS_PID=$!
+READY_STATUS=0
+wait "$READINESS_PID" || READY_STATUS=$?
+READINESS_PID=""
+if [[ "$READY_STATUS" -ne 0 ]]; then
+    log "ERROR: HugeGraphServer did not become ready; see the container logs"
+    if kill -0 "$LAUNCHER_PID" 2>/dev/null; then
+        # Keep the startup deadline even if the JVM ignores TERM. Container
+        # termination cleans up any remaining processes; don't wait forever.
+        kill -TERM "$LAUNCHER_PID" 2>/dev/null || true
+        exit 1
+    fi
+    # Preserve an early failure, but a normal exit before readiness is still
+    # an unsuccessful start.
+    STATUS=0
+    wait "$LAUNCHER_PID" || STATUS=$?
+    [[ "$STATUS" -ne 0 ]] || STATUS=1
+    exit "$STATUS"
+fi
 
 # Post-startup cluster stabilization check (hstore only — rocksdb has no partitions)
 ACTUAL_BACKEND=$(grep -E '^[[:space:]]*backend[[:space:]]*=' "${GRAPH_CONF}" | head -n 1 | sed 's/.*=//' | tr -d '[:space:]' || true)
 if [[ "${ACTUAL_BACKEND}" == "hstore" ]]; then
     STORE_REST="${STORE_REST:-store:8520}"
     export STORE_REST
-    ./bin/wait-partition.sh || log "WARN: partitions not assigned yet"
+    ./bin/wait-partition.sh &
+    PARTITION_PID=$!
+    wait "$PARTITION_PID" || log "WARN: partitions not assigned yet"
+    PARTITION_PID=""
 fi
 
-PID=$(cat ./bin/pid 2>/dev/null || true)
-if [[ -n "$PID" ]]; then
-    trap 'kill -TERM "$PID" 2>/dev/null; while kill -0 "$PID" 2>/dev/null; do sleep 1; done; exit 0' TERM INT
-    tail --pid="$PID" -f /dev/null
-    exit 1
+if wait "$LAUNCHER_PID"; then
+    exit 0
+else
+    exit $?
 fi

@@ -48,6 +48,11 @@ if IFS= read -r password; then
     printf '%s' "${password}" > ./docker/init-store-password
 fi
 EOF
+cat > "${TEST_HOME}/bin/util.sh" <<'EOF'
+# Configuration tests isolate readiness; process lifecycle is tested separately.
+read_property() { sed -n "s/^$2=//p" "$1"; }
+wait_for_startup() { return 0; }
+EOF
 cat > "${TEST_HOME}/bin/enable-auth.sh" <<'EOF'
 #!/usr/bin/env bash
 printf 'called\n' >> ./docker/enable-auth-calls
@@ -325,3 +330,4 @@ done
 assert_start_timeout 120
 
 echo "PASS: Docker entrypoint configures HStore discovery and authentication"
+bash "${SCRIPT_DIR}/test/test-docker-entrypoint-process.sh"

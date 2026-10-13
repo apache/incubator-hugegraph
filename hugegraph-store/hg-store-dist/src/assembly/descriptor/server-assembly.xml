@@ -46,16 +46,46 @@
         </fileSet>
     </fileSets>
 
+    <files>
+        <file>
+            <source>${project.basedir}/../../hugegraph-server/hugegraph-dist/src/assembly/static/bin/prepare-topling.sh</source>
+            <outputDirectory>bin</outputDirectory>
+            <fileMode>755</fileMode>
+        </file>
+        <file>
+            <source>${project.basedir}/../../hugegraph-server/hugegraph-dist/src/assembly/static/bin/preload-topling.sh</source>
+            <outputDirectory>bin</outputDirectory>
+            <fileMode>755</fileMode>
+        </file>
+        <file>
+            <source>${project.basedir}/../../hugegraph-server/hugegraph-dist/src/assembly/static/conf/toplingdb.yaml</source>
+            <outputDirectory>conf</outputDirectory>
+            <fileMode>644</fileMode>
+        </file>
+    </files>
+
     <dependencySets>
         <!-- code jars -->
         <dependencySet>
             <outputDirectory>/lib</outputDirectory>
+            <outputFileNameMapping>${artifact.artifactId}-${artifact.version}.jar</outputFileNameMapping>
             <unpack>false</unpack>
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <includes>
-                <include>org.apache.hugegraph:${executable.jar.name}:jar:*</include>
-                <include>org.rocksdb:rocksdbjni:jar:*</include>
+                <include>org.apache.hugegraph:${executable.jar.name}:jar:exec:*</include>
+            </includes>
+        </dependencySet>
+        <!-- rocksdbjni sits on the launcher classpath: RocksDB native-thread callbacks resolve
+             org.rocksdb.* through the system classloader, which cannot see BOOT-INF/lib -->
+        <dependencySet>
+            <outputDirectory>/lib</outputDirectory>
+            <outputFileNameMapping>${artifact.artifactId}-${artifact.version}.jar</outputFileNameMapping>
+            <unpack>false</unpack>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <includes>
+                <include>org.rocksdb:rocksdbjni</include>
             </includes>
         </dependencySet>
     </dependencySets>

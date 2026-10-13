@@ -57,6 +57,7 @@
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
+            <version>${rocksdb.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -65,12 +66,12 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
-            <version>2.15.0</version>
+            <version>${log4j2.version}</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
-            <version>1.2.83</version>
+            <version>1.2.84</version>
         </dependency>
         <!-- Test-only: mock RocksDB/session to exercise the read-miss-on-exception hydration
              branch deterministically (a real embedded DB cannot reliably raise an IO error and
