@@ -826,8 +826,9 @@ before anything reaches the cluster:
   applied with the backslashes and answer 401 to the Secret value (measured
   on `:latest`, 2026-10-03). This guard is temporary: it goes once the
   Server decodes Basic auth as UTF-8 and splits on the first colon only, and
-  the entrypoint writes spaces so they read back unchanged (the TODOs at the
-  decoding site and at `encode_prop_value` are in apache/hugegraph#3260).
+  the entrypoint writes spaces so they read back unchanged (Server side:
+  apache/hugegraph#3284, once the image this chart deploys includes that
+  fix; the TODO at `encode_prop_value` is in apache/hugegraph#3260).
 - A non-ClusterIP `pd.service.type` requires
   `pd.service.allowInsecureExposure=true`, a non-ClusterIP
   `server.service.type` requires `server.service.allowInsecureExposure=true`
