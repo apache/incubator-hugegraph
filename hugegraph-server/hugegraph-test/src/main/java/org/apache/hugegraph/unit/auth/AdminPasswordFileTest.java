@@ -26,16 +26,23 @@ import java.util.Comparator;
 import java.util.stream.Stream;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.auth.HugeUser;
+import org.apache.hugegraph.auth.StandardAuthManager;
 import org.apache.hugegraph.auth.StandardAuthenticator;
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.dist.RegisterUtil;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.util.StringEncoding;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 /**
  * auth.admin_pa goes through the properties grammar, so a padded, escaped or
@@ -131,6 +138,31 @@ public class AdminPasswordFileTest {
         }, e -> Assert.assertContains("not valid UTF-8", e.getMessage()));
     }
 
+    /**
+     * init-store prompts on stdin for a persistent backend. With a password
+     * file configured it must create the admin from the file instead.
+     */
+    @Test
+    public void testInitStoreTakesFileInsteadOfPrompt() throws Exception {
+        Path file = this.write(utf8("p\u00e4ssword\n"));
+        StandardAuthManager authManager = Mockito.mock(StandardAuthManager.class);
+        HugeGraph graph = Mockito.mock(HugeGraph.class);
+        Mockito.when(graph.hugegraph()).thenReturn(graph);
+        Mockito.when(graph.authManager()).thenReturn(authManager);
+        StandardAuthenticator authenticator = new StandardAuthenticator();
+        Whitebox.setInternalState(authenticator, "graph", graph);
+
+        Whitebox.invoke(StandardAuthenticator.class,
+                        new Class<?>[]{HugeConfig.class}, "initAdminUser",
+                        authenticator, config(file, null));
+
+        ArgumentCaptor<HugeUser> admin = ArgumentCaptor.forClass(HugeUser.class);
+        Mockito.verify(authManager).createUser(admin.capture());
+        Assert.assertTrue(StringEncoding.checkPassword("p\u00e4ssword",
+                                                       admin.getValue().password()));
+        Mockito.verify(graph).close();
+    }
+
     private static byte[] utf8(String value) {
         return value.getBytes(StandardCharsets.UTF_8);
     }
@@ -142,6 +174,10 @@ public class AdminPasswordFileTest {
     }
 
     private static String initialAdminPassword(Path file, String adminPa) {
+        return StandardAuthenticator.initialAdminPassword(config(file, adminPa));
+    }
+
+    private static HugeConfig config(Path file, String adminPa) {
         PropertiesConfiguration properties = new PropertiesConfiguration();
         if (file != null) {
             properties.setProperty(ServerOptions.ADMIN_PA_FILE.name(),
@@ -150,6 +186,6 @@ public class AdminPasswordFileTest {
         if (adminPa != null) {
             properties.setProperty(ServerOptions.ADMIN_PA.name(), adminPa);
         }
-        return StandardAuthenticator.initialAdminPassword(new HugeConfig(properties));
+        return new HugeConfig(properties);
     }
 }
