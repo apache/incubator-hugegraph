@@ -48,6 +48,7 @@ import com.alipay.sofa.rpc.config.ProviderConfig;
 import com.alipay.sofa.rpc.core.exception.SofaRpcException;
 import com.alipay.sofa.rpc.core.exception.SofaRpcRuntimeException;
 import com.google.common.collect.ImmutableMap;
+import io.netty.channel.ChannelFuture;
 
 public class ServerClientTest extends BaseUnitTest {
 
@@ -66,7 +67,7 @@ public class ServerClientTest extends BaseUnitTest {
             rpcClient.destroy();
         }
         if (rpcServer != null) {
-            rpcServer.destroy();
+            stopServer(rpcServer);
         }
     }
 
@@ -76,7 +77,45 @@ public class ServerClientTest extends BaseUnitTest {
             rpcClient.unreferAll();
         }
         if (rpcServer != null) {
-            rpcServer.unexportAll();
+            unexportServer(rpcServer);
+        }
+    }
+
+    @Test
+    public void testUnexportWaitsBeforeReusingListenerPort() throws Exception {
+        rpcServer.config().addService(HelloService.class, new HelloServiceImpl());
+        startServer(rpcServer);
+        ChannelFuture binding = listener(rpcServer);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        binding.channel().eventLoop().execute(() -> {
+            entered.countDown();
+            try {
+                E.checkState(release.await(5, TimeUnit.SECONDS), "RPC close barrier timed out");
+            } catch (InterruptedException failure) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(failure);
+            }
+        });
+        try {
+            Assert.assertTrue(entered.await(5, TimeUnit.SECONDS));
+            Future<?> closing = worker.submit(() -> unexportServer(rpcServer));
+            Assert.assertThrows(TimeoutException.class, () -> closing.get(1, TimeUnit.SECONDS));
+            Assert.assertTrue(rpcServer.config().configs().isEmpty());
+            Assert.assertTrue(binding.channel().isOpen());
+            Assert.assertFalse(binding.channel().closeFuture().isDone());
+            release.countDown();
+            closing.get(5, TimeUnit.SECONDS);
+            Assert.assertTrue(binding.channel().closeFuture().isSuccess());
+            rpcServer.config().addService(HelloService.class, new HelloServiceImpl());
+            startServer(rpcServer);
+            HelloService client = rpcClient.config().serviceProxy(HelloService.class);
+            Assert.assertEquals("hello tom!", client.hello("tom"));
+        } finally {
+            release.countDown();
+            worker.shutdownNow();
+            Assert.assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
         }
     }
 
