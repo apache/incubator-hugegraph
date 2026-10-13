@@ -39,6 +39,7 @@ startup and RocksDB inputs select ARM full validation and their deployment consu
 Unclassified paths or an unavailable diff/API conservatively select mainline coverage.
 HBase and RISC-V remain limited to explicit related inputs, weekly coverage or manual selection.
 The classifier uses paths, not PR titles or semantic interpretation of changed text.
+Contract scripts explicitly select their executing suites without adding runtime consumers.
 
 ### Documentation
 

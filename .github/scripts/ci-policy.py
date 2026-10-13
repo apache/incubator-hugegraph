@@ -88,6 +88,13 @@ PLATFORM_POMS = {"pom.xml", "hugegraph-server/pom.xml", "hugegraph-server/hugegr
                  "hugegraph-pd/hg-pd-grpc/pom.xml"}
 RISCV_PROTO_ROOTS = ("hugegraph-server/hugegraph-core/", "hugegraph-pd/hg-pd-grpc/")
 TRAVIS = "hugegraph-server/hugegraph-dist/src/assembly/travis/"
+# Contract tests follow their executing suites, without runtime consumer fan-out.
+CONTRACT_SUITES = {
+    TRAVIS + "test-stop-hugegraph-store.sh": {"struct"},
+    TRAVIS + "test-check-jacoco-report.sh": {"struct"},
+    TRAVIS + "test-codecov-upload-config.sh": {"struct"},
+    TRAVIS + "test-riscv64-java-runtime.sh": {"server", "riscv64"},
+}
 
 
 def git(*args):
@@ -127,11 +134,15 @@ def unsafe_documentation(ref, paths):
 
 def select(project, paths):
     selected = set()
+    contracts = set()
     for path in paths:
         if documentation(path):
             continue
         p = Path(path)
         if project == "server":
+            if path in CONTRACT_SUITES:
+                contracts.update(CONTRACT_SUITES[path])
+                continue
             if path in MAINTENANCE_INPUTS:
                 selected.update(MAINTENANCE_INPUTS[path])
                 continue
@@ -212,6 +223,7 @@ def select(project, paths):
             selected.add("macos")
         if selected.intersection({"pd", "store", "hstore", "struct", "cluster"}):
             selected.add("distributed_smoke")
+        selected.update(contracts)
     return selected
 
 

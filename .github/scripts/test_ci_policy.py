@@ -126,9 +126,7 @@ class PolicyTest(unittest.TestCase):
                      "hugegraph-server/hugegraph-dist/src/assembly/travis/install-hbase.sh",
                      "hugegraph-server/hugegraph-dist/src/assembly/travis/hbase-ci-site.xml"]:
             self.assertEqual({"hbase"}, policy.select("server", [path]))
-        for path in [".github/workflows/riscv64-ci.yml",
-                     "hugegraph-server/hugegraph-dist/src/assembly/travis/test-riscv64-java-runtime.sh"]:
-            self.assertEqual({"riscv64"}, policy.select("server", [path]))
+        self.assertEqual({"riscv64"}, policy.select("server", [".github/workflows/riscv64-ci.yml"]))
         self.assertTrue(self.plan_for([".github/workflows/server-compatibility-ci.yml"])["riscv64"])
         self.assertTrue(self.plan_for([".github/workflows/server-tests.yml"])["hbase"])
         self.assertTrue(self.plan_for(["hugegraph-server/hugegraph-rocksdb/pom.xml"])["riscv64"])
@@ -344,6 +342,50 @@ class PolicyTest(unittest.TestCase):
             with self.subTest(java=state):
                 self.assertEqual({"helm"}, self.coordinator_jobs(full, java=state, result="failure"))
         self.assertEqual(set(), self.coordinator_jobs(full, cancelled=True))
+
+    def test_contract_scripts_reach_their_actual_inner_jobs_and_steps(self):
+        workflows = Path(__file__).resolve().parents[1] / "workflows"
+        cases = [("test-stop-hugegraph-store.sh", {"struct"}),
+                 ("test-check-jacoco-report.sh", {"struct"}),
+                 ("test-codecov-upload-config.sh", {"struct"}),
+                 ("test-riscv64-java-runtime.sh", {"server", "riscv64"})]
+        for name, suites in cases:
+            script = policy.TRAVIS + name
+            with self.subTest(script=script):
+                plan = self.plan_for([script])
+                self.assertEqual(suites, set(plan["selected"]))
+                callers = self.coordinator_jobs(plan)
+                if "struct" in suites:
+                    self.assertEqual({"pd_store"}, callers)
+                    root = (workflows / "server-ci.yml").read_text()
+                    caller = re.search(r"^  pd_store:\n(.*?)(?=^  [\w-]+:|\Z)", root, re.M | re.S).group(1)
+                    inputs = {}
+                    for key in ["struct", "store"]:
+                        binding = re.search(r"^      run-" + key + r": \$\{\{ (.+) \}\}$", caller, re.M).group(1)
+                        binding = binding.replace("needs.preflight.outputs." + key, repr(str(plan[key]).lower()))
+                        inputs[key] = eval(binding, {"__builtins__": {}})
+                    workflow = (workflows / "pd-store-ci.yml").read_text()
+                    struct = workflow.split("\n  struct:\n", 1)[1].split("\n  pd:\n", 1)[0]
+                    condition = re.search(r"^    if: (.+)$", struct, re.M).group(1)
+                    condition = condition.replace("inputs.run-struct", str(inputs["struct"]))
+                    condition = condition.replace("inputs.run-store", str(inputs["store"]))
+                    self.assertTrue(eval(condition.replace("||", "or"), {"__builtins__": {}}))
+                    step = next(step for step in struct.split("\n      - ") if script in step)
+                    self.assertNotRegex(step, r"(?m)^        if:")
+                else:
+                    self.assertIn("server-rocksdb", callers)
+                    workflow = (workflows / "server-ci.yml").read_text()
+                    # Read the backend from the actual caller rather than assuming a preset.
+                    caller = re.search(r"^  server-rocksdb:\n(.*?)(?=^  [\w-]+:|\Z)",
+                                       workflow, re.M | re.S).group(1)
+                    backend = re.search(r"^      backend: (\w+)$", caller, re.M).group(1)
+                    inner = (workflows / "server-tests.yml").read_text()
+                    step = next(step for step in inner.split("\n      - ") if Path(script).name in step)
+                    condition = re.search(r"^        if: (.+)$", step, re.M).group(1)
+                    self.assertTrue(eval(condition.replace("inputs.backend", repr(backend)),
+                                         {"__builtins__": {}}))
+        mixed = self.plan_for([policy.TRAVIS + "test-stop-hugegraph-store.sh", "hugegraph-pd/src/A.java"])
+        self.assertTrue({"struct", "pd", "store", "hstore", "cluster"}.issubset(mixed["selected"]))
 
     def test_coordinator_reads_and_validates_real_java_input(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
