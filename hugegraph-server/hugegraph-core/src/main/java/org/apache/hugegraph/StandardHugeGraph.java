@@ -1391,7 +1391,29 @@ public class StandardHugeGraph implements HugeGraph {
         if (!this.rpcServiceCleanup.isEmpty()) {
             return;
         }
-        if (!this.backendStoreFeatures().supportsSharedStorage()) {
+        boolean opened = this.tx.isOpen();
+        boolean shared;
+        Throwable readFailure = null;
+        try {
+            shared = this.backendStoreFeatures().supportsSharedStorage();
+        } catch (RuntimeException | Error error) {
+            readFailure = error;
+            throw error;
+        } finally {
+            if (!opened && this.tx.isOpen()) {
+                try {
+                    this.closeCurrentThreadTransaction();
+                } catch (RuntimeException | Error cleanup) {
+                    if (readFailure == null) {
+                        throw cleanup;
+                    }
+                    if (readFailure != cleanup) {
+                        readFailure.addSuppressed(cleanup);
+                    }
+                }
+            }
+        }
+        if (!shared) {
             return;
         }
         E.checkState(!this.closed(), "Can't register RPC services for a closed graph");

@@ -17,12 +17,15 @@
 
 package org.apache.hugegraph.unit.core;
 
+import java.io.File;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +64,8 @@ import org.apache.hugegraph.event.EventListener;
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.rpc.RpcClientProvider;
 import org.apache.hugegraph.rpc.RpcServer;
+import org.apache.hugegraph.rpc.RpcServiceConfig4Client;
+import org.apache.hugegraph.rpc.RpcServiceConfig4Server;
 import org.apache.hugegraph.space.GraphSpace;
 import org.apache.hugegraph.task.TaskManager;
 import org.apache.hugegraph.testutil.Assert;
@@ -113,6 +118,216 @@ public class GraphManagerConfigTest {
 
     @Rule
     public TemporaryFolder temporary = new TemporaryFolder();
+
+    @Test
+    public void testRpcFeatureCheckPreservesCallbackTransaction() throws Exception {
+        for (boolean shared : new boolean[]{false, true}) {
+            for (boolean opened : new boolean[]{false, true}) {
+                this.checkRpcCallbackTransaction(shared, opened, false);
+                if (shared) {
+                    this.checkRpcCallbackTransaction(true, opened, true);
+                }
+            }
+        }
+    }
+
+    private void checkRpcCallbackTransaction(boolean shared, boolean opened, boolean failing) throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(CoreOptions.BACKEND.name(), "memory");
+        properties.setProperty(CoreOptions.STORE.name(), "callback_tx");
+        StandardHugeGraph graph = shared ? new SharedMemoryGraph(new HugeConfig(properties)) :
+                                  new StandardHugeGraph(new HugeConfig(properties));
+        RpcServiceConfig4Server server = Mockito.mock(RpcServiceConfig4Server.class);
+        RpcServiceConfig4Client client = Mockito.mock(RpcServiceConfig4Client.class);
+        IllegalStateException failure = new IllegalStateException("RPC proxy failed");
+        if (failing) {
+            Mockito.doThrow(failure).when(client).serviceProxy(Mockito.anyString(), Mockito.any(Class.class));
+        }
+        Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+        ExecutorService callback = Executors.newSingleThreadExecutor();
+        try {
+            callback.submit(() -> {
+                try {
+                    if (opened) {
+                        graph.tx().open();
+                    }
+                    if (failing) {
+                        Assert.assertThrows(IllegalStateException.class, () -> graph.registerRpcServices(server, client),
+                                            caught -> Assert.assertSame(failure, caught));
+                    } else {
+                        graph.registerRpcServices(server, client);
+                    }
+                    Assert.assertEquals(opened, graph.tx().isOpen());
+                    AtomicInteger refs = Whitebox.getInternalState(graph.tx(), "refs");
+                    Assert.assertEquals(opened ? 1 : 0, refs.get());
+                    ThreadLocal<?> transactions = Whitebox.getInternalState(graph.tx(), "transactions");
+                    Assert.assertEquals(opened, transactions.get() != null);
+                } finally {
+                    Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+                }
+            }).get(5, TimeUnit.SECONDS);
+        } finally {
+            callback.shutdownNow();
+            Assert.assertTrue(callback.awaitTermination(5, TimeUnit.SECONDS));
+            graph.close();
+        }
+    }
+
+    @Test
+    public void testRpcFeatureFailurePreservesPrimaryException() throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(CoreOptions.BACKEND.name(), "memory");
+        properties.setProperty(CoreOptions.STORE.name(), "feature_failure");
+        FeatureFailureGraph graph = new FeatureFailureGraph(new HugeConfig(properties));
+        Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+        IllegalStateException failure = new IllegalStateException("backend feature read failed");
+        IllegalStateException cleanup = new IllegalStateException("transaction listener failed");
+        graph.failure = failure;
+        graph.tx().addTransactionListener(status -> {
+            throw cleanup;
+        });
+        try {
+            Assert.assertThrows(IllegalStateException.class, () -> graph.registerRpcServices(null, null),
+                                caught -> Assert.assertSame(failure, caught));
+            Assert.assertFalse(graph.tx().isOpen());
+            Assert.assertEquals(1, failure.getSuppressed().length);
+            Assert.assertSame(cleanup, failure.getSuppressed()[0]);
+            ThreadLocal<?> transactions = Whitebox.getInternalState(graph.tx(), "transactions");
+            Assert.assertNull(transactions.get());
+        } finally {
+            graph.failure = null;
+            graph.tx().clearTransactionListeners();
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+            graph.close();
+        }
+    }
+
+    private static class FeatureFailureGraph extends StandardHugeGraph {
+
+        private RuntimeException failure;
+
+        FeatureFailureGraph(HugeConfig config) {
+            super(config);
+        }
+
+        @Override
+        public BackendFeatures backendStoreFeatures() {
+            BackendFeatures features = super.backendStoreFeatures();
+            if (this.failure != null) {
+                throw this.failure;
+            }
+            return features;
+        }
+    }
+
+    @Test
+    public void testLocalLoadRollbackUsesAdminScope() throws Exception {
+        this.checkLocalLoadRollback(false);
+    }
+
+    @Test
+    public void testLocalLoadRollbackRetainsOwnerAfterCloseFailure() throws Exception {
+        this.checkLocalLoadRollback(true);
+    }
+
+    private void checkLocalLoadRollback(boolean foreignTransaction) throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        OptionSpace.register("rpc", RpcOptions.instance());
+        OptionSpace.register("server", ServerOptions.instance());
+        String name = foreignTransaction ? "rollback_pending" : "rollback_admin";
+        File config = this.temporary.newFile(name + ".properties");
+        Files.write(config.toPath(), ("gremlin.graph=" + TrackedAuthMemoryGraph.class.getName() +
+                                     "\nbackend=memory\nstore=" + name + "\n").getBytes(StandardCharsets.UTF_8));
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(ServerOptions.GRAPHS.name(), this.temporary.newFolder(name).getPath());
+        properties.setProperty(ServerOptions.USE_PD.name(), false);
+        properties.setProperty(RpcOptions.RPC_SERVER_HOST.name(), "127.0.0.1");
+        properties.setProperty(RpcOptions.RPC_REMOTE_URL.name(), "127.0.0.1:1");
+        GraphManager manager = new GraphManager(new HugeConfig(properties), new EventHub(name));
+        RpcServer server = Mockito.mock(RpcServer.class);
+        Mockito.when(server.enabled()).thenReturn(true);
+        RpcServer originalServer = Whitebox.getInternalState(manager, "rpcServer");
+        Mockito.when(server.config()).thenReturn(originalServer.config());
+        IllegalStateException failure = new IllegalStateException("RPC publication failed");
+        Mockito.doThrow(failure).when(server).exportAll();
+        Whitebox.setInternalState(manager, "rpcServer", server);
+        Whitebox.setInternalState(manager, "rpcInitialized", true);
+        StandardHugeGraph graph = (StandardHugeGraph) HugeFactory.open(new HugeConfig(config.getPath()));
+        graph.initBackend();
+        Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+        CountDownLatch ready = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        Future<?> transaction = foreignTransaction ? worker.submit(() -> {
+            graph.tx().open();
+            ready.countDown();
+            try {
+                Assert.assertTrue(release.await(5, TimeUnit.SECONDS));
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(interrupted);
+            } finally {
+                Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+            }
+        }) : null;
+        String caller = foreignTransaction ? HugeAuthenticator.User.ADMIN.toJson() :
+                        new HugeAuthenticator.User("writer", new WriterRole("DEFAULT", name)).toJson();
+        AuthContext.setContext(caller);
+        TaskManager.setContext(caller);
+        HugeGraphAuthProxy.setRequestGraphSpace("DEFAULT");
+        try {
+            if (foreignTransaction) {
+                Assert.assertTrue(ready.await(5, TimeUnit.SECONDS));
+            }
+            manager.loadGraphsFromLocal(Map.of(name, config.getPath()));
+            Assert.assertEquals(caller, AuthContext.getContext());
+            Assert.assertEquals(caller, TaskManager.getContext());
+            Assert.assertEquals("DEFAULT", HugeGraphAuthProxy.getRequestGraphSpace());
+            Map<?, ?> owners = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            if (foreignTransaction) {
+                Assert.assertFalse(graph.closed());
+                Assert.assertSame(graph, owners.get(graph.spaceGraphName()));
+                Assert.assertSame(TrackedAuthMemoryGraph.last, manager.graph(graph.spaceGraphName()));
+                Assert.assertEquals(1, failure.getSuppressed().length);
+            } else {
+                Assert.assertTrue(graph.closed());
+                Assert.assertFalse(owners.containsKey(graph.spaceGraphName()));
+                Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
+                Assert.assertEquals(0, failure.getSuppressed().length);
+            }
+        } finally {
+            release.countDown();
+            if (transaction != null) {
+                transaction.get(5, TimeUnit.SECONDS);
+            }
+            worker.shutdownNow();
+            Assert.assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+            HugeGraphAuthProxy.runAsAdmin(() -> {
+                manager.close();
+                try {
+                    graph.close();
+                } catch (Exception cleanup) {
+                    throw new IllegalStateException(cleanup);
+                }
+            });
+            HugeFactory.remove(graph);
+            TrackedAuthMemoryGraph.last = null;
+            HugeGraphAuthProxy.resetContext();
+            TaskManager.resetContext();
+        }
+    }
+
+    public static class TrackedAuthMemoryGraph {
+
+        private static HugeGraph last;
+
+        public static HugeGraph open(Configuration config) {
+            last = new HugeGraphAuthProxy(HugeFactory.open(config));
+            return last;
+        }
+    }
 
     @Test
     public void testAuthenticatedRpcCleanupPreservesOwnerUntilAdmin() throws Exception {

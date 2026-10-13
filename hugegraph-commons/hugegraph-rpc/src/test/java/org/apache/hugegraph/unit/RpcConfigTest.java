@@ -171,11 +171,39 @@ public class RpcConfigTest extends BaseUnitTest {
         Assert.assertEquals("g1", graph.getUniqueId());
         Assert.assertEquals("fanout", graph.getCluster());
 
-        // Configs are cached per service id
-        Assert.assertSame(plain, consumerConfig(consumer, null, HELLO));
-        Assert.assertSame(graph, consumerConfig(consumer, "g1", HELLO));
-        Assert.assertNotSame(graph, consumerConfig(consumer, "g2", HELLO));
         consumer.destroy();
+    }
+
+    @Test
+    public void testConsumerConfigCachedThroughServiceProxy() {
+        RpcServer server = new RpcServer(config("server-random"));
+        RpcConsumerConfig consumer = null;
+        try {
+            server.config().addService(HelloService.class, new HelloServiceImpl());
+            server.config().addService("g1", HelloService.class, new HelloServiceImpl());
+            server.config().addService("g2", HelloService.class, new HelloServiceImpl());
+            server.exportAll();
+            consumer = new RpcConsumerConfig(config("client"), server.host() + ":" + server.port());
+            ConsumerConfig<?> plain = referredConfig(consumer, null);
+            ConsumerConfig<?> graph = referredConfig(consumer, "g1");
+            Assert.assertSame(plain, referredConfig(consumer, null));
+            Assert.assertSame(graph, referredConfig(consumer, "g1"));
+            Assert.assertNotSame(graph, referredConfig(consumer, "g2"));
+        } finally {
+            if (consumer != null) {
+                consumer.destroy();
+            }
+            stopServer(server);
+        }
+    }
+
+    private static ConsumerConfig<?> referredConfig(RpcConsumerConfig consumer, String graph) {
+        HelloService proxy = consumer.serviceProxy(graph, HELLO);
+        Assert.assertEquals("hello tom!", proxy.hello("tom"));
+        Map<String, ConsumerConfig<?>> configs = Whitebox.getInternalState(consumer, "configs");
+        String id = graph == null ? HELLO : HELLO + ":" + graph;
+        Assert.assertNotNull(configs.get(id));
+        return configs.get(id);
     }
 
     @Test
