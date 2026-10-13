@@ -155,3 +155,5 @@ workflow does not prove that either repository has a baseline: verify each repos
 first master submission, including its SHA/ref, non-empty module manifests and a real
 dependency-review comparison against that baseline. Until then, that repository's baseline
 acceptance remains open. This workflow changes no repository settings.
+
+Dependency snapshot producer and submission-workflow changes select dependency checks. Snapshot fixture tests run in the entry job; they do not select runtime suites. Changes to the CI classifier still receive conservative mainline validation.
