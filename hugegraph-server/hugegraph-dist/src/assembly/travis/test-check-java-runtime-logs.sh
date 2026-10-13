@@ -70,7 +70,20 @@ rm "$WORK_DIR/logs with spaces/nested/application.log.1"
 for SUFFIX in hprof log.gz log.zip log.bz2 log.xz; do
     cp "$WORK_DIR/positive.log" "$WORK_DIR/logs with spaces/heap.$SUFFIX"
 done
+check_case 0 "$WORK_DIR/logs with spaces"
+# NUL bytes from logged keys must not hide a denied-access line elsewhere in
+# the same text log. Keep the NUL-free control and explicit/directory inputs.
+printf '%s\n' 'java.lang.reflect.InaccessibleObjectException: module java.base does not opens p' \
+    >"$WORK_DIR/logs with spaces/binary.log"
+check_case 1 "$WORK_DIR/logs with spaces/binary.log"
+printf 'INFO key=\0\0\1 written\n' >>"$WORK_DIR/logs with spaces/binary.log"
+check_case 1 "$WORK_DIR/logs with spaces/binary.log"
+grep -q '^1:' "$WORK_DIR/result"
+check_case 1 "$WORK_DIR/logs with spaces"
 printf '\0java.lang.reflect.InaccessibleObjectException:\0' >"$WORK_DIR/logs with spaces/binary.log"
+check_case 1 "$WORK_DIR/logs with spaces"
+printf 'INFO key=\0\0\1 written\n' >"$WORK_DIR/logs with spaces/binary.log"
+check_case 0 "$WORK_DIR/logs with spaces/binary.log"
 check_case 0 "$WORK_DIR/logs with spaces"
 check_case 2 "$WORK_DIR/no-logs"
 check_case 2 "$WORK_DIR/missing.log"

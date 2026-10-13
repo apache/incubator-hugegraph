@@ -43,7 +43,8 @@ check_file() {
         STATUS=2
         return
     fi
-    matches=$(LC_ALL=C grep -EinI -- "$PATTERN" "$file" 2>&1)
+    # Scan text logs even when logged keys contain NUL bytes.
+    matches=$(LC_ALL=C grep -Eina -- "$PATTERN" "$file" 2>&1)
     code=$?
     if [[ $code -eq 0 ]]; then
         echo "Java runtime compatibility error in $file:" >&2
