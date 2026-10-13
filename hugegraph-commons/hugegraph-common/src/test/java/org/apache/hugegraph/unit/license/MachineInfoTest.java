@@ -111,6 +111,7 @@ public class MachineInfoTest {
         Throwable exception = Assert.assertThrows(RuntimeException.class,
                                                   () -> info.getMacByInetAddress(loopback));
         Assert.assertFalse(exception instanceof NullPointerException);
+        Assert.assertEquals("Network interface has no hardware address", exception.getMessage());
         List<String> addresses = info.getMacAddress();
         Assert.assertTrue(addresses.isEmpty());
         Assert.assertSame(addresses, info.getMacAddress());

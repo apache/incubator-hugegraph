@@ -106,16 +106,16 @@ public class MachineInfo {
         try {
             mac = NetworkInterface.getByInetAddress(inetAddr)
                                   .getHardwareAddress();
-            if (mac == null) {
-                if (required) {
-                    throw new IllegalStateException("Network interface has no hardware address");
-                }
-                return null;
-            }
         } catch (Exception e) {
             throw new RuntimeException(String.format(
                       "Failed to get mac address for inet address '%s'",
                       inetAddr));
+        }
+        if (mac == null) {
+            if (required) {
+                throw new IllegalStateException("Network interface has no hardware address");
+            }
+            return null;
         }
 
         StringBuilder sb = new StringBuilder();
