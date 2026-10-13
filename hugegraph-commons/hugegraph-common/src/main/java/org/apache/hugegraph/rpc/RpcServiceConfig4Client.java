@@ -32,8 +32,4 @@ public interface RpcServiceConfig4Client {
     }
 
     void removeAllServiceProxy();
-
-    default boolean removeServiceProxy(String graph, String interfaceId, Object proxy) {
-        throw new UnsupportedOperationException("Removing an individual RPC proxy is not supported");
-    }
 }

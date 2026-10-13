@@ -914,12 +914,6 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
-    public void unregisterRpcServices() {
-        this.verifyAdminPermission();
-        this.hugegraph.unregisterRpcServices();
-    }
-
-    @Override
     public void initBackend() {
         this.verifyAdminPermission();
         this.hugegraph.initBackend();

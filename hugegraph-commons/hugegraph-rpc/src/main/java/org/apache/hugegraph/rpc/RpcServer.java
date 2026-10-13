@@ -104,7 +104,11 @@ public class RpcServer {
             return;
         }
         int timeout = this.conf.get(RpcOptions.RPC_SERVER_TIMEOUT) * 1000;
-        this.configs.exportAll(this.serverConfig, timeout);
+        for (ProviderConfig<?> providerConfig : configs.values()) {
+            providerConfig.setServer(this.serverConfig)
+                          .setTimeout(timeout)
+                          .export();
+        }
         LOG.info("RpcServer started success on port {}", this.port());
     }
 

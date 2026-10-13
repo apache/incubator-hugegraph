@@ -46,65 +46,6 @@ import org.mockito.Mockito;
 public class StandardTaskAdmissionTest {
 
     @Test
-    public void testQueuedDefaultCancellationPreservesCallerTransaction() throws Exception {
-        this.assertDefaultCancellationPreservesCallerTransaction(false);
-    }
-
-    @Test
-    public void testRunningDefaultCancellationPreservesCallerTransaction() throws Exception {
-        this.assertDefaultCancellationPreservesCallerTransaction(true);
-    }
-
-    private void assertDefaultCancellationPreservesCallerTransaction(boolean running) throws Exception {
-        try (Fixture fixture = new Fixture("standard_caller_tx_" + running)) {
-            CountDownLatch occupied = new CountDownLatch(1);
-            CountDownLatch release = new CountDownLatch(1);
-            if (!running) {
-                fixture.worker.submit(() -> {
-                    occupied.countDown();
-                    await(release);
-                });
-                Assert.assertTrue(occupied.await(10L, TimeUnit.SECONDS));
-            }
-            BlockingJob job = new BlockingJob();
-            HugeTask<Object> task = fixture.task(job);
-            try {
-                fixture.scheduler.schedule(task);
-                if (running) {
-                    Assert.assertTrue(job.started.await(10L, TimeUnit.SECONDS));
-                }
-                fixture.graph.schema().vertexLabel("caller").useCustomizeStringId().create();
-                fixture.graph.tx().commit();
-                fixture.graph.addVertex(T.id, "pending", T.label, "caller");
-                fixture.scheduler.cancel(task);
-                Assert.assertTrue(task.isCancelled());
-                Assert.assertTrue(fixture.graph.tx().isOpen());
-                Assert.assertTrue(fixture.graph.vertices("pending").hasNext());
-                fixture.graph.tx().commit();
-                Assert.assertFalse(fixture.graph.tx().isOpen());
-                Assert.assertTrue(fixture.database.submit(() -> {
-                    try {
-                        return fixture.graph.vertices("pending").hasNext();
-                    } finally {
-                        fixture.params.closeTx();
-                    }
-                }).get(10L, TimeUnit.SECONDS));
-                if (running) {
-                    Assert.assertEquals(1, fixture.scheduler.pendingTasks());
-                }
-            } finally {
-                release.countDown();
-                job.release.countDown();
-            }
-            fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
-            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
-            ThreadLocal<?> owners = Whitebox.getInternalState(fixture.graph.tx(), "transactions");
-            Assert.assertNull(fixture.worker.submit(owners::get).get(10L, TimeUnit.SECONDS));
-            Assert.assertEquals(running ? 0L : 1L, job.started.getCount());
-        }
-    }
-
-    @Test
     public void testCancelledWorkerFencesAdmissionUntilActualExit() throws Exception {
         try (Fixture fixture = new Fixture("standard_cancel_worker")) {
             BlockingJob job = new BlockingJob();

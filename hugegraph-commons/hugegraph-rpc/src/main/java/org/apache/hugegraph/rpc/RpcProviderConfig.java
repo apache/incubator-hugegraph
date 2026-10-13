@@ -18,15 +18,14 @@
 package org.apache.hugegraph.rpc;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import com.alipay.sofa.rpc.config.ProviderConfig;
-import com.alipay.sofa.rpc.config.ServerConfig;
 import org.apache.hugegraph.util.E;
+import com.google.common.collect.Maps;
 
 public class RpcProviderConfig implements RpcServiceConfig4Server {
 
-    private final Map<String, ProviderConfig<?>> configs = new ConcurrentHashMap<>();
+    private final Map<String, ProviderConfig<?>> configs = Maps.newHashMap();
 
     @Override
     public <T, S extends T> String addService(Class<T> clazz, S serviceImpl) {
@@ -55,54 +54,27 @@ public class RpcProviderConfig implements RpcServiceConfig4Server {
         providerConfig.setInterfaceId(interfaceId)
                       .setRef(serviceImpl);
 
-        E.checkArgument(this.configs.putIfAbsent(serviceId, providerConfig) == null,
+        E.checkArgument(!this.configs.containsKey(serviceId),
                         "Not allowed to add service already exist: '%s'",
                         serviceId);
+        this.configs.put(serviceId, providerConfig);
         return serviceId;
     }
 
     @Override
     public void removeService(String serviceId) {
-        boolean[] removed = {false};
-        this.configs.computeIfPresent(serviceId, (key, config) -> {
-            config.unExport();
-            removed[0] = true;
-            return null;
-        });
-        E.checkArgument(removed[0], "The service '%s' doesn't exist", serviceId);
-    }
-
-    @Override
-    public boolean removeService(String serviceId, Object serviceImpl) {
-        boolean[] removed = {false};
-        this.configs.computeIfPresent(serviceId, (key, config) -> {
-            if (config.getRef() != serviceImpl) {
-                return config;
-            }
-            config.unExport();
-            removed[0] = true;
-            return null;
-        });
-        return removed[0];
+        ProviderConfig<?> config = this.configs.remove(serviceId);
+        E.checkArgument(config != null,
+                        "The service '%s' doesn't exist", serviceId);
+        config.unExport();
     }
 
     @Override
     public void removeAllService() {
-        for (String serviceId : this.configs.keySet()) {
-            this.configs.computeIfPresent(serviceId, (key, config) -> {
-                config.unExport();
-                return null;
-            });
+        for (ProviderConfig<?> config : this.configs.values()) {
+            config.unExport();
         }
-    }
-
-    void exportAll(ServerConfig server, int timeout) {
-        for (String serviceId : this.configs.keySet()) {
-            this.configs.computeIfPresent(serviceId, (key, config) -> {
-                config.setServer(server).setTimeout(timeout).export();
-                return config;
-            });
-        }
+        this.configs.clear();
     }
 
     public Map<String, ProviderConfig<?>> configs() {

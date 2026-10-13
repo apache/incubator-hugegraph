@@ -348,7 +348,6 @@ public class StandardTaskScheduler implements TaskScheduler {
     @Override
     public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-        boolean callerTxOpen = this.graph.graph().tx().isOpen();
         HugeTask<?> memTask;
         synchronized (this) {
             if (task.completed() || task.cancelling()) {
@@ -380,10 +379,8 @@ public class StandardTaskScheduler implements TaskScheduler {
             if (memTask != null && memTask.isCancelled()) {
                 this.cancelQueuedExecutions(task.id());
             }
-            // Keep the callback registered until its own transaction really closes.
-            if (!callerTxOpen) {
-                this.graph.closeTx();
-            }
+            // Keep the callback registered until its transaction really closes.
+            this.graph.closeTx();
             synchronized (this) {
                 this.cancellations--;
             }
