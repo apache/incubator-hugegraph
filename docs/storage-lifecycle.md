@@ -418,7 +418,7 @@ business provider must agree. A mismatch fails before opening that component's d
 
 ### Standalone Server setup
 
-![Switch RocksDB to ToplingDB](images/switch-rocksdb-to-toplingdb.png)
+![Switch RocksDB to ToplingDB](https://raw.githubusercontent.com/apache/hugegraph/2691ae543d5ac8f69fbc9caf9b9e4a386932639f/docs/images/switch-rocksdb-to-toplingdb.png)
 
 Use a stopped Server distribution on Linux x86_64 with a Java 17 JDK. If your
 distribution lacks these scripts, [build it from this source](#build-and-prepare) first.
