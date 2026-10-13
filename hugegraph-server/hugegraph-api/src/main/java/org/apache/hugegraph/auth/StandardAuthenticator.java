@@ -19,12 +19,14 @@ package org.apache.hugegraph.auth;
 
 import java.io.Console;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -50,14 +52,27 @@ import jakarta.ws.rs.core.SecurityContext;
 public class StandardAuthenticator implements HugeAuthenticator {
 
     private static final String INITING_STORE = "initing_store";
+    private static final int MAX_ADMIN_PA_FILE_BYTES = 4096;
 
     private HugeGraph graph = null;
 
     private void initAdminUser(HugeConfig config) throws Exception {
-        if (this.requireInitAdminUser()) {
-            String file = config.get(ServerOptions.ADMIN_PA_FILE);
-            this.initAdminUser(file.isEmpty() ? this.inputPassword() :
-                               readAdminPasswordFile(file));
+        // init-store only closes the graphs it initialized and skips hstore
+        // ones, so close the auth graph here even when the password file is
+        // refused, without letting a close failure hide that error
+        try {
+            if (this.requireInitAdminUser()) {
+                String file = config.get(ServerOptions.ADMIN_PA_FILE);
+                this.initAdminUser(file.isEmpty() ? this.inputPassword() :
+                                   readAdminPasswordFile(file));
+            }
+        } catch (Throwable e) {
+            try {
+                this.graph.close();
+            } catch (Throwable closeError) {
+                e.addSuppressed(closeError);
+            }
+            throw e;
         }
         this.graph.close();
     }
@@ -232,11 +247,16 @@ public class StandardAuthenticator implements HugeAuthenticator {
     private static String readAdminPasswordFile(String file) {
         String option = ServerOptions.ADMIN_PA_FILE.name();
         byte[] bytes;
-        try {
-            bytes = Files.readAllBytes(Paths.get(file));
-        } catch (IOException e) {
-            throw new ConfigException("Failed to read the file '%s' set by '%s'",
-                                      e, file, option);
+        // Bounded, so a path that points at a log or a device fails quickly
+        try (InputStream in = Files.newInputStream(Paths.get(file))) {
+            bytes = in.readNBytes(MAX_ADMIN_PA_FILE_BYTES + 1);
+        } catch (IOException | InvalidPathException e) {
+            throw new ConfigException("Failed to read the file '%s' set by '%s' (%s)",
+                                      e, file, option, e.getClass().getSimpleName());
+        }
+        if (bytes.length > MAX_ADMIN_PA_FILE_BYTES) {
+            throw new ConfigException("The file '%s' set by '%s' is larger than %s bytes",
+                                      file, option, MAX_ADMIN_PA_FILE_BYTES);
         }
 
         String password;
@@ -251,6 +271,11 @@ public class StandardAuthenticator implements HugeAuthenticator {
                                       e, file, option);
         }
 
+        // Some Windows editors and PowerShell prepend a BOM; it is never meant
+        // as part of the password and would make the admin unreachable
+        if (password.startsWith("\uFEFF")) {
+            password = password.substring(1);
+        }
         // Drop the line break that echo, editors and most secret tools append
         if (password.endsWith("\r\n")) {
             password = password.substring(0, password.length() - 2);

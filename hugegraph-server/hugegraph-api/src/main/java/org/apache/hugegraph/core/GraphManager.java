@@ -1886,7 +1886,7 @@ public final class GraphManager {
                     } catch (Exception e) {
                         throw new BackendException(
                                 "The backend store of '%s' can't " +
-                                "initialize admin user", hugegraph.spaceGraphName());
+                                "initialize admin user", e, hugegraph.spaceGraphName());
                     }
                 }
             }

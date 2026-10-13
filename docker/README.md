@@ -61,8 +61,12 @@ the image reuses the configured key instead of rotating it.
 
 Instead of `auth.admin_pa`, a REST configuration you mount yourself can set
 `auth.admin_pa_file` to the path of a mounted secret. The Server reads that file as
-raw UTF-8 and drops one trailing line break, so the password needs no properties
-escaping. When set, it overrides `auth.admin_pa` and the init-store password prompt.
+raw UTF-8 and drops a leading BOM and one trailing line break, so the password
+needs no properties escaping. When set, it overrides `auth.admin_pa` and the
+init-store password prompt. With PD (hstore), including when init-store is
+disabled, the file is read on every start, so keep the secret mounted for as long
+as the option is set. With init-store disabled, startup also requires this option
+or an explicit non-empty `auth.admin_pa`, so do not drop both.
 
 Older images could change signing keys containing spaces or Unicode, and a
 trailing space could hide the following configuration property. On upgrade,

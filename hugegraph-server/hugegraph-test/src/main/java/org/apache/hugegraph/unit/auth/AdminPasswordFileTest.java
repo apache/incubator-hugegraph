@@ -17,7 +17,9 @@
 
 package org.apache.hugegraph.unit.auth;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -139,6 +141,35 @@ public class AdminPasswordFileTest {
     }
 
     /**
+     * PowerShell and some Windows editors write a BOM before UTF-8 text. Kept,
+     * it would become an invisible first character of the admin password.
+     */
+    @Test
+    public void testFileDropsLeadingBom() throws IOException {
+        Assert.assertEquals("secret", initialAdminPassword(
+                this.write(utf8("\ufeffsecret\r\n")), null));
+        Assert.assertThrows(ConfigException.class, () -> {
+            initialAdminPassword(this.write(utf8("\ufeff\n")), "secret");
+        }, e -> Assert.assertContains("is empty", e.getMessage()));
+    }
+
+    /**
+     * A path pointing at a log or a device must not be read whole into memory.
+     */
+    @Test
+    public void testOversizedFileFails() throws IOException {
+        byte[] limit = new byte[4096];
+        Arrays.fill(limit, (byte) 'a');
+        Assert.assertEquals(4096, initialAdminPassword(
+                this.write(limit), null).length());
+
+        Path file = this.write(Arrays.copyOf(limit, limit.length + 1));
+        Assert.assertThrows(ConfigException.class, () -> {
+            initialAdminPassword(file, "secret");
+        }, e -> Assert.assertContains("larger than 4096 bytes", e.getMessage()));
+    }
+
+    /**
      * init-store prompts on stdin for a persistent backend. With a password
      * file configured it must create the admin from the file instead.
      */
@@ -146,21 +177,77 @@ public class AdminPasswordFileTest {
     public void testInitStoreTakesFileInsteadOfPrompt() throws Exception {
         Path file = this.write(utf8("p\u00e4ssword\n"));
         StandardAuthManager authManager = Mockito.mock(StandardAuthManager.class);
-        HugeGraph graph = Mockito.mock(HugeGraph.class);
-        Mockito.when(graph.hugegraph()).thenReturn(graph);
-        Mockito.when(graph.authManager()).thenReturn(authManager);
-        StandardAuthenticator authenticator = new StandardAuthenticator();
-        Whitebox.setInternalState(authenticator, "graph", graph);
+        HugeGraph graph = mockAuthGraph(authManager);
 
-        Whitebox.invoke(StandardAuthenticator.class,
-                        new Class<?>[]{HugeConfig.class}, "initAdminUser",
-                        authenticator, config(file, null));
+        initStoreAdminUser(graph, config(file, null));
 
         ArgumentCaptor<HugeUser> admin = ArgumentCaptor.forClass(HugeUser.class);
         Mockito.verify(authManager).createUser(admin.capture());
         Assert.assertTrue(StringEncoding.checkPassword("p\u00e4ssword",
                                                        admin.getValue().password()));
         Mockito.verify(graph).close();
+    }
+
+    /**
+     * init-store does not close an hstore auth graph itself, so a refused
+     * file must still close it rather than leave the backend open on exit.
+     */
+    @Test
+    public void testInitStoreClosesGraphWhenFileIsRefused() throws Exception {
+        StandardAuthManager authManager = Mockito.mock(StandardAuthManager.class);
+        HugeGraph graph = mockAuthGraph(authManager);
+        HugeConfig config = config(this.workDir.resolve("missing"), "secret");
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            initStoreAdminUser(graph, config);
+        }, e -> Assert.assertContains("Failed to read", e.getMessage()));
+        Mockito.verify(authManager, Mockito.never()).createUser(Mockito.any());
+        Mockito.verify(graph).close();
+    }
+
+    /**
+     * The refused file is what the operator has to fix, so a failure while
+     * closing the graph afterwards must not replace it.
+     */
+    @Test
+    public void testInitStoreCloseFailureKeepsFileError() throws Exception {
+        StandardAuthManager authManager = Mockito.mock(StandardAuthManager.class);
+        HugeGraph graph = mockAuthGraph(authManager);
+        IllegalStateException closeError = new IllegalStateException("close");
+        Mockito.doThrow(closeError).when(graph).close();
+        HugeConfig config = config(this.workDir.resolve("missing"), "secret");
+
+        Assert.assertThrows(ConfigException.class, () -> {
+            initStoreAdminUser(graph, config);
+        }, e -> {
+            Assert.assertContains("Failed to read", e.getMessage());
+            Assert.assertEquals(closeError, e.getSuppressed()[0]);
+        });
+    }
+
+    private static HugeGraph mockAuthGraph(StandardAuthManager authManager) {
+        HugeGraph graph = Mockito.mock(HugeGraph.class);
+        Mockito.when(graph.hugegraph()).thenReturn(graph);
+        Mockito.when(graph.authManager()).thenReturn(authManager);
+        return graph;
+    }
+
+    /**
+     * stdin is empty, so a regression that falls back to the prompt fails
+     * with NoSuchElementException instead of blocking the test run.
+     */
+    private static void initStoreAdminUser(HugeGraph graph, HugeConfig config) {
+        StandardAuthenticator authenticator = new StandardAuthenticator();
+        Whitebox.setInternalState(authenticator, "graph", graph);
+        InputStream stdin = System.in;
+        System.setIn(new ByteArrayInputStream(new byte[0]));
+        try {
+            Whitebox.invoke(StandardAuthenticator.class,
+                            new Class<?>[]{HugeConfig.class}, "initAdminUser",
+                            authenticator, config);
+        } finally {
+            System.setIn(stdin);
+        }
     }
 
     private static byte[] utf8(String value) {

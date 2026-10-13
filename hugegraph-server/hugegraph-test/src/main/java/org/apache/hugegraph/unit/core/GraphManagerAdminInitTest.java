@@ -18,15 +18,23 @@
 package org.apache.hugegraph.unit.core;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeUser;
 import org.apache.hugegraph.auth.StandardAuthenticator;
+import org.apache.hugegraph.backend.store.BackendFeatures;
+import org.apache.hugegraph.backend.store.BackendStoreInfo;
+import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.meta.MetaDriver;
@@ -35,6 +43,7 @@ import org.apache.hugegraph.meta.managers.AuthMetaManager;
 import org.apache.hugegraph.meta.managers.SpaceMetaManager;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -152,6 +161,81 @@ public class GraphManagerAdminInitTest {
         Assert.assertFalse(Whitebox.invokeStatic(
                 GraphManager.class, types, "shouldBootstrapAdmin",
                 Mockito.mock(HugeAuthenticator.class), ""));
+    }
+
+    /**
+     * Non-persistent backends bootstrap the admin on every start, so
+     * auth.admin_pa_file has to reach that path as well as the PD one.
+     */
+    @Test
+    public void testNonPersistentBackendTakesAdminPasswordFile()
+                                                        throws Exception {
+        Path file = Files.createTempFile("admin-init-test", ".pa");
+        try {
+            Files.write(file, "p\u00e4ss word\n".getBytes(StandardCharsets.UTF_8));
+            HugeAuthenticator authenticator = this.mockMemoryGraphWithAuth();
+
+            this.checkBackendVersionOrExit(adminPaFileConfig(file));
+
+            Mockito.verify(authenticator).initAdminUser("p\u00e4ss word");
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    /**
+     * A refused file must abort startup with its own message rather than be
+     * folded into the generic backend error or fall back to auth.admin_pa.
+     */
+    @Test
+    public void testNonPersistentBackendRefusesMissingAdminPasswordFile()
+                                                        throws Exception {
+        Path missing = Files.createTempDirectory("admin-init-test")
+                            .resolve("missing");
+        try {
+            HugeAuthenticator authenticator = this.mockMemoryGraphWithAuth();
+            HugeConfig config = adminPaFileConfig(missing);
+
+            Assert.assertThrows(ConfigException.class, () -> {
+                this.checkBackendVersionOrExit(config);
+            }, e -> Assert.assertContains(ServerOptions.ADMIN_PA_FILE.name(),
+                                          e.getMessage()));
+            Mockito.verify(authenticator, Mockito.never())
+                   .initAdminUser(Mockito.anyString());
+        } finally {
+            Files.deleteIfExists(missing.getParent());
+        }
+    }
+
+    private HugeAuthenticator mockMemoryGraphWithAuth() {
+        HugeGraph graph = Mockito.mock(HugeGraph.class);
+        Mockito.when(graph.backendStoreFeatures())
+               .thenReturn(Mockito.mock(BackendFeatures.class));
+        BackendStoreInfo info = Mockito.mock(BackendStoreInfo.class);
+        Mockito.when(info.exists()).thenReturn(true);
+        Mockito.when(info.checkVersion()).thenReturn(true);
+        Mockito.when(graph.backendStoreInfo()).thenReturn(info);
+        Map<String, Graph> graphs = Whitebox.getInternalState(this.manager,
+                                                              "graphs");
+        graphs.put("DEFAULT-memory", graph);
+
+        HugeAuthenticator authenticator = Mockito.mock(HugeAuthenticator.class);
+        Mockito.when(authenticator.requireAuthentication()).thenReturn(true);
+        Whitebox.setInternalState(this.manager, "authenticator", authenticator);
+        return authenticator;
+    }
+
+    private void checkBackendVersionOrExit(HugeConfig config) {
+        Whitebox.invoke(GraphManager.class, new Class<?>[]{HugeConfig.class},
+                        "checkBackendVersionOrExit", this.manager, config);
+    }
+
+    private static HugeConfig adminPaFileConfig(Path file) {
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(ServerOptions.ADMIN_PA_FILE.name(),
+                               file.toString());
+        properties.setProperty(ServerOptions.ADMIN_PA.name(), "from-pa");
+        return new HugeConfig(properties);
     }
 
     private static Object swapMetaManagerField(String field,

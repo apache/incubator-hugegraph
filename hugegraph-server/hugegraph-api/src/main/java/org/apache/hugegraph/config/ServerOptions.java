@@ -481,9 +481,10 @@ public class ServerOptions extends OptionHolder {
             );
 
     // Read through PropertiesConfiguration: the value is trimmed, backslash-unescaped and decoded
-    // as ISO-8859-1, so a password outside printable ASCII needs Unicode escapes in the file.
-    // ADMIN_PA_FILE skips that grammar. The Helm chart (helm/hugegraph) still refuses padded,
-    // backslash or non-ASCII admin passwords; relax that guard once it passes ADMIN_PA_FILE.
+    // as ISO-8859-1, so leading or trailing spaces, backslashes and characters outside printable
+    // ASCII need escaping in the file. ADMIN_PA_FILE skips that grammar. The Helm chart
+    // (helm/hugegraph) still refuses padded, backslash or non-ASCII admin passwords; relax that
+    // guard once it passes ADMIN_PA_FILE.
     public static final ConfigOption<String> ADMIN_PA =
             new ConfigOption<>(
                     "auth.admin_pa",
@@ -497,10 +498,12 @@ public class ServerOptions extends OptionHolder {
             new ConfigOption<>(
                     "auth.admin_pa_file",
                     "The path of a file holding the default password for " +
-                    "built-in admin account, read as raw UTF-8 with one " +
-                    "trailing line break removed. When set, it takes " +
-                    "precedence over auth.admin_pa and the init-store prompt; " +
-                    "takes effect on first startup.",
+                    "built-in admin account, read as raw UTF-8 with a " +
+                    "leading BOM and one trailing line break removed. When " +
+                    "set, it takes precedence over auth.admin_pa and the " +
+                    "init-store prompt; takes effect on first startup. PD " +
+                    "and non-persistent backends read it on every start, so " +
+                    "keep it readable while this option is set.",
                     null,
                     ""
             );
