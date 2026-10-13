@@ -118,6 +118,29 @@ if [[ $NATIVE_STATUS -ne 42 ]]; then
 fi
 grep -q '^rocksdb-jni-smoke-ok$' <<< "$NATIVE_OUTPUT"
 
+# macOS passes the setup-java version through the native wrapper unchanged.
+for EXPECTED_VERSION in 17 17.0.20 21.0.1; do
+    set +e
+    VERSION_OUTPUT=$(run_native_smoke MOCK_ARCH=arm64 EXPECTED_ARCH=arm64 \
+                     "EXPECTED_JAVA_MAJOR=$EXPECTED_VERSION" \
+                     "MOCK_JAVA_VERSION=$EXPECTED_VERSION" 2>&1)
+    VERSION_STATUS=$?
+    set -e
+    if [[ $VERSION_STATUS -ne 42 ]]; then
+        echo "$VERSION_OUTPUT" >&2
+        echo "ARM native smoke rejected expected version $EXPECTED_VERSION" >&2
+        exit 1
+    fi
+    grep -q '^rocksdb-jni-smoke-ok$' <<< "$VERSION_OUTPUT"
+done
+if MAJOR_OUTPUT=$(run_smoke MOCK_ARCH=arm64 EXPECTED_ARCH=arm64 \
+                  EXPECTED_JAVA_MAJOR=21.0.1 MOCK_JAVA_VERSION=17.0.20 2>&1); then
+    echo "$MAJOR_OUTPUT" >&2
+    echo "ARM smoke accepted a mismatched Java major" >&2
+    exit 1
+fi
+grep -Fq 'Expected Java 21, got 17.0.20' <<< "$MAJOR_OUTPUT"
+
 for JAVA_MAJOR_MISMATCH in 11.0.31 21.0.8; do
     if MAJOR_OUTPUT=$(run_smoke \
                       "MOCK_JAVA_VERSION=$JAVA_MAJOR_MISMATCH" 2>&1); then

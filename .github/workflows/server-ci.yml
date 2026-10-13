@@ -26,6 +26,7 @@ permissions:
 
 jobs:
   preflight:
+    name: check-license
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:

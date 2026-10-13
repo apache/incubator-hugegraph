@@ -5,11 +5,16 @@ PRs, supported branch pushes, weekly coverage and manual validation. Its preflig
 selects affected tests, reads the project Java version, checks CI policy and verifies
 license headers and RAT. Selected suites run through reusable workflows in the same run.
 
-All CI results are advisory. [`.asf.yaml`](../.asf.yaml) requests no required CI contexts
+CI results become advisory after [`.asf.yaml`](../.asf.yaml) is applied. It requests no required CI contexts
 and retains one approving review. This protection change takes effect after the configuration
 is merged and synchronized by Gitbox; verify live protection then. Failed tests keep their
 real failed results. Valid selection and Java outputs allow selected tests to run even when
 the preflight license checks fail.
+
+For migration, preflight keeps the existing `check-license` check name on the same runner.
+Before merging this workflow change, ASF Infra must remove only the retired `Server memory tests`
+context from live protection, keeping `check-license` and all review settings unchanged.
+See [ASF's required-check migration guidance](https://github.com/apache/infrastructure-asfyaml#branch-protection).
 
 ## What runs
 

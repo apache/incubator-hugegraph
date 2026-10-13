@@ -321,6 +321,9 @@ class PolicyTest(unittest.TestCase):
         return {job for job, run in jobs.items() if run}
 
     def test_real_coordinator_keeps_selected_jobs_after_license_or_selftest_failure(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
+        preflight = re.search(r"^  preflight:\n(.*?)(?=^  [\w-]+:|\Z)", workflow, re.M | re.S).group(1)
+        self.assertEqual("check-license", re.search(r"^    name: (.+)$", preflight, re.M).group(1))
         full = self.plan_for([], "workflow_dispatch", {"inputs": {"test-set": "full"}})
         expected = {"build-server", "server-rocksdb", "commons", "pd_store", "cluster", "docker", "helm",
                     "dependency_license", "compatibility", "codeql"}
@@ -395,13 +398,14 @@ class PolicyTest(unittest.TestCase):
             java = root / ".github/workflows/.java-version"
             java.parent.mkdir(parents=True)
             output = root / "outputs.txt"
-            for version in ["17", "21.0.1", "", "bad", '17\n21']:
+            for version in ["17", "17.0.20", "21.0.1", "", "bad", '17\n21']:
                 java.write_text(version)
                 result = subprocess.run(["python3", "-c", textwrap.dedent(code)], cwd=root,
                                         env={**os.environ, "GITHUB_OUTPUT": str(output)}, capture_output=True, text=True)
                 with self.subTest(version=version):
-                    self.assertEqual(version in {"17", "21.0.1"}, result.returncode == 0, result.stderr)
-            self.assertEqual(['versions=["17"]', 'versions=["21.0.1"]'], output.read_text().splitlines())
+                    self.assertEqual(version in {"17", "17.0.20", "21.0.1"}, result.returncode == 0, result.stderr)
+            self.assertEqual(['versions=["17"]', 'versions=["17.0.20"]', 'versions=["21.0.1"]'],
+                             output.read_text().splitlines())
 
     def test_real_git_document_modes_renames_and_cli_outputs(self):
         with tempfile.TemporaryDirectory() as directory:
