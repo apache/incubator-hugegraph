@@ -48,9 +48,10 @@ jobs:
       - name: Test CI policy and dependency inventory
         run: |
           python3 -m unittest discover -s .github/scripts -p 'test_ci_policy.py'
+          python3 -m unittest discover -s .github/scripts -p 'test_dependency_snapshot.py'
           python3 -m unittest discover -s install-dist/scripts/dependency -p 'test_*.py'
 
-  submit:
+  generate:
     needs: validate
     if: >-
       ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) ||
@@ -60,7 +61,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
-      contents: write
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      INPUT_TOKEN: ''
+      GITHUB_TOKEN: ''
+      GH_TOKEN: ''
+    outputs:
+      artifact_id: ${{ steps.snapshot.outputs.artifact-id }}
     steps:
       - name: Checkout event commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -80,16 +88,228 @@ jobs:
           test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
       - name: Install the complete Maven reactor
         run: mvn -B -ntp install -Dmaven.test.skip=true -Dmaven.javadoc.skip=true --fail-at-end
-      - name: Refuse a stale master submission
+      - name: Generate resolved reactor snapshot
+        run: |
+          mvn -B -ntp com.github.ferstl:depgraph-maven-plugin:4.0.3:graph \
+            -DgraphFormat=json -DoutputFileName=maven-dependency-submission-action-depgraph.json \
+            -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
+          python3 .github/scripts/dependency-snapshot.py "$RUNNER_TEMP/snapshot.json"
+      - name: Refuse a stale generated snapshot
         env:
           EXPECTED_SHA: ${{ github.sha }}
         run: test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
-      - name: Submit resolved reactor dependencies
-        uses: actions/maven-dependency-submission-action@1f666f7ac2ab7b72cd5e22eaf7f23c8a581db1db # GitHub-maintained fork
+      - name: Upload snapshot data only
+        id: snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          directory: '.'
-          ignore-maven-wrapper: true
-          maven-args: '-ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true'
-          correlator: '.github/workflows/submit-dependencies.yml:submit'
-          snapshot-sha: ${{ github.sha }}
-          snapshot-ref: ${{ github.ref }}
+          name: dependency-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/snapshot.json
+          if-no-files-found: error
+          retention-days: 1
+
+  submit:
+    needs: [validate, generate]
+    if: >-
+      needs.validate.result == 'success' && needs.generate.result == 'success' &&
+      ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) ||
+       github.repository == 'hugegraph/hugegraph') &&
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Validate and submit snapshot data
+        env:
+          SNAPSHOT_TOKEN: ${{ github.token }}
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+          EXPECTED_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          ARTIFACT_ID: ${{ needs.generate.outputs.artifact_id }}
+        run: |
+          python3 -I - <<'PY'
+          import datetime
+          import hashlib
+          import io
+          import json
+          import os
+          import re
+          import stat
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          import zipfile
+
+          LIMIT = 25 * 1024 * 1024
+
+          def require(condition, message):
+              if not condition:
+                  raise ValueError(message)
+
+          def unique_object(pairs):
+              result = {}
+              for key, value in pairs:
+                  require(key not in result, 'Duplicate JSON key')
+                  result[key] = value
+              return result
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, *args, **kwargs):
+                  return None
+
+          def github_request(repository, path, data=None):
+              return urllib.request.Request('https://api.github.com/repos/' + repository + '/' + path,
+                  data=None if data is None else json.dumps(data).encode(),
+                  headers={'Authorization': 'Bearer ' + os.environ['SNAPSHOT_TOKEN'],
+                           'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json',
+                           'X-GitHub-Api-Version': '2022-11-28'})
+
+          def bounded_body(response):
+              raw = response.read(LIMIT + 1)
+              require(len(raw) <= LIMIT, 'Response too large')
+              return raw
+
+          def api(repository, path, data=None):
+              request = github_request(repository, path, data)
+              with urllib.request.build_opener(NoRedirect()).open(request, timeout=60) as response:
+                  require(response.status == (200 if data is None else 201), 'Unexpected API status')
+                  raw = bounded_body(response)
+              return json.loads(raw, object_pairs_hook=unique_object)
+
+          def read_snapshot(raw):
+              require(0 < len(raw) <= LIMIT, 'Invalid ZIP size')
+              with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+                  members = archive.infolist()
+                  require(len(members) == 1, 'ZIP must contain one snapshot.json')
+                  member = members[0]
+                  require(member.orig_filename == 'snapshot.json' and not member.is_dir() and
+                          not (member.external_attr & 0x10) and
+                          stat.S_IFMT(member.external_attr >> 16) in [0, stat.S_IFREG] and
+                          not (member.flag_bits & 1) and
+                          member.compress_type in [zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED] and
+                          0 < member.file_size <= LIMIT, 'Invalid ZIP member')
+                  with archive.open(member) as stream:
+                      payload = bounded_body(stream)
+                  require(len(payload) == member.file_size, 'Incomplete ZIP member')
+              return json.loads(payload, object_pairs_hook=unique_object)
+
+          def download_snapshot(repository, artifact_id, artifact):
+              opener = urllib.request.build_opener(NoRedirect())
+              try:
+                  response = opener.open(github_request(repository, f'actions/artifacts/{artifact_id}/zip'), timeout=60)
+              except urllib.error.HTTPError as error:
+                  require(error.code == 302, 'Expected artifact redirect')
+                  location = error.headers.get('Location', '')
+                  error.close()
+              else:
+                  response.close()
+                  raise ValueError('Expected artifact redirect')
+              target = urllib.parse.urlsplit(location)
+              require(target.scheme == 'https' and target.hostname and
+                      target.hostname.endswith(('.blob.core.windows.net', '.githubusercontent.com')) and
+                      target.username is None and target.password is None and
+                      target.port in [None, 443] and not target.fragment, 'Invalid artifact redirect')
+              # A separate request carries no GitHub Authorization to blob storage.
+              with opener.open(urllib.request.Request(location), timeout=60) as response:
+                  require(response.status == 200, 'Artifact download failed')
+                  raw = bounded_body(response)
+              require(len(raw) == artifact['size_in_bytes'] and
+                      'sha256:' + hashlib.sha256(raw).hexdigest() == artifact['digest'], 'Artifact digest/size mismatch')
+              return read_snapshot(raw)
+
+          def timestamp(value):
+              parsed = datetime.datetime.fromisoformat(value.replace('Z', '+00:00'))
+              require(parsed.tzinfo is not None, 'Timestamp lacks timezone')
+              return parsed
+
+          def main():
+              repository, sha = os.environ['EXPECTED_REPOSITORY'], os.environ['EXPECTED_SHA']
+              run_id, attempt, artifact_id = (os.environ[key] for key in ['RUN_ID', 'RUN_ATTEMPT', 'ARTIFACT_ID'])
+              require(repository in ['apache/hugegraph', 'hugegraph/hugegraph'], 'Repository refused')
+              require(re.fullmatch('[0-9a-f]{40}', sha), 'Invalid commit')
+              require(all(re.fullmatch('[1-9][0-9]*', x) for x in [run_id, attempt, artifact_id]), 'Invalid ID')
+              run = api(repository, f'actions/runs/{run_id}/attempts/{attempt}')
+              require(run['id'] == int(run_id) and run['run_attempt'] == int(attempt) and
+                      run['head_sha'] == sha and run['head_branch'] == 'master' and
+                      run['event'] in ['push', 'workflow_dispatch'] and
+                      run['repository']['full_name'] == repository and
+                      run['path'] in ['.github/workflows/submit-dependencies.yml',
+                                      '.github/workflows/submit-dependencies.yml@master'], 'Run identity')
+              jobs = api(repository, f'actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100')
+              producers = [job for job in jobs['jobs'] if job['name'] == 'generate']
+              require(jobs['total_count'] <= 100 and len(producers) == 1 and
+                      producers[0]['conclusion'] == 'success' and producers[0]['status'] == 'completed' and
+                      producers[0]['run_id'] == int(run_id) and producers[0]['head_sha'] == sha,
+                      'Generation did not succeed for this commit')
+              artifact = api(repository, f'actions/artifacts/{artifact_id}')
+              require(artifact['id'] == int(artifact_id) and artifact['expired'] is False and
+                      artifact['name'] == f'dependency-snapshot-{run_id}-{attempt}' and
+                      artifact['workflow_run']['id'] == int(run_id) and
+                      artifact['workflow_run']['head_sha'] == sha and
+                      artifact['workflow_run']['head_branch'] == 'master' and
+                      type(artifact['size_in_bytes']) is int and 0 < artifact['size_in_bytes'] <= LIMIT and
+                      isinstance(artifact['digest'], str) and
+                      re.fullmatch('sha256:[0-9a-f]{64}', artifact['digest']), 'Artifact identity')
+              snapshot = download_snapshot(repository, artifact_id, artifact)
+              require(isinstance(snapshot, dict) and set(snapshot) ==
+                      {'version', 'sha', 'ref', 'job', 'detector', 'metadata', 'scanned', 'manifests'}, 'Snapshot schema')
+              require(type(snapshot['version']) is int and snapshot['version'] == 0 and
+                      snapshot['sha'] == sha and snapshot['ref'] == 'refs/heads/master', 'Snapshot source')
+              require(snapshot['job'] == {'id': run_id,
+                      'correlator': '.github/workflows/submit-dependencies.yml:submit',
+                      'html_url': f'https://github.com/{repository}/actions/runs/{run_id}'}, 'Snapshot job')
+              require(snapshot['detector'] == {'name': 'maven-dependency-submission-action', 'version': '6.0.1',
+                      'url': 'https://github.com/advanced-security/maven-dependency-submission-action'}, 'Detector')
+              require(snapshot['metadata'] == {'serializer':
+                      'Ferstl 4.0.3; repository stdlib adapter for Maven parser 6.0.1',
+                      'producer': 'generate', 'run_attempt': attempt}, 'Producer identity')
+              now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=1)
+              require(timestamp(run['run_started_at']) <= timestamp(snapshot['scanned']) <=
+                      timestamp(artifact['created_at']) + datetime.timedelta(minutes=1) and
+                      timestamp(artifact['created_at']) <= now and timestamp(snapshot['scanned']) <= now,
+                      'Snapshot freshness')
+              tree = api(repository, f'git/trees/{sha}?recursive=1')
+              require(tree['truncated'] is False, 'Incomplete source tree')
+              poms = {node['path'] for node in tree['tree'] if node['type'] == 'blob' and
+                      node['path'].split('/')[-1] == 'pom.xml' and node['mode'] != '120000'}
+              manifests, paths = snapshot['manifests'], set()
+              require(isinstance(manifests, dict) and manifests and poms, 'Empty inventory')
+              component = r"(?:[A-Za-z0-9._!~*'():+-]|%[0-9A-F]{2})+"
+              qualifier = r'(?:[A-Za-z0-9._*\-]|%[0-9A-F]{2})+'
+              purl_pattern = (r'pkg:maven/' + component + '(?:/' + component + ')+@' + component +
+                              r'(?:\?classifier=' + qualifier + '(?:&type=' + qualifier + r')?|\?type=' + qualifier + ')?')
+              for name, manifest in manifests.items():
+                  require(isinstance(name, str) and name.strip() and isinstance(manifest, dict) and
+                          set(manifest) == {'name', 'file', 'resolved'} and manifest['name'] == name and
+                          isinstance(manifest['file'], dict) and set(manifest['file']) == {'source_location'},
+                          'Manifest schema')
+                  location = manifest['file']['source_location']
+                  require(isinstance(location, str) and location in poms and location not in paths, 'Manifest source')
+                  paths.add(location)
+                  resolved = manifest['resolved']
+                  require(isinstance(resolved, dict), 'Resolved schema')
+                  for purl, package in resolved.items():
+                      require(isinstance(purl, str) and len(purl) <= 4096 and
+                              re.fullmatch(purl_pattern, purl), 'Package URL')
+                      require(isinstance(package, dict) and set(package) ==
+                              {'package_url', 'relationship', 'scope', 'dependencies'} and
+                              package['package_url'] == purl and package['relationship'] in ['direct', 'indirect'] and
+                              package['scope'] in ['runtime', 'development'] and
+                              isinstance(package['dependencies'], list) and
+                              all(isinstance(child, str) and child in resolved for child in package['dependencies']),
+                              'Package schema')
+                  require(not resolved or any(p['relationship'] == 'direct' for p in resolved.values()),
+                          'Missing direct dependencies')
+              require(paths == poms and any(m['resolved'] for m in manifests.values()), 'Incomplete inventory')
+              require(api(repository, 'git/ref/heads/master')['object']['sha'] == sha, 'Stale master before submission')
+              result = api(repository, 'dependency-graph/snapshots', snapshot)
+              require(result['result'] == 'SUCCESS', 'Snapshot not accepted')
+              require(api(repository, 'git/ref/heads/master')['object']['sha'] == sha, 'Master advanced during submission')
+              print('Dependency baseline submitted for ' + sha)
+
+          if __name__ == '__main__':
+              main()
+          PY
