@@ -176,6 +176,27 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual({}, producer.manifest({'graphName': 'parent', 'artifacts': [artifact('root')]},
                                               'pom.xml')['resolved'])
 
+    def test_transitive_only_package_is_indirect(self):
+        graph = {'graphName': 'module', 'artifacts': [artifact('root'), artifact('parent'), artifact('leaf')],
+                 'dependencies': [{'from': 'root', 'to': 'parent'}, {'from': 'parent', 'to': 'leaf'}]}
+        parent = 'pkg:maven/org.example/parent@1.0?type=jar'
+        leaf = 'pkg:maven/org.example/leaf@1.0?type=jar'
+        self.assertEqual({
+            parent: {'package_url': parent, 'relationship': 'direct', 'scope': 'runtime', 'dependencies': [leaf]},
+            leaf: {'package_url': leaf, 'relationship': 'indirect', 'scope': 'runtime', 'dependencies': []},
+        }, producer.manifest(graph, 'pom.xml')['resolved'])
+
+    def test_direct_relationship_overrides_indirect_path(self):
+        graph = {'graphName': 'module', 'artifacts': [artifact('root'), artifact('parent'), artifact('shared')],
+                 'dependencies': [{'from': 'root', 'to': 'parent'}, {'from': 'parent', 'to': 'shared'},
+                                  {'from': 'root', 'to': 'shared'}]}
+        parent = 'pkg:maven/org.example/parent@1.0?type=jar'
+        shared = 'pkg:maven/org.example/shared@1.0?type=jar'
+        self.assertEqual({
+            parent: {'package_url': parent, 'relationship': 'direct', 'scope': 'runtime', 'dependencies': [shared]},
+            shared: {'package_url': shared, 'relationship': 'direct', 'scope': 'runtime', 'dependencies': []},
+        }, producer.manifest(graph, 'pom.xml')['resolved'])
+
     def test_generation_rejects_missing_empty_duplicate_and_malformed_graphs(self):
         with self.assertRaises(FileNotFoundError):
             producer.create_snapshot(self.root, ['pom.xml'], 'a' * 40, 'apache/hugegraph', '321', '2')
