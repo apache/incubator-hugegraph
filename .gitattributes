@@ -17,7 +17,6 @@ docker/ export-ignore
 
 # Documentation images are not needed in source releases.
 /docs/images/ export-ignore
-/helm/hugegraph/images/ export-ignore
 
 # Keep the generated golden corpus byte-identical across checkouts
 hugegraph-commons/hugegraph-common/src/test/resources/longencoding-golden.txt text eol=lf
