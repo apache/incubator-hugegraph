@@ -28,6 +28,36 @@ uses G1 with an occupancy threshold of 45 when `JAVA_OPTIONS` is empty.
 Do not combine explicit `-g` selection with a different collector in `JAVA_OPTIONS`
 or `-j`; the JVM rejects conflicting collector selections.
 
+### Launcher memory budget
+
+The default launcher heap uses half the smaller of host available memory and the
+remaining budget under visible cgroup v1/v2 hard limits, with a 512 MiB minimum and a
+32 GiB maximum. It refuses startup when the effective budget is below 512 MiB.
+If a known hard limit has missing, unreadable or invalid usage, the budget is zero;
+the launcher refuses startup instead of using host memory. For cgroup v1, numeric
+unlimited values are recognized only when `uname -m` reports `x86_64`, `aarch64` or
+`riscv64` and `getconf PAGESIZE` returns a positive integer. The threshold is the
+signed 64-bit maximum rounded down to that page size. Recognized unlimited levels
+are skipped so readable finite ancestors still apply; without a finite limit,
+host sizing remains available. Unknown or masked machine names, or an unavailable
+or invalid page size, keep numeric limits on the finite-limit path.
+
+Inactive file cache can contribute to this budget on a warm restart. For a finite
+cgroup v2 limit, the launcher checks the immediate cgroup children of that reclaim
+target. If any child's `memory.min` is nonzero, missing, invalid or unreadable, it
+excludes cache credit at that limit: child cache may be protected from ancestor reclaim.
+If the target directory cannot be enumerated, or a child cannot be searched, cache
+credit is also excluded because child protection cannot be determined. Ordinary
+searchable directories without cgroup controller files are skipped.
+Unprotected children retain the existing warm-cache budget, including inherited and
+nested hard limits. A cgroup's own `memory.min` does not block cache credit for its
+own limit; another ancestor can still constrain it through child protection.
+The cgroup v1 cache calculation is unchanged.
+
+This is a startup estimate, not a guarantee against runtime OOM. Native allocations
+and concurrent processes also consume memory. Explicit heap options retain their
+existing precedence; see [container heap sizing](../docker/README.md#server-heap-sizing).
+
 ### Arthas diagnostics
 
 Server bundles Arthas 4.1.5. Activate the agent with `PUT /arthas` using the Server's
