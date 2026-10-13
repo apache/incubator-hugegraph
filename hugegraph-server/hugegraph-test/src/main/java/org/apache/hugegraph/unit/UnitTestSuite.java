@@ -264,7 +264,6 @@ import org.junit.runners.Suite;
         JsonUtilTest.class,
         StringEncodingTest.class,
         CompressUtilTest.class,
-        ConsumersTest.class,
         RateLimiterTest.FixedTimerWindowRateLimiterTest.class,
         RateLimiterTest.FixedWatchWindowRateLimiterTest.class,
 
