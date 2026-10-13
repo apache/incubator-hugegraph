@@ -33,17 +33,23 @@ for pair in \
         # Helm reuses these images for tool containers instead of pulling curlimages/curl.
         # Check the same non-root/read-only tool environment as the Server test hook.
         if [[ "$dockerfile" == hugegraph-store/* || "$dockerfile" == hugegraph-server/* ]]; then
+            HELM_TOOLS=(curl tr date sleep)
+            if [[ "$dockerfile" == hugegraph-server/* ]]; then
+                HELM_TOOLS+=(getent base64 awk grep sort tail)
+            fi
             docker run --rm --pull never --read-only --user 100:101 --entrypoint sh "$IMAGE_ID" -c '
-                for tool in curl getent base64 tr awk grep sort tail date sleep; do
+                for tool in "$@"; do
                     command -v "$tool" >/dev/null || {
                         echo "Missing Helm tool: $tool" >&2
                         exit 1
                     }
+                    case "$tool" in
+                        getent) getent ahosts localhost >/dev/null ;;
+                        base64) test "$(printf Helm | base64 | tr -d "\n")" = SGVsbQ== ;;
+                    esac
                 done
                 curl --version >/dev/null
-                getent ahosts localhost >/dev/null
-                test "$(printf Helm | base64 | tr -d "\n")" = SGVsbQ==
-            '
+            ' helm-tools "${HELM_TOOLS[@]}"
         fi
 
         JAVA_VERSION=$(docker run --rm --pull never --entrypoint java "$IMAGE_ID" -version 2>&1)

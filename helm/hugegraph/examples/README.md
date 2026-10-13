@@ -78,9 +78,11 @@ The PD wait init container reuses the Store image and Helm test reuses the
 Server image. Both already include `curl`; the chart selects a shell command
 rather than the component entrypoint. No extra `curlimages/curl` image or runtime
 package installation is needed by default. `store.waitImage` and `server.waitImage`
-remain explicit overrides for custom images; those overrides must provide
-`/bin/sh` and `curl`. Older values may retain a curl image under `--reuse-values`;
-clear those two fields to restore inheritance.
+remain explicit overrides for custom images. Store wait overrides need
+`/bin/sh`, `curl`, `tr`, `date` and `sleep`; Server test overrides additionally
+need `base64`, `getent`, `awk`, `sort`, `grep` and `tail`. Reused component images
+also inherit the component pull policy. Older values may retain a curl image
+under `--reuse-values`; clear those two fields to restore inheritance.
 
 ```bash
 helm install hugegraph ./helm/hugegraph -n hugegraph --create-namespace \

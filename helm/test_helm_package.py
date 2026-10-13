@@ -63,7 +63,8 @@ class HelmPackageTest(unittest.TestCase):
 
     def test_required_configuration_is_preserved(self):
         required = ("Chart.yaml", "README.md", "values.yaml", "values.schema.json",
-                    "values-single.yaml", "values-cluster.yaml")
+                    "values-single.yaml", "values-cluster.yaml", "values-strict.yaml",
+                    "docs/operations.md", "examples/README.md")
         for name in required:
             with self.subTest(file=name):
                 self.assertIn(name, self.files)
@@ -80,7 +81,7 @@ class HelmPackageTest(unittest.TestCase):
                     self.assertEqual(source.read_bytes(), self.files[name])
 
     def test_packaged_chart_renders_each_preset(self):
-        for preset in (None, "values-single.yaml", "values-cluster.yaml"):
+        for preset in (None, "values-single.yaml", "values-cluster.yaml", "values-strict.yaml"):
             with self.subTest(preset=preset or "default"):
                 command = ["helm", "template", "package-check", str(self.package)]
                 if preset:
