@@ -11,6 +11,21 @@ The runtime uses TinkerPop 3.8.1 and Groovy 4.0.25. Build and run every module w
 17. Applications migrating from TinkerPop 3.5.1 must review the full version interval,
 including the configuration changes below.
 
+### Required JVM module options
+
+Server, store initialization, store dumping and Gremlin Console always load the
+distribution's `bin/jvm-module.options`. Keep this file with the shipped scripts;
+each launcher rejects a missing or unreadable file. Required module permissions
+are independent of caller options, so custom `JAVA_OPTIONS` or the Server launcher's
+`-j` option do not replace them. Gremlin Console retains its existing
+`JAVA_OPTIONS` defaults; store dumping retains its existing command-line interface.
+
+PD and Store use their own `bin/jvm-module.options` for the module permission needed
+by Hessian serialization on Java 17. Their tests and cluster launchers use the same
+component files. CI checks positive-test and startup logs for Java module-access
+errors and unsupported JVM options, including errors printed without failing the
+operation.
+
 ### Launcher GC options
 
 Use `bin/start-hugegraph.sh -g g1` (or `-g G1`) to select G1 explicitly.

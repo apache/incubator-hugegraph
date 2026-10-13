@@ -75,6 +75,27 @@ does not accept a PR number, apply labels or reuse another workflow's results.
 Automatic retries are disabled. Use GitHub's native rerun controls for failed jobs or a run;
 a rerun retains its original commit and event, subject to the preflight freshness checks.
 
+## Java runtime compatibility
+
+A positive suite passes only when its tests succeed and its current-run output has no
+Java runtime compatibility errors. Server, PD/Store, Commons, Struct and Cluster test
+steps capture both stdout and stderr before running `check-java-runtime-logs.sh`.
+Startup and Console smoke tests also inspect their output before cleanup; Cluster nodes
+archive logs before deletion through the test-only `hugegraph.ct.logArchive` property.
+Missing or unreadable required logs fail the check.
+
+The gate rejects denied module access and unknown or removed JVM options, including
+exceptions caught and printed by dependencies. Ordinary business errors and deliberate
+negative fixtures are not compatibility failures. Native smoke additionally uses `--native`
+for its existing native linkage checks.
+
+Launchers and tests share each component's `jvm-module.options`: PD and Store open
+`java.lang` for Hessian, while Console and dump-store reuse Server's existing options.
+Required module options are independent of custom `JAVA_OPTIONS` or `-j` flags; Surefire
+retains the JaCoCo agent. CI continues to use the project Java runtime and its existing
+suite-selection and required-check policy.
+
+
 ## Freshness, runner use and budgets
 
 PR selection uses the cumulative diff against the checked-out merge commit's base. A source

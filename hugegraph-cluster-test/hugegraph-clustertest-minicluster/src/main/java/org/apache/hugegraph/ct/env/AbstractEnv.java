@@ -147,14 +147,27 @@ public abstract class AbstractEnv implements BaseEnv {
     }
 
     public void stopCluster() {
-        for (ServerNodeWrapper serverNodeWrapper : serverNodeWrappers) {
-            serverNodeWrapper.stop();
+        List<AbstractNodeWrapper> nodes = new ArrayList<>(serverNodeWrappers);
+        nodes.addAll(storeNodeWrappers);
+        nodes.addAll(pdNodeWrappers);
+        stopNodes(nodes);
+    }
+
+    static void stopNodes(List<? extends AbstractNodeWrapper> nodes) {
+        AssertionError failure = null;
+        for (AbstractNodeWrapper node : nodes) {
+            try {
+                node.stop();
+            } catch (RuntimeException | AssertionError e) {
+                if (failure == null) {
+                    failure = new AssertionError("Cluster cleanup failed", e);
+                } else {
+                    failure.addSuppressed(e);
+                }
+            }
         }
-        for (StoreNodeWrapper storeNodeWrapper : storeNodeWrappers) {
-            storeNodeWrapper.stop();
-        }
-        for (PDNodeWrapper pdNodeWrapper : pdNodeWrappers) {
-            pdNodeWrapper.stop();
+        if (failure != null) {
+            throw failure;
         }
     }
 

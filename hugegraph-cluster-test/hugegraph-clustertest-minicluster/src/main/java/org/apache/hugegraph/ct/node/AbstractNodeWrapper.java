@@ -160,6 +160,41 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
         return false;
     }
 
+    protected String moduleOptions(Path options) throws IOException {
+        if (!Files.isRegularFile(options) || !Files.isReadable(options)) {
+            throw new IOException("Missing or unreadable JVM module options: " + options);
+        }
+        return "@" + options.toAbsolutePath();
+    }
+
+    private void archiveLogs() throws IOException {
+        String archive = System.getProperty("hugegraph.ct.logArchive");
+        if (archive == null || archive.isEmpty()) {
+            return;
+        }
+        Path logDirectory = Paths.get(getLogPath()).getParent();
+        if (!Files.isRegularFile(Paths.get(getLogPath()))) {
+            throw new IOException("Missing node startup log: " + getLogPath());
+        }
+        Path archiveRoot = Paths.get(archive);
+        Files.createDirectories(archiveRoot);
+        Path destination = Files.createTempDirectory(archiveRoot,
+                                                     "cluster-" + this.clusterIndex +
+                                                     "-" + getID() + "-");
+        try (Stream<Path> logs = Files.walk(logDirectory)) {
+            for (Path log : (Iterable<Path>) logs.filter(Files::isRegularFile)::iterator) {
+                String name = log.getFileName().toString();
+                if (!name.endsWith(".log") && !name.endsWith(".out") && !name.endsWith(".err") &&
+                    !name.endsWith(".txt") && !name.matches(".*\\.log\\.[0-9]+")) {
+                    continue;
+                }
+                Path target = destination.resolve(logDirectory.relativize(log));
+                Files.createDirectories(target.getParent());
+                Files.copy(log, target);
+            }
+        }
+    }
+
     public void stop() {
         if (this.instance == null) {
             return;
@@ -168,19 +203,25 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
             System.out.printf("[cluster-test] %s stopped unexpectedly: %s%n",
                               getID(), processStatus());
             dumpLog();
-            deleteDir();
-            return;
-        }
-        this.instance.destroy();
-        try {
-            if (!this.instance.waitFor(20, TimeUnit.SECONDS)) {
-                this.instance.destroyForcibly().waitFor(10, TimeUnit.SECONDS);
+        } else {
+            this.instance.destroy();
+            try {
+                if (!this.instance.waitFor(20, TimeUnit.SECONDS)) {
+                    this.instance.destroyForcibly().waitFor(10, TimeUnit.SECONDS);
+                }
+            } catch (InterruptedException e) {
+                this.instance.destroyForcibly();
+                Thread.currentThread().interrupt();
+                LOG.error("Waiting node to shutdown error.", e);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOG.error("Waiting node to shutdown error.", e);
         }
-        deleteDir();
+        try {
+            archiveLogs();
+        } catch (IOException e) {
+            throw new AssertionError("Archive node logs failed: " + getID(), e);
+        } finally {
+            deleteDir();
+        }
     }
 
     public boolean isAlive() {

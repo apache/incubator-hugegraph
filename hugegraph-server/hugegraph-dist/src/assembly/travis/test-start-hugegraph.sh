@@ -45,6 +45,8 @@ WAIT_TIMEOUT=30   # seconds for timeout on wait calls
 PASS=0
 FAIL=0
 ERRORS=()
+STARTUP_LOG="$HUGEGRAPH_ROOT/logs/startup-test.log"
+RUNTIME_STARTED=false
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -102,6 +104,21 @@ cleanup() {
     fi
     sleep 3
     crontab -l 2>/dev/null | grep -v monitor-hugegraph | crontab - 2>/dev/null || true
+    if [[ "$RUNTIME_STARTED" == true ]]; then
+        local logs=("$STARTUP_LOG")
+        if [[ "${STDOUT_MODE:-false}" != true ]]; then
+            logs+=("$HUGEGRAPH_ROOT/logs/hugegraph-server.log")
+        fi
+        if bash "$SCRIPT_DIR/check-java-runtime-logs.sh" "${logs[@]}"; then
+            pass "startup has no Java runtime compatibility errors"
+        else
+            fail "startup log contains a compatibility error or is unavailable"
+        fi
+        RUNTIME_STARTED=false
+    fi
+    # Each positive start must be checked independently of previous runs.
+    mkdir -p "$HUGEGRAPH_ROOT/logs"
+    rm -f "$STARTUP_LOG" "$HUGEGRAPH_ROOT/logs/hugegraph-server.log"
 }
 
 # Wait until server HTTP endpoint responds (200 or 401) or timeout
@@ -195,9 +212,15 @@ fi
 # Run init-store.sh once if RocksDB has not been initialized yet
 if [[ ! -d "$HUGEGRAPH_ROOT/rocksdb-data" ]]; then
     info "RocksDB not initialized — running init-store.sh..."
-    if "$BIN/init-store.sh" >/dev/null 2>&1; then
+    mkdir -p "$HUGEGRAPH_ROOT/logs"
+    INIT_LOG="$HUGEGRAPH_ROOT/logs/startup-init.log"
+    if "$BIN/init-store.sh" >"$INIT_LOG" 2>&1; then
+        if ! bash "$SCRIPT_DIR/check-java-runtime-logs.sh" "$INIT_LOG"; then
+            exit 1
+        fi
         pass "init-store.sh completed successfully"
     else
+        cat "$INIT_LOG"
         echo -e "${RED}ERROR:${NC} init-store.sh failed. Cannot run tests."
         exit 1
     fi
@@ -212,7 +235,8 @@ cleanup
 section "Test 1 — daemon mode regression"
 
 info "Starting in daemon mode (waiting up to ${STARTUP_WAIT}s for HTTP)..."
-"$START_SCRIPT" -d true -t "$STARTUP_WAIT" >/dev/null 2>&1
+RUNTIME_STARTED=true
+"$START_SCRIPT" -d true -t "$STARTUP_WAIT" >"$STARTUP_LOG" 2>&1
 EXIT_CODE=$?
 
 if [[ $EXIT_CODE -eq 0 ]]; then
@@ -259,7 +283,8 @@ cleanup
 section "Test 2 — foreground mode blocks until Java exits"
 
 info "Starting in foreground mode (backgrounded for observation)..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
+RUNTIME_STARTED=true
+"$START_SCRIPT" -d false >"$STARTUP_LOG" 2>&1 &
 SCRIPT_PID=$!
 
 info "Waiting up to ${STARTUP_WAIT}s for server to come up..."
@@ -314,7 +339,8 @@ cleanup
 section "Test 3 — foreground PID tracking and exit propagation"
 
 info "Starting in foreground mode..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
+RUNTIME_STARTED=true
+"$START_SCRIPT" -d false >"$STARTUP_LOG" 2>&1 &
 SCRIPT_PID=$!
 
 info "Waiting up to ${STARTUP_WAIT}s for server..."
@@ -372,7 +398,8 @@ info "Clearing crontab..."
 crontab -l 2>/dev/null | grep -v monitor-hugegraph | crontab - 2>/dev/null || true
 
 info "Starting in daemon mode with -m true (waiting up to ${STARTUP_WAIT}s)..."
-"$START_SCRIPT" -d true -m true -t "$STARTUP_WAIT" >/dev/null 2>&1
+RUNTIME_STARTED=true
+"$START_SCRIPT" -d true -m true -t "$STARTUP_WAIT" >"$STARTUP_LOG" 2>&1
 EXIT_CODE=$?
 
 if [[ $EXIT_CODE -eq 0 ]]; then
@@ -398,7 +425,8 @@ cleanup
 section "Test 5 — SIGTERM forwarded to Java in foreground mode"
 
 info "Starting in foreground mode..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
+RUNTIME_STARTED=true
+"$START_SCRIPT" -d false >"$STARTUP_LOG" 2>&1 &
 SCRIPT_PID=$!
 
 info "Waiting up to ${STARTUP_WAIT}s for server..."

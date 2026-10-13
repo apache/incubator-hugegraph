@@ -39,13 +39,33 @@ jobs:
 
       - name: Run simple cluster test
         run: |
+          set -o pipefail
+          suite_log="$RUNNER_TEMP/simple-cluster-test.log"
+          node_logs="$RUNNER_TEMP/simple-cluster-node-logs"
+          test_status=0
           timeout 45m mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test \
-            -am -P simple-cluster-test
+            -am -P simple-cluster-test -Dhugegraph.ct.logArchive="$node_logs" \
+            2>&1 | tee "$suite_log" || test_status=$?
+          runtime_status=0
+          hugegraph-server/hugegraph-dist/src/assembly/travis/check-java-runtime-logs.sh \
+            "$suite_log" "$node_logs" || runtime_status=$?
+          if [[ "$test_status" -ne 0 ]]; then exit "$test_status"; fi
+          exit "$runtime_status"
 
       - name: Run multi cluster test
         run: |
+          set -o pipefail
+          suite_log="$RUNNER_TEMP/multi-cluster-test.log"
+          node_logs="$RUNNER_TEMP/multi-cluster-node-logs"
+          test_status=0
           timeout 45m mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test \
-            -am -P multi-cluster-test
+            -am -P multi-cluster-test -Dhugegraph.ct.logArchive="$node_logs" \
+            2>&1 | tee "$suite_log" || test_status=$?
+          runtime_status=0
+          hugegraph-server/hugegraph-dist/src/assembly/travis/check-java-runtime-logs.sh \
+            "$suite_log" "$node_logs" || runtime_status=$?
+          if [[ "$test_status" -ne 0 ]]; then exit "$test_status"; fi
+          exit "$runtime_status"
 
       - name: Show cluster diagnostics on failure
         if: failure()
@@ -54,7 +74,8 @@ jobs:
           ps -ef | grep -E "HugeGraph|hg-|java" | grep -v grep || true
           echo "[ci] listening tcp ports:"
           (ss -ltnp || netstat -ltnp || true) 2>&1
-          find hugegraph-cluster-test -path '*/logs/*' -type f | sort | while read -r log; do
+          find hugegraph-cluster-test "$RUNNER_TEMP/simple-cluster-node-logs" \
+            "$RUNNER_TEMP/multi-cluster-node-logs" -type f -name '*.log' | sort | while read -r log; do
             echo "--- tail -n 200 $log ---"
             tail -n 200 "$log" || true
           done

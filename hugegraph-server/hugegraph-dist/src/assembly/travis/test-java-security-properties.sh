@@ -185,7 +185,7 @@ if [[ -n "$SOURCE_ROOT_INPUT" ]]; then
     assert_surefire_arg_lines "$COMMONS_POM" \
         '@${project.parent.basedir}/../hugegraph-server/hugegraph-test/conf/jvm-test-module.options'
     assert_source_consumer "$CLUSTER_WRAPPER" \
-        '"@" + Paths.get(SERVER_PACKAGE_PATH, BIN_DIR,'
+        'moduleOptions(Paths.get(SERVER_PACKAGE_PATH, BIN_DIR,'
     assert_no_inline_module_options \
         "$SERVER_LAUNCHER_SOURCE" "$INIT_STORE_SOURCE" "$SUREFIRE_POM" \
         "$COMMONS_POM" "$CLUSTER_WRAPPER" "$SERVER_DOCKERFILE" \
