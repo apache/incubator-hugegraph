@@ -55,7 +55,10 @@ public class ArthasAPI extends API {
         configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
         configMap.put("arthas.disabledCommands",
                       config.get(ServerOptions.ARTHAS_DISABLED_COMMANDS));
+        String response = JsonUtil.toJson(configMap);
+        // Keep the optional MCP endpoint disabled without extending the activation response.
+        configMap.put("arthas.mcpEndpoint", "");
         ArthasAgent.attach(configMap);
-        return JsonUtil.toJson(configMap);
+        return response;
     }
 }

@@ -28,6 +28,28 @@ uses G1 with an occupancy threshold of 45 when `JAVA_OPTIONS` is empty.
 Do not combine explicit `-g` selection with a different collector in `JAVA_OPTIONS`
 or `-j`; the JVM rejects conflicting collector selections.
 
+### Arthas diagnostics
+
+Server bundles Arthas 4.1.5. Activate the agent with `PUT /arthas` using the Server's
+configured authentication. The existing `arthas.ip`, `arthas.httpPort`,
+`arthas.telnetPort` and `arthas.disabledCommands` options still configure the agent.
+HugeGraph disables the bundled agent's optional MCP endpoint and keeps the existing
+activation response and diagnostic HTTP/telnet interfaces.
+
+For a synchronous one-time command, POST `{"action":"exec","command":"version"}`
+to the agent's `/api` endpoint without a `sessionId`. Check `state=SUCCEEDED`, the
+`body.results` version and command status, and `body.jobStatus=TERMINATED`; HTTP 200
+alone also occurs for failed commands. Arthas 4.1.5 includes the upstream
+[terminal-process interrupt fix](https://github.com/alibaba/arthas/pull/3079) and
+[foreground-job cleanup fix](https://github.com/alibaba/arthas/pull/3094), so cleanup
+can remove a session whose foreground command has already terminated.
+It also includes the [MCP-disabled HTTP handler fix](https://github.com/alibaba/arthas/pull/3127).
+
+Clients that explicitly call `init_session` must call `close_session` when finished.
+After closing, `session_info` for that ID reports `state=FAILED` with `session not found`.
+[`ArthasApiTest`](../hugegraph-server/hugegraph-test/src/main/java/org/apache/hugegraph/api/ArthasApiTest.java)
+covers one-time execution, explicit session execution and removal.
+
 ### Serializer configuration
 
 Use the Gremlin configuration files shipped with the upgraded Server. Serializer classes

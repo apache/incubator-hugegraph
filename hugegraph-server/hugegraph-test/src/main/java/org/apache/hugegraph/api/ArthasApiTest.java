@@ -17,6 +17,11 @@
 
 package org.apache.hugegraph.api;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.hugegraph.util.JsonUtil;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,40 +38,67 @@ public class ArthasApiTest extends BaseApiTest {
     @Before
     public void testArthasStart() {
         Response r = client().put(ARTHAS_START_PATH, "", "", ImmutableMap.of());
-        assertResponseStatus(200, r);
+        String result = assertResponseStatus(200, r);
+        Assert.assertEquals(4, JsonUtil.fromJson(result, Map.class).size());
+        assertJsonContains(result, "arthas.telnetPort");
+        assertJsonContains(result, "arthas.httpPort");
+        assertJsonContains(result, "arthas.ip");
+        assertJsonContains(result, "arthas.disabledCommands");
     }
 
     @Test
     public void testArthasApi() {
-        // command exec
-        String execBody = "{\n" +
-                          "  \"action\": \"exec\",\n" +
-                          "  \"command\": \"version\"\n" +
-                          "}";
         RestClient arthasApiClient = new RestClient(ARTHAS_API_BASE_URL, false);
-        Response execResponse = arthasApiClient.post(ARTHAS_API_PATH, execBody);
-        String result = assertResponseStatus(200, execResponse);
-        assertJsonContains(result, "state");
-        assertJsonContains(result, "body");
+        try {
+            // A one-time command must succeed through its automatic session cleanup.
+            String execBody = JsonUtil.toJson(ImmutableMap.of("action", "exec", "command", "version"));
+            Response execResponse = arthasApiClient.post(ARTHAS_API_PATH, execBody);
+            assertVersionSucceeded(assertResponseStatus(200, execResponse));
+            assertResponseStatus(404, arthasApiClient.get("/mcp"));
 
-        // command session
-        String sessionBody = "{\n" +
-                             "  \"action\":\"init_session\"\n" +
-                             "}";
-        Response sessionResponse = arthasApiClient.post(ARTHAS_API_PATH, sessionBody);
-        String sessionResult = assertResponseStatus(200, sessionResponse);
-        assertJsonContains(sessionResult, "sessionId");
-        assertJsonContains(sessionResult, "consumerId");
-        assertJsonContains(sessionResult, "state");
+            String sessionBody = JsonUtil.toJson(ImmutableMap.of("action", "init_session"));
+            Response sessionResponse = arthasApiClient.post(ARTHAS_API_PATH, sessionBody);
+            String sessionResult = assertResponseStatus(200, sessionResponse);
+            Assert.assertEquals("SUCCEEDED", assertJsonContains(sessionResult, "state"));
+            String sessionId = assertJsonContains(sessionResult, "sessionId");
+            assertJsonContains(sessionResult, "consumerId");
+            try {
+                String sessionExecBody = JsonUtil.toJson(ImmutableMap.of(
+                        "action", "exec", "command", "version", "sessionId", sessionId));
+                Response sessionExecResponse = arthasApiClient.post(ARTHAS_API_PATH, sessionExecBody);
+                assertVersionSucceeded(assertResponseStatus(200, sessionExecResponse));
+            } finally {
+                String closeBody = JsonUtil.toJson(ImmutableMap.of("action", "close_session", "sessionId", sessionId));
+                Response closeResponse = arthasApiClient.post(ARTHAS_API_PATH, closeBody);
+                String closeResult = assertResponseStatus(200, closeResponse);
+                Assert.assertEquals("SUCCEEDED", assertJsonContains(closeResult, "state"));
+            }
 
-        // join session: using invalid sessionId
-        String joinSessionBody = "{\n" +
-                                 "  \"action\":\"join_session\",\n" +
-                                 "  \"sessionId\" : \"xxx\"\n" +
-                                 "}";
-        Response joinSessionResponse = arthasApiClient.post(ARTHAS_API_PATH, joinSessionBody);
-        String joinSessionResult = assertResponseStatus(200, joinSessionResponse);
-        assertJsonContains(joinSessionResult, "message");
-        assertJsonContains(joinSessionResult, "state");
+            String infoBody = JsonUtil.toJson(ImmutableMap.of("action", "session_info", "sessionId", sessionId));
+            Response infoResponse = arthasApiClient.post(ARTHAS_API_PATH, infoBody);
+            String infoResult = assertResponseStatus(200, infoResponse);
+            Assert.assertEquals("FAILED", assertJsonContains(infoResult, "state"));
+            Assert.assertEquals("session not found: " + sessionId, assertJsonContains(infoResult, "message"));
+
+            String joinBody = JsonUtil.toJson(ImmutableMap.of("action", "join_session", "sessionId", "xxx"));
+            Response joinResponse = arthasApiClient.post(ARTHAS_API_PATH, joinBody);
+            String joinResult = assertResponseStatus(200, joinResponse);
+            Assert.assertEquals("FAILED", assertJsonContains(joinResult, "state"));
+            Assert.assertEquals("session not found: xxx", assertJsonContains(joinResult, "message"));
+        } finally {
+            arthasApiClient.close();
+        }
+    }
+
+    private static void assertVersionSucceeded(String result) {
+        Assert.assertEquals("SUCCEEDED", assertJsonContains(result, "state"));
+        Map<?, ?> body = assertJsonContains(result, "body");
+        Assert.assertEquals("TERMINATED", body.get("jobStatus"));
+        Assert.assertEquals(false, body.get("timeExpired"));
+        List<Map<?, ?>> results = assertMapContains(body, "results");
+        Map<?, ?> version = assertArrayContains(results, "type", "version");
+        Assert.assertEquals("4.1.5", version.get("version"));
+        Map<?, ?> status = assertArrayContains(results, "type", "status");
+        Assert.assertEquals(0, status.get("statusCode"));
     }
 }
