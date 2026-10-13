@@ -23,7 +23,7 @@ the preflight license checks fail.
 | Docker, Helm and dependency audit | Corresponding inputs | Corresponding deployment smoke or checks | Full validation |
 
 macOS uses one `macos-15` ARM job for either smoke or full validation. Intel macOS is removed.
-The weekly run uses `cron: '0 6 * * 1'` with `timezone: Asia/Taipei`: Monday at 06:00,
+The weekly run uses `cron: '0 6 * * 1'` with `timezone: Asia/Singapore`: Monday at 06:00,
 on the latest default-branch commit. GitHub may delay scheduled runs during high load;
 see [schedule behavior](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 

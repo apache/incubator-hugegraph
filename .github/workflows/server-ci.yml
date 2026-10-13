@@ -6,7 +6,7 @@ on:
   pull_request:
   schedule:
     - cron: '0 6 * * 1'
-      timezone: Asia/Taipei
+      timezone: Asia/Singapore
   workflow_dispatch:
     inputs:
       test-set:
