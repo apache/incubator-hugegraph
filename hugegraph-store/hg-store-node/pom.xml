@@ -183,10 +183,9 @@
     <profiles>
         <!--
           Opt-in: bundles S3 cloud storage support (hg-store-cloud-s3 + AWS SDK) directly
-          into this module's fat jar as a normal compile dependency. Inactive by default so
-          plain `mvn clean package`/CI builds never resolve the AWS SDK. Activate with
-          `-Ps3-cloud-storage` (see hugegraph-store/pom.xml, which gates the hg-store-cloud-s3
-          module itself behind the same profile id).
+          into this module's fat jar as a normal compile dependency. hg-store-cloud-s3 is
+          always built as a regular module; without `-Ps3-cloud-storage` the node fat jar
+          does not ship it or the AWS SDK.
           -->
         <profile>
             <id>s3-cloud-storage</id>
