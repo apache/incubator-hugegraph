@@ -82,6 +82,15 @@ tests:
           path: spec.containers[0].command[2]
           pattern: '"graph":"DEFAULT-hugegraph"'
 
+  - it: preserves a static graph binding with an uppercase local file name
+    template: tests/test-connection.yaml
+    set:
+      server.testGraphAlias: DEFAULT-Demo
+    asserts:
+      - matchRegex:
+          path: spec.containers[0].command[2]
+          pattern: '"graph":"DEFAULT-Demo"'
+
   - it: floors the per-Pod count at the HPA minimum when HPA is enabled
     template: tests/test-connection.yaml
     set:

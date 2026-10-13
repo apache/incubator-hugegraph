@@ -283,6 +283,8 @@ spaces and backslashes in service IDs round-trip unchanged. Non-ASCII and contro
 characters are rejected before the entrypoint writes configuration, because the
 Server reads properties using ISO-8859-1. This is the container input's
 serialization limit; it does not change the core service-name contract.
+The full service ID, including `/` and `-`, is retained when service metadata is
+reloaded or its graph space is cleared.
 `HG_SERVER_GRAPHSPACE` and a migrated `GRAPH_SPACE` must also match the Server
 API graph-space rule: `DEFAULT`, or up to 48 lowercase letters, digits and
 underscores, starting with a letter. Invalid environment values are rejected

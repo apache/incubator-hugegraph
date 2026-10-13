@@ -205,7 +205,9 @@ requires an authenticated, graph-bound Gremlin answer from every Server Pod
 (at least the replica floor). `server.testGraphAlias` selects that binding and
 defaults to `DEFAULT-hugegraph`. Set it to an existing target graph's full alias,
 such as `team_a-demo`, to check that graph instead. The hook does not create a
-graph or infer an alias from `server.graphSpace`. A Server that started during a PD roll
+graph or infer an alias from `server.graphSpace`. Match the binding's case: a
+local `Demo.properties` can bind `DEFAULT-Demo`, while REST-created graph names
+are lowercase. A Server that started during a PD roll
 can pass readiness and serve REST while every Gremlin call on it fails (see
 Troubleshooting, "Could not rebind"). Transient failures are retried for
 150 seconds before the test fails and names the failing Pod IPs. Large HPA
@@ -639,7 +641,10 @@ and backslashes. Dollar signs are escaped in the manifest so Kubernetes passes
 the service ID literally, including `$(POD_IP)` and `$$`. The chart and entrypoint
 reject non-ASCII and control characters
 to prevent the Server's ISO-8859-1 properties reader from changing the value;
-this is a deployment input serialization limit, not a change to core service names:
+this is a deployment input serialization limit, not a change to core service names.
+
+The full service ID, including `/` and `-`, is retained when service metadata is
+reloaded or its graph space is cleared.
 
 ```bash
 helm upgrade --install hg ./helm/hugegraph \
