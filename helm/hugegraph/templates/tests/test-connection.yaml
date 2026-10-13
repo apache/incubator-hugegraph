@@ -45,6 +45,9 @@ spec:
   containers:
     - name: curl
       image: {{ .Values.server.waitImage | quote }}
+      {{- if .Values.server.__waitImageInherited }}
+      imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+      {{- end }}
       securityContext:
         allowPrivilegeEscalation: false
         capabilities:

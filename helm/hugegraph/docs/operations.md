@@ -81,8 +81,8 @@ Server waits for storage for `server.storageWaitTimeoutSeconds` (default 300),
 passed as `WAIT_STORAGE_TIMEOUT_S`. An unspecified startup threshold is derived
 from that wait plus a 150-second startup allowance. Explicit thresholds are
 preserved and must leave at least 120 seconds beyond the storage wait.
-The guaranteed probe budget is `(failureThreshold - 1) * periodSeconds`, since
-the first probe can run immediately. Contradictory budgets fail rendering with
+The probe budget is `initialDelaySeconds + (failureThreshold - 1) * periodSeconds`;
+without an initial delay, the first probe can run immediately. Contradictory budgets fail rendering with
 the relevant parameter names; `HG_SERVER_STARTUP_TIMEOUT_S` is chart-managed.
 Legacy reused values retain their earlier probe-budget compatibility behavior.
 

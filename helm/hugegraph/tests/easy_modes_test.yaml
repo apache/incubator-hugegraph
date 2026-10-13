@@ -163,3 +163,17 @@ tests:
             name: HG_SERVER_STARTUP_TIMEOUT_S
             value: "150"
         template: server-deployment.yaml
+
+  - it: reuses the component pull policy for offline tool containers
+    set:
+      store.image.pullPolicy: Never
+      server.image.pullPolicy: IfNotPresent
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].imagePullPolicy
+          value: Never
+        template: store-statefulset.yaml
+      - equal:
+          path: spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+        template: tests/test-connection.yaml

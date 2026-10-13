@@ -89,6 +89,9 @@ spec:
       initContainers:
         - name: wait-for-pd
           image: {{ .Values.store.waitImage | quote }}
+          {{- if .Values.store.__waitImageInherited }}
+          imagePullPolicy: {{ .Values.store.image.pullPolicy }}
+          {{- end }}
           {{- with .Values.store.securityContext }}
           securityContext:
             {{- toYaml . | nindent 12 }}

@@ -30,6 +30,22 @@ for pair in \
         HC=$(docker image inspect --format '{{json .Config.Healthcheck}}' "$IMAGE_ID")
         [[ "$HC" != null ]] || { echo "Missing HEALTHCHECK: $dockerfile"; exit 1; }
 
+        # Helm reuses these images for tool containers instead of pulling curlimages/curl.
+        # Check the same non-root/read-only tool environment as the Server test hook.
+        if [[ "$dockerfile" == hugegraph-store/* || "$dockerfile" == hugegraph-server/* ]]; then
+            docker run --rm --pull never --read-only --user 100:101 --entrypoint sh "$IMAGE_ID" -c '
+                for tool in curl getent base64 tr awk grep sort date sleep; do
+                    command -v "$tool" >/dev/null || {
+                        echo "Missing Helm tool: $tool" >&2
+                        exit 1
+                    }
+                done
+                curl --version >/dev/null
+                getent ahosts localhost >/dev/null
+                test "$(printf Helm | base64 | tr -d "\n")" = SGVsbQ==
+            '
+        fi
+
         JAVA_VERSION=$(docker run --rm --pull never --entrypoint java "$IMAGE_ID" -version 2>&1)
         echo "$JAVA_VERSION"
         grep -Eq 'version "17\.' <<< "$JAVA_VERSION" || {

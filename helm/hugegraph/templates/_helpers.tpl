@@ -56,11 +56,13 @@
 {{- range $comp := list "store" "server" -}}
 {{- $values := get $.Values $comp -}}
 {{- $override := get $values "waitImage" | default "" -}}
+{{- $componentImage := include "hugegraph.image" (dict "image" $values.image "appVersion" $.Chart.AppVersion) -}}
 {{- if $override -}}
 {{- $_ := set $values "waitImage" (include "hugegraph.registryImage" (dict "reference" $override "registry" $registry)) -}}
 {{- else -}}
-{{- $_ := set $values "waitImage" (include "hugegraph.image" (dict "image" $values.image "appVersion" $.Chart.AppVersion)) -}}
+{{- $_ := set $values "waitImage" $componentImage -}}
 {{- end -}}
+{{- $_ := set $values "__waitImageInherited" (eq $values.waitImage $componentImage) -}}
 {{- end -}}
 {{- $server := .Values.server -}}
 {{- if not (hasKey $server "storageWaitTimeoutSeconds") -}}{{- $_ := set $server "storageWaitTimeoutSeconds" 300 -}}{{- end -}}
