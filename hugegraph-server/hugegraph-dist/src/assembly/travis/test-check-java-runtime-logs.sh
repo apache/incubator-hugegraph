@@ -46,7 +46,8 @@ for MESSAGE in \
     'java.lang.IllegalAccessException: module java.base does not export p to unnamed module' \
     "Unrecognized VM option 'OldGCOption'" \
     'Unrecognized option: --unknown-option' \
-    'OpenJDK warning: Ignoring option --illegal-access=permit; support was removed in 17.0'; do
+    'OpenJDK warning: Ignoring option --illegal-access=permit; support was removed in 17.0' \
+    'Unable to inspect cluster runtime logs: Node still running or startup log unavailable'; do
     # A child returning success after logging only to stderr reproduces the
     # failure mode that result assertions and exit-code checks cannot catch.
     bash -c 'printf "%s\n" "$1" >&2' bash "$MESSAGE" >"$WORK_DIR/positive.log" 2>&1

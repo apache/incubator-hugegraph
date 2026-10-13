@@ -63,12 +63,9 @@ public class BaseMultiClusterTest {
 
     @AfterClass
     public static void clearEnv() {
-        try {
-            env.stopCluster();
-        } finally {
-            for (RestClient client : clients) {
-                client.close();
-            }
+        env.stopCluster();
+        for (RestClient client : clients) {
+            client.close();
         }
     }
 

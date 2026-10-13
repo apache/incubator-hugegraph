@@ -72,14 +72,11 @@ public class BaseSimpleTest {
 
     @AfterClass
     public static void clearEnv() throws InterruptedException {
-        try {
-            env.stopCluster();
-            Thread.sleep(2000);
-        } finally {
-            if (client != null) {
-                client.close();
-                client = null;
-            }
+        env.stopCluster();
+        Thread.sleep(2000);
+        if (client != null) {
+            client.close();
+            client = null;
         }
     }
 

@@ -19,6 +19,10 @@ each launcher rejects a missing or unreadable file. Required module permissions
 are independent of caller options, so custom `JAVA_OPTIONS` or the Server launcher's
 `-j` option do not replace them. Gremlin Console retains its existing
 `JAVA_OPTIONS` defaults; store dumping retains its existing command-line interface.
+The shared file opens `java.nio` for HBase's reflective `java.nio.Bits.unaligned()`
+check during `HBasePlatformDependent` initialization, including on x86 Java 17.
+It also opens `java.lang` for SOFA RPC's `ProviderInvoker` initialization, which
+reflects on `Throwable.cause`.
 
 PD and Store use their own `bin/jvm-module.options` for the module permission needed
 by Hessian serialization on Java 17. Their tests and cluster launchers use the same

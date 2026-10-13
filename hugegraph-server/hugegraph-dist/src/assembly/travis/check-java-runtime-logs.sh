@@ -24,6 +24,7 @@ PATTERN='java\.lang\.reflect\.InaccessibleObjectException:'
 PATTERN+='|java\.lang\.(IllegalAccessError|IllegalAccessException):.*module .*does not'
 PATTERN+='|Unrecognized VM option|Unrecognized option:'
 PATTERN+='|Ignoring option .*support was removed|VM option .*is (not supported|obsolete|removed)'
+PATTERN+='|Unable to inspect cluster runtime logs:'
 if [[ "${1:-}" == --native ]]; then
     # Keep native-linkage checks out of suites with intentional missing classes.
     PATTERN+='|undefined symbol|UnsatisfiedLinkError|UnsupportedClassVersionError|NoClassDefFoundError'

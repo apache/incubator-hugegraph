@@ -141,6 +141,8 @@ assert_argument "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED" \
 assert_argument "--add-modules=jdk.unsupported" "$JVM_MODULE_OPTIONS"
 assert_argument "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED" \
                 "$JVM_MODULE_OPTIONS"
+assert_argument "--add-opens=java.base/java.nio=ALL-UNNAMED" "$JVM_MODULE_OPTIONS"
+assert_argument "--add-opens=java.base/java.lang=ALL-UNNAMED" "$JVM_MODULE_OPTIONS"
 
 if [[ -n "$SOURCE_ROOT_INPUT" ]]; then
     if [[ ! -d "$SOURCE_ROOT_INPUT" ]]; then

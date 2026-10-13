@@ -19,15 +19,13 @@ package org.apache.hugegraph.ct.node;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
@@ -85,108 +83,54 @@ public class AbstractNodeWrapperTest {
     }
 
     @Test
-    public void testArchiveBeforeDeletingExitedNode() throws Exception {
-        File nodeDirectory = newNodeDirectory();
-        TestNodeWrapper wrapper = new TestNodeWrapper(nodeDirectory);
-        String failure = "retained startup diagnostics";
-        Files.writeString(Paths.get(wrapper.getLogPath()), failure);
-        Path raftLog = nodeDirectory.toPath().resolve("logs/raft.log");
-        Files.writeString(raftLog, "raft diagnostics");
-        Path archive = temporaryFolder.newFolder().toPath();
-        String originalArchive = System.getProperty("hugegraph.ct.logArchive");
-        try {
-            System.setProperty("hugegraph.ct.logArchive", archive.toString());
-            wrapper.attach(startExitedProcess());
-            wrapper.stop();
-            Assert.assertFalse(nodeDirectory.exists());
-            List<Path> archived = archivedFiles(archive);
-            Assert.assertEquals(2, archived.size());
-            Assert.assertTrue(archived.stream().anyMatch(path -> path.getFileName().toString()
-                                                                   .equals("raft.log")));
-            for (Path path : archived) {
-                if (path.getFileName().toString().endsWith("-start.log")) {
-                    Assert.assertEquals(failure, Files.readString(path));
-                }
-            }
-        } finally {
-            restoreArchiveProperty(originalArchive);
-        }
-    }
-
-    @Test
-    public void testArchiveDoesNotOverwriteRestartsOrClusters() throws Exception {
-        Path archive = temporaryFolder.newFolder().toPath();
-        String originalArchive = System.getProperty("hugegraph.ct.logArchive");
-        try {
-            System.setProperty("hugegraph.ct.logArchive", archive.toString());
-            for (int cluster : new int[]{1, 1, 2}) {
-                TestNodeWrapper wrapper = new TestNodeWrapper(newNodeDirectory());
-                wrapper.clusterIndex = cluster;
-                Files.writeString(Paths.get(wrapper.getLogPath()), "cluster " + cluster);
-                wrapper.attach(startExitedProcess());
-                wrapper.stop();
-            }
-            Assert.assertEquals(3, archivedFiles(archive).size());
-        } finally {
-            restoreArchiveProperty(originalArchive);
-        }
-    }
-
-    @Test
-    public void testArchiveFailureStillStopsAndDeletesNode() throws Exception {
-        TestNodeWrapper wrapper = new TestNodeWrapper(newNodeDirectory());
-        Files.writeString(Paths.get(wrapper.getLogPath()), START_LINE);
-        String originalArchive = System.getProperty("hugegraph.ct.logArchive");
-        Process process = startSleeperProcess();
-        wrapper.attach(process);
-        try {
-            System.setProperty("hugegraph.ct.logArchive", temporaryFolder.newFile().toString());
-            Assert.assertThrows(AssertionError.class, wrapper::stop);
-            Assert.assertFalse(process.isAlive());
-            Assert.assertFalse(Files.exists(Paths.get(wrapper.getNodePath())));
-        } finally {
-            process.destroyForcibly();
-            restoreArchiveProperty(originalArchive);
-        }
-    }
-
-    @Test
-    public void testStopWithoutArchiveKeepsDefaultCleanup() throws Exception {
-        TestNodeWrapper wrapper = new TestNodeWrapper(newNodeDirectory());
-        Files.writeString(Paths.get(wrapper.getLogPath()), START_LINE);
-        String originalArchive = System.getProperty("hugegraph.ct.logArchive");
-        try {
-            System.clearProperty("hugegraph.ct.logArchive");
-            wrapper.attach(startExitedProcess());
-            wrapper.stop();
-            Assert.assertFalse(Files.exists(Paths.get(wrapper.getNodePath())));
-        } finally {
-            restoreArchiveProperty(originalArchive);
-        }
-    }
-
-    @Test
-    public void testModuleOptionsRequireReadableFile() throws Exception {
+    public void testModuleOptionsRejectMissingFile() throws Exception {
         TestNodeWrapper wrapper = new TestNodeWrapper(newNodeDirectory());
         Path options = temporaryFolder.newFile("jvm-module.options").toPath();
         Assert.assertEquals("@" + options.toAbsolutePath(), wrapper.moduleOptions(options));
         Files.delete(options);
-        Assert.assertThrows(java.io.IOException.class, () -> wrapper.moduleOptions(options));
-        Assert.assertThrows(java.io.IOException.class,
-                            () -> wrapper.moduleOptions(temporaryFolder.getRoot().toPath()));
+        Assert.assertThrows(IOException.class, () -> wrapper.moduleOptions(options));
     }
 
-    private static List<Path> archivedFiles(Path archive) throws Exception {
-        try (Stream<Path> files = Files.walk(archive)) {
-            return files.filter(Files::isRegularFile).collect(Collectors.toList());
+    @Test
+    public void testStopForwardsStartupLogBeforeCleanup() throws Exception {
+        File nodeDirectory = newNodeDirectory();
+        TestNodeWrapper wrapper = new TestNodeWrapper(nodeDirectory);
+        Files.writeString(Paths.get(wrapper.getLogPath()),
+                          "startup diagnostic\n" + "operation succeeded\n".repeat(250));
+        wrapper.attach(startSleeperProcess());
+        PrintStream originalOut = System.out;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            System.setOut(new PrintStream(output, true, StandardCharsets.UTF_8.name()));
+            wrapper.stop();
+        } finally {
+            System.setOut(originalOut);
         }
+        Assert.assertTrue(output.toString(StandardCharsets.UTF_8.name()).contains("startup diagnostic"));
+        Assert.assertFalse(nodeDirectory.exists());
     }
 
-    private static void restoreArchiveProperty(String original) {
-        if (original == null) {
-            System.clearProperty("hugegraph.ct.logArchive");
-        } else {
-            System.setProperty("hugegraph.ct.logArchive", original);
+    @Test
+    public void testStopRetainsDirectoryWhenLogIsUnavailable() throws Exception {
+        for (boolean malformed : new boolean[]{false, true}) {
+            File nodeDirectory = newNodeDirectory();
+            TestNodeWrapper wrapper = new TestNodeWrapper(nodeDirectory);
+            if (malformed) {
+                Files.write(Paths.get(wrapper.getLogPath()), new byte[]{(byte) 0xff});
+            }
+            wrapper.attach(startSleeperProcess());
+            PrintStream originalOut = System.out;
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            try {
+                System.setOut(new PrintStream(output, true, StandardCharsets.UTF_8.name()));
+                wrapper.stop();
+            } finally {
+                System.setOut(originalOut);
+            }
+            Assert.assertFalse(wrapper.isAlive());
+            Assert.assertTrue(nodeDirectory.exists());
+            Assert.assertTrue(output.toString(StandardCharsets.UTF_8.name())
+                                    .contains("Unable to inspect cluster runtime logs:"));
         }
     }
 

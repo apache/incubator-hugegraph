@@ -107,7 +107,8 @@ cleanup() {
     if [[ "$RUNTIME_STARTED" == true ]]; then
         local logs=("$STARTUP_LOG")
         if [[ "${STDOUT_MODE:-false}" != true ]]; then
-            logs+=("$HUGEGRAPH_ROOT/logs/hugegraph-server.log")
+            logs+=("$HUGEGRAPH_ROOT/logs/hugegraph-server.log"
+                   "$HUGEGRAPH_ROOT/logs/hugegraph-server-stdout.log")
         fi
         if bash "$SCRIPT_DIR/check-java-runtime-logs.sh" "${logs[@]}"; then
             pass "startup has no Java runtime compatibility errors"
@@ -118,7 +119,8 @@ cleanup() {
     fi
     # Each positive start must be checked independently of previous runs.
     mkdir -p "$HUGEGRAPH_ROOT/logs"
-    rm -f "$STARTUP_LOG" "$HUGEGRAPH_ROOT/logs/hugegraph-server.log"
+    rm -f "$STARTUP_LOG" "$HUGEGRAPH_ROOT/logs/hugegraph-server.log" \
+          "$HUGEGRAPH_ROOT/logs/hugegraph-server-stdout.log"
 }
 
 # Wait until server HTTP endpoint responds (200 or 401) or timeout

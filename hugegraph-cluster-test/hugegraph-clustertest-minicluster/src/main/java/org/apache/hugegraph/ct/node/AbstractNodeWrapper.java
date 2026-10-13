@@ -21,6 +21,7 @@ import static org.apache.hugegraph.ct.base.ClusterConstant.CT_PACKAGE_PATH;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -167,34 +168,6 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
         return "@" + options.toAbsolutePath();
     }
 
-    private void archiveLogs() throws IOException {
-        String archive = System.getProperty("hugegraph.ct.logArchive");
-        if (archive == null || archive.isEmpty()) {
-            return;
-        }
-        Path logDirectory = Paths.get(getLogPath()).getParent();
-        if (!Files.isRegularFile(Paths.get(getLogPath()))) {
-            throw new IOException("Missing node startup log: " + getLogPath());
-        }
-        Path archiveRoot = Paths.get(archive);
-        Files.createDirectories(archiveRoot);
-        Path destination = Files.createTempDirectory(archiveRoot,
-                                                     "cluster-" + this.clusterIndex +
-                                                     "-" + getID() + "-");
-        try (Stream<Path> logs = Files.walk(logDirectory)) {
-            for (Path log : (Iterable<Path>) logs.filter(Files::isRegularFile)::iterator) {
-                String name = log.getFileName().toString();
-                if (!name.endsWith(".log") && !name.endsWith(".out") && !name.endsWith(".err") &&
-                    !name.endsWith(".txt") && !name.matches(".*\\.log\\.[0-9]+")) {
-                    continue;
-                }
-                Path target = destination.resolve(logDirectory.relativize(log));
-                Files.createDirectories(target.getParent());
-                Files.copy(log, target);
-            }
-        }
-    }
-
     public void stop() {
         if (this.instance == null) {
             return;
@@ -202,25 +175,50 @@ public abstract class AbstractNodeWrapper implements BaseNodeWrapper {
         if (!this.instance.isAlive()) {
             System.out.printf("[cluster-test] %s stopped unexpectedly: %s%n",
                               getID(), processStatus());
-            dumpLog();
-        } else {
-            this.instance.destroy();
-            try {
-                if (!this.instance.waitFor(20, TimeUnit.SECONDS)) {
-                    this.instance.destroyForcibly().waitFor(10, TimeUnit.SECONDS);
-                }
-            } catch (InterruptedException e) {
-                this.instance.destroyForcibly();
-                Thread.currentThread().interrupt();
-                LOG.error("Waiting node to shutdown error.", e);
+            if (dumpRuntimeLogs()) {
+                deleteDir();
             }
+            return;
         }
+        this.instance.destroy();
         try {
-            archiveLogs();
-        } catch (IOException e) {
-            throw new AssertionError("Archive node logs failed: " + getID(), e);
-        } finally {
+            if (!this.instance.waitFor(20, TimeUnit.SECONDS)) {
+                this.instance.destroyForcibly().waitFor(10, TimeUnit.SECONDS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.error("Waiting node to shutdown error.", e);
+        }
+        if (dumpRuntimeLogs()) {
             deleteDir();
+        }
+    }
+
+    private boolean dumpRuntimeLogs() {
+        Path startupLog = Paths.get(getLogPath());
+        try {
+            if (this.instance.isAlive() || !Files.isReadable(startupLog)) {
+                throw new IOException("Node still running or startup log unavailable: " + getID());
+            }
+            // Stream complete text logs into the suite output before deletion.
+            // The suite's existing checker validates them without an archive.
+            try (Stream<Path> logs = Files.walk(startupLog.getParent())) {
+                for (Path log : (Iterable<Path>) logs.filter(Files::isRegularFile)::iterator) {
+                    if (!log.getFileName().toString().matches(".*(\\.log(\\.[0-9]+)?|\\.out|\\.err|\\.txt)")) {
+                        continue;
+                    }
+                    System.out.println("[cluster-test] runtime log: " + log);
+                    try (Stream<String> lines = Files.lines(log, StandardCharsets.UTF_8)) {
+                        lines.forEach(System.out::println);
+                    }
+                }
+            }
+            return true;
+        } catch (IOException | UncheckedIOException e) {
+            // Keep the original files and continue stopping the other nodes.
+            // This explicit marker makes the suite's log checker fail.
+            System.out.println("Unable to inspect cluster runtime logs: " + e.getMessage());
+            return false;
         }
     }
 

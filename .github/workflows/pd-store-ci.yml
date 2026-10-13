@@ -267,6 +267,8 @@ jobs:
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/start-pd.sh
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "PD_DIR=hugegraph-pd/apache-hugegraph-pd-$VERSION" >> "$GITHUB_ENV"
 
       - name: Run client test
         run: |
@@ -274,7 +276,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-pd/hg-pd-test -am \
             -P pd-client-test -Djacoco.sessionId=pd-client-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs"
 
       - name: Run rest test
         run: |
@@ -282,7 +284,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-pd/hg-pd-test -am \
             -P pd-rest-test -Djacoco.sessionId=pd-rest-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs"
 
       - name: Generate aggregate coverage report
         run: |
@@ -439,6 +441,9 @@ jobs:
         run: |
           $TRAVIS_DIR/start-pd.sh
           $TRAVIS_DIR/start-store.sh
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "PD_DIR=hugegraph-pd/apache-hugegraph-pd-$VERSION" >> "$GITHUB_ENV"
+          echo "STORE_DIR=hugegraph-store/apache-hugegraph-store-$VERSION" >> "$GITHUB_ENV"
 
       - name: Run historical Store ingress tests
         run: |
@@ -448,7 +453,7 @@ jobs:
             -Dtest=StoredRowIngressTest -Dsurefire.failIfNoSpecifiedTests=false \
             -Djacoco.sessionId=store-node-test \
             -Djacoco.destFile="$PWD/hugegraph-store/hg-store-test/target/store-node-test.exec" 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run common test
         run: |
@@ -456,7 +461,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-store/hg-store-test -am \
             -P store-common-test -Djacoco.sessionId=store-common-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run client test
         run: |
@@ -464,7 +469,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-store/hg-store-test -am \
             -P store-client-test -Djacoco.sessionId=store-client-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run rocksdb test
         run: |
@@ -472,7 +477,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-store/hg-store-test -am \
             -P store-rocksdb-test -Djacoco.sessionId=store-rocksdb-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run raft-core test
         run: |
@@ -480,7 +485,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-store/hg-store-test -am \
             -P store-raftcore-test -Djacoco.sessionId=store-raftcore-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run core test
         run: |
@@ -488,7 +493,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-store/hg-store-test -am \
             -P store-core-test -Djacoco.sessionId=store-core-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run server lifecycle and shutdown tests
         run: |
@@ -496,7 +501,7 @@ jobs:
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           mvn test -pl hugegraph-store/hg-store-test -am \
             -P store-server-test -Djacoco.sessionId=store-server-test 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Generate aggregate coverage report
         run: |
@@ -644,13 +649,16 @@ jobs:
           echo "[ci] open-file limit for HStore:" \
                "soft=$(ulimit -Sn), hard=$(ulimit -Hn)"
           $TRAVIS_DIR/install-backend.sh $BACKEND
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "PD_DIR=hugegraph-pd/apache-hugegraph-pd-$VERSION" >> "$GITHUB_ENV"
+          echo "STORE_DIR=hugegraph-store/apache-hugegraph-store-$VERSION" >> "$GITHUB_ENV"
 
       - name: Run unit test
         run: |
           set -o pipefail
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           $TRAVIS_DIR/run-unit-test.sh $BACKEND 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run core test
         # Bound stuck HStore scans so the diagnostic steps below can run
@@ -662,14 +670,14 @@ jobs:
           set -o pipefail
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           $TRAVIS_DIR/run-core-test.sh $BACKEND 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run api test
         run: |
           set -o pipefail
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           $TRAVIS_DIR/run-api-test.sh $BACKEND $REPORT_DIR 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run raft test
         if: ${{ env.BACKEND == 'rocksdb' }}
@@ -677,7 +685,7 @@ jobs:
           set -o pipefail
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           $TRAVIS_DIR/run-api-test-for-raft.sh $BACKEND $REPORT_DIR 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       # Include HStore in the upgrade compatibility gate. The dedicated HStore
       # service setup above makes its structure/process suites exercise the
@@ -737,7 +745,7 @@ jobs:
               result = test.returncode
               sys.exit(result if result >= 0 else 128 - result)
           PYTHON
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run TinkerPop process standard test
         if: ${{ env.RUN_TINKERPOP_TESTS == 'true' }}
@@ -746,7 +754,7 @@ jobs:
           set -o pipefail
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND process-standard 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Run TinkerPop process feature test
         if: ${{ env.RUN_TINKERPOP_TESTS == 'true' }}
@@ -755,7 +763,7 @@ jobs:
           set -o pipefail
           RUNTIME_LOG=$(mktemp "$RUNNER_TEMP/java-runtime.XXXXXX")
           $TRAVIS_DIR/run-tinkerpop-test.sh $BACKEND process-feature 2>&1 | tee "$RUNTIME_LOG"
-          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG"
+          bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_LOG" "$PD_DIR/logs" "$STORE_DIR/logs"
 
       - name: Collect HStore diagnostics on failure or timeout
         if: ${{ failure() || cancelled() }}

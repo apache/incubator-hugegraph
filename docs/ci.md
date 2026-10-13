@@ -80,8 +80,8 @@ a rerun retains its original commit and event, subject to the preflight freshnes
 A positive suite passes only when its tests succeed and its current-run output has no
 Java runtime compatibility errors. Server, PD/Store, Commons, Struct and Cluster test
 steps capture both stdout and stderr before running `check-java-runtime-logs.sh`.
-Startup and Console smoke tests also inspect their output before cleanup; Cluster nodes
-archive logs before deletion through the test-only `hugegraph.ct.logArchive` property.
+Startup and Console smoke tests also inspect their output before cleanup. Cluster nodes
+forward their text runtime logs to the captured suite output before deletion.
 Missing or unreadable required logs fail the check.
 
 The gate rejects denied module access and unknown or removed JVM options, including
