@@ -27,11 +27,12 @@ mkdir -p "${DOCKER_FOLDER}"
 log() { echo "[hugegraph-server-entrypoint] $*"; }
 
 # Keep typed/list mappings on their existing encoder; auth strings use native-reader escapes below.
+# TODO: relax Helm's password-space guard once its minimum Server image includes this auth encoder.
 encode_prop_value() {
     local value="$1" encoded="" char
     local i
 
-    LC_ALL=C
+    local LC_ALL=C
     for ((i = 0; i < ${#value}; i++)); do
         char="${value:i:1}"
         case "${char}" in
@@ -73,13 +74,13 @@ set_prop() {
 # and trims a physical trailing space before detecting line continuation.
 encode_auth_prop_value() {
     local value="$1" encoding=UTF-8
-    if (( $(printf '%s' "${value}" | LC_ALL=C tr -d '\000-\177' | wc -c) > 0 )); then
+    if (( $(printf '%s' "${value}" | LC_ALL=C tr -d '\040-\176' | wc -c) > 0 )); then
         # Retain legacy byte values that the ISO-8859-1 reader already accepted.
         if ! printf '%s' "${value}" | iconv -f UTF-8 -t UTF-8 >/dev/null 2>&1; then
             encoding=ISO-8859-1
         fi
         # The Server properties reader is ISO-8859-1. Standard UTF-16 escapes
-        # preserve UTF-8 input, including supplementary characters and backslashes.
+        # preserve UTF-8 input and prevent trimming boundary control characters.
         printf '%s' "${value}" | iconv -f "${encoding}" -t UTF-16BE | od -An -v -tx1 | \
             tr -d ' \n' | sed 's/..../\\u&/g'
     else
@@ -110,8 +111,7 @@ migrate_env "BACKEND"  "HG_SERVER_BACKEND"
 migrate_env "PD_PEERS" "HG_SERVER_PD_PEERS"
 
 if [[ -n "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
-    LC_ALL=C
-    if (( ${#HG_SERVER_AUTH_TOKEN_SECRET} < 32 )); then
+    if (( $(printf '%s' "${HG_SERVER_AUTH_TOKEN_SECRET}" | LC_ALL=C wc -c) < 32 )); then
         log "ERROR: HG_SERVER_AUTH_TOKEN_SECRET must be at least 32 bytes"
         exit 1
     fi

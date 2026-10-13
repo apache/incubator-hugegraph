@@ -64,6 +64,13 @@ trailing space could hide the following configuration property. On upgrade,
 explicitly provide the intended key for those deployments. Tokens signed with
 the previous interpreted key require a new login after the correction.
 
+An older image could also initialize a Unicode administrator password incorrectly
+when the initializer inherited the C locale. Upgrading or setting `PASSWORD`
+again does not repair an existing account's stored password. A working
+administrator must rotate it through the user API. This fix provides no automatic
+recovery when no administrator identity is usable; preserve the existing data and
+arrange account recovery before upgrading.
+
 For the verification commands below, load `.env` into your current shell and set the password:
 
 ```bash
