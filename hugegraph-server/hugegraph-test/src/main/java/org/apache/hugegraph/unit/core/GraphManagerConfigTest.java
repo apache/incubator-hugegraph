@@ -406,6 +406,103 @@ public class GraphManagerConfigTest {
         }
     }
 
+    @Test
+    public void testRetainedLoadCandidateIsNotRepublishedAtRpcStartup() throws Exception {
+        this.checkRetainedCandidateRpcStartup(false);
+    }
+
+    @Test
+    public void testRetainedCreateCandidateIsNotRepublishedAtRpcStartup() throws Exception {
+        this.checkRetainedCandidateRpcStartup(true);
+    }
+
+    private void checkRetainedCandidateRpcStartup(boolean create) throws Exception {
+        String name = create ? "failed_create_startup" : "failed_load_startup";
+        GraphManager manager = this.dropManager(name);
+        RpcServer original = Whitebox.getInternalState(manager, "rpcServer");
+        RpcServer server = Mockito.spy(original);
+        RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+        Whitebox.setInternalState(manager, "rpcServer", server);
+        Whitebox.setInternalState(manager, "rpcInitialized", true);
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        CountDownLatch ready = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicReference<Future<?>> transaction = new AtomicReference<>();
+        IllegalStateException rejected = new IllegalStateException("candidate RPC export rejected");
+        Mockito.doAnswer(invocation -> {
+            HugeGraph graph = TrackedSharedMemoryGraph.last;
+            Assert.assertNotNull(graph);
+            if (!create) {
+                graph.initBackend();
+                Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+            }
+            transaction.set(worker.submit(() -> {
+                graph.tx().open();
+                ready.countDown();
+                try {
+                    E.checkState(release.await(10, TimeUnit.SECONDS), "Candidate transaction barrier timed out");
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(interrupted);
+                } finally {
+                    Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+                }
+            }));
+            Assert.assertTrue(ready.await(5, TimeUnit.SECONDS));
+            throw rejected;
+        }).when(server).exportAll();
+        try {
+            String configText = "gremlin.graph=" + TrackedSharedMemoryGraph.class.getName() +
+                                "\nbackend=memory\nstore=" + name + "\n";
+            if (create) {
+                Assert.assertThrows(IllegalStateException.class, () -> manager.createGraphLocal(name, configText),
+                                    caught -> Assert.assertSame(rejected, caught));
+            } else {
+                File config = this.temporary.newFile(name + ".properties");
+                Files.write(config.toPath(), configText.getBytes(StandardCharsets.UTF_8));
+                manager.loadGraphsFromLocal(Map.of(name, config.getPath()));
+            }
+            HugeGraph candidate = TrackedSharedMemoryGraph.last;
+            Assert.assertFalse(candidate.closed());
+            Assert.assertSame(candidate, manager.graph(candidate.spaceGraphName()));
+            Assert.assertEquals(1, rejected.getSuppressed().length);
+            assertRpcResources(server, client, 0);
+            Mockito.doCallRealMethod().when(server).exportAll();
+            Whitebox.setInternalState(manager, "rpcInitialized", false);
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            Assert.assertSame(candidate, manager.graph(candidate.spaceGraphName()));
+            Assert.assertFalse(candidate.closed());
+            assertRpcResources(server, client, 0);
+        } finally {
+            release.countDown();
+            if (transaction.get() != null) {
+                transaction.get().get(5, TimeUnit.SECONDS);
+            }
+            worker.shutdown();
+            Assert.assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+            manager.close();
+            if (TrackedSharedMemoryGraph.last != null) {
+                TrackedSharedMemoryGraph.last.close();
+                HugeFactory.remove(TrackedSharedMemoryGraph.last);
+            }
+            TrackedSharedMemoryGraph.last = null;
+        }
+    }
+
+    public static class TrackedSharedMemoryGraph extends SharedMemoryGraph {
+
+        private static TrackedSharedMemoryGraph last;
+
+        public TrackedSharedMemoryGraph(HugeConfig config) {
+            super(config);
+        }
+
+        public static TrackedSharedMemoryGraph open(Configuration config) {
+            last = new TrackedSharedMemoryGraph(new HugeConfig(config));
+            return last;
+        }
+    }
+
     public static class TrackedAuthMemoryGraph {
 
         private static HugeGraph last;
@@ -769,6 +866,377 @@ public class GraphManagerConfigTest {
     @Test
     public void testClosedGraphRpcFailureRetriesWithClear() throws Exception {
         this.checkPostCloseDrop(true);
+    }
+
+    @Test
+    public void testReceivedSameNameAddLoadsLatestAfterOwnerCleanup() throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(true);
+    }
+
+    @Test
+    public void testSameNameAddAfterOwnerCleanupLoadsLatestConfig() throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(false);
+    }
+
+    @Test
+    public void testReceivedSameNameAddDoesNotReloadMissingConfig() throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(true, 1);
+    }
+
+    @Test
+    public void testReplacementLoadFailureDoesNotFailCompletedDelete() throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(true, 2);
+    }
+
+    @Test
+    public void testPeerRemoveFailureRetriesOnSameNameAdd() throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(true, 0, true);
+    }
+
+    @Test
+    public void testPeerRemoveFailureDoesNotReloadMissingConfig() throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(true, 1, true);
+    }
+
+    private void checkReceivedSameNameAddAfterCleanup(boolean addDuringCleanup) throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(addDuringCleanup, 0);
+    }
+
+    private void checkReceivedSameNameAddAfterCleanup(boolean addDuringCleanup, int replayFailure) throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(addDuringCleanup, replayFailure, false);
+    }
+
+    private void checkReceivedSameNameAddAfterCleanup(boolean addDuringCleanup, int replayFailure,
+                                                     boolean peer) throws Exception {
+        String name = replayFailure == 1 ? "received_add_missing" : replayFailure == 2 ? "received_add_retry" :
+                      addDuringCleanup ? "received_add_early" : "received_add_late";
+        String key = "DEFAULT-" + name;
+        GraphManager manager = this.dropManager(name);
+        EventHub hub = Whitebox.getInternalState(manager, "eventHub");
+        Settings settings = new Settings();
+        settings.gremlinPool = 1;
+        settings.threadPoolBoss = 1;
+        settings.threadPoolWorker = 1;
+        ContextGremlinServer gremlin = new ContextGremlinServer(settings, hub);
+        org.apache.tinkerpop.gremlin.server.GraphManager bindings =
+                gremlin.getServerGremlinExecutor().getGraphManager();
+        HugeGraph owner = null;
+        HugeGraph replacement = null;
+        AtomicBoolean reject = new AtomicBoolean(true);
+        AtomicBoolean rejectReplay = new AtomicBoolean();
+        IllegalStateException readFailure = new IllegalStateException("replacement metadata read rejected");
+        AtomicInteger cleanupAttempts = new AtomicInteger();
+        AtomicInteger singleConfigReads = new AtomicInteger();
+        AtomicInteger allConfigReads = new AtomicInteger();
+        AtomicReference<Map<String, Object>> latest = new AtomicReference<>();
+        try {
+            owner = manager.createGraphLocal(name, "gremlin.graph=" + HugeFactory.class.getName() +
+                    "\nbackend=memory\nstore=" + name + "\nalias.graph.id=old-config-marker\n");
+            HugeGraph graph = owner;
+            Map<String, HugeGraph> factories = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Assert.assertSame(graph, factories.get(key));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            // Memory is not a shared backend: actual cache-RPC configuration stays empty.
+            assertRpcResources(server, client, 0);
+            BackendStoreProvider provider = Mockito.spy(owner.storeProvider());
+            Whitebox.setInternalState(owner, "storeProvider", provider);
+            IllegalStateException failure = new IllegalStateException("old owner cleanup is retained");
+            Mockito.doAnswer(invocation -> {
+                invocation.callRealMethod();
+                cleanupAttempts.incrementAndGet();
+                if (reject.get()) {
+                    throw failure;
+                }
+                return null;
+            }).when(provider).close();
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            Mockito.when(meta.graphSpace("DEFAULT")).thenReturn(space);
+            Mockito.when(meta.extractGraphsFromResponse("new-configuration")).thenReturn(
+                    java.util.Collections.singletonList(key));
+            Mockito.when(meta.extractGraphsFromResponse("remove-configuration")).thenReturn(
+                    java.util.Collections.singletonList(key));
+            Mockito.when(meta.getGraphConfig("DEFAULT", name)).thenAnswer(invocation -> {
+                singleConfigReads.incrementAndGet();
+                if (rejectReplay.get()) {
+                    throw readFailure;
+                }
+                Map<String, Object> current = latest.get();
+                return current == null ? null : new HashMap<>(current);
+            });
+            Mockito.when(meta.graphConfigs("DEFAULT")).thenAnswer(invocation -> {
+                allConfigReads.incrementAndGet();
+                Map<String, Object> current = latest.get();
+                Map<String, Map<String, Object>> configs = new HashMap<>();
+                if (current != null) {
+                    configs.put(key, new HashMap<>(current));
+                }
+                return configs;
+            });
+            Mockito.doAnswer(invocation -> {
+                latest.set(null);
+                return null;
+            }).when(meta).removeGraphConfig("DEFAULT", name);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Whitebox.setInternalState(manager, "pdPeers", "127.0.0.1:8686");
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            spaces.put("DEFAULT", space);
+            String threadName = Thread.currentThread().getName();
+            if (peer) {
+                try {
+                    Thread.currentThread().setName("grpc-peer-removal-control");
+                    Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                            "graphRemoveHandler", manager, "remove-configuration");
+                } finally {
+                    Thread.currentThread().setName(threadName);
+                }
+                Assert.assertThrows(HugeException.class, () -> new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                        manager, "DEFAULT", name, "I'm sure to drop the graph"));
+            } else {
+                Assert.assertThrows(HugeException.class, () -> new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                        manager, "DEFAULT", name, "I'm sure to drop the graph"),
+                        caught -> Assert.assertSame(failure, caught.getCause()));
+            }
+            Assert.assertTrue(graph.closed());
+            Assert.assertSame(graph, manager.graph(key));
+            Assert.assertSame(graph, factories.get(key));
+            Assert.assertNull(latest.get());
+            Map<String, Object> newConfig = new HashMap<>();
+            newConfig.put(CoreOptions.BACKEND.name(), "memory");
+            newConfig.put(CoreOptions.STORE.name(), name);
+            // This is a latest-config marker; Memory does not implement a physical HStore GraphID.
+            newConfig.put(CoreOptions.ALIAS_NAME.name(), "new-config-marker");
+            newConfig.put("nickname", "new_generation");
+            latest.set(newConfig);
+            if (addDuringCleanup) {
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphAddHandler", manager, "new-configuration");
+                Assert.assertSame(graph, manager.graph(key));
+                Assert.assertEquals(0, singleConfigReads.get());
+            }
+            if (replayFailure == 1) {
+                latest.set(null);
+            } else if (replayFailure == 2) {
+                rejectReplay.set(true);
+            }
+            reject.set(false);
+            // A replacement read failure must not turn completed old-owner deletion into a failed DELETE.
+            if (peer) {
+                try {
+                    Thread.currentThread().setName("grpc-peer-add-control");
+                    Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                            "graphAddHandler", manager, "new-configuration");
+                } finally {
+                    Thread.currentThread().setName(threadName);
+                }
+                Mockito.verify(meta, Mockito.never()).removeGraphConfig("DEFAULT", name);
+                Mockito.verify(meta, Mockito.never()).notifyGraphRemove("DEFAULT", name);
+                Assert.assertEquals(5, space.graphNumberUsed());
+            } else {
+                new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                        manager, "DEFAULT", name, "I'm sure to drop the graph");
+            }
+            Assert.assertEquals(peer ? 3 : 2, cleanupAttempts.get());
+            Assert.assertNotSame(graph, factories.get(key));
+            java.util.Set<String> pending = Whitebox.getInternalState(manager, "pendingGraphAdds");
+            if (replayFailure == 1) {
+                Assert.assertNull(manager.graph(key));
+                Assert.assertNull(manager.graph("DEFAULT", name));
+                Assert.assertFalse(factories.containsKey(key));
+                Assert.assertFalse(pending.contains(key));
+                return;
+            }
+            Assert.assertSame(newConfig, latest.get());
+            if (replayFailure == 2) {
+                Assert.assertNull(manager.graph(key));
+                Assert.assertFalse(factories.containsKey(key));
+                Assert.assertTrue(pending.contains(key));
+                Assert.assertEquals(1, singleConfigReads.get());
+                rejectReplay.set(false);
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphAddHandler", manager, "new-configuration");
+            }
+            if (!addDuringCleanup) {
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphAddHandler", manager, "new-configuration");
+            }
+            HugeGraph automatic = manager.graph(key);
+            boolean listedBeforePublicRead = manager.graphs().contains(key);
+            int configReadsBeforePublicRead = singleConfigReads.get();
+            // The public two-argument lookup has an existing lazy metadata loading fallback.
+            replacement = manager.graph("DEFAULT", name);
+            Assert.assertNotNull(replacement);
+            Assert.assertNotSame(graph, replacement);
+            Assert.assertSame(replacement, manager.graph(key));
+            Assert.assertSame(replacement, factories.get(key));
+            Assert.assertEquals("new-config-marker", replacement.configuration().get(CoreOptions.ALIAS_NAME));
+            Assert.assertEquals("new_generation", replacement.nickname());
+            Assert.assertEquals(0L, replacement.traversal().V().count().next().longValue());
+            Assert.assertTrue(replacement.started());
+            Assert.assertFalse(pending.contains(key));
+            Assert.assertSame(replacement, bindings.getGraph(key));
+            Assert.assertNotNull(bindings.getTraversalSource("__g_" + key));
+            Assert.assertSame(replacement, bindings.getAsBindings().get(key));
+            replacement.schema().vertexLabel("replacement_marker").useAutomaticId().create();
+            replacement.addVertex(org.apache.tinkerpop.gremlin.structure.T.label, "replacement_marker");
+            replacement.tx().commit();
+            // The old asynchronous DROP may arrive after the new CREATE; native bindings check identity.
+            hub.notifySync(Events.GRAPH_DROP, graph);
+            Assert.assertSame(replacement, bindings.getGraph(key));
+            Assert.assertNotNull(bindings.getTraversalSource("__g_" + key));
+            Assert.assertSame(replacement, bindings.getAsBindings().get(key));
+            Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                    "graphAddHandler", manager, "new-configuration");
+            Assert.assertSame(replacement, manager.graph(key));
+            Assert.assertEquals(1L, replacement.traversal().V().count().next().longValue());
+            assertRpcResources(server, client, 0);
+            String facts = String.format("same-name add during cleanup=%s automaticOwner=%s listedBeforeRead=%s " +
+                    "getConfigBeforeRead=%s graphConfigsReads=%s publicLazyLoadedLatest=%s replacementStarted=%s " +
+                    "rpcProviderConfigs=%s", addDuringCleanup, automatic == null ? "absent" : "new",
+                    listedBeforePublicRead, configReadsBeforePublicRead, allConfigReads.get(),
+                    replacement != graph, replacement.started(), server.config().configs().size());
+            Assert.assertNotNull(facts, automatic);
+            Assert.assertTrue(facts, listedBeforePublicRead);
+        } finally {
+            reject.set(false);
+            rejectReplay.set(false);
+            manager.close();
+            gremlin.stop().get(30, TimeUnit.SECONDS);
+            if (owner != null) {
+                owner.close();
+                HugeFactory.remove(owner);
+            }
+            if (replacement != null) {
+                replacement.close();
+                HugeFactory.remove(replacement);
+            }
+        }
+    }
+
+    @Test
+    public void testHealthyOwnerAddBeforePeerRemoveLoadsLatestConfig() throws Exception {
+        this.checkAddBeforePeerRemove(false, true);
+    }
+
+    @Test
+    public void testHealthyOwnerAddBeforePeerRemoveDoesNotReviveMissingConfig() throws Exception {
+        this.checkAddBeforePeerRemove(true, true);
+    }
+
+    @Test
+    public void testDuplicateAddWithoutRemoveKeepsHealthyOwner() throws Exception {
+        this.checkAddBeforePeerRemove(false, false);
+    }
+
+    private void checkAddBeforePeerRemove(boolean missingConfig, boolean removeReceived) throws Exception {
+        String name = missingConfig ? "add_before_remove_missing" :
+                      removeReceived ? "add_before_remove" : "healthy_duplicate_add";
+        String key = "DEFAULT-" + name;
+        GraphManager manager = this.dropManager(name);
+        EventHub hub = Whitebox.getInternalState(manager, "eventHub");
+        Settings settings = new Settings();
+        settings.gremlinPool = 1;
+        settings.threadPoolBoss = 1;
+        settings.threadPoolWorker = 1;
+        ContextGremlinServer gremlin = new ContextGremlinServer(settings, hub);
+        org.apache.tinkerpop.gremlin.server.GraphManager bindings =
+                gremlin.getServerGremlinExecutor().getGraphManager();
+        HugeGraph owner = null;
+        HugeGraph replacement = null;
+        try {
+            owner = manager.createGraphLocal(name, "gremlin.graph=" + HugeFactory.class.getName() +
+                    "\nbackend=memory\nstore=" + name + "\nalias.graph.id=old-before-remove\n");
+            Map<String, HugeGraph> factories = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            owner.schema().vertexLabel("old_marker").useAutomaticId().create();
+            owner.addVertex(org.apache.tinkerpop.gremlin.structure.T.label, "old_marker");
+            owner.tx().commit();
+            Map<String, Object> latest = new HashMap<>();
+            latest.put(CoreOptions.BACKEND.name(), "memory");
+            latest.put(CoreOptions.STORE.name(), name);
+            latest.put(CoreOptions.ALIAS_NAME.name(), "new-before-remove");
+            AtomicInteger configReads = new AtomicInteger();
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            Mockito.when(meta.graphSpace("DEFAULT")).thenReturn(space);
+            Mockito.when(meta.extractGraphsFromResponse("new-add")).thenReturn(List.of(key));
+            Mockito.when(meta.extractGraphsFromResponse("old-remove")).thenReturn(List.of(key));
+            Mockito.when(meta.getGraphConfig("DEFAULT", name)).thenAnswer(invocation -> {
+                configReads.incrementAndGet();
+                return missingConfig ? null : new HashMap<>(latest);
+            });
+            Mockito.when(meta.graphConfigs("DEFAULT")).thenReturn(
+                    missingConfig ? java.util.Collections.emptyMap() : Map.of(key, latest));
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Whitebox.setInternalState(manager, "pdPeers", "127.0.0.1:8686");
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            spaces.put("DEFAULT", space);
+            // Independent key watches can deliver the new ADD before the old REMOVE.
+            for (int i = 0; i < 2; i++) {
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphAddHandler", manager, "new-add");
+                Assert.assertSame(owner, manager.graph(key));
+                Assert.assertSame(owner, factories.get(key));
+                Assert.assertFalse(owner.closed());
+                Assert.assertEquals(0, configReads.get());
+                Assert.assertEquals(1L, owner.traversal().V().count().next().longValue());
+                owner.tx().close();
+            }
+            if (!removeReceived) {
+                Assert.assertSame(owner, bindings.getGraph(key));
+                return;
+            }
+            String threadName = Thread.currentThread().getName();
+            try {
+                Thread.currentThread().setName("grpc-add-before-remove-control");
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphRemoveHandler", manager, "old-remove");
+            } finally {
+                Thread.currentThread().setName(threadName);
+            }
+            Assert.assertTrue(owner.closed());
+            Mockito.verify(meta, Mockito.never()).removeGraphConfig("DEFAULT", name);
+            Mockito.verify(meta, Mockito.never()).notifyGraphRemove("DEFAULT", name);
+            Assert.assertEquals(5, space.graphNumberUsed());
+            if (missingConfig) {
+                Assert.assertNull(manager.graph(key));
+                Assert.assertFalse(factories.containsKey(key));
+                hub.notifySync(Events.GRAPH_DROP, owner);
+                Assert.assertNull(bindings.getGraph(key));
+                return;
+            }
+            replacement = manager.graph(key);
+            Assert.assertNotNull("The received new ADD was lost before the old REMOVE", replacement);
+            Assert.assertNotSame(owner, replacement);
+            Assert.assertSame(replacement, factories.get(key));
+            Assert.assertSame(replacement, bindings.getGraph(key));
+            Assert.assertSame(replacement, bindings.getAsBindings().get(key));
+            Assert.assertTrue(replacement.started());
+            Assert.assertEquals("new-before-remove", replacement.configuration().get(CoreOptions.ALIAS_NAME));
+            replacement.schema().vertexLabel("new_marker").useAutomaticId().create();
+            replacement.addVertex(org.apache.tinkerpop.gremlin.structure.T.label, "new_marker");
+            replacement.tx().commit();
+            hub.notifySync(Events.GRAPH_DROP, owner);
+            Assert.assertSame(replacement, bindings.getGraph(key));
+            Assert.assertNotNull(bindings.getTraversalSource("__g_" + key));
+            Assert.assertEquals(1L, replacement.traversal().V().count().next().longValue());
+        } finally {
+            manager.close();
+            gremlin.stop().get(30, TimeUnit.SECONDS);
+            if (owner != null) {
+                owner.close();
+                HugeFactory.remove(owner);
+            }
+            if (replacement != null) {
+                replacement.close();
+                HugeFactory.remove(replacement);
+            }
+        }
     }
 
     @Test

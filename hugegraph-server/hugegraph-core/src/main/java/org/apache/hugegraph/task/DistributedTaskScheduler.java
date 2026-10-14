@@ -553,13 +553,17 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         HugeTask<?> running = this.runningTasks.get(id);
 
         if (running != null) {
-            this.cancelOwned(this.executions.get(id), () -> {
+            boolean cancelled = this.cancelOwned(this.executions.get(id), () -> {
                 this.markTaskDeleting(running);
                 return running.cancel(true);
             }, false);
-            @SuppressWarnings("unchecked")
-            HugeTask<V> result = (HugeTask<V>) running;
-            return result;
+            if (cancelled || this.executions.containsKey(id)) {
+                @SuppressWarnings("unchecked")
+                HugeTask<V> result = (HugeTask<V>) running;
+                return result;
+            }
+            // The local owner finished before cancellation; delete its now-completed database record.
+            task = this.taskWithoutResult(id);
         }
 
         if (!force && !task.completed()) {

@@ -19,8 +19,6 @@ package org.apache.hugegraph;
 
 import org.apache.hugegraph.exception.HugeException;
 
-import java.util.IdentityHashMap;
-import java.util.Collections;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -104,6 +102,7 @@ import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.DateUtil;
+import org.apache.hugegraph.util.CloseFailure;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.LockUtil;
@@ -437,7 +436,7 @@ public class StandardHugeGraph implements HugeGraph {
                 if (failure == null) {
                     throw error;
                 }
-                Throwable combined = collectCloseFailure(failure, error);
+                Throwable combined = CloseFailure.collect(failure, error);
                 if (combined != failure) {
                     throw (Error) combined;
                 }
@@ -1142,43 +1141,6 @@ public class StandardHugeGraph implements HugeGraph {
         return this.tx;
     }
 
-    private static Throwable collectCloseFailure(Throwable first, Throwable next) {
-        if (first == null || first == next) {
-            return first == null ? next : first;
-        }
-        Throwable primary = next instanceof Error && !(first instanceof Error) ? next : first;
-        Throwable secondary = primary == first ? next : first;
-        if (!referencesFailure(primary, secondary)) {
-            if (referencesFailure(secondary, primary)) {
-                // Keep the original diagnostic without introducing a cause/suppression cycle.
-                LOG.error("Additional cleanup failure cannot be attached without an exception cycle", secondary);
-            } else {
-                primary.addSuppressed(secondary);
-            }
-        }
-        return primary;
-    }
-
-    private static boolean referencesFailure(Throwable root, Throwable target) {
-        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        List<Throwable> pending = new ArrayList<>();
-        pending.add(root);
-        while (!pending.isEmpty()) {
-            Throwable current = pending.remove(pending.size() - 1);
-            if (current == target) {
-                return true;
-            }
-            if (!seen.add(current)) {
-                continue;
-            }
-            if (current.getCause() != null) {
-                pending.add(current.getCause());
-            }
-            pending.addAll(Arrays.asList(current.getSuppressed()));
-        }
-        return false;
-    }
-
     @Override
     public synchronized void close() throws Exception {
         if (this.closed() && this.closeCompleted) {
@@ -1195,7 +1157,7 @@ public class StandardHugeGraph implements HugeGraph {
             try {
                 close.run();
             } catch (RuntimeException | Error error) {
-                failure = collectCloseFailure(failure, error);
+                failure = CloseFailure.collect(failure, error);
             }
         }
 
@@ -1208,7 +1170,7 @@ public class StandardHugeGraph implements HugeGraph {
             RuntimeException active = new IllegalStateException(String.format(
                     "Ensure scheduler and tx closed in all threads when closing graph '%s'",
                     this.spaceGraphName()));
-            failure = collectCloseFailure(failure, active);
+            failure = CloseFailure.collect(failure, active);
         }
         if (drained) {
             // Plain provider close only notifies listeners; the Raft wrapper also
@@ -1227,7 +1189,7 @@ public class StandardHugeGraph implements HugeGraph {
                     closes.next().run();
                     closes.remove();
                 } catch (RuntimeException | Error error) {
-                    failure = collectCloseFailure(failure, error);
+                    failure = CloseFailure.collect(failure, error);
                 }
             }
         }
@@ -1486,7 +1448,7 @@ public class StandardHugeGraph implements HugeGraph {
                 this.rpcServiceCleanup.get(i).run();
                 this.rpcServiceCleanup.remove(i);
             } catch (RuntimeException | Error error) {
-                failure = collectCloseFailure(failure, error);
+                failure = CloseFailure.collect(failure, error);
             }
         }
         if (failure instanceof Error) {
@@ -1538,7 +1500,7 @@ public class StandardHugeGraph implements HugeGraph {
                 try {
                     close.run();
                 } catch (RuntimeException | Error error) {
-                    failure = collectCloseFailure(failure, error);
+                    failure = CloseFailure.collect(failure, error);
                 }
             }
             if (failure instanceof Error) {

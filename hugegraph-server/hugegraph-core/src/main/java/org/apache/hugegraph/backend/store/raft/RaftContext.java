@@ -20,10 +20,6 @@ package org.apache.hugegraph.backend.store.raft;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.Set;
-import java.util.IdentityHashMap;
-import java.util.Collections;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -58,6 +54,7 @@ import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.util.Bytes;
+import org.apache.hugegraph.util.CloseFailure;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.Log;
@@ -195,7 +192,7 @@ public final class RaftContext {
         try {
             this.shutdownRpcServer();
         } catch (RuntimeException | Error error) {
-            failure = collectCloseFailure(failure, error);
+            failure = CloseFailure.collect(failure, error);
         }
         // Only a joined node has stopped producing work for these per-context executors.
         if (this.nodeClosed) {
@@ -205,7 +202,7 @@ public final class RaftContext {
                 try {
                     this.closeExecutor(executor);
                 } catch (RuntimeException | Error error) {
-                    failure = collectCloseFailure(failure, error);
+                    failure = CloseFailure.collect(failure, error);
                 }
             }
         }
@@ -215,43 +212,6 @@ public final class RaftContext {
         if (failure != null) {
             throw (RuntimeException) failure;
         }
-    }
-
-    private static Throwable collectCloseFailure(Throwable first, Throwable next) {
-        if (first == null || first == next) {
-            return first == null ? next : first;
-        }
-        Throwable primary = next instanceof Error && !(first instanceof Error) ? next : first;
-        Throwable secondary = primary == first ? next : first;
-        if (!referencesFailure(primary, secondary)) {
-            if (referencesFailure(secondary, primary)) {
-                // Keep the original diagnostic without introducing a cause/suppression cycle.
-                LOG.error("Additional cleanup failure cannot be attached without an exception cycle", secondary);
-            } else {
-                primary.addSuppressed(secondary);
-            }
-        }
-        return primary;
-    }
-
-    private static boolean referencesFailure(Throwable root, Throwable target) {
-        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        List<Throwable> pending = new ArrayList<>();
-        pending.add(root);
-        while (!pending.isEmpty()) {
-            Throwable current = pending.remove(pending.size() - 1);
-            if (current == target) {
-                return true;
-            }
-            if (!seen.add(current)) {
-                continue;
-            }
-            if (current.getCause() != null) {
-                pending.add(current.getCause());
-            }
-            pending.addAll(Arrays.asList(current.getSuppressed()));
-        }
-        return false;
     }
 
     private void closeExecutor(ExecutorService executor) {

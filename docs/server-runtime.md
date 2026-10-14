@@ -481,6 +481,9 @@ Task database workers release their owned task and graph transactions on the wor
 thread. A failure while closing one owner must not skip cleanup of other owners or
 server-info resources. Cleanup retains the first exception and attaches later cleanup
 failures as suppressed exceptions.
+For the local Standard scheduler, a deleted task disappears from public lookup after its persisted record is
+removed, while its actual execution still counts toward drain until native cleanup finishes; late completion saves from
+that owner do not recreate the removed record.
 
 Synchronous task cancellation preserves a transaction already open on its caller,
 including uncommitted graph writes. Cancellation still runs the normal completion and
@@ -600,7 +603,16 @@ owner's existing RPC services. A later cleanup failure does not preserve or rest
 
 Failed creation or local loading closes the candidate in Server's administrative scope.
 If rollback close fails, Server retains the local owner and factory identity for cleanup retry.
+Retained failed candidates are excluded from RPC startup even while they are still open.
 An old graph's cleanup cannot remove or re-export a replacement graph's services.
+A PD graph-add notification blocked by an existing owner is coalesced until that owner is
+released, including when independent watches deliver the new ADD before the old REMOVE.
+Duplicate ADD notifications alone keep the healthy owner. After removal, Server rereads the
+latest configuration; a missing configuration creates nothing.
+After a peer removal fails, a later same-name PD add retries non-clearing cleanup of that exact
+owner before loading its replacement. Another cleanup failure keeps the owner for the next add
+or normal reload; no background retry is scheduled. A replacement load failure is logged and
+remains pending for a later add or normal reload. The completed old-owner DELETE still succeeds.
 Events queued for a closed notifier are ignored; an RPC request already sent cannot be recalled.
 
 Cache RPC uses the configured peer addresses; local provider export does not establish

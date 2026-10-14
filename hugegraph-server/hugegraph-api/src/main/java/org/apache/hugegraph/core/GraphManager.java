@@ -175,6 +175,8 @@ public final class GraphManager {
     private final Set<String> removingGraphs;
     // Guarded by this manager monitor; placement-event tokens are consumed independently.
     private final Set<HugeGraph> rpcRemovingOwners;
+    private final Set<String> pendingGraphAdds;
+    private final Set<HugeGraph> failedPeerRemovals;
     private final Map<String, HugeGraph> clearedGraphs;
     private final Set<String> creatingGraphs;
     private final HugeAuthenticator authenticator;
@@ -225,6 +227,8 @@ public final class GraphManager {
         this.graphs = new ConcurrentHashMap<>();
         this.removingGraphs = ConcurrentHashMap.newKeySet();
         this.rpcRemovingOwners = Collections.newSetFromMap(new IdentityHashMap<>());
+        this.pendingGraphAdds = new HashSet<>();
+        this.failedPeerRemovals = Collections.newSetFromMap(new IdentityHashMap<>());
         this.clearedGraphs = new ConcurrentHashMap<>();
         this.creatingGraphs = ConcurrentHashMap.newKeySet();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
@@ -1468,15 +1472,28 @@ public final class GraphManager {
             LOG.error("Failed to create graph '{}' due to: {}",
                       name, e.getMessage(), e);
             if (graph != null) {
+                synchronized (this) {
+                    if (this.graphs.get(graph.spaceGraphName()) == graph) {
+                        this.rpcRemovingOwners.add(graph);
+                    }
+                }
                 try {
                     this.unregisterRpcServices(graph);
                     HugeGraph candidate = graph;
                     HugeGraphAuthProxy.runAsAdmin(() -> this.dropGraphLocal(candidate));
-                    this.graphs.remove(graph.spaceGraphName(), graph);
+                    synchronized (this) {
+                        this.graphs.remove(graph.spaceGraphName(), graph);
+                        this.rpcRemovingOwners.remove(graph);
+                    }
                     this.notifyEventLenient(Events.GRAPH_DROP, graph);
                 } catch (Throwable cleanup) {
                     e.addSuppressed(cleanup);
-                    this.graphs.putIfAbsent(graph.spaceGraphName(), graph);
+                    synchronized (this) {
+                        this.graphs.putIfAbsent(graph.spaceGraphName(), graph);
+                        if (this.graphs.get(graph.spaceGraphName()) == graph) {
+                            this.rpcRemovingOwners.add(graph);
+                        }
+                    }
                 }
             }
             throw e;
@@ -1898,6 +1915,11 @@ public final class GraphManager {
     }
 
     private void rollbackGraph(String graphName, HugeGraph graph, Throwable failure) {
+        synchronized (this) {
+            if (this.graphs.get(graphName) == graph) {
+                this.rpcRemovingOwners.add(graph);
+            }
+        }
         try {
             HugeGraphAuthProxy.runAsAdmin(() -> {
                 try {
@@ -1907,14 +1929,22 @@ public final class GraphManager {
                 }
             });
             this.notifyEventLenient(Events.GRAPH_DROP, graph);
-            this.graphs.remove(graphName, graph);
-            HugeFactory.remove(graph);
+            synchronized (this) {
+                HugeFactory.remove(graph);
+                this.graphs.remove(graphName, graph);
+                this.rpcRemovingOwners.remove(graph);
+            }
         } catch (Throwable cleanup) {
             if (cleanup != failure) {
                 failure.addSuppressed(cleanup);
             }
             // Pending owners must keep their graph/factory identity for cleanup retry.
-            this.graphs.putIfAbsent(graphName, graph);
+            synchronized (this) {
+                this.graphs.putIfAbsent(graphName, graph);
+                if (this.graphs.get(graphName) == graph) {
+                    this.rpcRemovingOwners.add(graph);
+                }
+            }
         }
     }
 
@@ -2378,9 +2408,18 @@ public final class GraphManager {
             return;
         }
 
+        HugeGraph graph = this.graph(graphSpace, name);
+        E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
+        this.dropGraph(graphSpace, name, clear, graph);
+    }
+
+    private void dropGraph(String graphSpace, String name, boolean clear, HugeGraph g) {
+        synchronized (this) {
+            if (g == null || this.graphs.get(spaceGraphName(graphSpace, name)) != g) {
+                return;
+            }
+        }
         boolean grpcThread = Thread.currentThread().getName().contains("grpc");
-        HugeGraph g = this.graph(graphSpace, name);
-        E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
         if (this.localGraphs.contains(name)) {
             throw new HugeException("Can't delete graph '%s' loaded from " +
                                     "local config. Please delete config file " +
@@ -2455,6 +2494,7 @@ public final class GraphManager {
             throw new HugeException("Failed to close graph '%s', please retry later", failure, graphName);
         }
         // Serialize with publication, but leave graph close outside the manager gate.
+        boolean replayAdd = false;
         synchronized (this) {
             if (this.graphs.get(graphName) == g) {
                 this.unregisterRpcServices(g);
@@ -2476,6 +2516,8 @@ public final class GraphManager {
                 HugeFactory.remove(g);
                 this.graphs.remove(graphName, g);
                 this.rpcRemovingOwners.remove(g);
+                this.failedPeerRemovals.remove(g);
+                replayAdd = this.pendingGraphAdds.contains(graphName);
                 if (this.clearedGraphs.get(graphName) == g) {
                     this.clearedGraphs.remove(graphName);
                 }
@@ -2484,6 +2526,14 @@ public final class GraphManager {
         // Let gremlin server and rest server context remove graph
         LOG.info("Notify remove graph {} by GRAPH_DROP event", name);
         this.eventHub.notify(Events.GRAPH_DROP, g);
+        if (replayAdd) {
+            try {
+                this.loadAddedGraph(graphName);
+            } catch (RuntimeException | Error failure) {
+                // The old DELETE succeeded; a replacement load failure must not invite deleting it again.
+                LOG.error("Failed to load received graph add after cleanup of {}", graphName, failure);
+            }
+        }
     }
 
     private void checkOptions(String graphSpace, HugeConfig config) {
@@ -2789,41 +2839,64 @@ public final class GraphManager {
                 continue;
             }
             LOG.info("Accept graph add signal from etcd for {}", graphName);
-            if (this.graphs.containsKey(graphName) ||
-                this.creatingGraphs.contains(graphName)) {
-                this.creatingGraphs.remove(graphName);
-                continue;
-            }
-
-            LOG.info("Not exist in cache, Starting construct graph {}",
-                     graphName);
-            Map<String, Object> config =
-                    this.metaManager.getGraphConfig(parts[0], parts[1]);
-            if (config == null) {
-                LOG.error("The graph config not exist: {}", graphName);
-                continue;
-            }
-            Object objc = config.get("creator");
-            String creator = null == objc ?
-                             GraphSpace.DEFAULT_CREATOR_NAME :
-                             String.valueOf(objc);
-
-            // Create graph without init
-            try {
-                HugeGraph graph;
-                // TODO: add alias graph
-                graph = this.createGraph(parts[0], parts[1], creator, config, false);
-                LOG.info("Add graph space:{} graph:{}", parts[0], parts[1]);
-                graph.started(true);
-                if (graph.tx().isOpen()) {
-                    graph.tx().close();
+            HugeGraph retryOwner = null;
+            synchronized (this) {
+                HugeGraph owner = (HugeGraph) this.graphs.get(graphName);
+                if (owner != null || this.creatingGraphs.contains(graphName)) {
+                    if (owner != null) {
+                        // Independent key watches can deliver a replacement ADD before the old REMOVE.
+                        this.pendingGraphAdds.add(graphName);
+                    }
+                    this.creatingGraphs.remove(graphName);
+                    if (owner == null || !this.failedPeerRemovals.contains(owner)) {
+                        continue;
+                    }
+                    retryOwner = owner;
                 }
+            }
+            if (retryOwner != null) {
+                try {
+                    // Retry the exact peer owner; a concurrent replacement must never be closed here.
+                    this.dropGraph(parts[0], parts[1], false, retryOwner);
+                } catch (HugeException failure) {
+                    LOG.error("Failed to retry peer cleanup for graph '{}'", graphName, failure);
+                }
+                continue;
+            }
+            try {
+                this.loadAddedGraph(graphName);
             } catch (HugeException e) {
                 if (!this.startIgnoreSingleGraphError) {
                     throw e;
                 }
-                LOG.error(String.format(
-                        "Failed to create graph '%s'", graphName), e);
+                LOG.error(String.format("Failed to create graph '%s'", graphName), e);
+            }
+        }
+    }
+
+    private void loadAddedGraph(String graphName) {
+        String[] parts = graphName.split(DELIMITER);
+        LOG.info("Not exist in cache, Starting construct graph {}", graphName);
+        Map<String, Object> config = this.metaManager.getGraphConfig(parts[0], parts[1]);
+        HugeGraph graph = null;
+        if (config != null) {
+            Object objc = config.get("creator");
+            String creator = null == objc ? GraphSpace.DEFAULT_CREATOR_NAME : String.valueOf(objc);
+            // Create graph without init; reread metadata instead of keeping an old event's configuration.
+            graph = this.createGraph(parts[0], parts[1], creator, config, false);
+            LOG.info("Add graph space:{} graph:{}", parts[0], parts[1]);
+            graph.started(true);
+            if (graph.tx().isOpen()) {
+                graph.tx().close();
+            }
+        } else {
+            LOG.error("The graph config not exist: {}", graphName);
+        }
+        synchronized (this) {
+            if (this.graphs.get(graphName) == graph &&
+                (graph == null || (!graph.closed() && !this.rpcRemovingOwners.contains(graph)))) {
+                // Do not consume a notification newly retained by another cleanup owner.
+                this.pendingGraphAdds.remove(graphName);
             }
         }
     }
@@ -2844,9 +2917,15 @@ public final class GraphManager {
                 LOG.error("The graph name format is incorrect: {}", graphName);
                 continue;
             }
+            HugeGraph owner = (HugeGraph) this.graphs.get(graphName);
             try {
-                this.dropGraph(parts[0], parts[1], false);
+                this.dropGraph(parts[0], parts[1], false, owner);
             } catch (HugeException e) {
+                synchronized (this) {
+                    if (this.graphs.get(graphName) == owner) {
+                        this.failedPeerRemovals.add(owner);
+                    }
+                }
                 LOG.error(String.format(
                         "Failed to drop graph '%s'", graphName), e);
             }
