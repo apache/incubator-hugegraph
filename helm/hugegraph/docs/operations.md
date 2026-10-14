@@ -30,8 +30,27 @@ To rotate an existing account, first call the Server API with the old credential
 curl --user 'admin:<old-password>' \
   -X PUT -H 'Content-Type: application/json' \
   -d '{"user_password":"<new-password>"}' \
-  http://<server-address>/graphspaces/DEFAULT/auth/users/admin
+  "http://<server-address>/graphspaces/DEFAULT/auth/users/admin"
 ```
+
+Do not replace password placeholders with real credentials in recorded shell
+commands: they can enter history or briefly appear in process arguments.
+For interactive calls, `curl --user admin` (or `--user hg` for PD) prompts for
+the password. Variable-based examples avoid literal passwords in shell history.
+
+<details>
+<summary>Optional credential files for shared terminals or repeated requests</summary>
+
+Create a curl config and password-update JSON with an editor or secret manager,
+using owner-only permissions (`600`). The config contains
+`user = "admin:<old-password>"`; the JSON contains the `user_password` body above.
+Then use `--config /path/to/server.curl` and
+`--data-binary @/path/to/password-update.json` instead of inline credentials.
+For PD commands, use a separate config containing `user = "hg:<pd-rest-password>"`
+and replace `--user "hg:${PD_SECRET}"` with `--config /path/to/pd.curl`.
+Do not log or commit these files; remove them when no longer needed.
+
+</details>
 
 Update the Secret and its source values to the same new password, then restart
 all Server replicas to clear cached credentials:
