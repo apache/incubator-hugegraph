@@ -11,6 +11,25 @@ The runtime uses TinkerPop 3.8.1 and Groovy 4.0.25. Build and run every module w
 17. Applications migrating from TinkerPop 3.5.1 must review the full version interval,
 including the configuration changes below.
 
+### Required JVM module options
+
+Server, store initialization, store dumping and Gremlin Console always load the
+distribution's `bin/jvm-module.options`. Keep this file with the shipped scripts;
+each launcher rejects a missing or unreadable file. Required module permissions
+are independent of caller options, so custom `JAVA_OPTIONS` or the Server launcher's
+`-j` option do not replace them. Gremlin Console retains its existing
+`JAVA_OPTIONS` defaults; store dumping retains its existing command-line interface.
+The shared file opens `java.nio` for HBase's reflective `java.nio.Bits.unaligned()`
+check during `HBasePlatformDependent` initialization, including on x86 Java 17.
+It also opens `java.lang` for SOFA RPC's `ProviderInvoker` initialization, which
+reflects on `Throwable.cause`.
+
+PD and Store use their own `bin/jvm-module.options` for the module permission needed
+by Hessian serialization on Java 17. Their tests and cluster launchers use the same
+component files. CI checks positive-test and startup logs for Java module-access
+errors and unsupported JVM options, including errors printed without failing the
+operation.
+
 ### Launcher GC options
 
 Use `bin/start-hugegraph.sh -g g1` (or `-g G1`) to select G1 explicitly.
@@ -462,6 +481,14 @@ Task database workers release their owned task and graph transactions on the wor
 thread. A failure while closing one owner must not skip cleanup of other owners or
 server-info resources. Cleanup retains the first exception and attaches later cleanup
 failures as suppressed exceptions.
+
+Synchronous task cancellation preserves a transaction already open on its caller,
+including uncommitted graph writes. Cancellation still runs the normal completion and
+status callbacks, but their default cleanup does not close that existing transaction.
+The scheduler closes transactions opened by a cancellation callback when it had no
+transaction before starting, and a running task retains its worker owner until that
+worker's own cleanup finishes. The caller remains responsible for committing or rolling
+back its original transaction.
 
 Graph close attempts auth, scheduler and caller-transaction cleanup separately. If a
 scheduler remains registered or the graph reports active transactions, the graph remains

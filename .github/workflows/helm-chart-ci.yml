@@ -19,14 +19,13 @@ name: "Helm Chart CI"
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   lint-and-render:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:

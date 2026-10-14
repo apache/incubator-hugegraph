@@ -17,7 +17,9 @@
 
 package org.apache.hugegraph.ct.node;
 
+import static org.apache.hugegraph.ct.base.ClusterConstant.BIN_DIR;
 import static org.apache.hugegraph.ct.base.ClusterConstant.CONF_DIR;
+import static org.apache.hugegraph.ct.base.ClusterConstant.JVM_MODULE_OPTIONS_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.JAVA_CMD;
 import static org.apache.hugegraph.ct.base.ClusterConstant.LOG4J_FILE;
 import static org.apache.hugegraph.ct.base.ClusterConstant.ROCKSDB_JAR_PREFIX;
@@ -64,6 +66,9 @@ public class StoreNodeWrapper extends AbstractNodeWrapper {
                 LOG.error("Please make sure that the JDK is installed and the version >= 17");
                 return;
             }
+
+            startCmd.add(moduleOptions(Paths.get(workPath).getParent()
+                                           .resolve(BIN_DIR).resolve(JVM_MODULE_OPTIONS_FILE)));
 
             String storeNodeJarPath = getFileInDir(workPath, STORE_JAR_PREFIX);
             // Mirror start-hugegraph-store.sh: RocksDB JNI event callbacks run on native

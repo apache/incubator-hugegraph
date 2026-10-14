@@ -31,6 +31,8 @@ PD_URL="http://localhost:8620"
 STARTUP_WAIT=60   # seconds to wait for Store HTTP to respond
 SETTLE_WAIT=5     # seconds after kill before checking exit
 WAIT_TIMEOUT=30   # seconds for wait_script_exit timeout
+RUNTIME_LOG_CHECK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-java-runtime-logs.sh"
+ACTIVE_RUN=false
 
 PASS=0
 FAIL=0
@@ -46,6 +48,13 @@ fail() { echo -e "${RED}  FAIL${NC} $1"; ERRORS+=("$1"); FAIL=$((FAIL + 1)); }
 info() { echo -e "${YELLOW}  ....${NC} $1"; }
 section() { echo ""; echo "── $1 ──"; }
 
+start_service() {
+    mkdir -p "$STORE_ROOT/logs"
+    ACTIVE_RUN=true
+    "$START_SCRIPT" "$@" > "$STORE_ROOT/logs/launcher.out" 2>&1 &
+    SCRIPT_PID=$!
+}
+
 cleanup() {
     info "Cleaning up..."
     "$STOP_SCRIPT" >/dev/null 2>&1 || true
@@ -53,7 +62,6 @@ cleanup() {
         kill "$(cat "$PID_FILE")" 2>/dev/null || true
     fi
     rm -f "$PID_FILE"
-    rm -rf "$STORE_ROOT/logs/"
     # kill anything holding Store ports (8520 REST, 8510 raft, 8500 gRPC)
     if [[ "$(uname)" == "Darwin" ]]; then
         local port pids pid
@@ -73,6 +81,15 @@ cleanup() {
         echo "Warning: Neither lsof nor fuser available for Store port cleanup"
     fi
     sleep 3
+    if [[ "$ACTIVE_RUN" == true ]]; then
+        if bash "$RUNTIME_LOG_CHECK" "$STORE_ROOT/logs"; then
+            pass "startup logs contain no Java runtime compatibility errors"
+        else
+            fail "startup logs contain Java runtime compatibility errors or could not be checked"
+        fi
+        ACTIVE_RUN=false
+    fi
+    rm -rf "$STORE_ROOT/logs/"
 }
 
 wait_for_store() {
@@ -127,12 +144,16 @@ fi
 check_gc_options() {
     local fixture option capture status jvm_options
     fixture=$(mktemp -d) || { fail "could not create GC test fixture"; return 1; }
+    fixture=$(cd "$fixture" && pwd -P)
     if ! mkdir -p "$fixture/bin" "$fixture/conf" "$fixture/lib" "$fixture/jdk/bin" ||
-       ! cp "$START_SCRIPT" "$BIN/util.sh" "$BIN/preload-topling.sh" "$fixture/bin/"; then
+       ! cp "$START_SCRIPT" "$BIN/util.sh" "$BIN/preload-topling.sh" \
+            "$BIN/jvm-module.options" "$fixture/bin/"; then
         fail "could not prepare GC test fixture"
         rm -rf "$fixture"
         return 1
     fi
+    # Make default memory selection independent of host memory and OS.
+    printf '%s\n' 'calc_xmx() { echo 1024; }' >> "$fixture/bin/util.sh"
     touch "$fixture/lib/hg-store-node-test.jar"
     # The store launcher requires one rocksdbjni jar for native callback classloading.
     touch "$fixture/lib/rocksdbjni-test.jar"
@@ -142,17 +163,26 @@ if [[ "$1" == "-version" ]]; then
     echo 'openjdk version "17.0.1"' >&2
 else
     printf '%s\n' "$@" > "$CAPTURE_FILE"
+    for arg in "$@"; do
+        if [[ "$arg" == @* ]]; then
+            sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "${arg#@}" >> "$CAPTURE_FILE"
+        fi
+    done
 fi
 JAVA
     # Avoid the Store allocator download, which is unrelated to GC selection.
     printf '%s\n' '#!/bin/sh' 'echo launcher-test' > "$fixture/jdk/bin/uname"
     chmod +x "$fixture/jdk/bin/"* "$fixture/bin/start-hugegraph-store.sh"
-    for option in default default-serial default-zgc g1 G1 zgc ZGC invalid; do
+    for option in default custom-java-options user-options default-serial default-zgc \
+                  g1 G1 zgc ZGC invalid missing-module-options; do
         capture="$fixture/$option.args"
         local -a args=(-d false)
         jvm_options="-Xms64m -Xmx64m"
         case "$option" in
-            default) ;;
+            default) jvm_options="" ;;
+            custom-java-options) jvm_options="$jvm_options -Dlauncher.test.custom=true" ;;
+            user-options) jvm_options=""; args+=(-j "-Xmx96m -Dlauncher.test=true") ;;
+            missing-module-options) rm "$fixture/bin/jvm-module.options" ;;
             default-serial) jvm_options="$jvm_options -XX:+UseSerialGC" ;;
             default-zgc) jvm_options="$jvm_options -XX:+UseZGC" ;;
             *) args+=(-g "$option") ;;
@@ -164,7 +194,14 @@ JAVA
             PATH="$fixture/jdk/bin:$PATH" \
             bash "$fixture/bin/start-hugegraph-store.sh" "${args[@]}" > "$fixture/output" 2>&1
         status=$?
-        if [[ "$option" == invalid ]]; then
+        if [[ "$option" == missing-module-options ]]; then
+            if [[ $status -eq 1 && ! -e "$capture" ]] &&
+               grep -Fq 'JVM module options file is missing or unreadable' "$fixture/output"; then
+                pass "missing JVM module options are rejected before application launch"
+            else
+                fail "missing JVM module options were not rejected correctly"
+            fi
+        elif [[ "$option" == invalid ]]; then
             if [[ $status -eq 1 && ! -e "$capture" ]] && \
                grep -Fq "Unrecognized gc option: 'invalid'" "$fixture/logs/hugegraph-store-server.log"; then
                 pass "invalid GC is rejected before application launch"
@@ -173,6 +210,15 @@ JAVA
             fi
         elif [[ $status -ne 0 || ! -s "$capture" ]]; then
             fail "GC '$option' did not reach Java (exit $status)"
+        elif ! grep -Fxq -- "@$fixture/bin/jvm-module.options" "$capture" ||
+             ! grep -Fxq -- '--add-opens=java.base/java.lang=ALL-UNNAMED' "$capture"; then
+            fail "launcher '$option' dropped mandatory JVM module access"
+        elif [[ "$option" == custom-java-options ]] &&
+             ! grep -Fxq -- '-Dlauncher.test.custom=true' "$capture"; then
+            fail "launcher dropped custom JAVA_OPTIONS"
+        elif [[ "$option" == user-options ]] &&
+             ! grep -Fxq -- '-Dlauncher.test=true' "$capture"; then
+            fail "launcher dropped custom -j options"
         elif [[ "$option" == zgc || "$option" == ZGC ]]; then
             if grep -Fxq -- '-XX:+UseZGC' "$capture" && \
                ! grep -Fxq -- '-XX:InitiatingHeapOccupancyPercent=50' "$capture"; then
@@ -214,6 +260,11 @@ if [[ "${2:-}" == --gc-only ]]; then
     [[ $FAIL -eq 0 ]] && exit 0 || exit 1
 fi
 
+if [[ ! -r "$RUNTIME_LOG_CHECK" ]]; then
+    echo "ERROR: runtime log checker not found: $RUNTIME_LOG_CHECK"
+    exit 1
+fi
+
 if [[ "$(uname)" == "Darwin" ]]; then
     _prereq_tools="lsof curl java jcmd"
 else
@@ -252,8 +303,7 @@ cleanup
 section "Test 1 — daemon mode regression"
 
 info "Starting in daemon mode (no -d flag, default behavior)..."
-"$START_SCRIPT" >/dev/null 2>&1 &
-SCRIPT_PID=$!
+start_service
 
 sleep 5
 if ! ps -p "$SCRIPT_PID" >/dev/null 2>&1; then
@@ -296,8 +346,7 @@ cleanup
 section "Test 2 — foreground mode blocks until Java exits"
 
 info "Starting in foreground mode (-d false -g g1)..."
-"$START_SCRIPT" -d false -g g1 >/dev/null 2>&1 &
-SCRIPT_PID=$!
+start_service -d false -g g1
 
 info "Waiting up to ${STARTUP_WAIT}s for Store to come up..."
 if wait_for_store; then
@@ -352,8 +401,7 @@ cleanup
 section "Test 3 — exit code propagates from Java"
 
 info "Starting in foreground mode (-d false -g ZGC)..."
-"$START_SCRIPT" -d false -g ZGC >/dev/null 2>&1 &
-SCRIPT_PID=$!
+start_service -d false -g ZGC
 
 info "Waiting up to ${STARTUP_WAIT}s for Store..."
 if wait_for_store; then
@@ -407,8 +455,7 @@ cleanup
 section "Test 4 — SIGTERM forwarded to Java in foreground mode"
 
 info "Starting in foreground mode (-d false)..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
-SCRIPT_PID=$!
+start_service -d false
 
 info "Waiting up to ${STARTUP_WAIT}s for Store..."
 if wait_for_store; then
