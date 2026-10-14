@@ -301,10 +301,10 @@ local Compose override. The Helm chart exposes the same settings as
 Use a chart and Server image from the same source version containing these
 mappings. Older release images without them do not apply these environment
 values; select the matching image build explicitly.
-PD's existing `SERVICE_ID` normalization is unchanged and can map different raw
-names to the same identifier. Select `GRAPHSPACE` and the complete raw
-`SERVICE_NAME` in discovery queries; identifier-only lookup does not provide a
-uniqueness or isolation guarantee.
+The Server's existing `SERVICE_ID` normalization (`GraphManager.serviceId()`) is
+unchanged and can map different raw names to the same identifier. Select
+`GRAPHSPACE` and the complete raw `SERVICE_NAME` in discovery queries;
+identifier-only lookup does not provide a uniqueness or isolation guarantee.
 
 This selects the Server's PD service metadata. It does not change
 `server.path_graphspace` for REST paths that omit `/graphspaces/<name>`, or

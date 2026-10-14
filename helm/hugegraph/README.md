@@ -117,9 +117,9 @@ helm upgrade --install hugegraph ./helm/hugegraph -n hugegraph \
 Use a chart and Server image build from the same source version containing these
 mappings. Older release images without them ignore these environment settings;
 select a matching image build explicitly. The chart does not detect old images.
-PD's existing `SERVICE_ID` normalization is unchanged: select `GRAPHSPACE` and the
-complete raw `SERVICE_NAME` in discovery queries. Identifier-only lookup has no
-uniqueness or isolation guarantee.
+The Server's existing `SERVICE_ID` normalization (`GraphManager.serviceId()`) is
+unchanged: select `GRAPHSPACE` and the complete raw `SERVICE_NAME` in discovery
+queries. Identifier-only lookup has no uniqueness or isolation guarantee.
 
 `server.testGraphAlias` selects an existing Gremlin binding for every Server Pod,
 defaulting to `DEFAULT-hugegraph`. It does not create a graph or infer its binding
