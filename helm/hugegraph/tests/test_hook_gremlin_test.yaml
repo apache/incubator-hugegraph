@@ -105,6 +105,7 @@ tests:
   - it: sends no credentials when authentication is disabled
     template: tests/test-connection.yaml
     set:
+      hubble.enabled: false
       server.auth.enabled: false
     asserts:
       - notMatchRegex:

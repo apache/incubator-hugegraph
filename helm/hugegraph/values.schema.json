@@ -30,31 +30,47 @@
       "$ref": "#/definitions/server"
     },
     "global": {
-      "type": "object"
+      "type": "object",
+      "properties": {
+        "imageRegistry": {
+          "type": "string"
+        }
+      }
     },
     "hubble": {
       "$ref": "#/definitions/hubble"
     },
     "networkPolicy": {
       "$ref": "#/definitions/networkPolicy"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "strict"
+      ]
+    },
+    "persistence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      }
     }
   },
   "definitions": {
     "networkPolicyPeers": {
       "type": "array",
-      "minItems": 1,
       "items": {
-        "type": "object",
-        "minProperties": 1
+        "type": "object"
       }
     },
     "networkPolicyIngressRules": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "from"
-        ],
         "properties": {
           "from": {
             "$ref": "#/definitions/networkPolicyPeers"
@@ -66,9 +82,6 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "to"
-        ],
         "properties": {
           "to": {
             "$ref": "#/definitions/networkPolicyPeers"
@@ -90,7 +103,10 @@
       "additionalProperties": false,
       "properties": {
         "enabled": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "pd": {
           "$ref": "#/definitions/networkPolicyComponent"
@@ -280,6 +296,12 @@
         },
         "storageClassName": {
           "type": "string"
+        },
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },
@@ -341,8 +363,16 @@
       "properties": {
         "startup": {
           "allOf": [
-            { "$ref": "#/definitions/probe" },
-            { "properties": { "successThreshold": { "maximum": 1 } } }
+            {
+              "$ref": "#/definitions/probe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
           ]
         },
         "readiness": {
@@ -350,8 +380,16 @@
         },
         "liveness": {
           "allOf": [
-            { "$ref": "#/definitions/probe" },
-            { "properties": { "successThreshold": { "maximum": 1 } } }
+            {
+              "$ref": "#/definitions/probe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
           ]
         }
       }
@@ -584,23 +622,51 @@
             },
             "allowInsecureExposure": {
               "type": "boolean",
-              "description": "Required acknowledgement for a non-ClusterIP PD Service: the exposed gRPC port has no authentication."
+              "description": "Legacy compatibility field; does not gate Service exposure."
             },
             "restNodePort": {
               "type": [
                 "integer",
                 "null"
               ],
-              "minimum": 30000,
-              "maximum": 32767
+              "minimum": 0,
+              "maximum": 65535
             },
             "grpcNodePort": {
               "type": [
                 "integer",
                 "null"
               ],
-              "minimum": 30000,
-              "maximum": 32767
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "externalTrafficPolicy": {
+              "type": "string",
+              "enum": [
+                "Cluster",
+                "Local"
+              ]
+            },
+            "loadBalancerClass": {
+              "type": "string"
+            },
+            "loadBalancerIP": {
+              "type": "string"
+            },
+            "loadBalancerSourceRanges": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "externalIPs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "allocateLoadBalancerNodePorts": {
+              "type": "boolean"
             }
           }
         },
@@ -668,8 +734,7 @@
           "$ref": "#/definitions/pdb"
         },
         "waitImage": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "waitResources": {
           "$ref": "#/definitions/resources"
@@ -803,7 +868,6 @@
         },
         "waitImage": {
           "type": "string",
-          "minLength": 1,
           "description": "Image used by the Helm test hook"
         },
         "waitResources": {
@@ -837,7 +901,6 @@
               "properties": {
                 "password": {
                   "type": "string",
-                  "pattern": "^[\\x21-\\x39\\x3b-\\x5b\\x5d-\\x7e]*$",
                   "description": "Inline admin password. Empty defers to existingSecret or autoGenerate. Printable ASCII with no space, no backslash and no colon, the same contract the Server wrapper enforces on an existingSecret: the Server decodes Basic-auth credentials as ASCII and splits them on every colon, so a non-ASCII password would be applied to the admin account and then answer 401 on every request, and a password with a colon would answer 400; the image entrypoint writes each space into rest-server.properties as a backslash-escaped space, which the Server keeps, and Commons Configuration trims a properties value and unescapes backslashes, so a space or a backslash would make the stored password and the effective one differ."
                 },
                 "existingSecret": {
@@ -864,15 +927,7 @@
               "properties": {
                 "value": {
                   "type": "string",
-                  "description": "JWT signing key. Either empty, which defers to existingSecret or autoGenerate, or at least 32 characters: the Server entrypoint rejects a shorter key and the pods CrashLoop.",
-                  "anyOf": [
-                    {
-                      "maxLength": 0
-                    },
-                    {
-                      "minLength": 32
-                    }
-                  ]
+                  "description": "JWT signing key. Either empty, which defers to existingSecret or autoGenerate, or at least 32 characters: the Server entrypoint rejects a shorter key and the pods CrashLoop."
                 },
                 "existingSecret": {
                   "type": "string"
@@ -927,6 +982,27 @@
                           }
                         }
                       }
+                    ],
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "existingSecret": {
+                              "const": ""
+                            }
+                          },
+                          "required": [
+                            "existingSecret"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "password": {
+                              "pattern": "^[\\x21-\\x39\\x3b-\\x5b\\x5d-\\x7e]*$"
+                            }
+                          }
+                        }
+                      }
                     ]
                   },
                   "token": {
@@ -958,40 +1034,35 @@
                           }
                         }
                       }
+                    ],
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "existingSecret": {
+                              "const": ""
+                            }
+                          },
+                          "required": [
+                            "existingSecret"
+                          ]
+                        },
+                        "then": {
+                          "properties": {
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "maxLength": 0
+                                },
+                                {
+                                  "minLength": 32
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
                     ]
-                  }
-                }
-              }
-            },
-            {
-              "if": {
-                "properties": {
-                  "enabled": {
-                    "const": false
-                  }
-                }
-              },
-              "then": {
-                "properties": {
-                  "admin": {
-                    "properties": {
-                      "existingSecret": {
-                        "const": ""
-                      },
-                      "password": {
-                        "const": ""
-                      }
-                    }
-                  },
-                  "token": {
-                    "properties": {
-                      "existingSecret": {
-                        "const": ""
-                      },
-                      "value": {
-                        "const": ""
-                      }
-                    }
                   }
                 }
               }
@@ -1035,7 +1106,7 @@
           "description": "HTTP path for the Server readinessProbe; /readiness (apache/hugegraph#3212) on Server images that serve it, /versions (default) on older ones"
         },
         "probes": {
-          "$ref": "#/definitions/probes"
+          "$ref": "#/definitions/serverProbes"
         },
         "antiAffinity": {
           "type": "string",
@@ -1108,6 +1179,11 @@
         "advertiseUrl": {
           "type": "string",
           "description": "URL registered with PD via server.urls_to_pd. Empty uses the in-cluster Server Service URL. Set to an externally reachable URL for outside Hubble PD discovery."
+        },
+        "storageWaitTimeoutSeconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
         }
       }
     },
@@ -1116,11 +1192,15 @@
       "additionalProperties": false,
       "properties": {
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "ClusterIP",
             "NodePort",
-            "LoadBalancer"
+            "LoadBalancer",
+            null
           ]
         },
         "annotations": {
@@ -1128,15 +1208,43 @@
         },
         "allowInsecureExposure": {
           "type": "boolean",
-          "description": "Required acknowledgement for a non-ClusterIP Service: the exposed Server API or Hubble UI is plain HTTP, so credentials and tokens cross the network in cleartext, and Hubble has no login of its own."
+          "description": "Legacy compatibility field; does not gate Service exposure."
         },
         "nodePort": {
           "type": [
             "integer",
             "null"
           ],
-          "minimum": 30000,
-          "maximum": 32767
+          "minimum": 0,
+          "maximum": 65535
+        },
+        "externalTrafficPolicy": {
+          "type": "string",
+          "enum": [
+            "Cluster",
+            "Local"
+          ]
+        },
+        "loadBalancerClass": {
+          "type": "string"
+        },
+        "loadBalancerIP": {
+          "type": "string"
+        },
+        "loadBalancerSourceRanges": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "externalIPs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "allocateLoadBalancerNodePorts": {
+          "type": "boolean"
         }
       }
     },
@@ -1162,84 +1270,11 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "host",
               "paths"
             ],
             "properties": {
               "host": {
-                "type": "string",
-                "minLength": 1
-              },
-              "paths": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": [
-                    "path",
-                    "pathType"
-                  ],
-                  "properties": {
-                    "path": {
-                      "type": "string"
-                    },
-                    "pathType": {
-                      "type": "string",
-                      "enum": [
-                        "Exact",
-                        "Prefix",
-                        "ImplementationSpecific"
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "tls": {
-          "type": "array",
-          "items": {
-            "type": "object"
-          }
-        },
-        "annotations": {
-          "type": "object"
-        },
-        "allowPlainHttp": {
-          "type": "boolean"
-        }
-      }
-    },
-    "serverIngress": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "enabled",
-        "className",
-        "hosts",
-        "tls"
-      ],
-      "properties": {
-        "enabled": {
-          "type": "boolean"
-        },
-        "className": {
-          "type": "string"
-        },
-        "hosts": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "host",
-              "paths"
-            ],
-            "properties": {
-              "host": {
-                "type": "string",
-                "minLength": 1
+                "type": "string"
               },
               "paths": {
                 "type": "array",
@@ -1279,7 +1314,77 @@
         },
         "allowPlainHttp": {
           "type": "boolean",
-          "description": "Explicit opt-in to a TLS-less Server Ingress; without it the render fails when tls is empty."
+          "description": "Legacy compatibility field; HTTP Ingress needs no acknowledgement."
+        }
+      }
+    },
+    "serverIngress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "className",
+        "hosts",
+        "tls"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "className": {
+          "type": "string"
+        },
+        "hosts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "paths"
+            ],
+            "properties": {
+              "host": {
+                "type": "string"
+              },
+              "paths": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "path",
+                    "pathType"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": "string"
+                    },
+                    "pathType": {
+                      "type": "string",
+                      "enum": [
+                        "Exact",
+                        "Prefix",
+                        "ImplementationSpecific"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tls": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "annotations": {
+          "type": "object"
+        },
+        "allowPlainHttp": {
+          "type": "boolean",
+          "description": "Legacy compatibility field; HTTP Ingress needs no acknowledgement."
         }
       }
     },
@@ -1323,13 +1428,15 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "enabled",
             "size",
             "storageClassName"
           ],
           "properties": {
             "enabled": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "size": {
               "type": "string",
@@ -1402,6 +1509,80 @@
         },
         "probes": {
           "$ref": "#/definitions/probes"
+        }
+      }
+    },
+    "serverStartupProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "periodSeconds"
+      ],
+      "properties": {
+        "periodSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failureThreshold": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "timeoutSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "initialDelaySeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "successThreshold": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "serverProbes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startup",
+        "readiness",
+        "liveness"
+      ],
+      "properties": {
+        "startup": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/serverStartupProbe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
+          ]
+        },
+        "readiness": {
+          "$ref": "#/definitions/probe"
+        },
+        "liveness": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/probe"
+            },
+            {
+              "properties": {
+                "successThreshold": {
+                  "maximum": 1
+                }
+              }
+            }
+          ]
         }
       }
     }

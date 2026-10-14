@@ -44,6 +44,7 @@ import org.apache.hugegraph.tinkerpop.HugeGraphTestInfrastructureTest;
 import org.apache.hugegraph.traversal.optimize.TraversalUtilOptimizeTest;
 import org.apache.hugegraph.unit.api.auth.LoginAPITest;
 import org.apache.hugegraph.unit.api.filter.AccessLogFilterTest;
+import org.apache.hugegraph.unit.api.filter.CompressInterceptorTest;
 import org.apache.hugegraph.unit.api.filter.LoadDetectFilterTest;
 import org.apache.hugegraph.unit.api.filter.PathFilterTest;
 import org.apache.hugegraph.unit.api.filter.VertexAuthorizationTest;
@@ -142,6 +143,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         /* api filter */
         AccessLogFilterTest.class,
+        CompressInterceptorTest.class,
         LoadDetectFilterTest.class,
         LoginAPITest.class,
         PathFilterTest.class,
