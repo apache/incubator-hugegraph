@@ -334,15 +334,18 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
         String context = TaskManager.getContext();
         AtomicBoolean cleaned = new AtomicBoolean(true);
         TaskManager.ContextCallable<Void> owned = new TaskManager.ContextCallable<>(() -> {
+            boolean callerTxOpen = this.graph.graph().tx().isOpen();
             try {
                 this.cancelTask(task, true);
                 return null;
             } finally {
-                try {
-                    this.graph.closeTx();
-                } catch (RuntimeException | Error error) {
-                    cleaned.set(false);
-                    throw error;
+                if (!callerTxOpen) {
+                    try {
+                        this.graph.closeTx();
+                    } catch (RuntimeException | Error error) {
+                        cleaned.set(false);
+                        throw error;
+                    }
                 }
             }
         });
@@ -924,10 +927,13 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             pending.callbacks++;
         }
         TaskManager.ContextCallable<Boolean> owned = new TaskManager.ContextCallable<>(() -> {
+            boolean callerTxOpen = this.graph.graph().tx().isOpen();
             try {
                 return action.call();
             } finally {
-                this.closeOwner(pending);
+                if (!callerTxOpen) {
+                    this.closeOwner(pending);
+                }
             }
         });
         Callable<Boolean> cancellation = () -> {
