@@ -396,6 +396,18 @@ public final class GraphManager {
     }
 
     /**
+     * With auth.remote_url the built-in authenticator switches to a remote
+     * AuthManager and never creates a local admin, so the admin password, and
+     * a password file that may not even be mounted, must not be resolved.
+     * Custom authenticators keep receiving initAdminUser() as before.
+     */
+    private static boolean usesRemoteAuth(HugeAuthenticator authenticator,
+                                          String remoteUrl) {
+        return authenticator instanceof StandardAuthenticator &&
+               !remoteUrl.isEmpty();
+    }
+
+    /**
      * Creates the built-in admin account in PD metadata. With init-store
      * disabled this is the only bootstrap that admin gets, and init-store's
      * fail-closed check assumes it works, so only the already-exists case is
@@ -1877,7 +1889,9 @@ public final class GraphManager {
             assert hugegraph != null;
             if (!hugegraph.backendStoreFeatures().supportsPersistence()) {
                 hugegraph.initBackend();
-                if (this.requireAuthentication()) {
+                if (this.requireAuthentication() &&
+                    !usesRemoteAuth(this.authenticator,
+                                    config.get(ServerOptions.AUTH_REMOTE_URL))) {
                     // Outside the try so a bad password file names itself
                     String adminPassword =
                             StandardAuthenticator.initialAdminPassword(config);

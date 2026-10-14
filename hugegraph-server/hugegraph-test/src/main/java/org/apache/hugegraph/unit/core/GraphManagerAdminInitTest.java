@@ -207,7 +207,40 @@ public class GraphManagerAdminInitTest {
         }
     }
 
+    /**
+     * Remote auth keeps the admin in another service, so an unused password
+     * file that is missing must not stop a non-persistent backend from
+     * starting, matching the guard on the PD startup path.
+     */
+    @Test
+    public void testNonPersistentBackendWithRemoteAuthSkipsAdminPasswordFile()
+                                                        throws Exception {
+        Path missing = Files.createTempDirectory("admin-init-test")
+                            .resolve("missing");
+        try {
+            HugeAuthenticator authenticator = this.mockMemoryGraphWithAuth(
+                    StandardAuthenticator.class);
+            PropertiesConfiguration properties = new PropertiesConfiguration();
+            properties.setProperty(ServerOptions.ADMIN_PA_FILE.name(),
+                                   missing.toString());
+            properties.setProperty(ServerOptions.AUTH_REMOTE_URL.name(),
+                                   "127.0.0.1:8899");
+
+            this.checkBackendVersionOrExit(new HugeConfig(properties));
+
+            Mockito.verify(authenticator, Mockito.never())
+                   .initAdminUser(Mockito.anyString());
+        } finally {
+            Files.deleteIfExists(missing.getParent());
+        }
+    }
+
     private HugeAuthenticator mockMemoryGraphWithAuth() {
+        return this.mockMemoryGraphWithAuth(HugeAuthenticator.class);
+    }
+
+    private HugeAuthenticator mockMemoryGraphWithAuth(
+            Class<? extends HugeAuthenticator> authenticatorClass) {
         HugeGraph graph = Mockito.mock(HugeGraph.class);
         Mockito.when(graph.backendStoreFeatures())
                .thenReturn(Mockito.mock(BackendFeatures.class));
@@ -219,7 +252,7 @@ public class GraphManagerAdminInitTest {
                                                               "graphs");
         graphs.put("DEFAULT-memory", graph);
 
-        HugeAuthenticator authenticator = Mockito.mock(HugeAuthenticator.class);
+        HugeAuthenticator authenticator = Mockito.mock(authenticatorClass);
         Mockito.when(authenticator.requireAuthentication()).thenReturn(true);
         Whitebox.setInternalState(this.manager, "authenticator", authenticator);
         return authenticator;
