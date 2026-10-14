@@ -283,6 +283,43 @@ public class SessionOperatorReadMissTest {
         }
     }
 
+    @Test
+    public void getMisses_hydrationSucceeds_butRetryThrows_propagatesAsDbStoreException()
+            throws Exception {
+        RocksDB db = mock(RocksDB.class);
+        RocksDBSession session = mock(RocksDBSession.class);
+        ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
+        CFHandleLock cfLock = mock(CFHandleLock.class);
+        when(cfLock.get()).thenReturn(handle);
+        when(session.getDB()).thenReturn(db);
+        when(session.getCFHandleLock(TABLE)).thenReturn(cfLock);
+        when(session.getGraphName()).thenReturn("db-mock");
+        // The initial read is a clean miss (null, no exception); the post-hydration retry throws.
+        when(db.get(any(ColumnFamilyHandle.class), any(byte[].class)))
+                .thenReturn(null)
+                .thenThrow(new RocksDBException("restored SST unreadable"));
+
+        RocksdbChangedListener hydrator = new RocksdbChangedListener() {
+            @Override
+            public boolean onReadMiss(RocksDBSession s, String table, byte[] key) {
+                return true;
+            }
+        };
+        RocksDBFactory.getInstance().addRocksdbChangedListener(hydrator);
+        try {
+            SessionOperator op = new SessionOperatorImpl(session);
+            try {
+                op.get(TABLE, bytes("cold"));
+                fail("expected DBStoreException when the post-hydration retry fails");
+            } catch (DBStoreException expected) {
+                // expected
+            }
+            verify(db, times(2)).get(any(ColumnFamilyHandle.class), any(byte[].class));
+        } finally {
+            RocksDBFactory.getInstance().removeRocksdbChangedListener(hydrator);
+        }
+    }
+
     // =========================================================================
     // Helpers
     // =========================================================================

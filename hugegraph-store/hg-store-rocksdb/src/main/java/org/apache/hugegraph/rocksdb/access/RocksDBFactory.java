@@ -79,90 +79,106 @@ public final class RocksDBFactory {
         this.operateLock = new ReentrantReadWriteLock();
         scheduledExecutor = Executors.newScheduledThreadPool(2);
         scheduledExecutor.scheduleWithFixedDelay(() -> {
-            try {
-                dbSessionMap.forEach((k, session) -> {
-                    for (var entry : session.getIteratorMap().entrySet()) {
-                        String key = entry.getKey();
-                        var ts = Long.parseLong(key.split("-")[0]);
-                        // output once per 10min
-                        var passed = (System.currentTimeMillis() - ts) / 1000 - 600;
-                        if (passed > 0 && passed % 10 == 0) {
-                            log.info("iterator not close, stack: {}", entry.getValue());
-                        }
-                    }
-                });
-            } catch (Exception e) {
-                log.error("got error, ", e);
-            }
+            logUnclosedIterators();
+            processPendingDestroys();
+        }, 60, 60, TimeUnit.SECONDS);
+    }
 
-            try {
-                Iterator<DBSessionWatcher> itr = destroyGraphDBs.listIterator();
-                while (itr.hasNext()) {
-                    DBSessionWatcher watcher = itr.next();
-                    if (0 == watcher.dbSession.getRefCount()) {
-                        // Destroy-then-recreate race guard: a concurrent createGraphDB may have
-                        // re-occupied the same DB name/path (createGraphDB checks dbSessionMap and
-                        // pendingCreations, not destroyGraphDBs). If so, this stale watcher must NOT
-                        // delete the new DB's local files or purge its cloud objects. Check under
-                        // the read lock so it serialises with createGraphDB's write-locked slot
-                        // reservation and map insertion.
-                        String staleName = watcher.dbSession.getGraphName();
-                        boolean superseded;
-                        operateLock.readLock().lock();
-                        try {
-                            superseded = dbSessionMap.containsKey(staleName)
-                                         || pendingCreations.contains(staleName);
-                        } finally {
-                            operateLock.readLock().unlock();
-                        }
-                        if (superseded) {
-                            log.warn("DestroyGraphDB: db={} was recreated at path={} before "
-                                     + "cleanup ran — discarding stale destroy watcher without "
-                                     + "deleting files or purging cloud objects",
-                                     staleName, watcher.dbSession.getDbPath());
-                            destroyGraphDBs.remove(watcher);
-                            continue;
-                        }
-                        try {
-                            watcher.dbSession.shutdown();
-                            FileUtils.deleteDirectory(new File(watcher.dbSession.getDbPath()));
-                            rocksdbChangedListeners.forEach(listener -> {
-                                listener.onDBDeleted(watcher.dbSession.getGraphName(),
-                                                     watcher.dbSession.getDbPath());
-                            });
-                            log.info("removed db {} and delete files",
-                                     watcher.dbSession.getDbPath());
-                            destroyGraphDBs.remove(watcher);
-                        } catch (Exception e) {
-                            watcher.deleteAttempts++;
-                            if (watcher.deleteAttempts >= 3) {
-                                // Give up after 3 consecutive failures: continuing to retry
-                                // risks calling onDBDeleted (which purges cloud objects) against
-                                // a DB that may have been recreated at the same path.
-                                log.error("DestroyGraphDB: giving up after {} failed attempts for "
-                                          + "db={}: {}", watcher.deleteAttempts,
-                                          watcher.dbSession.getDbPath(), e);
-                                destroyGraphDBs.remove(watcher);
-                            } else {
-                                log.error("DestroyGraphDB exception (attempt {}), will retry: {}",
-                                          watcher.deleteAttempts, e);
-                            }
-                        }
-                    } else if (watcher.timestamp < (System.currentTimeMillis() - 1800 * 1000)) {
-                        // Force delete after 30-min timeout: session is stuck with live refs.
-                        watcher.dbSession.forceResetRefCount();
-                    } else {
-                        log.warn("DB {}  has not been deleted refCount is {}, time is {} seconds",
-                                 watcher.dbSession.getDbPath(),
-                                 watcher.dbSession.getRefCount(),
-                                 (System.currentTimeMillis() - watcher.timestamp) / 1000);
+    /**
+     * Logs the creation stack of iterators left open for more than 10 minutes. Runs on the
+     * scheduled executor; package-private so tests can drive a pass directly.
+     */
+    void logUnclosedIterators() {
+        try {
+            dbSessionMap.forEach((k, session) -> {
+                for (var entry : session.getIteratorMap().entrySet()) {
+                    String key = entry.getKey();
+                    var ts = Long.parseLong(key.split("-")[0]);
+                    // output once per 10min
+                    var passed = (System.currentTimeMillis() - ts) / 1000 - 600;
+                    if (passed > 0 && passed % 10 == 0) {
+                        log.info("iterator not close, stack: {}", entry.getValue());
                     }
                 }
+            });
+        } catch (Exception e) {
+            log.error("got error, ", e);
+        }
+    }
 
-            } catch (Exception e) {
-                log.error("RocksDBFactory scheduledExecutor exception {}", e);
+    /**
+     * One pass over the destroy queue: deletes the files of each destroyed DB once its
+     * refCount drops to 0, and force-resets sessions stuck with live refs for 30 minutes. Runs
+     * on the scheduled executor every 60s; package-private so tests can drive a pass directly.
+     */
+    void processPendingDestroys() {
+        try {
+            Iterator<DBSessionWatcher> itr = destroyGraphDBs.listIterator();
+            while (itr.hasNext()) {
+                DBSessionWatcher watcher = itr.next();
+                if (0 == watcher.dbSession.getRefCount()) {
+                    // Destroy-then-recreate race guard: a concurrent createGraphDB may have
+                    // re-occupied the same DB name/path (createGraphDB checks dbSessionMap and
+                    // pendingCreations, not destroyGraphDBs). If so, this stale watcher must NOT
+                    // delete the new DB's local files or purge its cloud objects. Check under
+                    // the read lock so it serialises with createGraphDB's write-locked slot
+                    // reservation and map insertion.
+                    String staleName = watcher.dbSession.getGraphName();
+                    boolean superseded;
+                    operateLock.readLock().lock();
+                    try {
+                        superseded = dbSessionMap.containsKey(staleName)
+                                     || pendingCreations.contains(staleName);
+                    } finally {
+                        operateLock.readLock().unlock();
+                    }
+                    if (superseded) {
+                        log.warn("DestroyGraphDB: db={} was recreated at path={} before "
+                                 + "cleanup ran — discarding stale destroy watcher without "
+                                 + "deleting files or purging cloud objects",
+                                 staleName, watcher.dbSession.getDbPath());
+                        destroyGraphDBs.remove(watcher);
+                        continue;
+                    }
+                    try {
+                        watcher.dbSession.shutdown();
+                        FileUtils.deleteDirectory(new File(watcher.dbSession.getDbPath()));
+                        rocksdbChangedListeners.forEach(listener -> {
+                            listener.onDBDeleted(watcher.dbSession.getGraphName(),
+                                                 watcher.dbSession.getDbPath());
+                        });
+                        log.info("removed db {} and delete files",
+                                 watcher.dbSession.getDbPath());
+                        destroyGraphDBs.remove(watcher);
+                    } catch (Exception e) {
+                        watcher.deleteAttempts++;
+                        if (watcher.deleteAttempts >= 3) {
+                            // Give up after 3 consecutive failures: continuing to retry
+                            // risks calling onDBDeleted (which purges cloud objects) against
+                            // a DB that may have been recreated at the same path.
+                            log.error("DestroyGraphDB: giving up after {} failed attempts for "
+                                      + "db={}: {}", watcher.deleteAttempts,
+                                      watcher.dbSession.getDbPath(), e);
+                            destroyGraphDBs.remove(watcher);
+                        } else {
+                            log.error("DestroyGraphDB exception (attempt {}), will retry: {}",
+                                      watcher.deleteAttempts, e);
+                        }
+                    }
+                } else if (watcher.timestamp < (System.currentTimeMillis() - 1800 * 1000)) {
+                    // Force delete after 30-min timeout: session is stuck with live refs.
+                    watcher.dbSession.forceResetRefCount();
+                } else {
+                    log.warn("DB {}  has not been deleted refCount is {}, time is {} seconds",
+                             watcher.dbSession.getDbPath(),
+                             watcher.dbSession.getRefCount(),
+                             (System.currentTimeMillis() - watcher.timestamp) / 1000);
+                }
             }
-        }, 60, 60, TimeUnit.SECONDS);
+
+        } catch (Exception e) {
+            log.error("RocksDBFactory scheduledExecutor exception {}", e);
+        }
     }
 
     public static RocksDBFactory getInstance() {
@@ -190,6 +206,17 @@ public final class RocksDBFactory {
 
     public void setHugeConfig(HugeConfig nodeConfig) {
         this.hugeConfig = nodeConfig;
+    }
+
+    /** Test hook: enqueues a session for {@link #processPendingDestroys()}. */
+    DBSessionWatcher addDestroyWatcher(RocksDBSession dbSession) {
+        DBSessionWatcher watcher = new DBSessionWatcher(dbSession);
+        destroyGraphDBs.add(watcher);
+        return watcher;
+    }
+
+    boolean isDestroyPending(DBSessionWatcher watcher) {
+        return destroyGraphDBs.contains(watcher);
     }
 
     public boolean findPathInRemovedList(String path) {

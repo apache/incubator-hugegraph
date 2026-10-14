@@ -22,13 +22,22 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -39,6 +48,8 @@ import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.rocksdb.Status;
+import org.rocksdb.TableFileCreationInfo;
 
 /**
  * {@link RocksDBFactory} / {@link RocksDBSession} metadata-checkpoint and cloud-hydration behaviour.
@@ -561,6 +572,284 @@ public class RocksDBFactoryTest {
             factory.destroyGraphDB(dbName);
             deleteRecursively(parent.toFile());
         }
+    }
+
+    // =========================================================================
+    // processPendingDestroys / logUnclosedIterators (the 60s scheduled cleanup pass)
+    // =========================================================================
+
+    @Test
+    public void testProcessPendingDestroysDeletesFilesAndNotifiesListeners() throws Exception {
+        Path parent = Files.createTempDirectory("hg-destroy-pass-");
+        String dbName = "destroypass";
+        List<String> deleted = new CopyOnWriteArrayList<>();
+        RocksdbChangedListener recorder = new RocksdbChangedListener() {
+            @Override
+            public void onDBDeleted(String db, String dbPath) {
+                deleted.add(db);
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(recorder);
+        try {
+            RocksDBSession session = factory.createGraphDB(parent.toString(), dbName, 0);
+            String dbPath = session.getDbPath();
+            session.close();
+            factory.destroyGraphDB(dbName);
+            assertTrue("destroyGraphDB must enqueue a destroy watcher",
+                       factory.findPathInRemovedList(dbPath));
+            assertTrue(new File(dbPath).exists());
+
+            factory.processPendingDestroys();
+
+            assertFalse("the pass must delete the DB directory", new File(dbPath).exists());
+            assertTrue("onDBDeleted must fire for the destroyed DB", deleted.contains(dbName));
+            assertFalse("the watcher must be removed after a successful delete",
+                        factory.findPathInRemovedList(dbPath));
+        } finally {
+            factory.removeRocksdbChangedListener(recorder);
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
+    public void testProcessPendingDestroysDiscardsWatcherWhenDbWasRecreated() throws Exception {
+        Path parent = Files.createTempDirectory("hg-destroy-recreate-");
+        String dbName = "destroyrecreate";
+        List<String> deleted = new CopyOnWriteArrayList<>();
+        RocksdbChangedListener recorder = new RocksdbChangedListener() {
+            @Override
+            public void onDBDeleted(String db, String dbPath) {
+                deleted.add(db);
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(recorder);
+        try {
+            RocksDBSession first = factory.createGraphDB(parent.toString(), dbName, 0);
+            String dbPath = first.getDbPath();
+            first.close();
+            factory.destroyGraphDB(dbName);
+            assertTrue(factory.findPathInRemovedList(dbPath));
+
+            // Recreate under the same name before the cleanup pass runs.
+            RocksDBSession second = factory.createGraphDB(parent.toString(), dbName, 0);
+            second.close();
+
+            factory.processPendingDestroys();
+
+            assertFalse("the stale watcher must be discarded",
+                        factory.findPathInRemovedList(dbPath));
+            assertTrue("the recreated DB's files must not be deleted", new File(dbPath).exists());
+            assertFalse("onDBDeleted must not fire for a superseded watcher",
+                        deleted.contains(dbName));
+            assertTrue(factory.getGraphNames().contains(dbName));
+        } finally {
+            factory.removeRocksdbChangedListener(recorder);
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
+    public void testProcessPendingDestroysGivesUpAfterThreeFailedAttempts() throws Exception {
+        Path dir = Files.createTempDirectory("hg-destroy-fail-");
+        String dbName = "destroyfail-" + System.nanoTime();
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getRefCount()).thenReturn(0);
+        when(session.getGraphName()).thenReturn(dbName);
+        when(session.getDbPath()).thenReturn(dir.toString());
+        doThrow(new IllegalStateException("simulated shutdown failure")).when(session).shutdown();
+        List<String> deleted = new CopyOnWriteArrayList<>();
+        RocksdbChangedListener recorder = new RocksdbChangedListener() {
+            @Override
+            public void onDBDeleted(String db, String dbPath) {
+                deleted.add(db);
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(recorder);
+        try {
+            RocksDBFactory.DBSessionWatcher watcher = factory.addDestroyWatcher(session);
+
+            factory.processPendingDestroys();
+            factory.processPendingDestroys();
+            assertEquals(2, watcher.deleteAttempts);
+            assertTrue("the watcher must be retried before the 3rd failure",
+                       factory.isDestroyPending(watcher));
+
+            factory.processPendingDestroys();
+            assertEquals(3, watcher.deleteAttempts);
+            assertFalse("the watcher must be dropped after the 3rd failure",
+                        factory.isDestroyPending(watcher));
+            assertTrue("a failed delete must leave the directory alone", dir.toFile().exists());
+            assertFalse("onDBDeleted must not fire when the delete failed",
+                        deleted.contains(dbName));
+        } finally {
+            factory.removeRocksdbChangedListener(recorder);
+            deleteRecursively(dir.toFile());
+        }
+    }
+
+    @Test
+    public void testProcessPendingDestroysWaitsOnLiveRefsThenForceResetsAfterTimeout()
+            throws Exception {
+        Path dir = Files.createTempDirectory("hg-destroy-refs-");
+        AtomicInteger refCount = new AtomicInteger(2);
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getRefCount()).thenAnswer(inv -> refCount.get());
+        when(session.getGraphName()).thenReturn("destroyrefs-" + System.nanoTime());
+        when(session.getDbPath()).thenReturn(dir.toString());
+        doAnswer(inv -> {
+            refCount.set(0);
+            return null;
+        }).when(session).forceResetRefCount();
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBFactory.DBSessionWatcher watcher = factory.addDestroyWatcher(session);
+        try {
+            // Live refs inside the 30-min window: only waits (logs), no reset, no delete.
+            factory.processPendingDestroys();
+            verify(session, never()).forceResetRefCount();
+            verify(session, never()).shutdown();
+            assertTrue(factory.isDestroyPending(watcher));
+
+            // Past the 30-min window: the stuck ref count is force-reset, still no delete yet.
+            watcher.timestamp = System.currentTimeMillis() - 31 * 60 * 1000L;
+            factory.processPendingDestroys();
+            verify(session, times(1)).forceResetRefCount();
+            verify(session, never()).shutdown();
+            assertTrue(factory.isDestroyPending(watcher));
+
+            // The next pass sees refCount 0 and completes the delete.
+            factory.processPendingDestroys();
+            verify(session, times(1)).shutdown();
+            assertFalse(factory.isDestroyPending(watcher));
+            assertFalse(dir.toFile().exists());
+        } finally {
+            refCount.set(0);
+            factory.processPendingDestroys();
+            deleteRecursively(dir.toFile());
+        }
+    }
+
+    @Test
+    public void testProcessPendingDestroysSwallowsUnexpectedErrorAndRetriesNextPass()
+            throws Exception {
+        Path dir = Files.createTempDirectory("hg-destroy-err-");
+        RocksDBSession session = mock(RocksDBSession.class);
+        // The first pass blows up outside the per-watcher try; the next pass proceeds normally.
+        when(session.getRefCount()).thenThrow(new IllegalStateException("simulated"))
+                                   .thenReturn(0);
+        when(session.getGraphName()).thenReturn("destroyerr-" + System.nanoTime());
+        when(session.getDbPath()).thenReturn(dir.toString());
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBFactory.DBSessionWatcher watcher = factory.addDestroyWatcher(session);
+        try {
+            factory.processPendingDestroys();
+            assertTrue("an unexpected error must not drop the watcher",
+                       factory.isDestroyPending(watcher));
+
+            factory.processPendingDestroys();
+            assertFalse(factory.isDestroyPending(watcher));
+            assertFalse(dir.toFile().exists());
+        } finally {
+            deleteRecursively(dir.toFile());
+        }
+    }
+
+    @Test
+    public void testLogUnclosedIteratorsToleratesStaleAndMalformedKeys() throws Exception {
+        Path parent = Files.createTempDirectory("hg-iter-leak-");
+        String dbName = "iterleak";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = factory.createGraphDB(parent.toString(), dbName, 0);
+        try {
+            // An iterator opened ~10 minutes 10 seconds ago falls in the "log it" window.
+            long now = System.currentTimeMillis();
+            String staleKey = (now - 610_000L) + "-stale";
+            // Younger than 10 minutes, and past 10 minutes but off the 10s log beat: not logged.
+            String freshKey = now + "-fresh";
+            String offBeatKey = (now - 605_000L) + "-offbeat";
+            session.addIterator(staleKey, null);
+            session.addIterator(freshKey, null);
+            session.addIterator(offBeatKey, null);
+            factory.logUnclosedIterators();
+            session.removeIterator(freshKey);
+            session.removeIterator(offBeatKey);
+
+            // A key without a numeric timestamp prefix must be swallowed, not propagate.
+            session.addIterator("not-a-timestamp", null);
+            factory.logUnclosedIterators();
+
+            session.removeIterator(staleKey);
+            session.removeIterator("not-a-timestamp");
+        } finally {
+            session.close();
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    // =========================================================================
+    // Event-listener / reporting edge cases
+    // =========================================================================
+
+    @Test
+    public void testOnTableFileCreatedSkipsFailedFileCreation() {
+        TableFileCreationInfo info = mock(TableFileCreationInfo.class);
+        when(info.getStatus()).thenReturn(new Status(Status.Code.IOError, Status.SubCode.None,
+                                                     "simulated flush failure"));
+        when(info.getFilePath()).thenReturn("/tmp/failed.sst");
+        AtomicInteger created = new AtomicInteger(0);
+        RocksdbChangedListener probe = new RocksdbChangedListener() {
+            @Override
+            public void onTableFileCreated(String db, String cf, String path, long size) {
+                created.incrementAndGet();
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(probe);
+        try {
+            factory.getEventListener().onTableFileCreated(info);
+            assertEquals("a failed SST creation must not be propagated", 0, created.get());
+        } finally {
+            factory.removeRocksdbChangedListener(probe);
+        }
+    }
+
+    @Test
+    public void testGetTotalKeyReportsOpenDb() throws Exception {
+        Path parent = Files.createTempDirectory("hg-totalkey-");
+        String dbName = "totalkey";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = factory.createGraphDB(parent.toString(), dbName, 0);
+        try {
+            Map<String, Long> totalKeys = factory.getTotalKey();
+            assertTrue(totalKeys.containsKey(dbName));
+            assertNotNull(totalKeys.get(dbName));
+        } finally {
+            session.close();
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
+    public void testDefaultTruncateHooksAreNoOps() {
+        RocksdbChangedListener listener = new RocksdbChangedListener() {
+        };
+        listener.onDBTruncateBegin("db", "/path");
+        listener.onDBTruncated("db", "/path");
+        listener.onDBTruncateAbort("db", "/path");
     }
 
     // =========================================================================
