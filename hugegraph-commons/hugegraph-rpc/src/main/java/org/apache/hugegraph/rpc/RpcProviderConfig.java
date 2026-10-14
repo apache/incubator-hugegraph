@@ -99,7 +99,11 @@ public class RpcProviderConfig implements RpcServiceConfig4Server {
     void exportAll(ServerConfig server, int timeout) {
         for (String serviceId : this.configs.keySet()) {
             this.configs.computeIfPresent(serviceId, (key, config) -> {
-                config.setServer(server).setTimeout(timeout).export();
+                // Sofa appends a single server; retain other bindings without adding duplicates.
+                if (config.getServer() == null || config.getServer().stream().noneMatch(bound -> bound == server)) {
+                    config.setServer(server);
+                }
+                config.setTimeout(timeout).export();
                 return config;
             });
         }

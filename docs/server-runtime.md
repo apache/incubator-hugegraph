@@ -533,9 +533,30 @@ the owner and its RPC resources. In PD-enabled deployments, RPC cleanup failures
 graph DELETE retain the local owner and bindings for retry; partial cleanup does not imply
 a healthy service. This DELETE path first closes task admission and drains local executions,
 then cleans up RPC before metadata deletion and backend clearing. A failed drain or RPC
-cleanup can be retried with the same DELETE. A later close failure can retain the owner
-after RPC has already been removed. Failures after backend clearing do not undo deletion;
-retrying DELETE is not guaranteed to recover subsequent metadata, quota or close failures.
+cleanup can be retried with the same DELETE. Logical graph closure fences access before
+all resource cleanup completes. Any close failure retains the local owner and bindings;
+retrying the same DELETE retries cleanup without repeating backend clearing. A completed clear
+is remembered for that exact graph instance even if an external idle transaction delays close;
+retry after that transaction exits. A replacement graph with the same name is cleared independently.
+A graph closed by a non-clearing removal has no successful-clear certificate. A later clearing DELETE
+refuses that closed owner and keeps its binding, rather than reporting success while old backend data remains.
+Raft provider, node and an owned listener are closed independently. The first fatal Java Error takes
+priority over ordinary close failures; otherwise the first failure is retained. Other failures are
+reported as suppressed, except when that would create an exception cycle, in which case they are logged.
+A graph using Server's shared Raft listener closes
+only its own node. Server releases that listener and its address registration on shutdown;
+deleting one graph keeps the listener available to other local graphs. An interrupted node
+join retains the graph owner and interrupt status so a later DELETE can finish cleanup.
+The context's backend, snapshot and optional read-index executors stop after node join and
+drain queued work before close completes. Their wait uses `task.wait_timeout`; timeout or
+interruption retains the graph for retry without cancelling queued operations.
+RPC cleanup can start before graph close finishes. Clearing PD DELETE unregisters RPC before
+metadata removal and backend clear. Factory, binding and quota removal require a successful graph close;
+a failed close retains their owner even if its RPC services have already been unregistered.
+One failing graph does not prevent other graphs in a PD removal batch from being processed.
+Fatal Java Errors retain their original identity and
+propagate out of the removal batch. Failures after backend clearing do not undo deletion;
+retries do not restore deleted data or placement metadata.
 
 For local deletion without PD, backend clearing precedes RPC cleanup during graph close.
 A later cleanup failure does not preserve the deleted data.

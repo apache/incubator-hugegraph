@@ -23,9 +23,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,7 @@ import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeGraphParams;
 import org.apache.hugegraph.StandardHugeGraph;
 import org.apache.hugegraph.auth.AuthContext;
 import org.apache.hugegraph.auth.ContextGremlinServer;
@@ -55,6 +59,13 @@ import org.apache.hugegraph.auth.HugePermission;
 import org.apache.hugegraph.auth.HugeResource;
 import org.apache.hugegraph.auth.RolePermission;
 import org.apache.hugegraph.backend.store.BackendFeatures;
+import org.apache.hugegraph.backend.store.BackendProviderFactory;
+import org.apache.hugegraph.backend.store.BackendStoreProvider;
+import org.apache.hugegraph.backend.store.raft.RaftBackendStoreProvider;
+import org.apache.hugegraph.backend.store.raft.RaftContext;
+import org.apache.hugegraph.backend.store.raft.RaftNode;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBOptions;
+import org.apache.hugegraph.backend.store.rocksdb.RocksDBStoreProvider;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.OptionSpace;
@@ -84,6 +95,18 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+
+import com.alipay.sofa.jraft.Node;
+import com.alipay.sofa.jraft.NodeManager;
+import com.alipay.sofa.jraft.core.State;
+import com.alipay.sofa.jraft.entity.PeerId;
+import com.alipay.sofa.jraft.option.CliOptions;
+import com.alipay.sofa.jraft.rpc.CliRequests;
+import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
+import com.alipay.sofa.jraft.rpc.impl.cli.CliClientServiceImpl;
+import com.alipay.sofa.rpc.config.ServerConfig;
+import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
+import com.alipay.sofa.jraft.util.Endpoint;
 
 public class GraphManagerConfigTest {
 
@@ -580,7 +603,7 @@ public class GraphManagerConfigTest {
             if (failCleanup || failQuota) {
                 Assert.assertThrows(IllegalStateException.class, () -> manager.dropGraph(
                         "DEFAULT", "legacy_cleanup", clear), caught -> Assert.assertSame(failure, caught));
-                Assert.assertEquals(!clear, owner.closed());
+                Assert.assertEquals(!clear || failQuota, owner.closed());
                 Assert.assertSame(legacy, manager.graph(legacy.spaceGraphName()));
                 Assert.assertSame(legacy, bindings.getGraph(legacy.spaceGraphName()));
                 Map<?, ?> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
@@ -609,6 +632,1168 @@ public class GraphManagerConfigTest {
             if (delegate != null) {
                 delegate.close();
                 HugeFactory.remove(delegate);
+            }
+        }
+    }
+
+    @Test
+    public void testPeerRemovalBatchContinuesAfterOpenTransaction() throws Exception {
+        GraphManager manager = this.dropManager("peer_batch");
+        HugeGraph busy = null;
+        HugeGraph next = null;
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        CountDownLatch opened = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        String threadName = Thread.currentThread().getName();
+        try {
+            busy = manager.createGraphLocal("peer_busy", sharedMemoryConfig("peer_busy"));
+            next = manager.createGraphLocal("peer_next", sharedMemoryConfig("peer_next"));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Mockito.when(meta.extractGraphsFromResponse("batch")).thenReturn(
+                    List.of(busy.spaceGraphName(), next.spaceGraphName()));
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Thread.currentThread().setName("grpc-peer-removal-test");
+            HugeGraph owner = busy;
+            Future<?> transaction = worker.submit(() -> {
+                try {
+                    owner.tx().open();
+                    opened.countDown();
+                    E.checkState(release.await(10, TimeUnit.SECONDS), "Peer transaction barrier timed out");
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(failure);
+                } finally {
+                    Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", owner);
+                }
+            });
+            Assert.assertTrue(opened.await(5, TimeUnit.SECONDS));
+            Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                            "graphRemoveHandler", manager, "batch");
+            HugeException refusal = Assert.assertThrows(HugeException.class, () -> manager.dropGraph(
+                    "DEFAULT", "peer_busy", false));
+            Assert.assertTrue(refusal.getCause() instanceof IllegalStateException);
+            Assert.assertContains("Ensure scheduler and tx closed", refusal.getCause().getMessage());
+            Assert.assertFalse(busy.closed());
+            Assert.assertSame(busy, manager.graph(busy.spaceGraphName()));
+            Assert.assertTrue(next.closed());
+            Assert.assertFalse(manager.graphs().contains(next.spaceGraphName()));
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 2);
+            release.countDown();
+            transaction.get(5, TimeUnit.SECONDS);
+        } finally {
+            release.countDown();
+            worker.shutdownNow();
+            Assert.assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+            Thread.currentThread().setName(threadName);
+            manager.close();
+            if (busy != null) {
+                HugeFactory.remove(busy);
+            }
+            if (next != null) {
+                HugeFactory.remove(next);
+            }
+        }
+    }
+
+    @Test
+    public void testClosedGraphCloseFailureRetainsOwnerUntilRetry() throws Exception {
+        this.checkPostCloseDrop(false);
+    }
+
+    @Test
+    public void testClosedGraphRpcFailureRetriesWithClear() throws Exception {
+        this.checkPostCloseDrop(true);
+    }
+
+    private GraphManager dropManager(String name) throws Exception {
+        OptionSpace.register("core", CoreOptions.instance());
+        OptionSpace.register("rpc", RpcOptions.instance());
+        OptionSpace.register("server", ServerOptions.instance());
+        PropertiesConfiguration properties = new PropertiesConfiguration();
+        properties.setProperty(ServerOptions.GRAPHS.name(), this.temporary.newFolder(name).getPath());
+        properties.setProperty(ServerOptions.USE_PD.name(), false);
+        properties.setProperty(ServerOptions.GRAPH_LOAD_FROM_LOCAL_CONFIG.name(), false);
+        properties.setProperty(ServerOptions.ENABLE_DYNAMIC_CREATE_DROP.name(), true);
+        properties.setProperty(RpcOptions.RPC_SERVER_HOST.name(), "127.0.0.1");
+        properties.setProperty(RpcOptions.RPC_SERVER_PORT.name(), 0);
+        properties.setProperty(RpcOptions.RPC_REMOTE_URL.name(), "127.0.0.1:1");
+        return new GraphManager(new HugeConfig(properties), new EventHub(name));
+    }
+
+    private void checkPostCloseDrop(boolean failCleanup) throws Exception {
+        String name = failCleanup ? "closed_rpc_retry" : "closed_failure";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph owner = null;
+        try {
+            owner = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            HugeGraph delegate = owner;
+            Map<String, HugeGraph> factoryOwners = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            factoryOwners.put(owner.spaceGraphName(), owner);
+            IllegalStateException failure = new IllegalStateException("closed owner cleanup failed");
+            AtomicInteger clears = new AtomicInteger();
+            AtomicInteger rpcCleanup = new AtomicInteger();
+            BackendStoreProvider provider = Mockito.spy(owner.storeProvider());
+            if (!failCleanup) {
+                Whitebox.setInternalState(owner, "storeProvider", provider);
+                Mockito.doAnswer(invocation -> {
+                    invocation.callRealMethod();
+                    throw failure;
+                }).when(provider).close();
+            }
+            HugeGraph graph = (HugeGraph) Proxy.newProxyInstance(HugeGraph.class.getClassLoader(),
+                    new Class<?>[]{HugeGraph.class}, (proxy, method, args) -> {
+                        if ("clearBackend".equals(method.getName())) {
+                            clears.incrementAndGet();
+                        }
+                        if ("unregisterRpcServices".equals(method.getName()) &&
+                            rpcCleanup.incrementAndGet() == 2 && failCleanup) {
+                            throw failure;
+                        }
+                        try {
+                            return method.invoke(delegate, args);
+                        } catch (InvocationTargetException error) {
+                            throw error.getCause();
+                        }
+                    });
+            Map<String, HugeGraph> graphs = Whitebox.getInternalState(manager, "graphs");
+            graphs.put(graph.spaceGraphName(), graph);
+            DefaultGraphManager bindings = new DefaultGraphManager(new Settings());
+            bindings.putGraph(graph.spaceGraphName(), graph);
+            EventHub hub = Whitebox.getInternalState(manager, "eventHub");
+            CountDownLatch dropped = new CountDownLatch(1);
+            hub.listen(Events.GRAPH_DROP, event -> {
+                try {
+                    bindings.removeGraph(graph.spaceGraphName());
+                } catch (Exception failureToUnbind) {
+                    throw new IllegalStateException(failureToUnbind);
+                }
+                dropped.countDown();
+                return true;
+            });
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            spaces.put("DEFAULT", space);
+            if (failCleanup) {
+                Assert.assertThrows(IllegalStateException.class, () -> manager.dropGraph(
+                        "DEFAULT", name, true), caught -> Assert.assertSame(failure, caught));
+            } else {
+                Assert.assertThrows(HugeException.class, () -> manager.dropGraph(
+                        "DEFAULT", name, true), caught -> Assert.assertSame(failure, caught.getCause()));
+                Mockito.doCallRealMethod().when(provider).close();
+            }
+            Assert.assertTrue(owner.closed());
+            Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+            Assert.assertSame(graph, bindings.getGraph(graph.spaceGraphName()));
+            Map<?, ?> retainedFactory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Assert.assertSame(owner, retainedFactory.get(graph.spaceGraphName()));
+            Assert.assertEquals(5, space.graphNumberUsed());
+            Assert.assertEquals(1L, dropped.getCount());
+            manager.dropGraph("DEFAULT", name, true);
+            Assert.assertTrue(dropped.await(5, TimeUnit.SECONDS));
+            Assert.assertTrue(owner.closed());
+            Assert.assertEquals(1, clears.get());
+            Mockito.verify(meta).removeGraphConfig("DEFAULT", name);
+            Mockito.verify(meta).notifyGraphRemove("DEFAULT", name);
+            Mockito.verify(meta).updateGraphSpaceConfig("DEFAULT", space);
+            Assert.assertEquals(4, space.graphNumberUsed());
+            Assert.assertNull(bindings.getGraph(graph.spaceGraphName()));
+            Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
+            Map<?, ?> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Assert.assertFalse(factory.containsKey(graph.spaceGraphName()));
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 0);
+        } finally {
+            manager.close();
+            if (owner != null) {
+                HugeFactory.remove(owner);
+            }
+        }
+    }
+
+    @Test
+    public void testQuotaUpdateFailureWithClearRetriesClosedOwner() throws Exception {
+        this.checkLegacyDrop(false, true, true);
+    }
+
+    @Test
+    public void testRaftCloseFailuresKeepOwnerAndPreserveSuppressed() throws Exception {
+        this.checkRaftCloseFailures(false);
+    }
+
+    @Test
+    public void testRaftCloseFailuresDoNotSuppressTheSameException() throws Exception {
+        this.checkRaftCloseFailures(true);
+    }
+
+    @Test
+    public void testRaftClosePrioritizesFatalError() throws Exception {
+        this.checkRaftCloseFailures(false, true);
+    }
+
+    private void checkRaftCloseFailures(boolean sameFailure) throws Exception {
+        this.checkRaftCloseFailures(sameFailure, false);
+    }
+
+    private void checkRaftCloseFailures(boolean sameFailure, boolean fatalNode) throws Exception {
+        String name = fatalNode ? "raft_fatal_node" : sameFailure ? "raft_same_failure" : "raft_close_failures";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph graph = null;
+        com.alipay.sofa.jraft.rpc.RpcServer nativeRpc = null;
+        RaftContext context = null;
+        String threadName = Thread.currentThread().getName();
+        AtomicBoolean failProvider = new AtomicBoolean(true);
+        AtomicBoolean failNode = new AtomicBoolean(true);
+        AtomicBoolean failRpc = new AtomicBoolean(true);
+        try {
+            graph = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            Map<String, HugeGraph> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            // The shared-memory GraphFactory fixture bypasses HugeFactory.open().
+            factory.put(graph.spaceGraphName(), graph);
+            nativeRpc = startNativeRaftRpc();
+            int port = nativeRpc.boundPort();
+            Assert.assertTrue(nativeRpcListening(port));
+            graph.configuration().setProperty("raft.group_peers", "127.0.0.1:" + port);
+            BackendStoreProvider provider = Mockito.spy(graph.storeProvider());
+            IllegalStateException primary = new IllegalStateException("provider failed before release");
+            Throwable nodeFailure = fatalNode ? new AssertionError("fatal node close") : sameFailure ? primary :
+                                               new IllegalStateException("node failed before release");
+            IllegalStateException rpcFailure = sameFailure ? primary :
+                                               new IllegalStateException("RPC failed before release");
+            AtomicInteger providerCalls = new AtomicInteger();
+            AtomicInteger nodeCalls = new AtomicInteger();
+            AtomicInteger rpcCalls = new AtomicInteger();
+            Mockito.doAnswer(call -> {
+                providerCalls.incrementAndGet();
+                if (failProvider.get()) {
+                    throw primary;
+                }
+                return call.callRealMethod();
+            }).when(provider).close();
+            HugeGraphParams params = Whitebox.getInternalState(graph, "params");
+            RaftBackendStoreProvider raft = new RaftBackendStoreProvider(params, provider);
+            context = Whitebox.getInternalState(raft, "context");
+            RaftNode node = Mockito.mock(RaftNode.class);
+            Mockito.doAnswer(call -> {
+                nodeCalls.incrementAndGet();
+                if (failNode.get()) {
+                    throw nodeFailure;
+                }
+                return null;
+            }).when(node).shutdown();
+            com.alipay.sofa.jraft.rpc.RpcServer rpc = Mockito.spy(nativeRpc);
+            Mockito.doAnswer(call -> {
+                rpcCalls.incrementAndGet();
+                if (failRpc.get()) {
+                    throw rpcFailure;
+                }
+                return call.callRealMethod();
+            }).when(rpc).shutdown();
+            Whitebox.setInternalState(context, "raftNode", node);
+            Whitebox.setInternalState(context, "raftRpcServer", rpc);
+            Whitebox.setInternalState(context, "endpoint", new PeerId("127.0.0.1", port));
+            Whitebox.setInternalState(graph, "storeProvider", raft);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Thread.currentThread().setName("grpc-raft-close-failures");
+            if (fatalNode) {
+                AssertionError fatal = Assert.assertThrows(AssertionError.class,
+                        () -> manager.dropGraph("DEFAULT", name, false));
+                Assert.assertSame(nodeFailure, fatal);
+                Assert.assertEquals(2, fatal.getSuppressed().length);
+                Assert.assertSame(rpcFailure, fatal.getSuppressed()[0]);
+                Assert.assertSame(primary, fatal.getSuppressed()[1]);
+            } else {
+                HugeException failure = Assert.assertThrows(HugeException.class,
+                        () -> manager.dropGraph("DEFAULT", name, false));
+                Assert.assertSame(primary, failure.getCause());
+                Assert.assertEquals(sameFailure ? 0 : 1, primary.getSuppressed().length);
+                if (!sameFailure) {
+                    Assert.assertSame(nodeFailure, primary.getSuppressed()[0]);
+                    Assert.assertSame(rpcFailure, nodeFailure.getSuppressed()[0]);
+                }
+            }
+            Assert.assertTrue(graph.closed());
+            Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+            Assert.assertSame(graph, factory.get(graph.spaceGraphName()));
+            Assert.assertTrue(nativeRpcListening(port));
+            Assert.assertFalse(context.snapshotExecutor().isShutdown());
+            Assert.assertFalse(context.backendExecutor().isShutdown());
+            failProvider.set(false);
+            failNode.set(false);
+            // A remaining listener failure must retain the logically closed owner too.
+            // Retain the original non-clearing removal contract on every retry.
+            HugeException failure = Assert.assertThrows(HugeException.class,
+                    () -> manager.dropGraph("DEFAULT", name, false));
+            Assert.assertSame(rpcFailure, failure.getCause());
+            assertRaftExecutorsTerminated(context);
+            Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+            Assert.assertSame(graph, factory.get(graph.spaceGraphName()));
+            Assert.assertTrue(nativeRpcListening(port));
+            failRpc.set(false);
+            manager.dropGraph("DEFAULT", name, false);
+            Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
+            Assert.assertFalse(factory.containsKey(graph.spaceGraphName()));
+            Assert.assertEquals(2, providerCalls.get());
+            Assert.assertEquals(2, nodeCalls.get());
+            Assert.assertEquals(3, rpcCalls.get());
+            Mockito.verify(meta, Mockito.never()).removeGraphConfig("DEFAULT", name);
+            Mockito.verify(meta, Mockito.never()).notifyGraphRemove("DEFAULT", name);
+            Mockito.verify(meta, Mockito.never()).updateGraphSpaceConfig(Mockito.eq("DEFAULT"),
+                                                                       Mockito.any(GraphSpace.class));
+            awaitNativeRpcClosed(port);
+        } finally {
+            failProvider.set(false);
+            failNode.set(false);
+            failRpc.set(false);
+            Thread.currentThread().setName(threadName);
+            if (nativeRpc != null && nativeRpcListening(nativeRpc.boundPort())) {
+                nativeRpc.shutdown();
+            }
+            stopRaftFixtureExecutors(context);
+            manager.close();
+            if (graph != null) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
+    public void testProviderFailureClosesRealRaftNodeBeforeOwnerRemoval() throws Exception {
+        OptionSpace.register("rocksdb", RocksDBOptions.instance());
+        BackendProviderFactory.register("rocksdb", RocksDBStoreProvider.class.getName());
+        String name = "raft_real_close";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph graph = null;
+        com.alipay.sofa.jraft.rpc.RpcServer rpc = null;
+        RaftContext context = null;
+        RaftNode raftNode = null;
+        String threadName = Thread.currentThread().getName();
+        try {
+            String data = this.temporary.newFolder("raft_data").getPath();
+            String wal = this.temporary.newFolder("raft_wal").getPath();
+            graph = manager.createGraphLocal(name, "gremlin.graph=" + HugeFactory.class.getName() +
+                                                   "\nbackend=rocksdb\nserializer=binary\nstore=" + name +
+                                                   "\nrocksdb.data_path=" + data + "\nrocksdb.wal_path=" + wal + "\n");
+            rpc = startNativeRaftRpc();
+            int port = rpc.boundPort();
+            Assert.assertTrue(nativeRpcListening(port));
+            HugeConfig config = graph.configuration();
+            config.setProperty("raft.group_peers", "127.0.0.1:" + port);
+            config.setProperty(CoreOptions.RAFT_PATH.name(), this.temporary.newFolder("raft_log").getPath());
+            config.setProperty(CoreOptions.RAFT_ELECTION_TIMEOUT.name(), 300);
+            config.setProperty(CoreOptions.RAFT_SNAPSHOT_INTERVAL.name(), 0);
+            config.setProperty(CoreOptions.RAFT_RPC_THREADS.name(), 2);
+            config.setProperty(CoreOptions.RAFT_QUEUE_SIZE.name(), 2048);
+            config.setProperty(CoreOptions.RAFT_SAFE_READ.name(), true);
+            BackendStoreProvider provider = Mockito.spy(graph.storeProvider());
+            AtomicInteger providerCalls = new AtomicInteger();
+            IllegalStateException primary = new IllegalStateException("provider failed before real node release");
+            Mockito.doAnswer(call -> {
+                providerCalls.incrementAndGet();
+                throw primary;
+            }).when(provider).close();
+            HugeGraphParams params = Whitebox.getInternalState(graph, "params");
+            RaftBackendStoreProvider raft = new RaftBackendStoreProvider(params, provider);
+            raft.loadSchemaStore(config);
+            raft.loadGraphStore(config);
+            raft.loadSystemStore(config);
+            context = Whitebox.getInternalState(raft, "context");
+            Whitebox.setInternalState(context, "raftRpcServer", rpc);
+            Whitebox.setInternalState(context, "endpoint", new PeerId("127.0.0.1", port));
+            NodeManager.getInstance().addAddress(new Endpoint("127.0.0.1", port));
+            raftNode = new RaftNode(context);
+            Whitebox.setInternalState(context, "raftNode", raftNode);
+            Node node = Whitebox.invoke(RaftNode.class, "node", raftNode);
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (node.getNodeState() != State.STATE_LEADER && System.nanoTime() < deadline) {
+                Thread.sleep(10);
+            }
+            Assert.assertEquals(State.STATE_LEADER, node.getNodeState());
+            Whitebox.setInternalState(graph, "storeProvider", raft);
+            Whitebox.setInternalState(manager, "metaManager", Mockito.mock(MetaManager.class));
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Thread.currentThread().setName("grpc-real-raft-close");
+            HugeException failure = Assert.assertThrows(HugeException.class,
+                                                       () -> manager.dropGraph("DEFAULT", name, false));
+            Assert.assertSame(primary, failure.getCause());
+            Assert.assertTrue(graph.closed());
+            Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+            Map<?, ?> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Assert.assertSame(graph, factory.get(graph.spaceGraphName()));
+            Assert.assertEquals(State.STATE_SHUTDOWN, node.getNodeState());
+            assertRaftExecutorsTerminated(context);
+            awaitNativeRpcClosed(port);
+            try (ServerSocket reused = new ServerSocket(port)) {
+                Assert.assertEquals(port, reused.getLocalPort());
+            }
+            Mockito.doAnswer(call -> {
+                providerCalls.incrementAndGet();
+                return call.callRealMethod();
+            }).when(provider).close();
+            manager.dropGraph("DEFAULT", name, false);
+            Assert.assertEquals(2, providerCalls.get());
+            Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
+            Assert.assertFalse(factory.containsKey(graph.spaceGraphName()));
+            Assert.assertEquals(State.STATE_SHUTDOWN, node.getNodeState());
+        } finally {
+            Thread.currentThread().setName(threadName);
+            if (raftNode != null) {
+                Node node = Whitebox.invoke(RaftNode.class, "node", raftNode);
+                if (node.getNodeState() != State.STATE_SHUTDOWN) {
+                    raftNode.shutdown();
+                }
+            }
+            if (rpc != null && nativeRpcListening(rpc.boundPort())) {
+                rpc.shutdown();
+            }
+            stopRaftFixtureExecutors(context);
+            manager.close();
+            if (graph != null) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
+    public void testSharedRaftListenerSurvivesGraphDropAndOwnerRestart() throws Exception {
+        GraphManager first = this.raftOwnerManager("shared_owner_one", 0);
+        GraphManager second = null;
+        List<HugeGraph> graphs = new ArrayList<>();
+        List<RaftContext> contexts = new ArrayList<>();
+        CliClientServiceImpl client = new CliClientServiceImpl();
+        client.init(new CliOptions());
+        String threadName = Thread.currentThread().getName();
+        try {
+            com.alipay.remoting.rpc.RpcServer nativeFirst = Whitebox.invoke(GraphManager.class,
+                                                                          "remotingRpcServer", first);
+            int port = nativeFirst.port();
+            Endpoint address = new Endpoint(nativeFirst.ip(), port);
+            Endpoint connect = new Endpoint("127.0.0.1", port);
+            HugeGraph a = this.attachRaftGraph(first, "shared_real_a", nativeFirst, contexts);
+            HugeGraph b = this.attachRaftGraph(first, "shared_real_b", nativeFirst, contexts);
+            graphs.add(a);
+            graphs.add(b);
+            startSharedRaftPair(contexts, nativeFirst);
+            Node nodeA = nativeNode(contexts.get(0));
+            Node nodeB = nativeNode(contexts.get(1));
+            assertRaftLeader(client, connect, b.spaceGraphName());
+            Whitebox.setInternalState(first, "metaManager", Mockito.mock(MetaManager.class));
+            Whitebox.setInternalState(first, "PDExist", true);
+            Thread.currentThread().setName("grpc-shared-real-owner");
+            first.dropGraph("DEFAULT", a.name(), false);
+            Assert.assertEquals(State.STATE_SHUTDOWN, nodeA.getNodeState());
+            assertRaftExecutorsTerminated(contexts.get(0));
+            Assert.assertEquals(State.STATE_LEADER, nodeB.getNodeState());
+            Assert.assertTrue(nativeRpcListening(port));
+            Assert.assertTrue(NodeManager.getInstance().serverExists(address));
+            assertRaftLeader(client, connect, b.spaceGraphName());
+            client.shutdown();
+            client = null;
+            RpcServer server = Mockito.spy((RpcServer) Whitebox.getInternalState(first, "rpcServer"));
+            IllegalStateException destroyFailure = new IllegalStateException("owner listener release failed");
+            Mockito.doThrow(destroyFailure).when(server).destroy();
+            Whitebox.setInternalState(first, "rpcServer", server);
+            Assert.assertThrows(IllegalStateException.class, first::close,
+                                error -> Assert.assertSame(destroyFailure, error));
+            Assert.assertEquals(State.STATE_SHUTDOWN, nodeB.getNodeState());
+            Assert.assertTrue(nativeRpcListening(port));
+            Assert.assertTrue(NodeManager.getInstance().serverExists(address));
+            Assert.assertEquals(address, Whitebox.getInternalState(first, "raftRpcEndpoint"));
+            Mockito.doCallRealMethod().when(server).destroy();
+            first.close();
+            Mockito.verify(server, Mockito.times(2)).destroy();
+            Assert.assertNull(Whitebox.getInternalState(first, "raftRpcEndpoint"));
+            Assert.assertEquals(State.STATE_SHUTDOWN, nodeB.getNodeState());
+            awaitNativeRpcClosed(port);
+            Assert.assertFalse(NodeManager.getInstance().serverExists(address));
+            List<Node> stopped = NodeManager.getInstance().getNodesByGroupId(b.spaceGraphName());
+            Assert.assertTrue(stopped == null || stopped.isEmpty());
+            try (ServerSocket reused = new ServerSocket(port)) {
+                Assert.assertEquals(port, reused.getLocalPort());
+            }
+            second = this.raftOwnerManager("shared_owner_two", port);
+            com.alipay.remoting.rpc.RpcServer nativeSecond = Whitebox.invoke(GraphManager.class,
+                                                                           "remotingRpcServer", second);
+            Assert.assertNotSame(nativeFirst, nativeSecond);
+            Assert.assertEquals(port, nativeSecond.port());
+            HugeGraph restarted = this.attachRaftGraph(second, b.name(), nativeSecond, contexts);
+            graphs.add(restarted);
+            contexts.get(2).initRaftNode(nativeSecond);
+            Node fresh = nativeNode(contexts.get(2));
+            awaitRaftLeader(fresh);
+            Assert.assertNotSame(nodeB, fresh);
+            client = new CliClientServiceImpl();
+            client.init(new CliOptions());
+            assertRaftLeader(client, connect, restarted.spaceGraphName());
+            client.shutdown();
+            client = null;
+            second.close();
+            Assert.assertEquals(State.STATE_SHUTDOWN, fresh.getNodeState());
+            assertRaftExecutorsTerminated(contexts.get(2));
+            awaitNativeRpcClosed(port);
+            Assert.assertFalse(NodeManager.getInstance().serverExists(address));
+        } finally {
+            Thread.currentThread().setName(threadName);
+            if (client != null) {
+                client.shutdown();
+            }
+            first.close();
+            if (second != null) {
+                second.close();
+            }
+            for (RaftContext context : contexts) {
+                stopRaftFixtureExecutors(context);
+            }
+            for (HugeGraph graph : graphs) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
+    public void testInterruptedRaftJoinRetainsOwnerUntilRetry() throws Exception {
+        GraphManager manager = this.raftOwnerManager("interrupt_shared_owner", 0);
+        List<HugeGraph> graphs = new ArrayList<>();
+        List<RaftContext> contexts = new ArrayList<>();
+        CliClientServiceImpl client = new CliClientServiceImpl();
+        client.init(new CliOptions());
+        String threadName = Thread.currentThread().getName();
+        try {
+            com.alipay.remoting.rpc.RpcServer shared = Whitebox.invoke(GraphManager.class,
+                                                                     "remotingRpcServer", manager);
+            Endpoint address = new Endpoint(shared.ip(), shared.port());
+            Endpoint connect = new Endpoint("127.0.0.1", shared.port());
+            HugeGraph a = this.attachRaftGraph(manager, "interrupt_real_a", shared, contexts);
+            HugeGraph b = this.attachRaftGraph(manager, "interrupt_real_b", shared, contexts);
+            graphs.add(a);
+            graphs.add(b);
+            startSharedRaftPair(contexts, shared);
+            RaftContext context = contexts.get(0);
+            Node nodeA = nativeNode(context);
+            Node nodeB = nativeNode(contexts.get(1));
+            RaftNode owner = Mockito.spy(context.node());
+            AtomicBoolean interruptJoin = new AtomicBoolean(true);
+            AtomicReference<InterruptedException> joinFailure = new AtomicReference<>();
+            // Inject an interrupted wait at Node.join(); retry delegates to the same native node.
+            // Setting the flag alone is insufficient: native component joins may consume it.
+            Node joining = (Node) Proxy.newProxyInstance(Node.class.getClassLoader(),
+                    new Class<?>[]{Node.class}, (proxy, method, args) -> {
+                        if ("join".equals(method.getName()) && interruptJoin.get()) {
+                            Thread.currentThread().interrupt();
+                            try {
+                                new CountDownLatch(1).await();
+                            } catch (InterruptedException interrupted) {
+                                joinFailure.set(interrupted);
+                                throw interrupted;
+                            }
+                        }
+                        try {
+                            return method.invoke(nodeA, args);
+                        } catch (InvocationTargetException failure) {
+                            throw failure.getCause();
+                        }
+                    });
+            Whitebox.setInternalState(owner, "node", joining);
+            // Keep the baseline group-service join on the identical native join boundary too.
+            Object group = Whitebox.getInternalState(owner, "raftGroupService");
+            Whitebox.setInternalState(group, "node", joining);
+            Whitebox.setInternalState(context, "raftNode", owner);
+            Whitebox.setInternalState(manager, "metaManager", Mockito.mock(MetaManager.class));
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Thread.currentThread().setName("grpc-interrupted-raft-join");
+            HugeException failure = Assert.assertThrows(HugeException.class,
+                    () -> manager.dropGraph("DEFAULT", a.name(), false));
+            Assert.assertNotNull(joinFailure.get());
+            Assert.assertSame(joinFailure.get(), HugeException.rootCause(failure));
+            Assert.assertTrue(Thread.currentThread().isInterrupted());
+            Assert.assertTrue(Thread.interrupted());
+            Assert.assertTrue(a.closed());
+            Assert.assertSame(a, manager.graph(a.spaceGraphName()));
+            Map<?, ?> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Assert.assertSame(a, factory.get(a.spaceGraphName()));
+            Assert.assertTrue(nativeRpcListening(shared.port()));
+            Assert.assertTrue(NodeManager.getInstance().serverExists(address));
+            Assert.assertFalse(context.snapshotExecutor().isShutdown());
+            Assert.assertFalse(context.backendExecutor().isShutdown());
+            assertRaftLeader(client, connect, b.spaceGraphName());
+            Mockito.verify(owner).shutdown();
+            interruptJoin.set(false);
+            manager.dropGraph("DEFAULT", a.name(), false);
+            Assert.assertEquals(State.STATE_SHUTDOWN, nodeA.getNodeState());
+            assertRaftExecutorsTerminated(context);
+            Assert.assertFalse(manager.graphs().contains(a.spaceGraphName()));
+            Mockito.verify(owner, Mockito.times(2)).shutdown();
+            a.close();
+            context.close();
+            Mockito.verify(owner, Mockito.times(2)).shutdown();
+            Assert.assertEquals(State.STATE_LEADER, nodeB.getNodeState());
+            assertRaftLeader(client, connect, b.spaceGraphName());
+            client.shutdown();
+            client = null;
+            manager.close();
+            awaitNativeRpcClosed(shared.port());
+            Assert.assertFalse(NodeManager.getInstance().serverExists(address));
+        } finally {
+            Thread.interrupted();
+            Thread.currentThread().setName(threadName);
+            if (client != null) {
+                client.shutdown();
+            }
+            manager.close();
+            for (RaftContext context : contexts) {
+                stopRaftFixtureExecutors(context);
+            }
+            for (HugeGraph graph : graphs) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    private GraphManager raftOwnerManager(String name, int port) throws Exception {
+        OptionSpace.register("rocksdb", RocksDBOptions.instance());
+        BackendProviderFactory.register("rocksdb", RocksDBStoreProvider.class.getName());
+        GraphManager manager = this.dropManager(name);
+        RpcServer rpc = Whitebox.getInternalState(manager, "rpcServer");
+        ServerConfig config = Whitebox.getInternalState(rpc, "serverConfig");
+        config.setPort(port);
+        return manager;
+    }
+
+    private HugeGraph attachRaftGraph(GraphManager manager, String name,
+                                     com.alipay.remoting.rpc.RpcServer shared,
+                                     List<RaftContext> contexts) throws Exception {
+        String suffix = name + "_" + contexts.size();
+        String data = this.temporary.newFolder(suffix + "_data").getPath();
+        String wal = this.temporary.newFolder(suffix + "_wal").getPath();
+        HugeGraph graph = manager.createGraphLocal(name, "gremlin.graph=" + HugeFactory.class.getName() +
+                "\nbackend=rocksdb\nserializer=binary\nstore=" + name +
+                "\nrocksdb.data_path=" + data + "\nrocksdb.wal_path=" + wal + "\n");
+        HugeConfig config = graph.configuration();
+        config.setProperty("raft.group_peers", shared.ip() + ":" + shared.port());
+        config.setProperty(CoreOptions.RAFT_PATH.name(), this.temporary.newFolder(suffix + "_raft").getPath());
+        config.setProperty(CoreOptions.RAFT_ELECTION_TIMEOUT.name(), 300);
+        config.setProperty(CoreOptions.RAFT_SNAPSHOT_INTERVAL.name(), 0);
+        config.setProperty(CoreOptions.RAFT_RPC_THREADS.name(), 2);
+        config.setProperty(CoreOptions.RAFT_QUEUE_SIZE.name(), 2048);
+        config.setProperty(CoreOptions.RAFT_SAFE_READ.name(), false);
+        HugeGraphParams params = Whitebox.getInternalState(graph, "params");
+        RaftBackendStoreProvider raft = new RaftBackendStoreProvider(params, graph.storeProvider());
+        raft.loadSchemaStore(config);
+        raft.loadGraphStore(config);
+        raft.loadSystemStore(config);
+        contexts.add(Whitebox.getInternalState(raft, "context"));
+        Whitebox.setInternalState(graph, "storeProvider", raft);
+        return graph;
+    }
+
+    private static void startSharedRaftPair(List<RaftContext> contexts,
+                                           com.alipay.remoting.rpc.RpcServer shared) throws Exception {
+        contexts.get(0).initRaftNode(shared);
+        RaftContext second = contexts.get(1);
+        // Production second-context init currently repeats processor registration and fails.
+        // Bypass only that independent startup defect to exercise real shared-node close ownership.
+        Whitebox.setInternalState(second, "raftRpcServer", new BoltRpcServer(shared));
+        Whitebox.setInternalState(second, "sharedRpcServer", true);
+        Whitebox.setInternalState(second, "endpoint", new PeerId(shared.ip(), shared.port()));
+        Whitebox.setInternalState(second, "raftNode", new RaftNode(second));
+        awaitRaftLeader(nativeNode(contexts.get(0)));
+        awaitRaftLeader(nativeNode(second));
+    }
+
+    private static Node nativeNode(RaftContext context) {
+        return Whitebox.invoke(RaftNode.class, "node", context.node());
+    }
+
+    private static void awaitRaftLeader(Node node) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (node.getNodeState() != State.STATE_LEADER && System.nanoTime() < deadline) {
+            Thread.sleep(10);
+        }
+        Assert.assertEquals(State.STATE_LEADER, node.getNodeState());
+    }
+
+    private static void assertRaftLeader(CliClientServiceImpl client, Endpoint endpoint,
+                                        String graph) throws Exception {
+        com.google.protobuf.Message response = client.getLeader(endpoint,
+                CliRequests.GetLeaderRequest.newBuilder().setGroupId(graph).build(), null)
+                                                     .get(5, TimeUnit.SECONDS);
+        Assert.assertTrue(response instanceof CliRequests.GetLeaderResponse);
+        Assert.assertFalse(((CliRequests.GetLeaderResponse) response).getLeaderId().isEmpty());
+    }
+
+    @Test
+    public void testFatalCloseErrorEscapesPeerRemovalBatch() throws Exception {
+        GraphManager manager = this.dropManager("fatal_batch");
+        HugeGraph first = null;
+        HugeGraph next = null;
+        BackendStoreProvider provider = null;
+        try {
+            first = manager.createGraphLocal("fatal_first", sharedMemoryConfig("fatal_first"));
+            next = manager.createGraphLocal("fatal_next", sharedMemoryConfig("fatal_next"));
+            Map<String, HugeGraph> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            factory.put(first.spaceGraphName(), first);
+            factory.put(next.spaceGraphName(), next);
+            provider = Mockito.spy(first.storeProvider());
+            AssertionError fatal = new AssertionError("fatal provider close");
+            Mockito.doThrow(fatal).when(provider).close();
+            Whitebox.setInternalState(first, "storeProvider", provider);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Mockito.when(meta.extractGraphsFromResponse("fatal")).thenReturn(
+                    List.of(first.spaceGraphName(), next.spaceGraphName()));
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            java.lang.reflect.Method method = GraphManager.class.getDeclaredMethod("graphRemoveHandler", Object.class);
+            method.setAccessible(true);
+            AssertionError caught = Assert.assertThrows(AssertionError.class, () -> {
+                try {
+                    method.invoke(manager, "fatal");
+                } catch (InvocationTargetException failure) {
+                    // Whitebox.invoke wraps Error, so preserve the actual handler result here.
+                    throw failure.getCause();
+                }
+            });
+            Assert.assertSame(fatal, caught);
+            Assert.assertSame(first, manager.graph(first.spaceGraphName()));
+            Assert.assertSame(next, manager.graph(next.spaceGraphName()));
+            Assert.assertSame(first, factory.get(first.spaceGraphName()));
+            Assert.assertFalse(next.closed());
+        } finally {
+            if (provider != null) {
+                Mockito.doCallRealMethod().when(provider).close();
+            }
+            manager.close();
+            if (first != null) {
+                HugeFactory.remove(first);
+            }
+            if (next != null) {
+                HugeFactory.remove(next);
+            }
+        }
+    }
+
+    @Test
+    public void testEarlierRuntimeFailureDoesNotHideFatalCloseError() throws Exception {
+        this.checkFatalClosePriority(false, false);
+    }
+
+    @Test
+    public void testFatalCloseDoesNotCreateCauseSuppressionCycle() throws Exception {
+        this.checkFatalClosePriority(true, false);
+    }
+
+    @Test
+    public void testRepeatedFatalCloseFailureKeepsIdentity() throws Exception {
+        this.checkFatalClosePriority(false, true);
+    }
+
+    private void checkFatalClosePriority(boolean causeLink, boolean same) throws Exception {
+        String name = causeLink ? "fatal_cause_link" : same ? "fatal_repeated" : "fatal_priority";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph first = null;
+        HugeGraph next = null;
+        BackendStoreProvider provider = null;
+        org.apache.hugegraph.auth.AuthManager auth = null;
+        try {
+            first = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            next = manager.createGraphLocal(name + "_next", sharedMemoryConfig(name + "_next"));
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", first);
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", next);
+            AssertionError fatal = new AssertionError("fatal native release");
+            RuntimeException earlier = causeLink ? new IllegalStateException("earlier close wraps fatal", fatal) :
+                                                  new IllegalStateException("earlier close failed");
+            auth = Mockito.spy(first.authManager());
+            Mockito.doThrow(same ? fatal : earlier).when(auth).close();
+            first.switchAuthManager(auth);
+            provider = Mockito.spy(first.storeProvider());
+            Mockito.doThrow(fatal).when(provider).close();
+            Whitebox.setInternalState(first, "storeProvider", provider);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Mockito.when(meta.extractGraphsFromResponse("fatal-priority")).thenReturn(
+                    List.of(first.spaceGraphName(), next.spaceGraphName()));
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            spaces.put("DEFAULT", space);
+            java.lang.reflect.Method method = GraphManager.class.getDeclaredMethod("graphRemoveHandler", Object.class);
+            method.setAccessible(true);
+            AssertionError caught = Assert.assertThrows(AssertionError.class, () -> {
+                try {
+                    method.invoke(manager, "fatal-priority");
+                } catch (InvocationTargetException wrapped) {
+                    throw wrapped.getCause();
+                }
+            });
+            Assert.assertSame(fatal, caught);
+            Assert.assertEquals(same || causeLink ? 0 : 1, fatal.getSuppressed().length);
+            if (!same && !causeLink) {
+                Assert.assertSame(earlier, fatal.getSuppressed()[0]);
+            }
+            Assert.assertSame(first, manager.graph(first.spaceGraphName()));
+            Assert.assertSame(next, manager.graph(next.spaceGraphName()));
+            Assert.assertFalse(next.closed());
+        } finally {
+            if (auth != null) {
+                Mockito.doCallRealMethod().when(auth).close();
+            }
+            if (provider != null) {
+                Mockito.doCallRealMethod().when(provider).close();
+            }
+            manager.close();
+            if (first != null) {
+                HugeFactory.remove(first);
+            }
+            if (next != null) {
+                HugeFactory.remove(next);
+            }
+        }
+    }
+
+    @Test
+    public void testClosedUnclearedOwnerRejectsRestClearRetry() throws Exception {
+        String name = "closed_uncleared";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph graph = null;
+        BackendStoreProvider provider = null;
+        try {
+            OptionSpace.register("rocksdb", RocksDBOptions.instance());
+            BackendProviderFactory.register("rocksdb", RocksDBStoreProvider.class.getName());
+            String config = "gremlin.graph=" + HugeFactory.class.getName() +
+                            "\nbackend=rocksdb\nserializer=binary\nstore=" + name +
+                            "\nrocksdb.data_path=" + this.temporary.newFolder("data").getPath() +
+                            "\nrocksdb.wal_path=" + this.temporary.newFolder("wal").getPath() + "\n";
+            graph = manager.createGraphLocal(name, config);
+            graph.schema().vertexLabel("kept").useCustomizeStringId().create();
+            graph.addVertex(org.apache.tinkerpop.gremlin.structure.T.label, "kept",
+                            org.apache.tinkerpop.gremlin.structure.T.id, "uncleared");
+            graph.tx().commit();
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+            provider = Mockito.spy(graph.storeProvider());
+            IllegalStateException first = new IllegalStateException("provider release failed");
+            Mockito.doThrow(first).when(provider).close();
+            Whitebox.setInternalState(graph, "storeProvider", provider);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            HugeException failedClose = Assert.assertThrows(HugeException.class,
+                    () -> manager.dropGraph("DEFAULT", name, false));
+            Assert.assertSame(first, failedClose.getCause());
+            Assert.assertTrue(graph.closed());
+            Map<String, HugeGraph> certificates = Whitebox.getInternalState(manager, "clearedGraphs");
+            Assert.assertFalse(certificates.containsKey(graph.spaceGraphName()));
+            Mockito.doCallRealMethod().when(provider).close();
+
+            HugeException refused = Assert.assertThrows(HugeException.class, () ->
+                    new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                            manager, "DEFAULT", name, "I'm sure to drop the graph"));
+            Assert.assertContains("without a successful backend clear", refused.getMessage());
+            Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+            Mockito.verifyNoInteractions(meta);
+        } finally {
+            if (provider != null) {
+                Mockito.doCallRealMethod().when(provider).close();
+            }
+            manager.close();
+            if (graph != null) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
+    public void testClearDeleteRetriesAfterForeignTransactionCloses() throws Exception {
+        this.checkClearedOwnerRetry(0);
+    }
+
+    @Test
+    public void testClearedOwnerPeerRetryDoesNotClearReplacement() throws Exception {
+        this.checkClearedOwnerRetry(1);
+    }
+
+    @Test
+    public void testManagerStopKeepsUnfinishedClearProgress() throws Exception {
+        this.checkClearedOwnerRetry(2);
+    }
+
+    private void checkClearedOwnerRetry(int retryMode) throws Exception {
+        String name = "clear_idle_retry_" + retryMode;
+        GraphManager manager = this.dropManager(name);
+        HugeGraph graph = null;
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        CountDownLatch opened = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger clears = new AtomicInteger();
+        try {
+            graph = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            HugeGraph owner = graph;
+            Map<String, HugeGraph> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            factory.put(owner.spaceGraphName(), owner);
+            HugeGraph proxy = (HugeGraph) Proxy.newProxyInstance(HugeGraph.class.getClassLoader(),
+                    new Class<?>[]{HugeGraph.class}, (delegate, method, args) -> {
+                        if ("clearBackend".equals(method.getName())) {
+                            clears.incrementAndGet();
+                        }
+                        try {
+                            return method.invoke(owner, args);
+                        } catch (InvocationTargetException failure) {
+                            throw failure.getCause();
+                        }
+                    });
+            Map<String, HugeGraph> graphs = Whitebox.getInternalState(manager, "graphs");
+            graphs.put(graph.spaceGraphName(), proxy);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            spaces.put("DEFAULT", space);
+            Future<?> transaction = worker.submit(() -> {
+                try {
+                    owner.tx().open();
+                    opened.countDown();
+                    E.checkState(release.await(15, TimeUnit.SECONDS), "Foreign transaction release timed out");
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(failure);
+                } finally {
+                    Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", owner);
+                }
+            });
+            Assert.assertTrue(opened.await(5, TimeUnit.SECONDS));
+            HugeException refusal = Assert.assertThrows(HugeException.class,
+                    () -> manager.dropGraph("DEFAULT", name, true));
+            Assert.assertTrue(refusal.getCause() instanceof IllegalStateException);
+            Assert.assertFalse(graph.closed());
+            Assert.assertEquals(1, clears.get());
+            Map<String, HugeGraph> progress = Whitebox.getInternalState(manager, "clearedGraphs");
+            Assert.assertSame(proxy, progress.get(graph.spaceGraphName()));
+            Assert.assertSame(proxy, manager.graph(graph.spaceGraphName()));
+            if (retryMode == 1) {
+                Assert.assertThrows(HugeException.class, () -> manager.dropGraph("DEFAULT", name, false));
+                Assert.assertSame(proxy, progress.get(graph.spaceGraphName()));
+            } else if (retryMode == 2) {
+                manager.close();
+                Assert.assertSame(proxy, progress.get(graph.spaceGraphName()));
+            }
+            release.countDown();
+            transaction.get(5, TimeUnit.SECONDS);
+            if (retryMode == 2) {
+                manager.close();
+            } else {
+                // This is the same public path used by REST graph DELETE and by PD peer removal.
+                manager.dropGraph("DEFAULT", name, retryMode == 0);
+                Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
+                Assert.assertFalse(factory.containsKey(graph.spaceGraphName()));
+            }
+            Assert.assertTrue(graph.closed());
+            Assert.assertFalse(progress.containsKey(graph.spaceGraphName()));
+            Assert.assertEquals(1, clears.get());
+            Mockito.verify(meta).removeGraphConfig("DEFAULT", name);
+            Mockito.verify(meta).notifyGraphRemove("DEFAULT", name);
+            if (retryMode == 1) {
+                HugeGraph replacement = manager.createGraphLocal(name, sharedMemoryConfig(name));
+                factory.put(replacement.spaceGraphName(), replacement);
+                BackendStoreProvider replacementProvider = Mockito.spy(replacement.storeProvider());
+                Whitebox.setInternalState(replacement, "storeProvider", replacementProvider);
+                // Even a stale certificate for the same name must not certify this new identity.
+                progress.put(replacement.spaceGraphName(), proxy);
+                manager.dropGraph("DEFAULT", name, true);
+                Mockito.verify(replacementProvider).clear();
+                Assert.assertTrue(replacement.closed());
+                Assert.assertFalse(progress.containsKey(replacement.spaceGraphName()));
+                Mockito.verify(meta, Mockito.times(2)).removeGraphConfig("DEFAULT", name);
+                Mockito.verify(meta, Mockito.times(2)).notifyGraphRemove("DEFAULT", name);
+            }
+        } finally {
+            release.countDown();
+            worker.shutdownNow();
+            Assert.assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+            manager.close();
+            if (graph != null) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
+    public void testRaftContextClosesOwnedExecutorsAfterWork() throws Exception {
+        this.checkRaftExecutorDrain(0);
+    }
+
+    @Test
+    public void testRaftExecutorTimeoutRetainsOwnerAndQueuedWork() throws Exception {
+        this.checkRaftExecutorDrain(1);
+    }
+
+    @Test
+    public void testInterruptedRaftExecutorDrainRetainsOwner() throws Exception {
+        this.checkRaftExecutorDrain(2);
+    }
+
+    private void checkRaftExecutorDrain(int failureMode) throws Exception {
+        String name = "raft_executor_drain_" + failureMode;
+        GraphManager manager = this.dropManager(name);
+        HugeGraph graph = null;
+        RaftContext context = null;
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean interruptedWorker = new AtomicBoolean();
+        AtomicBoolean interruptAwait = new AtomicBoolean(true);
+        try {
+            graph = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            Map<String, HugeGraph> factory = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            factory.put(graph.spaceGraphName(), graph);
+            com.alipay.sofa.jraft.rpc.RpcServer rpc = startNativeRaftRpc();
+            graph.configuration().setProperty("raft.group_peers", "127.0.0.1:" + rpc.boundPort());
+            graph.configuration().setProperty(CoreOptions.RAFT_SAFE_READ.name(), true);
+            graph.configuration().setProperty(CoreOptions.RAFT_BACKEND_THREADS.name(), 1);
+            graph.configuration().setProperty(CoreOptions.TASK_WAIT_TIMEOUT.name(), failureMode == 1 ? 0L : 1L);
+            RaftBackendStoreProvider raft = new RaftBackendStoreProvider(
+                    Whitebox.getInternalState(graph, "params"), graph.storeProvider());
+            context = Whitebox.getInternalState(raft, "context");
+            Whitebox.setInternalState(context, "raftRpcServer", rpc);
+            Whitebox.setInternalState(context, "endpoint", new PeerId("127.0.0.1", rpc.boundPort()));
+            Whitebox.setInternalState(graph, "storeProvider", raft);
+            for (ExecutorService executor : new ExecutorService[]{context.readIndexExecutor(),
+                                                                  context.snapshotExecutor(),
+                                                                  context.backendExecutor()}) {
+                executor.submit(() -> { }).get(5, TimeUnit.SECONDS);
+            }
+            Future<?> running = context.backendExecutor().submit(() -> {
+                started.countDown();
+                try {
+                    E.checkState(release.await(10, TimeUnit.SECONDS), "Backend executor release timed out");
+                } catch (InterruptedException interrupted) {
+                    interruptedWorker.set(true);
+                    Thread.currentThread().interrupt();
+                }
+            });
+            Assert.assertTrue(started.await(5, TimeUnit.SECONDS));
+            AtomicInteger completed = new AtomicInteger();
+            Future<?> queued = context.backendExecutor().submit(completed::incrementAndGet);
+            Whitebox.setInternalState(manager, "metaManager", Mockito.mock(MetaManager.class));
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            spaces.put("DEFAULT", space);
+            if (failureMode == 0) {
+                release.countDown();
+                manager.dropGraph("DEFAULT", name, false);
+            } else {
+                if (failureMode == 2) {
+                    // Begin the interrupt only at executor await, after graph's caller-TX cleanup.
+                    ExecutorService backend = context.backendExecutor();
+                    ExecutorService awaiting = (ExecutorService) Proxy.newProxyInstance(
+                            ExecutorService.class.getClassLoader(), new Class<?>[]{ExecutorService.class},
+                            (proxy, method, args) -> {
+                                if ("awaitTermination".equals(method.getName()) && interruptAwait.get()) {
+                                    Thread.currentThread().interrupt();
+                                }
+                                try {
+                                    return method.invoke(backend, args);
+                                } catch (InvocationTargetException failure) {
+                                    throw failure.getCause();
+                                }
+                            });
+                    Whitebox.setInternalState(context, "backendExecutor", awaiting);
+                }
+                HugeException failure = Assert.assertThrows(HugeException.class,
+                        () -> manager.dropGraph("DEFAULT", name, false));
+                if (failureMode == 2) {
+                    Assert.assertTrue(HugeException.rootCause(failure) instanceof InterruptedException);
+                    Assert.assertTrue(Thread.interrupted());
+                    interruptAwait.set(false);
+                }
+                Assert.assertTrue(graph.closed());
+                Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+                Assert.assertSame(graph, factory.get(graph.spaceGraphName()));
+                Assert.assertTrue(context.backendExecutor().isShutdown());
+                Assert.assertFalse(context.backendExecutor().isTerminated());
+                Assert.assertFalse(queued.isDone());
+                Assert.assertFalse(interruptedWorker.get());
+                release.countDown();
+                running.get(5, TimeUnit.SECONDS);
+                queued.get(5, TimeUnit.SECONDS);
+                graph.configuration().setProperty(CoreOptions.TASK_WAIT_TIMEOUT.name(), 1L);
+                manager.dropGraph("DEFAULT", name, false);
+            }
+            running.get(5, TimeUnit.SECONDS);
+            queued.get(5, TimeUnit.SECONDS);
+            Assert.assertEquals(1, completed.get());
+            Assert.assertFalse(interruptedWorker.get());
+            assertRaftExecutorsTerminated(context);
+            Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
+            awaitNativeRpcClosed(rpc.boundPort());
+        } finally {
+            Thread.interrupted();
+            release.countDown();
+            stopRaftFixtureExecutors(context);
+            manager.close();
+            if (graph != null) {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    private static void assertRaftExecutorsTerminated(RaftContext context) {
+        for (ExecutorService executor : new ExecutorService[]{context.readIndexExecutor(),
+                                                              context.snapshotExecutor(),
+                                                              context.backendExecutor()}) {
+            if (executor != null) {
+                Assert.assertTrue(executor.isShutdown());
+                Assert.assertTrue(executor.isTerminated());
+            }
+        }
+    }
+
+    private static com.alipay.sofa.jraft.rpc.RpcServer startNativeRaftRpc() throws Exception {
+        int port;
+        try (ServerSocket reservation = new ServerSocket(0)) {
+            port = reservation.getLocalPort();
+        }
+        return RaftRpcServerFactory.createAndStartRaftRpcServer(new Endpoint("127.0.0.1", port));
+    }
+
+    private static boolean nativeRpcListening(int port) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress("127.0.0.1", port), 200);
+            return true;
+        } catch (Exception refused) {
+            return false;
+        }
+    }
+
+    private static void awaitNativeRpcClosed(int port) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (nativeRpcListening(port) && System.nanoTime() < deadline) {
+            Thread.sleep(10);
+        }
+        Assert.assertFalse(nativeRpcListening(port));
+    }
+
+    private static void stopRaftFixtureExecutors(RaftContext context) throws Exception {
+        if (context == null) {
+            return;
+        }
+        for (ExecutorService pool : new ExecutorService[]{context.readIndexExecutor(), context.snapshotExecutor(),
+                                                        context.backendExecutor()}) {
+            if (pool != null) {
+                pool.shutdownNow();
+                Assert.assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
             }
         }
     }

@@ -28,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.rpc.RpcClientProvider;
@@ -45,6 +46,7 @@ import org.junit.Test;
 
 import com.alipay.sofa.rpc.common.RpcOptions;
 import com.alipay.sofa.rpc.config.ProviderConfig;
+import com.alipay.sofa.rpc.config.ServerConfig;
 import com.alipay.sofa.rpc.core.exception.SofaRpcException;
 import com.alipay.sofa.rpc.core.exception.SofaRpcRuntimeException;
 import com.google.common.collect.ImmutableMap;
@@ -649,26 +651,64 @@ public class ServerClientTest extends BaseUnitTest {
     @Test
     public void testExportMultiTimesOfSameServer() {
         RpcServer rpcServerExport = new RpcServer(config("server-random"));
-        rpcServerExport.config().addService(HelloService.class,
-                                            new HelloServiceImpl());
-        rpcServerExport.exportAll();
-        rpcServerExport.exportAll();
-
-        stopServer(rpcServerExport);
+        try {
+            rpcServerExport.config().addService(HelloService.class, new HelloServiceImpl());
+            rpcServerExport.exportAll();
+            rpcServerExport.exportAll();
+            Assert.assertEquals(1, rpcServerExport.config().configs().get(
+                    HelloService.class.getName()).getServer().size());
+        } finally {
+            stopServer(rpcServerExport);
+        }
     }
 
     @Test
     public void testExportMultiTimesOfSameService() {
         RpcServer rpcServerExport = new RpcServer(config("server-random"));
-        rpcServerExport.config().addService(HelloService.class,
-                                            new HelloServiceImpl());
-        rpcServerExport.exportAll();
+        try {
+            rpcServerExport.config().addService(HelloService.class, new HelloServiceImpl());
+            rpcServerExport.exportAll();
+            rpcServerExport.config().addService("graph", HelloService.class, new HelloServiceImpl());
+            rpcServerExport.exportAll();
+            rpcServerExport.exportAll();
+            for (ProviderConfig<?> provider : rpcServerExport.config().configs().values()) {
+                Assert.assertEquals(1, provider.getServer().size());
+            }
+        } finally {
+            stopServer(rpcServerExport);
+        }
+    }
 
-        rpcServerExport.config().addService("graph", HelloService.class,
-                                            new HelloServiceImpl());
-        rpcServerExport.exportAll();
-
-        stopServer(rpcServerExport);
+    @Test
+    public void testExportRetriesWithoutDuplicatingConfiguredServers() {
+        RpcServer server = new RpcServer(config("server-random"));
+        AtomicInteger exports = new AtomicInteger();
+        IllegalStateException failure = new IllegalStateException("export failed before binding");
+        ProviderConfig<HelloService> provider = new ProviderConfig<>() {
+            @Override
+            public void export() {
+                if (exports.incrementAndGet() == 1) {
+                    throw failure;
+                }
+            }
+        };
+        // Sofa equality ignores settings such as serialization; preserve distinct config objects.
+        ServerConfig existing = new ServerConfig().setProtocol("bolt").setHost("127.0.0.1")
+                                                  .setPort(0).setSerialization("java");
+        provider.setServer(existing);
+        server.config().configs().put(HelloService.class.getName(), provider);
+        try {
+            Assert.assertThrows(IllegalStateException.class, server::exportAll,
+                                caught -> Assert.assertSame(failure, caught));
+            server.exportAll();
+            server.exportAll();
+            Assert.assertEquals(3, exports.get());
+            Assert.assertEquals(2, provider.getServer().size());
+            Assert.assertSame(existing, provider.getServer().get(0));
+            Assert.assertSame(Whitebox.getInternalState(server, "serverConfig"), provider.getServer().get(1));
+        } finally {
+            stopServer(server);
+        }
     }
 
     @Test

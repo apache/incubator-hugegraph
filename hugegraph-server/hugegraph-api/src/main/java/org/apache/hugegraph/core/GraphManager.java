@@ -136,6 +136,8 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.NodeManager;
+import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.rpc.config.ServerConfig;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -170,6 +172,7 @@ public final class GraphManager {
     private final Map<String, Graph> graphs;
     private final Set<String> localGraphs;
     private final Set<String> removingGraphs;
+    private final Map<String, HugeGraph> clearedGraphs;
     private final Set<String> creatingGraphs;
     private final HugeAuthenticator authenticator;
     private final AuthManager authManager;
@@ -182,6 +185,7 @@ public final class GraphManager {
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
     private boolean rpcInitialized;
+    private volatile Endpoint raftRpcEndpoint;
     private final GlobalMasterInfo globalNodeRoleInfo;
     private final HugeConfig conf;
     private final EventHub eventHub;
@@ -217,6 +221,7 @@ public final class GraphManager {
         // key is graphSpaceName + "-" + graphName
         this.graphs = new ConcurrentHashMap<>();
         this.removingGraphs = ConcurrentHashMap.newKeySet();
+        this.clearedGraphs = new ConcurrentHashMap<>();
         this.creatingGraphs = ConcurrentHashMap.newKeySet();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
         this.serviceGraphSpace = conf.get(ServerOptions.SERVICE_GRAPH_SPACE);
@@ -1709,9 +1714,15 @@ public final class GraphManager {
     }
 
     public void close() {
-        for (Graph graph : this.graphs.values()) {
+        for (Map.Entry<String, Graph> entry : this.graphs.entrySet()) {
+            Graph graph = entry.getValue();
             try {
                 graph.close();
+                synchronized (this) {
+                    if (this.clearedGraphs.get(entry.getKey()) == graph) {
+                        this.clearedGraphs.remove(entry.getKey());
+                    }
+                }
             } catch (Throwable e) {
                 LOG.warn("Failed to close graph '{}'", graph, e);
             }
@@ -1775,8 +1786,10 @@ public final class GraphManager {
         if (!serverConfig.getServer().isStarted()) {
             serverConfig.getServer().start();
         }
-        return Whitebox.getInternalState(serverConfig.getServer(),
-                                         "remotingServer");
+        com.alipay.remoting.rpc.RpcServer server = Whitebox.getInternalState(serverConfig.getServer(),
+                                                                           "remotingServer");
+        this.raftRpcEndpoint = new Endpoint(server.ip(), server.port());
+        return server;
     }
 
     private void destroyRpcServer() {
@@ -1784,6 +1797,11 @@ public final class GraphManager {
             this.rpcClient.destroy();
         } finally {
             this.rpcServer.destroy();
+            Endpoint endpoint = this.raftRpcEndpoint;
+            if (endpoint != null) {
+                NodeManager.getInstance().removeAddress(endpoint);
+                this.raftRpcEndpoint = null;
+            }
         }
     }
 
@@ -2336,7 +2354,13 @@ public final class GraphManager {
         }
 
         String graphName = spaceGraphName(graphSpace, name);
-        if (clear) {
+        if (clear && g.closed() && this.clearedGraphs.get(graphName) != g) {
+            // A non-clearing close cannot certify that destructive deletion completed.
+            throw new HugeException("Graph '%s' is closed without a successful backend clear; " +
+                                    "retain its owner and complete backend cleanup before deletion", graphName);
+        }
+        // The same owner may await close after clear succeeded, even while a foreign tx remains open.
+        if (clear && !g.closed() && this.clearedGraphs.get(graphName) != g) {
             // The auth proxy checks ADMIN before the local deletion fence.
             TaskScheduler scheduler = g.taskScheduler();
             if (!scheduler.close()) {
@@ -2376,13 +2400,17 @@ public final class GraphManager {
             }
 
             g.clearBackend();
+            synchronized (this) {
+                if (this.graphs.get(graphName) == g) {
+                    this.clearedGraphs.put(graphName, g);
+                }
+            }
         }
         try {
             g.close();
-        } catch (RuntimeException | Error failure) {
-            throw failure;
         } catch (Exception failure) {
-            throw new HugeException("Failed to close graph '%s'", failure, graphName);
+            // Logical closed does not certify native release; keep this owner until close succeeds.
+            throw new HugeException("Failed to close graph '%s', please retry later", failure, graphName);
         }
         // Serialize with publication, but leave graph close outside the manager gate.
         synchronized (this) {
@@ -2405,6 +2433,9 @@ public final class GraphManager {
                 // Remove the factory binding before permitting same-name creation.
                 HugeFactory.remove(g);
                 this.graphs.remove(graphName, g);
+                if (this.clearedGraphs.get(graphName) == g) {
+                    this.clearedGraphs.remove(graphName);
+                }
             }
         }
         // Let gremlin server and rest server context remove graph
