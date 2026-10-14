@@ -2841,14 +2841,15 @@ public final class GraphManager {
             LOG.info("Accept graph add signal from etcd for {}", graphName);
             HugeGraph retryOwner = null;
             synchronized (this) {
+                if (this.creatingGraphs.remove(graphName)) {
+                    // The acknowledgement of local creation is not a replacement ADD.
+                    continue;
+                }
                 HugeGraph owner = (HugeGraph) this.graphs.get(graphName);
-                if (owner != null || this.creatingGraphs.contains(graphName)) {
-                    if (owner != null) {
-                        // Independent key watches can deliver a replacement ADD before the old REMOVE.
-                        this.pendingGraphAdds.add(graphName);
-                    }
-                    this.creatingGraphs.remove(graphName);
-                    if (owner == null || !this.failedPeerRemovals.contains(owner)) {
+                if (owner != null) {
+                    // Independent key watches can deliver a replacement ADD before the old REMOVE.
+                    this.pendingGraphAdds.add(graphName);
+                    if (!this.failedPeerRemovals.contains(owner)) {
                         continue;
                     }
                     retryOwner = owner;

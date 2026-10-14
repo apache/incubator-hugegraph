@@ -1118,6 +1118,100 @@ public class GraphManagerConfigTest {
     }
 
     @Test
+    public void testReloadAfterRestCreateWithoutSelfAdd() throws Exception {
+        this.checkReloadAfterRestCreate(false);
+    }
+
+    @Test
+    public void testReloadAfterRestCreateAndSelfAdd() throws Exception {
+        this.checkReloadAfterRestCreate(true);
+    }
+
+    private void checkReloadAfterRestCreate(boolean selfAdd) throws Exception {
+        String name = selfAdd ? "self_add_reload" : "reload_without_add";
+        String other = name + "_other";
+        String key = "DEFAULT-" + name;
+        GraphManager manager = this.dropManager(name);
+        EventHub hub = Whitebox.getInternalState(manager, "eventHub");
+        Settings settings = new Settings();
+        settings.gremlinPool = 1;
+        settings.threadPoolBoss = 1;
+        settings.threadPoolWorker = 1;
+        ContextGremlinServer gremlin = new ContextGremlinServer(settings, hub);
+        org.apache.tinkerpop.gremlin.server.GraphManager bindings =
+                gremlin.getServerGremlinExecutor().getGraphManager();
+        Map<String, Map<String, Object>> configs = new HashMap<>();
+        MetaManager meta = Mockito.mock(MetaManager.class);
+        GraphSpace space = new GraphSpace("DEFAULT");
+        Mockito.when(meta.graphSpace("DEFAULT")).thenReturn(space);
+        Mockito.when(meta.extractGraphsFromResponse("self-add")).thenReturn(List.of(key));
+        Mockito.when(meta.graphConfigs("DEFAULT")).thenAnswer(invocation -> new HashMap<>(configs));
+        Mockito.when(meta.getGraphConfig(Mockito.eq("DEFAULT"), Mockito.anyString()))
+               .thenAnswer(invocation -> {
+                   Map<String, Object> config = configs.get("DEFAULT-" + invocation.getArgument(1));
+                   return config == null ? null : new HashMap<>(config);
+               });
+        Mockito.doAnswer(invocation -> {
+            Map<String, Object> config = invocation.getArgument(2);
+            configs.put("DEFAULT-" + invocation.getArgument(1), new HashMap<>(config));
+            return null;
+        }).when(meta).addGraphConfig(Mockito.eq("DEFAULT"), Mockito.anyString(), Mockito.anyMap());
+        Whitebox.setInternalState(manager, "metaManager", meta);
+        Whitebox.setInternalState(manager, "PDExist", true);
+        Whitebox.setInternalState(manager, "pdPeers", "127.0.0.1:8686");
+        Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+        spaces.put("DEFAULT", space);
+        try {
+            org.apache.hugegraph.api.profile.GraphsAPI api = new org.apache.hugegraph.api.profile.GraphsAPI();
+            for (String graphName : List.of(name, other)) {
+                Map<String, Object> config = new HashMap<>();
+                config.put(CoreOptions.BACKEND.name(), "memory");
+                config.put(CoreOptions.SERIALIZER.name(), "text");
+                api.create(manager, "DEFAULT", graphName, null, config);
+            }
+            HugeGraph owner = manager.graph(key);
+            HugeGraph otherOwner = manager.graph("DEFAULT-" + other);
+            Assert.assertSame(owner, bindings.getGraph(key));
+            if (selfAdd) {
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphAddHandler", manager, "self-add");
+            }
+            java.util.Set<String> pending = Whitebox.getInternalState(manager, "pendingGraphAdds");
+            long begin = System.nanoTime();
+            System.out.println(String.format("self-add reload before: selfAdd=%s pending=%s graphs=%s",
+                                             selfAdd, pending.contains(key), manager.graphs().size()));
+            try {
+                api.reload(manager, Map.of("action", "reload"));
+            } finally {
+                System.out.println(String.format("self-add reload after: selfAdd=%s durationMs=%s pending=%s graphs=%s",
+                                                 selfAdd, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - begin),
+                                                 pending.contains(key), manager.graphs().size()));
+            }
+            Assert.assertTrue(owner.closed());
+            Assert.assertTrue(otherOwner.closed());
+            Assert.assertNotNull(manager.graph(key));
+            Assert.assertNotNull(manager.graph("DEFAULT-" + other));
+            Assert.assertNotSame(owner, manager.graph(key));
+            Assert.assertNotSame(otherOwner, manager.graph("DEFAULT-" + other));
+            Assert.assertEquals(2, manager.graphs().size());
+            Assert.assertFalse(pending.contains(key));
+            Assert.assertSame(manager.graph(key), bindings.getGraph(key));
+            Assert.assertSame(manager.graph("DEFAULT-" + other), bindings.getGraph("DEFAULT-" + other));
+            Mockito.verify(meta, Mockito.never()).removeGraphConfig(Mockito.anyString(), Mockito.anyString());
+        } finally {
+            List<HugeGraph> owners = new ArrayList<>();
+            for (String graphName : manager.graphs()) {
+                owners.add(manager.graph(graphName));
+            }
+            manager.close();
+            gremlin.stop().get(30, TimeUnit.SECONDS);
+            for (HugeGraph owner : owners) {
+                HugeFactory.remove(owner);
+            }
+        }
+    }
+
+    @Test
     public void testHealthyOwnerAddBeforePeerRemoveLoadsLatestConfig() throws Exception {
         this.checkAddBeforePeerRemove(false, true);
     }

@@ -619,8 +619,10 @@ Retained failed candidates are excluded from RPC startup even while they are sti
 An old graph's cleanup cannot remove or re-export a replacement graph's services.
 A PD graph-add notification blocked by an existing owner is coalesced until that owner is
 released, including when independent watches deliver the new ADD before the old REMOVE.
-Duplicate ADD notifications alone keep the healthy owner. After removal, Server rereads the
-latest configuration; a missing configuration creates nothing.
+Duplicate ADD notifications alone keep the healthy owner. Server consumes the PD acknowledgement
+of its own local graph creation without retaining a replacement ADD, so that acknowledgement cannot
+republish the graph during a later reload. After removal, Server rereads the latest configuration;
+a missing configuration creates nothing.
 After a peer removal fails, a later same-name PD add retries non-clearing cleanup of that exact
 owner before loading its replacement. Another cleanup failure keeps the owner for the next add
 or normal reload; no background retry is scheduled. A replacement load failure is logged and
