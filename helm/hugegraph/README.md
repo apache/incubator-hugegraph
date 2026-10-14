@@ -646,17 +646,10 @@ this is a deployment input serialization limit, not a change to core service nam
 The full service ID, including `/` and `-`, is retained when service metadata is
 reloaded or its graph space is cleared.
 
-PD protects a live discovery pool when its registrations provide the complete
-`GRAPHSPACE`/`SERVICE_NAME`/`SERVICE_ID` tuple. Different raw names that map to the
-same discovery identifier are rejected rather than merged into one endpoint
-pool. The configured names and printable-character rules above are unchanged.
-Upgrade PD first; old PD leaders do not provide this check. Registration is
-asynchronous, so a conflicting Server can remain running locally while logging
-a registration error. Stop conflicting heartbeats and wait for their TTL, or
-explicitly select a different service identity. A generic-only pool must also
-expire before a complete Server identity can join it. Clients should select the
-raw graph space and service name; identifier-only queries to generic-only pools
-keep their previous behavior.
+PD's existing `SERVICE_ID` normalization is unchanged and can map different raw
+names to the same identifier. Query with `GRAPHSPACE` and the complete raw
+`SERVICE_NAME`; identifier-only discovery does not provide a uniqueness or
+isolation guarantee.
 
 ```bash
 helm upgrade --install hg ./helm/hugegraph \
@@ -664,15 +657,12 @@ helm upgrade --install hg ./helm/hugegraph \
   --set-string server.graphSpace=team_a
 ```
 
-For non-default identities, the startup wrapper checks the image entrypoint's
-environment-to-property mappings before rewriting configuration or launching
-Server. An older or unrecognized entrypoint stops with a `compatible Server
-image` error instead of silently using `DEFAULT`. Select an image built with
-these mappings; the chart's default image tag is unchanged.
-The service-name mapping must convert spaces to `\u0020` before writing
-`server.service_id`. Bare mappings or encoders without this conversion are
-refused because the Server's properties reader otherwise retains a backslash
-before each space.
+These settings require a Server image build containing this configuration
+mapping. Use a chart and image from the same source version with this feature;
+older release images without the mappings do not apply these values. Select the
+matching image tag or digest explicitly; the chart's default image tag is unchanged.
+Service-name spaces are written as `\u0020` so the Server's properties reader
+retains the configured value.
 
 Create the non-default graph
 space in the existing cluster before deploying Servers assigned to it; the chart

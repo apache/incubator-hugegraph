@@ -271,8 +271,8 @@ Standalone stores RocksDB data at `/hugegraph-server/rocksdb-data`. The HStore t
 
 ### Server service identity
 
-Images built from current master accept `HG_SERVER_SERVICE_ID` and
-`HG_SERVER_GRAPHSPACE`, which write `server.service_id` and `server.graphspace`
+Server image builds containing this configuration mapping accept
+`HG_SERVER_SERVICE_ID` and `HG_SERVER_GRAPHSPACE`, which write `server.service_id` and `server.graphspace`
 in `conf/rest-server.properties`. A property keeps its existing value when both
 its `HG_SERVER_*` variable and its older name are unset or empty; the shipped
 defaults are both `DEFAULT`.
@@ -297,6 +297,14 @@ these settings do not create graph spaces. The Compose files do not pass these
 variables through from the host, so add explicit `environment:` entries to a
 local Compose override. The Helm chart exposes the same settings as
 [`server.serviceId` and `server.graphSpace`](../helm/hugegraph/README.md#server-service-identity).
+
+Use a chart and Server image from the same source version containing these
+mappings. Older release images without them do not apply these environment
+values; select the matching image build explicitly.
+PD's existing `SERVICE_ID` normalization is unchanged and can map different raw
+names to the same identifier. Select `GRAPHSPACE` and the complete raw
+`SERVICE_NAME` in discovery queries; identifier-only lookup does not provide a
+uniqueness or isolation guarantee.
 
 This selects the Server's PD service metadata. It does not change
 `server.path_graphspace` for REST paths that omit `/graphspaces/<name>`, or

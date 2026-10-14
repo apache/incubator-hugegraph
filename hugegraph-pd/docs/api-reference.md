@@ -1079,31 +1079,3 @@ Use the high-level `PDClient` library for simplified integration, or use raw gRP
 For architecture details, see [Architecture Documentation](architecture.md).
 
 For configuration, see [Configuration Guide](configuration.md).
-
-
-### Discovery identity pools
-
-Discovery labels remain arbitrary strings. A live `SERVICE_ID` pool is protected
-when a registration supplies all three labels `GRAPHSPACE`, `SERVICE_NAME`, and
-`SERVICE_ID`. Within one application, every live registration in that pool must
-then carry the same complete tuple, including registrations with a different
-version or address. Multiple replicas of the same tuple remain supported.
-Registrations that mix incomplete or different tuples receive the existing
-registration error header. An existing complete registration cannot drop its
-identity labels through an update of the same address and version.
-
-A `SERVICE_ID` query fails with a readable gRPC error when a protected pool mixes
-incomplete or different tuples. Generic pools with no complete identity tuple,
-queries by raw labels, and discovery enumeration keep their existing behavior.
-A generic-only pool must stop renewing and expire before a new complete identity
-can claim that identifier. Protection ends when its live records expire; it is
-not a permanent identifier reservation or proof of endpoint ownership.
-
-Upgrade PD before relying on this protection. Earlier Server releases already
-send the complete tuple and can read the existing error header. Registration
-remains asynchronous: a rejected Server may continue serving locally while its
-heartbeat reports the conflict. Stop conflicting registrations and wait for
-their TTL, or explicitly choose another service identity. No identity is renamed
-automatically. Clients selecting a HugeGraph service should query its raw
-`GRAPHSPACE` and `SERVICE_NAME`; a legacy identifier-only query into a
-generic-only pool still has generic discovery semantics.

@@ -66,12 +66,6 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].env[?(@.name=="HG_SERVER_GRAPHSPACE")].value
           value: team_a
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: 'non-default server\.serviceId requires a compatible Server image'
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: 'non-default server\.graphSpace requires a compatible Server image'
 
   - it: refuses an extraEnv that shadows the service ID
     set:
@@ -99,9 +93,6 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].env[?(@.name=="HG_SERVER_SERVICE_ID")].value
           value: ops team
-      - matchRegex:
-          path: spec.template.spec.containers[0].args[0]
-          pattern: 'space-preserving HG_SERVER_SERVICE_ID mapping'
 
   - it: refuses an extraEnv that shadows the legacy service ID
     set:

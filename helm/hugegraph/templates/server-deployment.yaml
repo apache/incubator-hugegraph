@@ -158,20 +158,6 @@ spec:
                 exit 1
               fi
               {{- end }}
-              # Older images ignore these optional identity variables. Require
-              # their actual mappings and service-name space encoding before changing config.
-              if [[ -n "${HG_SERVER_SERVICE_ID:-}" ]]; then
-                if ! grep -Eq '^[[:space:]]*service_id_encoded=\$\(encode_prop_value[[:space:]]+"\$\{HG_SERVER_SERVICE_ID\}"[[:space:]]*\|[[:space:]]*sed[[:space:]]+'"'"'s/\\\\ /\\\\u0020/g'"'"'\)[[:space:]]*$' ./docker-entrypoint.sh ||
-                   ! grep -Eq '^[[:space:]]*set_prop_encoded[[:space:]]+"server\.service_id"[[:space:]]+"\$\{service_id_encoded\}"[[:space:]]+"\$\{REST_SERVER_CONF\}"([[:space:]]|$)' ./docker-entrypoint.sh; then
-                  echo "non-default server.serviceId requires a compatible Server image with a space-preserving HG_SERVER_SERVICE_ID mapping" >&2
-                  exit 1
-                fi
-              fi
-              if [[ -n "${HG_SERVER_GRAPHSPACE:-}" ]] &&
-                 ! grep -Eq '^[[:space:]]*set_prop[[:space:]]+"server\.graphspace"[[:space:]]+"\$\{HG_SERVER_GRAPHSPACE\}"[[:space:]]+"\$\{REST_SERVER_CONF\}"([[:space:]]|$)' ./docker-entrypoint.sh; then
-                echo "non-default server.graphSpace requires a compatible Server image with the HG_SERVER_GRAPHSPACE mapping" >&2
-                exit 1
-              fi
               CONF=./conf/rest-server.properties
               if [[ ! -r "${CONF}" ]]; then
                 echo "missing or unreadable ${CONF}; refusing to write a stub config" >&2

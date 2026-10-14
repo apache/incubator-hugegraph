@@ -1165,11 +1165,9 @@ public final class GraphManager {
                                 } else {
                                     LOG.warn("RegisterServiceToPd Error. {}",
                                              header.getError().getMessage());
-                                    return;
                                 }
                             }
                         }
-                        LOG.debug("PD service registration acknowledged");
                         if (!licenseValid) {
                             LOG.warn("License is valid.");
                             licenseValid = true;
@@ -1187,7 +1185,7 @@ public final class GraphManager {
 
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
-            LOG.info("Scheduled service registration with PD");
+            LOG.info("Success to register service to pd");
 
         } catch (Exception e) {
             LOG.error("Failed to register service to pd", e);

@@ -47,7 +47,6 @@ import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.RaftGroupService;
 import com.alipay.sofa.jraft.Status;
 import com.alipay.sofa.jraft.conf.Configuration;
-import com.alipay.sofa.jraft.closure.ReadIndexClosure;
 import com.alipay.sofa.jraft.core.Replicator;
 import com.alipay.sofa.jraft.core.State;
 import com.alipay.sofa.jraft.entity.PeerId;
@@ -55,7 +54,6 @@ import com.alipay.sofa.jraft.entity.Task;
 import com.alipay.sofa.jraft.error.RaftError;
 import com.alipay.sofa.jraft.option.NodeOptions;
 import com.alipay.sofa.jraft.option.RpcOptions;
-import com.alipay.sofa.jraft.option.ReadOnlyOption;
 import com.alipay.sofa.jraft.rpc.RaftRpcServerFactory;
 import com.alipay.sofa.jraft.rpc.RpcServer;
 import com.alipay.sofa.jraft.rpc.impl.BoltRpcServer;
@@ -399,38 +397,6 @@ public class RaftEngine {
     /**
      * Add a raft task, and grpc sends data to raft through this interface
      */
-    /** Wait for a linearizable read to be applied, and bind the following write to this term. */
-    public long discoveryReadTerm() throws PDException {
-        Node node = this.raftNode;
-        long term = this.stateMachine.leaderTerm();
-        if (node == null || term <= 0 || !isLeader()) {
-            throw new PDException(Pdpb.ErrorType.NOT_LEADER_VALUE, "Discovery leader is not ready");
-        }
-        CompletableFuture<Void> applied = new CompletableFuture<>();
-        node.readIndex(ReadOnlyOption.ReadOnlySafe, new byte[0], new ReadIndexClosure() {
-            @Override
-            public void run(Status status, long index, byte[] context) {
-                if (status.isOk()) {
-                    applied.complete(null);
-                } else {
-                    applied.completeExceptionally(new IllegalStateException(status.toString()));
-                }
-            }
-        });
-        try {
-            applied.get(this.config.getRpcTimeout(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, "Discovery read interrupted");
-        } catch (ExecutionException | TimeoutException e) {
-            throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, "Discovery read is unavailable");
-        }
-        if (term != this.stateMachine.leaderTerm() || !isLeader()) {
-            throw new PDException(Pdpb.ErrorType.NOT_LEADER_VALUE, "Discovery leader changed");
-        }
-        return term;
-    }
-
     public void addTask(Task task) {
         if (!isLeader()) {
             KVStoreClosure closure = (KVStoreClosure) task.getDone();
