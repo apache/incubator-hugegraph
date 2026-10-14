@@ -283,6 +283,43 @@ and `q=1.` are equivalent to `q=0` and `q=1`. Explicit gzip exclusion overrides
 Older images can still force gzip; use a Server image built from current source.
 Updating chart values alone does not change an existing image's behavior.
 
+## Business query assertions
+
+The default `helm test` checks `DEFAULT-hugegraph` binding and rejects `INVALID` indexes
+associated with the vertex/edge labels visible on each Pod. It reads those
+indexes by ID, using the same local cache path as queries; it does not refresh
+the full index cache. This does not detect missing/stale label associations,
+orphaned indexes or incorrect index data, and does not prove range-query results.
+Normal index creation/rebuild states are not rejected by this status check.
+
+For a graph with existing test data, provide a read-only Gremlin script that
+asserts the expected result. For example, with 40 existing `person` vertices
+(ages 0–39), save this as `assertions.groovy`, adapting names/results to your data:
+
+```groovy
+def n = graph.traversal().V().hasLabel('person')
+             .has('age', org.apache.tinkerpop.gremlin.process.traversal.P.gte(20))
+             .count().next()
+assert n == 20 : "Expected 20 adults, got ${n}"
+```
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set-file server.testGremlin=assertions.groovy
+helm test hugegraph -n hugegraph --logs --timeout 5m
+```
+
+The hook runs both checks on every Ready Server Pod in each attempt. A failing
+request or assertion reports its Pod IP, check stage and response, and fails
+the hook if no complete attempt succeeds before its deadline. Use
+`kubectl -n hugegraph get pods -o wide` to map IPs to Pod names. Returning a value
+or `false` alone is not a failure: use `assert` or throw an exception. Without a
+script, the hook explicitly reports business assertions as skipped. The hook
+creates no schema/data by default. Custom scripts use the hook's Server credential
+(`admin` when authentication is enabled); read-only execution is not enforced,
+so supply trusted, read-only assertions. The hook does not guarantee the first request
+after startup succeeds; its retries allow transient elections to settle.
+
 ## Troubleshooting
 
 | Symptom | First checks |

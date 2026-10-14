@@ -189,9 +189,12 @@ an existing account; follow [credential rotation](docs/operations.md#credentials
 The chart checks persisted Raft identities and storage/membership changes during
 upgrades; those changes require a coordinated procedure.
 
-`helm --wait` checks readiness; `helm test` checks graph-bound Gremlin on each
-Server Pod. Also verify a fresh Hubble login and graph query. Templates and
-linting alone do not prove live volume, network or application behavior.
+`helm --wait` checks readiness. `helm test` checks graph binding and visible
+associated indexes for `INVALID` on each Server Pod. It does not prove index
+query results; add [business assertions](docs/operations.md#business-query-assertions)
+with `--set-file server.testGremlin=assertions.groovy`. Also verify a fresh Hubble
+login and graph query. Templates and linting alone do not prove live volume,
+network or application behavior.
 
 Website guides: [Helm deployment](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm/)
 and [Kubernetes operations](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm-operations/).

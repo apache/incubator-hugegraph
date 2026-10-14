@@ -328,6 +328,9 @@ jobs:
           expect "$(printf 'review\tsecret')" 'must be printable ASCII'
           expect 'café' 'must be printable ASCII'
 
+      - name: helm test query assertions and shell quoting
+        run: python3 helm/test_helm_hook.py
+
       - name: helm test hook behaviour
         shell: bash
         run: |

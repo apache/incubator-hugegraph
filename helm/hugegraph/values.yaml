@@ -341,6 +341,10 @@ server:
     minAvailable: 2
   # Optional Helm test image override; empty reuses the Server image.
   waitImage: ""
+  # Optional Gremlin assertions, run with the hook's Server credential on every Pod.
+  # Supply trusted read-only scripts; read-only execution is not enforced.
+  # Use --set-file server.testGremlin=/path/to/assertions.groovy; assert expected results.
+  testGremlin: ""
   # Resources for the Helm test hook container. Bounded by default so the hook
   # cannot run unlimited on a restricted or quota-managed namespace.
   testResources:

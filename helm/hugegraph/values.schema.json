@@ -1156,6 +1156,10 @@
         "testResources": {
           "$ref": "#/definitions/resources"
         },
+        "testGremlin": {
+          "type": "string",
+          "description": "Optional Gremlin assertions run with the hook's Server credential on each Pod. Supply trusted read-only scripts; read-only execution is not enforced."
+        },
         "service": {
           "$ref": "#/definitions/service"
         },
