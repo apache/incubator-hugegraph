@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -172,6 +173,8 @@ public final class GraphManager {
     private final Map<String, Graph> graphs;
     private final Set<String> localGraphs;
     private final Set<String> removingGraphs;
+    // Guarded by this manager monitor; placement-event tokens are consumed independently.
+    private final Set<HugeGraph> rpcRemovingOwners;
     private final Map<String, HugeGraph> clearedGraphs;
     private final Set<String> creatingGraphs;
     private final HugeAuthenticator authenticator;
@@ -221,6 +224,7 @@ public final class GraphManager {
         // key is graphSpaceName + "-" + graphName
         this.graphs = new ConcurrentHashMap<>();
         this.removingGraphs = ConcurrentHashMap.newKeySet();
+        this.rpcRemovingOwners = Collections.newSetFromMap(new IdentityHashMap<>());
         this.clearedGraphs = new ConcurrentHashMap<>();
         this.creatingGraphs = ConcurrentHashMap.newKeySet();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
@@ -1752,7 +1756,17 @@ public final class GraphManager {
 
                 for (Graph graph : this.graphs.values()) {
                     HugeGraph hugegraph = (HugeGraph) graph;
-                    HugeGraphAuthProxy.runAsAdmin(() -> hugegraph.registerRpcServices(serverConfig, clientConfig));
+                    HugeGraphAuthProxy.runAsAdmin(() -> {
+                        // Auth wrappers and the owner must use the same existing lifecycle monitor.
+                        synchronized (hugegraph.hugegraph()) {
+                            if (hugegraph.closed() || this.rpcRemovingOwners.contains(hugegraph)) {
+                                // Retained provider configs must be removed before exportAll.
+                                this.unregisterRpcServices(hugegraph);
+                                return;
+                            }
+                            hugegraph.registerRpcServices(serverConfig, clientConfig);
+                        }
+                    });
                 }
             }
 
@@ -1761,16 +1775,23 @@ public final class GraphManager {
         } catch (Throwable e) {
             this.rpcInitialized = false;
             for (Graph graph : this.graphs.values()) {
+                if (this.rpcRemovingOwners.contains(graph)) {
+                    continue;
+                }
                 try {
                     this.unregisterRpcServices((HugeGraph) graph);
                 } catch (Throwable cleanup) {
-                    e.addSuppressed(cleanup);
+                    if (e != cleanup) {
+                        e.addSuppressed(cleanup);
+                    }
                 }
             }
             try {
                 this.rpcServer.destroy();
             } catch (Throwable cleanup) {
-                e.addSuppressed(cleanup);
+                if (e != cleanup) {
+                    e.addSuppressed(cleanup);
+                }
             }
             throw e;
         }
@@ -2071,7 +2092,11 @@ public final class GraphManager {
         }
         // A failed cleanup keeps the owner published so that drop can retry.
         this.unregisterRpcServices(graph);
-        return this.graphs.remove(name, graph);
+        boolean removed = this.graphs.remove(name, graph);
+        if (removed) {
+            this.rpcRemovingOwners.remove(graph);
+        }
+        return removed;
     }
 
     private void unlistenChanges() {
@@ -2331,7 +2356,17 @@ public final class GraphManager {
                         "The graph '%s' is the only one, not allowed to delete",
                         name);
 
-        this.dropGraphLocal(graph);
+        try {
+            this.dropGraphLocal(graph);
+        } catch (RuntimeException | Error failure) {
+            synchronized (this) {
+                if (graph.closed()) {
+                    this.rpcRemovingOwners.add(graph);
+                }
+            }
+            // Local clear failure leaves the still-open owner's existing RPC services untouched.
+            throw failure;
+        }
 
         // Let gremlin server and rest server context remove graph
         this.notifyEventLenient(Events.GRAPH_DROP, graph);
@@ -2377,8 +2412,11 @@ public final class GraphManager {
                              graphName);
             }
             // Cleanup failure must precede metadata removal and destructive clear.
-            this.unregisterRpcServices(g);
-            this.removingGraphs.add(graphName);
+            synchronized (this) {
+                this.rpcRemovingOwners.add(g);
+                this.unregisterRpcServices(g);
+                this.removingGraphs.add(graphName);
+            }
             try {
                 this.metaManager.removeGraphConfig(graphSpace, name);
                 this.metaManager.notifyGraphRemove(graphSpace, name);
@@ -2388,6 +2426,7 @@ public final class GraphManager {
                     if (this.graphs.get(graphName) == g && !g.closed()) {
                         try {
                             this.registerRpcServices(g);
+                            this.rpcRemovingOwners.remove(g);
                         } catch (RuntimeException | Error restoration) {
                             if (e != restoration) {
                                 e.addSuppressed(restoration);
@@ -2405,6 +2444,9 @@ public final class GraphManager {
                     this.clearedGraphs.put(graphName, g);
                 }
             }
+        }
+        synchronized (this) {
+            this.rpcRemovingOwners.add(g);
         }
         try {
             g.close();
@@ -2433,6 +2475,7 @@ public final class GraphManager {
                 // Remove the factory binding before permitting same-name creation.
                 HugeFactory.remove(g);
                 this.graphs.remove(graphName, g);
+                this.rpcRemovingOwners.remove(g);
                 if (this.clearedGraphs.get(graphName) == g) {
                     this.clearedGraphs.remove(graphName);
                 }

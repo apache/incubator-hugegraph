@@ -182,6 +182,7 @@ public class StandardHugeGraph implements HugeGraph {
     private volatile boolean started;
     private volatile boolean closed;
     private boolean closeCompleted;
+    private volatile boolean dropBackendCleared;
     private volatile GraphMode mode;
     private volatile GraphReadMode readMode;
     private volatile HugeVariables variables;
@@ -1253,39 +1254,35 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void drop() {
-        this.checkGraphNotClosed();
-        TaskScheduler scheduler = this.taskManager.getScheduler(this.params);
-        if (scheduler != null && !scheduler.close()) {
-            // Fence admission before waiting for actual task owners to exit.
-            try {
-                scheduler.waitUntilAllTasksCompleted(this.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT));
-            } catch (TimeoutException e) {
-                throw new HugeException("Tasks are still active in graph '%s'; task admission remains closed. " +
-                                        "Retry deletion after owners exit, or restart to resume task admission",
-                                        e, this.spaceGraphName());
+        if (!this.dropBackendCleared) {
+            this.checkGraphNotClosed();
+            TaskScheduler scheduler = this.taskManager.getScheduler(this.params);
+            if (scheduler != null && !scheduler.close()) {
+                // Fence admission before waiting for actual task owners to exit.
+                try {
+                    scheduler.waitUntilAllTasksCompleted(this.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT));
+                } catch (TimeoutException e) {
+                    throw new HugeException("Tasks are still active in graph '%s'; task admission remains closed. " +
+                                            "Retry deletion after owners exit, or restart to resume task admission",
+                                            e, this.spaceGraphName());
+                }
+                E.checkState(scheduler.close(),
+                             "Tasks are still active in graph '%s'; task admission remains closed. " +
+                             "Retry deletion after owners exit, or restart to resume task admission",
+                             this.spaceGraphName());
             }
-            E.checkState(scheduler.close(),
-                         "Tasks are still active in graph '%s'; task admission remains closed. " +
-                         "Retry deletion after owners exit, or restart to resume task admission",
-                         this.spaceGraphName());
+            this.clearBackend();
+            // Only this same owner's successful drop clear permits cleanup after logical close.
+            this.dropBackendCleared = true;
         }
-        this.clearBackend();
 
         try {
-            /*
-             * It's hard to ensure all threads close the tx.
-             * TODO:
-             *  - schedule a tx-close to each thread,
-             *   or
-             *  - add forceClose() method to backend store.
-             */
             this.close();
-        } catch (Throwable e) {
-            if (!this.closed()) {
-                throw new HugeException("Failed to close graph '%s', please retry later",
-                                        e, this.spaceGraphName());
-            }
-            LOG.warn("Failed to close graph {} {}", this, e);
+        } catch (Error failure) {
+            throw failure;
+        } catch (Exception failure) {
+            throw new HugeException("Failed to close graph '%s', please retry later",
+                                    failure, this.spaceGraphName());
         }
         HugeConfig config = this.configuration();
         this.storeProvider.onDeleteConfig(config);

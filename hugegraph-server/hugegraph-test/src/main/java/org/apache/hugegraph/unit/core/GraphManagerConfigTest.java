@@ -117,7 +117,8 @@ public class GraphManagerConfigTest {
     @BeforeClass
     public static void initEventExecutor() {
         // Other suite classes may have destroyed the global EventHub executor.
-        previousEventExecutor = Whitebox.getInternalState(EventHub.class, "executor");
+        ExecutorService previous = Whitebox.getInternalState(EventHub.class, "executor");
+        previousEventExecutor = previous != null && !previous.isShutdown() ? previous : null;
         Whitebox.setInternalState(EventHub.class, "executor", null);
         EventHub.init(2);
         previousTaskDbExecutor = Whitebox.getInternalState(TaskManager.instance(), "taskDbExecutor");
@@ -131,13 +132,73 @@ public class GraphManagerConfigTest {
         try {
             Assert.assertTrue(EventHub.destroy(5));
         } finally {
-            Whitebox.setInternalState(EventHub.class, "executor", previousEventExecutor);
+            Whitebox.setInternalState(EventHub.class, "executor", previousEventExecutor != null &&
+                                      !previousEventExecutor.isShutdown() ? previousEventExecutor : null);
             taskDbExecutor.shutdown();
             try {
                 Assert.assertTrue(taskDbExecutor.awaitTermination(5, TimeUnit.SECONDS));
             } finally {
                 Whitebox.setInternalState(TaskManager.instance(), "taskDbExecutor", previousTaskDbExecutor);
             }
+        }
+    }
+
+    @Test
+    public void testFixturePreservesLivePreviousEventExecutor() throws Exception {
+        this.checkFixtureEventExecutor(false);
+    }
+
+    @Test
+    public void testFixtureDoesNotRestoreDestroyedEventExecutor() throws Exception {
+        this.checkFixtureEventExecutor(true);
+    }
+
+    private void checkFixtureEventExecutor(boolean destroyed) throws Exception {
+        ExecutorService activeEvent = Whitebox.getInternalState(EventHub.class, "executor");
+        ExecutorService activeTask = Whitebox.getInternalState(TaskManager.instance(), "taskDbExecutor");
+        ExecutorService savedPreviousEvent = previousEventExecutor;
+        ExecutorService savedPreviousTask = previousTaskDbExecutor;
+        ExecutorService savedTask = taskDbExecutor;
+        ExecutorService prior = Executors.newSingleThreadExecutor();
+        try {
+            prior.submit(() -> { }).get(5, TimeUnit.SECONDS);
+            if (destroyed) {
+                prior.shutdown();
+                Assert.assertTrue(prior.awaitTermination(5, TimeUnit.SECONDS));
+            }
+            Whitebox.setInternalState(EventHub.class, "executor", prior);
+            initEventExecutor();
+            restoreEventExecutor();
+            EventHub.init(1);
+            EventHub hub = new EventHub("rpc-fixture-executor-control");
+            hub.listen("probe", event -> true);
+            RuntimeException submission = null;
+            try {
+                Assert.assertEquals(Integer.valueOf(1), hub.notify("probe").get(5, TimeUnit.SECONDS));
+            } catch (RuntimeException failure) {
+                submission = failure;
+            }
+            ExecutorService restored = Whitebox.getInternalState(EventHub.class, "executor");
+            Assert.assertNull("Previous destroyed=" + destroyed + ", restoredShutdown=" +
+                              restored.isShutdown() + ", notifyFailure=" + submission, submission);
+            if (!destroyed) {
+                Assert.assertSame(prior, restored);
+            } else {
+                Assert.assertNotSame(prior, restored);
+            }
+        } finally {
+            ExecutorService current = Whitebox.getInternalState(EventHub.class, "executor");
+            if (current != null && current != activeEvent) {
+                current.shutdown();
+                Assert.assertTrue(current.awaitTermination(5, TimeUnit.SECONDS));
+            }
+            prior.shutdown();
+            Assert.assertTrue(prior.awaitTermination(5, TimeUnit.SECONDS));
+            Whitebox.setInternalState(EventHub.class, "executor", activeEvent);
+            Whitebox.setInternalState(TaskManager.instance(), "taskDbExecutor", activeTask);
+            previousEventExecutor = savedPreviousEvent;
+            previousTaskDbExecutor = savedPreviousTask;
+            taskDbExecutor = savedTask;
         }
     }
 
@@ -178,7 +239,8 @@ public class GraphManagerConfigTest {
                         graph.tx().open();
                     }
                     if (failing) {
-                        Assert.assertThrows(IllegalStateException.class, () -> graph.registerRpcServices(server, client),
+                        Assert.assertThrows(IllegalStateException.class,
+                                            () -> graph.registerRpcServices(server, client),
                                             caught -> Assert.assertSame(failure, caught));
                     } else {
                         graph.registerRpcServices(server, client);
@@ -707,6 +769,510 @@ public class GraphManagerConfigTest {
     @Test
     public void testClosedGraphRpcFailureRetriesWithClear() throws Exception {
         this.checkPostCloseDrop(true);
+    }
+
+    @Test
+    public void testRpcStartupDoesNotRepublishDeletingGraph() throws Exception {
+        this.checkRpcStartupDuringDeletion(false, false);
+    }
+
+    @Test
+    public void testRpcStartupSkipsOwnerAfterRemovalTokenConsumed() throws Exception {
+        this.checkRpcStartupDuringDeletion(true, false);
+    }
+
+    @Test
+    public void testRpcStartupPublishesOtherOwnerDuringDeletion() throws Exception {
+        this.checkRpcStartupDuringDeletion(true, true);
+    }
+
+    private void checkRpcStartupDuringDeletion(boolean consumeToken, boolean keepOther) throws Exception {
+        String name = keepOther ? "startup_retains_peer" :
+                      consumeToken ? "startup_consumed_removal" : "startup_deleting_graph";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph owner = null;
+        HugeGraph keeper = null;
+        ExecutorService deletion = Executors.newSingleThreadExecutor(
+                runnable -> new Thread(runnable, "grpc-startup-delete-proof"));
+        CountDownLatch metadataEntered = new CountDownLatch(1);
+        CountDownLatch metadataRelease = new CountDownLatch(1);
+        Future<?> dropped = null;
+        try {
+            if (keepOther) {
+                keeper = manager.createGraphLocal(name + "_peer", sharedMemoryConfig(name + "_peer"));
+                Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", keeper);
+            }
+            owner = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            HugeGraph graph = owner;
+            // The existing Memory feature fixture exercises real cache RPC registration, not shared DML.
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", graph);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Mockito.doAnswer(invocation -> {
+                metadataEntered.countDown();
+                E.checkState(metadataRelease.await(10, TimeUnit.SECONDS), "metadata proof barrier timed out");
+                return null;
+            }).when(meta).removeGraphConfig("DEFAULT", name);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            spaces.put("DEFAULT", space);
+            dropped = deletion.submit(() -> new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                    manager, "DEFAULT", name, "I'm sure to drop the graph"));
+            Assert.assertTrue(metadataEntered.await(5, TimeUnit.SECONDS));
+            java.util.Set<?> removing = Whitebox.getInternalState(manager, "removingGraphs");
+            Assert.assertTrue(removing.contains(graph.spaceGraphName()));
+            if (consumeToken) {
+                Mockito.when(meta.extractGraphsFromResponse(Mockito.any())).thenReturn(
+                        java.util.Collections.singletonList(graph.spaceGraphName()));
+                Whitebox.invoke(GraphManager.class, "graphRemoveHandler", manager, new Object());
+                Assert.assertFalse(removing.contains(graph.spaceGraphName()));
+            }
+            Assert.assertFalse(graph.closed());
+            Assert.assertSame(graph, manager.graph(graph.spaceGraphName()));
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 0);
+            // Run actual manager startup while the same owner's placement metadata removal is blocked.
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            Assert.assertFalse(dropped.isDone());
+            Assert.assertEquals("RPC startup exported a removing graph during metadata deletion",
+                                keepOther ? 2 : 0, server.config().configs().size());
+            if (keepOther) {
+                Assert.assertFalse(keeper.closed());
+                Assert.assertSame(keeper, manager.graph(keeper.spaceGraphName()));
+            }
+        } finally {
+            metadataRelease.countDown();
+            try {
+                if (dropped != null) {
+                    dropped.get(20, TimeUnit.SECONDS);
+                }
+            } finally {
+                deletion.shutdown();
+                Assert.assertTrue(deletion.awaitTermination(20, TimeUnit.SECONDS));
+                manager.close();
+                if (owner != null) {
+                    owner.close();
+                    HugeFactory.remove(owner);
+                }
+                if (keeper != null) {
+                    HugeFactory.remove(keeper);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testNonPdOrdinaryClosedOwnerCannotCertifyBackendClear() throws Exception {
+        GraphManager manager = this.dropManager("non_pd_uncleared_close");
+        HugeGraph owner = null;
+        HugeGraph keeper = null;
+        try {
+            String config = "gremlin.graph=" + HugeFactory.class.getName() + "\nbackend=memory\nstore=";
+            keeper = manager.createGraphLocal("uncleared_keeper", config + "uncleared_keeper\n");
+            owner = manager.createGraphLocal("uncleared_owner", config + "uncleared_owner\n");
+            HugeGraph graph = owner;
+            owner.close();
+            Assert.assertThrows(IllegalStateException.class, () ->
+                    new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                            manager, "DEFAULT", "uncleared_owner", "I'm sure to drop the graph"));
+            Map<String, HugeGraph> factories = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Assert.assertSame(owner, factories.get(owner.spaceGraphName()));
+            Assert.assertSame(owner, manager.graph(owner.spaceGraphName()));
+            Assert.assertTrue(graph.configuration().file().isFile());
+        } finally {
+            manager.close();
+            if (owner != null) {
+                owner.close();
+                HugeFactory.remove(owner);
+            }
+            if (keeper != null) {
+                HugeFactory.remove(keeper);
+            }
+        }
+    }
+
+    @Test
+    public void testRpcStartupSkipsOrdinaryClosedOwner() throws Exception {
+        GraphManager manager = this.dropManager("startup_closed_owner");
+        HugeGraph owner = null;
+        try {
+            owner = manager.createGraphLocal("startup_closed", sharedMemoryConfig("startup_closed"));
+            owner.close();
+            RuntimeException startup = null;
+            try {
+                Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            } catch (RuntimeException failure) {
+                startup = failure;
+            }
+            Assert.assertNull("RPC startup must skip a closed owner: " + startup, startup);
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 0);
+        } finally {
+            manager.close();
+            if (owner != null) {
+                owner.close();
+                HugeFactory.remove(owner);
+            }
+        }
+    }
+
+    @Test
+    public void testNonPdFailedClearPreservesExistingRpc() throws Exception {
+        GraphManager manager = this.dropManager("non_pd_clear_failure");
+        HugeGraph owner = null;
+        HugeGraph keeper = null;
+        BackendStoreProvider provider = null;
+        try {
+            owner = manager.createGraphLocal("non_pd_clear", sharedMemoryConfig("non_pd_clear"));
+            keeper = manager.createGraphLocal("non_pd_clear_peer", sharedMemoryConfig("non_pd_clear_peer"));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 4);
+            provider = Mockito.spy(owner.storeProvider());
+            Whitebox.setInternalState(owner, "storeProvider", provider);
+            IllegalStateException failure = new IllegalStateException("clear rejected before destructive action");
+            Mockito.doThrow(failure).when(provider).clear();
+            Assert.assertThrows(IllegalStateException.class, () ->
+                    new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                            manager, "DEFAULT", "non_pd_clear", "I'm sure to drop the graph"),
+                    caught -> Assert.assertSame(failure, caught));
+            Assert.assertFalse(owner.closed());
+            Assert.assertSame(owner, manager.graph(owner.spaceGraphName()));
+            Assert.assertTrue(owner.configuration().file().isFile());
+            java.util.Set<?> pending = Whitebox.getInternalState(manager, "rpcRemovingOwners");
+            Assert.assertFalse(pending.contains(owner));
+            assertRpcResources(server, client, 4);
+        } finally {
+            if (provider != null) {
+                Mockito.doCallRealMethod().when(provider).clear();
+            }
+            manager.close();
+            if (owner != null) {
+                HugeFactory.remove(owner);
+            }
+            if (keeper != null) {
+                HugeFactory.remove(keeper);
+            }
+        }
+    }
+
+    @Test
+    public void testNonPdClearFailureDoesNotUnregisterRpcDuringStartup() throws Exception {
+        String name = "non_pd_clear_startup";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph owner = null;
+        HugeGraph keeper = null;
+        BackendStoreProvider provider = null;
+        CountDownLatch clearEntered = new CountDownLatch(1);
+        CountDownLatch clearRelease = new CountDownLatch(1);
+        ExecutorService deletion = Executors.newSingleThreadExecutor();
+        Future<?> dropped = null;
+        try {
+            owner = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            keeper = manager.createGraphLocal(name + "_peer", sharedMemoryConfig(name + "_peer"));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", owner);
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", keeper);
+            provider = Mockito.spy(owner.storeProvider());
+            Whitebox.setInternalState(owner, "storeProvider", provider);
+            IllegalStateException failure = new IllegalStateException("clear fails before destructive action");
+            Mockito.doAnswer(invocation -> {
+                clearEntered.countDown();
+                E.checkState(clearRelease.await(10, TimeUnit.SECONDS), "local clear proof barrier timed out");
+                throw failure;
+            }).when(provider).clear();
+            dropped = deletion.submit(() -> new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                    manager, "DEFAULT", name, "I'm sure to drop the graph"));
+            Assert.assertTrue(clearEntered.await(5, TimeUnit.SECONDS));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            clearRelease.countDown();
+            Future<?> failedDrop = dropped;
+            Assert.assertThrows(ExecutionException.class, () -> failedDrop.get(20, TimeUnit.SECONDS),
+                                caught -> Assert.assertSame(failure, caught.getCause()));
+            dropped = null;
+            Assert.assertFalse(owner.closed());
+            Assert.assertSame(owner, manager.graph(owner.spaceGraphName()));
+            Assert.assertTrue(owner.configuration().file().isFile());
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 4);
+        } finally {
+            clearRelease.countDown();
+            try {
+                if (dropped != null) {
+                    try {
+                        dropped.get(20, TimeUnit.SECONDS);
+                    } catch (ExecutionException expected) {
+                        // The controlled clear fails before destructive work.
+                    }
+                }
+            } finally {
+                if (provider != null) {
+                    Mockito.doCallRealMethod().when(provider).clear();
+                }
+                deletion.shutdown();
+                Assert.assertTrue(deletion.awaitTermination(20, TimeUnit.SECONDS));
+                manager.close();
+                if (owner != null) {
+                    HugeFactory.remove(owner);
+                }
+                if (keeper != null) {
+                    HugeFactory.remove(keeper);
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testMetadataFailureRestoresRpcBeforeClearingRemovalMarker() throws Exception {
+        this.checkMetadataRpcRestoration(false);
+    }
+
+    @Test
+    public void testFailedRpcRestorationRetainsRemovalOwner() throws Exception {
+        this.checkMetadataRpcRestoration(true);
+    }
+
+    private void checkMetadataRpcRestoration(boolean rejectRestore) throws Exception {
+        String name = rejectRestore ? "metadata_restore_failure" : "metadata_restore_success";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph owner = null;
+        RpcServer server = null;
+        try {
+            owner = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            RpcServer original = Whitebox.getInternalState(manager, "rpcServer");
+            server = Mockito.spy(original);
+            Whitebox.setInternalState(manager, "rpcServer", server);
+            IllegalStateException metadata = new IllegalStateException("placement removal failed");
+            IllegalStateException restoration = new IllegalStateException("RPC restoration failed");
+            if (rejectRestore) {
+                Mockito.doThrow(restoration).when(server).exportAll();
+            }
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Mockito.doThrow(metadata).when(meta).removeGraphConfig("DEFAULT", name);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            GraphSpace space = new GraphSpace("DEFAULT");
+            space.graphNumberUsed(5);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            spaces.put("DEFAULT", space);
+            Assert.assertThrows(HugeException.class, () ->
+                    new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                            manager, "DEFAULT", name, "I'm sure to drop the graph"),
+                    caught -> Assert.assertSame(metadata, caught.getCause()));
+            java.util.Set<?> pending = Whitebox.getInternalState(manager, "rpcRemovingOwners");
+            Assert.assertEquals(rejectRestore, pending.contains(owner));
+            Assert.assertFalse(owner.closed());
+            Assert.assertSame(owner, manager.graph(owner.spaceGraphName()));
+            Assert.assertTrue(owner.configuration().file().isFile());
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, rejectRestore ? 0 : 2);
+            if (rejectRestore) {
+                Assert.assertEquals(1, metadata.getSuppressed().length);
+                Assert.assertSame(restoration, metadata.getSuppressed()[0]);
+            }
+        } finally {
+            if (server != null) {
+                Mockito.doCallRealMethod().when(server).exportAll();
+            }
+            manager.close();
+            if (owner != null) {
+                HugeFactory.remove(owner);
+            }
+        }
+    }
+
+    @Test
+    public void testStartupDoesNotExportPendingOwnerAfterUnexportFailure() throws Exception {
+        String name = "startup_unexport_failure";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph owner = null;
+        RpcServer server = null;
+        com.alipay.sofa.rpc.config.ProviderConfig<?> retained = null;
+        try {
+            owner = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            RpcServer original = Whitebox.getInternalState(manager, "rpcServer");
+            server = Mockito.spy(original);
+            Whitebox.setInternalState(manager, "rpcServer", server);
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            owner.registerRpcServices(server.config(), client.config());
+            assertRpcResources(server, client, 2);
+            Map<String, com.alipay.sofa.rpc.config.ProviderConfig<?>> configs = server.config().configs();
+            Map.Entry<String, com.alipay.sofa.rpc.config.ProviderConfig<?>> entry =
+                    configs.entrySet().iterator().next();
+            retained = Mockito.spy(entry.getValue());
+            configs.put(entry.getKey(), retained);
+            IllegalStateException failure = new IllegalStateException("provider unexport rejected");
+            Mockito.doThrow(failure).when(retained).unExport();
+            Whitebox.setInternalState(manager, "PDExist", true);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Assert.assertThrows(IllegalStateException.class, () ->
+                    new org.apache.hugegraph.api.profile.GraphsAPI().drop(
+                            manager, "DEFAULT", name, "I'm sure to drop the graph"));
+            Assert.assertEquals(1, server.config().configs().size());
+            Mockito.verify(meta, Mockito.never()).removeGraphConfig(Mockito.any(), Mockito.any());
+            Assert.assertThrows(IllegalStateException.class, () ->
+                    Whitebox.invoke(GraphManager.class, "startRpcServer", manager));
+            Mockito.verify(server, Mockito.never()).exportAll();
+            Assert.assertFalse(owner.closed());
+            Assert.assertSame(owner, manager.graph(owner.spaceGraphName()));
+            java.util.Set<?> pending = Whitebox.getInternalState(manager, "rpcRemovingOwners");
+            Assert.assertTrue(pending.contains(owner));
+        } finally {
+            if (retained != null) {
+                Mockito.doCallRealMethod().when(retained).unExport();
+            }
+            manager.close();
+            if (owner != null) {
+                owner.close();
+                HugeFactory.remove(owner);
+            }
+        }
+    }
+
+    @Test
+    public void testNonPdHealthyPublicDeleteCompletesCleanup() throws Exception {
+        this.checkNonPdPublicDeleteRetry(false, false);
+    }
+
+    @Test
+    public void testNonPdPublicDeleteRetriesFailedProviderCleanup() throws Exception {
+        this.checkNonPdPublicDeleteRetry(true, false);
+    }
+
+    @Test
+    public void testNonPdPublicDeleteRetriesFailedRpcUnregistration() throws Exception {
+        this.checkNonPdPublicDeleteRetry(true, true);
+    }
+
+    @Test
+    public void testNonPdPublicDeletePreservesFatalCleanupIdentity() throws Exception {
+        this.checkNonPdPublicDeleteRetry(true, false, true);
+    }
+
+    private void checkNonPdPublicDeleteRetry(boolean failCleanup, boolean rpcCleanup) throws Exception {
+        this.checkNonPdPublicDeleteRetry(failCleanup, rpcCleanup, false);
+    }
+
+    private void checkNonPdPublicDeleteRetry(boolean failCleanup, boolean rpcCleanup, boolean fatal) throws Exception {
+        String name = !failCleanup ? "non_pd_healthy" : rpcCleanup ? "non_pd_rpc_retry" :
+                      fatal ? "non_pd_fatal_retry" : "non_pd_provider_retry";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph owner = null;
+        HugeGraph keeper = null;
+        AtomicBoolean reject = new AtomicBoolean(failCleanup);
+        AtomicInteger attempts = new AtomicInteger();
+        try {
+            String config = "gremlin.graph=" + HugeFactory.class.getName() + "\nbackend=memory\nstore=";
+            keeper = manager.createGraphLocal(name + "_keeper", config + name + "_keeper\n");
+            owner = manager.createGraphLocal(name, config + name + "\n");
+            HugeGraph graph = owner;
+            Map<String, HugeGraph> factories = Whitebox.getInternalState(HugeFactory.class, "GRAPHS");
+            Map<String, HugeGraph> managed = Whitebox.getInternalState(manager, "graphs");
+            List<?> retained = Whitebox.getInternalState(owner, "closeResources");
+            List<Runnable> rpc = Whitebox.getInternalState(owner, "rpcServiceCleanup");
+            File file = owner.configuration().file();
+            Assert.assertSame(owner, factories.get(owner.spaceGraphName()));
+            Assert.assertSame(owner, managed.get(owner.spaceGraphName()));
+            Assert.assertTrue(file.isFile());
+            Throwable controlled = fatal ? new AssertionError("fatal native cleanup boundary") :
+                                           new IllegalStateException("persistent native cleanup boundary");
+            BackendStoreProvider provider = Mockito.spy(owner.storeProvider());
+            Whitebox.setInternalState(owner, "storeProvider", provider);
+            AtomicInteger clears = new AtomicInteger();
+            Mockito.doAnswer(invocation -> {
+                clears.incrementAndGet();
+                invocation.callRealMethod();
+                return null;
+            }).when(provider).clear();
+            if (rpcCleanup) {
+                // Only the RPC cleanup callback is controlled; actual graph close/unregister queues run.
+                rpc.add(() -> {
+                    attempts.incrementAndGet();
+                    if (reject.get()) {
+                        throw (RuntimeException) controlled;
+                    }
+                });
+            } else {
+                Mockito.doAnswer(invocation -> {
+                    invocation.callRealMethod();
+                    attempts.incrementAndGet();
+                    if (reject.get()) {
+                        throw controlled;
+                    }
+                    return null;
+                }).when(provider).close();
+            }
+            org.apache.hugegraph.api.profile.GraphsAPI api = new org.apache.hugegraph.api.profile.GraphsAPI();
+            Throwable first = null;
+            try {
+                api.drop(manager, "DEFAULT", name, "I'm sure to drop the graph");
+            } catch (RuntimeException | Error failure) {
+                first = failure;
+            }
+            boolean configRetained = file.isFile();
+            boolean factoryRetained = factories.get(owner.spaceGraphName()) == owner;
+            boolean managerRetained = managed.get(owner.spaceGraphName()) == owner;
+            boolean completed = Whitebox.getInternalState(owner, "closeCompleted");
+            int pending = retained.size();
+            int rpcPending = rpc.size();
+            int firstAttempts = attempts.get();
+            reject.set(false);
+            Throwable retry = null;
+            if (failCleanup) {
+                try {
+                    api.drop(manager, "DEFAULT", name, "I'm sure to drop the graph");
+                } catch (RuntimeException | Error failure) {
+                    retry = failure;
+                }
+            }
+            String facts = String.format("native non-PD DELETE: rpc=%s first=%s retry=%s closed=%s " +
+                    "closeCompleted=%s config=%s factory=%s manager=%s retained=%s rpcPending=%s " +
+                    "attemptsBeforeRetry=%s attemptsAfterRetry=%s", rpcCleanup, first, retry, graph.closed(),
+                    completed, configRetained, factoryRetained, managerRetained, pending, rpcPending,
+                    firstAttempts, attempts.get());
+            if (failCleanup) {
+                Assert.assertTrue(facts, first != null);
+                if (fatal) {
+                    Assert.assertSame(controlled, first);
+                }
+                Assert.assertTrue(facts, configRetained);
+                Assert.assertTrue(facts, factoryRetained);
+                Assert.assertTrue(facts, managerRetained);
+                Assert.assertFalse(facts, completed);
+                Assert.assertTrue(facts, pending > 0);
+                Assert.assertNull(facts, retry);
+                Assert.assertTrue(facts, attempts.get() > firstAttempts);
+            } else {
+                Assert.assertNull(facts, first);
+                Assert.assertTrue(facts, completed);
+                Assert.assertEquals(facts, 0, pending);
+            }
+            Assert.assertEquals("A successful drop clear must not repeat during cleanup retry", 1, clears.get());
+            Assert.assertTrue(Whitebox.getInternalState(owner, "closeCompleted"));
+            Assert.assertEquals(0, retained.size());
+            Assert.assertFalse(file.exists());
+            Assert.assertFalse(factories.containsKey(owner.spaceGraphName()));
+            Assert.assertFalse(managed.containsKey(owner.spaceGraphName()));
+            Assert.assertSame(keeper, manager.graph(keeper.spaceGraphName()));
+        } finally {
+            reject.set(false);
+            if (owner != null) {
+                owner.close();
+                HugeFactory.remove(owner);
+            }
+            manager.close();
+            if (keeper != null) {
+                HugeFactory.remove(keeper);
+            }
+        }
     }
 
     private GraphManager dropManager(String name) throws Exception {

@@ -522,6 +522,12 @@ When cache RPC is enabled and a backend declares shared storage, Server register
 graph and schema cache notifiers for graphs loaded during startup and graphs created or
 loaded later. A new graph's RPC registration must succeed before its local publication.
 Graph services use the graph space and graph name together as their service identity.
+PD deletion and startup coordinate RPC removal for the same graph instance. Startup does not
+register an owner whose RPC removal is pending, even after its placement-event token is consumed,
+and checks logical closure under the actual owner's RPC lifecycle monitor before registration.
+Any retained provider configuration must be unregistered before startup can export services;
+a cleanup failure fails startup instead of re-exporting that owner. Graph clearing, task drains
+and full graph close remain outside this RPC publication gate.
 
 Internal graph loading registers RPC services in Server's administrative scope and
 restores the caller's identity afterward. Direct registration and cleanup remain
@@ -559,7 +565,11 @@ propagate out of the removal batch. Failures after backend clearing do not undo 
 retries do not restore deleted data or placement metadata.
 
 For local deletion without PD, backend clearing precedes RPC cleanup during graph close.
-A later cleanup failure does not preserve the deleted data.
+A close failure retains the same local graph, factory identity and configuration for DELETE retry,
+even when access has already been fenced by logical closure. Only a successful clear by that
+instance's local drop permits retry to skip clearing and finish its retained resource cleanup.
+An ordinary close does not provide that certificate. A failure before clearing keeps the open
+owner's existing RPC services. A later cleanup failure does not preserve or restore deleted data.
 
 Failed creation or local loading closes the candidate in Server's administrative scope.
 If rollback close fails, Server retains the local owner and factory identity for cleanup retry.
