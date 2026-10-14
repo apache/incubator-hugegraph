@@ -546,10 +546,10 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
                 assert false : id;
                 return null;
             }
-            int key = (int) longId;
-            if (key >= this.size) {
+            if (longId >= this.size) {
                 return null;
             }
+            int key = (int) longId;
             switch (type) {
                 case PROPERTY_KEY:
                     return this.pks.get(key);
@@ -571,10 +571,10 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
                 assert false : id;
                 return;
             }
-            int key = (int) longId;
-            if (key >= this.size) {
+            if (longId >= this.size) {
                 return;
             }
+            int key = (int) longId;
             switch (type) {
                 case PROPERTY_KEY:
                     this.pks.set(key, value);
@@ -600,11 +600,11 @@ public class CachedSchemaTransactionV2 extends SchemaTransactionV2 {
             if (longId <= 0L) {
                 return;
             }
-            int key = (int) longId;
-            V value = null;
-            if (key >= this.size) {
+            if (longId >= this.size) {
                 return;
             }
+            int key = (int) longId;
+            V value = null;
             switch (type) {
                 case PROPERTY_KEY:
                     this.pks.set(key, value);
