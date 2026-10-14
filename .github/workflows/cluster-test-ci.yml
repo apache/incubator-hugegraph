@@ -39,13 +39,19 @@ jobs:
 
       - name: Run simple cluster test
         run: |
+          set -o pipefail
+          suite_log="$RUNNER_TEMP/simple-cluster-test.log"
           timeout 45m mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test \
-            -am -P simple-cluster-test
+            -am -P simple-cluster-test 2>&1 | tee "$suite_log"
+          hugegraph-server/hugegraph-dist/src/assembly/travis/check-java-runtime-logs.sh "$suite_log"
 
       - name: Run multi cluster test
         run: |
+          set -o pipefail
+          suite_log="$RUNNER_TEMP/multi-cluster-test.log"
           timeout 45m mvn test -pl hugegraph-cluster-test/hugegraph-clustertest-test \
-            -am -P multi-cluster-test
+            -am -P multi-cluster-test 2>&1 | tee "$suite_log"
+          hugegraph-server/hugegraph-dist/src/assembly/travis/check-java-runtime-logs.sh "$suite_log"
 
       - name: Show cluster diagnostics on failure
         if: failure()
