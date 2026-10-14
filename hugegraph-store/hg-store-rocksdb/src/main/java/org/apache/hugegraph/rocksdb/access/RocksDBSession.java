@@ -133,7 +133,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         }
     }
 
-    private static void closeQuietly(AutoCloseable resource) {
+    static void closeQuietly(AutoCloseable resource) {
         if (resource == null) {
             return;
         }
@@ -820,7 +820,7 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     }
 
     /** Classifies the files a checkpoint materialized into the metadata snapshot descriptor. */
-    private RocksDBFactory.MetadataSnapshot categoriseCheckpoint(String tempDir) {
+    RocksDBFactory.MetadataSnapshot categoriseCheckpoint(String tempDir) {
         long generation = this.getLatestSequenceNumber();
         String currentFileName = null;
         String manifestFileName = null;

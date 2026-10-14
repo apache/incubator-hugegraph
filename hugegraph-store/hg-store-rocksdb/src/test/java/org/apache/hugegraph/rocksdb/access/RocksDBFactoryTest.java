@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -56,6 +57,8 @@ import org.apache.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
+import org.rocksdb.LiveFileMetaData;
+import org.rocksdb.RocksDB;
 import org.rocksdb.Status;
 import org.rocksdb.TableFileCreationInfo;
 import org.rocksdb.TableFileDeletionInfo;
@@ -1187,6 +1190,319 @@ public class RocksDBFactoryTest {
     }
 
     // =========================================================================
+    // Scheduled maintenance / destroy edge cases
+    // =========================================================================
+
+    @Test
+    public void testRunMaintenancePassDrainsDestroyQueue() throws Exception {
+        Path dir = Files.createTempDirectory("hg-maint-pass-");
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getRefCount()).thenReturn(0);
+        when(session.getGraphName()).thenReturn("maintpass-" + System.nanoTime());
+        when(session.getDbPath()).thenReturn(dir.toString());
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBFactory.DBSessionWatcher watcher = factory.addDestroyWatcher(session);
+        try {
+            factory.runMaintenancePass();
+            assertFalse(factory.isDestroyPending(watcher));
+            assertFalse(dir.toFile().exists());
+        } finally {
+            deleteRecursively(dir.toFile());
+        }
+    }
+
+    /**
+     * A stale destroy watcher must also be discarded when a creation of the same DB name is
+     * in flight (reserved in {@code pendingCreations} but not yet in the session map) — the
+     * cleanup pass must not delete the directory the in-flight creation is about to open.
+     */
+    @Test
+    public void testProcessPendingDestroysDiscardsWatcherWhileSameDbCreationInFlight()
+            throws Exception {
+        Path dir = Files.createTempDirectory("hg-destroy-inflight-");
+        String dbName = "destroyinflight-" + System.nanoTime();
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getRefCount()).thenReturn(0);
+        when(session.getGraphName()).thenReturn(dbName);
+        when(session.getDbPath()).thenReturn(dir.toString());
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Set<String> pending = pendingCreations(factory);
+        RocksDBFactory.DBSessionWatcher watcher = factory.addDestroyWatcher(session);
+        pending.add(dbName);
+        try {
+            factory.processPendingDestroys();
+
+            assertFalse("the superseded watcher must be discarded",
+                        factory.isDestroyPending(watcher));
+            verify(session, never()).shutdown();
+            assertTrue("the in-flight DB's directory must not be deleted", dir.toFile().exists());
+        } finally {
+            pending.remove(dbName);
+            deleteRecursively(dir.toFile());
+        }
+    }
+
+    @Test
+    public void testShutdownQuietlySwallowsShutdownFailure() {
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getGraphName()).thenReturn("shutdownfail");
+        doThrow(new IllegalStateException("simulated shutdown failure")).when(session).shutdown();
+
+        RocksDBFactory.shutdownQuietly(session);
+
+        verify(session, times(1)).shutdown();
+    }
+
+    @Test
+    public void testDestroyGraphDbUnknownNameIsNoop() {
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        String dbName = "no-such-db-" + System.nanoTime();
+        AtomicInteger deleteBegins = new AtomicInteger(0);
+        RocksdbChangedListener probe = new RocksdbChangedListener() {
+            @Override
+            public void onDBDeleteBegin(String db, String dbPath) {
+                deleteBegins.incrementAndGet();
+            }
+        };
+        factory.addRocksdbChangedListener(probe);
+        try {
+            factory.destroyGraphDB(dbName);
+            assertEquals("no listener may be notified for an unknown DB", 0, deleteBegins.get());
+            assertFalse(factory.getGraphNames().contains(dbName));
+        } finally {
+            factory.removeRocksdbChangedListener(probe);
+        }
+    }
+
+    // =========================================================================
+    // Reporting helpers against stubbed sessions
+    // =========================================================================
+
+    @Test
+    public void testFlushSessionSwallowsFlushFailure() throws Exception {
+        String dbName = "flushfail-" + System.nanoTime();
+        RocksDBSession session = mock(RocksDBSession.class);
+        doThrow(new IllegalStateException("simulated flush failure")).when(session).flush(true);
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, RocksDBSession> sessions = sessionMap(factory);
+        sessions.put(dbName, session);
+        try {
+            factory.flushSession(dbName, true);
+            verify(session, times(1)).flush(true);
+        } finally {
+            sessions.remove(dbName);
+        }
+    }
+
+    @Test
+    public void testLiveSstFilesAndMetadataSnapshotForSessionWithoutDb() throws Exception {
+        String dbName = "nodb-" + System.nanoTime();
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getDB()).thenReturn(null);
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, RocksDBSession> sessions = sessionMap(factory);
+        sessions.put(dbName, session);
+        try {
+            assertTrue(factory.getLiveSstFiles(dbName).isEmpty());
+            assertNull(factory.captureMetadataSnapshot(dbName));
+        } finally {
+            sessions.remove(dbName);
+        }
+    }
+
+    /**
+     * Only {@code *.sst} entries are reported, and the dir / file name are joined with exactly
+     * one separator whether or not the dir has a trailing one or the name a leading one.
+     */
+    @Test
+    public void testGetLiveSstFilesJoinsPathsAndSkipsNonSstEntries() throws Exception {
+        String dbName = "livesst-" + System.nanoTime();
+        RocksDB db = mock(RocksDB.class);
+        List<LiveFileMetaData> metadata = List.of(
+                liveFile("/data/db", "/000001.sst", "default"),
+                liveFile("/data/db/", "/000002.sst", "default"),
+                liveFile("/data/db", "000003.sst", "g+v"),
+                liveFile("/data/db/", "000004.sst", "g+v"),
+                liveFile("/data/db", "/MANIFEST-000005", "default"),
+                liveFile("/data/db", null, "default"));
+        when(db.getLiveFilesMetaData()).thenReturn(metadata);
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getDB()).thenReturn(db);
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, RocksDBSession> sessions = sessionMap(factory);
+        sessions.put(dbName, session);
+        try {
+            List<RocksDBFactory.LiveSstFile> files = factory.getLiveSstFiles(dbName);
+
+            assertEquals(4, files.size());
+            for (int i = 0; i < 4; i++) {
+                assertEquals(new File("/data/db", String.format("00000%d.sst", i + 1)).getPath(),
+                             files.get(i).getAbsolutePath());
+            }
+            assertEquals("default", files.get(0).getCfName());
+            assertEquals("g+v", files.get(2).getCfName());
+        } finally {
+            sessions.remove(dbName);
+        }
+    }
+
+    @Test
+    public void testMetadataSnapshotNonManifestNameAndCleanupFailureAreTolerated()
+            throws Exception {
+        assertEquals(-1L, new RocksDBFactory.MetadataSnapshot(
+                "/db", "/t", "CURRENT", "OPTIONS-000007",
+                java.util.List.of(), java.util.List.of()).getGeneration());
+
+        // A temp "dir" that is actually a regular file makes deleteDirectory throw; cleanup()
+        // must log and carry on rather than propagate.
+        Path notADir = Files.createTempFile("hg-ckpt-cleanup-", ".tmp");
+        try {
+            new RocksDBFactory.MetadataSnapshot("/db", notADir.toString(), "CURRENT",
+                                                "MANIFEST-1", java.util.List.of(),
+                                                java.util.List.of()).cleanup();
+        } finally {
+            Files.deleteIfExists(notADir);
+        }
+    }
+
+    @Test
+    public void testOnReadMissSwallowsFailingListenerAndKeepsOtherHydration() {
+        RocksDBSession session = mock(RocksDBSession.class);
+        when(session.getGraphName()).thenReturn("readmiss");
+        RocksdbChangedListener failing = new RocksdbChangedListener() {
+            @Override
+            public boolean onReadMiss(RocksDBSession s, String table, byte[] key) {
+                throw new IllegalStateException("simulated hydration failure");
+            }
+        };
+        RocksdbChangedListener hydrating = new RocksdbChangedListener() {
+            @Override
+            public boolean onReadMiss(RocksDBSession s, String table, byte[] key) {
+                return true;
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(failing);
+        factory.addRocksdbChangedListener(hydrating);
+        try {
+            assertTrue(factory.onReadMiss(session, "t", "k".getBytes(StandardCharsets.UTF_8)));
+        } finally {
+            factory.removeRocksdbChangedListener(failing);
+            factory.removeRocksdbChangedListener(hydrating);
+        }
+    }
+
+    @Test
+    public void testDefaultFileAndReadMissHooksAreNoOps() {
+        RocksdbChangedListener listener = new RocksdbChangedListener() {
+        };
+        listener.onTableFileCreated("db", "default", "/path/000001.sst", 1L);
+        listener.onTableFileDeleted("db", "default", "/path/000001.sst");
+        assertFalse(listener.onReadMiss(null, "t", "k".getBytes(StandardCharsets.UTF_8)));
+    }
+
+    // =========================================================================
+    // RocksDBSession: construction / db-path discovery / checkpoint classification
+    // =========================================================================
+
+    @Test
+    public void testSessionConstructorWithoutPreOpenHookOpensDb() throws Exception {
+        Path parent = Files.createTempDirectory("hg-session-nohook-");
+        String dbName = "nohook";
+        RocksDBSession session = new RocksDBSession(RocksDBFactory.getInstance().getHugeConfig(),
+                                                    parent.toString(), dbName, 0);
+        try {
+            assertNotNull(session.getDB());
+            assertTrue(new File(session.getDbPath(), "CURRENT").exists());
+        } finally {
+            session.shutdown();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
+    public void testCloseQuietlySwallowsCloseFailure() {
+        AtomicBoolean closed = new AtomicBoolean(false);
+        RocksDBSession.closeQuietly(null);
+        RocksDBSession.closeQuietly(() -> {
+            closed.set(true);
+            throw new IllegalStateException("simulated close failure");
+        });
+        assertTrue(closed.get());
+    }
+
+    /**
+     * Snapshot temp dirs ({@code *_temp_}) and dirs with more than two version parts are not DB
+     * candidates; among {@code <name>_<v1>_<v2>} dirs the highest {@code (v1, v2)} wins and the
+     * older ones are deleted.
+     */
+    @Test
+    public void testFindLatestDbPath_skipsTempAndMalformedDirsAndComparesTwoPartVersions()
+            throws Exception {
+        Path parent = Files.createTempDirectory("hg-find-latest-twopart-");
+        String dbName = "testdb";
+        Path older = Files.createDirectories(parent.resolve(dbName + "_1_2"));
+        Path newer = Files.createDirectories(parent.resolve(dbName + "_1_5"));
+        Path temp = Files.createDirectories(parent.resolve(dbName + "_9_temp_"));
+        Path threePart = Files.createDirectories(parent.resolve(dbName + "_9_9_9"));
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = factory.createGraphDB(parent.toString(), dbName);
+        try {
+            assertEquals(newer.toString(), session.getDbPath());
+            assertFalse("the older two-part version must be deleted", older.toFile().exists());
+            assertTrue("snapshot temp dirs must be left alone", temp.toFile().exists());
+            assertTrue("malformed version dirs must be left alone", threePart.toFile().exists());
+        } finally {
+            session.close();
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
+    public void testCategoriseCheckpointClassifiesFilesAndToleratesMissingDir() throws Exception {
+        Path parent = Files.createTempDirectory("hg-categorise-");
+        String dbName = "categorise";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = factory.createGraphDB(parent.toString(), dbName, 0);
+        try {
+            Path ckpt = Files.createDirectories(parent.resolve("ckpt"));
+            for (String name : List.of("CURRENT", "MANIFEST-000007", "OPTIONS-000009",
+                                       "000011.sst", "000012.log")) {
+                Files.write(ckpt.resolve(name), new byte[0]);
+            }
+
+            RocksDBFactory.MetadataSnapshot snap = session.categoriseCheckpoint(ckpt.toString());
+            assertEquals(session.getDbPath(), snap.getDbDir());
+            assertEquals("CURRENT", snap.getCurrentFileName());
+            assertEquals("MANIFEST-000007", snap.getManifestFileName());
+            assertEquals(List.of("OPTIONS-000009"), snap.getOptionsFileNames());
+            assertEquals("the WAL file must not be classified as an SST",
+                         List.of("000011.sst"), snap.getSstFileNames());
+
+            RocksDBFactory.MetadataSnapshot empty = session.categoriseCheckpoint(
+                    parent.resolve("missing").toString());
+            assertNull(empty.getCurrentFileName());
+            assertNull(empty.getManifestFileName());
+            assertTrue(empty.getOptionsFileNames().isEmpty());
+            assertTrue(empty.getSstFileNames().isEmpty());
+        } finally {
+            session.close();
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
@@ -1213,6 +1529,21 @@ public class RocksDBFactoryTest {
                 }
             }
         };
+    }
+
+    private static LiveFileMetaData liveFile(String dir, String fileName, String cfName) {
+        LiveFileMetaData md = mock(LiveFileMetaData.class);
+        when(md.path()).thenReturn(dir);
+        when(md.fileName()).thenReturn(fileName);
+        when(md.columnFamilyName()).thenReturn(cfName.getBytes(StandardCharsets.UTF_8));
+        return md;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<String> pendingCreations(RocksDBFactory factory) throws Exception {
+        Field field = RocksDBFactory.class.getDeclaredField("pendingCreations");
+        field.setAccessible(true);
+        return (Set<String>) field.get(factory);
     }
 
     @SuppressWarnings("unchecked")

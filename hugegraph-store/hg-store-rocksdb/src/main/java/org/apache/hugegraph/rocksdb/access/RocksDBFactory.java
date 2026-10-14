@@ -18,6 +18,7 @@
 package org.apache.hugegraph.rocksdb.access;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -78,10 +79,14 @@ public final class RocksDBFactory {
     private RocksDBFactory() {
         this.operateLock = new ReentrantReadWriteLock();
         scheduledExecutor = Executors.newScheduledThreadPool(2);
-        scheduledExecutor.scheduleWithFixedDelay(() -> {
-            logUnclosedIterators();
-            processPendingDestroys();
-        }, 60, 60, TimeUnit.SECONDS);
+        scheduledExecutor.scheduleWithFixedDelay(this::runMaintenancePass, 60, 60,
+                                                 TimeUnit.SECONDS);
+    }
+
+    /** One scheduled maintenance pass; package-private so tests can drive it directly. */
+    void runMaintenancePass() {
+        logUnclosedIterators();
+        processPendingDestroys();
     }
 
     /**
@@ -373,13 +378,13 @@ public final class RocksDBFactory {
             RocksDBSession existing = dbSessionMap.get(dbName);
             if (existing != null) {
                 // Race: another thread won Phase 3 first; discard our duplicate.
-                try { dbSession.shutdown(); } catch (Exception ignore) {}
+                shutdownQuietly(dbSession);
                 return existing.clone();
             }
             dbSessionMap.put(dbName, dbSession);
         } catch (Exception e) {
             pendingCreations.remove(dbName);
-            try { dbSession.shutdown(); } catch (Exception ignore) {}
+            shutdownQuietly(dbSession);
             throw e;
         } finally {
             operateLock.writeLock().unlock();
@@ -391,6 +396,16 @@ public final class RocksDBFactory {
         rocksdbChangedListeners.forEach(listener -> listener.onDBCreated(finalDbName, finalDbPath));
 
         return dbSession.clone();
+    }
+
+    /** Best-effort shutdown of a session being discarded; package-private for tests. */
+    static void shutdownQuietly(RocksDBSession session) {
+        try {
+            session.shutdown();
+        } catch (Exception e) {
+            log.warn("Failed to shut down discarded session for db={}: {}",
+                     session.getGraphName(), e.getMessage());
+        }
     }
 
     /**
