@@ -894,6 +894,11 @@ public class GraphManagerConfigTest {
     }
 
     @Test
+    public void testLateSelfAddRetriesFailedPeerRemoval() throws Exception {
+        this.checkReceivedSameNameAddAfterCleanup(false, 0, true, true);
+    }
+
+    @Test
     public void testPeerRemoveFailureDoesNotReloadMissingConfig() throws Exception {
         this.checkReceivedSameNameAddAfterCleanup(true, 1, true);
     }
@@ -908,7 +913,13 @@ public class GraphManagerConfigTest {
 
     private void checkReceivedSameNameAddAfterCleanup(boolean addDuringCleanup, int replayFailure,
                                                      boolean peer) throws Exception {
-        String name = replayFailure == 1 ? "received_add_missing" : replayFailure == 2 ? "received_add_retry" :
+        this.checkReceivedSameNameAddAfterCleanup(addDuringCleanup, replayFailure, peer, false);
+    }
+
+    private void checkReceivedSameNameAddAfterCleanup(boolean addDuringCleanup, int replayFailure,
+                                                     boolean peer, boolean lateSelfAdd) throws Exception {
+        String name = lateSelfAdd ? "late_self_add_peer_retry" :
+                      replayFailure == 1 ? "received_add_missing" : replayFailure == 2 ? "received_add_retry" :
                       addDuringCleanup ? "received_add_early" : "received_add_late";
         String key = "DEFAULT-" + name;
         GraphManager manager = this.dropManager(name);
@@ -985,6 +996,11 @@ public class GraphManagerConfigTest {
             Whitebox.setInternalState(manager, "pdPeers", "127.0.0.1:8686");
             Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
             spaces.put("DEFAULT", space);
+            if (lateSelfAdd) {
+                // Local creation is still waiting for its own PD acknowledgement.
+                java.util.Set<String> creating = Whitebox.getInternalState(manager, "creatingGraphs");
+                creating.add(key);
+            }
             String threadName = Thread.currentThread().getName();
             if (peer) {
                 try {
@@ -1024,6 +1040,10 @@ public class GraphManagerConfigTest {
                 rejectReplay.set(true);
             }
             reject.set(false);
+            if (lateSelfAdd) {
+                java.util.Set<HugeGraph> failed = Whitebox.getInternalState(manager, "failedPeerRemovals");
+                Assert.assertTrue(failed.contains(graph));
+            }
             // A replacement read failure must not turn completed old-owner deletion into a failed DELETE.
             if (peer) {
                 try {
@@ -1040,7 +1060,7 @@ public class GraphManagerConfigTest {
                 new org.apache.hugegraph.api.profile.GraphsAPI().drop(
                         manager, "DEFAULT", name, "I'm sure to drop the graph");
             }
-            Assert.assertEquals(peer ? 3 : 2, cleanupAttempts.get());
+            Assert.assertEquals(peer && addDuringCleanup ? 3 : 2, cleanupAttempts.get());
             Assert.assertNotSame(graph, factories.get(key));
             java.util.Set<String> pending = Whitebox.getInternalState(manager, "pendingGraphAdds");
             if (replayFailure == 1) {
@@ -1060,7 +1080,7 @@ public class GraphManagerConfigTest {
                 Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
                         "graphAddHandler", manager, "new-configuration");
             }
-            if (!addDuringCleanup) {
+            if (!addDuringCleanup && !peer) {
                 Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
                         "graphAddHandler", manager, "new-configuration");
             }
