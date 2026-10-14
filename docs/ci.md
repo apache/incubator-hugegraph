@@ -19,16 +19,19 @@ and `Server rocksdb tests (Java ...)`; their native checks report real execution
 ## Coverage with selective tests
 
 Each coverage upload has a stable test-group flag. The [Codecov configuration](../.github/codecov.yml)
-enables [carryforward](https://docs.codecov.com/docs/carryforward-flags), which
-preserves the last flagged report for unexecuted groups, so skipping unchanged Commons,
-PD/Store or backend checks does not remove their previous data from project totals.
+enables [carryforward](https://docs.codecov.com/docs/carryforward-flags). When Codecov can
+find an earlier flagged report in its recorded parent chain, it preserves that historical
+report for unexecuted groups such as Commons, PD/Store and backends.
 The PR comment explicitly marks carried-forward data. It is historical coverage,
 not evidence that a skipped test ran; native job failures remain failures.
 
-New flags need a complete initial baseline. After rollout, the existing weekly full run
-on master supplies every flagged group; before that baseline exists, the project report
-may still be incomplete. Full and selected runs retain explicit report paths and uploads.
-No extra coverage collector runner or unrelated backend run is added for ordinary PRs.
+New flags need a complete initial baseline. The existing weekly full run supplies every
+flagged group for that commit. Master pushes remain smoke-only and upload no coverage;
+those commits can break Codecov's recorded parent chain. A fresh selective PR based on
+such a commit is not guaranteed to inherit the weekly baseline, and its project report
+may still be incomplete. Carryforward within an existing reported PR chain does not
+prove this works for a fresh PR. Full and selected runs retain explicit report paths and
+uploads; no extra collector runner or repeated master coverage tests are added.
 
 ## What runs
 
