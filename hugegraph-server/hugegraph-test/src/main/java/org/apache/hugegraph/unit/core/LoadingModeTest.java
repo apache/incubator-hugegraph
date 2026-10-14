@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.unit.core;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -27,10 +29,89 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.LoadingMode;
 import org.apache.hugegraph.type.define.GraphMode;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+import org.apache.logging.log4j.core.config.Property;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class LoadingModeTest {
+
+    @Test
+    public void testOwnerAuditRecordsOnlySuccessfulChangesWithoutTokens() {
+        List<LogEvent> events = new ArrayList<>();
+        AbstractAppender appender = new AbstractAppender("LoadingModeTestAppender", null, null,
+                                                        true, Property.EMPTY_ARRAY) {
+            @Override
+            public void append(LogEvent event) {
+                events.add(event.toImmutable());
+            }
+        };
+        appender.start();
+        LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        org.apache.logging.log4j.core.config.Configuration configuration = context.getConfiguration();
+        String loggerName = LoadingMode.class.getName();
+        LoggerConfig previous = configuration.getLoggers().get(loggerName);
+        LoggerConfig logger = new LoggerConfig(loggerName, Level.INFO, false);
+        logger.addAppender(appender, Level.INFO, null);
+        configuration.addLogger(loggerName, logger);
+        context.updateLoggers();
+        try {
+            LoadingMode mode = new LoadingMode();
+            Map<String, Object> capability = mode.capability();
+            String first = token();
+            String second = token();
+            update(mode, capability, first, "acquire");
+            update(mode, capability, first, "acquire");
+            update(mode, capability, second, "acquire");
+            Assert.assertThrows(LoadingMode.ConflictException.class,
+                                () -> mode.update("release", (String) capability.get("instance"),
+                                                  0, first, "other-user"));
+            update(mode, capability, first, "release");
+            update(mode, capability, first, "release");
+            update(mode, capability, second, "release");
+            update(mode, capability, first, "acquire");
+            Assert.assertEquals(4, events.size());
+            Assert.assertTrue(message(events, 0).contains("mode NONE -> LOADING, epoch 0, activeOwners 1"));
+            Assert.assertTrue(message(events, 1).contains("mode LOADING -> LOADING, epoch 0, activeOwners 2"));
+            Assert.assertTrue(message(events, 2).contains("activeOwners 1, clearedOwners 1"));
+            Assert.assertTrue(message(events, 3).contains("mode LOADING -> NONE, epoch 0, activeOwners 0"));
+            update(mode, capability, token(), "acquire");
+            update(mode, capability, token(), "acquire");
+            Map<String, Object> current = mode.capability();
+            mode.recover((String) current.get("instance"), 0, ((Number) current.get("revision")).longValue());
+            Assert.assertTrue(message(events, 6).contains("mode LOADING -> NONE, epoch 1, " +
+                                                        "activeOwners 0, clearedOwners 2"));
+            Assert.assertThrows(LoadingMode.ConflictException.class,
+                                () -> mode.recover((String) capability.get("instance"), 0, 0));
+            current = mode.capability();
+            mode.recover((String) current.get("instance"), 1, ((Number) current.get("revision")).longValue());
+            Assert.assertEquals(8, events.size());
+            Assert.assertTrue(message(events, 7).contains("mode NONE -> NONE, epoch 2, " +
+                                                        "activeOwners 0, clearedOwners 0"));
+            for (LogEvent event : events) {
+                Assert.assertEquals(Level.INFO, event.getLevel());
+                Assert.assertFalse(event.getMessage().getFormattedMessage().contains(first));
+                Assert.assertFalse(event.getMessage().getFormattedMessage().contains(second));
+                Assert.assertFalse(event.getMessage().getFormattedMessage().contains("other-user"));
+            }
+        } finally {
+            configuration.removeLogger(loggerName);
+            if (previous != null) {
+                configuration.addLogger(loggerName, previous);
+            }
+            context.updateLoggers();
+            appender.stop();
+        }
+    }
+
+    private static String message(List<LogEvent> events, int index) {
+        return events.get(index).getMessage().getFormattedMessage();
+    }
 
     @Test
     public void testTwoOwnersAndIdempotentRetry() {

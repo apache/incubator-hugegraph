@@ -550,6 +550,10 @@ including bare LOADING; their original behavior remains available without active
 `release` uses the same tuple. Receipts echo protocol/instance/epoch/token and return
 `state` (`active` or `released`) and the effective `mode`. Both operations use existing
 graph-owner/STATUS WRITE permissions; the authenticated principal owns the token.
+The request principal is also bound for graphs opened without the authentication proxy.
+Each new acquire, actual release and successful recovery writes an INFO audit entry
+with the graph instance, previous/resulting mode, epoch and owner counts. Idempotent
+retries do not add entries. These audit entries omit tokens and authenticated principal values.
 
 Keep one tuple and identity for the whole import attempt, including uncertain acquire
 outcomes. Release after that import's workers stop. Acquire/release retries are

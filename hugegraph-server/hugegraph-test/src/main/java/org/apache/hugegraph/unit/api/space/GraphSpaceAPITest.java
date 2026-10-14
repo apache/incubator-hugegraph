@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.LoadingMode;
 import org.apache.hugegraph.api.auth.ManagerAPI;
 import org.apache.hugegraph.api.profile.GraphsAPI;
@@ -244,6 +245,39 @@ public class GraphSpaceAPITest extends BaseUnitTest {
 
         Assert.assertTrue(result.contains("hugegraph"));
         Assert.assertFalse(result.contains(SYS_GRAPH));
+    }
+
+    @Test
+    public void testUnproxiedLoadingOwnerUsesAuthenticatedPrincipal() throws Exception {
+        HugeConfig config = FakeObjects.newConfig();
+        config.setProperty("backend", "memory");
+        config.setProperty("serializer", "text");
+        config.setProperty("store", "unproxied_loading_owner");
+        HugeGraph graph = HugeFactory.open(config);
+        try {
+            GraphManager manager = Mockito.mock(GraphManager.class);
+            Mockito.when(manager.graph("DEFAULT", "hugegraph")).thenReturn(graph);
+            GraphsAPI api = new GraphsAPI();
+            GraphsAPI.JsonLoadingOwner request = new GraphsAPI.JsonLoadingOwner();
+            request.instance = (String) graph.loadingMode().get("instance");
+            request.epoch = 0L;
+            request.token = java.util.UUID.randomUUID().toString();
+            request.action = "acquire";
+            setContext("alice");
+            Assert.assertEquals("active", api.loadingMode(manager, "DEFAULT", "hugegraph", request, null).get("state"));
+            request.action = "release";
+            setContext("bob");
+            ClientErrorException conflict = org.junit.Assert.assertThrows(ClientErrorException.class,
+                    () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, null));
+            Assert.assertEquals(409, conflict.getResponse().getStatus());
+            Assert.assertEquals(GraphMode.LOADING, graph.mode());
+            setContext("alice");
+            Assert.assertEquals("released", api.loadingMode(manager, "DEFAULT", "hugegraph", request, null).get("state"));
+            Assert.assertEquals(GraphMode.NONE, graph.mode());
+        } finally {
+            graph.close();
+            HugeFactory.remove(graph);
+        }
     }
 
     @Test

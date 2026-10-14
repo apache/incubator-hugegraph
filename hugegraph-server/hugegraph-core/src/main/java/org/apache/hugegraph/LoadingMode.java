@@ -24,11 +24,15 @@ import java.util.UUID;
 
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.util.E;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 import com.google.common.collect.ImmutableMap;
 
 /** Same graph-instance ownership; this state is neither persisted nor distributed. */
 public final class LoadingMode {
+
+    private static final Logger LOG = Log.logger(LoadingMode.class);
 
     private static final int MAX_RELEASED = 1024;
 
@@ -63,11 +67,14 @@ public final class LoadingMode {
         checkState(epoch == this.epoch && revision == this.revision,
                    "Loading state changed; inspect it before recovery");
         checkState(this.epoch < Long.MAX_VALUE, "Loading owner epoch exhausted");
+        GraphMode previousMode = this.mode;
+        int clearedOwners = this.active.size();
         this.advanceRevision();
         this.epoch++;
         this.active.clear();
         this.released.clear();
         this.mode = GraphMode.NONE;
+        this.logChange("recover", previousMode, clearedOwners);
         return ImmutableMap.<String, Object>builder().putAll(this.capability())
                            .put("state", "recovered").put("mode", this.mode).build();
     }
@@ -81,6 +88,7 @@ public final class LoadingMode {
         E.checkArgument(token != null && token.length() == 36 && UUID.fromString(token).toString().equals(token),
                         "Loading owner token must be a canonical UUID");
         Objects.requireNonNull(principal, "principal");
+        GraphMode previousMode = this.mode;
         String key = epoch + "/" + token;
         String owner = this.active.get(key);
         if (owner != null) {
@@ -105,6 +113,7 @@ public final class LoadingMode {
             this.advanceRevision();
             this.active.put(key, principal);
             this.mode = GraphMode.LOADING;
+            this.logChange("acquire", previousMode, 0);
             return this.receipt(epoch, token, "active");
         }
         // Unknown release cancels an acquire which may still be in transit.
@@ -130,7 +139,16 @@ public final class LoadingMode {
                 this.released.put(key, principal);
             }
         }
+        if (owner != null) {
+            this.logChange("release", previousMode, 1);
+        }
         return this.receipt(epoch, token, "released");
+    }
+
+    private void logChange(String action, GraphMode previousMode, int clearedOwners) {
+        LOG.info("Loading ownership {} for graph instance {}: mode {} -> {}, epoch {}, " +
+                 "activeOwners {}, clearedOwners {}", action, this.instance, previousMode, this.mode,
+                 this.epoch, this.active.size(), clearedOwners);
     }
 
     private void advanceRevision() {

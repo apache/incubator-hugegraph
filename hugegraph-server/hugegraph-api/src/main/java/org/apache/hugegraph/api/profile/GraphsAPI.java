@@ -738,7 +738,8 @@ public class GraphsAPI extends API {
             if ("recover".equals(owner.action)) {
                 return graph.recoverLoadingMode(owner.instance, owner.epoch, owner.revision);
             }
-            return graph.loadingMode(owner.action, owner.instance, owner.epoch, owner.token, "");
+            return graph.loadingMode(owner.action, owner.instance, owner.epoch, owner.token,
+                                     HugeGraphAuthProxy.username());
         } catch (LoadingMode.ConflictException e) {
             throw new ClientErrorException(e.getMessage(), Response.Status.CONFLICT, e);
         }
