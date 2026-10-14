@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.task;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.Callable;
@@ -255,69 +256,50 @@ public final class TaskManager {
             LOG.warn("Stopping task executors with {} schedulers still registered", this.schedulers.size());
         }
 
-        Throwable ex = null;
-        boolean terminated = this.distributedSchedulerExecutor.isTerminated();
-        final TimeUnit unit = TimeUnit.SECONDS;
+        try {
+            shutdownExecutor(this.distributedSchedulerExecutor, timeout);
+            shutdownExecutor(this.taskExecutor, timeout);
+            // Early REST/Gremlin closes can retain graphs while tasks finish.
+            // Their DB owners must close before the owner executor stops.
+            this.closeRetainedGraphs();
+            shutdownExecutor(this.taskDbExecutor, timeout);
+            shutdownExecutor(this.ephemeralTaskExecutor, timeout);
+            shutdownExecutor(this.schemaTaskExecutor, timeout);
+            shutdownExecutor(this.olapTaskExecutor, timeout);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new HugeException("Failed to wait for TaskScheduler", e);
+        } catch (TimeoutException e) {
+            throw new HugeException("Failed to wait for TaskScheduler", e);
+        }
+    }
 
-        if (!this.distributedSchedulerExecutor.isShutdown()) {
-            this.distributedSchedulerExecutor.shutdown();
+    private static void shutdownExecutor(ExecutorService executor, long timeout)
+                                         throws InterruptedException, TimeoutException {
+        if (!executor.isShutdown()) {
+            executor.shutdown();
+        }
+        if (!executor.isTerminated() && !executor.awaitTermination(timeout, TimeUnit.SECONDS)) {
+            throw new TimeoutException(timeout + "s");
+        }
+    }
+
+    private void closeRetainedGraphs() {
+        Throwable failure = null;
+        for (HugeGraphParams graph : new ArrayList<>(this.schedulers.keySet())) {
             try {
-                terminated = this.distributedSchedulerExecutor.awaitTermination(timeout, unit);
-            } catch (Throwable e) {
-                ex = e;
+                graph.graph().close();
+            } catch (Exception | Error error) {
+                if (failure == null) {
+                    failure = error;
+                } else if (failure != error) {
+                    failure.addSuppressed(error);
+                }
             }
         }
-
-        if (terminated && !this.taskExecutor.isShutdown()) {
-            this.taskExecutor.shutdown();
-            try {
-                terminated = this.taskExecutor.awaitTermination(timeout, unit);
-            } catch (Throwable e) {
-                ex = e;
-            }
-        }
-
-        if (terminated && !this.taskDbExecutor.isShutdown()) {
-            this.taskDbExecutor.shutdown();
-            try {
-                terminated = this.taskDbExecutor.awaitTermination(timeout, unit);
-            } catch (Throwable e) {
-                ex = e;
-            }
-        }
-
-        if (terminated && !this.ephemeralTaskExecutor.isShutdown()) {
-            this.ephemeralTaskExecutor.shutdown();
-            try {
-                terminated = this.ephemeralTaskExecutor.awaitTermination(timeout, unit);
-            } catch (Throwable e) {
-                ex = e;
-            }
-        }
-
-        if (terminated && !this.schemaTaskExecutor.isShutdown()) {
-            this.schemaTaskExecutor.shutdown();
-            try {
-                terminated = this.schemaTaskExecutor.awaitTermination(timeout, unit);
-            } catch (Throwable e) {
-                ex = e;
-            }
-        }
-
-        if (terminated && !this.olapTaskExecutor.isShutdown()) {
-            this.olapTaskExecutor.shutdown();
-            try {
-                terminated = this.olapTaskExecutor.awaitTermination(timeout, unit);
-            } catch (Throwable e) {
-                ex = e;
-            }
-        }
-
-        if (!terminated) {
-            ex = new TimeoutException(timeout + "s");
-        }
-        if (ex != null) {
-            throw new HugeException("Failed to wait for TaskScheduler", ex);
+        if (failure != null) {
+            // Keep the registry and DB executor available for an explicit retry.
+            throw new HugeException("Failed to close retained graphs before task DB shutdown", failure);
         }
     }
 
