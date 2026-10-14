@@ -626,25 +626,28 @@ public class DistributedTaskScheduler extends TaskAndResultScheduler {
             cronFuture.cancel(false);
         }
 
-        // Wait behind the scheduler thread to ensure any running cron task is completed
-        try {
-            Future<?> barrier = this.schedulerExecutor.submit(() -> {
-                // pass
-            });
-            barrier.get(schedulePeriod + 5, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            LOG.warn("Cron task did not complete in time when closing scheduler");
-            return false;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            LOG.warn("Interrupted while waiting for cron task to complete", e);
-            return false;
-        } catch (ExecutionException e) {
-            LOG.warn("Exception while waiting for cron task to complete", e);
-            return false;
-        } catch (RejectedExecutionException e) {
-            LOG.warn("Scheduler executor was stopped before its graphs drained", e);
-            return false;
+        // A terminated executor has already completed all its cron work.
+        // Otherwise wait behind that work before closing its owners.
+        if (!this.schedulerExecutor.isTerminated()) {
+            try {
+                Future<?> barrier = this.schedulerExecutor.submit(() -> {
+                    // pass
+                });
+                barrier.get(schedulePeriod + 5, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                LOG.warn("Cron task did not complete in time when closing scheduler");
+                return false;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOG.warn("Interrupted while waiting for cron task to complete", e);
+                return false;
+            } catch (ExecutionException e) {
+                LOG.warn("Exception while waiting for cron task to complete", e);
+                return false;
+            } catch (RejectedExecutionException e) {
+                LOG.warn("Scheduler executor was stopped before its graphs drained", e);
+                return false;
+            }
         }
 
         // cancel all running tasks
