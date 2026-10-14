@@ -150,8 +150,10 @@ installs the complete reactor with Java 17 in a `contents: read` job, then gener
 each module's resolved graph with Ferstl 4.0.3. The repository's
 [stdlib serializer](../.github/scripts/dependency-snapshot.py) preserves the
 [official Maven parser 6.0.1](https://github.com/actions/maven-dependency-submission-action/tree/1f666f7ac2ab7b72cd5e22eaf7f23c8a581db1db)
-package URLs, scopes and relationships. Every tracked POM must have a graph; empty
-aggregator manifests are allowed, but a completely empty inventory fails. It runs on master pushes or manual
+package URLs and relationships. Non-test scopes take precedence when Ferstl merges
+scopes onto one artifact; only test-only artifacts are development dependencies.
+Every tracked POM must have a graph; empty aggregator manifests are allowed, but a
+completely empty inventory fails. It runs on master pushes or manual
 dispatches. Only `apache/hugegraph` (not a fork) and the explicitly allowed
 `hugegraph/hugegraph` test fork on `refs/heads/master` can run the submission job,
 which alone has `contents: write`. PRs, other repositories and other refs cannot

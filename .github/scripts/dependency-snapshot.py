@@ -16,9 +16,10 @@
 
 """Serialize native Ferstl 4.0.3 graphs; no token or submission code.
 
-Matches maven-dependency-submission-action 6.0.1's Maven parser/toolkit:
-first classifier/type, test scope, shared PURL packages, direct precedence,
-child edge order and cycle handling. See docs/ci.md for the producer boundary.
+Uses maven-dependency-submission-action 6.0.1's Maven parser/toolkit conventions:
+first classifier/type, shared PURL packages, direct precedence, child edge order
+and cycle handling. Non-test scopes take precedence over test to match the
+independent inventory. See docs/ci.md for the producer boundary.
 """
 
 import datetime
@@ -89,7 +90,7 @@ def manifest(graph, pom):
             raise ValueError(f'Duplicate artifact ID: {identifier}')
         ids[identifier] = purl
         packages.setdefault(purl, [])
-        scopes[purl] = 'development' if 'test' in (artifact.get('scopes') or []) else 'runtime'
+        scopes[purl] = 'development' if set(artifact.get('scopes') or []) == {'test'} else 'runtime'
     children, incoming = {}, set()
     for edge in edges:
         if not isinstance(edge, dict) or any(not isinstance(edge.get(key), str) for key in ['from', 'to']):

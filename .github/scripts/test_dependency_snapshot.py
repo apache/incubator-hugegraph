@@ -195,6 +195,23 @@ class SnapshotTest(unittest.TestCase):
         self.assertEqual({}, producer.manifest({'graphName': 'parent', 'artifacts': [artifact('root')]},
                                               'pom.xml')['resolved'])
 
+    def test_native_mixed_scopes_match_independent_inventory(self):
+        for scope in ['compile', 'runtime', 'provided', 'system']:
+            for scopes in [[scope, 'test'], ['test', scope]]:
+                with self.subTest(scopes=scopes):
+                    graph = {'graphName': 'module', 'artifacts': [
+                        artifact('root'), artifact('parent', scopes=['test']), artifact('one', scopes=scopes)],
+                        'dependencies': [{'from': 'root', 'to': 'parent'}, {'from': 'parent', 'to': 'one'},
+                                         {'from': 'root', 'to': 'one'}]}
+                    self.snapshot['manifests']['module'] = producer.manifest(graph, 'pom.xml')
+                    tree = InventoryTest.node('root', children=[
+                        InventoryTest.node('parent', 'test', [InventoryTest.node('one', 'test')]),
+                        InventoryTest.node('one', scope)])
+                    self.inventory['manifests']['pom.xml'] = inventory_producer.packages(tree)
+                    self.posts.clear()
+                    self.run_writer()
+                    self.assertEqual([self.snapshot], self.posts)
+
     def test_transitive_only_package_is_indirect(self):
         graph = {'graphName': 'module', 'artifacts': [artifact('root'), artifact('parent'), artifact('leaf')],
                  'dependencies': [{'from': 'root', 'to': 'parent'}, {'from': 'parent', 'to': 'leaf'}]}
