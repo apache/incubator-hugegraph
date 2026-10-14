@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -661,7 +662,9 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     }
 
     public synchronized void truncate() {
-        Set<String> tableNames = this.tables.keySet();
+        // Copy: a live keySet view would drop the default CF from this.tables below, and would be
+        // emptied by dropTables so createTables recreated nothing.
+        Set<String> tableNames = new HashSet<>(this.tables.keySet());
         String defaultCF = new String(RocksDB.DEFAULT_COLUMN_FAMILY);
         tableNames.remove(defaultCF);
 

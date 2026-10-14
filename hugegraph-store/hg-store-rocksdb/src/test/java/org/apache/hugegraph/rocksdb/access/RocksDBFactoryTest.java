@@ -23,23 +23,30 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doAnswer;
+import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
 import org.apache.commons.configuration2.MapConfiguration;
@@ -48,8 +55,10 @@ import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentMatchers;
 import org.rocksdb.Status;
 import org.rocksdb.TableFileCreationInfo;
+import org.rocksdb.TableFileDeletionInfo;
 
 /**
  * {@link RocksDBFactory} / {@link RocksDBSession} metadata-checkpoint and cloud-hydration behaviour.
@@ -247,6 +256,181 @@ public class RocksDBFactoryTest {
             } catch (Exception ignore) {
                 // best-effort
             }
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    /**
+     * A second {@code createGraphDB} for a DB whose creation is still in flight (between Phase 1
+     * and Phase 3) must spin-wait on the pending-creation slot rather than open the same path a
+     * second time, then return a clone of the session the first caller registered. A waiter
+     * interrupted while spinning must fail fast instead of waiting forever.
+     */
+    @Test
+    public void testCreateGraphDbWaitsForInFlightCreationOfSameDb() throws Exception {
+        Path parent = Files.createTempDirectory("hg-create-wait-");
+        String dbName = "createwait";
+        CountDownLatch hydrating = new CountDownLatch(1);
+        CountDownLatch releaseHydration = new CountDownLatch(1);
+        AtomicInteger openings = new AtomicInteger(0);
+        RocksdbChangedListener gate = new RocksdbChangedListener() {
+            @Override
+            public void onDBOpening(String db, String dbPath) {
+                if (!dbName.equals(db)) {
+                    return;
+                }
+                openings.incrementAndGet();
+                hydrating.countDown();
+                try {
+                    releaseHydration.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(gate);
+        AtomicReference<RocksDBSession> created = new AtomicReference<>();
+        AtomicReference<RocksDBSession> waited = new AtomicReference<>();
+        try {
+            Thread creator = new Thread(
+                    () -> created.set(factory.createGraphDB(parent.toString(), dbName, 0)));
+            creator.start();
+            assertTrue("the first creation must reach hydration",
+                       hydrating.await(30, TimeUnit.SECONDS));
+
+            // An interrupted waiter gives up with a RuntimeException instead of spinning forever.
+            AtomicReference<Throwable> interruptedError = new AtomicReference<>();
+            Thread interrupted = new Thread(() -> {
+                try {
+                    factory.createGraphDB(parent.toString(), dbName, 0);
+                } catch (Throwable t) {
+                    interruptedError.set(t);
+                }
+            });
+            interrupted.start();
+            interrupted.interrupt();
+            interrupted.join(30_000);
+            assertNotNull("an interrupted waiter must fail", interruptedError.get());
+            assertTrue(interruptedError.get().getMessage()
+                                       .contains("Interrupted waiting for DB creation"));
+
+            // A second waiter spins on the slot until the first creation registers the session.
+            Thread waiter = new Thread(
+                    () -> waited.set(factory.createGraphDB(parent.toString(), dbName, 0)));
+            waiter.start();
+            long deadline = System.currentTimeMillis() + 30_000;
+            while (waiter.getState() != Thread.State.TIMED_WAITING &&
+                   System.currentTimeMillis() < deadline) {
+                Thread.sleep(5);
+            }
+            assertEquals("the waiter must be spinning on the pending-creation slot",
+                         Thread.State.TIMED_WAITING, waiter.getState());
+
+            releaseHydration.countDown();
+            creator.join(30_000);
+            waiter.join(30_000);
+
+            assertNotNull(created.get());
+            assertNotNull("the waiter must receive the session the first caller created",
+                          waited.get());
+            assertEquals("the DB must be hydrated and opened only once", 1, openings.get());
+        } finally {
+            releaseHydration.countDown();
+            factory.removeRocksdbChangedListener(gate);
+            if (created.get() != null) {
+                created.get().close();
+            }
+            if (waited.get() != null) {
+                waited.get().close();
+            }
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    /**
+     * Phase 3 race guard: if a session for the same name was registered while this caller was
+     * constructing its own (outside the lock), the duplicate must be shut down and the
+     * already-registered session returned.
+     */
+    @Test
+    public void testCreateGraphDbDiscardsDuplicateWhenSessionRegisteredDuringConstruction()
+            throws Exception {
+        Path parent = Files.createTempDirectory("hg-create-race-");
+        String dbName = "createrace";
+        RocksDBSession winner = mock(RocksDBSession.class);
+        when(winner.clone()).thenReturn(winner);
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, RocksDBSession> sessions = sessionMap(factory);
+        RocksdbChangedListener racer = new RocksdbChangedListener() {
+            @Override
+            public void onDBOpening(String db, String dbPath) {
+                if (dbName.equals(db)) {
+                    sessions.put(dbName, winner);
+                }
+            }
+        };
+        factory.addRocksdbChangedListener(racer);
+        try {
+            RocksDBSession result = factory.createGraphDB(parent.toString(), dbName, 0);
+            assertTrue("the already-registered session must win the race", result == winner);
+            assertTrue(sessions.get(dbName) == winner);
+        } finally {
+            factory.removeRocksdbChangedListener(racer);
+            sessions.remove(dbName, winner);
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    /**
+     * Phase 3 failure: if registering the constructed session fails, the pending-creation slot
+     * must be cleared and the half-registered session shut down, so a retry can open the DB
+     * instead of spin-waiting on a leaked slot.
+     */
+    @Test
+    public void testCreateGraphDbRegistrationFailureClearsSlotAndRemainsRetryable()
+            throws Exception {
+        Path parent = Files.createTempDirectory("hg-create-regfail-");
+        String dbName = "createregfail";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, RocksDBSession> original = sessionMap(factory);
+        Map<String, RocksDBSession> failing = new ConcurrentHashMap<String, RocksDBSession>(
+                original) {
+            @Override
+            public RocksDBSession put(String key, RocksDBSession value) {
+                if (dbName.equals(key)) {
+                    throw new IllegalStateException("simulated registration failure");
+                }
+                return super.put(key, value);
+            }
+        };
+
+        setSessionMap(factory, failing);
+        try {
+            factory.createGraphDB(parent.toString(), dbName, 0);
+            throw new AssertionError("createGraphDB must propagate the registration failure");
+        } catch (IllegalStateException expected) {
+            // expected — Phase 3 could not register the session
+        } finally {
+            setSessionMap(factory, original);
+        }
+
+        RocksDBSession recovered = null;
+        try {
+            // The duplicate was shut down (releasing the RocksDB LOCK) and the slot cleared, so
+            // the retry opens the same path without wedging or a LOCK-file error.
+            recovered = factory.createGraphDB(parent.toString(), dbName, 0);
+            assertNotNull("retry after a registration failure must succeed", recovered);
+        } finally {
+            if (recovered != null) {
+                recovered.close();
+            }
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
             deleteRecursively(parent.toFile());
         }
     }
@@ -826,6 +1010,55 @@ public class RocksDBFactoryTest {
     }
 
     @Test
+    public void testOnTableFileDeletedPropagatesSuccessfulDeletion() {
+        TableFileDeletionInfo info = mock(TableFileDeletionInfo.class);
+        when(info.getStatus()).thenReturn(new Status(Status.Code.Ok, Status.SubCode.None, null));
+        when(info.getDbName()).thenReturn("/data/deldb");
+        when(info.getFilePath()).thenReturn("/data/deldb/000042.sst");
+        List<String> deleted = new CopyOnWriteArrayList<>();
+        RocksdbChangedListener probe = new RocksdbChangedListener() {
+            @Override
+            public void onTableFileDeleted(String db, String cf, String path) {
+                assertNull("the column family is unknown for deletions", cf);
+                deleted.add(db + "|" + path);
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(probe);
+        try {
+            factory.getEventListener().onTableFileDeleted(info);
+            assertEquals(List.of("/data/deldb|/data/deldb/000042.sst"), deleted);
+        } finally {
+            factory.removeRocksdbChangedListener(probe);
+        }
+    }
+
+    @Test
+    public void testOnTableFileDeletedSkipsFailedDeletion() {
+        TableFileDeletionInfo info = mock(TableFileDeletionInfo.class);
+        when(info.getStatus()).thenReturn(new Status(Status.Code.IOError, Status.SubCode.None,
+                                                     "simulated delete failure"));
+        when(info.getFilePath()).thenReturn("/tmp/failed.sst");
+        AtomicInteger deleted = new AtomicInteger(0);
+        RocksdbChangedListener probe = new RocksdbChangedListener() {
+            @Override
+            public void onTableFileDeleted(String db, String cf, String path) {
+                deleted.incrementAndGet();
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(probe);
+        try {
+            factory.getEventListener().onTableFileDeleted(info);
+            assertEquals("a failed SST deletion must not be propagated", 0, deleted.get());
+        } finally {
+            factory.removeRocksdbChangedListener(probe);
+        }
+    }
+
+    @Test
     public void testGetTotalKeyReportsOpenDb() throws Exception {
         Path parent = Files.createTempDirectory("hg-totalkey-");
         String dbName = "totalkey";
@@ -853,8 +1086,151 @@ public class RocksDBFactoryTest {
     }
 
     // =========================================================================
+    // RocksDBSession: truncate notifications / metadata checkpoint failure
+    // =========================================================================
+
+    @Test
+    public void testTruncateNotifiesBeginThenTruncated() throws Exception {
+        Path parent = Files.createTempDirectory("hg-truncate-ok-");
+        String dbName = "truncateok";
+        List<String> events = new CopyOnWriteArrayList<>();
+        RocksdbChangedListener recorder = truncateRecorder(dbName, events);
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = factory.createGraphDB(parent.toString(), dbName, 0);
+        factory.addRocksdbChangedListener(recorder);
+        try {
+            session.createTables("t1", "t2");
+            session.truncate();
+
+            assertEquals(List.of("begin", "truncated"), events);
+            assertTrue("truncate must recreate the dropped tables",
+                       session.tableIsExist("t1") && session.tableIsExist("t2"));
+        } finally {
+            factory.removeRocksdbChangedListener(recorder);
+            session.close();
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    /**
+     * A truncate that fails partway must still deliver a terminal notification — an abort, not a
+     * "truncated" — so listeners leave their "truncating" state without purging remote data.
+     */
+    @Test
+    public void testTruncateFailureNotifiesAbortInsteadOfTruncated() throws Exception {
+        Path parent = Files.createTempDirectory("hg-truncate-fail-");
+        String dbName = "truncatefail";
+        List<String> events = new CopyOnWriteArrayList<>();
+        RocksdbChangedListener recorder = truncateRecorder(dbName, events);
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = factory.createGraphDB(parent.toString(), dbName, 0);
+        factory.addRocksdbChangedListener(recorder);
+        try {
+            session.createTables("t1");
+            RocksDBSession failing = spy(session);
+            doThrow(new DBStoreException("simulated drop failure"))
+                    .when(failing).dropTables(ArgumentMatchers.<String>any());
+
+            try {
+                failing.truncate();
+                throw new AssertionError("truncate must propagate the drop failure");
+            } catch (DBStoreException expected) {
+                // expected
+            }
+
+            assertEquals(List.of("begin", "abort"), events);
+        } finally {
+            factory.removeRocksdbChangedListener(recorder);
+            session.close();
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    /**
+     * If the checkpoint cannot be created, the partial temp dir must be removed and the failure
+     * surfaced as a {@link DBStoreException}. The failure is forced by making the directory that
+     * holds the {@code _cloudmeta_} temp dir read-only (skipped where permissions are not
+     * enforced, e.g. when running as root).
+     */
+    @Test
+    public void testCaptureMetadataCheckpointFailureCleansUpAndThrows() throws Exception {
+        Path parent = Files.createTempDirectory("hg-ckfail-");
+        String dbName = "ckfail";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = factory.createGraphDB(parent.toString(), dbName, 0);
+        File checkpointParent = new File(session.getDbPath()).getParentFile();
+        try {
+            assumeTrue("needs enforceable directory permissions",
+                       checkpointParent.setWritable(false) && !checkpointParent.canWrite());
+            try {
+                session.captureMetadataCheckpoint();
+                throw new AssertionError("captureMetadataCheckpoint must fail on a read-only dir");
+            } catch (DBStoreException expected) {
+                // expected
+            }
+            String[] leftovers = checkpointParent.list((d, name) -> name.contains("_cloudmeta_"));
+            assertEquals("no partial checkpoint dir may be left behind",
+                         0, leftovers == null ? 0 : leftovers.length);
+        } finally {
+            checkpointParent.setWritable(true);
+            session.close();
+            factory.destroyGraphDB(dbName);
+            factory.processPendingDestroys();
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
+
+    private static RocksdbChangedListener truncateRecorder(String dbName, List<String> events) {
+        return new RocksdbChangedListener() {
+            @Override
+            public void onDBTruncateBegin(String db, String dbPath) {
+                if (dbName.equals(db)) {
+                    events.add("begin");
+                }
+            }
+
+            @Override
+            public void onDBTruncated(String db, String dbPath) {
+                if (dbName.equals(db)) {
+                    events.add("truncated");
+                }
+            }
+
+            @Override
+            public void onDBTruncateAbort(String db, String dbPath) {
+                if (dbName.equals(db)) {
+                    events.add("abort");
+                }
+            }
+        };
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, RocksDBSession> sessionMap(RocksDBFactory factory)
+            throws Exception {
+        return (Map<String, RocksDBSession>) sessionMapField().get(factory);
+    }
+
+    private static void setSessionMap(RocksDBFactory factory, Map<String, RocksDBSession> map)
+            throws Exception {
+        sessionMapField().set(factory, map);
+    }
+
+    private static Field sessionMapField() throws Exception {
+        Field field = RocksDBFactory.class.getDeclaredField("dbSessionMap");
+        field.setAccessible(true);
+        return field;
+    }
 
     private static int countSst(String dir) {
         File[] files = new File(dir).listFiles((d, name) -> name.endsWith(".sst"));

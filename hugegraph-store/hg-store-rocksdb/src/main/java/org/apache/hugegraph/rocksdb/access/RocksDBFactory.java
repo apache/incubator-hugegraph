@@ -317,11 +317,15 @@ public final class RocksDBFactory {
             // Spin-wait while another thread holds the pending-creation slot for this DB.
             while (pendingCreations.contains(dbName)) {
                 operateLock.writeLock().unlock();
-                try { Thread.sleep(10); } catch (InterruptedException ie) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                     throw new RuntimeException("Interrupted waiting for DB creation: " + dbName, ie);
+                } finally {
+                    // Re-acquire on every path so the outer finally's unlock stays balanced.
+                    operateLock.writeLock().lock();
                 }
-                operateLock.writeLock().lock();
             }
             RocksDBSession existing = dbSessionMap.get(dbName);
             if (existing != null) {
