@@ -44,6 +44,7 @@ EOF
 cat > "${TEST_HOME}/bin/init-store.sh" <<'EOF'
 #!/usr/bin/env bash
 printf 'called\n' >> ./docker/init-store-calls
+printf '%s' "${LC_ALL-}" > ./docker/init-store-locale
 if IFS= read -r password; then
     printf '%s' "${password}" > ./docker/init-store-password
 fi
@@ -66,6 +67,29 @@ cat > "${TEST_HOME}/bin/wait-storage.sh" <<'EOF'
 exit 0
 EOF
 chmod +x "${TEST_HOME}/bin/"*.sh
+
+# CI supplies current HugeConfig and the POM-pinned Commons dependency classpath.
+if [[ -n "${HG_CONFIG_TEST_CLASSPATH:-}" ]]; then
+    javac -cp "${HG_CONFIG_TEST_CLASSPATH}" -d "${TEST_HOME}/docker" \
+        "${SCRIPT_DIR}/../../hugegraph-core/src/main/java/org/apache/hugegraph/config/AuthOptions.java" \
+        "${SCRIPT_DIR}/test/AuthConfigReadback.java"
+else
+    echo "SKIP: native auth readback (HG_CONFIG_TEST_CLASSPATH is unset)"
+fi
+assert_auth_readback() {
+    if [[ -n "${HG_CONFIG_TEST_CLASSPATH:-}" ]]; then
+        local secret_base64 admin_base64
+        secret_base64=$(printf '%s' "$2" | base64 | tr -d '\n')
+        if [[ $# -eq 3 ]]; then
+            admin_base64=$(printf '%s' "$3" | base64 | tr -d '\n')
+            java -Xmx128m -cp "${TEST_HOME}/docker:${HG_CONFIG_TEST_CLASSPATH}" AuthConfigReadback \
+                "$1" "${secret_base64}" "${admin_base64}"
+        else
+            java -Xmx128m -cp "${TEST_HOME}/docker:${HG_CONFIG_TEST_CLASSPATH}" AuthConfigReadback \
+                "$1" "${secret_base64}"
+        fi
+    fi
+}
 
 (
     cd "${TEST_HOME}"
@@ -205,7 +229,7 @@ reused_complex_secret=$(sed -n 's/^auth\.token_secret=//p' \
     "${TEST_HOME}/conf/rest-server.properties")
 [[ "${reused_complex_secret}" == "${complex_secret}" ]]
 [[ "${reused_complex_secret}" == \
-   'Strong\\Secret\ 9!0123456789abcdef' ]]
+   'Strong\\Secret\u00209!0123456789abcdef' ]]
 
 (
     cd "${TEST_HOME}"
@@ -222,7 +246,7 @@ trailing_space_secret=$(sed -n 's/^auth\.token_secret=//p' \
 reused_trailing_space_secret=$(sed -n 's/^auth\.token_secret=//p' \
     "${TEST_HOME}/conf/rest-server.properties")
 [[ "${trailing_space_secret}" == \
-   'SecretEnds\ 0123456789abcdefABCDE\ ' ]]
+   'SecretEnds\u00200123456789abcdefABCDE\u0020' ]]
 [[ "${reused_trailing_space_secret}" == "${trailing_space_secret}" ]]
 grep -Fqx 'auth.admin_pa=pa' \
     "${TEST_HOME}/conf/rest-server.properties"
@@ -231,7 +255,7 @@ grep -Fqx 'auth.admin_pa=pa' \
     cd "${TEST_HOME}"
     PASSWORD='Strong\Pass 9!' bash ./docker-entrypoint.sh
 )
-grep -Fqx 'auth.admin_pa=Strong\\Pass\ 9!' \
+grep -Fqx 'auth.admin_pa=Strong\\Pass\u00209!' \
     "${TEST_HOME}/conf/rest-server.properties"
 
 rm -f "${TEST_HOME}/docker/init_complete"
@@ -328,6 +352,41 @@ done
     env -u HG_SERVER_STARTUP_TIMEOUT_S bash ./docker-entrypoint.sh
 )
 assert_start_timeout 120
+
+# Signing keys are opaque strings: both files must load exactly what the caller supplied.
+fake_key='FAKE_SIGNING_KEY_0123456789abcdef'
+control_soh=$(printf '\001')
+control_us=$(printf '\037')
+min_key="${fake_key:0:31}${control_soh}"
+[[ ${#min_key} -eq 32 ]]
+auth_secrets=("${fake_key}" " ${fake_key}" "${fake_key} inner" "${fake_key} "
+    "${fake_key}"$'\t' "${fake_key}\\" "${fake_key}café" "${fake_key}中文" "${fake_key}😀"
+    "${fake_key}\\u0020😀 café " "${fake_key}"$'\377'
+    "${control_soh}${fake_key}" "${fake_key}${control_soh}" "${fake_key}"$'\v' "${fake_key}${control_us}"
+    "${min_key}")
+fake_admin_password="${control_soh}"' fake\ admin '"${control_us}"
+for auth_secret in "${auth_secrets[@]}"; do
+    cp "${SCRIPT_DIR}/../src/assembly/static/conf/rest-server.properties" \
+        "${TEST_HOME}/conf/rest-server.properties"
+    (cd "${TEST_HOME}"; PASSWORD="${fake_admin_password}" HG_SERVER_AUTH_TOKEN_SECRET="${auth_secret}" \
+        bash ./docker-entrypoint.sh)
+    expected_secret="${auth_secret}"
+    if [[ "${auth_secret}" == "${fake_key}"$'\377' ]]; then
+        expected_secret="${fake_key}ÿ"
+    fi
+    assert_auth_readback "${TEST_HOME}/conf/rest-server.properties" "${expected_secret}" "${fake_admin_password}"
+    assert_auth_readback "${TEST_HOME}/conf/graphs/hugegraph.properties" "${expected_secret}"
+    cp "${TEST_HOME}/conf/rest-server.properties" "${TEST_HOME}/conf/rest-server.properties.before-reuse"
+    cp "${TEST_HOME}/conf/graphs/hugegraph.properties" "${TEST_HOME}/conf/graphs/hugegraph.properties.before-reuse"
+    (cd "${TEST_HOME}"; PASSWORD="${fake_admin_password}" bash ./docker-entrypoint.sh)
+    cmp "${TEST_HOME}/conf/rest-server.properties.before-reuse" "${TEST_HOME}/conf/rest-server.properties"
+    cmp "${TEST_HOME}/conf/graphs/hugegraph.properties.before-reuse" "${TEST_HOME}/conf/graphs/hugegraph.properties"
+    assert_auth_readback "${TEST_HOME}/conf/rest-server.properties" "${expected_secret}" "${fake_admin_password}"
+done
+
+(cd "${TEST_HOME}"; LC_ALL=en_US.UTF-8 PASSWORD='locale probe' \
+    HG_SERVER_AUTH_TOKEN_SECRET="${fake_key}" bash ./docker-entrypoint.sh)
+[[ "$(cat "${TEST_HOME}/docker/init-store-locale")" == 'en_US.UTF-8' ]]
 
 echo "PASS: Docker entrypoint configures HStore discovery and authentication"
 bash "${SCRIPT_DIR}/test/test-docker-entrypoint-process.sh"
