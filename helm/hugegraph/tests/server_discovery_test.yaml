@@ -39,6 +39,17 @@ tests:
           path: spec.template.spec.containers[0].env[?(@.name=="HG_SERVER_URLS_TO_PD")].value
           value: http://graph.example.com:30080
 
+  # The wrapper always registers server.urls_to_pd; the image would let an
+  # extraEnv value turn that off again or crash-loop the Pod on a bad flag.
+  - it: refuses an operator extraEnv that would override the PD registration flag
+    set:
+      server.extraEnv:
+        - name: HG_SERVER_DEPLOY_IN_K8S
+          value: "false"
+    asserts:
+      - failedTemplate:
+          errorPattern: "server.extraEnv must not set the chart-managed variable HG_SERVER_DEPLOY_IN_K8S"
+
   - it: refuses an operator extraEnv that would shadow POD_IP
     set:
       server.extraEnv:

@@ -388,5 +388,58 @@ done
     HG_SERVER_AUTH_TOKEN_SECRET="${fake_key}" bash ./docker-entrypoint.sh)
 [[ "$(cat "${TEST_HOME}/docker/init-store-locale")" == 'en_US.UTF-8' ]]
 
+# Unset discovery variables leave the shipped defaults alone.
+if grep -qE '^server\.(urls_to_pd|deploy_in_k8s)' \
+    "${TEST_HOME}/conf/rest-server.properties"; then
+    echo "unset discovery variables wrote server.* keys" >&2
+    exit 1
+fi
+
+(
+    cd "${TEST_HOME}"
+    HG_SERVER_URLS_TO_PD=' http://server-0:8080, http://server-1:8080 ' \
+    HG_SERVER_DEPLOY_IN_K8S=' TRUE ' \
+        bash ./docker-entrypoint.sh
+)
+grep -qx 'server.urls_to_pd=http://server-0:8080,http://server-1:8080' \
+    "${TEST_HOME}/conf/rest-server.properties"
+grep -qx 'server.deploy_in_k8s=true' "${TEST_HOME}/conf/rest-server.properties"
+
+# A restart with new values replaces each key instead of appending another.
+(
+    cd "${TEST_HOME}"
+    HG_SERVER_URLS_TO_PD=http://server-2:8080 \
+    HG_SERVER_DEPLOY_IN_K8S=off \
+        bash ./docker-entrypoint.sh
+)
+[[ "$(grep -c '^server\.urls_to_pd' "${TEST_HOME}/conf/rest-server.properties")" -eq 1 ]]
+[[ "$(grep -c '^server\.deploy_in_k8s' "${TEST_HOME}/conf/rest-server.properties")" -eq 1 ]]
+grep -qx 'server.urls_to_pd=http://server-2:8080' \
+    "${TEST_HOME}/conf/rest-server.properties"
+grep -qx 'server.deploy_in_k8s=off' "${TEST_HOME}/conf/rest-server.properties"
+
+# HugeConfig rejects 0 and 1 for a boolean, so the entrypoint refuses them
+# before writing either conf file, the URL list included.
+cp "${TEST_HOME}/conf/rest-server.properties" \
+    "${TEST_HOME}/conf/rest-server.properties.before-k8s-flag"
+cp "${TEST_HOME}/conf/graphs/hugegraph.properties" \
+    "${TEST_HOME}/conf/graphs/hugegraph.properties.before-k8s-flag"
+for invalid_k8s_flag in 1 0 enabled; do
+    if (
+        cd "${TEST_HOME}"
+        HG_SERVER_BACKEND=hstore \
+        HG_SERVER_URLS_TO_PD=http://server-3:8080 \
+        HG_SERVER_DEPLOY_IN_K8S="${invalid_k8s_flag}" \
+            bash ./docker-entrypoint.sh
+    ); then
+        echo "HG_SERVER_DEPLOY_IN_K8S '${invalid_k8s_flag}' unexpectedly succeeded" >&2
+        exit 1
+    fi
+    cmp "${TEST_HOME}/conf/rest-server.properties.before-k8s-flag" \
+        "${TEST_HOME}/conf/rest-server.properties"
+    cmp "${TEST_HOME}/conf/graphs/hugegraph.properties.before-k8s-flag" \
+        "${TEST_HOME}/conf/graphs/hugegraph.properties"
+done
+
 echo "PASS: Docker entrypoint configures HStore discovery and authentication"
 bash "${SCRIPT_DIR}/test/test-docker-entrypoint-process.sh"
