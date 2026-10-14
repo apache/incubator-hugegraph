@@ -622,9 +622,10 @@ lost, an administrator can recover without that token:
 3. Send `PUT` to that endpoint with
    `{"action":"recover","instance":"<UUID>","epoch":0,"revision":0,"confirm":"I'm sure all imports have stopped"}`.
 
-Recovery requires administrator permission at both the REST and graph-proxy layers,
-the exact current instance/epoch/revision and
-the explicit confirmation. It clears owners, advances the epoch and returns NONE;
+Recovery requires the authenticated global administrator role even when graph-space
+permission checks are disabled; a proxied graph also enforces administrator permission.
+With Server authentication disabled, the existing trusted anonymous administrator semantics apply.
+Recovery also requires the exact current instance/epoch/revision and explicit confirmation. It clears owners, advances the epoch and returns NONE;
 late acquire/release requests from the retired epoch cannot register an owner again.
 The receipt contains the new epoch and `state: recovered`, without tokens. A stale
 recovery request returns a conflict and cannot clear an import started in a newer

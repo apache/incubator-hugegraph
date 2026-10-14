@@ -34,10 +34,12 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.LoadingMode;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.api.filter.StatusFilter;
+import org.apache.hugegraph.api.filter.AuthenticationFilter.Authorizer;
 import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.auth.HugeAuthenticator.RequiredPerm;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
 import org.apache.hugegraph.auth.HugePermission;
+import org.apache.hugegraph.auth.RolePermission;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.space.GraphSpace;
@@ -69,6 +71,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.core.Response;
 
@@ -722,10 +725,13 @@ public class GraphsAPI extends API {
                                           @PathParam("graphspace") String graphSpace,
                                           @PathParam("name") String name,
                                           JsonLoadingOwner owner,
-                                          @Context SecurityContext securityContext) {
+                                          @Context ContainerRequestContext requestContext) {
         E.checkArgument(owner != null && owner.epoch != null, "Loading owner body and epoch are required");
         if ("recover".equals(owner.action)) {
-            if (securityContext == null || !securityContext.isUserInRole("admin")) {
+            // Read the filter's Authorizer rather than Jersey's injected SecurityContext wrapper.
+            SecurityContext securityContext = requestContext == null ? null : requestContext.getSecurityContext();
+            if (!(securityContext instanceof Authorizer) ||
+                !RolePermission.isAdmin(((Authorizer) securityContext).role())) {
                 throw new ForbiddenException("Loading recovery requires administrator permission");
             }
             E.checkArgument(CONFIRM_RECOVER.equals(owner.confirm),

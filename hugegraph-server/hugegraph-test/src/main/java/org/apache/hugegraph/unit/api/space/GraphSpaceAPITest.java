@@ -20,6 +20,7 @@ package org.apache.hugegraph.unit.api.space;
 import static org.apache.hugegraph.HugeFactory.SYS_GRAPH;
 
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,7 @@ import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeFactory;
 import org.apache.hugegraph.LoadingMode;
 import org.apache.hugegraph.api.auth.ManagerAPI;
+import org.apache.hugegraph.api.filter.AuthenticationFilter.Authorizer;
 import org.apache.hugegraph.api.profile.GraphsAPI;
 import org.apache.hugegraph.api.space.GraphSpaceAPI;
 import org.apache.hugegraph.auth.AuthManager;
@@ -51,11 +53,16 @@ import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.junit.After;
 import org.junit.Test;
+import org.glassfish.jersey.internal.MapPropertiesDelegate;
+import org.glassfish.jersey.server.ContainerRequest;
 import org.mockito.Mockito;
 
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.container.ContainerRequestContext;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.UriInfo;
 
 public class GraphSpaceAPITest extends BaseUnitTest {
 
@@ -281,6 +288,69 @@ public class GraphSpaceAPITest extends BaseUnitTest {
     }
 
     @Test
+    public void testAuthDisabledSpaceRecoveryStillRequiresGlobalAdmin() throws Exception {
+        HugeConfig config = FakeObjects.newConfig();
+        config.setProperty("backend", "memory");
+        config.setProperty("serializer", "text");
+        config.setProperty("store", "unproxied_loading_recovery");
+        HugeGraph graph = HugeFactory.open(config);
+        try {
+            Assert.assertFalse(graph instanceof HugeGraphAuthProxy);
+            String space = "open_space";
+            GraphSpace graphSpace = new GraphSpace(space);
+            graphSpace.auth(false);
+            GraphManager manager = Mockito.mock(GraphManager.class);
+            Mockito.when(manager.requireAuthentication()).thenReturn(true);
+            Mockito.when(manager.graphSpace(space)).thenReturn(graphSpace);
+            Mockito.when(manager.graph(space, "hugegraph")).thenReturn(graph);
+            UriInfo uri = Mockito.mock(UriInfo.class);
+            MultivaluedHashMap<String, String> parameters = new MultivaluedHashMap<>();
+            parameters.putSingle("graphspace", space);
+            Mockito.when(uri.getPathParameters()).thenReturn(parameters);
+            Authorizer restricted = new Authorizer(manager,
+                    new HugeAuthenticator.User("bob", RolePermission.none()), uri);
+            Assert.assertTrue(restricted.isUserInRole("admin"));
+            Assert.assertFalse(RolePermission.isAdmin(restricted.role()));
+            URI endpoint = URI.create("http://localhost/graphspaces/open_space/graphs/hugegraph/mode/owners");
+            ContainerRequest context = new ContainerRequest(endpoint, endpoint, "PUT", restricted,
+                                                             new MapPropertiesDelegate());
+            GraphsAPI api = new GraphsAPI();
+            Map<String, Object> state = graph.loadingMode();
+            String instance = (String) state.get("instance");
+            String token = java.util.UUID.randomUUID().toString();
+            graph.loadingMode("acquire", instance, 0, token, "alice");
+            Map<String, Object> before = api.loadingMode(manager, space, "hugegraph");
+            GraphsAPI.JsonLoadingOwner request = new GraphsAPI.JsonLoadingOwner();
+            request.action = "recover";
+            request.instance = instance;
+            request.epoch = (Long) before.get("epoch");
+            request.revision = (Long) before.get("revision");
+            request.confirm = "I'm sure all imports have stopped";
+            ForbiddenException denied = org.junit.Assert.assertThrows(ForbiddenException.class,
+                    () -> api.loadingMode(manager, space, "hugegraph", request, context));
+            Assert.assertEquals(403, denied.getResponse().getStatus());
+            Assert.assertEquals(before, graph.loadingMode());
+            Assert.assertEquals(GraphMode.LOADING, graph.mode());
+
+            for (HugeAuthenticator.User user : new HugeAuthenticator.User[]{HugeAuthenticator.User.ADMIN,
+                                                                           HugeAuthenticator.User.ANONYMOUS}) {
+                Mockito.when(manager.requireAuthentication()).thenReturn(user != HugeAuthenticator.User.ANONYMOUS);
+                context.setSecurityContext(new Authorizer(manager, user, uri));
+                state = graph.loadingMode();
+                request.epoch = (Long) state.get("epoch");
+                graph.loadingMode("acquire", instance, request.epoch, token, "alice");
+                request.revision = (Long) graph.loadingMode().get("revision");
+                Assert.assertEquals("recovered", api.loadingMode(manager, space, "hugegraph", request,
+                                                                  context).get("state"));
+                Assert.assertEquals(GraphMode.NONE, graph.mode());
+            }
+        } finally {
+            graph.close();
+            HugeFactory.remove(graph);
+        }
+    }
+
+    @Test
     public void testLoadingRecoveryConfirmationAndConflictResponse() {
         GraphManager manager = Mockito.mock(GraphManager.class);
         HugeGraph graph = Mockito.mock(HugeGraph.class);
@@ -290,28 +360,31 @@ public class GraphSpaceAPITest extends BaseUnitTest {
         request.action = "recover";
         request.instance = "instance";
         request.epoch = 0L;
-        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        ContainerRequestContext requestContext = Mockito.mock(ContainerRequestContext.class);
+        Authorizer authorizer = Mockito.mock(Authorizer.class);
+        Mockito.when(requestContext.getSecurityContext()).thenReturn(authorizer);
+        Mockito.when(authorizer.role()).thenReturn(RolePermission.none());
         Assert.assertThrows(ForbiddenException.class,
-                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, requestContext));
         Mockito.verify(graph, Mockito.never()).recoverLoadingMode(Mockito.anyString(), Mockito.anyLong(),
                                                                 Mockito.anyLong());
-        Mockito.when(securityContext.isUserInRole("admin")).thenReturn(true);
+        Mockito.when(authorizer.role()).thenReturn(RolePermission.admin());
         Assert.assertThrows(IllegalArgumentException.class,
-                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, requestContext));
         Mockito.verify(graph, Mockito.never()).loadingMode(Mockito.anyString(), Mockito.anyString(),
                                                          Mockito.anyLong(), Mockito.any(), Mockito.anyString());
         request.confirm = "I'm sure all imports have stopped";
         Assert.assertThrows(IllegalArgumentException.class,
-                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+                            () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, requestContext));
         request.revision = 0L;
         Map<String, Object> receipt = Collections.singletonMap("state", "recovered");
         Mockito.when(graph.recoverLoadingMode("instance", 0, 0)).thenReturn(receipt);
-        Assert.assertSame(receipt, api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+        Assert.assertSame(receipt, api.loadingMode(manager, "DEFAULT", "hugegraph", request, requestContext));
 
         Mockito.when(graph.recoverLoadingMode("instance", 0, 0))
                .thenThrow(new LoadingMode.ConflictException("stale epoch"));
         ClientErrorException ownerConflict = org.junit.Assert.assertThrows(ClientErrorException.class,
-                () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, securityContext));
+                () -> api.loadingMode(manager, "DEFAULT", "hugegraph", request, requestContext));
         Assert.assertEquals(409, ownerConflict.getResponse().getStatus());
         Mockito.doThrow(new LoadingMode.ConflictException("active owners")).when(graph).mode(GraphMode.NONE);
         ClientErrorException modeConflict = org.junit.Assert.assertThrows(ClientErrorException.class,
