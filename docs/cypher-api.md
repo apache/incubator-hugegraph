@@ -1,12 +1,37 @@
 # Cypher API response compatibility
 
 The Cypher endpoint is
-`/graphspaces/{graphspace}/graphs/{graph}/cypher`. GET accepts the `cypher`
-query argument; POST accepts a raw Cypher statement with
-`Content-Type: application/json`. Submit one statement per request.
-The Apache mainline endpoint does not accept a parameter map. In the default
-translator, unbound `$name` expressions become Cypher null; they do not raise a
-missing-parameter error. Do not send `?parameters=...` to bind them.
+`/graphspaces/{graphspace}/graphs/{graph}/cypher`. Submit one statement per
+request. GET accepts the `cypher` query argument and does not accept a parameter
+map; use POST for parameterized queries. POST with `Content-Type: application/json`
+accepts a JSON object containing a nonblank string `cypher` and an optional
+object `parameters`, for example:
+
+```json
+{
+  "cypher": "MATCH (n:person) WHERE n.name = $name RETURN n.name",
+  "parameters": {"name": "marko"}
+}
+```
+
+Legacy raw Cypher bodies sent as `application/json` remain accepted. JSON arrays,
+scalars, malformed JSON, missing/non-string/blank `cypher`, and a `parameters`
+value of null, an array or a scalar are rejected by HTTP request validation.
+Omitting `parameters` supplies an empty map. Additional request fields and extra
+parameter names are allowed; every parameter referenced by the parsed query must
+be present. Individual parameter values may explicitly be null.
+Requests are limited to 16 top-level parameter names. This limit is fixed; see
+[Cypher HTTP contracts](server-runtime.md#cypher-http-contracts) for the binding
+limits and validation rules.
+
+The Server checks missing bindings before executing the traversal, so GET, raw
+POST and JSON POST with an absent referenced name fail with `Missing Cypher
+parameter: name`. This uses the execution-failure envelope below, classified as
+`HugeGraph.Cypher.ExecutionError` with an empty hint. The upstream translator's
+standalone unbound-to-null behavior is not the Server request contract. Do not
+send `?parameters=...` to bind a GET query. Invalid binding values, including the
+reserved translator null marker, also fail before traversal execution; explicit
+JSON null values are accepted and normalized by the Server.
 
 ## Response envelope
 
@@ -61,24 +86,27 @@ the attributes. A failure with no mapped metadata may have empty attributes.
 
 | Code | Recognized failure | Hint |
 | --- | --- | --- |
-| `HugeGraph.Cypher.SyntaxError` | Parser invalid input or unknown function | Check the query syntax and function names supported by the built-in Cypher translator |
+| `HugeGraph.Cypher.SyntaxError` | Parser invalid input, unknown function or semantic error with a `(line N, column M (offset: K))` suffix | Check the query syntax and function names supported by the built-in Cypher translator |
 | `HugeGraph.Cypher.SyntaxError` | More or fewer than one statement | Submit exactly one Cypher statement per request |
 | `HugeGraph.Cypher.SyntaxError` | `Variable` followed by a backtick-quoted name and `not defined` | Declare the variable in a MATCH, UNWIND or WITH clause before referencing it |
 | `HugeGraph.Cypher.ExecutionError` | Undefined vertex label, edge label, property key or index label | Create the schema element via the schema API before running the query |
-| `HugeGraph.Cypher.UnsupportedFeature` | Translator reports `not supported` or `unsupported` | This construct is not covered by the built-in translator, see the Cypher compatibility guide for supported syntax |
+| `HugeGraph.Cypher.UnsupportedFeature` | Translator messages beginning `Unsupported clause:`, `Unsupported match pattern:`, `Unsupported create pattern:`, `Unsupported property type:`, `Multiple labels are not supported:` or `Custom functions and predicates are not supported on target implementation:` | This construct is not covered by the built-in translator, see the Cypher compatibility guide for supported syntax |
 | `HugeGraph.Cypher.ExecutionError` | Other failures | Empty string |
 
 The Gremlin transport exposes parser failures as messages, so classification
 recognizes the translation-1.0.4 message forms above. Other failures fall back to
-`ExecutionError`; these codes are not a promise to identify every possible
-translator failure. There is no `HugeGraph.Cypher.MissingParameter` contract.
+`ExecutionError`, including runtime errors such as `Unsupported predicate` and
+`CONTAINS query ... is not supported`; these codes are not a promise to identify
+every possible translator failure. There is no `HugeGraph.Cypher.MissingParameter` contract.
 
 This contract repairs the unreleased proposal in
 [Server #3241](https://github.com/apache/hugegraph/pull/3241). The paired website
 work is [Doc #499](https://github.com/apache/hugegraph-doc/pull/499); its author
 must incorporate this response contract before coordinated publication.
-The optional [bound-query fork #238](https://github.com/hugegraph/hugegraph/pull/238)
-is independent and is not implemented here.
+Parameterized POST requests are already provided by merged
+[Server #3289](https://github.com/apache/hugegraph/pull/3289).
+The earlier [bound-query fork #238](https://github.com/hugegraph/hugegraph/pull/238)
+is a historical reference; use the current request contract above.
 
 ## Regression checks
 
@@ -86,11 +114,16 @@ Run the mapper, real-parser and envelope tests from the repository root:
 
 ```sh
 mvn test -pl hugegraph-server/hugegraph-test -am -P unit-test \
-  -Dtest=CypherErrorTest -Dsurefire.failIfNoSpecifiedTests=false
+  -Dtest=CypherErrorTest,CypherClientTest,CypherOpProcessorTest \
+  -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 `CypherApiTest` also exercises malformed syntax, multiple statements, undefined
-variables and missing schema through a running test server. Follow the normal
+variables and missing schema through a running test server. Its `testParameters`
+and `testMissingParameterHasFallbackError` cover bound JSON requests and missing
+bindings. `CypherClientTest` checks outgoing query/binding transport, and
+`CypherOpProcessorTest` covers request binding validation. The mapper's
+translator-only unbound-parameter test bypasses that validation. Follow the normal
 Server API-test setup using disposable test data.
 
 The standalone `CypherClientCompatibilityTest` uses the actual Java Client

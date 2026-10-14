@@ -45,6 +45,10 @@ public class CypherModel {
         return res;
     }
 
+    public static CypherModel failOf(String requestId, String message) {
+        return failOf(requestId, message, null);
+    }
+
     public static CypherModel failOf(String requestId, String message,
                                      CypherError error) {
         CypherModel res = new CypherModel();

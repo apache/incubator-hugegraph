@@ -34,6 +34,9 @@ public final class CypherErrorMapper {
     private static final Pattern UNDEFINED_VARIABLE =
             Pattern.compile("variable `[^`]+` not defined");
 
+    private static final Pattern PARSER_POSITION =
+            Pattern.compile("\\(line \\d+, column \\d+ \\(offset: \\d+\\)\\)$");
+
     private CypherErrorMapper() {
     }
 
@@ -57,7 +60,8 @@ public final class CypherErrorMapper {
                     "Declare the variable in a MATCH, UNWIND or WITH clause " +
                     "before referencing it");
         }
-        if (lower.contains("invalid input") || lower.contains("unknown function")) {
+        if (lower.contains("invalid input") || lower.contains("unknown function") ||
+            PARSER_POSITION.matcher(lower).find()) {
             return new CypherModel.CypherError(SYNTAX_ERROR, message,
                     "Check the query syntax and function names supported by " +
                     "the built-in Cypher translator");
@@ -66,7 +70,12 @@ public final class CypherErrorMapper {
             return new CypherModel.CypherError(SYNTAX_ERROR, message,
                     "Submit exactly one Cypher statement per request");
         }
-        if (lower.contains("not supported") || lower.contains("unsupported")) {
+        if (lower.startsWith("unsupported clause:") ||
+            lower.startsWith("unsupported match pattern:") ||
+            lower.startsWith("unsupported create pattern:") ||
+            lower.startsWith("unsupported property type:") ||
+            lower.startsWith("multiple labels are not supported:") ||
+            lower.startsWith("custom functions and predicates are not supported on target implementation:")) {
             return new CypherModel.CypherError(UNSUPPORTED_FEATURE, message,
                     "This construct is not covered by the built-in translator, " +
                     "see the Cypher compatibility guide for supported syntax");

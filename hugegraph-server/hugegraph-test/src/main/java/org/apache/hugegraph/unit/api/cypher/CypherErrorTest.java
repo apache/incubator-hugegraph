@@ -23,6 +23,9 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.hugegraph.api.cypher.CypherErrorMapper;
 import org.apache.hugegraph.api.cypher.CypherModel;
+import org.apache.hugegraph.traversal.optimize.TraversalUtil;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.driver.exception.ResponseException;
 import org.apache.tinkerpop.gremlin.util.message.ResponseStatusCode;
 import org.junit.Assert;
@@ -77,13 +80,31 @@ public class CypherErrorTest {
     }
 
     @Test
+    public void testLegacyFailureFactory() throws Exception {
+        JsonNode response = JSON.readTree(JSON.writeValueAsString(
+                CypherModel.failOf("legacy-request", "legacy failure")));
+        Assert.assertEquals(3, response.size());
+        Assert.assertFalse(response.has("errors"));
+        Assert.assertEquals("legacy-request", response.get("requestId").asText());
+        Assert.assertEquals(400, response.at("/status/code").asInt());
+        Assert.assertEquals("legacy failure", response.at("/status/message").asText());
+        Assert.assertEquals(0, response.at("/status/attributes").size());
+        Assert.assertTrue(response.at("/result/data").isNull());
+        Assert.assertEquals(0, response.at("/result/meta").size());
+    }
+
+    @Test
     public void testRealParserFailures() {
         String[] queries = {
                 "MATCH (n:person RETURN n",
                 "MATCH (n:person) RETRUN n",
                 "MATCH (n) RETURN n; MATCH (m) RETURN m",
                 "RETURN date()",
-                "MATCH (n:person) RETURN not_defined_var"
+                "MATCH (n:person) RETURN not_defined_var",
+                "MATCH (n) RETURN n.age + 'a' * true",
+                "CREATE (n) CREATE (n) RETURN n",
+                "MATCH (n) WITH n.name RETURN n",
+                "MATCH (n) RETURN 1 AS a, 2 AS a"
         };
         for (String query : queries) {
             Exception failure = Assert.assertThrows(Exception.class, () -> translate(query));
@@ -114,10 +135,12 @@ public class CypherErrorTest {
 
     @Test
     public void testUnsupportedAndFallback() {
-        Assert.assertEquals("HugeGraph.Cypher.UnsupportedFeature", CypherErrorMapper.map(
-                new UnsupportedOperationException("Feature not supported")).code);
-        Assert.assertEquals("HugeGraph.Cypher.UnsupportedFeature", CypherErrorMapper.map(
-                new UnsupportedOperationException("Unsupported construct")).code);
+        for (String message : new String[]{"Feature not supported", "Unsupported construct"}) {
+            CypherModel.CypherError error = CypherErrorMapper.map(new UnsupportedOperationException(message));
+            Assert.assertEquals("HugeGraph.Cypher.ExecutionError", error.code);
+            Assert.assertEquals(message, error.message);
+            Assert.assertEquals("", error.hint);
+        }
         CypherModel.CypherError fallback = CypherErrorMapper.map(new RuntimeException());
         Assert.assertEquals("HugeGraph.Cypher.ExecutionError", fallback.code);
         Assert.assertEquals("", fallback.hint);
@@ -125,7 +148,7 @@ public class CypherErrorTest {
     }
 
     @Test
-    public void testParametersRemainUnbound() {
+    public void testTranslatorWithoutRequestValidationLeavesParametersUnbound() {
         String gremlin = translate("MATCH (n:person) WHERE n.name = $name RETURN n");
         Assert.assertTrue(gremlin, gremlin.contains("cypher.null"));
     }
@@ -140,6 +163,43 @@ public class CypherErrorTest {
         } finally {
             Locale.setDefault(previous);
         }
+    }
+
+    @Test
+    public void testRealUnsupportedMatchPattern() {
+        Exception failure = Assert.assertThrows(Exception.class, () -> translate(
+                "MATCH p=shortestPath((a)-[*]->(b)) RETURN p"));
+        Assert.assertTrue(failure.getMessage(), failure.getMessage().startsWith("Unsupported match pattern:"));
+        CypherModel.CypherError error = transportError(failure);
+        Assert.assertEquals("HugeGraph.Cypher.UnsupportedFeature", error.code);
+        Assert.assertEquals(failure.getMessage(), error.message);
+        Assert.assertTrue(error.hint.startsWith("This construct is not covered"));
+    }
+
+    @Test
+    public void testRuntimeUnsupportedErrorsAreNotTranslatorGaps() {
+        Exception contains = Assert.assertThrows(IllegalArgumentException.class,
+                () -> TraversalUtil.convContains2Relation(null, new HasContainer("key", P.neq("value"))));
+        for (Exception failure : new Exception[]{TraversalUtil.newUnsupportedPredicate(P.eq("value")), contains}) {
+            CypherModel.CypherError error = transportError(failure);
+            Assert.assertEquals("HugeGraph.Cypher.ExecutionError", error.code);
+            Assert.assertEquals(failure.getMessage(), error.message);
+            Assert.assertEquals("", error.hint);
+        }
+    }
+
+    @Test
+    public void testMissingParameterRemainsExecutionFallback() {
+        CypherModel.CypherError error = transportError(
+                new IllegalArgumentException("Missing Cypher parameter: missing"));
+        Assert.assertEquals("HugeGraph.Cypher.ExecutionError", error.code);
+        Assert.assertEquals("Missing Cypher parameter: missing", error.message);
+        Assert.assertEquals("", error.hint);
+    }
+
+    private static CypherModel.CypherError transportError(Exception failure) {
+        return CypherErrorMapper.map(new ExecutionException(
+                new ResponseException(ResponseStatusCode.SERVER_ERROR, failure.getMessage())));
     }
 
     private static String translate(String query) {
