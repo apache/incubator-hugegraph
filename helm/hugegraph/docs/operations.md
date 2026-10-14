@@ -277,7 +277,9 @@ use `hubble.enabled=false` for an unauthenticated API-only deployment.
 
 API response compression follows `Accept-Encoding`. Clients that support gzip
 can request it explicitly or use `curl --compressed`; requests with `identity`
-or without a compression header receive plain responses.
+or without a compression header receive plain responses. Quality factors `q=0.`
+and `q=1.` are equivalent to `q=0` and `q=1`. Explicit gzip exclusion overrides
+`*`; a higher `identity` quality selects a plain response.
 Older images can still force gzip; use a Server image built from current source.
 Updating chart values alone does not change an existing image's behavior.
 

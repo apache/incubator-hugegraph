@@ -63,6 +63,26 @@ public class CompressInterceptorTest {
     }
 
     @Test
+    public void testTrailingDotQualityFactors() throws Exception {
+        for (String accept : new String[]{"gzip;q=0.", "*;q=1, gzip;q=0.",
+                                          "gzip;q=0.5, identity;q=1.", "*;q=0.",
+                                          "*;q=0.5, identity;q=1.",
+                                          "*;q=1., GZIP; Q=0. ",
+                                          "gzip;q=0.0", "gzip;q=1.001", "gzip;q=1..",
+                                          "gzip;q=0.foo", "gzip;q=1. 0", "gzip;q=1.0000",
+                                          "gzip;Q =1.", "gzip;Q= 1."}) {
+            this.assertResponse(accept, false);
+        }
+        for (String accept : new String[]{"gzip;q=1.", "*;q=1.",
+                                          "gzip;q=1., identity;q=0.5", "*;q=0., gzip;q=1.",
+                                          "gzip;q=0.5, identity;q=0.",
+                                          "GZIP; Q=1. ", "GZIP;\tQ=1.\t",
+                                          "gzip;q=1.000", "gzip;q=0.001"}) {
+            this.assertResponse(accept, true);
+        }
+    }
+
+    @Test
     public void testPreserveVaryFields() throws Exception {
         MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
         headers.add(HttpHeaders.VARY, "Origin");

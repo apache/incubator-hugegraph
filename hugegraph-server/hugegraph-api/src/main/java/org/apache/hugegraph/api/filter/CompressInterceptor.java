@@ -23,6 +23,7 @@ import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.text.ParseException;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.hugegraph.api.filter.CompressInterceptor.Compress;
@@ -49,6 +50,9 @@ public class CompressInterceptor implements WriterInterceptor {
     public static final String GZIP = "gzip";
 
     private static final Logger LOG = Log.logger(CompressInterceptor.class);
+
+    private static final Pattern TRAILING_DOT_QUALITY =
+            Pattern.compile("(;[ \t]*[qQ]=[01])\\.(?=[ \t]*(?:[,;]|\\z))");
 
     // Set compress output buffer size to 4KB (about 40~600 vertices)
     public static final int BUFFER_SIZE = 1024 * 4;
@@ -87,6 +91,8 @@ public class CompressInterceptor implements WriterInterceptor {
         if (accept == null || accept.isEmpty()) {
             return false;
         }
+        // Jersey 3.0.3 misreads legal q=0. and q=1.; retain its token/quality validation.
+        accept = TRAILING_DOT_QUALITY.matcher(accept).replaceAll("$1");
         int gzip = -1;
         int wildcard = 0;
         int identity = 0;
