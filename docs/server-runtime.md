@@ -82,6 +82,11 @@ existing precedence; see [container heap sizing](../docker/README.md#server-heap
 Server bundles Arthas 4.1.5. Activate the agent with `PUT /arthas` using the Server's
 configured authentication. The existing `arthas.ip`, `arthas.httpPort`,
 `arthas.telnetPort` and `arthas.disabledCommands` options still configure the agent.
+The distribution uses `arthas.telnet_port`, `arthas.http_port` and
+`arthas.disabled_commands`. These snake_case keys take precedence over the legacy
+camelCase aliases when both are present, including explicit default values.
+Conflicting values produce a warning naming both keys and the effective key when
+the agent is activated. Remove the unused alias to avoid ambiguity.
 HugeGraph disables the bundled agent's optional MCP endpoint and keeps the existing
 activation response and diagnostic HTTP/telnet interfaces.
 

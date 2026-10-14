@@ -24,6 +24,8 @@ import org.apache.hugegraph.config.ConfigOption;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.util.JsonUtil;
+import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 import com.codahale.metrics.annotation.Timed;
 import com.taobao.arthas.agent.attach.ArthasAgent;
@@ -40,6 +42,8 @@ import jakarta.ws.rs.core.Context;
 @Singleton
 @Tag(name = "ArthasAPI")
 public class ArthasAPI extends API {
+
+    private static final Logger LOG = Log.logger(ArthasAPI.class);
 
     @Context
     private jakarta.inject.Provider<HugeConfig> configProvider;
@@ -75,7 +79,14 @@ public class ArthasAPI extends API {
 
     private static String option(HugeConfig config, ConfigOption<String> canonical,
                                  ConfigOption<String> legacy) {
-        return config.containsKey(canonical.name()) ? config.get(canonical) :
-               config.get(legacy);
+        if (!config.containsKey(canonical.name())) {
+            return config.get(legacy);
+        }
+        String value = config.get(canonical);
+        if (config.containsKey(legacy.name()) && !value.equals(config.get(legacy))) {
+            LOG.warn("Conflicting Arthas options '{}' and '{}': '{}' takes precedence",
+                     canonical.name(), legacy.name(), canonical.name());
+        }
+        return value;
     }
 }

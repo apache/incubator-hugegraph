@@ -17,8 +17,10 @@
 
 package org.apache.hugegraph.api.arthas;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.hugegraph.config.ConfigException;
@@ -26,10 +28,45 @@ import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.config.ServerOptions;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class ArthasConfigTest {
+
+    private final List<LogEvent> events = new ArrayList<>();
+    private Logger logger;
+    private Level previousLevel;
+    private Appender appender;
+
+    @Before
+    public void captureWarnings() {
+        this.appender = Mockito.mock(Appender.class);
+        Mockito.when(this.appender.getName()).thenReturn("ArthasConfigTestAppender");
+        Mockito.when(this.appender.isStarted()).thenReturn(true);
+        Mockito.doAnswer(invocation -> {
+            LogEvent event = invocation.getArgument(0);
+            this.events.add(event.toImmutable());
+            return null;
+        }).when(this.appender).append(Mockito.any(LogEvent.class));
+        this.logger = (Logger) LogManager.getLogger(ArthasAPI.class);
+        this.previousLevel = this.logger.getLevel();
+        this.logger.setLevel(Level.WARN);
+        this.logger.addAppender(this.appender);
+    }
+
+    @After
+    public void restoreLogger() {
+        this.logger.removeAppender(this.appender);
+        this.logger.setLevel(this.previousLevel);
+    }
 
     @BeforeClass
     public static void registerOptions() {
@@ -41,6 +78,7 @@ public class ArthasConfigTest {
         Map<String, String> config = ArthasAPI.arthasConfig(new HugeConfig(Collections.emptyMap()));
         assertOptions(config, "8562", "8561", "jad");
         Assert.assertEquals("0.0.0.0", config.get("arthas.ip"));
+        Assert.assertTrue(this.events.isEmpty());
     }
 
     @Test
@@ -50,12 +88,14 @@ public class ArthasConfigTest {
         Map<String, String> config = ArthasAPI.arthasConfig(new HugeConfig(properties));
         assertOptions(config, "18562", "18561", "jad,stop");
         Assert.assertEquals("127.0.0.1", config.get("arthas.ip"));
+        Assert.assertTrue(this.events.isEmpty());
     }
 
     @Test
     public void testLegacyKeys() {
         Map<String, Object> properties = properties("telnetPort", "httpPort", "disabledCommands");
         assertOptions(ArthasAPI.arthasConfig(new HugeConfig(properties)), "18562", "18561", "jad,stop");
+        Assert.assertTrue(this.events.isEmpty());
     }
 
     @Test
@@ -65,6 +105,10 @@ public class ArthasConfigTest {
         properties.put("arthas.httpPort", "28561");
         properties.put("arthas.disabledCommands", "stop");
         assertOptions(ArthasAPI.arthasConfig(new HugeConfig(properties)), "18562", "18561", "jad,stop");
+        Assert.assertEquals(3, this.events.size());
+        assertConflictWarning(0, "telnet_port", "telnetPort");
+        assertConflictWarning(1, "http_port", "httpPort");
+        assertConflictWarning(2, "disabled_commands", "disabledCommands");
     }
 
     @Test
@@ -74,6 +118,16 @@ public class ArthasConfigTest {
         properties.put("arthas.http_port", "8561");
         properties.put("arthas.disabled_commands", "jad");
         assertOptions(ArthasAPI.arthasConfig(new HugeConfig(properties)), "8562", "8561", "jad");
+        Assert.assertEquals(3, this.events.size());
+        assertConflictWarning(2, "disabled_commands", "disabledCommands");
+    }
+
+    @Test
+    public void testMatchingCanonicalAndLegacyKeysDoNotWarn() {
+        Map<String, Object> properties = properties("telnet_port", "http_port", "disabled_commands");
+        properties.putAll(properties("telnetPort", "httpPort", "disabledCommands"));
+        assertOptions(ArthasAPI.arthasConfig(new HugeConfig(properties)), "18562", "18561", "jad,stop");
+        Assert.assertTrue(this.events.isEmpty());
     }
 
     @Test
@@ -83,6 +137,14 @@ public class ArthasConfigTest {
             Assert.assertThrows(ConfigException.class,
                                 () -> new HugeConfig(Collections.singletonMap("arthas." + key, "")));
         }
+    }
+
+    private void assertConflictWarning(int index, String canonical, String legacy) {
+        LogEvent event = this.events.get(index);
+        Assert.assertEquals(Level.WARN, event.getLevel());
+        Assert.assertEquals(String.format("Conflicting Arthas options 'arthas.%s' and 'arthas.%s': " +
+                                         "'arthas.%s' takes precedence", canonical, legacy, canonical),
+                            event.getMessage().getFormattedMessage());
     }
 
     private static Map<String, Object> properties(String telnet, String http, String commands) {
