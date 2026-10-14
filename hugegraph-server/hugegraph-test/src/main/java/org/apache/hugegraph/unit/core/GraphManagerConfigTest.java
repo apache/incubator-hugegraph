@@ -2952,6 +2952,11 @@ public class GraphManagerConfigTest {
     }
 
     @Test
+    public void testMetadataDeleteFailureDoesNotSkipPeerRemove() throws Exception {
+        this.checkMetadataDeleteFailure(false, false, true);
+    }
+
+    @Test
     public void testRemoveNotificationFailureRestoresRetainedOwnerRpc() throws Exception {
         this.checkMetadataDeleteFailure(true, false);
     }
@@ -2962,6 +2967,10 @@ public class GraphManagerConfigTest {
     }
 
     private void checkMetadataDeleteFailure(boolean notify, boolean failRestore) throws Exception {
+        this.checkMetadataDeleteFailure(notify, failRestore, false);
+    }
+
+    private void checkMetadataDeleteFailure(boolean notify, boolean failRestore, boolean peerRemove) throws Exception {
         OptionSpace.register("core", CoreOptions.instance());
         OptionSpace.register("rpc", RpcOptions.instance());
         OptionSpace.register("server", ServerOptions.instance());
@@ -3016,9 +3025,21 @@ public class GraphManagerConfigTest {
             if (failRestore) {
                 Assert.assertSame(restoration, failure.getSuppressed()[0]);
             }
-            // Retry the fenced deletion; successful clear must not re-export the removed owner.
             Thread.currentThread().setName("grpc-rpc-metadata-retry");
-            manager.dropGraph("DEFAULT", name, true);
+            if (peerRemove) {
+                // Another server deleted the config after this local metadata attempt failed.
+                Mockito.when(meta.extractGraphsFromResponse(Mockito.any()))
+                       .thenReturn(java.util.Collections.singletonList(graph.spaceGraphName()));
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                                "graphRemoveHandler", manager, "peer-remove");
+            } else {
+                // Retry the fenced deletion; successful clear must not re-export the removed owner.
+                if (notify) {
+                    java.util.Set<?> removing = Whitebox.getInternalState(manager, "removingGraphs");
+                    Assert.assertTrue(removing.contains(graph.spaceGraphName()));
+                }
+                manager.dropGraph("DEFAULT", name, true);
+            }
             Assert.assertTrue(graph.closed());
             Assert.assertFalse(manager.graphs().contains(graph.spaceGraphName()));
             assertRpcResources(server, client, 0);

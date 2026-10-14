@@ -2456,12 +2456,18 @@ public final class GraphManager {
                 this.unregisterRpcServices(g);
                 this.removingGraphs.add(graphName);
             }
+            boolean metadataRemoved = false;
             try {
                 this.metaManager.removeGraphConfig(graphSpace, name);
+                metadataRemoved = true;
                 this.metaManager.notifyGraphRemove(graphSpace, name);
             } catch (Exception e) {
                 // No backend clear has started; retain RPC for the same open local owner.
                 synchronized (this) {
+                    if (!metadataRemoved) {
+                        // No local REMOVE was sent; a later peer REMOVE must still be handled.
+                        this.removingGraphs.remove(graphName);
+                    }
                     if (this.graphs.get(graphName) == g && !g.closed()) {
                         try {
                             this.registerRpcServices(g);
