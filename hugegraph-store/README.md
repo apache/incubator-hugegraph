@@ -252,6 +252,10 @@ bin/start-hugegraph-store.sh [-g GC_TYPE] [-j "JVM_OPTIONS"] [-d DAEMON]
 - `-j`: Custom JVM options (e.g., `-j "-Xmx16g -Xms8g"`)
 - `-d`: Daemon mode (`true` = daemon, `false` = foreground; default: `true`). Set to `false` when running under Docker or a process supervisor so the container exits if Java dies.
 
+The launcher always loads `bin/jvm-module.options`, including with custom `JAVA_OPTIONS` or `-j`.
+Keep this file in the distribution: it grants the Java 17 access required by Hessian Raft serialization;
+startup fails if the file is missing or unreadable. Direct Java launches must include `@bin/jvm-module.options`.
+
 On supported architectures, startup reuses a checksum-verified jemalloc library or tries to download it.
 The optional download allows 5 seconds to connect and 30 seconds for the complete transfer. If it fails
 or times out, Store continues without adding jemalloc to `LD_PRELOAD`; partial downloads are discarded.

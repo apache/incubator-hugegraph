@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -491,6 +492,83 @@ public class IntMapTest extends BaseUnitTest {
         } finally {
             executor.shutdownNow();
             Assert.assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void testIntMapByDynamicHashConcurrentGrowth() throws Throwable {
+        int threads = 16;
+        int keysPerThread = 100;
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(55);
+        ExecutorService executor = Executors.newFixedThreadPool(threads);
+        Throwable primaryFailure = null;
+        try {
+            // Each fresh map crosses multiple table generations; this is bounded work,
+            // not a retry of a failed test or concurrent access to another worker's keys.
+            for (int capacity : new int[]{4, 16, 64}) {
+                for (int scenario = 0; scenario < 300; scenario++) {
+                    IntMap map = new IntMapByDynamicHash(capacity);
+                    CountDownLatch started = new CountDownLatch(threads);
+                    CountDownLatch start = new CountDownLatch(1);
+                    List<Future<?>> workers = new ArrayList<>();
+                    try {
+                        for (int worker = 0; worker < threads; worker++) {
+                            int index = worker;
+                            workers.add(executor.submit(() -> {
+                                started.countDown();
+                                Assert.assertTrue(start.await(5, TimeUnit.SECONDS));
+                                for (int item = 0; item < keysPerThread; item++) {
+                                    int key = index * keysPerThread + item;
+                                    Assert.assertTrue(map.put(key, item));
+                                    Assert.assertEquals(item, map.get(key));
+                                    Assert.assertTrue(map.containsKey(key));
+                                    if (item % 2 != 0) {
+                                        Assert.assertTrue(map.remove(key));
+                                        Assert.assertFalse(map.containsKey(key));
+                                    }
+                                }
+                                return null;
+                            }));
+                        }
+                        long remaining = deadline - System.nanoTime();
+                        Assert.assertTrue("Concurrent growth budget exhausted", remaining > 0L);
+                        Assert.assertTrue(started.await(Math.min(remaining, TimeUnit.SECONDS.toNanos(5)),
+                                                        TimeUnit.NANOSECONDS));
+                        start.countDown();
+                        for (Future<?> worker : workers) {
+                            remaining = deadline - System.nanoTime();
+                            Assert.assertTrue("Concurrent growth budget exhausted", remaining > 0L);
+                            worker.get(remaining, TimeUnit.NANOSECONDS);
+                        }
+                        Assert.assertEquals(threads * keysPerThread / 2, map.size());
+                        for (int key = 0; key < threads * keysPerThread; key++) {
+                            if (key % 2 == 0) {
+                                Assert.assertTrue(map.containsKey(key));
+                                Assert.assertEquals(key % keysPerThread, map.get(key));
+                            } else {
+                                Assert.assertFalse(map.containsKey(key));
+                            }
+                        }
+                    } finally {
+                        start.countDown();
+                    }
+                }
+            }
+        } catch (Throwable failure) {
+            primaryFailure = failure;
+            throw failure;
+        } finally {
+            try {
+                executor.shutdownNow();
+                Assert.assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+            } catch (Throwable failure) {
+                if (primaryFailure == null) {
+                    throw failure;
+                }
+                if (primaryFailure != failure) {
+                    primaryFailure.addSuppressed(failure);
+                }
+            }
         }
     }
 
