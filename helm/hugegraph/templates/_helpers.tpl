@@ -852,10 +852,15 @@ the instance and component labels instead, which do not depend on the name.
 {{- $hubbleLive := lookup "apps/v1" "Deployment" .Release.Namespace (include "hugegraph.hubble.name" .) -}}
 {{- if and $hubbleLive .Values.hubble.enabled -}}
 {{- $wasPersistent := false -}}
+{{- $hasDataVolume := false -}}
 {{- range $volume := dig "spec" "template" "spec" "volumes" list $hubbleLive -}}
+{{- if eq ($volume.name | default "") "data" -}}{{- $hasDataVolume = true -}}{{- end -}}
 {{- if and (eq ($volume.name | default "") "data") (hasKey $volume "persistentVolumeClaim") -}}{{- $wasPersistent = true -}}{{- end -}}
 {{- end -}}
 {{- if ne $wasPersistent .Values.hubble.persistence.enabled -}}
+{{- if not $hasDataVolume -}}
+{{- fail "hubble.persistence.enabled cannot change on an initialized release: legacy Hubble has no data volume and its UI records are in the container filesystem. Keep hubble.persistence.enabled=false with --reuse-values or an explicit GitOps value; enabling persistence requires a reviewed metadata migration first" -}}
+{{- end -}}
 {{- fail "hubble.persistence.enabled cannot change on an initialized release: changing storage can discard UI records. Migrate the data into a fresh deployment first" -}}
 {{- end -}}
 {{- end -}}

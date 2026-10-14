@@ -118,7 +118,9 @@ and storage flags explicitly, as well as fixed/external credentials. Selecting
 set `networkPolicy.enabled` explicitly to preserve the installed behavior.
 A legacy Hubble with no mounted data volume still has metadata in its container
 filesystem: keep `hubble.persistence.enabled: false` until a reviewed migration
-moves that metadata to a PVC. Do not use a default reset as a migration.
+moves that metadata to a PVC. Export or back up any records you need before
+upgrading: keeping the temporary mode does not retain the old container's H2
+files when its Pod is replaced. Do not use a default reset as a migration.
 
 ## Entry points and UI
 

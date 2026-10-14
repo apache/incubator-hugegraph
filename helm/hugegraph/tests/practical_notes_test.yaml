@@ -78,3 +78,56 @@ tests:
     asserts:
       - matchRegexRaw:
           pattern: "https://internal.example/"
+  - it: names a strict NodePort entry lacking an external policy rule without failing
+    set:
+      mode: strict
+      server.service.type: NodePort
+    asserts:
+      - matchRegexRaw:
+          pattern: "Server has an external entry, but NetworkPolicy has no external ingress rule"
+      - matchRegexRaw:
+          pattern: "Add networkPolicy.server.extraIngress"
+
+  - it: names a strict hostless Ingress lacking an external policy rule
+    set:
+      mode: strict
+      server.ingress.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "Server has an external entry, but NetworkPolicy has no external ingress rule"
+
+  - it: accepts native allow-all rules without the missing-rule hint
+    set:
+      mode: strict
+      server.service.type: NodePort
+      server.ingress.enabled: true
+      networkPolicy.server.extraIngress: [{}]
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "Server has an external entry, but NetworkPolicy has no external ingress rule"
+
+  - it: does not show policy advice when an explicit override disables policies
+    set:
+      mode: strict
+      server.service.type: NodePort
+      networkPolicy.enabled: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: "NetworkPolicy has no external ingress rule"
+
+  - it: names the outside discovery egress setting for strict Hubble
+    set:
+      mode: strict
+      server.advertiseUrl: http://external.example:8080
+    asserts:
+      - matchRegexRaw:
+          pattern: "also add networkPolicy.hubble.extraEgress"
+  - it: names a strict ClusterIP with externalIPs lacking an external policy rule
+    set:
+      mode: strict
+      server.service.externalIPs: [192.0.2.10]
+    asserts:
+      - matchRegexRaw:
+          pattern: "Server has an external entry, but NetworkPolicy has no external ingress rule"
+      - matchRegexRaw:
+          pattern: "allows all sources and ports"

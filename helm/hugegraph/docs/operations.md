@@ -65,6 +65,20 @@ a PVC and `Recreate` deployment strategy preserve it across Pod replacement.
 Disabling Hubble or uninstalling does not delete kept claims/Secrets automatically.
 Changing Hubble storage requires a separate reviewed metadata migration.
 
+An older Hubble Deployment may have no `data` volume: its H2 records live in
+its container filesystem. The new persistent default is a storage change too,
+so a live Helm upgrade rejects it rather than silently creating an empty database.
+Keep `hubble.persistence.enabled=false` with `--reuse-values` or an explicit
+GitOps value to preserve the previous storage mode. Move any records you need
+to retain through a reviewed metadata migration before enabling persistence;
+retaining the temporary mode does not make those records survive Pod replacement.
+Export or back up required metadata before any rollout of that old Pod, including
+an upgrade that retains `hubble.persistence.enabled=false`.
+Offline `helm template` and GitOps rendering cannot inspect the existing Deployment
+through `lookup`, so this live guard cannot enforce the migration requirement there.
+Export and explicitly pin the existing storage flags before a GitOps sync; a
+successful offline render does not establish a safe migration.
+
 Local PVs bind to nodes and cannot move their files automatically on node loss.
 See [all seven local PVs](../examples/README.md#storage) for directory, capacity,
 claim binding and scheduling requirements. `Retain` preserves files on claim
@@ -156,6 +170,12 @@ Easy mode leaves NetworkPolicy off; strict enables it. Explicit values win.
 Policies require a network plugin that enforces them. Generated rules allow
 component communication and DNS; admit external clients/controllers with native
 `extraIngress`, and external addresses with appropriate `extraEgress`.
+Selecting strict mode and then overriding a Service to NodePort/LoadBalancer,
+setting `externalIPs`, or enabling Ingress does not automatically admit outside traffic. NOTES names
+exposed components with no external ingress rule and points to the matching
+`networkPolicy.<component>.extraIngress` setting; template rendering remains valid.
+For Hubble PD discovery via an external `server.advertiseUrl`, also configure
+Hubble's `extraEgress` for that destination.
 Empty external rule lists are valid and can block clients; `{}` is a valid
 allow-all rule. Consider NodePort source NAT when choosing source ranges.
 

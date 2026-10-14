@@ -120,6 +120,23 @@ see helm/hugegraph/examples/README.md#gitops-credentials.
 
 NetworkPolicy is enabled. Add application or monitoring clients through
 networkPolicy.<component>.extraIngress; enforcement depends on the cluster network plugin.
+{{- range $component := list "server" "hubble" "pd" }}
+{{- if or (ne $component "hubble") $hubbleEnabled }}
+{{- $cfg := get $.Values $component }}
+{{- $ingress := get $cfg "ingress" | default dict }}
+{{- $exposed := or (has $cfg.service.type (list "NodePort" "LoadBalancer")) (get $ingress "enabled" | default false) (not (empty (get $cfg.service "externalIPs"))) }}
+{{- $policy := get $.Values.networkPolicy $component | default dict }}
+{{- if and $exposed (empty (get $policy "extraIngress")) }}
+  {{ $component | title }} has an external entry, but NetworkPolicy has no external ingress rule.
+  Add networkPolicy.{{ $component }}.extraIngress for the client/controller, or disable networkPolicy.enabled.
+  An explicit [{}] ingress rule allows all sources and ports; choose the rule for your network.
+{{- end }}
+{{- end }}
+{{- end }}
+{{- $hubblePolicy := get $.Values.networkPolicy "hubble" | default dict }}
+{{- if and $.Values.server.advertiseUrl (empty (get $hubblePolicy "extraEgress")) $hubbleEnabled (eq $.Values.hubble.mode "pd") }}
+  For an external server.advertiseUrl, also add networkPolicy.hubble.extraEgress for that address.
+{{- end }}
 {{- end }}
 {{- if .Values.server.advertiseUrl }}
 

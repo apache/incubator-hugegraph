@@ -15,9 +15,11 @@
 # limitations under the License.
 #
 
-# Production starting point: 3 Server + 3 PD + 3 Store.
+# Multi-node starting point: 3 Server + 3 PD + 3 Store.
 # Size this profile again for the real graph, traffic, and failure budget.
 # Usage: helm install hg ./helm/hugegraph -f values-cluster.yaml
+# Entry and network policy inherit mode (easy by default).
+# Add --set mode=strict for ClusterIP and NetworkPolicy, or override either explicitly.
 
 pd:
   replicas: 3
@@ -33,7 +35,7 @@ pd:
     limits:
       cpu: "2"
       memory: 2Gi
-  # Pinned to "required": production must not co-locate PD quorum members.
+  # Keep PD quorum members on separate nodes.
   antiAffinity: required
   pdb:
     enabled: true
