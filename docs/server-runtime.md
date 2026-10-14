@@ -79,16 +79,51 @@ existing precedence; see [container heap sizing](../docker/README.md#server-heap
 
 ### Arthas diagnostics
 
-Server bundles Arthas 4.1.5. Activate the agent with `PUT /arthas` using the Server's
-configured authentication. The existing `arthas.ip`, `arthas.httpPort`,
-`arthas.telnetPort` and `arthas.disabledCommands` options still configure the agent.
+Server and Store bundle Arthas 4.1.5, managed by the root POM. PD does not embed
+an Arthas agent. Diagnostic ports bind to
+loopback by default. Server's `PUT /arthas` requires authentication to be enabled
+and the caller to be an authenticated administrator. It rejects non-loopback
+`arthas.ip` values, including `0.0.0.0`; `localhost` is normalized to `127.0.0.1`.
+Without authentication, the Server endpoint returns HTTP 403, including requests
+from localhost or through a reverse proxy. Store has no equivalent administrator
+authentication, so `GET /v1/arthasstart` always returns HTTP 403.
+
+For local diagnosis of either running service, use its distribution's bundled
+helper as the same OS user that owns the JVM:
+
+```bash
+bin/arthas.sh
+```
+
+The helper uses the distribution's PID file and packaged agent, without downloads,
+restarting the service or changing its configuration. It requires a JDK with attach
+support. The local helper fixes the bind address to `127.0.0.1`, disables HTTP,
+and opens an interactive telnet session on port 3658. Use `--help` for selecting
+an explicit PID or another local telnet port when diagnosing multiple instances.
+For remote diagnosis, log in to the service host over SSH and run the same command.
+If the Server API has already activated Arthas, connect to its existing telnet
+port instead: `bin/arthas.sh --telnet-port 8562` with the default configuration.
+An already running agent retains its listener settings. To switch to the helper's
+HTTP-disabled defaults, run `bin/arthas.sh --telnet-port 8562 --command stop`, then
+`bin/arthas.sh`; this stops only Arthas, and leaves the service JVM running.
+Arthas can execute code inside the JVM: access to the service's OS account and any
+SSH forwards must be restricted to trusted operators. A disabled-command list is
+not a substitute for that access control.
+
+Authenticated Server administrators can continue using `PUT /arthas` without an
+additional enable switch or restart. Its HTTP/telnet interfaces remain local to
+the host; HugeGraph disables the optional MCP endpoint. The activation response
+still contains the same four Arthas configuration keys.
+
+The existing `arthas.ip`, `arthas.httpPort`, `arthas.telnetPort` and
+`arthas.disabledCommands` options configure the Server API-activated agent.
 The distribution uses `arthas.telnet_port`, `arthas.http_port` and
 `arthas.disabled_commands`. These snake_case keys take precedence over the legacy
 camelCase aliases when both are present, including explicit default values.
 Conflicting values produce a warning naming both keys and the effective key when
-the agent is activated. Remove the unused alias to avoid ambiguity.
-HugeGraph disables the bundled agent's optional MCP endpoint and keeps the existing
-activation response and diagnostic HTTP/telnet interfaces.
+the agent is activated. Remove the unused alias to avoid ambiguity. Store's legacy
+configuration values remain available for compatibility; they do not enable HTTP
+activation or override the local helper's loopback binding.
 
 For a synchronous one-time command, POST `{"action":"exec","command":"version"}`
 to the agent's `/api` endpoint without a `sessionId`. Check `state=SUCCEEDED`, the

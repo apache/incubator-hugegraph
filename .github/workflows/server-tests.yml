@@ -103,6 +103,15 @@ jobs:
           $TRAVIS_DIR/test-java-security-properties.sh \
             "$SERVER_DIR" "$GITHUB_WORKSPACE"
 
+      - name: Check bundled Arthas local CLI
+        if: ${{ env.BACKEND == 'rocksdb' }}
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          SERVER_DIR=hugegraph-server/apache-hugegraph-server-$VERSION
+          PACKAGE=("$SERVER_DIR"/lib/arthas-packaging-*.jar)
+          test "${#PACKAGE[@]}" -eq 1 && test -s "${PACKAGE[0]}"
+          bash "$TRAVIS_DIR/test-arthas-cli.sh" "${PACKAGE[0]}" "${PACKAGE[0]}"
+
       - name: Verify Surefire single-class routing
         if: ${{ env.BACKEND == 'rocksdb' }}
         run: |

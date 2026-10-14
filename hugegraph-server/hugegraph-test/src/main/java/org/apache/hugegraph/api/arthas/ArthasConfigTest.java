@@ -23,10 +23,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.api.filter.AuthenticationFilter.Authorizer;
+import org.apache.hugegraph.auth.HugeAuthenticator.User;
+import org.apache.hugegraph.auth.HugePermission;
+import org.apache.hugegraph.auth.RolePermission;
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.OptionSpace;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -38,6 +43,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.core.MultivaluedHashMap;
+import jakarta.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.UriInfo;
 
 public class ArthasConfigTest {
 
@@ -77,7 +87,7 @@ public class ArthasConfigTest {
     public void testDefaults() {
         Map<String, String> config = ArthasAPI.arthasConfig(new HugeConfig(Collections.emptyMap()));
         assertOptions(config, "8562", "8561", "jad");
-        Assert.assertEquals("0.0.0.0", config.get("arthas.ip"));
+        Assert.assertEquals("127.0.0.1", config.get("arthas.ip"));
         Assert.assertTrue(this.events.isEmpty());
     }
 
@@ -137,6 +147,66 @@ public class ArthasConfigTest {
             Assert.assertThrows(ConfigException.class,
                                 () -> new HugeConfig(Collections.singletonMap("arthas." + key, "")));
         }
+    }
+
+    @Test
+    public void testLoopbackAddresses() {
+        for (String ip : new String[]{"127.0.0.1", "127.0.0.2", "::1", "localhost"}) {
+            Map<String, String> config = ArthasAPI.arthasConfig(
+                    new HugeConfig(Collections.singletonMap("arthas.ip", ip)));
+            Assert.assertEquals("localhost".equals(ip) ? "127.0.0.1" : ip, config.get("arthas.ip"));
+        }
+    }
+
+    @Test
+    public void testRemoteAndWildcardAddressesAreRejected() {
+        for (String ip : new String[]{"0.0.0.0", "::", "192.0.2.1", "2001:db8::1", "example.com"}) {
+            HugeConfig config = new HugeConfig(Collections.singletonMap("arthas.ip", ip));
+            Assert.assertThrows(IllegalArgumentException.class, () -> ArthasAPI.arthasConfig(config));
+        }
+    }
+
+    @Test
+    public void testNoAuthCannotActivateWithAnonymousAdminRole() {
+        GraphManager manager = Mockito.mock(GraphManager.class);
+        SecurityContext context = authorizer(manager, User.ANONYMOUS);
+        Assert.assertTrue(context.isUserInRole("admin"));
+        Throwable failure = Assert.assertThrows(ForbiddenException.class,
+                                               () -> new ArthasAPI().startArthas(manager, context));
+        Assert.assertTrue(failure.getMessage().contains("bin/arthas.sh"));
+    }
+
+    @Test
+    public void testAuthenticatedNonAdminCannotActivate() {
+        GraphManager manager = Mockito.mock(GraphManager.class);
+        Mockito.when(manager.requireAuthentication()).thenReturn(true);
+        User user = new User("graph_reader", RolePermission.role("DEFAULT", "hugegraph", HugePermission.READ));
+        SecurityContext context = authorizer(manager, user);
+        Assert.assertThrows(ForbiddenException.class,
+                            () -> new ArthasAPI().startArthas(manager, context));
+    }
+
+    @Test
+    public void testAuthenticatedAdminIsAllowed() {
+        GraphManager manager = Mockito.mock(GraphManager.class);
+        Mockito.when(manager.requireAuthentication()).thenReturn(true);
+        ArthasAPI.checkAccess(manager, authorizer(manager, User.ADMIN));
+    }
+
+    @Test
+    public void testAnonymousOrMissingPrincipalIsRejectedEvenInAuthMode() {
+        GraphManager manager = Mockito.mock(GraphManager.class);
+        Mockito.when(manager.requireAuthentication()).thenReturn(true);
+        Assert.assertThrows(ForbiddenException.class,
+                            () -> new ArthasAPI().startArthas(manager, authorizer(manager, User.ANONYMOUS)));
+        Assert.assertThrows(ForbiddenException.class,
+                            () -> new ArthasAPI().startArthas(manager, Mockito.mock(SecurityContext.class)));
+    }
+
+    private static SecurityContext authorizer(GraphManager manager, User user) {
+        UriInfo uri = Mockito.mock(UriInfo.class);
+        Mockito.when(uri.getPathParameters()).thenReturn(new MultivaluedHashMap<>());
+        return new Authorizer(manager, user, uri);
     }
 
     private void assertConflictWarning(int index, String canonical, String legacy) {

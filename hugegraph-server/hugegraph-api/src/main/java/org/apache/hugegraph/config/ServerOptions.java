@@ -466,9 +466,9 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> ARTHAS_IP =
             new ConfigOption<>(
                     "arthas.ip",
-                    "arthas bound ip",
+                    "Arthas loopback bind address; remote addresses are rejected at activation",
                     disallowEmpty(),
-                    "0.0.0.0"
+                    "127.0.0.1"
             );
 
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =

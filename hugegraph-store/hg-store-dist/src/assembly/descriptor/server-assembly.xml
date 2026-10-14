@@ -48,6 +48,11 @@
 
     <files>
         <file>
+            <source>${project.basedir}/../../hugegraph-server/hugegraph-dist/src/assembly/static/bin/arthas.sh</source>
+            <outputDirectory>bin</outputDirectory>
+            <fileMode>755</fileMode>
+        </file>
+        <file>
             <source>${project.basedir}/../../hugegraph-server/hugegraph-dist/src/assembly/static/bin/prepare-topling.sh</source>
             <outputDirectory>bin</outputDirectory>
             <fileMode>755</fileMode>

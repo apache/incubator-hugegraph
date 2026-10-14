@@ -32,7 +32,7 @@ public class ArthasConfigTest {
     @Test
     public void testDefaults() throws Exception {
         assertOptions(Collections.emptyMap(), "8566", "8565", "jad");
-        Assertions.assertEquals("0.0.0.0", resolve(Collections.emptyMap(), "arthasip"));
+        Assertions.assertEquals("127.0.0.1", resolve(Collections.emptyMap(), "arthasip"));
     }
 
     @Test
@@ -67,8 +67,8 @@ public class ArthasConfigTest {
 
     @Test
     public void testIpOverrideIsPreserved() throws Exception {
-        Assertions.assertEquals("127.0.0.1",
-                                resolve(Collections.singletonMap("arthas.ip", "127.0.0.1"), "arthasip"));
+        Assertions.assertEquals("192.0.2.1",
+                                resolve(Collections.singletonMap("arthas.ip", "192.0.2.1"), "arthasip"));
     }
 
     private static Map<String, Object> properties(String telnet, String http, String commands) {

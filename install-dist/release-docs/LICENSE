@@ -363,9 +363,7 @@ the corresponding per-component license file.
     https://central.sonatype.com/artifact/com.squareup.okio/okio-jvm/3.0.0 -> Apache 2.0
     https://central.sonatype.com/artifact/com.squareup.okio/okio/1.15.0 -> Apache 2.0
     https://central.sonatype.com/artifact/com.squareup/javapoet/1.13.0 -> Apache 2.0
-    https://central.sonatype.com/artifact/com.taobao.arthas/arthas-agent-attach/3.6.4 -> Apache 2.0
     https://central.sonatype.com/artifact/com.taobao.arthas/arthas-agent-attach/4.1.5 -> Apache 2.0
-    https://central.sonatype.com/artifact/com.taobao.arthas/arthas-packaging/3.6.4 -> Apache 2.0
     https://central.sonatype.com/artifact/com.taobao.arthas/arthas-packaging/4.1.5 -> Apache 2.0
     https://central.sonatype.com/artifact/com.vaadin.external.google/android-json/0.0.20131108.vaadin1 -> Apache 2.0
     https://central.sonatype.com/artifact/commons-beanutils/commons-beanutils/1.9.4 -> Apache 2.0

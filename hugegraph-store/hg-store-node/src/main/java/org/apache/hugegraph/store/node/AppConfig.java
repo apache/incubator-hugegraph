@@ -214,7 +214,7 @@ public class AppConfig {
         @Value("${arthas.http_port:${arthas.httpPort:8565}}")
         private String httpPort;
 
-        @Value("${arthas.ip:0.0.0.0}")
+        @Value("${arthas.ip:127.0.0.1}")
         private String arthasip;
 
         @Value("${arthas.disabled_commands:${arthas.disabledCommands:jad}}")

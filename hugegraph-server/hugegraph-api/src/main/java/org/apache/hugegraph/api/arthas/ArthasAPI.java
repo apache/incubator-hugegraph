@@ -17,26 +17,34 @@
 
 package org.apache.hugegraph.api.arthas;
 
+import java.net.InetAddress;
 import java.util.HashMap;
 
 import org.apache.hugegraph.api.API;
+import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.config.ConfigOption;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.config.ServerOptions;
+import org.apache.hugegraph.core.GraphManager;
+import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
 import org.slf4j.Logger;
 
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.net.InetAddresses;
 import com.taobao.arthas.agent.attach.ArthasAgent;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Singleton;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.SecurityContext;
 
 @Path("arthas")
 @Singleton
@@ -51,15 +59,34 @@ public class ArthasAPI extends API {
     @PUT
     @Timed
     @Produces(APPLICATION_JSON_WITH_CHARSET)
+    @RolesAllowed("admin")
     @Operation(summary = "start arthas agent")
-    public Object startArthas() {
+    public Object startArthas(@Context GraphManager manager,
+                             @Context SecurityContext context) {
+        checkAccess(manager, context);
         HugeConfig config = this.configProvider.get();
         HashMap<String, String> configMap = arthasConfig(config);
         String response = JsonUtil.toJson(configMap);
         // Keep the optional MCP endpoint disabled without extending the activation response.
         configMap.put("arthas.mcpEndpoint", "");
+        // Do not let external Arthas properties override the validated local listener.
+        configMap.put("arthas.config.overrideAll", "false");
+        configMap.put("arthas.tunnelServer", "");
         ArthasAgent.attach(configMap);
         return response;
+    }
+
+    static void checkAccess(GraphManager manager, SecurityContext context) {
+        // No-auth requests receive an anonymous admin role, so a role check alone is insufficient.
+        if (!manager.requireAuthentication()) {
+            throw new ForbiddenException("HTTP Arthas activation requires authentication; " +
+                                         "use bin/arthas.sh on the server host instead");
+        }
+        if (context == null || context.getUserPrincipal() == null ||
+            HugeAuthenticator.USER_ANONY.equals(context.getUserPrincipal().getName()) ||
+            !context.isUserInRole("admin")) {
+            throw new ForbiddenException("Arthas activation requires an authenticated administrator");
+        }
     }
 
     static HashMap<String, String> arthasConfig(HugeConfig config) {
@@ -70,7 +97,14 @@ public class ArthasAPI extends API {
         configMap.put("arthas.httpPort",
                       option(config, ServerOptions.ARTHAS_HTTP_PORT,
                              ServerOptions.ARTHAS_HTTP_PORT_LEGACY));
-        configMap.put("arthas.ip", config.get(ServerOptions.ARTHAS_IP));
+        String ip = config.get(ServerOptions.ARTHAS_IP);
+        // Do not resolve arbitrary hostnames: their address may change after validation.
+        ip = "localhost".equalsIgnoreCase(ip) ? "127.0.0.1" : ip;
+        E.checkArgument(InetAddresses.isInetAddress(ip) &&
+                        InetAddresses.forString(ip).isLoopbackAddress(),
+                        "Arthas must bind to a loopback address, but got '%s'", ip);
+        InetAddress address = InetAddresses.forString(ip);
+        configMap.put("arthas.ip", InetAddresses.toAddrString(address));
         configMap.put("arthas.disabledCommands",
                       option(config, ServerOptions.ARTHAS_DISABLED_COMMANDS,
                              ServerOptions.ARTHAS_DISABLED_COMMANDS_LEGACY));
