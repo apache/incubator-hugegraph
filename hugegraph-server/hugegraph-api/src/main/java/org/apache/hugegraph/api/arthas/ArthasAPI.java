@@ -51,8 +51,11 @@ public class ArthasAPI extends API {
     public Object startArthas() {
         HugeConfig config = this.configProvider.get();
         HashMap<String, String> configMap = arthasConfig(config);
+        String response = JsonUtil.toJson(configMap);
+        // Keep the optional MCP endpoint disabled without extending the activation response.
+        configMap.put("arthas.mcpEndpoint", "");
         ArthasAgent.attach(configMap);
-        return JsonUtil.toJson(configMap);
+        return response;
     }
 
     static HashMap<String, String> arthasConfig(HugeConfig config) {

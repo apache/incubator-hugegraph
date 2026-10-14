@@ -377,6 +377,7 @@ public class OltpTraverserCursorTest {
         Consumers.ExecutorPool pool = Whitebox.getInternalState(OltpTraverser.class, "executors");
         ExecutorService worker = pool.getExecutor();
         pool.returnExecutor(worker);
+        CountDownLatch releaseConsumer = new CountDownLatch(1);
         class LazyInputs implements Iterator<Iterator<Edge>>, AutoCloseable {
 
             private int reads;
@@ -385,6 +386,8 @@ public class OltpTraverserCursorTest {
             @Override
             public boolean hasNext() {
                 if (this.reads == 1) {
+                    // The first provide() has returned; Stop now occurs before the second one.
+                    releaseConsumer.countDown();
                     try {
                         // Runs after the real Consumers task and its worker transaction cleanup.
                         worker.submit(() -> { }).get(5L, TimeUnit.SECONDS);
@@ -410,11 +413,21 @@ public class OltpTraverserCursorTest {
         }
         LazyInputs source = new LazyInputs();
         try {
-            long total = traverser.traverseLazy(source, consumer);
+            long total = traverser.traverseLazy(source, iterator -> {
+                try {
+                    Assert.assertTrue("Producer must return from its first provide()",
+                                      releaseConsumer.await(5L, TimeUnit.SECONDS));
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new AssertionError(e);
+                }
+                consumer.accept(iterator);
+            });
             Assert.assertEquals((long) source.reads, total);
             Assert.assertTrue("Traversal must close its lazy producer", source.closed);
             return source.reads;
         } finally {
+            releaseConsumer.countDown();
             OltpTraverser.destroy();
             Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
         }

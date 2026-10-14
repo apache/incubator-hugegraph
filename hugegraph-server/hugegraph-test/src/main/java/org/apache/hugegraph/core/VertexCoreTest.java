@@ -1309,11 +1309,14 @@ public class VertexCoreTest extends BaseCoreTest {
 
     @Test
     public void testAddVertexWithTtlAndTtlStartTime() {
+        // The input date must not reuse a previously closed transaction's timestamp.
+        long birth = DateUtil.now().getTime() - 1000L;
         Vertex vertex = graph().addVertex(
                 T.label, "follower", "name",
                 "Baby", "age", 3, "city", "Beijing",
-                "birth", graph().now() - 1000L);
+                "birth", birth);
         this.commitTx();
+        Assert.assertEquals(birth + 3000L, ((HugeElement) vertex).expiredTime());
 
         Iterator<Vertex> vertices = graph().vertices(vertex);
         Assert.assertTrue(vertices.hasNext());

@@ -86,15 +86,18 @@ public class ConsumersTest {
     @Test(timeout = 1000)
     public void testAwaitThrowsWhenConsumerThrows() throws Throwable {
         ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch release = new CountDownLatch(1);
         try {
             final String msg = "Injected exception for test";
 
             Consumers<Integer> consumers = new Consumers<>(executor, v -> {
+                awaitGate(release);
                 throw new RuntimeException(msg);
             });
 
             consumers.start("test");
             consumers.provide(1);
+            release.countDown();
 
             try {
                 consumers.await();
@@ -108,6 +111,7 @@ public class ConsumersTest {
                                   root.getMessage().contains(msg));
             }
         } finally {
+            release.countDown();
             executor.shutdownNow();
         }
     }
