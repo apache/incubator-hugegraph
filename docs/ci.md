@@ -18,7 +18,8 @@ and `Server rocksdb tests (Java ...)`; their native checks report real execution
 
 ## Coverage with selective tests
 
-Each coverage upload has a stable test-group flag. [Codecov carryforward](https://docs.codecov.com/docs/carryforward-flags)
+Each coverage upload has a stable test-group flag. The [Codecov configuration](../.github/codecov.yml)
+enables [carryforward](https://docs.codecov.com/docs/carryforward-flags), which
 preserves the last flagged report for unexecuted groups, so skipping unchanged Commons,
 PD/Store or backend checks does not remove their previous data from project totals.
 The PR comment explicitly marks carried-forward data. It is historical coverage,
