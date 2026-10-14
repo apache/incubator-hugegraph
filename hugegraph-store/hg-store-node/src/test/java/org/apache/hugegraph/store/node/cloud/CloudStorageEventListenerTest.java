@@ -116,6 +116,31 @@ public class CloudStorageEventListenerTest {
     }
 
     @Test
+    public void constructor_sweepsOrphanedStagingPinsInEveryRoot() throws Exception {
+        Path root0 = Files.createTempDirectory("hgstore-test-sweep0");
+        Path root1 = Files.createTempDirectory("hgstore-test-sweep1");
+        try {
+            Path sst = Files.writeString(root1.resolve("000003.sst"), "sst");
+            Path staging0 = Files.createDirectories(
+                    root0.resolve(CloudStorageEventListener.STAGING_DIR));
+            Path staging1 = Files.createDirectories(
+                    root1.resolve(CloudStorageEventListener.STAGING_DIR));
+            Path pin0 = Files.writeString(staging0.resolve("000001.sst.upload-1"), "sst");
+            Path pin1 = Files.createLink(staging1.resolve("000003.sst.upload-2"), sst);
+
+            CloudStorageTestFactory.newListener(new CapturingProvider(),
+                                                List.of(root0.toString(), root1.toString()));
+
+            assertFalse(Files.exists(pin0), "Orphaned pin in the first root must be removed");
+            assertFalse(Files.exists(pin1), "Orphaned pin in the second root must be removed");
+            assertTrue(Files.exists(sst), "Sweep must not touch the source SST");
+        } finally {
+            deleteRecursively(root0.toFile());
+            deleteRecursively(root1.toFile());
+        }
+    }
+
+    @Test
     public void toRelativeKey_stripsDataRootPrefixForPartitionDb() {
         String filePath = DATA_ROOT + "/0/000042.sst";
         assertEquals("0/000042.sst", listener.toRelativeKey(filePath));
@@ -290,39 +315,38 @@ public class CloudStorageEventListenerTest {
         Path sst = dbDir.resolve("000008.sst");
         Files.write(sst, "sst-body".getBytes());
 
-        // maxAttempts=0 → after the async upload fails, the task is routed straight to the DLQ,
-        // giving a deterministic, observable postcondition (no timing-dependent retry cycle).
+        // maxAttempts=0 → after the async upload fails, the queue gives up on the task straight
+        // away, giving a deterministic, observable postcondition (no timing-dependent retry cycle).
         FailingUploadProvider provider = new FailingUploadProvider();
         try (CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(provider,
-                0, 50L, 50L, tmpRoot.toString())) {
+                0, 50L, 50L)) {
             CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                     List.of(tmpRoot.toString()), true, 0L, retryQueue);
             // Must NOT throw – the provider failure is handled asynchronously.
             l.onTableFileCreated("hgstore-metadata", "default", sst.toString(),
                                  Files.size(sst));
 
-            // The pin succeeds, the async upload fails, and (maxAttempts=0) the task lands in the
-            // DLQ. Wait for the background worker to complete and assert the failure was captured
-            // on the real provider-upload path.
-            waitForCondition(() -> retryQueue.getDlqSize() > 0,
-                             "async provider upload failure should be submitted to the DLQ");
+            // The pin succeeds, the async upload fails, and (maxAttempts=0) the queue gives up on
+            // the task. Wait for the background worker to complete and assert the failure was
+            // captured on the real provider-upload path.
+            waitForCondition(() -> retryQueue.getGivenUpCount() > 0,
+                             "async provider upload failure should be submitted to the "
+                             + "retry queue and given up");
 
-            assertEquals(1,
-                         retryQueue.getDlqSize(),
-                         "Provider upload failure must land in the DLQ");
-            FailedUploadTask entry = retryQueue.getDlqEntries().get(0);
-            assertEquals("hgstore-metadata", entry.getDbName());
-            assertEquals("hgstore-metadata/000008.sst", entry.getRemoteKey());
+            assertEquals(1L,
+                         retryQueue.getGivenUpCount(),
+                         "Provider upload failure must be counted as given up");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
     }
 
     @Test
-    public void onTableFileCreated_nonRetryableUploadFailure_submitsDirectlyToDlq()
+    public void onTableFileCreated_nonRetryableUploadFailure_givesUpWithoutRetry()
             throws Exception {
-        // A NON-retryable provider error (e.g. bad credentials) must bypass the retry budget and go
-        // straight to the DLQ, even though maxAttempts > 0. maxAttempts=3 proves it is not retried.
+        // A NON-retryable provider error (e.g. bad credentials) must bypass the retry budget and be
+        // given up on immediately, even though maxAttempts > 0. maxAttempts=3 proves it is not
+        // retried.
         Path tmpRoot = Files.createTempDirectory("hgstore-test-nonretry");
         Path dbDir = tmpRoot.resolve("hgstore-metadata");
         Files.createDirectories(dbDir);
@@ -331,22 +355,23 @@ public class CloudStorageEventListenerTest {
 
         NonRetryableUploadProvider provider = new NonRetryableUploadProvider();
         try (CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(provider,
-                3, 50L, 5000L, tmpRoot.toString())) {
+                3, 50L, 5000L)) {
             CloudStorageEventListener l = CloudStorageTestFactory.newListener(provider,
                     List.of(tmpRoot.toString()), true, 0L, retryQueue);
             // Must NOT throw – the provider failure is handled asynchronously.
             l.onTableFileCreated("hgstore-metadata", "default", sst.toString(), Files.size(sst));
 
-            waitForCondition(() -> retryQueue.getDlqSize() > 0,
-                             "non-retryable upload failure should land in the DLQ immediately");
+            waitForCondition(() -> retryQueue.getGivenUpCount() > 0,
+                             "non-retryable upload failure should be given up immediately");
 
-            assertEquals(1,
-                         retryQueue.getDlqSize(),
-                         "non-retryable failure must go directly to the DLQ (no retries)");
-            FailedUploadTask entry = retryQueue.getDlqEntries().get(0);
-            assertEquals("hgstore-metadata", entry.getDbName());
-            assertTrue(entry.getLastError().contains("credentials"),
-                       "DLQ entry must record the non-retryable cause");
+            assertEquals(1L,
+                         retryQueue.getGivenUpCount(),
+                         "non-retryable failure must be given up on directly (no retries)");
+            // The first retry would fire after the 50ms initial delay; wait past it to prove no
+            // whole-file retry was scheduled.
+            Thread.sleep(300L);
+            assertEquals(1, provider.uploadCalls.get(),
+                         "non-retryable failure must not trigger any whole-file retry");
         } finally {
             deleteRecursively(tmpRoot.toFile());
         }
@@ -907,8 +932,11 @@ public class CloudStorageEventListenerTest {
     /** Upload always fails with a NON-retryable error (e.g. bad credentials / 403). */
     static class NonRetryableUploadProvider extends CapturingProvider {
 
+        final AtomicInteger uploadCalls = new AtomicInteger();
+
         @Override
         public void uploadFile(String localPath, String remoteKey) throws IOException {
+            uploadCalls.incrementAndGet();
             throw new CloudStorageNonRetryableException(
                     "Authentication failed; credentials invalid", null);
         }

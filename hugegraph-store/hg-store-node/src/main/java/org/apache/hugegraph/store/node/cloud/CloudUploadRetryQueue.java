@@ -17,40 +17,27 @@
 
 package org.apache.hugegraph.store.node.cloud;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Deque;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hugegraph.store.cloud.CloudStorageProvider;
 import org.apache.hugegraph.store.cloud.CloudStorageNonRetryableException;
 
-import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Asynchronous retry queue with a file-backed dead-letter queue (DLQ) for failed
- * cloud SST uploads.
+ * Asynchronous whole-file retry queue for failed cloud SST uploads.
  *
  * <h3>Retry strategy</h3>
  * <p>The number of whole-file retries is configured by the caller via
@@ -59,31 +46,32 @@ import lombok.extern.slf4j.Slf4j;
  * whose provider already performs sufficient internal retries (e.g. the S3 provider's underlying
  * AWS SDK client, which retries transient per-request/per-part failures on its own).
  * <ul>
- *   <li>When {@code maxAttempts == 0}, failures go directly to the DLQ with no whole-file retry.</li>
+ *   <li>When {@code maxAttempts == 0}, the queue gives up on a failure immediately, with no
+ *       whole-file retry.</li>
  *   <li>When {@code maxAttempts > 0} (the default), the first retry is scheduled after
  *       {@code initialDelayMs} milliseconds.</li>
  *   <li>Subsequent retries use exponential backoff: {@code delay = initialDelayMs * 2^(attempt-1)},
  *       capped at {@code maxDelayMs}.</li>
- *   <li>After {@code maxAttempts} consecutive failures the task is moved to the DLQ.</li>
+ *   <li>After {@code maxAttempts} consecutive failures the queue gives up on the upload.</li>
  *   <li>If the local SST file no longer exists at retry time (compacted away by RocksDB)
  *       the retry is silently dropped — there is nothing to upload.</li>
  * </ul>
  *
- * <h3>Dead-letter queue (DLQ)</h3>
+ * <h3>Giving up</h3>
+ * A given-up upload is logged at ERROR, counted in {@link #getGivenUpCount()}, and its staging
+ * hard-link is released; this queue does not retry it again. The file is never marked confirmed
+ * in {@link CloudSyncTracker}, so the listener re-uploads it if it is still live:
  * <ul>
- *   <li>In-memory: {@link #getDlqEntries()} returns a snapshot.</li>
- *   <li>On-disk: entries are appended to {@code <dataRoot>/.cloud-upload-dlq.tsv} in a
- *       tab-separated format so they survive JVM restarts. Existing entries are loaded
- *       back into memory at construction time.</li>
- *   <li>{@link #replayDlq()} retries all DLQ entries immediately; successful uploads are
- *       removed and the file is rewritten. Failed entries are re-submitted to the retry
- *       queue with a fresh attempt cycle.</li>
+ *   <li>the delete guard re-uploads unconfirmed live SSTs before removing any superseded cloud
+ *       object, and holds the delete (keeping the old object) until the live set is durable;</li>
+ *   <li>metadata sync uploads every SST the captured manifest references before publishing
+ *       CURRENT/MANIFEST, so cloud never points at a missing SST;</li>
+ *   <li>startup SST backfill uploads every local SST missing from cloud when its DB is opened.</li>
  * </ul>
+ * An SST compacted away before then needs no upload; its data lives in the compaction output.
  *
  * <h3>Thread safety</h3>
- * All public methods are thread-safe. The in-memory DLQ is a {@link ConcurrentLinkedDeque};
- * disk I/O is serialised onto the internal {@link ScheduledExecutorService} (for appends)
- * or synchronised explicitly (for rewrites).
+ * All public methods are thread-safe.
  *
  * <h3>Lifecycle</h3>
  * Call {@link #close()} (e.g. from a Spring {@code @PreDestroy} method) to shut down the
@@ -91,18 +79,6 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 public class CloudUploadRetryQueue implements Closeable {
-
-    // -----------------------------------------------------------------------
-    // Constants
-    // -----------------------------------------------------------------------
-
-    /** Name of the on-disk DLQ file, relative to {@code dataRoot}. */
-    static final String DLQ_FILE_NAME = ".cloud-upload-dlq.tsv";
-
-    private static final String DLQ_COMMENT =
-            "# Cloud SST upload dead-letter queue – tab-separated: "
-            + "failedAt\\tattemptCount\\tdbName\\tcfName\\tfilePath\\tremoteKey\\tlastError"
-            + "\\tsourceSstPath\\tuploadEpoch";
 
     // -----------------------------------------------------------------------
     // Configuration
@@ -115,9 +91,10 @@ public class CloudUploadRetryQueue implements Closeable {
 
     /**
      * Invoked with {@code (dbName, sourceSstPath, uploadEpoch)} whenever an upload succeeds via
-     * retry or DLQ replay, so the caller can mark the file confirmed-present in cloud.
+     * retry, so the caller can mark the file confirmed-present in cloud.
      * The {@code uploadEpoch} is the {@link CloudSyncTracker} epoch captured at submission time;
-     * the callback should use {@link CloudSyncTracker#markConfirmedIfEpoch} to drop stale callbacks.
+     * the callback should use {@link CloudSyncTracker#markConfirmedIfEpoch} to drop stale
+     * callbacks.
      */
     @FunctionalInterface
     public interface UploadConfirmedCallback {
@@ -127,7 +104,7 @@ public class CloudUploadRetryQueue implements Closeable {
     private final UploadConfirmedCallback onUploadConfirmed;
 
     /**
-     * Invoked with {@code dbName} after an upload becomes durable via retry or DLQ replay, so the
+     * Invoked with {@code dbName} after an upload becomes durable via retry, so the
      * caller can (debounced) publish CURRENT/MANIFEST for that DB. Without this, a retry that
      * succeeds during a quiet period would leave the SST in cloud but the mirrored CURRENT stale
      * until some unrelated sync fires (or never, on an idle DB) — widening the recovery point.
@@ -145,63 +122,27 @@ public class CloudUploadRetryQueue implements Closeable {
     // State
     // -----------------------------------------------------------------------
 
-    /** In-memory dead-letter queue – holds tasks that exhausted all retries. */
-    private final Deque<FailedUploadTask> dlq = new ConcurrentLinkedDeque<>();
+    /** Number of uploads given up on since startup (monitoring / tests). */
+    private final AtomicLong givenUpCount = new AtomicLong();
 
     /**
      * Retries that are scheduled but have not started running yet. A scheduled task is added here
      * before {@code scheduler.schedule(...)} and removed the moment it starts executing. On
      * {@link #close()}, a forced {@code shutdownNow()} silently discards the executor's queued
      * (delayed) tasks — but those wrappers are opaque, so we cannot recover their payload from the
-     * returned runnables. Tracking the payload here lets us move any retry that never ran into the
-     * DLQ, so retry intent (the only remaining upload path for a compaction-raced file) is not lost.
+     * returned runnables. Tracking the payload here lets close() give up on any retry that never
+     * ran and release its staging hard-link.
      */
     private final Set<RetryContext> pendingRetries = ConcurrentHashMap.newKeySet();
 
     /**
      * Retries that have STARTED executing but not yet finished. A task moves from
      * {@link #pendingRetries} to this set when it begins running, and is removed when it completes
-     * (success, DLQ, or reschedule). On {@link #close()}, a retry still here after the shutdown
-     * timeout is one hung in {@code provider.uploadFile(...)}; it is persisted to the DLQ so its
-     * upload intent survives even a forced shutdown. DLQ replay is idempotent (idempotent PUT +
-     * epoch-guarded confirmation), so a duplicate entry for a retry that actually completed is safe.
+     * (success, give-up, or reschedule). On {@link #close()}, a retry still here after the shutdown
+     * timeout is one hung in {@code provider.uploadFile(...)}; it is given up on like an unrun
+     * retry.
      */
     private final Set<RetryContext> inFlightRetries = ConcurrentHashMap.newKeySet();
-
-    /**
-     * Upper bound on DLQ entries (in memory and, amortized, on disk). Without a cap, a prolonged
-     * provider outage with {@code maxAttempts == 0} routes every failed SST upload straight to the
-     * DLQ, growing process memory and the on-disk file without bound (OOM / disk exhaustion).
-     * When the cap is exceeded the oldest entries are evicted; those files remain recoverable via
-     * the delete guard and startup SST backfill, which re-upload any live SST missing from cloud.
-     */
-    static final int DEFAULT_MAX_DLQ_SIZE = 100_000;
-    private volatile int maxDlqSize = DEFAULT_MAX_DLQ_SIZE;
-
-    /** Count of DLQ entries evicted due to the size cap (monitoring / tests). */
-    private final AtomicInteger droppedDlqEntries = new AtomicInteger(0);
-
-    /** Appends since the last on-disk compaction, used to amortize {@link #rewriteDlqFile}. */
-    private final AtomicInteger appendsSinceRewrite = new AtomicInteger(0);
-
-    /**
-     * DLQ on-disk persistence health. The in-memory DLQ is authoritative at runtime, but the
-     * on-disk file is what survives a process restart. If a persist (append/rewrite) fails, retry
-     * intent for the failed entry would be lost on a crash before the next successful persist.
-     * We flip this to {@code false} and increment {@link #dlqPersistenceFailures} so operators can
-     * alert on a "degraded durability" state via {@link #isDlqPersistenceHealthy()} rather than
-     * treating a silently-swallowed IO error as healthy. It recovers to {@code true} on the next
-     * successful persist. Live SSTs remain recoverable via the delete guard and startup backfill,
-     * so this is a degraded signal, not hard data loss.
-     */
-    @Getter
-    private volatile boolean dlqPersistenceHealthy = true;
-
-    /** Cumulative count of DLQ persistence failures (monitoring / tests). */
-    private final AtomicInteger dlqPersistenceFailures = new AtomicInteger(0);
-
-    /** Absolute path of the on-disk DLQ file. */
-    private final Path dlqFile;
 
     /** Background thread pool used to schedule retries. */
     private final ScheduledExecutorService scheduler;
@@ -209,39 +150,28 @@ public class CloudUploadRetryQueue implements Closeable {
     /** Counter of in-flight retry tasks (for testing / monitoring). */
     private final AtomicInteger inFlightCount = new AtomicInteger(0);
 
-    /** Serialises all DLQ file mutations (append and rewrite) across scheduler threads. */
-    private final ReentrantLock dlqFileLock = new ReentrantLock();
-
     // -----------------------------------------------------------------------
     // Constructor
     // -----------------------------------------------------------------------
 
     /**
-     * Fully-configured constructor. Prefer this over the {@link #setMaxDlqSize(int)} setter when the
-     * cap is known at construction time: setting it here applies the cap <em>before</em> the on-disk
-     * DLQ is loaded, so a large persisted file is bounded to the configured cap during the load
-     * itself — avoiding the post-load trim-and-rewrite the setter must perform.
+     * Fully-configured constructor.
      *
-     * @param provider          initialized cloud storage provider used for retries and DLQ replay
+     * @param provider          initialized cloud storage provider used for retries
      * @param maxAttempts       maximum whole-file upload retries after a first failure.
-     *                          {@code 0} means no retries – failures go directly to DLQ
+     *                          {@code 0} means no retries – the queue gives up immediately
      *                          (provider is expected to handle its own retries internally).
      *                          Positive values enable exponential-backoff whole-file retries.
      * @param initialDelayMs    delay before the first retry, in milliseconds; clamped to &ge; 100.
      *                          Ignored when {@code maxAttempts == 0}.
      * @param maxDelayMs        upper bound for exponential backoff delay; clamped to
      *                          &ge; {@code initialDelayMs}. Ignored when {@code maxAttempts == 0}.
-     * @param dataRoot          absolute path of the store's data directory – the DLQ file is
-     *                          written here
-     * @param onUploadConfirmed epoch-aware callback invoked on every successful retry/DLQ-replay
-     *                          upload; pass {@code null} for none.
-     * @param maxDlqSize        maximum number of DLQ entries retained before the oldest are evicted;
-     *                          a non-positive value falls back to {@link #DEFAULT_MAX_DLQ_SIZE} so a
-     *                          misconfiguration cannot turn the DLQ into a zero-capacity queue.
+     * @param onUploadConfirmed epoch-aware callback invoked on every successful retry upload;
+     *                          pass {@code null} for none.
      */
     public CloudUploadRetryQueue(CloudStorageProvider provider, int maxAttempts,
-                                 long initialDelayMs, long maxDelayMs, String dataRoot,
-                                 UploadConfirmedCallback onUploadConfirmed, int maxDlqSize) {
+                                 long initialDelayMs, long maxDelayMs,
+                                 UploadConfirmedCallback onUploadConfirmed) {
         this.provider = Objects.requireNonNull(provider, "provider");
         this.maxAttempts = Math.max(0, maxAttempts);
         this.initialDelayMs = Math.max(100L, initialDelayMs);
@@ -249,16 +179,6 @@ public class CloudUploadRetryQueue implements Closeable {
         this.onUploadConfirmed = onUploadConfirmed != null
                                  ? onUploadConfirmed
                                  : (db, path, epoch) -> { };
-        this.dlqFile = Paths.get(dataRoot, DLQ_FILE_NAME);
-        // Apply the cap before loadDlqFromDisk() so the load bounds the in-memory DLQ (and the
-        // rewritten on-disk file) to the configured value directly. A non-positive value keeps the
-        // default cap set at field initialisation, matching setMaxDlqSize()'s guard.
-        if (maxDlqSize <= 0) {
-            log.warn("Ignoring non-positive DLQ max size {}; keeping default {}",
-                     maxDlqSize, this.maxDlqSize);
-        } else {
-            this.maxDlqSize = maxDlqSize;
-        }
 
         java.util.concurrent.ScheduledThreadPoolExecutor sched =
                 new java.util.concurrent.ScheduledThreadPoolExecutor(2, r -> {
@@ -267,13 +187,10 @@ public class CloudUploadRetryQueue implements Closeable {
                     return t;
                 });
         // On shutdown(), cancel not-yet-due delayed retries instead of holding the executor open
-        // until their (possibly minutes-long) delay elapses. close() then rescues these pending
-        // retries into the DLQ via drainPendingRetriesToDlq(), so their upload intent is preserved
-        // without a slow, pointless wait for retries that will never get to run.
+        // until their (possibly minutes-long) delay elapses. close() then gives up on these
+        // pending retries via giveUpUnfinishedRetries().
         sched.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
         this.scheduler = sched;
-
-        loadDlqFromDisk();
     }
 
     // -----------------------------------------------------------------------
@@ -281,14 +198,14 @@ public class CloudUploadRetryQueue implements Closeable {
     // -----------------------------------------------------------------------
 
     /**
-     * Submits a failed upload to the retry queue or directly to the DLQ.
+     * Submits a failed upload for retry, or gives up on it immediately.
      *
-     * <p>If {@code maxAttempts == 0} (opt-in mode, not the shipped default), the task goes directly
-     * to the DLQ — the provider is expected to handle its own retries internally.
+     * <p>If {@code maxAttempts == 0} (opt-in mode, not the shipped default), the queue gives up
+     * immediately — the provider is expected to handle its own retries internally.
      *
      * <p>If {@code maxAttempts > 0} (the default is {@code 3}), the first retry is scheduled after
-     * {@code initialDelayMs} ms with exponential backoff. After all attempts are exhausted the task
-     * is moved to the DLQ.
+     * {@code initialDelayMs} ms with exponential backoff. After all attempts are exhausted the
+     * queue gives up on the upload.
      *
      * <p>If the file no longer exists at retry time (compacted away by RocksDB) the task is
      * silently dropped.
@@ -319,26 +236,6 @@ public class CloudUploadRetryQueue implements Closeable {
     }
 
     /**
-     * Submits a failed upload where the upload file is a hard-linked staging copy that
-     * differs from the original source SST.
-     *
-     * <p>The retry will upload from {@code pinnedPath} (the staging hard-link). On success,
-     * {@code onUploadConfirmed} is called with {@code sourceSstPath} (the original {@code *.sst}
-     * path), and the staging file at {@code pinnedPath} is deleted.
-     *
-     * @param dbName        RocksDB instance name (partition id)
-     * @param cfName        column-family name
-     * @param pinnedPath    path of the staging hard-link to upload from
-     * @param sourceSstPath original {@code *.sst} path used for confirmation and cleanup
-     * @param remoteKey     remote object key (relative to bucket root)
-     * @param cause         the exception from the first upload attempt
-     */
-    public void submitPinned(String dbName, String cfName, String pinnedPath,
-                             String sourceSstPath, String remoteKey, Exception cause) {
-        submitPinned(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, 0L, cause);
-    }
-
-    /**
      * Epoch-aware variant. The {@code uploadEpoch} is passed through to the
      * {@link UploadConfirmedCallback} so that stale callbacks after DB recreation are discarded.
      */
@@ -346,54 +243,30 @@ public class CloudUploadRetryQueue implements Closeable {
                              String sourceSstPath, String remoteKey,
                              long uploadEpoch, Exception cause) {
         if (cause instanceof CloudStorageNonRetryableException || maxAttempts == 0) {
-            moveToDlq(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, uploadEpoch, 0,
+            giveUp(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, uploadEpoch, 0,
                       cause.getMessage() != null ? cause.getMessage() : "non-retryable");
             return;
         }
         // This method is invoked from RocksDB flush/compaction callbacks (via
         // CloudStorageEventListener). It must never throw back across that JNI/event boundary.
         // When the scheduler is shutting down, scheduler.schedule(...) throws
-        // RejectedExecutionException — in that race we persist the task directly to the DLQ
-        // (best-effort disk append) so the retry intent is not lost, and return normally.
+        // RejectedExecutionException — in that race we give up on the upload and return normally.
         try {
             scheduleRetry(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, uploadEpoch,
                           1);
         } catch (RejectedExecutionException e) {
             log.warn("Cloud upload retry scheduling rejected (scheduler shutting down); "
-                     + "persisting directly to DLQ: db={}, cf={}, path={}",
+                     + "giving up: db={}, cf={}, path={}",
                      dbName, cfName, pinnedPath);
-            moveToDlq(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, uploadEpoch, 1,
+            giveUp(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, uploadEpoch, 1,
                       "retry scheduling rejected during shutdown: "
                       + (cause.getMessage() != null ? cause.getMessage() : cause.toString()));
         }
     }
 
-    /**
-     * Returns an unmodifiable snapshot of all current DLQ entries.
-     */
-    public List<FailedUploadTask> getDlqEntries() {
-        return List.copyOf(dlq);
-    }
-
-    /**
-     * Returns the number of entries currently in the DLQ.
-     */
-    public int getDlqSize() {
-        return dlq.size();
-    }
-
-    /**
-     * Returns the number of DLQ entries evicted because the DLQ size cap was exceeded (e.g. during
-     * a prolonged provider outage). A non-zero value indicates local-only files whose DLQ record
-     * was dropped; they remain recoverable via the delete guard and startup SST backfill.
-     */
-    public int getDroppedDlqCount() {
-        return droppedDlqEntries.get();
-    }
-
-    /** Cumulative number of DLQ on-disk persistence failures since startup (monitoring / tests). */
-    public int getDlqPersistenceFailureCount() {
-        return dlqPersistenceFailures.get();
+    /** Returns the number of uploads given up on since startup. */
+    public long getGivenUpCount() {
+        return givenUpCount.get();
     }
 
     /** Fires the metadata-sync trigger (if wired), swallowing any error — the upload is durable. */
@@ -412,141 +285,10 @@ public class CloudUploadRetryQueue implements Closeable {
     }
 
     /**
-     * Sets the maximum number of DLQ entries retained before the oldest are evicted. A
-     * non-positive value is ignored (keeps the current cap) so a misconfiguration cannot turn the
-     * DLQ into a zero-capacity queue that drops every entry.
-     */
-    public void setMaxDlqSize(int maxSize) {
-        if (maxSize <= 0) {
-            log.warn("Ignoring non-positive DLQ max size {}; keeping {}", maxSize, this.maxDlqSize);
-            return;
-        }
-        this.maxDlqSize = maxSize;
-        // The startup load bounds the in-memory DLQ to the DEFAULT cap (the configured value is not
-        // known during construction). If the operator configured a SMALLER cap, apply it now so a
-        // large persisted file loaded at startup is trimmed to the configured bound and the on-disk
-        // file is rewritten to match — otherwise up to DEFAULT_MAX_DLQ_SIZE stale entries could
-        // linger in memory and on disk despite a tighter configuration.
-        int evicted = 0;
-        while (dlq.size() > maxSize) {
-            if (dlq.pollFirst() == null) {
-                break;
-            }
-            evicted++;
-        }
-        if (evicted > 0) {
-            int total = droppedDlqEntries.addAndGet(evicted);
-            rewriteDlqFile();
-            log.warn("DLQ: max size lowered to {} — evicted {} oldest entry(ies) to honor the "
-                     + "configured cap (total dropped={}).", maxSize, evicted, total);
-        }
-    }
-
-    /**
      * Returns the number of retry tasks currently scheduled or executing.
      */
     public int getInFlightCount() {
         return inFlightCount.get();
-    }
-
-    /**
-     * Replays all DLQ entries immediately by attempting to re-upload each file.
-     *
-     * <ul>
-     *   <li>Entries that succeed are removed from the in-memory DLQ and the DLQ file is
-     *       rewritten without them.</li>
-     *   <li>Entries whose local file no longer exists are silently dropped.</li>
-     *   <li>Entries that fail are re-submitted to the retry queue with a fresh attempt cycle
-     *       (they are removed from the DLQ for now and will re-enter it only if all retries
-     *       fail again).</li>
-     * </ul>
-     */
-    public void replayDlq() {
-        // Drain the whole DLQ atomically so concurrent appends are not affected.
-        List<FailedUploadTask> snapshot = new ArrayList<>();
-        FailedUploadTask entry;
-        while ((entry = dlq.pollFirst()) != null) {
-            snapshot.add(entry);
-        }
-        if (snapshot.isEmpty()) {
-            log.info("DLQ replay: queue is empty, nothing to do");
-            return;
-        }
-        log.info("DLQ replay started: {} entries", snapshot.size());
-
-        int succeeded = 0;
-        int dropped = 0;
-        int requeued = 0;
-
-        // Process each task. Re-queue failures back into dlq BEFORE rewriting the file so
-        // that a JVM crash during replay doesn't lose tasks that are in-flight in the scheduler.
-        for (FailedUploadTask task : snapshot) {
-            // Prefer the staged hard-link (filePath); if it was already cleaned up, fall back to the
-            // original source SST which may still exist and is equally uploadable. Only drop when
-            // NEITHER path is present — dropping on filePath alone would discard a recoverable upload
-            // and, if the source is compacted shortly after, lose the mirror opportunity entirely.
-            String uploadPath = null;
-            if (Files.exists(Paths.get(task.getFilePath()))) {
-                uploadPath = task.getFilePath();
-            } else {
-                String source = task.getSourceSstPath();
-                if (source != null && !source.equals(task.getFilePath())
-                        && Files.exists(Paths.get(source))) {
-                    log.info("DLQ replay: staging pin gone, falling back to source SST: db={}, "
-                             + "pin={}, source={}", task.getDbName(), task.getFilePath(), source);
-                    uploadPath = source;
-                }
-            }
-            if (uploadPath == null) {
-                log.info("DLQ replay: neither staging pin nor source SST exists, dropping: "
-                         + "db={}, pin={}, source={}", task.getDbName(), task.getFilePath(),
-                         task.getSourceSstPath());
-                dropped++;
-                continue;
-            }
-            try {
-                provider.uploadFile(uploadPath, task.getRemoteKey());
-            } catch (Exception e) {
-                log.warn("DLQ replay failed, re-queuing: db={}, cf={}, path={}, reason={}",
-                         task.getDbName(), task.getCfName(), task.getFilePath(), e.getMessage());
-                // Put back on in-memory DLQ first; rewriteDlqFile below will persist it.
-                dlq.addLast(task);
-                requeued++;
-                continue;
-            }
-            // Upload succeeded — invoke callback with sourceSstPath and the original epoch so
-            // CloudSyncTracker can call markConfirmedIfEpoch and drop stale callbacks after
-            // DB recreation with reused file numbers.
-            try {
-                onUploadConfirmed.onConfirmed(task.getDbName(), task.getSourceSstPath(),
-                                              task.getUploadEpoch());
-            } catch (Exception e) {
-                log.warn("DLQ replay: onUploadConfirmed threw after successful upload "
-                         + "(upload is durable, ignoring): db={}, path={}, reason={}",
-                         task.getDbName(), task.getSourceSstPath(), e.getMessage());
-            }
-            // Advance the mirrored recovery point now that this SST is durable again.
-            triggerMetadataSync(task.getDbName());
-            // If this was a pinned staging file, clean it up.
-            if (!task.getFilePath().equals(task.getSourceSstPath())) {
-                try {
-                    Files.deleteIfExists(Paths.get(task.getFilePath()));
-                } catch (IOException e) {
-                    log.debug("DLQ replay: failed to clean up staging file: {}",
-                              task.getFilePath());
-                }
-            }
-            log.info("DLQ replay succeeded: db={}, cf={}, path={}",
-                     task.getDbName(), task.getCfName(), task.getFilePath());
-            succeeded++;
-        }
-
-        // Rewrite the on-disk DLQ to match the current in-memory state (failed tasks re-added
-        // above are now persisted; succeeded/dropped tasks are absent).
-        rewriteDlqFile();
-
-        log.info("DLQ replay finished: succeeded={}, dropped={}, requeued={}",
-                 succeeded, dropped, requeued);
     }
 
     // -----------------------------------------------------------------------
@@ -579,40 +321,41 @@ public class CloudUploadRetryQueue implements Closeable {
             scheduler.shutdownNow();
             Thread.currentThread().interrupt();
         } finally {
-            // A forced shutdownNow() discards scheduled-but-unrun retries AND interrupts (but cannot
-            // guarantee prompt exit of) retries hung in a slow provider.uploadFile(...). Persist the
-            // intent of BOTH so a compaction-raced file's only remaining upload path is not lost. If
-            // the executor drained gracefully both sets are already empty (each task removed itself),
-            // so this is a no-op on the happy path.
-            drainUnfinishedRetriesToDlq();
+            // A forced shutdownNow() discards scheduled-but-unrun retries AND interrupts (but
+            // cannot guarantee prompt exit of) retries hung in a slow provider.uploadFile(...).
+            // Give up on both and release their staging pins; startup backfill re-uploads the live
+            // SSTs.
+            // If the executor drained gracefully both sets are already empty (each task removed
+            // itself), so this is a no-op on the happy path.
+            giveUpUnfinishedRetries();
         }
     }
 
     /**
-     * Moves any scheduled-but-unrun ({@link #pendingRetries}) and started-but-unfinished
-     * ({@link #inFlightRetries}) retries into the DLQ (called from {@link #close()}). Duplicates are
-     * tolerated: DLQ replay re-uploads idempotently and confirms via the epoch guard.
+     * Gives up on any scheduled-but-unrun ({@link #pendingRetries}) and started-but-unfinished
+     * ({@link #inFlightRetries}) retries (called from {@link #close()}).
      */
-    private void drainUnfinishedRetriesToDlq() {
+    private void giveUpUnfinishedRetries() {
         int rescued = 0;
         rescued += drainRetrySet(pendingRetries,
-                                 "retry not executed before shutdown (forced) — persisted to DLQ");
+                                 "retry not executed before shutdown (forced)");
         rescued += drainRetrySet(inFlightRetries,
-                                 "retry still in flight at shutdown (forced) — persisted to DLQ");
+                                 "retry still in flight at shutdown (forced)");
         if (rescued > 0) {
-            log.warn("CloudUploadRetryQueue: rescued {} unfinished retry(ies) into the DLQ during "
-                     + "shutdown so their upload intent survives restart.", rescued);
+            log.warn("CloudUploadRetryQueue: gave up on {} unfinished retry(ies) during "
+                     + "shutdown; startup backfill will re-upload any that are still live.",
+                     rescued);
         }
     }
 
-    /** Drains one retry-context set into the DLQ, claiming each entry exactly once. */
+    /** Gives up on every retry in one retry-context set, claiming each entry exactly once. */
     private int drainRetrySet(Set<RetryContext> set, String reason) {
         int rescued = 0;
         for (RetryContext ctx : set) {
             if (!set.remove(ctx)) {
                 continue; // raced with the task itself removing it; it will handle its own outcome
             }
-            moveToDlq(ctx.dbName, ctx.cfName, ctx.filePath, ctx.sourceSstPath, ctx.remoteKey,
+            giveUp(ctx.dbName, ctx.cfName, ctx.filePath, ctx.sourceSstPath, ctx.remoteKey,
                       ctx.uploadEpoch, ctx.attempt, reason);
             rescued++;
         }
@@ -632,7 +375,7 @@ public class CloudUploadRetryQueue implements Closeable {
         // Increment before schedule; decrement here on rejection (executeRetry's finally
         // handles the decrement on the happy path, but RejectedExecutionException bypasses it).
         inFlightCount.incrementAndGet();
-        // Record the payload so a forced shutdown can rescue this retry into the DLQ if it never
+        // Record the payload so a forced shutdown can give up on this retry if it never
         // runs. Removed when the task starts executing (see wrapper below).
         RetryContext ctx = new RetryContext(dbName, cfName, filePath, sourceSstPath, remoteKey,
                                             uploadEpoch, attempt);
@@ -657,7 +400,10 @@ public class CloudUploadRetryQueue implements Closeable {
         }
     }
 
-    /** Immutable payload of a scheduled-but-not-yet-started retry, tracked in {@link #pendingRetries}. */
+    /**
+     * Immutable payload of a scheduled-but-not-yet-started retry, tracked in
+     * {@link #pendingRetries}.
+     */
     private static final class RetryContext {
         final String dbName;
         final String cfName;
@@ -698,7 +444,7 @@ public class CloudUploadRetryQueue implements Closeable {
             } catch (Exception callbackError) {
                 // Upload already succeeded; callback failures are control-plane/observer failures,
                 // not data-plane upload failures. Keep the upload path successful and avoid
-                // misclassifying into retry/DLQ.
+                // misclassifying into retry/give-up.
                 log.warn("Cloud upload retry callback failed after successful upload: db={}, "
                          + "path={}, reason={}",
                          dbName, sourceSstPath, callbackError.getMessage());
@@ -722,12 +468,12 @@ public class CloudUploadRetryQueue implements Closeable {
             log.warn("Cloud upload retry failed: db={}, cf={}, path={}, attempt={}/{}, reason={}",
                      dbName, cfName, filePath, attempt, maxAttempts, e.getMessage());
             if (e instanceof CloudStorageNonRetryableException) {
-                moveToDlq(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
+                giveUp(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
                           attempt, e.getMessage() != null ? e.getMessage() : "non-retryable");
                 return;
             }
             if (attempt >= maxAttempts) {
-                moveToDlq(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
+                giveUp(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
                           attempt, e.getMessage());
             } else {
                 try {
@@ -737,11 +483,10 @@ public class CloudUploadRetryQueue implements Closeable {
                     // Scheduler is shutting down. scheduleRetry rethrows the rejection; if we let
                     // it escape here it would propagate out of this scheduler task and be silently
                     // swallowed by the executor, leaving the file neither retried nor recorded.
-                    // Persist it to the DLQ so it survives as a local-only entry recoverable on
-                    // restart.
+                    // Give up instead; startup backfill re-uploads it if still live.
                     log.warn("Cloud upload retry reschedule rejected (scheduler shutting down); "
-                             + "moving to DLQ: db={}, cf={}, path={}", dbName, cfName, filePath);
-                    moveToDlq(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
+                             + "giving up: db={}, cf={}, path={}", dbName, cfName, filePath);
+                    giveUp(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
                               attempt, "retry reschedule rejected during shutdown");
                 }
             }
@@ -750,43 +495,25 @@ public class CloudUploadRetryQueue implements Closeable {
         }
     }
 
-    private void moveToDlq(String dbName, String cfName, String filePath,
-                            String sourceSstPath, String remoteKey,
-                            long uploadEpoch, int attemptCount, String lastError) {
-        FailedUploadTask task = new FailedUploadTask(dbName, cfName, filePath,
-                                                     sourceSstPath, remoteKey,
-                                                     System.currentTimeMillis(),
-                                                     attemptCount, lastError, uploadEpoch);
-        dlq.addLast(task);
+    private void giveUp(String dbName, String cfName, String filePath,
+                        String sourceSstPath, String remoteKey,
+                        long uploadEpoch, int attemptCount, String lastError) {
+        givenUpCount.incrementAndGet();
 
-        // Enforce the size cap: evict oldest entries so a sustained outage cannot grow the DLQ
-        // (and process memory) without bound. Approximate under concurrency (the deque may briefly
-        // exceed the cap by the number of concurrent movers), which is fine.
-        int evicted = 0;
-        while (dlq.size() > maxDlqSize) {
-            if (dlq.pollFirst() == null) {
-                break;
+        // Nothing uploads from a given-up task again, so release its staging hard-link now;
+        // otherwise it would pin the (possibly compacted-away) SST's disk space indefinitely.
+        if (sourceSstPath != null && !filePath.equals(sourceSstPath)) {
+            try {
+                Files.deleteIfExists(Paths.get(filePath));
+            } catch (IOException e) {
+                log.debug("Failed to release staging file for given-up upload: {}", filePath);
             }
-            evicted++;
-        }
-        if (evicted > 0) {
-            int total = droppedDlqEntries.addAndGet(evicted);
-            log.warn("Cloud upload DLQ exceeded cap {} — evicted {} oldest entry(ies) "
-                     + "(total dropped={}). Live SSTs remain recoverable via delete guard / "
-                     + "startup backfill.", maxDlqSize, evicted, total);
         }
 
-        appendDlqEntryToDisk(task);
-        // Amortized disk compaction: periodically rewrite the on-disk file from the (capped)
-        // in-memory DLQ so the file cannot grow without bound across a long outage.
-        int appends = appendsSinceRewrite.incrementAndGet();
-        if (appends >= maxDlqSize && appendsSinceRewrite.compareAndSet(appends, 0)) {
-            rewriteDlqFile();
-        }
-
-        log.error("Cloud upload moved to DLQ after {} attempt(s) – file is local-only: "
-                  + "db={}, cf={}, path={}, remoteKey={}",
-                  attemptCount, dbName, cfName, filePath, remoteKey);
+        log.error("Cloud upload given up after {} attempt(s) – file stays unconfirmed and will be "
+                  + "re-uploaded by the next metadata sync, delete guard, or startup backfill: "
+                  + "db={}, cf={}, path={}, remoteKey={}, epoch={}, lastError={}",
+                  attemptCount, dbName, cfName, filePath, remoteKey, uploadEpoch, lastError);
     }
 
     /**
@@ -798,285 +525,4 @@ public class CloudUploadRetryQueue implements Closeable {
         long delay = initialDelayMs * (1L << exp);
         return Math.min(delay, maxDelayMs);
     }
-
-    // -----------------------------------------------------------------------
-    // Internal – DLQ persistence
-    // -----------------------------------------------------------------------
-
-    /** Loads any persisted DLQ entries from disk at startup. */
-    private void loadDlqFromDisk() {
-        if (!Files.exists(dlqFile)) {
-            return;
-        }
-        int loaded = 0;
-        int dropped = 0;
-        try (BufferedReader reader = Files.newBufferedReader(dlqFile, StandardCharsets.UTF_8)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                if (line.isBlank() || line.startsWith("#")) {
-                    continue;
-                }
-                FailedUploadTask task = deserialize(line);
-                if (task == null) {
-                    continue;
-                }
-                // Bound memory while loading: a DLQ file grown large during a long outage must not
-                // be loaded unbounded (startup latency spike / OOM before the node is healthy).
-                // Keep the newest maxDlqSize entries by evicting the oldest as we go.
-                dlq.addLast(task);
-                loaded++;
-                while (dlq.size() > maxDlqSize) {
-                    if (dlq.pollFirst() == null) {
-                        break;
-                    }
-                    dropped++;
-                }
-            }
-        } catch (IOException e) {
-            log.warn("DLQ: failed to load persisted entries from {}: {}",
-                     dlqFile, e.getMessage());
-        }
-        if (dropped > 0) {
-            int total = droppedDlqEntries.addAndGet(dropped);
-            // Rewrite the on-disk file down to the bounded in-memory set so a large file cannot be
-            // re-read unbounded on the next restart either.
-            rewriteDlqFile();
-            log.warn("DLQ: persisted file exceeded cap {} — dropped {} oldest entry(ies) during "
-                     + "load (total dropped={}). Live SSTs remain recoverable via delete guard / "
-                     + "startup backfill.", maxDlqSize, dropped, total);
-        }
-        int retained = loaded - dropped;
-        if (retained > 0) {
-            log.warn("DLQ: loaded {} pending failed upload(s) from disk – "
-                     + "call replayDlq() to retry them (file={})", retained, dlqFile);
-        }
-    }
-
-    /** Appends a single DLQ entry to the on-disk file. */
-    private void appendDlqEntryToDisk(FailedUploadTask task) {
-        dlqFileLock.lock();
-        try {
-            if (!dlqPersistenceHealthy) {
-                // Degraded: a prior append/rewrite failed, so older in-memory entries may never have
-                // reached disk. A plain append of just THIS task would not make those durable — and
-                // must not flip health back to green (a crash would still lose the memory-only
-                // entries). Do a FULL rewrite of the in-memory DLQ instead: it persists every
-                // outstanding entry (including `task`, already added by moveToDlq) and, on success,
-                // is the only thing that legitimately restores healthy status.
-                rewriteDlqFile();
-                return;
-            }
-            boolean newFile = !Files.exists(dlqFile);
-            try (BufferedWriter bw = Files.newBufferedWriter(
-                    dlqFile, StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND)) {
-                if (newFile) {
-                    bw.write(DLQ_COMMENT);
-                    bw.newLine();
-                }
-                bw.write(serialize(task));
-                bw.newLine();
-            }
-            // Deliberately do NOT restore health here: a single successful append does not prove all
-            // outstanding entries are durable. Health is restored only by a successful full rewrite.
-        } catch (IOException e) {
-            markDlqPersistenceFailed("append", e);
-        } finally {
-            dlqFileLock.unlock();
-        }
-    }
-
-    /**
-     * Records that the full in-memory DLQ was persisted (via a successful {@link #rewriteDlqFile}),
-     * clearing any prior degraded state. Only a full rewrite proves EVERY outstanding entry is
-     * durable, so this is the single legitimate path back to healthy.
-     */
-    private void markDlqPersistenceHealthy() {
-        if (!dlqPersistenceHealthy) {
-            dlqPersistenceHealthy = true;
-            log.info("DLQ: on-disk persistence recovered via full rewrite (file={})", dlqFile);
-        }
-    }
-
-    /**
-     * Records a DLQ persistence failure. Unlike a plain {@code log.warn}, this flips the queue into
-     * a degraded state observable via {@link #isDlqPersistenceHealthy()} so a crash-window where
-     * retry intent could be lost does not masquerade as healthy durability.
-     */
-    private void markDlqPersistenceFailed(String op, IOException e) {
-        dlqPersistenceHealthy = false;
-        int failures = dlqPersistenceFailures.incrementAndGet();
-        log.error("DLQ: on-disk {} failed (file={}, totalFailures={}) — retry intent for affected "
-                  + "entries is not durable and would be lost on a crash before the next successful "
-                  + "persist. Live SSTs remain recoverable via delete guard / startup backfill: {}",
-                  op, dlqFile, failures, e.getMessage());
-    }
-
-    /**
-     * Rewrites the DLQ file from the current in-memory DLQ (used after replay / compaction).
-     *
-     * <p>Crash-safe: the new contents are written to a sibling {@code *.tmp} file, fsync'd, then
-     * atomically renamed over the original, and finally the parent directory is fsync'd. This
-     * guarantees a crash/power-loss during compaction can only ever leave either the complete old
-     * file or the complete new file — never a truncated/empty DLQ that would silently drop pending
-     * failed uploads. (An in-place truncate-then-rewrite has exactly that failure window.)
-     */
-    private void rewriteDlqFile() {
-        dlqFileLock.lock();
-        try {
-            Path tmp = dlqFile.resolveSibling(dlqFile.getFileName() + ".tmp");
-            try (FileChannel channel = FileChannel.open(
-                         tmp, StandardOpenOption.CREATE, StandardOpenOption.WRITE,
-                         StandardOpenOption.TRUNCATE_EXISTING);
-                 BufferedWriter bw = new BufferedWriter(
-                         new java.io.OutputStreamWriter(
-                                 java.nio.channels.Channels.newOutputStream(channel),
-                                 StandardCharsets.UTF_8))) {
-                bw.write(DLQ_COMMENT);
-                bw.newLine();
-                for (FailedUploadTask t : dlq) {
-                    bw.write(serialize(t));
-                    bw.newLine();
-                }
-                bw.flush();
-                // fsync the file contents before the rename so the rename cannot expose an empty
-                // (metadata-committed, data-not-yet-flushed) file after a crash.
-                channel.force(true);
-            }
-            try {
-                Files.move(tmp, dlqFile,
-                           StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-            } catch (java.nio.file.AtomicMoveNotSupportedException e) {
-                // Filesystem without atomic rename: fall back to a plain replace. Still far safer
-                // than an in-place truncate because the fully-written temp file already exists.
-                Files.move(tmp, dlqFile, StandardCopyOption.REPLACE_EXISTING);
-            }
-            fsyncDir(dlqFile.getParent());
-            markDlqPersistenceHealthy();
-        } catch (IOException e) {
-            markDlqPersistenceFailed("rewrite", e);
-        } finally {
-            dlqFileLock.unlock();
-        }
-    }
-
-    /** Best-effort directory fsync so a rename is durable across power loss. */
-    private static void fsyncDir(Path dir) {
-        if (dir == null) {
-            return;
-        }
-        try (FileChannel dirChannel = FileChannel.open(dir, StandardOpenOption.READ)) {
-            dirChannel.force(true);
-        } catch (IOException e) {
-            // Some platforms (notably Windows) cannot open a directory as a channel; the rename is
-            // still ordered on those. Nothing actionable — leave the file as-is.
-            log.debug("DLQ: directory fsync skipped for {}: {}", dir, e.getMessage());
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Internal – serialisation (tab-separated, with escape for special chars)
-    // -----------------------------------------------------------------------
-
-    /**
-     * Serialises a {@link FailedUploadTask} to a single tab-separated line.
-     * Fields: failedAt, attemptCount, dbName, cfName, filePath, remoteKey, lastError,
-     *         sourceSstPath, uploadEpoch.
-     */
-    String serialize(FailedUploadTask task) {
-        return task.getFailedAt() + "\t"
-               + task.getAttemptCount() + "\t"
-               + escape(task.getDbName()) + "\t"
-               + escape(task.getCfName()) + "\t"
-               + escape(task.getFilePath()) + "\t"
-               + escape(task.getRemoteKey()) + "\t"
-               + escape(task.getLastError()) + "\t"
-               + escape(task.getSourceSstPath()) + "\t"
-               + task.getUploadEpoch();
-    }
-
-    /** Deserialises a line; returns {@code null} and logs a warning on parse errors. */
-    FailedUploadTask deserialize(String line) {
-        // Split into at most 9 fields; older versions may have fewer.
-        String[] parts = line.split("\t", 9);
-        if (parts.length < 7) {
-            log.warn("DLQ: skipping malformed line (expected 7+ fields, got {}): {}",
-                     parts.length, line);
-            return null;
-        }
-        try {
-            long failedAt = Long.parseLong(parts[0].trim());
-            int attemptCount = Integer.parseInt(parts[1].trim());
-            String filePath = unescape(parts[4]);
-            // sourceSstPath field (index 7) was added later; fall back to filePath for old entries.
-            String sourceSstPath = parts.length >= 8 ? unescape(parts[7]) : filePath;
-            // uploadEpoch field (index 8) was added later; fall back to 0 for old entries.
-            long uploadEpoch = parts.length >= 9 ? Long.parseLong(parts[8].trim()) : 0L;
-            return new FailedUploadTask(
-                    unescape(parts[2]),   // dbName
-                    unescape(parts[3]),   // cfName
-                    filePath,             // filePath
-                    sourceSstPath,        // sourceSstPath
-                    unescape(parts[5]),   // remoteKey
-                    failedAt,
-                    attemptCount,
-                    unescape(parts[6]),   // lastError
-                    uploadEpoch
-            );
-        } catch (NumberFormatException e) {
-            log.warn("DLQ: failed to parse numeric field in line '{}': {}", line, e.getMessage());
-            return null;
-        }
-    }
-
-    /** Escapes backslash, tab and newline so the serialised form is safe in TSV lines. */
-    private static String escape(String s) {
-        if (s == null || s.isEmpty()) {
-            return "";
-        }
-        return s.replace("\\", "\\\\")
-                .replace("\t", "\\t")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r");
-    }
-
-    private static String unescape(String s) {
-        if (s == null || s.isEmpty()) {
-            return "";
-        }
-        // Process escape sequences left-to-right, handling \\ first to avoid double-decode.
-        StringBuilder sb = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            char c = s.charAt(i);
-            if (c == '\\' && i + 1 < s.length()) {
-                char next = s.charAt(i + 1);
-                switch (next) {
-                    case '\\':
-                        sb.append('\\');
-                        i++;
-                        break;
-                    case 't':
-                        sb.append('\t');
-                        i++;
-                        break;
-                    case 'n':
-                        sb.append('\n');
-                        i++;
-                        break;
-                    case 'r':
-                        sb.append('\r');
-                        i++;
-                        break;
-                    default:
-                        sb.append(c);
-                        break;
-                }
-            } else {
-                sb.append(c);
-            }
-        }
-        return sb.toString();
-    }
 }
-

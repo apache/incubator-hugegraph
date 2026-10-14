@@ -19,7 +19,6 @@ package org.apache.hugegraph.store.node.cloud;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -33,7 +32,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
 
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
 import org.apache.hugegraph.store.cloud.CloudStorageProvider;
@@ -62,7 +60,7 @@ public class CloudUploadRetryQueueTest {
     @Test
     public void constructor_rejectsNullProvider() {
         try {
-            CloudStorageTestFactory.newRetryQueue(null, 3, 50L, 200L, tmpRoot.toString());
+            CloudStorageTestFactory.newRetryQueue(null, 3, 50L, 200L);
             fail("Expected NullPointerException for null provider");
         } catch (NullPointerException expected) {
             assertTrue(String.valueOf(expected.getMessage()).contains("provider"),
@@ -95,15 +93,14 @@ public class CloudUploadRetryQueueTest {
         Files.createFile(sstFile);
 
         try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(provider, 3, 50L, 200L,
-                                                           tmpRoot.toString())) {
+                     CloudStorageTestFactory.newRetryQueue(provider, 3, 50L, 200L)) {
 
             queue.submit("db1", "default", sstFile.toString(),
                          "db1/000001.sst", new IOException("initial failure"));
 
             assertTrue(successLatch.await(2, TimeUnit.SECONDS),
                        "Upload should have succeeded within 2 s");
-            assertEquals(0, queue.getDlqSize());
+            assertEquals(0L, queue.getGivenUpCount());
         }
     }
 
@@ -116,7 +113,7 @@ public class CloudUploadRetryQueueTest {
         CapturingProvider provider = new CapturingProvider();
 
         try (CloudUploadRetryQueue queue = CloudStorageTestFactory.newRetryQueue(provider, 
-                1, 50L, 50L, tmpRoot.toString(),
+                1, 50L, 50L,
                 (db, source, epoch) -> {
                     throw new RuntimeException("tracker callback failed");
                 })) {
@@ -131,18 +128,18 @@ public class CloudUploadRetryQueueTest {
 
             assertFalse(provider.uploads.isEmpty(),
                         "Upload should still succeed even if callback throws");
-            assertEquals(0,
-                         queue.getDlqSize(),
-                         "Callback failure after successful upload must not DLQ");
+            assertEquals(0L,
+                         queue.getGivenUpCount(),
+                         "Callback failure after successful upload must not be given up");
         }
     }
 
     // -----------------------------------------------------------------------
-    // submit → all attempts fail → moved to DLQ
+    // submit → all attempts fail → given up
     // -----------------------------------------------------------------------
 
     @Test
-    public void submit_exhaustsRetriesAndMovesToDlq() throws Exception {
+    public void submit_exhaustsRetriesAndGivesUp() throws Exception {
         AtomicInteger uploadCalls = new AtomicInteger(0);
 
         CapturingProvider provider = new CapturingProvider() {
@@ -156,25 +153,23 @@ public class CloudUploadRetryQueueTest {
         Path sstFile = tmpRoot.resolve("000002.sst");
         Files.createFile(sstFile);
 
-        // maxAttempts=2, initial+retry delay 50ms → DLQ after ~100ms total
+        // maxAttempts=2, initial+retry delay 50ms → given up after ~100ms total
         try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(provider, 2, 50L, 50L,
-                                                           tmpRoot.toString())) {
+                     CloudStorageTestFactory.newRetryQueue(provider, 2, 50L, 50L)) {
 
             queue.submit("db1", "default", sstFile.toString(),
                          "db1/000002.sst", new IOException("initial"));
 
             // Wait for the retry cycle to finish.
             long deadline = System.currentTimeMillis() + 3_000L;
-            while (queue.getDlqSize() == 0 && System.currentTimeMillis() < deadline) {
+            while (queue.getGivenUpCount() == 0 && System.currentTimeMillis() < deadline) {
                 Thread.sleep(50);
             }
 
-            assertEquals(1, queue.getDlqSize(), "Task should be in the DLQ after max retries");
-            FailedUploadTask entry = queue.getDlqEntries().get(0);
-            assertEquals("db1", entry.getDbName());
-            assertEquals("db1/000002.sst", entry.getRemoteKey());
-            assertTrue(entry.getAttemptCount() >= 1);
+            assertEquals(1L, queue.getGivenUpCount(),
+                         "Task should be given up after max retries");
+            assertEquals(2, uploadCalls.get(),
+                         "Provider must be called once per whole-file retry (maxAttempts=2)");
         }
     }
 
@@ -183,10 +178,12 @@ public class CloudUploadRetryQueueTest {
     // -----------------------------------------------------------------------
 
     @Test
-    public void submit_afterShutdown_doesNotThrow_andPersistsToDlq() throws Exception {
+    public void submit_afterShutdown_doesNotThrow_andGivesUp() throws Exception {
+        AtomicInteger uploadCalls = new AtomicInteger(0);
         CapturingProvider provider = new CapturingProvider() {
             @Override
             public void uploadFile(String localPath, String remoteKey) throws IOException {
+                uploadCalls.incrementAndGet();
                 throw new IOException("should never run – scheduler is shut down");
             }
         };
@@ -198,11 +195,11 @@ public class CloudUploadRetryQueueTest {
         // schedule on the executor. After close() the scheduler is shut down and
         // scheduler.schedule(...) throws RejectedExecutionException.
         CloudUploadRetryQueue queue =
-                CloudStorageTestFactory.newRetryQueue(provider, 3, 50L, 200L, tmpRoot.toString());
+                CloudStorageTestFactory.newRetryQueue(provider, 3, 50L, 200L);
         queue.close();
 
         // This simulates a RocksDB callback firing during a shutdown race. It must NOT throw
-        // (which would leak across the JNI/event boundary) and must persist the retry intent.
+        // (which would leak across the JNI/event boundary) and must give up on the upload.
         try {
             queue.submit("db-shutdown", "default", sstFile.toString(),
                          "db-shutdown/000009.sst", new IOException("initial upload failed"));
@@ -210,22 +207,20 @@ public class CloudUploadRetryQueueTest {
             fail("submit() must not throw when scheduler is shut down; caught: " + e);
         }
 
-        assertEquals(1, queue.getDlqSize(), "Rejected retry must be persisted to the DLQ");
-        FailedUploadTask entry = queue.getDlqEntries().get(0);
-        assertEquals("db-shutdown", entry.getDbName());
-        assertEquals("db-shutdown/000009.sst", entry.getRemoteKey());
-        assertTrue(entry.getLastError().contains("rejected"),
-                   "DLQ entry should record the rejection cause");
+        assertEquals(1L, queue.getGivenUpCount(), "Rejected retry must be counted as given up");
+        assertEquals(0, uploadCalls.get(), "No retry may run once the scheduler is shut down");
     }
 
     @Test
-    public void close_movesPendingScheduledRetriesToDlq() throws Exception {
+    public void close_givesUpOnPendingScheduledRetries() throws Exception {
         // Provider always fails, so the first attempt schedules a retry. A long initial delay keeps
-        // that retry PENDING (scheduled, not yet run) so close()'s forced shutdown must rescue it
-        // into the DLQ instead of silently dropping the only remaining upload path.
+        // that retry PENDING (scheduled, not yet run) so close()'s forced shutdown must give up on
+        // it explicitly (counted + logged) instead of silently dropping the upload.
+        AtomicInteger uploadCalls = new AtomicInteger(0);
         CapturingProvider provider = new CapturingProvider() {
             @Override
             public void uploadFile(String localPath, String remoteKey) throws IOException {
+                uploadCalls.incrementAndGet();
                 throw new IOException("always fails");
             }
         };
@@ -234,8 +229,7 @@ public class CloudUploadRetryQueueTest {
         Files.createFile(sstFile);
 
         CloudUploadRetryQueue queue =
-                CloudStorageTestFactory.newRetryQueue(provider, 3, 60_000L, 120_000L,
-                                                      tmpRoot.toString());
+                CloudStorageTestFactory.newRetryQueue(provider, 3, 60_000L, 120_000L);
         // First failure schedules attempt #1 ~60s out — it will still be pending at close().
         queue.submit("db-x", "default", sstFile.toString(), "db-x/000042.sst",
                      new IOException("initial failure"));
@@ -245,30 +239,25 @@ public class CloudUploadRetryQueueTest {
         while (queue.getInFlightCount() == 0 && System.currentTimeMillis() < deadline) {
             Thread.sleep(20);
         }
-        assertEquals(0,
-                     queue.getDlqSize(),
-                     "Retry must be scheduled (pending), not yet in the DLQ");
+        assertEquals(0L,
+                     queue.getGivenUpCount(),
+                     "Retry must be scheduled (pending), not yet given up");
 
         // close() force-stops the scheduler after the grace period; the pending retry must be
-        // rescued into the DLQ.
+        // given up on.
         queue.close();
 
-        assertEquals(1,
-                     queue.getDlqSize(),
-                     "Pending scheduled retry must be moved to the DLQ on close");
-        FailedUploadTask entry = queue.getDlqEntries().get(0);
-        assertEquals("db-x", entry.getDbName());
-        assertEquals("db-x/000042.sst", entry.getRemoteKey());
-        assertTrue(entry.getLastError().contains("shutdown"),
-                   "DLQ entry should record the shutdown reason");
+        assertEquals(1L,
+                     queue.getGivenUpCount(),
+                     "Pending scheduled retry must be given up on close");
+        assertEquals(0, uploadCalls.get(), "The pending retry must never have run");
     }
 
     @Test
-    public void close_rescuesInFlightHungRetryToDlq() throws Exception {
+    public void close_givesUpOnInFlightHungRetry() throws Exception {
         // A retry that has STARTED but is hung in a slow/unresponsive provider.uploadFile(...) at
-        // shutdown must still have its intent persisted to the DLQ (not just scheduled-but-unrun
-        // retries). Otherwise remote durability silently falls behind local state after a forced
-        // shutdown under slow cloud I/O.
+        // shutdown must still be given up on explicitly (not just scheduled-but-unrun retries),
+        // so its staging pin is released and the loss is counted rather than silent.
         CountDownLatch release = new CountDownLatch(1);
         AtomicBoolean uploadStarted = new AtomicBoolean(false);
         CapturingProvider provider = new CapturingProvider() {
@@ -292,7 +281,7 @@ public class CloudUploadRetryQueueTest {
         Files.createFile(sstFile);
 
         CloudUploadRetryQueue queue =
-                CloudStorageTestFactory.newRetryQueue(provider, 3, 50L, 200L, tmpRoot.toString());
+                CloudStorageTestFactory.newRetryQueue(provider, 3, 50L, 200L);
         // The scheduled retry starts quickly and then hangs inside uploadFile.
         queue.submit("db-h", "default", sstFile.toString(), "db-h/000077.sst",
                      new IOException("initial failure"));
@@ -302,427 +291,40 @@ public class CloudUploadRetryQueueTest {
             Thread.sleep(20);
         }
         assertTrue(uploadStarted.get(), "Retry upload must have started (in-flight)");
-        assertEquals(0, queue.getDlqSize(), "Nothing in the DLQ before shutdown");
+        assertEquals(0L, queue.getGivenUpCount(), "Nothing given up before shutdown");
 
         try {
-            // Force a fast shutdown; the in-flight (hung) retry must be rescued to the DLQ.
+            // Force a fast shutdown; the in-flight (hung) retry must be given up on.
             queue.close(200, TimeUnit.MILLISECONDS);
 
-            assertEquals(1,
-                         queue.getDlqSize(),
-                         "In-flight hung retry must be rescued to the DLQ on forced shutdown");
-            FailedUploadTask entry = queue.getDlqEntries().get(0);
-            assertEquals("db-h", entry.getDbName());
-            assertEquals("db-h/000077.sst", entry.getRemoteKey());
-            assertTrue(entry.getLastError().contains("in flight"),
-                       "DLQ entry should record the in-flight-at-shutdown reason: "
-                       + entry.getLastError());
+            assertEquals(1L,
+                         queue.getGivenUpCount(),
+                         "In-flight hung retry must be given up on forced shutdown");
         } finally {
             release.countDown(); // let the hung thread exit
         }
     }
 
-    // -----------------------------------------------------------------------
-    // DLQ size cap – bounded under a sustained outage
-    // -----------------------------------------------------------------------
-
     @Test
-    public void dlq_boundedByCap_evictsOldestAndCountsDropped() throws Exception {
-        // maxAttempts=0 routes every failure straight to the DLQ (the default provider-handles-
-        // its-own-retries mode). Simulates a prolonged outage flooding the DLQ.
+    public void giveUp_releasesStagingPinButKeepsSourceSst() throws Exception {
+        Path source = Files.writeString(tmpRoot.resolve("000007.sst"), "sst");
+        Path pin = Files.createLink(tmpRoot.resolve("000007.sst.upload-1"), source);
+        // maxAttempts=0 gives up on the task immediately.
         try (CloudUploadRetryQueue queue =
                      CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 0,
-                                                           50L, 50L, tmpRoot.toString())) {
-            queue.setMaxDlqSize(5);
+                                                           50L, 50L)) {
+            queue.submitPinned("db", "cf", pin.toString(), source.toString(), "db/000007.sst",
+                               1L, new IOException("outage"));
 
-            for (int i = 0; i < 20; i++) {
-                queue.submit("db", "cf", tmpRoot.resolve(i + ".sst").toString(),
-                             "db/" + i + ".sst", new IOException("outage"));
-            }
-
-            assertEquals(5, queue.getDlqSize(), "DLQ must be capped at the configured max");
-            assertEquals(15,
-                         queue.getDroppedDlqCount(),
-                         "Every entry beyond the cap must be counted as dropped");
-
-            // The survivors must be the NEWEST entries (oldest evicted).
-            for (FailedUploadTask t : queue.getDlqEntries()) {
-                String key = t.getRemoteKey();
-                int n = Integer.parseInt(key.substring("db/".length(), key.length() - ".sst".length()));
-                assertTrue(n >= 15, "Only the newest entries (>=15) must survive, saw: " + key);
-            }
-
-            // On-disk file must also be bounded (amortized rewrite compacts it).
-            long lines;
-            try (Stream<String> s = Files.lines(tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME))) {
-                lines = s.filter(l -> !l.isBlank() && !l.startsWith("#")).count();
-            }
-            assertTrue(lines <= 10, "On-disk DLQ must be bounded (was " + lines + ")");
-        }
-    }
-
-    @Test
-    public void dlq_rewriteIsAtomic_leavesNoTempAndValidFile() throws Exception {
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 0,
-                                                           50L, 50L, tmpRoot.toString())) {
-            queue.setMaxDlqSize(3);
-            // >maxDlqSize appends force at least one amortized rewrite (compaction).
-            for (int i = 0; i < 12; i++) {
-                queue.submit("db", "cf", tmpRoot.resolve(i + ".sst").toString(),
-                             "db/" + i + ".sst", new IOException("outage"));
-            }
-
-            // An atomic write-to-temp + rename must never leave the temp file behind.
-            Path tmp = tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME + ".tmp");
-            assertFalse(Files.exists(tmp), "Atomic rewrite must not leave a .tmp file");
-
-            // The persisted file must be well-formed and bounded.
-            long lines;
-            try (Stream<String> s =
-                         Files.lines(tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME))) {
-                lines = s.filter(l -> !l.isBlank() && !l.startsWith("#")).count();
-            }
-            assertTrue(lines <= 3,
-                       "On-disk DLQ must be bounded after atomic rewrite (was " + lines + ")");
-            assertTrue(queue.isDlqPersistenceHealthy(),
-                       "Persistence must remain healthy on success");
-            assertEquals(0, queue.getDlqPersistenceFailureCount());
-        }
-    }
-
-    @Test
-    public void dlq_persistenceFailure_marksDegraded() throws Exception {
-        // Pre-create a DIRECTORY where the DLQ file should live so every on-disk persist fails.
-        Path dlqPath = tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME);
-        Files.createDirectory(dlqPath);
-
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 0,
-                                                           50L, 50L, tmpRoot.toString())) {
-            assertTrue(queue.isDlqPersistenceHealthy(), "Healthy before any persist attempt");
-
-            queue.submit("db", "cf", tmpRoot.resolve("x.sst").toString(),
-                         "db/x.sst", new IOException("outage"));
-
-            // The in-memory DLQ still holds the entry; only the disk persist failed.
-            assertEquals(1, queue.getDlqSize(), "Entry retained in memory despite disk failure");
-            assertFalse(queue.isDlqPersistenceHealthy(),
-                        "Persist failure must flip health to degraded");
-            assertTrue(queue.getDlqPersistenceFailureCount() >= 1, "Failure must be counted");
-        }
-    }
-
-    @Test
-    public void dlq_healthRecoversOnlyViaFullRewrite_notPlainAppend() throws Exception {
-        // A DIRECTORY at the DLQ path makes the first append fail -> degraded, with the entry left
-        // memory-only. Health must NOT recover on a later plain append; it recovers only once a full
-        // rewrite proves ALL outstanding entries (including the earlier memory-only one) are durable.
-        Path dlqPath = tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME);
-        Files.createDirectory(dlqPath);
-
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 0,
-                                                           50L, 50L, tmpRoot.toString())) {
-            // Entry A: append fails (path is a directory) -> degraded, A is memory-only.
-            queue.submit("db", "cf", tmpRoot.resolve("a.sst").toString(),
-                         "db/a.sst", new IOException("outage"));
-            assertFalse(queue.isDlqPersistenceHealthy(),
-                        "First failed append must degrade health");
-            assertEquals(1, queue.getDlqSize());
-
-            // Free the path so writes can succeed again (transient failure resolved).
-            Files.delete(dlqPath);
-
-            // Entry B: while degraded, the code must do a FULL rewrite (persisting A and B), which
-            // succeeds now and is the ONLY legitimate path back to healthy.
-            queue.submit("db", "cf", tmpRoot.resolve("b.sst").toString(),
-                         "db/b.sst", new IOException("outage"));
-
-            assertTrue(queue.isDlqPersistenceHealthy(),
-                       "Health must recover after a successful full rewrite persists all entries");
-            assertEquals(2, queue.getDlqSize());
-
-            // Both entries (including the previously memory-only A) must now be on disk.
-            long lines;
-            try (Stream<String> s =
-                         Files.lines(tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME))) {
-                lines = s.filter(line -> !line.isBlank() && !line.startsWith("#")).count();
-            }
-            assertEquals(2, lines, "Full rewrite must persist every outstanding DLQ entry");
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // DLQ persistence – entries survive queue reconstruction
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void dlq_persistsAndLoadsFromDisk() throws Exception {
-        CapturingProvider provider = new CapturingProvider() {
-            @Override
-            public void uploadFile(String localPath, String remoteKey) throws IOException {
-                throw new IOException("always fails");
-            }
-        };
-
-        Path sstFile = tmpRoot.resolve("000003.sst");
-        Files.createFile(sstFile);
-
-        // First queue instance: run until task hits DLQ.
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(provider, 1, 50L, 50L,
-                                                           tmpRoot.toString())) {
-            queue.submit("db2", "cf1", sstFile.toString(),
-                         "db2/000003.sst", new IOException("fail"));
-
-            long deadline = System.currentTimeMillis() + 3_000L;
-            while (queue.getDlqSize() == 0 && System.currentTimeMillis() < deadline) {
-                Thread.sleep(50);
-            }
-            assertEquals(1, queue.getDlqSize());
-        }
-
-        // Verify the DLQ file was written.
-        assertTrue(Files.exists(tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME)),
-                   "DLQ file should exist");
-
-        // Second queue instance: should load the persisted entry.
-        try (CloudUploadRetryQueue queue2 =
-                     CloudStorageTestFactory.newRetryQueue(provider, 1, 50L, 50L,
-                                                           tmpRoot.toString())) {
-            assertEquals(1, queue2.getDlqSize(), "DLQ entry should have been loaded from disk");
-            FailedUploadTask loaded = queue2.getDlqEntries().get(0);
-            assertEquals("db2", loaded.getDbName());
-            assertEquals("cf1", loaded.getCfName());
-            assertEquals("db2/000003.sst", loaded.getRemoteKey());
-        }
-    }
-
-    @Test
-    public void dlq_reloadTrimmedToConfiguredCap() throws Exception {
-        // Simulate a large persisted DLQ from a long outage: flood the first queue (maxAttempts=0
-        // routes straight to DLQ) so many entries land on disk under the default cap.
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 0,
-                                                           50L, 50L, tmpRoot.toString())) {
-            for (int i = 0; i < 30; i++) {
-                queue.submit("db", "cf", tmpRoot.resolve(i + ".sst").toString(),
-                             "db/" + i + ".sst", new IOException("outage"));
-            }
-            assertEquals(30, queue.getDlqSize(), "All 30 entries persist under the default cap");
-        }
-
-        // Reconstruct: the load bounds to the default cap (all 30 fit), then the operator applies a
-        // SMALLER configured cap, which must trim the loaded set and rewrite the on-disk file so a
-        // large persisted DLQ cannot linger unbounded despite a tighter configuration.
-        try (CloudUploadRetryQueue queue2 =
-                     CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 0,
-                                                           50L, 50L, tmpRoot.toString())) {
-            assertEquals(30,
-                         queue2.getDlqSize(),
-                         "Reload must recover all persisted entries under the default cap");
-
-            queue2.setMaxDlqSize(5);
-            assertEquals(5, queue2.getDlqSize(), "Configured cap must trim the reloaded DLQ");
-
-            // Only the newest entries survive.
-            for (FailedUploadTask t : queue2.getDlqEntries()) {
-                String key = t.getRemoteKey();
-                int n = Integer.parseInt(
-                        key.substring("db/".length(), key.length() - ".sst".length()));
-                assertTrue(n >= 25, "Only the newest entries (>=25) must survive, saw: " + key);
-            }
-
-            // The on-disk file must be rewritten down to the configured bound.
-            long lines;
-            try (Stream<String> s =
-                         Files.lines(tmpRoot.resolve(CloudUploadRetryQueue.DLQ_FILE_NAME))) {
-                lines = s.filter(l -> !l.isBlank() && !l.startsWith("#")).count();
-            }
-            assertEquals(5, lines, "On-disk DLQ must be rewritten to the configured cap");
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // replayDlq – successful replay clears the DLQ
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void replayDlq_successfulUploadClearsDlq() throws Exception {
-        // Step 1: force a task into the DLQ.
-        AtomicInteger uploadCalls = new AtomicInteger(0);
-        CapturingProvider provider = new CapturingProvider() {
-            @Override
-            public void uploadFile(String localPath, String remoteKey) throws IOException {
-                if (uploadCalls.incrementAndGet() <= 1) {
-                    throw new IOException("fail during initial + retry");
-                }
-                // Subsequent calls succeed (replay).
-            }
-        };
-
-        Path sstFile = tmpRoot.resolve("000004.sst");
-        Files.createFile(sstFile);
-
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(provider, 1, 50L, 50L,
-                                                           tmpRoot.toString())) {
-            queue.submit("db3", "default", sstFile.toString(),
-                         "db3/000004.sst", new IOException("initial fail"));
-
-            // Wait for DLQ.
-            long deadline = System.currentTimeMillis() + 3_000L;
-            while (queue.getDlqSize() == 0 && System.currentTimeMillis() < deadline) {
-                Thread.sleep(50);
-            }
-            assertEquals(1, queue.getDlqSize());
-
-            // Now replay: the provider will succeed.
-            queue.replayDlq();
-
-            assertEquals(0, queue.getDlqSize(), "DLQ should be empty after successful replay");
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // replayDlq – local file gone → dropped silently, not re-queued
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void replayDlq_dropsEntryWhenLocalFileGone() throws Exception {
-        CapturingProvider provider = new CapturingProvider() {
-            @Override
-            public void uploadFile(String localPath, String remoteKey) throws IOException {
-                throw new IOException("fail");
-            }
-        };
-
-        // File path that does NOT exist (deleted SST).
-        String nonExistentFile = tmpRoot.resolve("gone.sst").toString();
-
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(provider, 1, 50L, 50L,
-                                                           tmpRoot.toString())) {
-            // Submit; the retry will run but the local file doesn't exist → drop silently.
-            queue.submit("db4", "default", nonExistentFile,
-                         "db4/gone.sst", new IOException("initial"));
-
-            // Wait for the retry to drain (file-not-found path → task dropped).
-            long deadline = System.currentTimeMillis() + 3_000L;
-            while (queue.getInFlightCount() > 0 && System.currentTimeMillis() < deadline) {
-                Thread.sleep(50);
-            }
-
-            // Task dropped (not in DLQ) because local file was gone.
-            assertEquals(0,
-                         queue.getDlqSize(),
-                         "Task with non-existent file should be silently dropped");
-        }
-    }
-
-    @Test
-    public void replayDlq_fallsBackToSourceSstWhenStagingPinGone() throws Exception {
-        // The staging pin (filePath) was cleaned up, but the original source SST still exists and is
-        // uploadable. Replay must salvage the upload from sourceSstPath instead of dropping it.
-        CapturingProvider provider = new CapturingProvider();
-
-        Path source = tmpRoot.resolve("000005.sst");
-        Files.write(source, "sstdata".getBytes());
-        // Staging pin path that does NOT exist (already cleaned up).
-        String pin = tmpRoot.resolve("000005.sst.upload-123").toString();
-
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(provider, 0, 50L, 50L,
-                                                           tmpRoot.toString())) {
-            // maxAttempts=0 => submitPinned routes straight to the DLQ with filePath=pin (missing),
-            // sourceSstPath=source (present).
-            queue.submitPinned("db5", "default", pin, source.toString(), "db5/000005.sst",
-                               new IOException("outage"));
-            assertEquals(1, queue.getDlqSize());
-
-            queue.replayDlq();
-
-            assertEquals(0,
-                         queue.getDlqSize(),
-                         "Replay must salvage via sourceSstPath when the staging pin is gone");
-            assertTrue(provider.uploads.stream()
-                                       .anyMatch(u -> source.toString().equals(u[0])
-                                                      && "db5/000005.sst".equals(u[1])),
-                       "Upload must have happened from the surviving source SST");
-        }
-    }
-
-    @Test
-    public void replayDlq_dropsWhenNeitherPinNorSourceExists() {
-        CapturingProvider provider = new CapturingProvider();
-
-        String pin = tmpRoot.resolve("gone.sst.upload-1").toString();
-        String source = tmpRoot.resolve("gone.sst").toString();
-
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(provider, 0, 50L, 50L,
-                                                           tmpRoot.toString())) {
-            queue.submitPinned("db6", "default", pin, source, "db6/gone.sst",
-                               new IOException("outage"));
-            assertEquals(1, queue.getDlqSize());
-
-            queue.replayDlq();
-
-            assertEquals(0, queue.getDlqSize(), "Replay must drop only when NEITHER path exists");
-            assertTrue(provider.uploads.isEmpty(),
-                       "No upload should occur when both paths are gone");
-        }
-    }
-
-    // -----------------------------------------------------------------------
-    // Serialisation round-trip
-    // -----------------------------------------------------------------------
-
-    @Test
-    public void serialize_deserialize_roundTrip() {
-        try (CloudUploadRetryQueue queue =
-                     CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 3,
-                                                           100L, 1000L, tmpRoot.toString())) {
-
-            FailedUploadTask original = new FailedUploadTask(
-                    "db\twith-tab", "cf-name",
-                    "/data/root/file.sst.upload-99999", // pinnedPath
-                    "/data/root/file.sst",              // sourceSstPath
-                    "data/root/file.sst",               // remoteKey
-                    1234567890123L, 3,
-                    "Error with\nnewline and\\backslash",
-                    42L);                               // uploadEpoch
-
-            String line = queue.serialize(original);
-            assertFalse(hasUnescapedTab(line),
-                        "Serialised line must not contain raw tab in field values");
-
-            FailedUploadTask restored = queue.deserialize(line);
-            assertNotNull(restored);
-            assertEquals(original.getDbName(), restored.getDbName());
-            assertEquals(original.getCfName(), restored.getCfName());
-            assertEquals(original.getFilePath(), restored.getFilePath());
-            assertEquals(original.getSourceSstPath(), restored.getSourceSstPath());
-            assertEquals(original.getRemoteKey(), restored.getRemoteKey());
-            assertEquals(original.getFailedAt(), restored.getFailedAt());
-            assertEquals(original.getAttemptCount(), restored.getAttemptCount());
-            assertEquals(original.getLastError(), restored.getLastError());
-            assertEquals(original.getUploadEpoch(), restored.getUploadEpoch());
+            assertEquals(1L, queue.getGivenUpCount());
+            assertFalse(Files.exists(pin), "give-up must release the staging hard-link");
+            assertTrue(Files.exists(source), "give-up must not touch the source SST");
         }
     }
 
     // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
-
-    /** Returns true if the serialised line has the wrong number of tab-separated fields. */
-    private boolean hasUnescapedTab(String serialised) {
-        String[] parts = serialised.split("\t", -1);
-        // Format is now 9 fields: failedAt, attemptCount, dbName, cfName, filePath,
-        // remoteKey, lastError, sourceSstPath, uploadEpoch.
-        return parts.length != 9;
-    }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private void deleteRecursively(java.io.File f) {

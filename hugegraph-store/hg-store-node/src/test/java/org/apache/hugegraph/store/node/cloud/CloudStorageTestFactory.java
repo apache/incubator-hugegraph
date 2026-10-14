@@ -103,9 +103,8 @@ final class CloudStorageTestFactory {
     }
 
     static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
-                                               long initialDelayMs, long maxDelayMs,
-                                               String dataRoot) {
-        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
+                                               long initialDelayMs, long maxDelayMs) {
+        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs,
                               (CloudUploadRetryQueue.UploadConfirmedCallback) null);
     }
 
@@ -116,29 +115,17 @@ final class CloudStorageTestFactory {
      */
     static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
                                                long initialDelayMs, long maxDelayMs,
-                                               String dataRoot,
                                                BiConsumer<String, String> onUploadConfirmed) {
-        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
+        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs,
                               onUploadConfirmed == null ? null
                                       : (db, path, epoch) -> onUploadConfirmed.accept(db, path));
     }
 
     static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
                                                long initialDelayMs, long maxDelayMs,
-                                               String dataRoot,
                                                CloudUploadRetryQueue.UploadConfirmedCallback
                                                        onUploadConfirmed) {
-        return newRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs, dataRoot,
-                              onUploadConfirmed, CloudUploadRetryQueue.DEFAULT_MAX_DLQ_SIZE);
-    }
-
-    static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,
-                                               long initialDelayMs, long maxDelayMs,
-                                               String dataRoot,
-                                               CloudUploadRetryQueue.UploadConfirmedCallback
-                                                       onUploadConfirmed,
-                                               int maxDlqSize) {
         return new CloudUploadRetryQueue(provider, maxAttempts, initialDelayMs, maxDelayMs,
-                                          dataRoot, onUploadConfirmed, maxDlqSize);
+                                          onUploadConfirmed);
     }
 }

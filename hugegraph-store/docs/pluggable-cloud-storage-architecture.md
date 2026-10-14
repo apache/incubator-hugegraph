@@ -76,10 +76,9 @@ The pluggable cloud-storage behavior is controlled from `application.yml` under
 | `cloud.storage.path-prefix`                          | `hugegraph` | Prefix prepended to all remote object keys.                                                                                                                                                                                                                                                                                                                                                    |
 | `cloud.storage.startup-hydration-enabled`            | `true`      | Downloads missing remote files on DB opening before normal serving.                                                                                                                                                                                                                                                                                                                            |
 | `cloud.storage.read-miss-guard-window-ms`            | `3000`      | Guard window to throttle repeated read-miss hydration attempts per db/table. Values `<= 0` disable throttling.                                                                                                                                                                                                                                                                                 |
-| `cloud.storage.upload-retry-max-attempts`            | `3`         | Whole-file retry attempts after a first upload failure. Default `3` retries are enabled to protect against transient network errors. <br/>Set to `0` to disable whole-file retries (failures go directly to DLQ) when the provider already has sufficient internal retry logic. `CloudStorageNonRetryableException` always bypasses retries and goes directly to DLQ regardless of this value. |
+| `cloud.storage.upload-retry-max-attempts`            | `3`         | Whole-file retry attempts after a first upload failure. Default `3` retries are enabled to protect against transient network errors. <br/>Set to `0` to disable whole-file retries (failures are given up on immediately) when the provider already has sufficient internal retry logic. `CloudStorageNonRetryableException` always bypasses retries and is given up on immediately regardless of this value. |
 | `cloud.storage.upload-retry-initial-delay-ms`        | `1000`      | Delay before first whole-file retry; subsequent retries use exponential backoff. Only used when `upload-retry-max-attempts > 0`.                                                                                                                                                                                                                                                               |
 | `cloud.storage.upload-retry-max-delay-ms`            | `60000`     | Upper bound for exponential backoff delay between whole-file retry attempts. Only used when `upload-retry-max-attempts > 0`.                                                                                                                                                                                                                                                                   |
-| `cloud.storage.dlq-max-size`                         | `100000`    | Maximum entries retained in the file-backed dead-letter queue (in memory and, amortized, on disk at `<data-root>/.cloud-upload-dlq.tsv`). Bounds memory/disk growth during a prolonged provider outage; when exceeded the oldest entries are evicted (evicted files stay recoverable via the delete guard and startup SST backfill). Must be `> 0`.                                            |
 | `cloud.storage.metadata-sync-debounce-ms`            | `1000`      | Debounce window for the per-SST metadata sync triggered by `onTableFileCreated`. Within a window per DB at most one metadata publish runs (plus a trailing publish), coalescing checkpoint + list/prune cost under write-heavy load. `<= 0` publishes on every SST (pre-debounce behavior). Event-driven publishes (delete guard, compaction, DB open) are **never** debounced.               |
 | `cloud.storage.metadata-sync-max-unpublished`        | `32`        | Count bound on the debounce: once this many SST uploads accumulate without a metadata publish for a DB, a publish is forced regardless of `metadata-sync-debounce-ms`, bounding the cloud recovery point by count (not just time) during heavy-ingestion bursts. `<= 0` disables the count bound (time-only debounce).                                                                        |
 | `cloud.storage.node-id`                              | _(blank)_   | Stable per-node identity used to derive the cloud key scope (`store-<node-id>`). When set, it is authoritative and stable across restarts, IP/hostname changes, **and** local disk loss, so recovery always finds prior remote objects — recommended for production (e.g. a StatefulSet pod ordinal or provisioned node UUID). Blank falls back to a scope persisted in the data root (`.cloud-store-scope`), which is stable across network-identity drift but lost with the disk, and is in turn seeded from the runtime network address on first start. See "Cloud key scope resolution" below.            |
@@ -94,7 +93,7 @@ Notes:
 - Metadata sync publishes a consistent `CURRENT`/`MANIFEST`/`OPTIONS` snapshot so a full-disk-loss node can reopen from cloud. Capture forces a MemTable flush so the un-flushed tail is persisted into an SST and mirrored (the RocksDB WAL is disabled under Raft — the Raft log is the tail's durability source — so a flush is the only path that pushes recent writes to cloud).
 - Metadata sync is always enabled when cloud storage is enabled.
 - Metadata sync is event-triggered by storage events; there is no background interval scheduler. The per-SST sync is debounced (`metadata-sync-debounce-ms`) and bounded by count (`metadata-sync-max-unpublished`); event-driven publishes (delete guard, compaction, DB open) are never debounced.
-- Uploads that exhaust whole-file retries land in a bounded, file-backed DLQ (`dlq-max-size`, persisted at `<data-root>/.cloud-upload-dlq.tsv`); DLQ persistence health is exposed via `cloud_storage_dlq_persistence_healthy`.
+- Uploads that exhaust whole-file retries are given up on: logged at ERROR, counted in `cloud_storage_uploads_given_up_total`, and re-uploaded by startup SST backfill.
 - Set a stable `cloud.storage.node-id` for production so the cloud key scope survives IP/hostname changes and local disk loss (see "Cloud key scope resolution").
 - Provider-specific properties (e.g., bucket, region, credentials) are configured under `cloud.storage.<provider>.*` namespace.
 - **Operational observability**: Monitor metrics and logs to track sync progress (see "Observability: Metrics & Logs" section above).
@@ -156,10 +155,6 @@ For provider `s3`, configure these properties under `cloud.storage.s3`:
 | `cloud.storage.s3.endpoint`                             | _(none)_  | Optional custom endpoint for S3-compatible stores (MinIO/Ceph).                                      |
 | `cloud.storage.s3.access-key`                           | _(none)_  | Access key / AWS Access ID credential. Omit to use AWS default credentials chain.                    |
 | `cloud.storage.s3.secret-key`                           | _(none)_  | Secret key credential. Omit to use AWS default credentials chain.                                    |
-| `cloud.storage.s3.multipart-part-retry-max-attempts`    | `3`       | Max retries for each multipart upload part before the whole file upload fails.                       |
-| `cloud.storage.s3.multipart-part-retry-base-backoff-ms` | `1000`    | Base backoff for part retries (exponential: 1x/2x/4x...).                                            |
-| `cloud.storage.s3.multipart-exhausted-direct-dlq`       | `false`   | If `true`, part-retry exhaustion is marked non-retryable so outer SST retry can go directly to DLQ.  |
-| `cloud.storage.s3.multipart-stale-abort-on-init`        | `true`    | If `true`, the provider sweeps for and aborts incomplete multipart uploads older than 24h at initialization. The sweep is scoped to `path-prefix` and is **skipped entirely when `path-prefix` is empty**, so it can never abort unrelated in-flight uploads across the whole bucket. Set `false` when multiple writers share the same `path-prefix` and rely on an S3 `AbortIncompleteMultipartUpload` lifecycle rule instead. |
 
 ### Sample `application.yml` (`cloud.storage`)
 
@@ -177,15 +172,10 @@ cloud:
     startup-hydration-enabled: true
     read-miss-guard-window-ms: 3000
 
-    # Upload retry & dead-letter queue (whole-file level; common for all providers)
-    upload-retry-max-attempts: 3          # 0 to disable whole-file retries (DLQ-only)
+    # Upload retry (whole-file level; common for all providers)
+    upload-retry-max-attempts: 3          # 0 to disable whole-file retries (give up immediately)
     upload-retry-initial-delay-ms: 1000
     upload-retry-max-delay-ms: 60000
-
-    # Dead-letter queue: max entries before oldest are evicted (bounds memory/disk on outage).
-    # DLQ is file-backed at <data-root>/.cloud-upload-dlq.tsv; evicted files stay recoverable
-    # via the delete guard / startup backfill.
-    dlq-max-size: 100000
 
     # Metadata durability (CURRENT/MANIFEST/OPTIONS)
     # Metadata sync is always enabled when cloud storage is enabled
@@ -204,14 +194,6 @@ cloud:
       endpoint: http://minio:9000
       access-key: minioadmin
       secret-key: minioadmin
-      
-      # Multipart upload retry configuration (S3 part-level, inside one uploadFile() call)
-      multipart-part-retry-max-attempts: 3
-      multipart-part-retry-base-backoff-ms: 1000
-      multipart-exhausted-direct-dlq: false
-      # Abort incomplete multipart uploads > 24h old at init (scoped to path-prefix; skipped when
-      # path-prefix is empty). Set false when writers share a path-prefix + use an S3 lifecycle rule.
-      multipart-stale-abort-on-init: true
 ```
 
 Notes:
@@ -430,33 +412,31 @@ Upload failures use a two-layer retry strategy:
 
 | Layer                      | Where                                        | What it retries                            | Config keys                                                                                             |
 |----------------------------|----------------------------------------------|--------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| **Part-level** (S3 only)   | Inside `S3CloudStorageProvider.uploadFile()` | Individual 512 MB multipart chunks         | `cloud.storage.s3.multipart-part-retry-max-attempts`, `multipart-part-retry-base-backoff-ms`            |
+| **Request-level** (S3 only) | AWS SDK client inside `S3CloudStorageProvider.uploadFile()` | Individual PUTs and multipart parts | None (SDK `STANDARD` retry mode, see `buildRetryOverride()`)                                            |
 | **File-level** (common)    | `CloudUploadRetryQueue` (async)              | Whole SST file after `uploadFile()` throws | `cloud.storage.upload-retry-max-attempts`, `upload-retry-initial-delay-ms`, `upload-retry-max-delay-ms` |
 
-The default `upload-retry-max-attempts=3` enables whole-file retries for transient failures. The S3 provider also handles part-level retries internally. Both layers can be tuned independently.
+The default `upload-retry-max-attempts=3` enables whole-file retries for transient failures. The S3 provider also relies on the AWS SDK's own retries for individual requests and multipart parts; only the file-level layer is configurable.
 
 #### Failure flow (default `upload-retry-max-attempts=3`)
 
 - `onTableFileCreated` calls `provider.uploadFile()`.
-- S3 retries individual parts internally (via `multipart-part-retry-*`).
+- The AWS SDK retries individual requests and multipart parts internally.
 - If `uploadFile()` still throws a regular `IOException`, `CloudUploadRetryQueue.submit()` enqueues the task for up to `upload-retry-max-attempts` whole-file retries with exponential backoff.
 - If `uploadFile()` throws `CloudStorageNonRetryableException`, the task bypasses retries and skips the upload queue.
 - After all retry attempts are exhausted (or if non-retryable), the file remains unconfirmed in the bitmap. The file stays on disk and is **automatically retried on the next compaction** via the delete guard (`ensureLiveSetUploaded`).
 
 #### Observability: Metrics & Logs
 
-A bounded, file-backed dead-letter queue (DLQ) captures uploads that exhaust all whole-file retries
-(see "Dead-letter queue" below); alongside it, the system provides real-time observability through
-metrics and structured logs:
+The system provides real-time observability through metrics and structured logs:
 
 **Metrics (exposed to Prometheus/monitoring):**
 
 - `cloud_storage_unconfirmed_files_total` (gauge, labeled by `db_name`) — Count of SST files not yet confirmed in cloud bitmap. High value → uploads are failing or slow.
 - `cloud_storage_upload_failures_total` (counter, labeled by `db_name`, `cf_name`, `error_type`) — Total upload failures (transient + permanent). Tracks upload problem frequency.
 - `cloud_storage_retry_queue_size` (gauge) — Files waiting in the upload retry queue. Bound to the live queue (`retryQueue.getInFlightCount()`), so it reflects the real backlog rather than a constant `0`.
+- `cloud_storage_uploads_given_up_total` (counter) — Uploads the retry queue gave up on (retries exhausted, `CloudStorageNonRetryableException`, or shutdown). Each file stays unconfirmed in the sync tracker and is re-uploaded by the next metadata sync, the delete guard, or startup SST backfill. Alert on a sustained increase.
 - `cloud_storage_sync_latency_ms` (histogram, labeled by `db_name`) — Time from SST file creation (onTableFileCreated) to bitmap confirmation (markConfirmed). Measures sync speed.
 - `cloud_storage_delete_guard_reupload_count` (counter, labeled by `db_name`) — Number of files re-uploaded by the delete guard when live set was not fully durable. Indicates frequent upload failures.
-- `cloud_storage_dlq_persistence_healthy` (gauge, `1`=healthy / `0`=degraded) — Health of the DLQ's on-disk persistence. `0` means a DLQ append/rewrite failed, so retry intent may not survive a crash. Alert on `0`.
 - `cloud_storage_delete_marker_healthy` (gauge, `1`=healthy / `0`=degraded) — Health of pending-delete marker persistence. `0` means a marker could not be durably written, so a DB delete whose remote cleanup fails may not be guarded against re-hydration after a crash. This is a hard error state: **delete progression is held while degraded.** Alert on `0`.
 
 **Structured Logs:**
@@ -509,11 +489,10 @@ kubectl logs -l app=hugegraph-store | grep "Upload failed permanently"
 kubectl logs -l app=hugegraph-store | grep "filePath=/path/to/000123.sst"
 ```
 
-**Dead-letter queue (file-backed):**
+**Giving up on an upload:**
 
-- Uploads that exhaust all whole-file retries (or are thrown as `CloudStorageNonRetryableException`) are moved to a dead-letter queue held in memory and persisted at `<data-root>/.cloud-upload-dlq.tsv`.
-- The DLQ is bounded by `cloud.storage.dlq-max-size` (default `100000`). When exceeded, the oldest entries are evicted — evicted files are **not** lost: they stay recoverable via the delete guard and startup SST backfill.
-- On-disk persistence lets retry intent survive a process restart; its health is surfaced via `cloud_storage_dlq_persistence_healthy` (alert on `0`).
+- Uploads that exhaust all whole-file retries (or are thrown as `CloudStorageNonRetryableException`) are given up on: logged at ERROR, counted in `cloud_storage_uploads_given_up_total`, and their staging hard-link is released. There is no dead-letter queue; nothing retries a given-up upload.
+- Given-up files are **not** lost: they stay recoverable via the delete guard and startup SST backfill. After a restart, `onDBCreated` re-runs the startup SST backfill, which uploads every live `*.sst` missing from the bucket, and orphaned staging hard-links under `<data-root>/.cloud-upload-staging/` are deleted when the listener starts.
 
 **Automatic retry (delete guard, no manual replay):**
 
@@ -522,8 +501,8 @@ kubectl logs -l app=hugegraph-store | grep "filePath=/path/to/000123.sst"
   1. Checks bitmap for all current live files
   2. For any unconfirmed file, attempts upload again (idempotent PUT)
   3. On success, updates bitmap; on failure, logs and holds delete
-- This cycle repeats automatically; no manual DLQ replay needed.
-- After a retry / DLQ-replay upload becomes durable, `onRetryUploadDurable` publishes `CURRENT`/`MANIFEST` so the mirrored recovery point advances even on an idle DB.
+- This cycle repeats automatically; no manual replay needed.
+- After a retry upload becomes durable, `onRetryUploadDurable` publishes `CURRENT`/`MANIFEST` so the mirrored recovery point advances even on an idle DB.
 - Upload success rate and retry frequency are tracked via metrics and logs.
 
 **Tuning:**
@@ -564,7 +543,7 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 - Providers can signal a permanently failed upload by throwing `CloudStorageNonRetryableException` from `uploadFile()`.
 - This exception bypasses the whole-file retry loop and marks the file as unconfirmed (no bitmap entry).
 - The file remains on disk and is **automatically retried on the next compaction** via the delete guard's re-upload logic.
-- The S3 provider uses this when `multipart-exhausted-direct-dlq: true` and all multipart part retries are exhausted, preventing pointless full-file re-attempts for a part that consistently fails.
+- The S3 provider throws it for permanent service-side errors (e.g. auth, permission, not-found, validation), so a request that cannot succeed is not retried as a whole file.
 - Metrics (`cloud_storage_upload_failures_total`) and logs track the failure for operational visibility.
 
 ### Delete guard failure (live set not fully durable)
@@ -588,10 +567,9 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 
 ### S3 multipart upload failures
 
-- **Initiation failure**: if `CreateMultipartUpload` fails, `uploadFile()` throws `IOException` immediately (no part retries). The whole-file retry queue then handles it if `upload-retry-max-attempts > 0`.
-- **Part retry exhaustion**: individual part upload failures are retried up to `multipart-part-retry-max-attempts` times with exponential backoff (`multipart-part-retry-base-backoff-ms`). When all part retries are exhausted, the multipart upload is aborted.
-- **Abort failure**: if the `AbortMultipartUpload` call itself fails, the failure is logged as a warning. The incomplete multipart upload may remain in the bucket (incurring storage cost) until an S3 lifecycle rule or manual cleanup removes it.
-- **Direct-DLQ on part exhaustion**: when `multipart-exhausted-direct-dlq: true`, part-retry exhaustion throws `CloudStorageNonRetryableException`, bypassing whole-file retries.
+- Files larger than 512 MB are uploaded through `S3TransferManager`, which splits them into parts, uploads them concurrently and completes the multipart upload, or aborts it on failure. Part retries come from the AWS SDK's retry strategy; there is no provider-specific part-retry setting.
+- If the upload still fails, `uploadFile()` throws an `IOException` (or `CloudStorageNonRetryableException` for permanent service errors), and the whole-file retry queue handles it as for any other upload.
+- If the abort itself fails, the incomplete multipart upload can remain in the bucket (incurring storage cost). The provider does not sweep for these; configure an S3 lifecycle rule (`AbortIncompleteMultipartUpload`) on the bucket to remove them.
 
 
 ### Local file compacted away during retry
@@ -617,8 +595,8 @@ Notes:
 - In-flight data (not yet flushed to SST) is recovered from Raft logs when quorum-replicated.
 - Cloud storage recovery primarily protects flushed SST state and disaster cases involving local disk loss.
 - SST upload is always asynchronous and event-triggered: each `onTableFileCreated` (flush/compaction)
-  eagerly uploads the new SST on the shared upload executor, with failures routed to the retry queue /
-  DLQ. There is no periodic/interval uploader and no synchronous-upload mode. The cloud recovery point
+  eagerly uploads the new SST on the shared upload executor, with failures routed to the retry queue.
+  There is no periodic/interval uploader and no synchronous-upload mode. The cloud recovery point
   is bounded by how soon the SSTs upload and the subsequent debounced `CURRENT`/`MANIFEST` publish
   lands (`metadata-sync-debounce-ms` / `metadata-sync-max-unpublished`).
 - Recovery correctness is protected by the metadata-before-delete invariant: before deleting superseded SSTs, Store confirms manifest-referenced SST durability and publishes updated `MANIFEST`/`CURRENT`, preventing stale or missing-manifest references after compaction retries.
@@ -660,13 +638,6 @@ Cloud storage health is exposed through metrics and logs. Set up monitoring for:
   annotations:
     summary: "Store node {{ $labels.instance }} 95th percentile sync latency is {{ $value }}ms"
     action: "Check network link to cloud provider; consider tuning upload concurrency"
-
-# Alert if the DLQ can no longer persist to disk (retry intent may not survive a crash)
-- alert: CloudStorageDlqPersistenceDegraded
-  expr: cloud_storage_dlq_persistence_healthy == 0
-  annotations:
-    summary: "Store node {{ $labels.instance }} DLQ on-disk persistence is degraded"
-    action: "Check data-root disk space/permissions for .cloud-upload-dlq.tsv"
 
 # Alert if a pending-delete marker could not be persisted (DB delete progression is held)
 - alert: CloudStorageDeleteMarkerDegraded
@@ -1027,7 +998,7 @@ Notes on property naming conventions:
 
 - **YAML properties**: Use kebab-case with provider-specific namespacing (e.g., `cloud.storage.s3.bucket`, `cloud.storage.newprovider.access-key`)
 - **Environment variables**: Use uppercase with underscores and `HG_CLOUD_STORAGE_*` prefix. Provider-specific options use `HG_CLOUD_STORAGE_<PROVIDER>_*` pattern
-- Kebab-case YAML properties are converted to uppercase with underscores (e.g., `multipart-part-retry-max-attempts` → `MULTIPART_PART_RETRY_MAX_ATTEMPTS`)
+- Kebab-case YAML properties are converted to uppercase with underscores (e.g., `access-key` → `ACCESS_KEY`)
 
 ### Testing Your Provider
 
@@ -1095,7 +1066,7 @@ If your provider isn't loaded:
 1. **Thread safety**: Ensure provider is thread-safe for concurrent upload/download/delete operations.
 2. **Connection pooling**: Reuse client connections; initialize once in `init()`, close in `close()`.
 3. **Path normalization**: Always use `pathPrefix` correctly (see S3 example for reference).
-4. **Error handling**: Throw `IOException` for operational (retryable) issues, or `CloudStorageNonRetryableException` for permanent failures that should skip whole-file retries. Implement your own internal retry logic where useful (see `S3CloudStorageProvider` for reference). The common `CloudUploadRetryQueue` performs whole-file retries by default (`upload-retry-max-attempts=3`) and backs them with a bounded, file-backed DLQ.
+4. **Error handling**: Throw `IOException` for operational (retryable) issues, or `CloudStorageNonRetryableException` for permanent failures that should skip whole-file retries. Implement your own internal retry logic where useful (see `S3CloudStorageProvider` for reference). The common `CloudUploadRetryQueue` performs whole-file retries by default (`upload-retry-max-attempts=3`) and gives up on (logs and counts) uploads that exhaust them.
 5. **Logging**: Use SLF4J (via `@Slf4j`) for consistent log levels with Store.
 6. **Configuration validation**: Validate all required fields in `init()` and fail fast.
 

@@ -74,11 +74,10 @@ logging:
 #     enabled: true
 #     provider: s3                         # must match CloudStorageProvider.providerName()
 #     path-prefix: hugegraph               # key prefix inside the bucket
-#     # --- Upload retry & dead-letter queue (common for all providers) ---
+#     # --- Upload retry (common for all providers) ---
 #     upload-retry-max-attempts: 3         # whole-file retries after first failure; default 3 (0 disables)
 #     upload-retry-initial-delay-ms: 1000  # delay before first retry (ms); default 1000
 #     upload-retry-max-delay-ms: 60000     # exponential-backoff ceiling (ms); default 60000
-#     dlq-max-size: 100000                 # max DLQ entries before oldest are evicted; bounds memory/disk on outage
 #     metadata-sync-debounce-ms: 1000      # coalesce per-SST metadata sync; <= 0 publishes on every SST
 #     metadata-sync-max-unpublished: 32    # force a publish after N unmirrored SSTs (count-bounded RPO); <= 0 disables
 #     node-id:                             # stable per-node identity for the cloud key scope; blank = persist
@@ -102,13 +101,10 @@ cloud:
     startup-hydration-enabled: true        # download missing remote files on DB opening before serving
     read-miss-guard-window-ms: 3000        # guard window (ms) to throttle repeated read-miss hydration attempts
     # Whole-file upload retries after a first failure (default 3). Set 0 to disable
-    # (failures go straight to the DLQ) when the provider has sufficient internal retry.
+    # (failures are given up on immediately) when the provider has sufficient internal retry.
     upload-retry-max-attempts: 3
     upload-retry-initial-delay-ms: 1000
     upload-retry-max-delay-ms: 60000
-    # Max dead-letter-queue entries retained before the oldest are evicted; bounds memory/disk
-    # during a prolonged provider outage (evicted files stay recoverable via delete guard/backfill).
-    dlq-max-size: 100000
     # Debounce window (ms) for the per-SST metadata sync; coalesces checkpoint+list/prune cost under
     # write-heavy load. <= 0 publishes on every SST. Event-driven publishes are never debounced.
     metadata-sync-debounce-ms: 1000

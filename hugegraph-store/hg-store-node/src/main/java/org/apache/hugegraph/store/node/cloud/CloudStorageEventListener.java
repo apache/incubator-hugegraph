@@ -39,6 +39,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import lombok.Getter;
@@ -87,7 +88,7 @@ import lombok.extern.slf4j.Slf4j;
  * (see {@link org.apache.hugegraph.store.node.AppConfig}).
  */
 @Slf4j
-public class CloudStorageEventListener implements RocksdbChangedListener {
+public class CloudStorageEventListener implements RocksdbChangedListener, AutoCloseable {
 
     /** Absolute, normalised paths of configured store data roots (one per configured partition root). */
     private final String primaryDataRoot;
@@ -149,40 +150,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     /** Bounded async upload dispatcher so RocksDB callbacks return quickly. */
     private static final int ASYNC_UPLOAD_THREADS = 2;
     private static final int ASYNC_UPLOAD_QUEUE_CAPACITY = 256;
-    /**
-     * Backing field for {@link #sharedUploadExecutor()}. Not {@code final}: it is recreated on
-     * demand after {@link #shutdownSharedUploadExecutor} clears it, so a Spring context restart in
-     * the same JVM binds new listeners to a live executor instead of a TERMINATED one (which would
-     * reject every upload via AbortPolicy and silently divert all SSTs to the DLQ).
-     */
-    private static ThreadPoolExecutor sharedUploadExecutor;
+    /** Upload pool owned by this listener; drained by {@link #close()}. */
     private final ThreadPoolExecutor uploadExecutor;
-
-    /**
-     * Shutdown gate for the upload subsystem. Set true at the start of
-     * {@link #shutdownSharedUploadExecutor} so in-flight upload tasks draining during shutdown do
-     * NOT schedule new trailing metadata syncs or resurrect the (about-to-be-torn-down)
-     * {@link #metadataSyncScheduler}. Reset to false when a fresh executor is (re)created for a
-     * Spring context restart in the same JVM.
-     */
-    private static volatile boolean uploadSubsystemShuttingDown = false;
-
-    /** Returns the shared upload executor, (re)creating it if absent or already shut down. */
-    private static synchronized ThreadPoolExecutor sharedUploadExecutor() {
-        if (sharedUploadExecutor == null || sharedUploadExecutor.isShutdown()) {
-            // A fresh executor means a new lifecycle (e.g. context restart) — reopen the gate.
-            uploadSubsystemShuttingDown = false;
-            sharedUploadExecutor = new ThreadPoolExecutor(
-                    ASYNC_UPLOAD_THREADS,
-                    ASYNC_UPLOAD_THREADS,
-                    60L,
-                    TimeUnit.SECONDS,
-                    new ArrayBlockingQueue<>(ASYNC_UPLOAD_QUEUE_CAPACITY),
-                    newUploadThreadFactory(),
-                    new ThreadPoolExecutor.AbortPolicy());
-        }
-        return sharedUploadExecutor;
-    }
 
     // -----------------------------------------------------------------------
     // Metadata-sync debounce
@@ -198,36 +167,11 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     static final long DEFAULT_METADATA_SYNC_DEBOUNCE_MS = 1_000L;
 
     /**
-     * Single shared scheduler for trailing (deferred) metadata syncs. Not {@code final}: like the
-     * upload executor it is recreated on demand after {@link #shutdownSharedUploadExecutor} clears
-     * it, so a Spring context restart in the same JVM gets a live scheduler. Otherwise every
-     * post-restart trailing sync would be rejected and fall back to an inline publish (a checkpoint
-     * per SST), defeating debouncing exactly when a burst is most likely.
+     * Scheduler for trailing (deferred) metadata syncs and purge/delete retries. Owned by this
+     * listener and shut down by {@link #close()}; a schedule after that throws
+     * {@link RejectedExecutionException}, which every call site handles.
      */
-    private static ScheduledExecutorService metadataSyncScheduler;
-
-    /**
-     * Returns the metadata-sync scheduler, (re)creating it if absent or already shut down.
-     *
-     * <p>During upload-subsystem shutdown it must NOT resurrect the scheduler — otherwise an
-     * in-flight upload task draining after {@link #shutdownSharedUploadExecutor} tore the scheduler
-     * down would create a brand-new one and schedule a trailing sync that fires after provider
-     * teardown, leaking the scheduler across a context stop/start. Returns the current field
-     * (possibly {@code null}) in that case; callers must tolerate a {@code null}.
-     */
-    private static synchronized ScheduledExecutorService metadataSyncScheduler() {
-        if (uploadSubsystemShuttingDown) {
-            return metadataSyncScheduler;
-        }
-        if (metadataSyncScheduler == null || metadataSyncScheduler.isShutdown()) {
-            metadataSyncScheduler = Executors.newScheduledThreadPool(1, r -> {
-                Thread t = new Thread(r, "cloud-metadata-sync");
-                t.setDaemon(true);
-                return t;
-            });
-        }
-        return metadataSyncScheduler;
-    }
+    private final ScheduledExecutorService metadataSyncScheduler;
 
     /** Effective debounce window; overridable in tests.
      * -- SETTER --
@@ -333,7 +277,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      * @param readMissGuardWindowMs guard window in ms for repeated read-miss hydration attempts
      *                              for the same db/table pair (cloud.storage.read-miss-guard-window-ms)
      * @param retryQueue optional {@link CloudUploadRetryQueue}; when non-null, upload failures
-     *                   are retried asynchronously and eventually moved to the dead-letter queue.
+     *                   are retried asynchronously and eventually given up on.
      *                   Pass {@code null} to disable retries (failures are only logged).
      * @param syncTracker tracks SST files confirmed present in cloud; the delete guard uses it
      *                    to avoid deleting a superseded object before replacements are durable.
@@ -382,16 +326,39 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         this.retryQueue = retryQueue;
         this.syncTracker = syncTracker != null ? syncTracker : new CloudSyncTracker();
         this.storeScopePrefix = normaliseKeyPrefix(storeScopePrefix);
-        this.uploadExecutor = sharedUploadExecutor();
+        this.uploadExecutor = new ThreadPoolExecutor(
+                ASYNC_UPLOAD_THREADS,
+                ASYNC_UPLOAD_THREADS,
+                60L,
+                TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(ASYNC_UPLOAD_QUEUE_CAPACITY),
+                newUploadThreadFactory(),
+                new ThreadPoolExecutor.AbortPolicy());
+        this.metadataSyncScheduler = Executors.newScheduledThreadPool(1, r -> {
+            Thread t = new Thread(r, "cloud-metadata-sync");
+            t.setDaemon(true);
+            return t;
+        });
         this.metadataSyncDebounceMs = metadataSyncDebounceMs;
         this.metadataSyncMaxUnpublished = metadataSyncMaxUnpublished;
 
         // A crash may leave local pending-delete markers whose remote cleanup never completed.
         // Kick off bounded async retries for each so stale remote data is eventually purged even if
         // the affected DB is never re-opened (an open would otherwise be the only trigger).
-        processPendingDeleteMarkersOnStartup();
+        scanMarkers(pendingDeleteDir(), (db, prefix) -> {
+            log.warn("Cloud startup: found pending remote-delete marker for prefix={} — "
+                     + "scheduling deferred purge to prevent stale-data re-hydration.", prefix);
+            scheduleDeletePurgeRetry(db, prefix, 1);
+        });
         // Truncate purge intent is also crash-durable via local markers.
-        processPendingTruncateMarkersOnStartup();
+        scanMarkers(pendingTruncateDir(), (db, prefix) -> {
+            log.warn("Cloud startup: found pending truncate marker for prefix={} — scheduling "
+                     + "deferred purge retry.", prefix);
+            scheduleTruncatePurgeRetry(db, prefix);
+        });
+        // Upload intent is not persisted across restarts, so any staging pin left by the previous
+        // process is orphaned; the live SSTs it pinned are re-uploaded by startup backfill.
+        sweepStagingDirsOnStartup();
     }
 
     private static ThreadFactory newUploadThreadFactory() {
@@ -402,55 +369,44 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         };
     }
 
+    /** Shuts down this listener's executors, waiting up to 10s for in-flight uploads. */
+    @Override
+    public void close() {
+        close(10, TimeUnit.SECONDS);
+    }
+
     /**
-     * Shuts down the shared SST upload executor, waiting up to {@code timeout} for in-flight
-     * uploads to complete. Called from {@link org.apache.hugegraph.store.node.AppConfig#onDestroy()}
-     * so uploads started before shutdown have a chance to finish before the JVM exits.
+     * Shuts down the SST upload executor, waiting up to {@code timeout} for in-flight uploads to
+     * complete, then the metadata-sync scheduler. Called from
+     * {@link org.apache.hugegraph.store.node.AppConfig#onDestroy()} after the listener has been
+     * deregistered, so uploads started before shutdown have a chance to finish.
      */
-    public static void shutdownSharedUploadExecutor(long timeout,
-                                                    java.util.concurrent.TimeUnit unit) {
-        ThreadPoolExecutor executor;
-        synchronized (CloudStorageEventListener.class) {
-            // Raise the gate BEFORE draining: in-flight upload tasks that finish during the drain
-            // call requestDebouncedMetadataSync(), which now short-circuits so it cannot resurrect
-            // the metadata-sync scheduler we are about to tear down.
-            uploadSubsystemShuttingDown = true;
-            executor = sharedUploadExecutor;
-            // Clear the executor field so a later listener construction (Spring context restart in
-            // the same JVM) lazily recreates a live instance rather than reusing a terminated one.
-            sharedUploadExecutor = null;
-        }
-        // Drain the upload executor FIRST, while the metadata-sync scheduler is still alive (so any
-        // inline metadata publish an in-flight task performs can still run). The gate prevents new
-        // trailing syncs from being scheduled.
-        if (executor != null) {
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(timeout, unit)) {
-                    log.warn("CloudStorageEventListener: shared upload executor did not terminate "
-                             + "within {}{}; forcing shutdown", timeout, unit);
-                    handoffDroppedUploadTasks(executor.shutdownNow());
-                }
-            } catch (InterruptedException e) {
-                handoffDroppedUploadTasks(executor.shutdownNow());
-                Thread.currentThread().interrupt();
+    void close(long timeout, TimeUnit unit) {
+        // Drain the upload executor FIRST, while the scheduler is still alive, so trailing syncs
+        // requested by in-flight uploads can still be scheduled.
+        uploadExecutor.shutdown();
+        try {
+            if (!uploadExecutor.awaitTermination(timeout, unit)) {
+                log.warn("CloudStorageEventListener: upload executor did not terminate within "
+                         + "{}{}; forcing shutdown", timeout, unit);
+                handoffDroppedUploadTasks(uploadExecutor.shutdownNow());
             }
+        } catch (InterruptedException e) {
+            handoffDroppedUploadTasks(uploadExecutor.shutdownNow());
+            Thread.currentThread().interrupt();
         }
-        // Only AFTER the upload executor has fully drained do we tear down the metadata-sync
-        // scheduler — no in-flight upload task can recreate it now (executor is terminated and the
-        // gate is up).
-        ScheduledExecutorService scheduler;
-        synchronized (CloudStorageEventListener.class) {
-            scheduler = metadataSyncScheduler;
-            metadataSyncScheduler = null;
-        }
-        if (scheduler != null) {
-            scheduler.shutdownNow();
+        metadataSyncScheduler.shutdownNow();
+        // shutdownNow() discards trailing syncs still waiting out their debounce window. Publish
+        // them inline so uploads that completed during the drain are referenced by the mirrored
+        // CURRENT/MANIFEST. Later requests (e.g. retry-queue completions) hit the
+        // RejectedExecutionException fallback in requestDebouncedMetadataSync and publish inline.
+        for (String dbName : new ArrayList<>(pendingMetadataSync)) {
+            runTrailingMetadataSync(dbName);
         }
     }
 
     /**
-     * Routes upload tasks discarded by a forced {@code shutdownNow()} into their retry queue / DLQ
+     * Routes upload tasks discarded by a forced {@code shutdownNow()} into their retry queue
      * so an SST accepted locally but never mirrored is not silently lost from the durability
      * pipeline. Only {@link SstUploadTask}s carry the metadata needed for handoff; any other
      * runnable (there should be none) is ignored.
@@ -466,13 +422,13 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                     ((SstUploadTask) r).handoffOnShutdown();
                     handed++;
                 } catch (Exception e) {
-                    log.warn("Failed to hand off a dropped upload task to retry/DLQ: {}",
+                    log.warn("Failed to hand off a dropped upload task to the retry queue: {}",
                              e.getMessage());
                 }
             }
         }
         if (handed > 0) {
-            log.warn("CloudStorageEventListener: handed off {} queued upload task(s) to retry/DLQ "
+            log.warn("CloudStorageEventListener: handed off {} queued upload task(s) to the retry queue "
                      + "during shutdown so their upload intent survives.", handed);
         }
     }
@@ -675,7 +631,10 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         // persistence failure we flip the health signal to degraded and HOLD delete progression
         // (throw) rather than proceeding unguarded — the caller can retry once local storage recovers.
         try {
-            writePendingDeleteMarker(dbName, prefix);
+            writeMarker(pendingDeleteDir(), prefix);
+            deleteMarkerHealthy = true;
+            log.debug("Cloud pending-delete marker persisted (fsync'd): db={}, prefix={}",
+                      dbName, prefix);
         } catch (IOException e) {
             deleteMarkerHealthy = false;
             log.error("Cloud pending-delete marker could not be durably persisted for db={} "
@@ -693,7 +652,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         Path tmp = null;
         try {
             tmp = Files.createTempFile("hgstore-tombstone-", ".tmp");
-            Files.write(tmp, "deleted".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Files.writeString(tmp, "deleted");
             provider.uploadFile(tmp.toString(), tombstoneKey);
             log.info("Cloud DB tombstone written: db={}, key={}", dbName, tombstoneKey);
         } catch (Exception e) {
@@ -745,7 +704,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         if (purgeSucceeded) {
             // Remote data is gone: drop the sibling tombstone and the local marker (cleanup done).
             deleteTombstoneBestEffort(provider, dbName, prefix);
-            removePendingDeleteMarker(prefix);
+            removeMarker(pendingDeleteDir(), prefix);
         } else {
             // Purge failed: stale SST objects may remain. Keep the tombstone AND the local marker so
             // a future onDBOpening still blocks re-hydration, and retry the purge (bounded) — same
@@ -795,7 +754,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         try {
             String prefix = dbPrefix(dbPath);
             try {
-                writePendingTruncateMarker(dbName, prefix);
+                writeMarker(pendingTruncateDir(), prefix);
+                log.debug("Cloud pending-truncate marker persisted (fsync'd): db={}, prefix={}",
+                          dbName, prefix);
             } catch (IOException e) {
                 log.error("Cloud truncate marker persist failed for db={}, prefix={}: {} — "
                           + "remote purge intent is not crash-durable until the next successful "
@@ -804,7 +765,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
             }
             boolean purged = purgeRemotePrefix(provider, dbName, prefix);
             if (purged) {
-                removePendingTruncateMarker(prefix);
+                removeMarker(pendingTruncateDir(), prefix);
             }
             if (!purged) {
                 // Do NOT ignore a failed purge: stale remote SST/metadata still describe the
@@ -852,19 +813,10 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         long delay = Math.min(TRUNCATE_PURGE_RETRY_BASE_MS * (1L << exp), 8_000L);
         // Keep the grace window fresh so we do not mirror new metadata over the still-stale prefix.
         truncationTimes.put(dbName, System.currentTimeMillis());
-        ScheduledExecutorService scheduler = metadataSyncScheduler();
-        if (scheduler == null) {
-            // Upload subsystem is shutting down; the scheduler will not be resurrected. The remote
-            // prefix may retain stale objects — surface it rather than NPE on a null scheduler.
-            log.error("Cloud truncate purge retry for db={} cannot be scheduled (subsystem "
-                      + "shutting down) — remote prefix '{}' may retain stale objects.",
-                      dbName, prefix);
-            return;
-        }
         try {
-            scheduler.schedule(() -> {
+            metadataSyncScheduler.schedule(() -> {
                 if (purgeRemotePrefix(provider, dbName, prefix)) {
-                    removePendingTruncateMarker(prefix);
+                    removeMarker(pendingTruncateDir(), prefix);
                     log.info("Cloud truncate purge succeeded on retry for db={} (attempt {})",
                              dbName, attempt);
                 } else {
@@ -884,6 +836,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
 
     /** Local subdirectory of the primary data root holding pending-remote-delete markers. */
     static final String PENDING_DELETE_DIR = ".cloud-pending-delete";
+    /** Local subdirectory of each data root holding hard-linked SSTs awaiting async upload. */
+    static final String STAGING_DIR = ".cloud-upload-staging";
     /** Local subdirectory holding pending-remote-truncate purge markers. */
     static final String PENDING_TRUNCATE_DIR = ".cloud-pending-truncate";
     /** Max async retries for a failed delete purge before giving up (logging loudly). */
@@ -918,10 +872,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
             if (this == o) {
                 return true;
             }
-            if (!(o instanceof DeferredSstDelete)) {
+            if (!(o instanceof DeferredSstDelete that)) {
                 return false;
             }
-            DeferredSstDelete that = (DeferredSstDelete) o;
             return java.util.Objects.equals(this.dbName, that.dbName)
                    && java.util.Objects.equals(this.filePath, that.filePath);
         }
@@ -951,14 +904,11 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
 
     /**
      * Marker file path for a remote prefix. The remote prefix contains '/', so the filename is a
-     * URL-safe Base64 of the prefix — reversible (for the startup scan) and collision-free.
+     * URL-safe Base64 of the prefix — reversible (for the startup scan) and collision-free. The
+     * filename is the only payload; the marker file itself is empty.
      */
-    private Path pendingDeleteMarkerPath(String prefix) {
-        return pendingDeleteDir().resolve(encodeMarkerName(prefix));
-    }
-
-    private Path pendingTruncateMarkerPath(String prefix) {
-        return pendingTruncateDir().resolve(encodeMarkerName(prefix));
+    private static Path markerPath(Path dir, String prefix) {
+        return dir.resolve(encodeMarkerName(prefix));
     }
 
     private static String encodeMarkerName(String prefix) {
@@ -966,94 +916,61 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                     .encodeToString(prefix.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
-    /**
-     * Crash-safely persists a local pending-remote-delete marker for {@code prefix}. This is the
-     * durable anti-resurrection guard, so it is NOT best-effort: the marker file is written and
-     * fsynced, and the containing directory is fsynced so the new directory entry itself survives a
-     * crash. Throws {@link IOException} if durability cannot be guaranteed — the caller must then
-     * hold delete progression rather than proceed with an unguarded delete.
-     */
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void writePendingDeleteMarker(String dbName, String prefix) throws IOException {
-        Path dir = pendingDeleteDir();
-        Files.createDirectories(dir);
-        Path marker = pendingDeleteMarkerPath(prefix);
-        // Write + fsync the marker file so its bytes are on stable storage.
-        try (FileChannel ch = FileChannel.open(marker, StandardOpenOption.CREATE,
-                                               StandardOpenOption.WRITE,
-                                               StandardOpenOption.TRUNCATE_EXISTING)) {
-            ch.write(java.nio.ByteBuffer.wrap(
-                    prefix.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-            ch.force(true);
+    /** Decodes the marker filename (Base64 URL, no padding) back to the original remote prefix. */
+    private static String decodeMarkerName(String encoded) {
+        if (encoded == null || encoded.isEmpty()) {
+            return null;
         }
-        // fsync the directory so the new/renamed marker entry itself is durable (a file fsync does
-        // not guarantee the directory entry pointing at it survives a crash on many filesystems).
-        try (FileChannel dirCh = FileChannel.open(dir, StandardOpenOption.READ)) {
-            dirCh.force(true);
-        } catch (IOException e) {
-            // Windows rejects directory-handle fsync; elsewhere treat it as a real durability error.
-            if (WINDOWS_OS) {
-                log.debug("Directory fsync of {} not supported on this platform: {}",
-                          dir, e.getMessage());
-            } else {
-                throw e;
-            }
-        }
-        deleteMarkerHealthy = true;
-        log.debug("Cloud pending-delete marker persisted (fsync'd): db={}, prefix={}", dbName, prefix);
-    }
-
-    /**
-     * Crash-safely persists a local pending-truncate marker for {@code prefix}. This keeps remote
-     * truncate-purge intent durable across process restarts until the remote purge succeeds.
-     */
-    @SuppressWarnings("ResultOfMethodCallIgnored")
-    private void writePendingTruncateMarker(String dbName, String prefix) throws IOException {
-        Path dir = pendingTruncateDir();
-        Files.createDirectories(dir);
-        Path marker = pendingTruncateMarkerPath(prefix);
-        try (FileChannel ch = FileChannel.open(marker, StandardOpenOption.CREATE,
-                                               StandardOpenOption.WRITE,
-                                               StandardOpenOption.TRUNCATE_EXISTING)) {
-            ch.write(java.nio.ByteBuffer.wrap(
-                    prefix.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-            ch.force(true);
-        }
-        try (FileChannel dirCh = FileChannel.open(dir, StandardOpenOption.READ)) {
-            dirCh.force(true);
-        } catch (IOException e) {
-            if (WINDOWS_OS) {
-                log.debug("Directory fsync of {} not supported on this platform: {}",
-                          dir, e.getMessage());
-            } else {
-                throw e;
-            }
-        }
-        log.debug("Cloud pending-truncate marker persisted (fsync'd): db={}, prefix={}",
-                  dbName, prefix);
-    }
-
-    private void removePendingDeleteMarker(String prefix) {
         try {
-            Files.deleteIfExists(pendingDeleteMarkerPath(prefix));
+            byte[] bytes = java.util.Base64.getUrlDecoder().decode(encoded);
+            return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Crash-safely persists an empty marker for {@code prefix} under {@code dir}. Pending-delete
+     * markers are the durable anti-resurrection guard, so this is NOT best-effort: the marker file
+     * is created and fsynced, and the containing directory is fsynced so the new directory entry
+     * itself survives a crash. Throws {@link IOException} if durability cannot be guaranteed.
+     */
+    private static void writeMarker(Path dir, String prefix) throws IOException {
+        Files.createDirectories(dir);
+        // TRUNCATE_EXISTING drops the payload of markers written by older versions.
+        try (FileChannel ch = FileChannel.open(markerPath(dir, prefix),
+                                               StandardOpenOption.CREATE,
+                                               StandardOpenOption.WRITE,
+                                               StandardOpenOption.TRUNCATE_EXISTING)) {
+            ch.force(true);
+        }
+        // fsync the directory so the new marker entry itself is durable (a file fsync does not
+        // guarantee the directory entry pointing at it survives a crash on many filesystems).
+        try (FileChannel dirCh = FileChannel.open(dir, StandardOpenOption.READ)) {
+            dirCh.force(true);
         } catch (IOException e) {
-            log.debug("Failed to remove pending-delete marker for prefix={}: {}",
-                      prefix, e.getMessage());
+            // Windows rejects directory-handle fsync; elsewhere it is a real durability error.
+            if (WINDOWS_OS) {
+                log.debug("Directory fsync of {} not supported on this platform: {}",
+                          dir, e.getMessage());
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    private static void removeMarker(Path dir, String prefix) {
+        try {
+            Files.deleteIfExists(markerPath(dir, prefix));
+        } catch (IOException e) {
+            log.debug("Failed to remove marker in {} for prefix={}: {}",
+                      dir, prefix, e.getMessage());
         }
     }
 
     /** Whether a local pending-remote-delete marker exists for {@code prefix}. */
     boolean hasPendingDeleteMarker(String prefix) {
-        return Files.exists(pendingDeleteMarkerPath(prefix));
-    }
-
-    private void removePendingTruncateMarker(String prefix) {
-        try {
-            Files.deleteIfExists(pendingTruncateMarkerPath(prefix));
-        } catch (IOException e) {
-            log.debug("Failed to remove pending-truncate marker for prefix={}: {}",
-                      prefix, e.getMessage());
-        }
+        return Files.exists(markerPath(pendingDeleteDir(), prefix));
     }
 
     /**
@@ -1077,7 +994,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
             ensureTombstonePresent(provider, dbName, prefix);
             if (purgeRemotePrefix(provider, dbName, prefix)) {
                 deleteTombstoneBestEffort(provider, dbName, prefix);
-                removePendingDeleteMarker(prefix);
+                removeMarker(pendingDeleteDir(), prefix);
                 pendingDeleteLocks.remove(prefix);
                 log.info("Cloud pending-delete cleanup completed for db={} (prefix={})",
                          dbName, prefix);
@@ -1103,15 +1020,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
             return;
         }
         long delay = Math.min(DELETE_PURGE_RETRY_BASE_MS * (1L << (attempt - 1)), 8_000L);
-        ScheduledExecutorService scheduler = metadataSyncScheduler();
-        if (scheduler == null) {
-            log.error("Cloud DB delete purge retry for db={} cannot be scheduled (subsystem shutting "
-                      + "down) — local marker preserved; remote prefix '{}' may retain stale "
-                      + "objects until next startup.", dbName, prefix);
-            return;
-        }
         try {
-            scheduler.schedule(() -> {
+            metadataSyncScheduler.schedule(() -> {
                 // tryCompletePendingDelete is a no-op (returns true) if the marker was already
                 // cleared (e.g. by an inline open-time cleanup), so the retry never purges a prefix
                 // a re-created DB may have taken over.
@@ -1135,7 +1045,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                 return;
             }
             tmp = Files.createTempFile("hgstore-tombstone-", ".tmp");
-            Files.write(tmp, "deleted".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Files.writeString(tmp, "deleted");
             provider.uploadFile(tmp.toString(), tombstoneKey);
             log.info("Cloud DB tombstone written (deferred): db={}, key={}", dbName, tombstoneKey);
         } catch (Exception e) {
@@ -1152,102 +1062,68 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         }
     }
 
-    /** On startup, schedule a bounded purge retry for each leftover pending-delete marker. */
-    private void processPendingDeleteMarkersOnStartup() {
-        Path dir = pendingDeleteDir();
+    /** Deletes staging hard-links left in every data root by a previous process. */
+    private void sweepStagingDirsOnStartup() {
+        for (String root : allDataRoots) {
+            Path dir = Paths.get(root, STAGING_DIR);
+            if (!Files.isDirectory(dir)) {
+                continue;
+            }
+            int removed = 0;
+            try (Stream<Path> pins = Files.list(dir)) {
+                for (Path pin : (Iterable<Path>) pins::iterator) {
+                    try {
+                        if (Files.deleteIfExists(pin)) {
+                            removed++;
+                        }
+                    } catch (IOException e) {
+                        log.warn("Failed to delete orphaned staging file {}: {}", pin,
+                                 e.getMessage());
+                    }
+                }
+            } catch (IOException e) {
+                log.warn("Failed to scan staging dir {}: {}", dir, e.getMessage());
+            }
+            if (removed > 0) {
+                log.info("Cloud startup: removed {} orphaned staging file(s) from {}", removed, dir);
+            }
+        }
+    }
+
+    /**
+     * Scans {@code dir} for markers left by a previous process and calls {@code onMarker} with
+     * (inferred dbName, prefix) for each valid one. Markers whose name does not decode or whose
+     * prefix is out of this listener's scope are logged and left in place for operator inspection.
+     */
+    private void scanMarkers(Path dir, BiConsumer<String, String> onMarker) {
         if (!Files.isDirectory(dir)) {
             return;
         }
         try (Stream<Path> markers = Files.list(dir)) {
             markers.forEach(marker -> {
-                String encoded = marker.getFileName() == null ? "" : marker.getFileName().toString();
-                String prefix;
-                try {
-                    prefix = Files.readString(marker).trim();
-                } catch (IOException e) {
-                    log.warn("Failed to read pending-delete marker {}: {}", marker, e.getMessage());
+                Path fileName = marker.getFileName();
+                String prefix = fileName == null ? null : decodeMarkerName(fileName.toString());
+                if (prefix == null) {
+                    log.error("Cloud startup: ignoring marker {} with undecodable name", marker);
                     return;
                 }
-                if (prefix.isEmpty()) {
+                if (isMarkerPrefixOutOfScope(prefix)) {
+                    log.error("Cloud startup: ignoring out-of-scope marker {} for prefix='{}'",
+                              marker, prefix);
                     return;
                 }
-                String decoded = decodePendingDeleteMarkerName(encoded);
-                if (decoded == null || !decoded.equals(prefix)) {
-                    log.error("Cloud startup: ignoring invalid pending-delete marker {} (payload does "
-                              + "not match encoded prefix)", marker);
-                    return;
-                }
-                if (isPendingDeletePrefixInScope(prefix)) {
-                    log.error("Cloud startup: ignoring out-of-scope pending-delete marker {} for "
-                              + "prefix='{}'", marker, prefix);
-                    return;
-                }
-                String inferredDbName = inferDbNameFromPrefix(prefix);
-                log.warn("Cloud startup: found pending remote-delete marker for prefix={} — "
-                         + "scheduling deferred purge to prevent stale-data re-hydration.", prefix);
-                scheduleDeletePurgeRetry(inferredDbName, prefix, 1);
+                onMarker.accept(inferDbNameFromPrefix(prefix), prefix);
             });
         } catch (IOException e) {
-            log.warn("Failed to scan pending-delete markers in {}: {}", dir, e.getMessage());
+            log.warn("Failed to scan markers in {}: {}", dir, e.getMessage());
         }
     }
 
-    /** On startup, schedule retries for leftover pending-truncate markers. */
-    private void processPendingTruncateMarkersOnStartup() {
-        Path dir = pendingTruncateDir();
-        if (!Files.isDirectory(dir)) {
-            return;
-        }
-        try (Stream<Path> markers = Files.list(dir)) {
-            markers.forEach(marker -> {
-                String encoded = marker.getFileName() == null ? "" : marker.getFileName().toString();
-                String prefix;
-                try {
-                    prefix = Files.readString(marker).trim();
-                } catch (IOException e) {
-                    log.warn("Failed to read pending-truncate marker {}: {}",
-                             marker, e.getMessage());
-                    return;
-                }
-                if (prefix.isEmpty()) {
-                    return;
-                }
-                String decoded = decodePendingDeleteMarkerName(encoded);
-                if (decoded == null || !decoded.equals(prefix)) {
-                    log.error("Cloud startup: ignoring invalid pending-truncate marker {} "
-                              + "(payload does not match encoded prefix)", marker);
-                    return;
-                }
-                if (isPendingDeletePrefixInScope(prefix)) {
-                    log.error("Cloud startup: ignoring out-of-scope pending-truncate marker {} "
-                              + "for prefix='{}'", marker, prefix);
-                    return;
-                }
-                String inferredDbName = inferDbNameFromPrefix(prefix);
-                log.warn("Cloud startup: found pending truncate marker for prefix={} — scheduling "
-                         + "deferred purge retry.", prefix);
-                scheduleTruncatePurgeRetry(inferredDbName, prefix);
-            });
-        } catch (IOException e) {
-            log.warn("Failed to scan pending-truncate markers in {}: {}", dir, e.getMessage());
-        }
-    }
-
-    /** Decodes the marker filename (Base64 URL, no padding) back to the original remote prefix. */
-    private static String decodePendingDeleteMarkerName(String encoded) {
-        if (encoded == null || encoded.isEmpty()) {
-            return null;
-        }
-        try {
-            byte[] bytes = java.util.Base64.getUrlDecoder().decode(encoded);
-            return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
-    /** Validates that a pending-delete prefix is relative, normalized, and in this listener's scope. */
-    private boolean isPendingDeletePrefixInScope(String prefix) {
+    /**
+     * Returns {@code true} if a marker prefix must be rejected: empty, absolute, not normalized, or
+     * outside this listener's store scope.
+     */
+    private boolean isMarkerPrefixOutOfScope(String prefix) {
         if (prefix == null || prefix.isEmpty()) {
             return true;
         }
@@ -1459,9 +1335,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
 
     /**
      * A single asynchronous SST upload, as a typed {@link Runnable} rather than a lambda so that a
-     * forced {@code shutdownNow()} of the shared upload executor returns the actual task objects
+     * forced {@code shutdownNow()} of the upload executor returns the actual task objects
      * (a {@link ThreadPoolExecutor} returns the exact runnables it had queued). {@link
-     * #handoffOnShutdown()} then routes any never-run task into the retry queue / DLQ so an SST that
+     * #handoffOnShutdown()} then routes any never-run task into the retry queue so an SST that
      * was accepted locally but not yet mirrored is not silently dropped from the durability
      * pipeline. {@code run()} preserves the original inline behaviour exactly.
      */
@@ -1492,7 +1368,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         public void run() {
             long startTimeMs = System.currentTimeMillis();
             // When the upload fails and is handed to the retry queue, OWNERSHIP of the pinned
-            // hard-link transfers to the retry/DLQ lifecycle — it must NOT be deleted here, or a
+            // hard-link transfers to the retry queue lifecycle — it must NOT be deleted here, or a
             // retry firing after RocksDB has compacted away the original SST would find no source
             // and be silently dropped (retry intent lost). We only delete the pin when we still
             // own it (successful upload, or no retry queue to hand off to).
@@ -1519,9 +1395,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                     }
                     return;
                 }
-                // ---- Post-upload: the upload SUCCEEDED. Errors below (e.g. a null metadata-sync
-                // scheduler during a shutdown race) must NOT be reclassified as an upload failure
-                // and re-uploaded/DLQ'd; the SST is already durable in cloud. ----
+                // ---- Post-upload: the upload SUCCEEDED. Errors below (e.g. an inline metadata
+                // publish failing during shutdown) must NOT be reclassified as an upload failure
+                // and re-uploaded or given up on; the SST is already durable in cloud. ----
                 syncTracker.markConfirmedIfEpoch(dbName, filePath, uploadEpoch);
                 long syncLatencyMs = System.currentTimeMillis() - startTimeMs;
                 CloudStorageMetrics.recordSyncLatency(dbName, syncLatencyMs);
@@ -1552,7 +1428,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         /**
          * Called for a task that was queued but never ran because the executor was force-stopped at
          * shutdown. Hands the still-pinned file to the retry queue so its upload intent survives:
-         * the pin is kept alive (not deleted) so the retry/DLQ can upload it even if RocksDB has
+         * the pin is kept alive (not deleted) so the retry queue can upload it even if RocksDB has
          * since compacted the original SST away.
          */
         void handoffOnShutdown() {
@@ -1565,7 +1441,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
                 }
                 return;
             }
-            log.warn("Cloud upload task not executed before shutdown; handing off to retry/DLQ: "
+            log.warn("Cloud upload task not executed before shutdown; handing off to retry queue: "
                      + "db={}, cf={}, path={}", dbName, cfName, filePath);
             retryQueue.submitPinned(dbName, cfName, pinned.toString(), filePath, remoteKey,
                                     uploadEpoch,
@@ -1592,7 +1468,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         // Use the staging dir that lives on the same filesystem as the source SST to avoid
         // cross-device hard-link failures in multi-disk deployments.
         String matchingRoot = findMatchingDataRoot(source.toAbsolutePath().normalize().toString());
-        Path stagingDir = Paths.get(matchingRoot, ".cloud-upload-staging");
+        Path stagingDir = Paths.get(matchingRoot, STAGING_DIR);
         Files.createDirectories(stagingDir);
         String fileName = source.getFileName().toString();
         Path staged = stagingDir.resolve(fileName + ".upload-" + System.nanoTime());
@@ -1699,18 +1575,12 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
         if (deferredSstDeletes.isEmpty()) {
             return;
         }
-        ScheduledExecutorService scheduler = metadataSyncScheduler();
-        if (scheduler == null) {
-            log.debug("Deferred cloud-delete retry cannot be scheduled (subsystem shutting down); "
-                      + "{} pending delete(s) remain deferred", deferredSstDeletes.size());
-            return;
-        }
         if (!deferredSstDeleteRetryScheduled.compareAndSet(false, true)) {
             return;
         }
         long safeDelay = Math.max(0L, delayMs);
         try {
-            scheduler.schedule(() -> {
+            metadataSyncScheduler.schedule(() -> {
                 deferredSstDeleteRetryScheduled.set(false);
                 retryDeferredSstDeletes();
             }, safeDelay, TimeUnit.MILLISECONDS);
@@ -1941,20 +1811,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
      * {@link #syncMetadataSnapshotInline} directly and are intentionally not routed through here.
      */
     void requestDebouncedMetadataSync(CloudStorageProvider provider, String dbName) {
-        if (uploadSubsystemShuttingDown) {
-            // Shutdown in progress: the debounce scheduler is being torn down and must NOT be
-            // resurrected. But an upload that completed during the drain still has to advance
-            // CURRENT/MANIFEST — otherwise the SST is durable in cloud yet unreferenced by a stale
-            // pointer, and a post-restart recovery (after local disk loss) would miss it. Publish
-            // the final metadata state INLINE (no scheduler) so uploads that finish during shutdown
-            // are reflected in the mirrored recovery point. The listener has already been removed
-            // from RocksDBFactory at this point, so no alternative event path would publish it.
-            if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
-                return;
-            }
-            syncMetadataSnapshotInline(provider, dbName);
-            return;
-        }
         if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
             return;
         }
@@ -2008,18 +1864,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
             return; // a trailing sync is already scheduled for this DB
         }
         long delay = Math.max(0L, metadataSyncDebounceMs - (now - last));
-        ScheduledExecutorService scheduler = metadataSyncScheduler();
-        if (scheduler == null) {
-            // metadataSyncScheduler() legally returns null once shutdown has begun (the gate flipped
-            // between our entry check and here). Do NOT call schedule() on null — that NPE would
-            // propagate to the caller (e.g. SstUploadTask.run) and be misclassified as an UPLOAD
-            // failure, wrongly retrying/DLQ'ing a successful upload. The final metadata state is
-            // published by the direct-sync callers during shutdown, so skip the trailing sync.
-            pendingMetadataSync.remove(dbName);
-            return;
-        }
         try {
-            scheduler.schedule(() -> runTrailingMetadataSync(dbName),
+            metadataSyncScheduler.schedule(() -> runTrailingMetadataSync(dbName),
                                delay, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
             // Scheduler shutting down: don't drop the sync — run it inline now.
@@ -2030,22 +1876,21 @@ public class CloudStorageEventListener implements RocksdbChangedListener {
     }
 
     /**
-     * Trigger invoked by {@link CloudUploadRetryQueue} after an upload becomes durable via retry or
-     * DLQ replay. Publishes CURRENT/MANIFEST (debounced) so the mirrored recovery point advances
+     * Trigger invoked by {@link CloudUploadRetryQueue} after an upload becomes durable via retry.
+     * Publishes CURRENT/MANIFEST (debounced) so the mirrored recovery point advances
      * even when the retry succeeded during an otherwise-quiet period on an idle DB — without this,
      * cloud could hold the SST but keep exposing a stale CURRENT. Runs on the retry-queue thread.
      */
     public void onRetryUploadDurable(String dbName) {
-        // During shutdown the retry queue is closed AFTER the upload executor drains and BEFORE the
-        // provider is closed, so a retry that becomes durable in that window must still advance the
-        // pointer. requestDebouncedMetadataSync now publishes inline (no scheduler resurrection) when
-        // shutting down, so we route through it unconditionally rather than dropping the sync here.
+        // During shutdown the retry queue is closed AFTER this listener and BEFORE the provider, so
+        // a retry that becomes durable in that window must still advance the pointer. Once the
+        // scheduler is shut down, requestDebouncedMetadataSync falls back to an inline publish.
         requestDebouncedMetadataSync(provider, dbName);
         // A newly durable upload may unblock one or more deferred superseded-SST deletes.
         scheduleDeferredSstDeleteRetry(0L);
     }
 
-    /** Trailing (deferred) metadata sync body; runs on {@link #metadataSyncScheduler()}. */
+    /** Trailing (deferred) metadata sync body; runs on {@link #metadataSyncScheduler}. */
     private void runTrailingMetadataSync(String dbName) {
         pendingMetadataSync.remove(dbName);
         if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {

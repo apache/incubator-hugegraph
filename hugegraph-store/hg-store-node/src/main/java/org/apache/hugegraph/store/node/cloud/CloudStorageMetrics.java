@@ -22,10 +22,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntSupplier;
+import java.util.function.LongSupplier;
 
 import org.apache.hugegraph.store.node.util.HgAssert;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -64,9 +66,9 @@ public final class CloudStorageMetrics {
     // volatile so the gauge (read on scrape threads) sees the binding published by startup wiring.
     private static volatile IntSupplier retryQueueSizeSupplier = () -> 0;
 
-    // Live source for the DLQ_PERSISTENCE_HEALTHY gauge (1 = healthy, 0 = degraded). Bound to the
-    // retry queue via bindDlqPersistenceHealthySupplier once it is constructed; until then reports 1.
-    private static volatile IntSupplier dlqPersistenceHealthySupplier = () -> 1;
+    // Live source for the UPLOADS_GIVEN_UP counter. Bound to the retry queue via
+    // bindUploadsGivenUpSupplier once it is constructed; until then the counter reports 0.
+    private static volatile LongSupplier uploadsGivenUpSupplier = () -> 0L;
 
     // Live source for the DELETE_MARKER_HEALTHY gauge (1 = healthy, 0 = degraded). Bound to the
     // listener via bindDeleteMarkerHealthySupplier once it is constructed; until then reports 1.
@@ -108,12 +110,10 @@ public final class CloudStorageMetrics {
                 .description("Number of files waiting in the upload retry queue")
                 .register(registry);
 
-        // DLQ on-disk persistence health: 1 = healthy, 0 = degraded (a DLQ append/rewrite failed,
-        // so retry intent may not survive a crash). Bound to the live queue via
-        // bindDlqPersistenceHealthySupplier; defaults to 1 until then.
-        Gauge.builder(CloudStorageMetricsConst.DLQ_PERSISTENCE_HEALTHY,
-                      () -> dlqPersistenceHealthySupplier.getAsInt())
-                .description("DLQ on-disk persistence health (1=healthy, 0=degraded)")
+        // Uploads the retry queue gave up on (retries exhausted, non-retryable, or shutdown).
+        FunctionCounter.builder(CloudStorageMetricsConst.UPLOADS_GIVEN_UP, uploadsGivenUpSupplier,
+                                s -> uploadsGivenUpSupplier.getAsLong())
+                .description("Number of SST uploads the retry queue gave up on")
                 .register(registry);
 
         // Pending-delete marker persistence health: 1 = healthy, 0 = degraded (a marker could not be
@@ -251,20 +251,20 @@ public final class CloudStorageMetrics {
     }
 
     /**
+     * Binds the UPLOADS_GIVEN_UP counter to a live source (e.g.
+     * {@code retryQueue::getGivenUpCount}). Polled on every scrape. Call once during startup after
+     * the retry queue is constructed.
+     */
+    public static void bindUploadsGivenUpSupplier(final LongSupplier supplier) {
+        uploadsGivenUpSupplier = (supplier != null) ? supplier : () -> 0L;
+    }
+
+    /**
      * Sets a fixed retry-queue-size value for the gauge. Prefer {@link #bindRetryQueueSizeSupplier}
      * to track a live queue; this push-style setter is retained for tests and manual overrides.
      */
     public static void setRetryQueueSize(final int size) {
         retryQueueSizeSupplier = () -> size;
-    }
-
-    /**
-     * Binds the DLQ_PERSISTENCE_HEALTHY gauge to a live source (e.g.
-     * {@code () -> retryQueue.isDlqPersistenceHealthy() ? 1 : 0}). Polled on every scrape. Call once
-     * during startup after the retry queue is constructed.
-     */
-    public static void bindDlqPersistenceHealthySupplier(final IntSupplier supplier) {
-        dlqPersistenceHealthySupplier = (supplier != null) ? supplier : () -> 1;
     }
 
     /**

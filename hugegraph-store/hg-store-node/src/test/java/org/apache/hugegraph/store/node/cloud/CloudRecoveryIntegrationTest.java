@@ -62,9 +62,9 @@ import org.junit.jupiter.api.Test;
  * <ul>
  *   <li>{@link #testReopenAfterLocalDiskLossRecoversDataFromCloud} — flushed-SST disk-loss recovery
  *       (was {@code CloudDiskLossRecoveryIntegrationTest}).</li>
- *   <li>{@link #testInjectedProviderFailureAcrossRealRocksDbCallbackKeepsSessionStableAndRoutesToDlq}
- *       — real RocksDB JNI callback failure routes to the DLQ and keeps the session stable (was
- *       {@code RocksDBCallbackJniBoundaryIntegrationTest}).</li>
+ *   <li>{@link #testInjectedProviderFailureAcrossRealRocksDbCallbackKeepsSessionStableAndGivesUp}
+ *       — real RocksDB JNI callback failure is given up on by the retry queue and keeps the
+ *       session stable (was {@code RocksDBCallbackJniBoundaryIntegrationTest}).</li>
  * </ul>
  *
  * <p>Mock-driven callback-path edge cases live in the unit suites, while this class keeps the
@@ -188,16 +188,16 @@ public class CloudRecoveryIntegrationTest {
     }
 
     // =========================================================================
-    // Real RocksDB JNI callback: failure routes to DLQ, session stays stable
+    // Real RocksDB JNI callback: failure is given up on, session stays stable
     // =========================================================================
 
     @Test
-    public void testInjectedProviderFailureAcrossRealRocksDbCallbackKeepsSessionStableAndRoutesToDlq()
+    public void testInjectedProviderFailureAcrossRealRocksDbCallbackKeepsSessionStableAndGivesUp()
             throws Exception {
         this.dbName = "jni-boundary-db";
         Path dbPath = this.baseDir.resolve(this.dbName);
 
-        // maxAttempts=0 → an async upload failure is routed straight to the DLQ, giving a
+        // maxAttempts=0 → an async upload failure is given up on immediately, giving a
         // deterministic postcondition instead of a timing-dependent retry cycle.
         // The provider starts healthy and is only switched to failing after the DB is open, so
         // that ONLY the real onTableFileCreated callback (fired by the flush below) exercises the
@@ -205,8 +205,7 @@ public class CloudRecoveryIntegrationTest {
         AtomicInteger uploadAttempts = new AtomicInteger(0);
         ToggleableFailingUploadProvider provider =
                 new ToggleableFailingUploadProvider(uploadAttempts);
-        this.retryQueue = CloudStorageTestFactory.newRetryQueue(provider, 0, 50L, 50L,
-                                                                this.baseDir.toString());
+        this.retryQueue = CloudStorageTestFactory.newRetryQueue(provider, 0, 50L, 50L);
         // Data root = baseDir so the SST files RocksDB writes under dbPath (a child of
         // baseDir) can be hard-link staged for async upload.
         this.listener = CloudStorageTestFactory.newListener(provider,
@@ -241,12 +240,12 @@ public class CloudRecoveryIntegrationTest {
             session.flush(true);
 
             // The real callback must have driven an upload attempt that failed and was captured.
-            waitForCondition(() -> this.retryQueue.getDlqSize() > 0
+            waitForCondition(() -> this.retryQueue.getGivenUpCount() > 0
             );
             assertTrue(uploadAttempts.get() > 0,
                        "provider.uploadFile must have been invoked by the real callback");
-            assertTrue(this.retryQueue.getDlqSize() > 0,
-                       "upload failure must be captured on the durability path (DLQ)");
+            assertTrue(this.retryQueue.getGivenUpCount() > 0,
+                       "upload failure must be captured on the durability path (given up)");
 
             // Process/session stability: the DB must remain fully usable after the callback-path
             // failure — a JNI-boundary regression would typically crash the JVM or corrupt state.
@@ -279,7 +278,8 @@ public class CloudRecoveryIntegrationTest {
                 throw new InterruptedException("Interrupted while waiting for async cloud callback");
             }
         }
-        fail("injected provider failure from the real RocksDB callback should land in the DLQ");
+        fail("injected provider failure from the real RocksDB callback should be given up on "
+             + "by the retry queue");
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")

@@ -35,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -79,6 +80,25 @@ public class CloudStorageMetricsTest {
                       "sync latency timer must be registered");
         assertNotNull(registry.find(CloudStorageMetricsConst.RETRY_QUEUE_SIZE).gauge(),
                       "retry queue size gauge must be registered");
+    }
+
+    @Test
+    public void testUploadsGivenUpCounterReflectsBoundSupplier() {
+        CloudStorageMetrics.init(registry, syncTracker);
+
+        FunctionCounter counter =
+                registry.find(CloudStorageMetricsConst.UPLOADS_GIVEN_UP).functionCounter();
+        assertNotNull(counter, "uploads-given-up function counter must be registered");
+        assertEquals(0.0, counter.count(), "unbound counter must report 0");
+
+        try {
+            CloudStorageMetrics.bindUploadsGivenUpSupplier(() -> 7L);
+            assertEquals(7.0, counter.count(), "counter must report the bound supplier's value");
+        } finally {
+            // The supplier is static; unbind so it does not leak into other tests.
+            CloudStorageMetrics.bindUploadsGivenUpSupplier(null);
+        }
+        assertEquals(0.0, counter.count(), "unbinding must fall back to 0");
     }
 
     @Test

@@ -79,7 +79,8 @@ import org.junit.jupiter.api.io.TempDir;
  *   <li>{@code metadata_staleSnapshot_rejectedByGenerationCheck} — older generation never overwrites newer</li>
  *   <li>{@code metadata_concurrentPublish_onlyLatestGenerationWins} — concurrent syncs serialized per-DB</li>
  *   <li>{@code retryQueue_failedUpload_retriedAndConfirmed} — retry queue eventually marks file confirmed</li>
- *   <li>{@code retryQueue_exhausted_sentToDlq} — exhausted retries land in DLQ, not lost silently</li>
+ *   <li>{@code retryQueue_exhausted_givenUp} — exhausted retries are counted as given up, not
+ *       lost silently</li>
  *   <li>{@code readMiss_hydration_restoresMissingLiveFile} — missing live SST is restored on read miss</li>
  *   <li>{@code readMiss_guardWindow_suppressesRepeatAttempts} — guard window dedups rapid re-hydration</li>
  *   <li>{@code deleteGuard_blocksDeleteUntilLiveSetDurable} — delete is held until replacements are in cloud</li>
@@ -402,10 +403,10 @@ public class CloudStorageIntegrationTest {
 
         // Create SST and metadata stubs in the checkpoint directory.
         writeSst(tempDir, "000001.sst", "data");
-        Files.write(tempDir.resolve("OPTIONS-000002"), "options".getBytes(StandardCharsets.UTF_8));
-        Files.write(tempDir.resolve("MANIFEST-000001"),
-                    "manifest".getBytes(StandardCharsets.UTF_8));
-        Files.write(tempDir.resolve("CURRENT"), "MANIFEST-000001".getBytes(StandardCharsets.UTF_8));
+        Files.writeString(tempDir.resolve("OPTIONS-000002"), "options");
+        Files.writeString(tempDir.resolve("MANIFEST-000001"),
+                          "manifest");
+        Files.writeString(tempDir.resolve("CURRENT"), "MANIFEST-000001");
 
         MetadataSnapshot snapshot = new MetadataSnapshot(
                 dbDir.toString(),
@@ -611,7 +612,6 @@ public class CloudStorageIntegrationTest {
         // the epoch — the plain 2-arg callback would confirm regardless and hide that defect.
         CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(flakyStore,
                 3, 10L, 100L,
-                dataRoot.toString(),
                 tracker::markConfirmedIfEpoch);
 
         // Capture the epoch at submission time and pass it through, exactly as the production
@@ -654,7 +654,7 @@ public class CloudStorageIntegrationTest {
 
         CloudSyncTracker tracker = new CloudSyncTracker();
         CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(flakyStore,
-                3, 10L, 100L, dataRoot.toString(),
+                3, 10L, 100L,
                 tracker::markConfirmedIfEpoch);
         CloudStorageEventListener listener = CloudStorageTestFactory.newListener(flakyStore,
                 Collections.singletonList(dataRoot.toString()), true, 0L, retryQueue, tracker);
@@ -727,7 +727,7 @@ public class CloudStorageIntegrationTest {
                                                             CloudSyncTracker tracker, Path dbDir,
                                                             Path tempDir) {
         CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(provider,
-                3, 10L, 100L, dataRoot.toString(),
+                3, 10L, 100L,
                 tracker::markConfirmedIfEpoch);
 
         CloudStorageEventListener listener = new CloudStorageEventListener(provider,
@@ -749,11 +749,11 @@ public class CloudStorageIntegrationTest {
     }
 
     // =========================================================================
-    // 14. Retry queue sends to DLQ when all retries exhausted
+    // 14. Retry queue gives up (and counts it) when all retries exhausted
     // =========================================================================
 
     @Test
-    public void retryQueue_exhausted_sentToDlq() throws Exception {
+    public void retryQueue_exhausted_givenUp() throws Exception {
         Path dbDir = mkdirs("hugegraph/db");
         Path sst = writeSst(dbDir, "000001.sst", "data");
 
@@ -768,17 +768,16 @@ public class CloudStorageIntegrationTest {
         CloudSyncTracker tracker = new CloudSyncTracker();
         CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(alwaysFail,
                 2, 10L, 50L,
-                dataRoot.toString(),
                 tracker::markConfirmed);
 
         retryQueue.submit("hugegraph", "default", sst.toString(),
                           "hugegraph/db/000001.sst", new IOException("initial failure"));
 
-        // Wait until the DLQ grows.
-        boolean inDlq = awaitCondition(() -> retryQueue.getDlqSize() > 0, 5_000);
-        assertTrue(inDlq, "Exhausted upload must be in DLQ");
+        // Wait until the queue gives up on the upload.
+        boolean givenUp = awaitCondition(() -> retryQueue.getGivenUpCount() > 0, 5_000);
+        assertTrue(givenUp, "Exhausted upload must be counted as given up");
         assertFalse(tracker.isConfirmed("hugegraph", sst.toString()),
-                    "File must not be confirmed when in DLQ");
+                    "File must not be confirmed when given up");
 
         retryQueue.close();
     }
@@ -1037,10 +1036,10 @@ public class CloudStorageIntegrationTest {
         Path markerDir = dataRoot.resolve(CloudStorageEventListener.PENDING_DELETE_DIR);
         Files.createDirectories(markerDir);
 
-        String prefix = "startup/db";
+        // Markers are empty files; the Base64 filename alone carries the prefix.
         String markerName = java.util.Base64.getUrlEncoder().withoutPadding()
-                                             .encodeToString(prefix.getBytes(StandardCharsets.UTF_8));
-        Files.write(markerDir.resolve(markerName), prefix.getBytes(StandardCharsets.UTF_8));
+                .encodeToString("startup/db".getBytes(StandardCharsets.UTF_8));
+        Files.createFile(markerDir.resolve(markerName));
 
         // New listener instance => startup marker scan + deferred purge scheduling.
         listenerFor(store, dataRoot);
@@ -1052,16 +1051,13 @@ public class CloudStorageIntegrationTest {
     }
 
     @Test
-    public void startupPendingDeleteMarker_mismatchedFilename_isRejected() throws Exception {
+    public void startupPendingDeleteMarker_undecodableFilename_isRejected() throws Exception {
         store.put("badmarker/db/000001.sst", bytes("stale"));
         Path markerDir = dataRoot.resolve(CloudStorageEventListener.PENDING_DELETE_DIR);
         Files.createDirectories(markerDir);
 
-        String payloadPrefix = "badmarker/db";
-        String wrongEncodedName = java.util.Base64.getUrlEncoder().withoutPadding()
-                                           .encodeToString("other/db".getBytes(StandardCharsets.UTF_8));
-        Files.write(markerDir.resolve(wrongEncodedName),
-                    payloadPrefix.getBytes(StandardCharsets.UTF_8));
+        // '!' is not in the URL-safe Base64 alphabet, so the name cannot be decoded to a prefix.
+        Files.createFile(markerDir.resolve("not-base64!"));
 
         listenerFor(store, dataRoot);
 
@@ -1080,10 +1076,10 @@ public class CloudStorageIntegrationTest {
         Path markerDir = dataRoot.resolve(CloudStorageEventListener.PENDING_TRUNCATE_DIR);
         Files.createDirectories(markerDir);
 
-        String prefix = "truncstart/db";
+        // Markers are empty files; the Base64 filename alone carries the prefix.
         String markerName = java.util.Base64.getUrlEncoder().withoutPadding()
-                                             .encodeToString(prefix.getBytes(StandardCharsets.UTF_8));
-        Files.write(markerDir.resolve(markerName), prefix.getBytes(StandardCharsets.UTF_8));
+                .encodeToString("truncstart/db".getBytes(StandardCharsets.UTF_8));
+        Files.createFile(markerDir.resolve(markerName));
 
         // New listener instance => startup marker scan + deferred truncate purge scheduling.
         listenerFor(store, dataRoot);
@@ -1205,10 +1201,10 @@ public class CloudStorageIntegrationTest {
     }
 
     @Test
-    public void shutdown_handsOffQueuedUploadTasksToDlq() throws Exception {
-        // Saturate the shared upload executor with blocking uploads so later dispatches sit QUEUED,
-        // then force a shutdownNow(): the queued tasks must be handed off to the retry queue's DLQ
-        // rather than silently dropped from the durability pipeline.
+    public void shutdown_handsOffQueuedUploadTasksToRetryQueue() throws Exception {
+        // Saturate the listener's upload executor with blocking uploads so later dispatches sit
+        // QUEUED, then force a shutdownNow(): the queued tasks must be handed off to the retry queue
+        // (and given up on there) rather than silently dropped from the durability pipeline.
         CountDownLatch block = new CountDownLatch(1);
         FakeCloudStore blockingStore = new FakeCloudStore() {
             @Override
@@ -1224,9 +1220,10 @@ public class CloudStorageIntegrationTest {
         };
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        // maxAttempts=0 => handed-off tasks land directly in the DLQ where the test can observe them.
+        // maxAttempts=0 => handed-off tasks are given up immediately, where the test can observe
+        // them via getGivenUpCount().
         CloudUploadRetryQueue retryQueue = CloudStorageTestFactory.newRetryQueue(blockingStore,
-                0, 10L, 100L, dataRoot.toString(),
+                0, 10L, 100L,
                 tracker::markConfirmedIfEpoch);
         CloudStorageEventListener listener = CloudStorageTestFactory.newListener(blockingStore,
                 Collections.singletonList(dataRoot.toString()), true, 0L, retryQueue, tracker);
@@ -1240,12 +1237,12 @@ public class CloudStorageIntegrationTest {
 
         // Force shutdownNow quickly: blocked workers cannot finish in 1ms, so queued tasks are
         // dropped by the executor and must be handed off.
-        CloudStorageEventListener.shutdownSharedUploadExecutor(1, TimeUnit.MILLISECONDS);
+        listener.close(1, TimeUnit.MILLISECONDS);
         block.countDown();
 
-        boolean handed = awaitCondition(() -> retryQueue.getDlqSize() > 0, 5_000);
+        boolean handed = awaitCondition(() -> retryQueue.getGivenUpCount() > 0, 5_000);
         assertTrue(handed,
-                   "Queued upload tasks dropped at shutdown must be handed off to the DLQ");
+                   "Queued upload tasks dropped at shutdown must be handed off to the retry queue");
         retryQueue.close();
     }
 
@@ -1271,7 +1268,7 @@ public class CloudStorageIntegrationTest {
 
     private static Path writeSst(Path dir, String name, String content) throws Exception {
         Path sst = dir.resolve(name);
-        Files.write(sst, content.getBytes(StandardCharsets.UTF_8));
+        Files.writeString(sst, content);
         return sst;
     }
 
@@ -1312,7 +1309,7 @@ public class CloudStorageIntegrationTest {
                         String name = p.getFileName().toString();
                         return name.contains(".hyd-tmp") || name.contains(".hydrate");
                     })
-                    .collect(Collectors.toList());
+                    .toList();
             assertTrue(stale.isEmpty(), "No stale hydration temp files must remain: " + stale);
         }
     }
@@ -1332,12 +1329,12 @@ public class CloudStorageIntegrationTest {
                                              String manifestName, long generation)
             throws Exception {
         if (!Files.exists(tempDir.resolve(manifestName))) {
-            Files.write(tempDir.resolve(manifestName),
-                        ("manifest-gen-" + generation).getBytes(StandardCharsets.UTF_8));
+            Files.writeString(tempDir.resolve(manifestName),
+                              "manifest-gen-" + generation);
         }
         if (!Files.exists(tempDir.resolve("CURRENT"))) {
-            Files.write(tempDir.resolve("CURRENT"),
-                        manifestName.getBytes(StandardCharsets.UTF_8));
+            Files.writeString(tempDir.resolve("CURRENT"),
+                              manifestName);
         }
         return new MetadataSnapshot(
                 dbDir.toString(),
@@ -1458,7 +1455,7 @@ public class CloudStorageIntegrationTest {
             String prefix = remoteDirPrefix.endsWith("/") ? remoteDirPrefix : remoteDirPrefix + "/";
             List<String> keys = objects.keySet().stream()
                                        .filter(k -> k.startsWith(prefix))
-                                       .collect(Collectors.toList());
+                                       .toList();
             List<String> failed = new ArrayList<>();
             int deleted = 0;
             for (String key : keys) {

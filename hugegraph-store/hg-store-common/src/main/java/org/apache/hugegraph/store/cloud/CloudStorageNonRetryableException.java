@@ -18,13 +18,15 @@
 package org.apache.hugegraph.store.cloud;
 
 import java.io.IOException;
+import java.io.Serial;
 
 /**
  * Marker exception indicating a cloud upload failure should not be retried at
- * the whole-SST level and can be moved directly to DLQ.
+ * the whole-SST level and can be given up on immediately.
  */
 public class CloudStorageNonRetryableException extends IOException {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     public CloudStorageNonRetryableException(String message, Throwable cause) {

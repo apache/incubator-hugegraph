@@ -36,40 +36,38 @@ import org.springframework.mock.env.MockEnvironment;
 
 public class AppConfigCloudStorageTest {
 
-    private AppConfig.CloudStorageSpringConfig springConfig;
     private MockEnvironment mockEnv;
 
     @BeforeEach
     public void setUp() {
-        AppConfig appConfig = new AppConfig();
-        springConfig = appConfig.new CloudStorageSpringConfig();
         mockEnv = new MockEnvironment();
-        springConfig.setEnvironment(mockEnv);
     }
 
     /**
-     * Common fields are bound from {@code cloud.storage.*} and converted correctly.
-     * Provider-specific properties flow from the environment through the provider sub-namespace.
+     * Common fields are bound from {@code cloud.storage.*} and provider-specific properties flow
+     * from the environment through the provider sub-namespace.
      */
     @Test
-    public void testCloudStorageSpringConfigConversion() {
-        springConfig.setEnabled(true);
-        springConfig.setProvider("s3");
-        springConfig.setPathPrefix("test-prefix");
-        springConfig.setStartupHydrationEnabled(false);
-        springConfig.setReadMissGuardWindowMs(5000L);
+    public void testBindCloudStorageConfig() {
+        mockEnv.setProperty("cloud.storage.enabled", "true");
+        mockEnv.setProperty("cloud.storage.provider", "s3");
+        mockEnv.setProperty("cloud.storage.path-prefix", "test-prefix");
+        mockEnv.setProperty("cloud.storage.startup-hydration-enabled", "false");
+        mockEnv.setProperty("cloud.storage.read-miss-guard-window-ms", "5000");
+        mockEnv.setProperty("cloud.storage.upload-retry-max-attempts", "5");
+        mockEnv.setProperty("cloud.storage.upload-retry-initial-delay-ms", "500");
+        mockEnv.setProperty("cloud.storage.upload-retry-max-delay-ms", "30000");
+        mockEnv.setProperty("cloud.storage.metadata-sync-debounce-ms", "250");
+        mockEnv.setProperty("cloud.storage.metadata-sync-max-unpublished", "8");
+        mockEnv.setProperty("cloud.storage.node-id", "node-7");
 
-        // Simulate cloud.storage.s3.* properties being present in the Spring Environment
         mockEnv.setProperty("cloud.storage.s3.bucket", "test-bucket");
         mockEnv.setProperty("cloud.storage.s3.region", "us-west-2");
         mockEnv.setProperty("cloud.storage.s3.endpoint", "https://s3.example.com");
         mockEnv.setProperty("cloud.storage.s3.access-key", "test-access-key");
         mockEnv.setProperty("cloud.storage.s3.secret-key", "test-secret-key");
-        mockEnv.setProperty("cloud.storage.s3.multipart-part-retry-max-attempts", "5");
-        mockEnv.setProperty("cloud.storage.s3.multipart-part-retry-base-backoff-ms", "1500");
-        mockEnv.setProperty("cloud.storage.s3.multipart-exhausted-direct-dlq", "true");
 
-        CloudStorageConfig cfg = springConfig.toCloudStorageConfig();
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
 
         // Common fields
         assertTrue(cfg.isEnabled());
@@ -77,6 +75,12 @@ public class AppConfigCloudStorageTest {
         assertEquals("test-prefix", cfg.getPathPrefix());
         assertFalse(cfg.isStartupHydrationEnabled());
         assertEquals(5000L, cfg.getReadMissGuardWindowMs());
+        assertEquals(5, cfg.getUploadRetryMaxAttempts());
+        assertEquals(500L, cfg.getUploadRetryInitialDelayMs());
+        assertEquals(30_000L, cfg.getUploadRetryMaxDelayMs());
+        assertEquals(250L, cfg.getMetadataSyncDebounceMs());
+        assertEquals(8, cfg.getMetadataSyncMaxUnpublished());
+        assertEquals("node-7", cfg.getNodeId());
 
         // Provider-specific properties forwarded verbatim
         assertEquals("test-bucket", cfg.getProviderProperties().get("bucket"));
@@ -84,19 +88,15 @@ public class AppConfigCloudStorageTest {
         assertEquals("https://s3.example.com", cfg.getProviderProperties().get("endpoint"));
         assertEquals("test-access-key", cfg.getProviderProperties().get("access-key"));
         assertEquals("test-secret-key", cfg.getProviderProperties().get("secret-key"));
-        assertEquals("5", cfg.getProviderProperties().get("multipart-part-retry-max-attempts"));
-        assertEquals("1500",
-                     cfg.getProviderProperties().get("multipart-part-retry-base-backoff-ms"));
-        assertEquals("true",
-                     cfg.getProviderProperties().get("multipart-exhausted-direct-dlq"));
     }
 
     /**
-     * When no provider env properties exist, providerProperties is empty but not null.
+     * With no {@code cloud.storage.*} properties, the {@link CloudStorageConfig} field defaults
+     * apply and providerProperties is empty but not null.
      */
     @Test
-    public void testCloudStorageSpringConfigDefaults() {
-        CloudStorageConfig cfg = springConfig.toCloudStorageConfig();
+    public void testBindCloudStorageConfigDefaults() {
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
 
         assertFalse(cfg.isEnabled());
         assertEquals("s3", cfg.getProvider());
@@ -109,33 +109,37 @@ public class AppConfigCloudStorageTest {
     }
 
     /**
-     * Common property setters on CloudStorageSpringConfig work correctly.
+     * Unset fields keep their {@link CloudStorageConfig} defaults when only some are bound.
      */
     @Test
-    public void testCloudStorageSpringConfigCommonGettersSetters() {
-        springConfig.setEnabled(true);
-        assertTrue(springConfig.isEnabled());
+    public void testBindCloudStorageConfigPartialKeepsDefaults() {
+        mockEnv.setProperty("cloud.storage.enabled", "true");
 
-        springConfig.setProvider("gcs");
-        assertEquals("gcs", springConfig.getProvider());
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
 
-        springConfig.setPathPrefix("my-prefix");
-        assertEquals("my-prefix", springConfig.getPathPrefix());
+        assertTrue(cfg.isEnabled());
+        assertEquals("hugegraph", cfg.getPathPrefix());
+        assertEquals(1_000L, cfg.getMetadataSyncDebounceMs());
+        assertEquals(32, cfg.getMetadataSyncMaxUnpublished());
+    }
 
-        springConfig.setStartupHydrationEnabled(false);
-        assertFalse(springConfig.isStartupHydrationEnabled());
+    /**
+     * Common fields resolve from environment-variable-style names via relaxed binding.
+     */
+    @Test
+    public void testCommonFieldsResolveFromEnvVarStyleNames() {
+        Map<String, Object> envVarProps = new HashMap<>();
+        envVarProps.put("CLOUD_STORAGE_ENABLED", "true");
+        envVarProps.put("CLOUD_STORAGE_PATH_PREFIX", "env-prefix");
+        envVarProps.put("CLOUD_STORAGE_METADATA_SYNC_DEBOUNCE_MS", "0");
+        mockEnv.getPropertySources().addFirst(new SystemEnvironmentPropertySource(
+                StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, envVarProps));
 
-        springConfig.setReadMissGuardWindowMs(7000L);
-        assertEquals(7000L, springConfig.getReadMissGuardWindowMs());
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
 
-        springConfig.setUploadRetryMaxAttempts(3);
-        assertEquals(3, springConfig.getUploadRetryMaxAttempts());
-
-        springConfig.setUploadRetryInitialDelayMs(500L);
-        assertEquals(500L, springConfig.getUploadRetryInitialDelayMs());
-
-        springConfig.setUploadRetryMaxDelayMs(30_000L);
-        assertEquals(30_000L, springConfig.getUploadRetryMaxDelayMs());
+        assertTrue(cfg.isEnabled());
+        assertEquals("env-prefix", cfg.getPathPrefix());
+        assertEquals(0L, cfg.getMetadataSyncDebounceMs());
     }
 
     /**
@@ -144,19 +148,20 @@ public class AppConfigCloudStorageTest {
      */
     @Test
     public void testProviderNamespaceIsDynamic() {
-        springConfig.setProvider("gcs");
+        mockEnv.setProperty("cloud.storage.provider", "gcs");
         mockEnv.setProperty("cloud.storage.gcs.bucket", "gcs-bucket");
         mockEnv.setProperty("cloud.storage.gcs.credentials-file-path", "/path/creds.json");
         // S3 keys should NOT appear
         mockEnv.setProperty("cloud.storage.s3.bucket", "s3-bucket");
 
-        CloudStorageConfig cfg = springConfig.toCloudStorageConfig();
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
 
+        assertEquals("gcs", cfg.getProvider());
         assertEquals("gcs-bucket", cfg.getProviderProperties().get("bucket"));
         assertEquals("/path/creds.json",
                      cfg.getProviderProperties().get("credentials-file-path"));
-        assertFalse(cfg.getProviderProperties().containsKey("cloud.storage.s3.bucket"),
-                    "s3 keys must not bleed into gcs namespace");
+        assertEquals(2, cfg.getProviderProperties().size(),
+                     "s3 keys must not bleed into gcs namespace");
     }
 
     /**
@@ -167,14 +172,13 @@ public class AppConfigCloudStorageTest {
      */
     @Test
     public void testProviderPropertiesResolveFromEnvVarStyleNames() {
-        springConfig.setProvider("s3");
         Map<String, Object> envVarProps = new HashMap<>();
         envVarProps.put("CLOUD_STORAGE_S3_SECRET_KEY", "env-var-secret");
         envVarProps.put("CLOUD_STORAGE_S3_ACCESS_KEY", "env-var-access");
         mockEnv.getPropertySources().addFirst(new SystemEnvironmentPropertySource(
                 StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, envVarProps));
 
-        CloudStorageConfig cfg = springConfig.toCloudStorageConfig();
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
 
         assertEquals("env-var-secret", cfg.getProviderProperties().get("secret-key"));
         assertEquals("env-var-access", cfg.getProviderProperties().get("access-key"));
@@ -188,15 +192,6 @@ public class AppConfigCloudStorageTest {
         AppConfig config = new AppConfig();
         // getRaftPath should not throw; actual value depends on initialization
         config.getRaftPath();
-    }
-
-    /**
-     * Test CloudStorageSpringConfig creation and conversion with empty env.
-     */
-    @Test
-    public void testCloudStorageSpringConfigCreation() {
-        assertNotNull(springConfig);
-        assertNotNull(springConfig.toCloudStorageConfig());
     }
 
     // -----------------------------------------------------------------------

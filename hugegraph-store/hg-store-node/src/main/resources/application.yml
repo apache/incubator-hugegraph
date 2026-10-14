@@ -58,13 +58,10 @@ cloud:
     provider: s3
     path-prefix: hugegraph
     # Whole-file upload retries after a first failure (default 3). Set 0 to disable
-    # (failures go straight to the DLQ) when the provider has sufficient internal retry.
+    # (failures are given up on immediately) when the provider has sufficient internal retry.
     upload-retry-max-attempts: 3
     upload-retry-initial-delay-ms: 1000
     upload-retry-max-delay-ms: 60000
-    # Max dead-letter-queue entries retained before the oldest are evicted; bounds memory/disk
-    # during a prolonged provider outage (evicted files stay recoverable via delete guard/backfill).
-    dlq-max-size: 100000
     # Debounce window (ms) for the per-SST metadata sync; coalesces checkpoint+list/prune cost under
     # write-heavy load. <= 0 publishes on every SST (pre-debounce behavior). Event-driven publishes
     # (delete guard, compaction, DB open) are never debounced.

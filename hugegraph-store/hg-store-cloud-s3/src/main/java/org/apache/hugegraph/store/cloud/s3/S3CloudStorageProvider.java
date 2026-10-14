@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
 import org.apache.hugegraph.store.cloud.CloudStorageNonRetryableException;
@@ -34,6 +35,7 @@ import org.apache.hugegraph.store.cloud.CloudStorageProvider;
 import lombok.extern.slf4j.Slf4j;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
@@ -46,6 +48,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.S3CrtAsyncClientBuilder;
+import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
@@ -133,7 +136,8 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
     public void init(CloudStorageConfig config) {
         Map<String, String> props = config.getProviderProperties();
         if (props == null || props.isEmpty()) {
-            throw new IllegalArgumentException("S3 provider selected but providerProperties are empty");
+            throw new IllegalArgumentException(
+                    "S3 provider selected but providerProperties are empty");
         }
 
         this.bucket = props.get(S3CloudStorageConfig.KEY_BUCKET);
@@ -263,11 +267,11 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
                     try {
                         DeleteObjectsResponse deleteResp = s3Client.deleteObjects(
                                 DeleteObjectsRequest.builder()
-                                                   .bucket(bucket)
-                                                   .delete(software.amazon.awssdk.services.s3.model.Delete.builder()
-                                                                                                          .objects(toDelete)
-                                                                                                          .build())
-                                                   .build());
+                                                    .bucket(bucket)
+                                                    .delete(Delete.builder()
+                                                                  .objects(toDelete)
+                                                                  .build())
+                                                    .build());
                         totalDeleted += deleteResp.deleted().size();
                         log.debug("S3 batch delete: deleted {} objects from prefix {}",
                                   deleteResp.deleted().size(), remoteDirPrefix);
@@ -334,10 +338,10 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
 
                 token = listResp.nextContinuationToken();
                 // Some S3-compatible gateways return isTruncated=true without a usable
-                // continuation token. Unlike the best-effort multipart sweep (which can stop
-                // early), a prefix purge that silently stops here would report success while
-                // objects remain — and the caller (onDBDeleted / truncate purge) would then remove
-                // its tombstone guard, leaving stale objects that can be re-hydrated as live data.
+                // continuation token. A prefix purge that silently stops here would report
+                // success while objects remain — and the caller (onDBDeleted / truncate purge)
+                // would then remove its tombstone guard, leaving stale objects that can be
+                // re-hydrated as live data.
                 // Fail loudly so the purge is marked incomplete and the guard is preserved.
                 if (Boolean.TRUE.equals(listResp.isTruncated())
                         && (token == null || token.isEmpty())) {
@@ -350,7 +354,8 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
             } while (token != null && !token.isEmpty());
 
             if (totalDeleted > 0) {
-                log.info("S3 prefix delete completed: prefix={}, deleted={}", remoteDirPrefix, totalDeleted);
+                log.info("S3 prefix delete completed: prefix={}, deleted={}", remoteDirPrefix,
+                         totalDeleted);
             }
             return totalDeleted;
 
@@ -457,7 +462,7 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         closeQuietly();
         log.info("S3CloudStorageProvider closed");
     }
@@ -479,9 +484,10 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
     }
 
     private static void applyCredentials(
-            java.util.function.Consumer<software.amazon.awssdk.auth.credentials.AwsCredentialsProvider> sink,
+            Consumer<AwsCredentialsProvider> sink,
             String accessKey, String secretKey) {
-        if (accessKey != null && !accessKey.isEmpty() && secretKey != null && !secretKey.isEmpty()) {
+        if (accessKey != null && !accessKey.isEmpty()
+                && secretKey != null && !secretKey.isEmpty()) {
             sink.accept(StaticCredentialsProvider.create(
                     AwsBasicCredentials.create(accessKey, secretKey)));
         } else {
@@ -576,8 +582,7 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
      * </ul>
      */
     private IOException classifySdkException(String operation, String key, SdkException e) {
-        if (e instanceof AwsServiceException) {
-            AwsServiceException ase = (AwsServiceException) e;
+        if (e instanceof AwsServiceException ase) {
             int status = ase.statusCode();
             AwsErrorDetails errorDetails = ase.awsErrorDetails();
             String code = errorDetails != null ? errorDetails.errorCode() : "";
@@ -664,7 +669,8 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
 
     static String humanSize(long bytes) {
         if (bytes < 1024L)                   return bytes + " B";
-        if (bytes < 1024L * 1024)            return String.format(Locale.US, "%.1f KB", bytes / 1024.0);
+        if (bytes < 1024L * 1024)            return String.format(Locale.US, "%.1f KB",
+                                                                   bytes / 1024.0);
         if (bytes < 1024L * 1024 * 1024)     return String.format(Locale.US, "%.1f MB",
                                                                    bytes / (1024.0 * 1024));
         return String.format(Locale.US, "%.2f GB", bytes / (1024.0 * 1024 * 1024));

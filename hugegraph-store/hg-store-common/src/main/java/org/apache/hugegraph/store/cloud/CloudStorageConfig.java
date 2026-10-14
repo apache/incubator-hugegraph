@@ -75,10 +75,12 @@ public class CloudStorageConfig {
      * Maximum number of whole-file upload retries after a first failure. Default is {@code 3}
      * (whole-file retries enabled). Under the primary-durability model an SST that never reaches
      * cloud is at risk on the ephemeral local disk, so whole-file retries are on by default. After
-     * all attempts are exhausted the task is moved to the DLQ for operational visibility / replay.
+     * all attempts are exhausted the upload is given up on (logged and counted); the file stays
+     * unconfirmed and is re-uploaded by the next metadata sync, delete guard, or startup SST
+     * backfill.
      *
-     * <p>Set to {@code 0} to disable whole-file retries (failures go straight to the DLQ) when the
-     * provider already implements a sufficient internal retry strategy.
+     * <p>Set to {@code 0} to disable whole-file retries (failures are given up on immediately)
+     * when the provider already implements a sufficient internal retry strategy.
      */
     private int uploadRetryMaxAttempts = 3;
 
@@ -94,14 +96,6 @@ public class CloudStorageConfig {
      * Only used when {@link #uploadRetryMaxAttempts} > 0. Default: 60 000 ms.
      */
     private long uploadRetryMaxDelayMs = 60_000L;
-
-    /**
-     * Maximum number of entries retained in the failed-upload dead-letter queue (in memory and,
-     * amortized, on disk). Bounds memory/disk growth during a prolonged provider outage; when
-     * exceeded the oldest entries are evicted (evicted files stay recoverable via the delete guard
-     * and startup SST backfill). Must be {@code > 0}. Default: {@code 100000}.
-     */
-    private int dlqMaxSize = 100_000;
 
     /**
      * Debounce window in milliseconds for the per-SST metadata sync triggered by
@@ -123,13 +117,13 @@ public class CloudStorageConfig {
     /**
      * Stable per-node identity used to derive the cloud key scope ({@code store-<nodeId>}).
      *
-     * <p>When set, this is the authoritative scope key and is <b>stable across restarts, IP/hostname
-     * changes, and local disk loss</b> — so a node can always find its prior remote objects during
-     * recovery. Leave blank to fall back to a scope persisted in the data directory (stable across
-     * network-identity drift but lost with the disk), which is in turn seeded from the runtime
-     * network address on first start. Operators who need guaranteed post-disk-loss recovery should
-     * set an explicit, deployment-stable value here (e.g. a Kubernetes StatefulSet pod ordinal or a
-     * provisioned node UUID).
+     * <p>When set, this is the authoritative scope key and is <b>stable across restarts,
+     * IP/hostname changes, and local disk loss</b> — so a node can always find its prior remote
+     * objects during recovery. Leave blank to fall back to a scope persisted in the data directory
+     * (stable across network-identity drift but lost with the disk), which is in turn seeded from
+     * the runtime network address on first start. Operators who need guaranteed post-disk-loss
+     * recovery should set an explicit, deployment-stable value here (e.g. a Kubernetes
+     * StatefulSet pod ordinal or a provisioned node UUID).
      */
     private String nodeId = "";
 

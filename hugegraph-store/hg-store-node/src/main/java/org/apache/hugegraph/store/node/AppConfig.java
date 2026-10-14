@@ -50,8 +50,6 @@ import org.springframework.stereotype.Component;
 import io.micrometer.core.instrument.MeterRegistry;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 @Data
@@ -114,7 +112,7 @@ public class AppConfig {
     private QueryPushDownConfig queryPushDownConfig;
 
     @Autowired
-    private CloudStorageSpringConfig cloudStorageSpringConfig;
+    private Environment environment;
 
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
@@ -176,7 +174,7 @@ public class AppConfig {
      * being full container-specific absolute paths.
      */
     private void initCloudStorage() {
-        CloudStorageConfig cfg = cloudStorageSpringConfig.toCloudStorageConfig();
+        CloudStorageConfig cfg = bindCloudStorageConfig(environment);
         if (!cfg.isEnabled()) {
             log.info("Cloud storage disabled (cloud.storage.enabled=false)");
             return;
@@ -210,7 +208,7 @@ public class AppConfig {
             // live SST file of that DB is confirmed present in cloud.
             CloudSyncTracker syncTracker = new CloudSyncTracker();
 
-            // Use the first root for DLQ location (backward compatible; can be any root)
+            // The first root holds the persisted cloud key-scope marker.
             String primaryDataRoot = resolvedDataRoots.get(0);
 
             CloudUploadRetryQueue retryQueue = new CloudUploadRetryQueue(
@@ -218,9 +216,7 @@ public class AppConfig {
                     cfg.getUploadRetryMaxAttempts(),
                     cfg.getUploadRetryInitialDelayMs(),
                     cfg.getUploadRetryMaxDelayMs(),
-                    primaryDataRoot,
-                    syncTracker::markConfirmedIfEpoch,
-                    cfg.getDlqMaxSize());
+                    syncTracker::markConfirmedIfEpoch);
             this.cloudUploadRetryQueue = retryQueue;
 
             String storeScopePrefix = resolveStableStoreScopePrefix(cfg.getNodeId(),
@@ -237,7 +233,7 @@ public class AppConfig {
                     cfg.getMetadataSyncDebounceMs(),
                     cfg.getMetadataSyncMaxUnpublished());
 
-            // After a retry / DLQ-replay upload becomes durable, publish CURRENT/MANIFEST so the
+            // After a retry upload becomes durable, publish CURRENT/MANIFEST so the
             // mirrored recovery point advances even on an idle DB (the tracker-confirm callback
             // alone does not trigger a metadata sync). Wired here since it needs the listener.
             retryQueue.setMetadataSyncTrigger(listener::onRetryUploadDurable);
@@ -248,10 +244,7 @@ public class AppConfig {
                 // Wire the retry-queue-size gauge to the live queue so it reflects the real upload
                 // backlog (the gauge otherwise reports a constant 0).
                 CloudStorageMetrics.bindRetryQueueSizeSupplier(retryQueue::getInFlightCount);
-                // Surface DLQ on-disk persistence health (1=healthy, 0=degraded) so a swallowed
-                // persist failure is alertable instead of masquerading as healthy durability.
-                CloudStorageMetrics.bindDlqPersistenceHealthySupplier(
-                        () -> retryQueue.isDlqPersistenceHealthy() ? 1 : 0);
+                CloudStorageMetrics.bindUploadsGivenUpSupplier(retryQueue::getGivenUpCount);
                 // Surface pending-delete marker persistence health (1=healthy, 0=degraded) so a
                 // DB delete held for lack of a durable anti-resurrection guard is alertable.
                 CloudStorageMetrics.bindDeleteMarkerHealthySupplier(
@@ -265,14 +258,13 @@ public class AppConfig {
                     + "readMissHydration=true, "
                     + "readMissGuardWindowMs={}, uploadRetryMaxAttempts={}, "
                     + "uploadRetryInitialDelayMs={}, uploadRetryMaxDelayMs={}, "
-                    + "dlqMaxSize={}, metadataSyncDebounceMs={}, metadataSyncMaxUnpublished={})",
+                    + "metadataSyncDebounceMs={}, metadataSyncMaxUnpublished={})",
                     cfg.getProvider(), resolvedDataRoots, storeScopePrefix,
                     cfg.isStartupHydrationEnabled(),
                     cfg.getReadMissGuardWindowMs(),
                     cfg.getUploadRetryMaxAttempts(),
                     cfg.getUploadRetryInitialDelayMs(),
                     cfg.getUploadRetryMaxDelayMs(),
-                    cfg.getDlqMaxSize(),
                     cfg.getMetadataSyncDebounceMs(),
                     cfg.getMetadataSyncMaxUnpublished());
         } catch (Exception e) {
@@ -418,9 +410,9 @@ public class AppConfig {
 
     /**
      * Gracefully tears down cloud storage on application stop. Order: deregister the listener, then
-     * stop the shared upload executor so no new SST dispatches occur, then close the retry queue
-     * (which drains its own independent scheduler — retries do NOT run in the shared executor), and
-     * finally close the provider so in-flight uploads/retries could still use it until the end.
+     * close it (draining its upload executor) so no new SST dispatches occur, then close the retry
+     * queue (which drains its own independent scheduler — retries do NOT run in the upload
+     * executor), and finally close the provider so in-flight uploads/retries could still use it.
      */
     @PreDestroy
     public void onDestroy() {
@@ -428,20 +420,19 @@ public class AppConfig {
         // tear down the executor/provider it depends on — and so a context restart in the same JVM
         // does not leave a stale listener registered in the static RocksDBFactory listener list
         // (which would double-dispatch events to a defunct instance).
-        if (this.cloudStorageListener != null) {
-            RocksDBFactory.getInstance().removeRocksdbChangedListener(this.cloudStorageListener);
+        CloudStorageEventListener listener = this.cloudStorageListener;
+        if (listener != null) {
+            RocksDBFactory.getInstance().removeRocksdbChangedListener(listener);
             this.cloudStorageListener = null;
+            // Shut down the listener's upload executor so no new SST upload tasks are dispatched
+            // after this point. close() gives in-flight uploads a chance to complete before the
+            // JVM exits; any that don't finish are re-uploaded by startup SST backfill.
+            listener.close();
         }
 
-        // Shut down the shared upload executor so no new SST upload tasks are dispatched
-        // after this point. awaitTermination gives in-flight uploads a chance to complete
-        // before the JVM exits; any that don't finish will be absent from cloud with no DLQ
-        // entry if the process is killed, but at least we tried.
-        CloudStorageEventListener.shutdownSharedUploadExecutor(10, java.util.concurrent.TimeUnit.SECONDS);
-
         if (cloudUploadRetryQueue != null) {
-            log.info("Shutting down CloudUploadRetryQueue (dlqSize={}) …",
-                     cloudUploadRetryQueue.getDlqSize());
+            log.info("Shutting down CloudUploadRetryQueue (givenUp={}) …",
+                     cloudUploadRetryQueue.getGivenUpCount());
             cloudUploadRetryQueue.close();
         }
 
@@ -660,11 +651,12 @@ public class AppConfig {
     }
 
     /**
-     * Spring {@link ConfigurationProperties} wrapper for the common cloud storage properties.
+     * Binds {@code cloud.storage.*} from the Spring {@link Environment} directly onto
+     * {@link CloudStorageConfig}, so its field defaults are the only defaults. Relaxed binding
+     * applies, so env vars such as {@code CLOUD_STORAGE_ENABLED} resolve as usual.
      *
-     * <p>Provider-specific keys (e.g. {@code cloud.storage.s3.bucket}) are read
-     * directly from the Spring {@link Environment} at conversion time, so this class
-     * has zero knowledge of any specific cloud provider.
+     * <p>Provider-specific keys are forwarded from the sub-namespace named by
+     * {@code cloud.storage.provider}, keeping this class unaware of any specific cloud provider:
      *
      * <pre>
      * cloud:
@@ -679,78 +671,32 @@ public class AppConfig {
      *       secret-key: ${AWS_SECRET_ACCESS_KEY}
      * </pre>
      */
-    @Data
-    @Configuration
-    @ConfigurationProperties(prefix = "cloud.storage")
-    public class CloudStorageSpringConfig {
+    static CloudStorageConfig bindCloudStorageConfig(Environment environment) {
+        Binder binder = Binder.get(environment);
+        CloudStorageConfig cfg = binder.bind("cloud.storage", CloudStorageConfig.class)
+                                       .orElseGet(CloudStorageConfig::new);
+        cfg.setProviderProperties(readProviderProperties(binder, cfg.getProvider()));
+        return cfg;
+    }
 
-        private boolean enabled = false;
-        private String provider = "s3";
-        private String pathPrefix = "hugegraph";
-        private boolean startupHydrationEnabled = true;
-        private long readMissGuardWindowMs = 3000L;
-        // Whole-file upload retries after a first failure. Default 3 under the primary-durability
-        private int uploadRetryMaxAttempts = 3;
-        private long uploadRetryInitialDelayMs = 1_000L;
-        private long uploadRetryMaxDelayMs = 60_000L;
-        // Max DLQ entries before oldest are evicted (bounds memory/disk under a prolonged outage).
-        private int dlqMaxSize = 100_000;
-        // Debounce window (ms) for the per-SST metadata sync; <= 0 disables debouncing.
-        private long metadataSyncDebounceMs = 1_000L;
-        // Force a metadata publish once this many SST uploads accumulate unmirrored; <= 0 disables.
-        private int metadataSyncMaxUnpublished = 32;
-        // Stable per-node identity for the cloud key scope. Blank => persisted-in-data-dir scope
-        // (seeded from network address). Set for guaranteed recovery after IP drift / disk loss.
-        private String nodeId = "";
-
-        /**
-         * Injected by Spring; used to read {@code cloud.storage.<provider>.*} properties
-         * without coupling this class to any specific provider.
-         */
-        @Autowired
-        @EqualsAndHashCode.Exclude
-        @ToString.Exclude
-        private Environment environment;
-
-        /** Converts this Spring-bound config into a plain {@link CloudStorageConfig} POJO. */
-        public CloudStorageConfig toCloudStorageConfig() {
-            CloudStorageConfig cfg = new CloudStorageConfig();
-            cfg.setEnabled(enabled);
-            cfg.setProvider(provider);
-            cfg.setPathPrefix(pathPrefix);
-            cfg.setStartupHydrationEnabled(startupHydrationEnabled);
-            cfg.setReadMissGuardWindowMs(readMissGuardWindowMs);
-            cfg.setUploadRetryMaxAttempts(uploadRetryMaxAttempts);
-            cfg.setUploadRetryInitialDelayMs(uploadRetryInitialDelayMs);
-            cfg.setUploadRetryMaxDelayMs(uploadRetryMaxDelayMs);
-            cfg.setDlqMaxSize(dlqMaxSize);
-            cfg.setMetadataSyncDebounceMs(metadataSyncDebounceMs);
-            cfg.setMetadataSyncMaxUnpublished(metadataSyncMaxUnpublished);
-            cfg.setNodeId(nodeId);
-            cfg.setProviderProperties(readProviderProperties());
-            return cfg;
-        }
-
-        /**
-         * Reads all {@code cloud.storage.<provider>.*} keys from the Spring Environment
-         * and returns them as a flat map with the provider sub-prefix stripped.
-         *
-         * <p>For example, with {@code provider=s3}, the YAML key
-         * {@code cloud.storage.s3.bucket} becomes {@code bucket} in the returned map, and
-         * relaxed binding lets the env var {@code CLOUD_STORAGE_S3_ACCESS_KEY} resolve the
-         * same way. Multi-word keys bound from a {@code SCREAMING_SNAKE_CASE} source come
-         * back dot-separated (e.g. {@code secret.key}), so they are normalized to the
-         * kebab-case form ({@code secret-key}) that provider configs such as
-         * {@code S3CloudStorageConfig.KEY_*} expect.
-         */
-        private Map<String, String> readProviderProperties() {
-            Map<String, String> props = Binder.get(environment)
-                    .bind("cloud.storage." + provider, Bindable.mapOf(String.class, String.class))
-                    .orElseGet(Collections::emptyMap);
-            return props.entrySet().stream()
-                        .collect(Collectors.toMap(e -> e.getKey().replace('.', '-'),
-                                                   Map.Entry::getValue));
-        }
+    /**
+     * Reads all {@code cloud.storage.<provider>.*} keys and returns them as a flat map with the
+     * provider sub-prefix stripped.
+     *
+     * <p>For example, with {@code provider=s3}, the YAML key {@code cloud.storage.s3.bucket}
+     * becomes {@code bucket} in the returned map, and relaxed binding lets the env var
+     * {@code CLOUD_STORAGE_S3_ACCESS_KEY} resolve the same way. Multi-word keys bound from a
+     * {@code SCREAMING_SNAKE_CASE} source come back dot-separated (e.g. {@code secret.key}), so
+     * they are normalized to the kebab-case form ({@code secret-key}) that provider configs such
+     * as {@code S3CloudStorageConfig.KEY_*} expect.
+     */
+    private static Map<String, String> readProviderProperties(Binder binder, String provider) {
+        Map<String, String> props = binder
+                .bind("cloud.storage." + provider, Bindable.mapOf(String.class, String.class))
+                .orElseGet(Collections::emptyMap);
+        return props.entrySet().stream()
+                    .collect(Collectors.toMap(e -> e.getKey().replace('.', '-'),
+                                              Map.Entry::getValue));
     }
 
     public JobOptions getJobOptions() {
