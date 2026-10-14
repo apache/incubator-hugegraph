@@ -156,10 +156,20 @@ dispatches. Only `apache/hugegraph` (not a fork) and the explicitly allowed
 `hugegraph/hugegraph` test fork on `refs/heads/master` can run the submission job,
 which alone has `contents: write`. PRs, other repositories and other refs cannot
 run the writer. Maven inherits no submission token, and checkout does not persist
-credentials. A pinned `actions/upload-artifact` transfers only `snapshot.json`.
-The fresh writer runner uses fixed inline stdlib Python to verify artifact/run
-identity before downloading. It bounds ZIP and JSON sizes, checks the archive digest,
-and reads only one regular `snapshot.json` member in memory. Duplicate members,
+credentials. An independent `contents: read` job resolves all module dependency
+scopes with Apache Maven Dependency Plugin 3.8.1 `tree` JSON. Its
+[stdlib inventory adapter](../.github/scripts/dependency-inventory.py) records each POM's
+package URLs, scopes and direct/indirect relationships independently of the Ferstl
+parser. The writer requires exact equality with that inventory, including empty
+aggregators; a graph retaining one direct package while omitting another fails.
+The global runtime/shipped jar filename inventory has a different scope and does
+not replace this per-module check.
+
+A pinned `actions/upload-artifact` transfers `snapshot.json` and `inventory.json`
+as separate artifacts. The fresh writer runner uses fixed inline stdlib Python to
+verify both successful producer jobs and both artifact/run/attempt/SHA identities
+before downloading. It bounds ZIP and JSON sizes, checks each archive digest,
+and reads only its one expected regular JSON member in memory. Duplicate members,
 paths and symlinks fail; no archive members are extracted to disk. A signed storage
 redirect is fetched without forwarding GitHub Authorization, and further redirects
 are refused. The writer does not check out the repository, run Maven, or execute
@@ -167,7 +177,7 @@ downloaded code. The first-party upload action is permitted by the
 [ASF Actions policy](https://infra.apache.org/github-actions-policy.html).
 
 Checkout and snapshot use the event commit SHA. Master is checked before install
-and again after graph generation and serialization; a stale run fails. The writer
+and again after generation in both read-only jobs; a stale run fails. The writer
 checks the run attempt, successful producer, artifact ID/name, JSON schema,
 detector/correlator and source SHA/ref. It verifies all manifest paths against the
 event commit's source tree, rejects empty or mismatched inventory, and checks master
@@ -176,7 +186,7 @@ if master advances during submission; that run fails its final freshness check.
 
 If submission fails, use **Re-run all jobs** or start a fresh `workflow_dispatch`
 on master. **Re-run failed jobs** keeps the older generation artifact, which the
-writer rejects because the snapshot must be produced in the same run attempt.
+writer rejects because both reports must be produced in the same run attempt.
 
 A fixed master-only correlator keeps successive baseline snapshots in the
 same stream within each repository; ASF and org inventories are independent. The writer's

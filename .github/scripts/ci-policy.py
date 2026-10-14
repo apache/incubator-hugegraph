@@ -62,6 +62,7 @@ MAINTENANCE_INPUTS = {
     ".github/PULL_REQUEST_TEMPLATE.md": set(), ".github/dependabot.yml": set(),
     ".github/workflows/.java-version": MAINLINE | {"macos_full", "hbase", "riscv64"},
     ".github/scripts/dependency-snapshot.py": {"dependency_license"},
+    ".github/scripts/dependency-inventory.py": {"dependency_license"},
     ".github/scripts/test_dependency_snapshot.py": set(),  # Covered by preflight discovery.
     ".github/scripts/check-docker-images.sh": {"docker"},
     ".github/scripts/docker-deployment.py": {"docker"},

@@ -43,6 +43,7 @@ def load_module(path, name):
 
 
 producer = load_module(Path(__file__).with_name('dependency-snapshot.py'), 'producer')
+inventory_producer = load_module(Path(__file__).with_name('dependency-inventory.py'), 'inventory_producer')
 
 
 def artifact(identifier, **fields):
@@ -62,7 +63,8 @@ class SnapshotTest(unittest.TestCase):
         script.write_text(textwrap.dedent(program))
         self.writer = load_module(script, 'writer')
         self.env = {'EXPECTED_REPOSITORY': 'apache/hugegraph', 'EXPECTED_SHA': 'a' * 40,
-                    'RUN_ID': '321', 'RUN_ATTEMPT': '2', 'ARTIFACT_ID': '789', 'RUNNER_TEMP': str(self.root),
+                    'RUN_ID': '321', 'RUN_ATTEMPT': '2', 'ARTIFACT_ID': '789', 'INVENTORY_ARTIFACT_ID': '987',
+                    'RUNNER_TEMP': str(self.root),
                     'SNAPSHOT_TOKEN': 'public-synthetic-sentinel'}
         directory = self.root / 'dependency-snapshot'
         directory.mkdir()
@@ -76,15 +78,25 @@ class SnapshotTest(unittest.TestCase):
                          'detector': producer.DETECTOR, 'metadata': {'serializer': producer.SERIALIZER,
                                                                   'producer': 'generate', 'run_attempt': '2'},
                          'scanned': now.isoformat(), 'manifests': {'module': producer.manifest(graph, 'pom.xml')}}
+        self.inventory = {'version': 1, 'sha': 'a' * 40, 'repository': 'apache/hugegraph', 'run_id': '321',
+                          'run_attempt': '2', 'producer': 'inventory', 'resolver': inventory_producer.RESOLVER,
+                          'scanned': now.isoformat(), 'manifests': {'pom.xml': {
+                              key: {'scope': value['scope'], 'relationship': value['relationship']}
+                              for key, value in self.snapshot['manifests']['module']['resolved'].items()}}}
         self.responses = {
             'actions/runs/321/attempts/2': {'id': 321, 'run_attempt': 2, 'head_sha': 'a' * 40,
                 'head_branch': 'master', 'event': 'push', 'repository': {'full_name': 'apache/hugegraph'},
                 'path': '.github/workflows/submit-dependencies.yml',
                 'run_started_at': (now - datetime.timedelta(minutes=2)).isoformat()},
-            'actions/runs/321/attempts/2/jobs?per_page=100': {'total_count': 3,
+            'actions/runs/321/attempts/2/jobs?per_page=100': {'total_count': 4,
                 'jobs': [{'name': 'generate', 'conclusion': 'success', 'status': 'completed',
+                          'run_id': 321, 'head_sha': 'a' * 40},
+                         {'name': 'inventory', 'conclusion': 'success', 'status': 'completed',
                           'run_id': 321, 'head_sha': 'a' * 40}]},
             'actions/artifacts/789': {'id': 789, 'expired': False, 'name': 'dependency-snapshot-321-2',
+                'created_at': now.isoformat(),
+                'workflow_run': {'id': 321, 'head_sha': 'a' * 40, 'head_branch': 'master'}},
+            'actions/artifacts/987': {'id': 987, 'expired': False, 'name': 'dependency-inventory-321-2',
                 'created_at': now.isoformat(),
                 'workflow_run': {'id': 321, 'head_sha': 'a' * 40, 'head_branch': 'master'}},
             'git/trees/' + 'a' * 40 + '?recursive=1': {'truncated': False,
@@ -95,13 +107,19 @@ class SnapshotTest(unittest.TestCase):
         self.posts = []
         self.blob_headers = []
 
-    def run_writer(self, snapshot=None, raw=None, archive=None, artifact_changes=None):
+    def run_writer(self, snapshot=None, raw=None, archive=None, artifact_changes=None, inventory=None,
+                   inventory_archive=None, inventory_artifact_changes=None):
         if archive is None:
             payload = raw if raw is not None else json.dumps(snapshot or self.snapshot)
             archive = self.zip_bytes([('snapshot.json', payload)])
         self.responses['actions/artifacts/789'].update(size_in_bytes=len(archive),
                                                       digest='sha256:' + hashlib.sha256(archive).hexdigest())
         self.responses['actions/artifacts/789'].update(artifact_changes or {})
+        if inventory_archive is None:
+            inventory_archive = self.zip_bytes([('inventory.json', json.dumps(inventory or self.inventory))])
+        self.responses['actions/artifacts/987'].update(size_in_bytes=len(inventory_archive),
+            digest='sha256:' + hashlib.sha256(inventory_archive).hexdigest())
+        self.responses['actions/artifacts/987'].update(inventory_artifact_changes or {})
 
         def open_request(request, timeout):
             url = urlsplit(request.full_url)
@@ -109,16 +127,17 @@ class SnapshotTest(unittest.TestCase):
             if url.netloc == 'storage.blob.core.windows.net':
                 self.blob_headers.append(dict(request.header_items()))
                 self.assertIsNone(request.get_header('Authorization'))
-                response = io.BytesIO(archive)
+                response = io.BytesIO(inventory_archive if url.path == '/987.zip' else archive)
                 response.status = 200
                 return response
             self.assertEqual('api.github.com', url.netloc)
             self.assertTrue(url.path.startswith('/repos/apache/hugegraph/'))
             self.assertEqual('Bearer public-synthetic-sentinel', request.get_header('Authorization'))
             path = url.path.removeprefix('/repos/apache/hugegraph/') + ('?' + url.query if url.query else '')
-            if path == 'actions/artifacts/789/zip':
+            if path in ['actions/artifacts/789/zip', 'actions/artifacts/987/zip']:
                 raise urllib.error.HTTPError(request.full_url, 302, 'Found',
-                    {'Location': 'https://storage.blob.core.windows.net/archive.zip?sig=public'}, io.BytesIO())
+                    {'Location': 'https://storage.blob.core.windows.net/' + path.split('/')[2] + '.zip?sig=public'},
+                    io.BytesIO())
             if request.data is not None:
                 self.assertEqual('dependency-graph/snapshots', path)
                 self.posts.append(json.loads(request.data))
@@ -274,6 +293,67 @@ class SnapshotTest(unittest.TestCase):
             self.responses[path] = original
         self.assertEqual([], self.posts)
 
+    def test_writer_rejects_incomplete_package_inventory_before_post(self):
+        resolved = self.snapshot['manifests']['module']['resolved']
+        for key in list(resolved):
+            candidate = copy.deepcopy(self.snapshot)
+            packages = candidate['manifests']['module']['resolved']
+            packages.pop(key)
+            for package in packages.values():
+                package['dependencies'] = [child for child in package['dependencies'] if child != key]
+            with self.subTest(missing=key), self.assertRaises(ValueError):
+                self.run_writer(snapshot=candidate)
+        for field, value in [('scope', 'development'), ('relationship', 'direct')]:
+            candidate = copy.deepcopy(self.snapshot)
+            key = next(key for key, value in resolved.items() if value['relationship'] == 'indirect')
+            candidate['manifests']['module']['resolved'][key][field] = value
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'inventory mismatch'):
+                self.run_writer(snapshot=candidate)
+        candidate = copy.deepcopy(self.snapshot)
+        packages = candidate['manifests']['module']['resolved']
+        key = next(key for key, value in packages.items() if value['relationship'] == 'indirect')
+        altered = key.replace('@1.0?', '@2.0?')
+        packages[altered] = packages.pop(key)
+        packages[altered]['package_url'] = altered
+        for package in packages.values():
+            package['dependencies'] = [altered if child == key else child for child in package['dependencies']]
+        with self.assertRaisesRegex(ValueError, 'inventory mismatch'):
+            self.run_writer(snapshot=candidate)
+        self.assertEqual([], self.posts)
+
+    def test_writer_rejects_foreign_or_incomplete_inventory(self):
+        for key, value in [('sha', 'b' * 40), ('repository', 'other/repo'), ('run_id', '123'),
+                           ('run_attempt', '1'), ('producer', 'generate'), ('resolver', 'unknown'),
+                           ('version', False), ('scanned', '2000-01-01T00:00:00Z'), ('manifests', {})]:
+            candidate = copy.deepcopy(self.inventory)
+            candidate[key] = value
+            with self.subTest(field=key), self.assertRaises(ValueError):
+                self.run_writer(inventory=candidate)
+        for fields in [{'expired': True}, {'name': 'dependency-inventory-321-1'},
+                       {'workflow_run': {'id': 321, 'head_sha': 'b' * 40, 'head_branch': 'master'}},
+                       {'digest': 'sha256:' + '0' * 64}]:
+            original = copy.deepcopy(self.responses['actions/artifacts/987'])
+            with self.subTest(fields=fields), self.assertRaises((ValueError, KeyError)):
+                self.run_writer(inventory_artifact_changes=fields)
+            self.responses['actions/artifacts/987'] = original
+        jobs = self.responses['actions/runs/321/attempts/2/jobs?per_page=100']['jobs']
+        for field, value in [('conclusion', 'failure'), ('head_sha', 'b' * 40), ('run_id', 123)]:
+            original = jobs[1][field]
+            jobs[1][field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.run_writer()
+            jobs[1][field] = original
+        self.assertEqual([], self.posts)
+
+    def test_writer_rejects_inventory_zip_wrong_member_without_extraction(self):
+        before = set(self.root.rglob('*'))
+        for entries in [[('snapshot.json', '{}')], [('inventory.json', '{}'), ('inventory.json', '{}')],
+                        [('../inventory.json', '{}')]]:
+            with self.subTest(entries=entries), self.assertRaises(ValueError):
+                self.run_writer(inventory_archive=self.zip_bytes(entries))
+        self.assertEqual(before, set(self.root.rglob('*')))
+        self.assertEqual([], self.posts)
+
     def test_writer_rejects_zip_paths_duplicates_symlinks_and_bounds_without_writes(self):
         body = json.dumps(self.snapshot)
         fixtures = [self.zip_bytes([('snapshot.json', body), ('x/../../outside', 'must not write')]),
@@ -293,7 +373,7 @@ class SnapshotTest(unittest.TestCase):
 
     def test_writer_download_has_no_cross_host_authorization_or_followup_redirect(self):
         self.run_writer()
-        self.assertEqual([{}], self.blob_headers)
+        self.assertEqual([{}, {}], self.blob_headers)
         self.posts.clear()
         for metadata in [{'digest': 'sha256:' + '0' * 64}, {'size_in_bytes': 1}]:
             with self.assertRaisesRegex(ValueError, 'digest/size mismatch'):
@@ -317,6 +397,60 @@ class SnapshotTest(unittest.TestCase):
                 self.writer.download_snapshot('apache/hugegraph', '789', {})
         self.assertEqual(2, len(calls))
         self.assertEqual([], self.posts)
+
+
+class InventoryTest(unittest.TestCase):
+
+    @staticmethod
+    def node(name, scope='', children=None, **fields):
+        return dict(groupId='org.example', artifactId=name, version='1.0', type='jar', scope=scope,
+                    classifier='', optional='false', children=children or [], **fields)
+
+    def test_independent_tree_scopes_classifier_and_direct_precedence(self):
+        leaf = self.node('leaf', 'test')
+        parent = self.node('parent', 'compile', [leaf])
+        classified = self.node('native', 'provided')
+        classified['classifier'] = 'linux-aarch_64'
+        tree = self.node('root', children=[parent, self.node('leaf', 'compile'), classified])
+        prefix = 'pkg:maven/org.example/'
+        self.assertEqual({
+            prefix + 'parent@1.0?type=jar': {'relationship': 'direct', 'scope': 'runtime'},
+            prefix + 'leaf@1.0?type=jar': {'relationship': 'direct', 'scope': 'runtime'},
+            prefix + 'native@1.0?classifier=linux-aarch_64&type=jar':
+                {'relationship': 'direct', 'scope': 'runtime'},
+        }, inventory_producer.packages(tree))
+        self.assertEqual({}, inventory_producer.packages(self.node('aggregate')))
+
+    def test_inventory_refuses_invalid_nodes(self):
+        for field, value in [('scope', 'compile'), ('children', {}), ('optional', None),
+                             ('classifier', None), ('version', '')]:
+            node = self.node('root')
+            node[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                inventory_producer.packages(node)
+        with self.assertRaises(ValueError):
+            inventory_producer.packages(self.node('root', children=[self.node('bad', 'unknown')]))
+
+    def test_inventory_requires_every_report_and_refuses_empty_or_duplicate_poms(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            target = root / 'target'
+            target.mkdir()
+            report = target / inventory_producer.REPORT
+            report.write_text(json.dumps(self.node('root', children=[self.node('leaf', 'test')])))
+            result = inventory_producer.create_inventory(root, ['pom.xml'], 'a' * 40, 'apache/hugegraph', '1', '1')
+            self.assertEqual('development', next(iter(result['manifests']['pom.xml'].values()))['scope'])
+            with self.assertRaises(ValueError):
+                inventory_producer.create_inventory(root, ['pom.xml', 'pom.xml'], 'a' * 40, 'repo', '1', '1')
+            with self.assertRaises(FileNotFoundError):
+                inventory_producer.create_inventory(root, ['module/pom.xml'], 'a' * 40, 'repo', '1', '1')
+            report.write_text(json.dumps(self.node('root')))
+            with self.assertRaisesRegex(ValueError, 'Empty independent'):
+                inventory_producer.create_inventory(root, ['pom.xml'], 'a' * 40, 'repo', '1', '1')
+            report.unlink()
+            report.symlink_to(target / 'outside')
+            with self.assertRaises(ValueError):
+                inventory_producer.create_inventory(root, ['pom.xml'], 'a' * 40, 'repo', '1', '1')
 
 
 if __name__ == '__main__':

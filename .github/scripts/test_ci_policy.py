@@ -122,7 +122,8 @@ class PolicyTest(unittest.TestCase):
             "server", ["hugegraph-pd/hg-pd-grpc/src/main/proto/common.proto"])))
 
     def test_dependency_snapshot_inputs_do_not_fan_out_to_runtime_suites(self):
-        for path in [".github/scripts/dependency-snapshot.py", ".github/workflows/submit-dependencies.yml"]:
+        for path in [".github/scripts/dependency-snapshot.py", ".github/scripts/dependency-inventory.py",
+                     ".github/workflows/submit-dependencies.yml"]:
             self.assertEqual({"dependency_license"}, set(self.plan_for([path])["selected"]))
             self.assertEqual({"dependency_license"}, self.coordinator_jobs(self.plan_for([path])))
         fixture = ".github/scripts/test_dependency_snapshot.py"

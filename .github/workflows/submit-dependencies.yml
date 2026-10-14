@@ -107,10 +107,68 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  inventory:
+    needs: validate
+    if: >-
+      ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) ||
+       github.repository == 'hugegraph/hugegraph') &&
+      github.ref == 'refs/heads/master' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      INPUT_TOKEN: ''
+      GITHUB_TOKEN: ''
+      GH_TOKEN: ''
+    outputs:
+      artifact_id: ${{ steps.inventory.outputs.artifact-id }}
+    steps:
+      - name: Checkout event commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up project JDK
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          java-version-file: .github/workflows/.java-version
+          distribution: 'temurin'
+      - name: Verify checkout and current master
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
+      - name: Install the complete Maven reactor
+        run: mvn -B -ntp install -Dmaven.test.skip=true -Dmaven.javadoc.skip=true --fail-at-end
+      - name: Resolve independent dependency inventory
+        run: |
+          mvn -B -ntp org.apache.maven.plugins:maven-dependency-plugin:3.8.1:tree \
+            -DoutputType=json -DoutputFile=target/dependency-inventory.json \
+            -Dverbose=false -DappendOutput=false \
+            -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
+          python3 .github/scripts/dependency-inventory.py "$RUNNER_TEMP/inventory.json"
+      - name: Refuse a stale inventory
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
+      - name: Upload inventory data only
+        id: inventory
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: dependency-inventory-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/inventory.json
+          if-no-files-found: error
+          retention-days: 1
+
   submit:
-    needs: [validate, generate]
+    needs: [validate, generate, inventory]
     if: >-
       needs.validate.result == 'success' && needs.generate.result == 'success' &&
+      needs.inventory.result == 'success' &&
       ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) ||
        github.repository == 'hugegraph/hugegraph') &&
       github.ref == 'refs/heads/master' &&
@@ -129,6 +187,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
           ARTIFACT_ID: ${{ needs.generate.outputs.artifact_id }}
+          INVENTORY_ARTIFACT_ID: ${{ needs.inventory.outputs.artifact_id }}
         run: |
           python3 -I - <<'PY'
           import datetime
@@ -179,13 +238,13 @@ jobs:
                   raw = bounded_body(response)
               return json.loads(raw, object_pairs_hook=unique_object)
 
-          def read_snapshot(raw):
+          def read_snapshot(raw, member_name='snapshot.json'):
               require(0 < len(raw) <= LIMIT, 'Invalid ZIP size')
               with zipfile.ZipFile(io.BytesIO(raw)) as archive:
                   members = archive.infolist()
-                  require(len(members) == 1, 'ZIP must contain one snapshot.json')
+                  require(len(members) == 1, 'ZIP must contain one data file')
                   member = members[0]
-                  require(member.orig_filename == 'snapshot.json' and not member.is_dir() and
+                  require(member.orig_filename == member_name and not member.is_dir() and
                           not (member.external_attr & 0x10) and
                           stat.S_IFMT(member.external_attr >> 16) in [0, stat.S_IFREG] and
                           not (member.flag_bits & 1) and
@@ -196,7 +255,7 @@ jobs:
                   require(len(payload) == member.file_size, 'Incomplete ZIP member')
               return json.loads(payload, object_pairs_hook=unique_object)
 
-          def download_snapshot(repository, artifact_id, artifact):
+          def download_snapshot(repository, artifact_id, artifact, member_name='snapshot.json'):
               opener = urllib.request.build_opener(NoRedirect())
               try:
                   response = opener.open(github_request(repository, f'actions/artifacts/{artifact_id}/zip'), timeout=60)
@@ -218,7 +277,7 @@ jobs:
                   raw = bounded_body(response)
               require(len(raw) == artifact['size_in_bytes'] and
                       'sha256:' + hashlib.sha256(raw).hexdigest() == artifact['digest'], 'Artifact digest/size mismatch')
-              return read_snapshot(raw)
+              return read_snapshot(raw, member_name)
 
           def timestamp(value):
               parsed = datetime.datetime.fromisoformat(value.replace('Z', '+00:00'))
@@ -239,20 +298,28 @@ jobs:
                       run['path'] in ['.github/workflows/submit-dependencies.yml',
                                       '.github/workflows/submit-dependencies.yml@master'], 'Run identity')
               jobs = api(repository, f'actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100')
-              producers = [job for job in jobs['jobs'] if job['name'] == 'generate']
-              require(jobs['total_count'] <= 100 and len(producers) == 1 and
-                      producers[0]['conclusion'] == 'success' and producers[0]['status'] == 'completed' and
-                      producers[0]['run_id'] == int(run_id) and producers[0]['head_sha'] == sha,
-                      'Generation did not succeed for this commit')
-              artifact = api(repository, f'actions/artifacts/{artifact_id}')
-              require(artifact['id'] == int(artifact_id) and artifact['expired'] is False and
-                      artifact['name'] == f'dependency-snapshot-{run_id}-{attempt}' and
-                      artifact['workflow_run']['id'] == int(run_id) and
-                      artifact['workflow_run']['head_sha'] == sha and
-                      artifact['workflow_run']['head_branch'] == 'master' and
-                      type(artifact['size_in_bytes']) is int and 0 < artifact['size_in_bytes'] <= LIMIT and
-                      isinstance(artifact['digest'], str) and
-                      re.fullmatch('sha256:[0-9a-f]{64}', artifact['digest']), 'Artifact identity')
+              require(jobs['total_count'] <= 100, 'Too many jobs')
+              for name in ['generate', 'inventory']:
+                  producers = [job for job in jobs['jobs'] if job['name'] == name]
+                  require(len(producers) == 1 and producers[0]['conclusion'] == 'success' and
+                          producers[0]['status'] == 'completed' and producers[0]['run_id'] == int(run_id) and
+                          producers[0]['head_sha'] == sha, 'Producer did not succeed for this commit')
+              inventory_id = os.environ['INVENTORY_ARTIFACT_ID']
+              require(re.fullmatch('[1-9][0-9]*', inventory_id) and inventory_id != artifact_id, 'Inventory ID')
+
+              def checked_artifact(identifier, kind):
+                  item = api(repository, f'actions/artifacts/{identifier}')
+                  require(item['id'] == int(identifier) and item['expired'] is False and
+                          item['name'] == f'dependency-{kind}-{run_id}-{attempt}' and
+                          item['workflow_run']['id'] == int(run_id) and item['workflow_run']['head_sha'] == sha and
+                          item['workflow_run']['head_branch'] == 'master' and
+                          type(item['size_in_bytes']) is int and 0 < item['size_in_bytes'] <= LIMIT and
+                          isinstance(item['digest'], str) and re.fullmatch('sha256:[0-9a-f]{64}', item['digest']),
+                          'Artifact identity')
+                  return item
+
+              artifact = checked_artifact(artifact_id, 'snapshot')
+              inventory_artifact = checked_artifact(inventory_id, 'inventory')
               snapshot = download_snapshot(repository, artifact_id, artifact)
               require(isinstance(snapshot, dict) and set(snapshot) ==
                       {'version', 'sha', 'ref', 'job', 'detector', 'metadata', 'scanned', 'manifests'}, 'Snapshot schema')
@@ -271,10 +338,25 @@ jobs:
                       timestamp(artifact['created_at']) + datetime.timedelta(minutes=1) and
                       timestamp(artifact['created_at']) <= now and timestamp(snapshot['scanned']) <= now,
                       'Snapshot freshness')
+              inventory = download_snapshot(repository, inventory_id, inventory_artifact, 'inventory.json')
+              require(isinstance(inventory, dict) and set(inventory) ==
+                      {'version', 'sha', 'repository', 'run_id', 'run_attempt', 'producer', 'resolver',
+                       'scanned', 'manifests'}, 'Inventory schema')
+              require(type(inventory['version']) is int and inventory['version'] == 1 and
+                      inventory['sha'] == sha and inventory['repository'] == repository and
+                      inventory['run_id'] == run_id and inventory['run_attempt'] == attempt and
+                      inventory['producer'] == 'inventory' and inventory['resolver'] ==
+                      'org.apache.maven.plugins:maven-dependency-plugin:3.8.1:tree', 'Inventory source')
+              require(timestamp(run['run_started_at']) <= timestamp(inventory['scanned']) <=
+                      timestamp(inventory_artifact['created_at']) + datetime.timedelta(minutes=1) and
+                      timestamp(inventory_artifact['created_at']) <= now and timestamp(inventory['scanned']) <= now,
+                      'Inventory freshness')
               tree = api(repository, f'git/trees/{sha}?recursive=1')
               require(tree['truncated'] is False, 'Incomplete source tree')
               poms = {node['path'] for node in tree['tree'] if node['type'] == 'blob' and
                       node['path'].split('/')[-1] == 'pom.xml' and node['mode'] != '120000'}
+              require(isinstance(inventory['manifests'], dict) and set(inventory['manifests']) == poms,
+                      'Incomplete independent inventory')
               manifests, paths = snapshot['manifests'], set()
               require(isinstance(manifests, dict) and manifests and poms, 'Empty inventory')
               component = r"(?:[A-Za-z0-9._!~*'():+-]|%[0-9A-F]{2})+"
@@ -303,6 +385,9 @@ jobs:
                               'Package schema')
                   require(not resolved or any(p['relationship'] == 'direct' for p in resolved.values()),
                           'Missing direct dependencies')
+                  observed = {purl: {'scope': package['scope'], 'relationship': package['relationship']}
+                              for purl, package in resolved.items()}
+                  require(observed == inventory['manifests'][location], 'Dependency inventory mismatch')
               require(paths == poms and any(m['resolved'] for m in manifests.values()), 'Incomplete inventory')
               require(api(repository, 'git/ref/heads/master')['object']['sha'] == sha, 'Stale master before submission')
               result = api(repository, 'dependency-graph/snapshots', snapshot)
