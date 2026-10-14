@@ -21,6 +21,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
@@ -31,14 +32,48 @@ import org.apache.hugegraph.meta.MetaDriver;
 import org.apache.hugegraph.meta.MetaManager;
 import org.apache.hugegraph.meta.lock.LockResult;
 import org.apache.hugegraph.meta.managers.ServiceMetaManager;
+import org.apache.hugegraph.pd.client.DiscoveryClientImpl;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
+import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
+import org.apache.hugegraph.pd.grpc.discovery.Query;
 import org.apache.hugegraph.space.GraphSpace;
 import org.apache.hugegraph.space.Service;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 public class GraphManagerServiceNamesTest {
+
+    @Test
+    public void testServiceUrlsPreservesRawIdentityAndRegisterType() throws Exception {
+        DiscoveryClientImpl client = Mockito.mock(DiscoveryClientImpl.class);
+        Mockito.when(client.getNodeInfos(Mockito.any(Query.class)))
+               .thenReturn(NodeInfos.newBuilder()
+                                    .addInfo(NodeInfo.newBuilder().setAddress("http://server:8080"))
+                                    .build());
+        GraphManager manager = new GraphManager(
+                new HugeConfig(new PropertiesConfiguration()),
+                new EventHub("service-query-test"));
+        try {
+            setField(manager, "pdClient", client);
+            Class<?> registerType = Class.forName(GraphManager.class.getName() + "$PdRegisterType");
+            Object nodePort = Whitebox.getInternalState(registerType, "NODE_PORT");
+            Set<String> urls = Whitebox.invoke(GraphManager.class,
+                    new Class<?>[]{String.class, String.class, registerType},
+                    "getServiceUrls", manager, "team_a", "team/Analytics-prod", nodePort);
+
+            ArgumentCaptor<Query> query = ArgumentCaptor.forClass(Query.class);
+            Mockito.verify(client).getNodeInfos(query.capture());
+            Assert.assertEquals(Map.of("GRAPHSPACE", "team_a",
+                                       "SERVICE_NAME", "team/Analytics-prod",
+                                       "REGISTER_TYPE", "NODE_PORT"), query.getValue().getLabelsMap());
+            Assert.assertEquals(Set.of("http://server:8080"), urls);
+        } finally {
+            manager.close();
+        }
+    }
 
     @Test
     public void testReloadPreservesCompleteServiceNames() {
