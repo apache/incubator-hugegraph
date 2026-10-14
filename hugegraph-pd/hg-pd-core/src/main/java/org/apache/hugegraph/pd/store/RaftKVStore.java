@@ -20,6 +20,7 @@ package org.apache.hugegraph.pd.store;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.pd.common.PDException;
@@ -130,6 +131,15 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
         }
     }
 
+    /** Keep the registration gate until apply is known, even if the RPC caller is interrupted. */
+    public void putDiscoveryWithTTL(byte[] key, byte[] value, long ttl, long term) throws PDException {
+        try {
+            applyOperation(KVOperation.createPutWithTTL(key, value, ttl), term).join();
+        } catch (CompletionException e) {
+            throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, "Discovery write failed", e);
+        }
+    }
+
     @Override
     public void putWithTTL(byte[] key, byte[] value, long ttl, TimeUnit timeUnit) throws
                                                                                   PDException {
@@ -221,9 +231,14 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
     }
 
     private <T> CompletableFuture<T> applyOperation(final KVOperation op) throws PDException {
+        return applyOperation(op, -1);
+    }
+
+    private <T> CompletableFuture<T> applyOperation(final KVOperation op, long term) throws PDException {
         CompletableFuture<T> future = new CompletableFuture<>();
         try {
             final Task task = new Task();
+            task.setExpectedTerm(term);
             task.setData(ByteBuffer.wrap(op.toByteArray()));
             task.setDone(new RaftStateMachine.RaftClosureAdapter(op, new KVStoreClosure() {
                 Object data;

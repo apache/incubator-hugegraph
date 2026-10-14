@@ -39,6 +39,7 @@ import lombok.extern.slf4j.Slf4j;
         MetadataKeyHelperTest.class,
         HgKVStoreImplTest.class,
         PDNativeOwnerTest.class,
+        RegistryIdentityTest.class,
         PDConfigTest.class,
         ConfigServiceTest.class,
         IdServiceTest.class,

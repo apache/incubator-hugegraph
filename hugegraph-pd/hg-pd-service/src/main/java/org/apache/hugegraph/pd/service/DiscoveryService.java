@@ -133,8 +133,13 @@ public class DiscoveryService extends DiscoveryServiceGrpc.DiscoveryServiceImplB
             redirectToLeader(DiscoveryServiceGrpc.getGetNodesMethod(), request, responseObserver);
             return;
         }
-        responseObserver.onNext(register.getNodes(request));
-        responseObserver.onCompleted();
+        try {
+            responseObserver.onNext(register.getNodes(request));
+            responseObserver.onCompleted();
+        } catch (PDRuntimeException e) {
+            responseObserver.onError(io.grpc.Status.FAILED_PRECONDITION
+                                         .withDescription(e.getMessage()).asRuntimeException());
+        }
     }
 
     public boolean isLeader() {

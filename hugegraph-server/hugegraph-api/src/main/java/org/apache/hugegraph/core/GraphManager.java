@@ -1165,9 +1165,11 @@ public final class GraphManager {
                                 } else {
                                     LOG.warn("RegisterServiceToPd Error. {}",
                                              header.getError().getMessage());
+                                    return;
                                 }
                             }
                         }
+                        LOG.debug("PD service registration acknowledged");
                         if (!licenseValid) {
                             LOG.warn("License is valid.");
                             licenseValid = true;
@@ -1185,7 +1187,7 @@ public final class GraphManager {
 
             String pdServiceId = register.registerService(config);
             service.pdServiceId(pdServiceId);
-            LOG.info("Success to register service to pd");
+            LOG.info("Scheduled service registration with PD");
 
         } catch (Exception e) {
             LOG.error("Failed to register service to pd", e);
@@ -2173,7 +2175,7 @@ public final class GraphManager {
                                       PdRegisterType registerType) {
         Map<String, String> configs = new HashMap<>();
         if (StringUtils.isNotEmpty(graphSpace)) {
-            configs.put(PdRegisterLabel.REGISTER_TYPE.name(), graphSpace);
+            configs.put(PdRegisterLabel.GRAPHSPACE.name(), graphSpace);
         }
         if (StringUtils.isNotEmpty(service)) {
             configs.put(PdRegisterLabel.SERVICE_NAME.name(), service);

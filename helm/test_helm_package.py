@@ -17,6 +17,7 @@
 """Validate the artifact shipped to Helm, beyond source template tests."""
 
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import tarfile
@@ -93,6 +94,77 @@ class HelmPackageTest(unittest.TestCase):
                                 "Packaged chart did not render a StatefulSet")
                 self.assertTrue(b"kind: Deployment" in rendered.stdout,
                                 "Packaged chart did not render a Deployment")
+
+    def test_service_identity_requires_image_entrypoint_mappings(self):
+        command = ["helm", "template", "identity-check", str(self.package),
+                   "--show-only", "templates/server-deployment.yaml",
+                   "--set", "server.auth.enabled=false"]
+        rendered = subprocess.run(command, check=True, capture_output=True, text=True).stdout
+        # Read the literal shell block without adding a YAML dependency.
+        lines = rendered.splitlines()
+        start = lines.index("          args:") + 2
+        shell = []
+        for line in lines[start:]:
+            if line.strip() and not line.startswith("              "):
+                break
+            shell.append(line[14:])
+        script = "\n".join(shell) + "\n"
+        self.assertTrue(script.startswith("set -euo pipefail\n"))
+        original = "server.service_id=DEFAULT\nserver.graphspace=DEFAULT\nusePD=false\n"
+        old = "#!/bin/bash\nprintf launched > launched\n"
+        current = (ROOT / "hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh").read_text()
+        # Execute the actual image's validation and mappings, then stop before
+        # storage initialization or Java launch. No properties encoder is copied.
+        compatible = current.split("# ── Build wait-storage env", 1)[0] + "\nprintf launched > launched\n"
+        comment_only = old + "\n".join("# " + line for line in current.splitlines()) + "\n"
+        with tempfile.TemporaryDirectory(prefix="hugegraph-identity-wrapper-") as temporary:
+            directory = Path(temporary)
+            (directory / "conf/graphs").mkdir(parents=True)
+            (directory / "conf/graphs/hugegraph.properties").write_text("backend=hstore\n")
+            # The image mapping uses GNU sed. Reuse it when running on macOS;
+            # Linux CI already provides it as sed.
+            executable_path = os.environ["PATH"]
+            if shutil.which("gsed"):
+                (directory / "bin").mkdir()
+                (directory / "bin/sed").symlink_to(shutil.which("gsed"))
+                executable_path = str(directory / "bin") + os.pathsep + executable_path
+            config = directory / "conf/rest-server.properties"
+            entrypoint = directory / "docker-entrypoint.sh"
+            launcher = directory / "wrapper.sh"
+            launcher.write_text(script)
+            for name, image, identity, supported in (
+                    ("old service", old, {"HG_SERVER_SERVICE_ID": "analytics"}, False),
+                    ("old graph space", old, {"HG_SERVER_GRAPHSPACE": "team_a"}, False),
+                    ("comment-only service", comment_only, {"HG_SERVER_SERVICE_ID": "analytics"}, False),
+                    ("comment-only graph space", comment_only, {"HG_SERVER_GRAPHSPACE": "team_a"}, False),
+                    ("current mappings", compatible,
+                     {"HG_SERVER_SERVICE_ID": "analytics", "HG_SERVER_GRAPHSPACE": "team_a"}, True),
+                    ("default old image", old, {}, True)):
+                with self.subTest(case=name):
+                    config.write_text(original)
+                    entrypoint.write_text(image)
+                    entrypoint.chmod(0o700)
+                    (directory / "launched").unlink(missing_ok=True)
+                    environment = {"PATH": executable_path,
+                                   "HG_SERVER_PD_PEERS": "fixture:8686",
+                                   "HG_SERVER_URLS_TO_PD": "http://fixture:8080", **identity}
+                    run = subprocess.run(["bash", str(launcher)], cwd=directory, env=environment,
+                                         capture_output=True, text=True, timeout=10)
+                    if supported:
+                        self.assertEqual(0, run.returncode, run.stderr)
+                        self.assertTrue((directory / "launched").exists())
+                        self.assertIn("usePD=true\n", config.read_text())
+                        if identity:
+                            self.assertIn("server.service_id=analytics\n", config.read_text())
+                            self.assertIn("server.graphspace=team_a\n", config.read_text())
+                    else:
+                        self.assertNotEqual(0, run.returncode,
+                                            "Unsupported image launched=" +
+                                            str((directory / "launched").exists()) +
+                                            "; config changed=" + str(config.read_text() != original))
+                        self.assertIn("compatible Server image", run.stderr)
+                        self.assertEqual(original, config.read_text(), "Rejected image changed config")
+                        self.assertFalse((directory / "launched").exists(), "Rejected image was launched")
 
 
 if __name__ == "__main__":

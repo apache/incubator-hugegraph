@@ -210,7 +210,7 @@ public class PDRestService implements InitializingBean {
     public ArrayList<RegistryRestRequest> getNodeInfo(Query request) throws PDException {
         CountDownLatch latch = new CountDownLatch(1);
         final NodeInfos[] info = {null};
-        RegistryRestResponse response = new RegistryRestResponse();
+        final Throwable[] failure = {null};
         ArrayList<RegistryRestRequest> registryRestRequests = null;
         try {
             StreamObserver<NodeInfos> observer = new StreamObserver<NodeInfos>() {
@@ -222,6 +222,7 @@ public class PDRestService implements InitializingBean {
 
                 @Override
                 public void onError(Throwable t) {
+                    failure[0] = t;
                     latch.countDown();
                 }
 
@@ -232,6 +233,12 @@ public class PDRestService implements InitializingBean {
             };
             this.discoveryService.getNodes(request, observer);
             latch.await();
+            if (failure[0] != null) {
+                throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, failure[0].getMessage(), failure[0]);
+            }
+            if (info[0] == null) {
+                throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, "Discovery query completed without a reply");
+            }
             List<NodeInfo> infoList = info[0].getInfoList();
             registryRestRequests = new ArrayList(infoList.size());
             for (int i = 0; i < infoList.size(); i++) {
@@ -247,8 +254,8 @@ public class PDRestService implements InitializingBean {
                 registryRestRequests.add(registryRestRequest);
             }
         } catch (InterruptedException e) {
-            response.setErrorType(Pdpb.ErrorType.UNRECOGNIZED);
-            response.setMessage(e.getMessage());
+            Thread.currentThread().interrupt();
+            throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, "Discovery query interrupted", e);
         }
         return registryRestRequests;
     }

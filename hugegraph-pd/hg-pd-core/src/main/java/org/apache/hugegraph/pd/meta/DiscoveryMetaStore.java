@@ -28,6 +28,7 @@ import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfo;
 import org.apache.hugegraph.pd.grpc.discovery.NodeInfos;
 import org.apache.hugegraph.pd.grpc.discovery.Query;
+import org.apache.hugegraph.pd.store.RaftKVStore;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,6 +49,44 @@ public class DiscoveryMetaStore extends MetadataRocksDBStore {
     public void register(NodeInfo nodeInfo, int outTimes) throws PDException {
         putWithTTL(toKey(nodeInfo.getAppName(), nodeInfo.getVersion(), nodeInfo.getAddress()),
                    nodeInfo.toByteArray(), (nodeInfo.getInterval() / 1000) * outTimes);
+    }
+
+    public NodeInfo registration(NodeInfo node) throws PDException {
+        byte[] value = getWithTTL(toKey(node.getAppName(), node.getVersion(), node.getAddress()));
+        try {
+            return value == null ? null : NodeInfo.parseFrom(value);
+        } catch (com.google.protobuf.InvalidProtocolBufferException e) {
+            throw new PDException(1, "Invalid discovery registration", e);
+        }
+    }
+
+    public void register(NodeInfo node, int outTimes, long term) throws PDException {
+        if (term > 0) {
+            if (!(this.store instanceof RaftKVStore)) {
+                throw new PDException(1, "Discovery Raft store is unavailable");
+            }
+            ((RaftKVStore) this.store).putDiscoveryWithTTL(
+                    toKey(node.getAppName(), node.getVersion(), node.getAddress()),
+                    node.toByteArray(), (node.getInterval() / 1000) * outTimes, term);
+        } else {
+            register(node, outTimes);
+        }
+    }
+
+    public NodeInfos getNodesStrict(Query query) throws PDException {
+        List<NodeInfo> nodes = getInstanceListWithTTL(
+                NodeInfo.parser(), getPrefixBuilder(query.getAppName(), "").toString().getBytes());
+        NodeInfos.Builder result = NodeInfos.newBuilder();
+        for (NodeInfo node : nodes) {
+            if ((!query.getAppName().isEmpty() && !query.getAppName().equals(node.getAppName())) ||
+                (!query.getVersion().isEmpty() && !query.getVersion().equals(node.getVersion()))) {
+                continue;
+            }
+            if (labelMatch(node, query)) {
+                result.addInfo(node);
+            }
+        }
+        return result.build();
     }
 
     byte[] toKey(String appName, String version, String address) {

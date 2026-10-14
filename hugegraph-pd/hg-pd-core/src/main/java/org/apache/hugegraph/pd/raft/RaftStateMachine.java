@@ -97,6 +97,10 @@ public class RaftStateMachine extends StateMachineAdapter {
         stateListeners.add(listener);
     }
 
+    long leaderTerm() {
+        return this.leaderTerm.get();
+    }
+
     public boolean isLeader() {
         return this.leaderTerm.get() > 0;
     }

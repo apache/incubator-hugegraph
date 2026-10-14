@@ -646,13 +646,31 @@ this is a deployment input serialization limit, not a change to core service nam
 The full service ID, including `/` and `-`, is retained when service metadata is
 reloaded or its graph space is cleared.
 
+PD protects a live discovery pool when its registrations provide the complete
+`GRAPHSPACE`/`SERVICE_NAME`/`SERVICE_ID` tuple. Different raw names that map to the
+same discovery identifier are rejected rather than merged into one endpoint
+pool. The configured names and printable-character rules above are unchanged.
+Upgrade PD first; old PD leaders do not provide this check. Registration is
+asynchronous, so a conflicting Server can remain running locally while logging
+a registration error. Stop conflicting heartbeats and wait for their TTL, or
+explicitly select a different service identity. A generic-only pool must also
+expire before a complete Server identity can join it. Clients should select the
+raw graph space and service name; identifier-only queries to generic-only pools
+keep their previous behavior.
+
 ```bash
 helm upgrade --install hg ./helm/hugegraph \
   --set-string server.serviceId=analytics \
   --set-string server.graphSpace=team_a
 ```
 
-Use images built with these entrypoint mappings. Create the non-default graph
+For non-default identities, the startup wrapper checks the image entrypoint's
+environment-to-property mappings before rewriting configuration or launching
+Server. An older or unrecognized entrypoint stops with a `compatible Server
+image` error instead of silently using `DEFAULT`. Select an image built with
+these mappings; the chart's default image tag is unchanged.
+
+Create the non-default graph
 space in the existing cluster before deploying Servers assigned to it; the chart
 does not create it. A graph-space name is `DEFAULT` or up to 48 lowercase letters,
 digits and underscores, starting with a letter, as required by the Server API. All replicas in this Server Deployment use the same identity.
