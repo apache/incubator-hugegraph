@@ -134,6 +134,8 @@ check_gc_options() {
         return 1
     fi
     touch "$fixture/lib/hg-store-node-test.jar"
+    # The store launcher requires one rocksdbjni jar for native callback classloading.
+    touch "$fixture/lib/rocksdbjni-test.jar"
     cat > "$fixture/jdk/bin/java" <<'JAVA'
 #!/bin/bash
 if [[ "$1" == "-version" ]]; then
