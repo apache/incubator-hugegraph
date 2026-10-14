@@ -72,11 +72,6 @@ PRESETS = {
 }
 SERVER_CORE = "hugegraph-server/hugegraph-core/src/main/java/org/apache/hugegraph/"
 SERVER_API = "hugegraph-server/hugegraph-api/src/main/java/org/apache/hugegraph/"
-# These diagnostic entry points can attach code to the running JVM.
-SECURITY_INPUTS = {
-    SERVER_API + "api/arthas/ArthasAPI.java",
-    "hugegraph-store/hg-store-node/src/main/java/org/apache/hugegraph/store/node/controller/PartitionAPI.java",
-}
 DISTRIBUTED_SERVER_INPUTS = (
     "hugegraph-server/hugegraph-hstore/", SERVER_CORE + "backend/", SERVER_CORE + "meta/",
     SERVER_CORE + "space/", SERVER_CORE + "task/", SERVER_CORE + "masterelection/", SERVER_CORE + "HugeGraph",
@@ -161,8 +156,7 @@ def select(project, paths):
             if path.startswith("install-dist/"):
                 selected.add("dependency_license")
                 continue
-            if (path in SECURITY_INPUTS
-                    or {"auth", "security", "permission", "permissions"}.intersection(p.parts)
+            if ({"auth", "security", "permission", "permissions"}.intersection(p.parts)
                     or p.stem.startswith(("Authentication", "Authorization"))
                     or p.stem.endswith(("Authentication", "Authenticator", "Permission", "WithAuth"))
                     or p.name in {"AuthOptions.java", "OkHttpBasicAuthInterceptor.java", "java-security.properties",

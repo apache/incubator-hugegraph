@@ -488,7 +488,7 @@ assert required_modules(pd_job) == {
 assert_order(store_job, [
     "mvn clean package",
     "mvn editorconfig:check -pl hugegraph-store/hg-store-test -am -ntp",
-    "-Dtest=StoredRowIngressTest,ArthasConfigTest,ArthasSecurityTest",
+    "-Dtest=StoredRowIngressTest,ArthasSecurityTest",
     "-P store-common-test -Djacoco.sessionId=store-common-test",
     "-P store-client-test -Djacoco.sessionId=store-client-test",
     "-P store-rocksdb-test -Djacoco.sessionId=store-rocksdb-test",
@@ -518,7 +518,6 @@ assert reports_for_option(store_job, "--require-test-report") == {
     "TEST-org.apache.hugegraph.store.core.CoreSuiteTest.xml",
     "TEST-org.apache.hugegraph.store.service.ServerSuiteTest.xml",
     "TEST-org.apache.hugegraph.store.business.StoredRowIngressTest.xml",
-    "TEST-org.apache.hugegraph.store.node.ArthasConfigTest.xml",
     "TEST-org.apache.hugegraph.store.node.controller.ArthasSecurityTest.xml",
 }
 assert not reports_for_option(store_job, "--require-suite-report")

@@ -282,6 +282,7 @@
                             <exclude>**/pd/grpc/**/*.java</exclude>
                             <exclude>**/store/grpc/**/*.java</exclude>
                             <exclude>**/target/**</exclude>
+                            <exclude>**/apache-hugegraph-*/lib/arthas/logback.xml</exclude>
                             <exclude>dist/**/*</exclude>
                             <!-- Git & GitHub  -->
                             <exclude>.github/**/*</exclude>

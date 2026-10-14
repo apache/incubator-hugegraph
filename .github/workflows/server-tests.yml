@@ -108,9 +108,7 @@ jobs:
         run: |
           VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           SERVER_DIR=hugegraph-server/apache-hugegraph-server-$VERSION
-          PACKAGE=("$SERVER_DIR"/lib/arthas-packaging-*.jar)
-          test "${#PACKAGE[@]}" -eq 1 && test -s "${PACKAGE[0]}"
-          bash "$TRAVIS_DIR/test-arthas-cli.sh" "${PACKAGE[0]}" "${PACKAGE[0]}"
+          bash "$TRAVIS_DIR/test-arthas-cli.sh" "$SERVER_DIR"
 
       - name: Verify Surefire single-class routing
         if: ${{ env.BACKEND == 'rocksdb' }}

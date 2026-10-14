@@ -80,8 +80,7 @@ existing precedence; see [container heap sizing](../docker/README.md#server-heap
 ### Arthas diagnostics
 
 Server and Store bundle Arthas 4.1.5, managed by the root POM. PD does not embed
-an Arthas agent. Diagnostic ports bind to
-loopback by default. Server's `PUT /arthas` requires authentication to be enabled
+an Arthas agent. Diagnostic ports bind to loopback by default. Server's `PUT /arthas` requires authentication to be enabled
 and the caller to be an authenticated administrator. It rejects non-loopback
 `arthas.ip` values, including `0.0.0.0`; `localhost` is normalized to `127.0.0.1`.
 Without authentication, the Server endpoint returns HTTP 403, including requests
@@ -95,11 +94,12 @@ helper as the same OS user that owns the JVM:
 bin/arthas.sh
 ```
 
-The helper uses the distribution's PID file and packaged agent, without downloads,
-restarting the service or changing its configuration. It requires a JDK with attach
-support. The local helper fixes the bind address to `127.0.0.1`, disables HTTP,
-and opens an interactive telnet session on port 3658. Use `--help` for selecting
-an explicit PID or another local telnet port when diagnosing multiple instances.
+The distribution prepares the agent in `lib/arthas` at build time. The helper
+requires JDK 17 and uses `bin/pid`, without downloads, runtime extraction, a user
+cache, service restarts or configuration edits. A new local agent listens on
+`127.0.0.1:3658`, with HTTP, MCP and reverse tunnels disabled. Use `--pid` or
+`--telnet-port` for another running instance, and `--command version` for a one-time
+command. Run `bin/arthas.sh --help` for usage.
 For remote diagnosis, log in to the service host over SSH and run the same command.
 If the Server API has already activated Arthas, connect to its existing telnet
 port instead: `bin/arthas.sh --telnet-port 8562` with the default configuration.
@@ -122,8 +122,7 @@ The distribution uses `arthas.telnet_port`, `arthas.http_port` and
 camelCase aliases when both are present, including explicit default values.
 Conflicting values produce a warning naming both keys and the effective key when
 the agent is activated. Remove the unused alias to avoid ambiguity. Store's legacy
-configuration values remain available for compatibility; they do not enable HTTP
-activation or override the local helper's loopback binding.
+configuration fields are retained; the local helper does not read them.
 
 For a synchronous one-time command, POST `{"action":"exec","command":"version"}`
 to the agent's `/api` endpoint without a `sessionId`. Check `state=SUCCEEDED`, the

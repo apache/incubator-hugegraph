@@ -41,7 +41,7 @@ uploads; no extra collector runner or repeated master coverage tests are added.
 | macOS ARM | Startup, JNI, graph read/write and restart smoke when affected; full core/API for platform inputs | Affected smoke | Full core/API |
 | HBase and RISC-V | Directly related backend/platform or validation inputs only | No repeated tests | Full validation |
 | PD, Store, HStore and Cluster | Affected modules and known consumers | Current-commit distributed smoke | Full group |
-| CodeQL | Authentication, authorization, security, Arthas activation endpoints, POM or CodeQL configuration inputs | No repeated scan | Full scan |
+| CodeQL | Authentication, authorization, security, POM or CodeQL configuration inputs | No repeated scan | Full scan |
 | Docker, Helm and dependency audit | Corresponding inputs | Corresponding deployment smoke or checks | Full validation |
 
 macOS uses one `macos-15` ARM job for either smoke or full validation. Intel macOS is removed.
