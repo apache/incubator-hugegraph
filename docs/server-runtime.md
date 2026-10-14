@@ -504,7 +504,10 @@ database worker. This gives pending tasks time to persist completion and release
 task database owner's transactions on that owner's thread. Each retained graph gets one
 close attempt per shutdown call. A close failure remains visible and keeps the database
 executor available for a later explicit retry; it does not start background recovery.
-Store-close notifications finish before the shared event executor is stopped.
+A terminated cron executor already satisfies the scheduler's dispatch barrier. Every
+executor wait, including an explicit retry after a timeout, checks actual termination;
+shutdown requested alone is insufficient. Store-close notifications finish before the
+shared event executor is stopped.
 
 Once these logical checks pass, graph close releases shared cache listeners, invokes
 `provider.close()` and destroys graph locks even if an earlier cleanup step reported an error. The error

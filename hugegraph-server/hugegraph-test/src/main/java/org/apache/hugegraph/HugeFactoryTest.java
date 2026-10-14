@@ -609,6 +609,115 @@ public class HugeFactoryTest {
     }
 
     @Test
+    public void testShutdownClosesRegisteredDistributedScheduler() throws Exception {
+        Constructor<TaskManager> constructor = TaskManager.class.getDeclaredConstructor(int.class);
+        constructor.setAccessible(true);
+        TaskManager manager = constructor.newInstance(1);
+        RegisterUtil.registerBackends();
+        HugeConfig config = FakeObjects.newConfig();
+        config.setProperty("backend", "memory");
+        config.setProperty("serializer", "text");
+        config.setProperty("store", "shutdown_registered_distributed_scheduler");
+        HugeGraph graph = HugeFactory.open(config);
+        HugeGraphParams params = Whitebox.getInternalState(graph, "params");
+        DistributedTaskScheduler scheduler = null;
+        try {
+            graph.initBackend();
+            graph.serverStarted(GlobalMasterInfo.master("shutdown-distributed-test"));
+            TaskManager.instance().closeScheduler(params);
+            Whitebox.setInternalState(graph, "taskManager", manager);
+            ScheduledThreadPoolExecutor cron = Whitebox.getInternalState(manager, "distributedSchedulerExecutor");
+            ExecutorService database = Whitebox.getInternalState(manager, "taskDbExecutor");
+            ExecutorService workers = Whitebox.getInternalState(manager, "taskExecutor");
+            ExecutorService schema = Whitebox.getInternalState(manager, "schemaTaskExecutor");
+            ExecutorService olap = Whitebox.getInternalState(manager, "olapTaskExecutor");
+            ExecutorService ephemeral = Whitebox.getInternalState(manager, "ephemeralTaskExecutor");
+            scheduler = new DistributedTaskScheduler(
+                    params, cron, database, schema, olap, workers, ephemeral);
+            Map<HugeGraphParams, TaskScheduler> schedulers = Whitebox.getInternalState(manager, "schedulers");
+            schedulers.put(params, scheduler);
+            scheduler.init();
+            params.closeTx();
+            Object taskDbOwner = Whitebox.getInternalState(scheduler, "taskTx");
+            Assert.assertFalse((boolean) Whitebox.getInternalState(taskDbOwner, "closed"));
+
+            manager.shutdown(10L);
+
+            Assert.assertTrue(graph.closed());
+            Assert.assertNull(manager.getScheduler(params));
+            Assert.assertTrue((boolean) Whitebox.getInternalState(taskDbOwner, "closed"));
+            Assert.assertTrue(cron.isTerminated());
+            Assert.assertTrue(database.isTerminated());
+        } finally {
+            try {
+                if (!graph.closed() && scheduler != null) {
+                    GraphTransaction owner = Whitebox.getInternalState(scheduler, "taskTx");
+                    scheduler.call(() -> {
+                        owner.close();
+                        params.closeTx();
+                    });
+                    manager.forceRemoveScheduler(params);
+                    graph.close();
+                }
+                manager.shutdown(10L);
+            } finally {
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
+    public void testShutdownRetryWaitsForTaskDbTermination() throws Exception {
+        this.checkShutdownRetryWaitsForTermination("taskDbExecutor");
+    }
+
+    @Test
+    public void testShutdownRetryWaitsForEphemeralTermination() throws Exception {
+        this.checkShutdownRetryWaitsForTermination("ephemeralTaskExecutor");
+    }
+
+    @Test
+    public void testShutdownRetryWaitsForSchemaTermination() throws Exception {
+        this.checkShutdownRetryWaitsForTermination("schemaTaskExecutor");
+    }
+
+    @Test
+    public void testShutdownRetryWaitsForOlapTermination() throws Exception {
+        this.checkShutdownRetryWaitsForTermination("olapTaskExecutor");
+    }
+
+    private void checkShutdownRetryWaitsForTermination(String field) throws Exception {
+        Constructor<TaskManager> constructor = TaskManager.class.getDeclaredConstructor(int.class);
+        constructor.setAccessible(true);
+        TaskManager manager = constructor.newInstance(1);
+        ExecutorService executor = Whitebox.getInternalState(manager, field);
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        Future<?> task = executor.submit(() -> {
+            started.countDown();
+            Assert.assertTrue(release.await(10L, TimeUnit.SECONDS));
+            return null;
+        });
+        try {
+            Assert.assertTrue(started.await(10L, TimeUnit.SECONDS));
+            Assert.assertThrows(HugeException.class, () -> manager.shutdown(0L));
+            Assert.assertTrue(executor.isShutdown());
+            Assert.assertFalse(executor.isTerminated());
+            Assert.assertThrows(HugeException.class, () -> manager.shutdown(0L));
+            Assert.assertFalse(executor.isTerminated());
+            Thread.currentThread().interrupt();
+            Throwable interrupted = Assert.assertThrows(HugeException.class, () -> manager.shutdown(10L));
+            Assert.assertTrue(HugeException.rootCause(interrupted) instanceof InterruptedException);
+            Assert.assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+            release.countDown();
+            task.get(10L, TimeUnit.SECONDS);
+            manager.shutdown(10L);
+        }
+    }
+
+    @Test
     public void testDistributedCloseRetriesDrainAfterTimeout() throws Exception {
         HugeGraphParams params = Mockito.mock(HugeGraphParams.class);
         Mockito.when(params.graph()).thenReturn(Mockito.mock(HugeGraph.class));
