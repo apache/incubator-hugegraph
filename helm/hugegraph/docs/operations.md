@@ -47,6 +47,23 @@ renderers cannot reuse a live generated Secret through `lookup`.
 three credential sources. Changing PD credentials rolls PD, Server and Hubble;
 verify Gremlin and UI login after that coordinated rollout.
 
+### PD REST authentication
+
+PD REST uses HTTP Basic auth with a service username: `hg`, `store`, `hubble`
+or `vermeer`. Server's `admin` account is not a PD REST account and receives 401.
+All four service names use the shared PD REST password, not the admin password.
+For the default release/Secret, query a reachable PD REST address (port 8620):
+
+```bash
+PD_SECRET=$(kubectl -n hugegraph get secret hugegraph-pd-auth \
+  -o jsonpath='{.data.secret-key}' | base64 --decode)
+curl --user "hg:${PD_SECRET}" "http://<pd-rest-address>:8620/v1/stores"
+```
+
+With `pd.auth.existingSecret` or a custom `pd.auth.key`, read the actual Secret
+and key instead. See the [PD REST API reference](../../../hugegraph-pd/docs/api-reference.md#rest-api)
+for probe exceptions and API details. Management tasks below must target the PD leader.
+
 ## Storage and upgrades
 
 Inspect saved values before upgrading. `--reuse-values` preserves old effective
@@ -158,6 +175,54 @@ membership and exactly one leader from the PD leader's view.
 PD `Up` status alone does not prove shard recovery; stop on missing members or
 leaders. The [website operations guide](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm-operations/)
 explains the rollout and recovery constraints.
+A single Store replacement can still cause request errors or timeouts while Raft
+leadership and client routes converge. Observe application errors as well as
+shard recovery before continuing; do not blindly retry writes.
+
+### PD patrol and leader balance
+
+Partition patrol repairs shard membership; it does not balance shard leaders.
+After a Store replacement, leader counts can remain uneven because leader
+balancing is not scheduled automatically. Use the existing manual task when
+all Stores have fresh heartbeats and every group has full, healthy membership.
+
+Find the PD leader through authenticated `/v1/members` (`data.pdLeader.restUrl`).
+Forward that Pod in a separate terminal, not a randomly selected Service peer:
+
+```bash
+kubectl -n hugegraph port-forward pod/<pd-leader-pod> 8620:8620
+```
+
+In the terminal holding `PD_SECRET` from the credentials section, check that
+`/v1/ready` reports `isLeader: true`, then inspect the current group and Store state:
+
+```bash
+PD_REST=http://127.0.0.1:8620
+curl "${PD_REST}/v1/ready"
+curl --user "hg:${PD_SECRET}" "${PD_REST}/v1/partitions"
+curl --user "hg:${PD_SECRET}" "${PD_REST}/v1/stores"
+```
+
+After an intentional member retirement or shard-count change, patrol on that
+leader if needed; it is not a leader-balancing command:
+
+```bash
+curl --user "hg:${PD_SECRET}" "${PD_REST}/v1/task/patrolPartitions"
+```
+
+Wait for membership recovery and split/move tasks to finish before requesting
+leader balance separately:
+
+```bash
+curl --user "hg:${PD_SECRET}" "${PD_REST}/v1/task/balanceLeaders"
+```
+
+A busy task returns body `status: 1001`; inspect the result and wait for current
+maintenance to finish rather than looping patrol/balance calls. A follower can
+return an empty success, and leader transfers are asynchronous: HTTP 200 or a
+returned transfer plan does not prove completion. Recheck `/v1/partitions` and
+`/v1/stores` for actual leaders, full membership and fresh heartbeats before
+continuing maintenance.
 
 Preserve volumes and recorded member identities during recovery. Deleting a
 RocksDB lock file or assigning an empty volume does not recover shard data.
@@ -190,6 +255,12 @@ needs reachable Server addresses; PD discovery additionally needs reachable PD
 gRPC and a suitable `server.advertiseUrl`. That override affects every discovery
 client, including in-cluster Hubble. Current Hubble login requires Server auth;
 use `hubble.enabled=false` for an unauthenticated API-only deployment.
+
+API response compression follows `Accept-Encoding`. Clients that support gzip
+can request it explicitly or use `curl --compressed`; requests with `identity`
+or without a compression header receive plain responses.
+Older images can still force gzip; use a Server image built from current source.
+Updating chart values alone does not change an existing image's behavior.
 
 ## Troubleshooting
 
