@@ -119,6 +119,7 @@ import org.apache.hugegraph.unit.serializer.TableBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.TextBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.TextSerializerTest;
 import org.apache.hugegraph.unit.store.RamIntObjectMapTest;
+import org.apache.hugegraph.unit.traversal.ConcurrentVerticesConsumerTest;
 import org.apache.hugegraph.unit.traversal.ShortestPathTraverserTest;
 import org.apache.hugegraph.unit.util.CompressUtilTest;
 import org.apache.hugegraph.unit.util.ConsumersTest;
@@ -233,6 +234,7 @@ import org.junit.runners.Suite;
         HugeElementViewTest.class,
         HugePrimaryKeyTest.class,
         ShortestPathTraverserTest.class,
+        ConcurrentVerticesConsumerTest.class,
 
         /* cmd */
         InitStoreConfigTest.class,
