@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.dist.RegisterUtil;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.meta.MetaManager;
@@ -188,6 +189,168 @@ public class DistributedTaskAdmissionTest {
                 occupied.get(10L, TimeUnit.SECONDS);
             }
         }
+    }
+
+    @Test
+    public void testCancellationFailurePreservesCallerTransaction() throws Exception {
+        try (Fixture fixture = new Fixture("failed_caller_tx")) {
+            fixture.worker.armed.set(true);
+            AtomicBoolean reject = new AtomicBoolean(true);
+            IllegalStateException failure = new IllegalStateException("Cancellation rejected");
+            HugeTask<?> task = new HugeTask<>(IdGenerator.of(-9999951L), null, new EphemeralJob<Object>() {
+                @Override
+                public String type() {
+                    return "test";
+                }
+
+                @Override
+                public Object execute() {
+                    return null;
+                }
+            }) {
+                @Override
+                public boolean cancel(boolean interrupt) {
+                    if (reject.get()) {
+                        throw failure;
+                    }
+                    return super.cancel(interrupt);
+                }
+            };
+            task.type("test");
+            task.name("failed-cancellation-caller-tx");
+            fixture.scheduler.schedule(task);
+            Assert.assertTrue(fixture.worker.reached.await(10L, TimeUnit.SECONDS));
+            try {
+                this.openCallerTransaction(fixture.graph);
+                Assert.assertThrows(HugeException.class, () -> fixture.scheduler.cancel(task),
+                                    caught -> Assert.assertSame(failure, caught.getCause()));
+                Assert.assertFalse(task.isCancelled());
+                this.assertCallerTransactionCommits(fixture);
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+            } finally {
+                reject.set(false);
+                fixture.worker.release.countDown();
+            }
+            fixture.assertWorkerClean();
+        }
+    }
+
+    @Test
+    public void testNormalWorkerTransactionCleanupControl() throws Exception {
+        try (Fixture fixture = new Fixture("normal_worker_control")) {
+            AtomicBoolean opened = new AtomicBoolean();
+            HugeTask<?> task = new HugeTask<>(IdGenerator.of(-9999950L), null, new EphemeralJob<Object>() {
+                @Override
+                public String type() {
+                    return "test";
+                }
+
+                @Override
+                public Object execute() {
+                    this.graph().vertices().hasNext();
+                    opened.set(this.graph().tx().isOpen());
+                    return null;
+                }
+            });
+            task.type("test");
+            task.name("normal-worker-cleanup");
+            fixture.scheduler.schedule(task).get(10L, TimeUnit.SECONDS);
+            Assert.assertTrue(opened.get());
+            Assert.assertFalse(task.isCancelled());
+            Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+            fixture.assertWorkerClean();
+            Assert.assertFalse(fixture.worker.submit(() -> fixture.graph.tx().isOpen()).get(10L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void testQueuedDefaultCancellationPreservesCallerTransaction() throws Exception {
+        this.assertDefaultCancellationPreservesCallerTransaction(false);
+    }
+
+    @Test
+    public void testRunningDefaultCancellationPreservesCallerTransaction() throws Exception {
+        this.assertDefaultCancellationPreservesCallerTransaction(true);
+    }
+
+    private void assertDefaultCancellationPreservesCallerTransaction(boolean running) throws Exception {
+        try (Fixture fixture = new Fixture("caller_tx_" + running)) {
+            CountDownLatch started = new CountDownLatch(1);
+            CountDownLatch finish = new CountDownLatch(1);
+            if (!running) {
+                fixture.worker.armed.set(true);
+            }
+            HugeTask<?> task = new HugeTask<>(IdGenerator.of(running ? -9999921L : -9999922L), null,
+                    new EphemeralJob<Object>() {
+                        @Override
+                        public String type() {
+                            return "test";
+                        }
+
+                        @Override
+                        public Object execute() {
+                            this.graph().vertices().hasNext();
+                            started.countDown();
+                            awaitUninterruptibly(finish);
+                            return null;
+                        }
+                    });
+            task.type("test");
+            task.name("default-callback-caller-tx");
+            try {
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue((running ? started : fixture.worker.reached)
+                                  .await(10L, TimeUnit.SECONDS));
+                this.openCallerTransaction(fixture.graph);
+                fixture.scheduler.cancel(task);
+                Assert.assertTrue(task.isCancelled());
+                this.assertCallerTransactionCommits(fixture);
+                if (running) {
+                    Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                }
+            } finally {
+                finish.countDown();
+                fixture.worker.release.countDown();
+            }
+            fixture.assertWorkerClean();
+            Assert.assertEquals(running ? 0L : 1L, started.getCount());
+        }
+    }
+
+    @Test
+    public void testCompletedCancellationPreservesCallerTransaction() throws Exception {
+        try (Fixture fixture = new Fixture("completed_caller_tx")) {
+            HugeTask<?> task = task(true, new AtomicBoolean(), 9999923L);
+            fixture.scheduler.schedule(task).get(10L, TimeUnit.SECONDS);
+            fixture.assertWorkerClean();
+            this.openCallerTransaction(fixture.graph);
+            fixture.scheduler.cancel(task);
+            Assert.assertFalse(task.isCancelled());
+            this.assertCallerTransactionCommits(fixture);
+            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+        }
+    }
+
+    private void openCallerTransaction(HugeGraph graph) {
+        graph.schema().vertexLabel("caller").useCustomizeStringId().create();
+        graph.tx().commit();
+        graph.addVertex(org.apache.tinkerpop.gremlin.structure.T.id, "pending",
+                        org.apache.tinkerpop.gremlin.structure.T.label, "caller");
+        Assert.assertTrue(graph.tx().isOpen());
+    }
+
+    private void assertCallerTransactionCommits(Fixture fixture) throws Exception {
+        Assert.assertTrue(fixture.graph.tx().isOpen());
+        Assert.assertTrue(fixture.graph.vertices("pending").hasNext());
+        fixture.graph.tx().commit();
+        Assert.assertFalse(fixture.graph.tx().isOpen());
+        Assert.assertTrue(fixture.database.submit(() -> {
+            try {
+                return fixture.graph.vertices("pending").hasNext();
+            } finally {
+                fixture.params.closeTx();
+            }
+        }).get(10L, TimeUnit.SECONDS));
     }
 
     @Test
