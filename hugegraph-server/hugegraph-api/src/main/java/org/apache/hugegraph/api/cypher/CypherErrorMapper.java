@@ -43,6 +43,8 @@ public final class CypherErrorMapper {
                 || lowerFull.contains("syntaxexception")
                 || lowerFull.contains("parseexception")
                 || lowerFull.contains("no viable alternative")
+                // openCypher front-end: "Invalid input 'R': expected ..."
+                || lowerFull.contains("invalid input '")
                 || lowerFull.contains("mismatched input")
                 || lowerFull.contains("extraneous input")
                 || lowerFull.contains("token recognition error")) {
