@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph;
 
+import java.io.File;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
@@ -40,6 +42,10 @@ import org.apache.hugegraph.backend.store.BackendStoreProvider;
 import org.apache.hugegraph.backend.tx.GraphTransaction;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.dist.RegisterUtil;
+import org.apache.hugegraph.dist.HugeGraphServer;
+import org.apache.hugegraph.dist.MemoryMonitor;
+import org.apache.hugegraph.job.SysJob;
+import org.apache.hugegraph.server.RestServer;
 import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.masterelection.GlobalMasterInfo;
 import org.apache.hugegraph.id.Id;
@@ -54,9 +60,11 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.FakeObjects;
 import org.apache.hugegraph.util.Consumers;
+import org.apache.hugegraph.util.Events;
 import org.junit.Test;
 import org.mockito.AdditionalAnswers;
 import org.mockito.Mockito;
+import org.apache.tinkerpop.gremlin.server.GremlinServer;
 
 public class HugeFactoryTest {
 
@@ -378,6 +386,133 @@ public class HugeFactoryTest {
     }
 
     @Test
+    public void testServerStopClosesGraphAfterPendingTaskDrains() throws Exception {
+        // Server stop terminates process-wide executors; isolate it from the suite.
+        String classpath = System.getProperty("surefire.test.class.path", System.getProperty("java.class.path"));
+        File output = File.createTempFile("hugegraph-server-stop-", ".log");
+        Process child = new ProcessBuilder(new File(System.getProperty("java.home"), "bin/java").toString(),
+                                           "-cp", classpath, ServerStopFixture.class.getName())
+                        .redirectErrorStream(true).redirectOutput(output).start();
+        try {
+            Assert.assertTrue("Server stop child timed out: " + output, child.waitFor(45L, TimeUnit.SECONDS));
+            Assert.assertEquals(Files.readString(output.toPath()), 0, child.exitValue());
+        } finally {
+            child.destroyForcibly();
+            Files.deleteIfExists(output.toPath());
+        }
+    }
+
+    public static class ServerStopFixture {
+
+        public static void main(String[] args) throws Exception {
+            RegisterUtil.registerBackends();
+            HugeConfig config = FakeObjects.newConfig();
+            config.setProperty("backend", "memory");
+            config.setProperty("serializer", "text");
+            config.setProperty("store", "server_stop_pending_task");
+            HugeGraph graph = HugeFactory.open(config);
+            TaskManager manager = TaskManager.instance();
+            HugeGraphParams params = Whitebox.getInternalState(graph, "params");
+            ExecutorService workers = Whitebox.getInternalState(manager, "taskExecutor");
+            ExecutorService database = Whitebox.getInternalState(manager, "taskDbExecutor");
+            CountDownLatch running = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            try {
+                graph.initBackend();
+                graph.serverStarted(GlobalMasterInfo.master("server-stop-test"));
+                TaskScheduler scheduler = graph.taskScheduler();
+                AtomicBoolean completionPersisted = new AtomicBoolean();
+                HugeTask<Object> task = new HugeTask<>(IdGenerator.of(9999997L), null, new SysJob<Object>() {
+                    @Override
+                    public String type() {
+                        return "test";
+                    }
+
+                    @Override
+                    public Object execute() throws Exception {
+                        graph.traversal().V().hasNext();
+                        running.countDown();
+                        Assert.assertTrue(release.await(10L, TimeUnit.SECONDS));
+                        return null;
+                    }
+
+                    @Override
+                    protected void done() {
+                        super.done();
+                        completionPersisted.set(scheduler.task(this.task().id()).status() == TaskStatus.SUCCESS);
+                    }
+                });
+                task.type("test");
+                task.name("server-stop-pending-task");
+                scheduler.schedule(task);
+                Assert.assertTrue(running.await(10L, TimeUnit.SECONDS));
+                params.closeTx();
+                Object taskDbOwner = Whitebox.getInternalState(scheduler, "taskTx");
+                Assert.assertNotNull(taskDbOwner);
+                Assert.assertFalse((boolean) Whitebox.getInternalState(taskDbOwner, "closed"));
+                AtomicInteger earlyCloses = new AtomicInteger();
+                Runnable earlyClose = () -> {
+                    Assert.assertThrows(IllegalStateException.class, graph::close);
+                    Assert.assertFalse(graph.closed());
+                    Assert.assertSame(scheduler, manager.getScheduler(params));
+                    earlyCloses.incrementAndGet();
+                };
+                GremlinServer gremlin = Mockito.mock(GremlinServer.class);
+                Mockito.when(gremlin.stop()).thenAnswer(invocation -> {
+                    earlyClose.run();
+                    return CompletableFuture.completedFuture(null);
+                });
+                RestServer rest = Mockito.mock(RestServer.class);
+                Mockito.when(rest.shutdown()).thenAnswer(invocation -> {
+                    earlyClose.run();
+                    return CompletableFuture.completedFuture(null);
+                });
+                ExecutorService stoppedWorkers = Mockito.spy(workers);
+                Mockito.doAnswer(invocation -> {
+                    Assert.assertEquals(2, earlyCloses.get());
+                    release.countDown();
+                    return invocation.callRealMethod();
+                }).when(stoppedWorkers).shutdown();
+                Whitebox.setInternalState(manager, "taskExecutor", stoppedWorkers);
+                AtomicBoolean storeClosed = new AtomicBoolean();
+                BackendStoreProvider provider = Mockito.spy(graph.storeProvider());
+                provider.listen(event -> {
+                    if (Events.STORE_CLOSE.equals(event.name())) {
+                        storeClosed.set(true);
+                    }
+                    return null;
+                });
+                Mockito.doAnswer(invocation -> {
+                    Assert.assertTrue(workers.isTerminated());
+                    Assert.assertFalse(database.isShutdown());
+                    return invocation.callRealMethod();
+                }).when(provider).close();
+                Whitebox.setInternalState(graph, "storeProvider", provider);
+                HugeGraphServer server = Mockito.mock(HugeGraphServer.class, Mockito.CALLS_REAL_METHODS);
+                Whitebox.setInternalState(server, "gremlinServer", gremlin);
+                Whitebox.setInternalState(server, "restServer", rest);
+                Whitebox.setInternalState(server, "memoryMonitor", Mockito.mock(MemoryMonitor.class));
+
+                server.stop();
+
+                Assert.assertEquals(2, earlyCloses.get());
+                Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+                Assert.assertTrue("Pending task must persist completion before owner close", completionPersisted.get());
+                Assert.assertTrue("Server stop must close the retained graph", graph.closed());
+                Assert.assertNull(manager.getScheduler(params));
+                Assert.assertTrue((boolean) Whitebox.getInternalState(taskDbOwner, "closed"));
+                Assert.assertTrue(database.isTerminated());
+                Assert.assertTrue("Store-close listener must run before event shutdown", storeClosed.get());
+                Mockito.verify(provider).close();
+            } finally {
+                release.countDown();
+                HugeFactory.shutdown(10L, true);
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
     public void testShutdownDrainsWorkersWithRegisteredScheduler() throws Exception {
         Constructor<TaskManager> constructor = TaskManager.class.getDeclaredConstructor(int.class);
         constructor.setAccessible(true);
@@ -391,6 +526,13 @@ public class HugeFactoryTest {
         CountDownLatch started = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         AtomicBoolean saved = new AtomicBoolean();
+        HugeGraph graph = Mockito.mock(HugeGraph.class);
+        Mockito.when(params.graph()).thenReturn(graph);
+        Mockito.when(scheduler.close()).thenAnswer(invocation -> saved.get());
+        Mockito.doAnswer(invocation -> {
+            manager.closeScheduler(params);
+            return null;
+        }).when(graph).close();
         ExecutorService stoppedWorkers = Mockito.spy(workers);
         Mockito.doAnswer(invocation -> {
             release.countDown();
@@ -410,7 +552,7 @@ public class HugeFactoryTest {
             manager.shutdown(10L);
             task.get(10L, TimeUnit.SECONDS);
             Assert.assertTrue(saved.get());
-            Assert.assertSame(scheduler, manager.getScheduler(params));
+            Assert.assertNull(manager.getScheduler(params));
             for (String field : new String[]{"taskExecutor", "taskDbExecutor", "schemaTaskExecutor",
                                             "olapTaskExecutor", "ephemeralTaskExecutor",
                                             "distributedSchedulerExecutor"}) {
@@ -419,6 +561,48 @@ public class HugeFactoryTest {
             }
         } finally {
             release.countDown();
+            schedulers.clear();
+            manager.shutdown(10L);
+        }
+    }
+
+    @Test
+    public void testShutdownCloseFailureKeepsDatabaseAvailableForRetry() throws Exception {
+        Constructor<TaskManager> constructor = TaskManager.class.getDeclaredConstructor(int.class);
+        constructor.setAccessible(true);
+        TaskManager manager = constructor.newInstance(1);
+        Map<HugeGraphParams, TaskScheduler> schedulers = Whitebox.getInternalState(manager, "schedulers");
+        HugeGraphParams failed = Mockito.mock(HugeGraphParams.class);
+        HugeGraphParams healthy = Mockito.mock(HugeGraphParams.class);
+        HugeGraph failedGraph = Mockito.mock(HugeGraph.class);
+        HugeGraph healthyGraph = Mockito.mock(HugeGraph.class);
+        Mockito.when(failed.graph()).thenReturn(failedGraph);
+        Mockito.when(healthy.graph()).thenReturn(healthyGraph);
+        schedulers.put(failed, Mockito.mock(TaskScheduler.class));
+        schedulers.put(healthy, Mockito.mock(TaskScheduler.class));
+        RuntimeException failure = new IllegalStateException("Task DB owner close failed");
+        Mockito.doThrow(failure).when(failedGraph).close();
+        Mockito.doAnswer(invocation -> {
+            schedulers.remove(healthy);
+            return null;
+        }).when(healthyGraph).close();
+        ExecutorService database = Whitebox.getInternalState(manager, "taskDbExecutor");
+        try {
+            Throwable thrown = Assert.assertThrows(HugeException.class, () -> manager.shutdown(10L));
+            Assert.assertSame(failure, HugeException.rootCause(thrown));
+            Mockito.verify(healthyGraph).close();
+            Assert.assertTrue(schedulers.containsKey(failed));
+            Assert.assertFalse(database.isShutdown());
+            Assert.assertEquals(1, (int) database.submit(() -> 1).get(10L, TimeUnit.SECONDS));
+
+            Mockito.doAnswer(invocation -> {
+                schedulers.remove(failed);
+                return null;
+            }).when(failedGraph).close();
+            manager.shutdown(10L);
+            Assert.assertTrue(schedulers.isEmpty());
+            Assert.assertTrue(database.isTerminated());
+        } finally {
             schedulers.clear();
             manager.shutdown(10L);
         }

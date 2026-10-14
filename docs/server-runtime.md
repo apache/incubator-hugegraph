@@ -498,6 +498,14 @@ drain does not queue transaction cleanup behind that scheduler's blocked worker.
 distributed task dispatch is distinct from completing drain: a timeout does not make
 the next close return success.
 
+During Server shutdown, the task manager waits for task workers to finish, then retries
+closing graphs retained in its existing scheduler registry before stopping the task
+database worker. This gives pending tasks time to persist completion and releases the
+task database owner's transactions on that owner's thread. Each retained graph gets one
+close attempt per shutdown call. A close failure remains visible and keeps the database
+executor available for a later explicit retry; it does not start background recovery.
+Store-close notifications finish before the shared event executor is stopped.
+
 Once these logical checks pass, graph close releases shared cache listeners, invokes
 `provider.close()` and destroys graph locks even if an earlier cleanup step reported an error. The error
 remains visible to the caller. Logical graph closure does not prove that a failed
@@ -511,7 +519,8 @@ Regression sources:
 - [`StandardTaskSchedulerTxTest`](../hugegraph-server/hugegraph-test/src/main/java/org/apache/hugegraph/task/StandardTaskSchedulerTxTest.java)
   exercises task worker transaction cleanup.
 - [`HugeFactoryTest`](../hugegraph-server/hugegraph-test/src/main/java/org/apache/hugegraph/HugeFactoryTest.java)
-  exercises graph close failure continuation and distributed drain retry.
+  exercises graph close failure continuation, distributed drain retry and Server stop
+  with a task that outlives the early graph-close attempts.
 
 ## Compatibility evidence and deployment checks
 
