@@ -24,6 +24,19 @@ limitations under the License.
 {{- if $hubbleEnabled }}
   Hubble  1 replica (UI)
 {{- end }}
+{{- $inheritedEntries := list }}
+{{- range $component := list "server" "hubble" }}
+{{- $cfg := get $.Values $component }}
+{{- if and (or (ne $component "hubble") $hubbleEnabled) (get $cfg "__serviceTypeInherited") (eq $cfg.service.type "NodePort") }}
+{{- $inheritedEntries = append $inheritedEntries ($component | title) }}
+{{- end }}
+{{- end }}
+{{- if and .Release.IsUpgrade (eq (.Values.mode | default "legacy") "easy") $inheritedEntries }}
+
+Upgrade notice: chart 0.2.0 changed entry defaults. This easy-mode upgrade inherits NodePort for {{ join ", " $inheritedEntries }}.
+For releases installed before 0.2.0, review helm/hugegraph/docs/operations.md#storage-and-upgrades.
+Use --reuse-values to retain previous settings, or explicitly set the desired Service types and Hubble setting.
+{{- end }}
 
 Watch startup (run each command in a separate terminal):
 

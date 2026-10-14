@@ -178,6 +178,8 @@ helm test hugegraph -n hugegraph --logs --timeout 5m
 ```
 
 `--reuse-values` preserves existing UI, entry, storage and credential settings.
+An easy-mode upgrade that inherits Server/Hubble entry types prints a short
+NodePort-default notice in NOTES; explicitly configured entry types are preserved.
 To adopt new defaults, use `--reset-values` with a reviewed values file retaining
 all settings your release needs. Older explicit helper images also remain under
 value reuse; clear `store.waitImage` and `server.waitImage` to reuse component images.

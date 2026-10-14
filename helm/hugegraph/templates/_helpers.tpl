@@ -29,7 +29,9 @@
 {{- $component := get $.Values $comp -}}
 {{- $svc := get $component "service" | default dict -}}
 {{- $_ := set $component "service" $svc -}}
-{{- if eq (get $svc "type" | toString) "<nil>" -}}{{- $_ := set $svc "type" $serviceType -}}{{- else if not (hasKey $svc "type") -}}{{- $_ := set $svc "type" $serviceType -}}{{- end -}}
+{{- $typeInherited := or (not (hasKey $svc "type")) (eq (get $svc "type" | toString) "<nil>") -}}
+{{- $_ := set $component "__serviceTypeInherited" $typeInherited -}}
+{{- if $typeInherited -}}{{- $_ := set $svc "type" $serviceType -}}{{- end -}}
 {{- end -}}
 {{- $np := .Values.networkPolicy | default dict -}}
 {{- $_ := set .Values "networkPolicy" $np -}}
