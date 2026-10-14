@@ -26,8 +26,6 @@ public final class CypherErrorMapper {
     public static final String SYNTAX_ERROR = "HugeGraph.Cypher.SyntaxError";
     public static final String UNSUPPORTED_FEATURE =
             "HugeGraph.Cypher.UnsupportedFeature";
-    public static final String MISSING_PARAMETER =
-            "HugeGraph.Cypher.MissingParameter";
     public static final String EXECUTION_ERROR = "HugeGraph.Cypher.ExecutionError";
 
     private CypherErrorMapper() {
@@ -57,11 +55,6 @@ public final class CypherErrorMapper {
         String message = raw.replaceFirst(
                 "^([a-zA-Z0-9_]+\\.)+[A-Za-z0-9_]+(Exception|Error):\\s*", "");
         String lower = message.toLowerCase();
-        if (lower.contains("not defined") && lower.contains("$")) {
-            return new CypherModel.CypherError(MISSING_PARAMETER, message,
-                    "Provide the value via the 'parameters' query argument, " +
-                    "e.g. ?parameters=%7B%22city%22%3A%20%22Beijing%22%7D");
-        }
         if (lower.contains("undefined vertex label")
                 || lower.contains("undefined edge label")
                 || lower.contains("undefined property key")) {

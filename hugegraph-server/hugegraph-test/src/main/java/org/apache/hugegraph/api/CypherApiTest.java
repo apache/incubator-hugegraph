@@ -148,6 +148,14 @@ public class CypherApiTest extends BaseApiTest {
     }
 
     @Test
+    public void testParseErrorIsClassifiedAsSyntaxError() {
+        Response r = client().post(PATH, "MATCH (n:person RETURN n");
+        String content = assertResponseStatus(200, r);
+        assertContains("\"code\":\"HugeGraph.Cypher.SyntaxError\"", content);
+        assertContains("Check the Cypher statement", content);
+    }
+
+    @Test
     public void testUndefinedLabelHasSchemaHint() {
         Response r = client().post(PATH, "MATCH (n:robot) RETURN n");
         String content = assertResponseStatus(200, r);
