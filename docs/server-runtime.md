@@ -550,16 +550,24 @@ including bare LOADING; their original behavior remains available without active
 `release` uses the same tuple. Receipts echo protocol/instance/epoch/token and return
 `state` (`active` or `released`) and the effective `mode`. Both operations use existing
 graph-owner/STATUS WRITE permissions; the authenticated principal owns the token.
+Each live graph admits at most 1024 concurrent owners. At that limit, a new owner
+receives HTTP 409 without changing state; existing-owner retries, release and
+administrator recovery remain available. Releasing an owner frees a slot.
 The request principal is also bound for graphs opened without the authentication proxy.
 Each new acquire, actual release and successful recovery writes an INFO audit entry
-with the graph instance, previous/resulting mode, epoch and owner counts. Idempotent
+with the graph name, graph instance, previous/resulting mode, epoch and owner counts. Idempotent
 retries do not add entries. These audit entries omit tokens and authenticated principal values.
 
 Keep one tuple and identity for the whole import attempt, including uncertain acquire
 outcomes. Release after that import's workers stop. Acquire/release retries are
 idempotent. An unknown release cancels a late acquire; a released handle cannot be
 reused. Terminal records are bounded to 1024 per epoch. Epoch advancement retains
-active old handles and permanently retires all other old handles.
+active old handles and permanently retires all other old handles. An initial
+acquire prepared before epoch advancement can therefore be rejected even if it
+never became active. The client must not automatically refresh that retired handle:
+a new token could undo a prior cancellation or administrator recovery. After a
+terminal acquire rejection, stop and drain that import attempt before creating a
+fresh Loader context to retry.
 
 This protection coordinates Loader processes connected directly to the same stable
 Server and graph instance. It does not fence ordinary data requests across load
@@ -580,9 +588,9 @@ the explicit confirmation. It clears owners, advances the epoch and returns NONE
 late acquire/release requests from the retired epoch cannot register an owner again.
 The receipt contains the new epoch and `state: recovered`, without tokens. A stale
 recovery request returns a conflict and cannot clear an import started in a newer
-epoch. Owner registration/release and manual mode changes advance the revision, so
-an import started after inspection also rejects the stale recovery request even within
-the same epoch. After an uncertain result, inspect current state rather than blindly
+epoch. Owner registration/release and every successful enum mode write advance the
+revision, including a write of the current mode. Either operation after inspection
+therefore rejects the stale recovery request even within the same epoch. After an uncertain result, inspect current state rather than blindly
 retrying with a newly fetched epoch/revision. This operation does not stop or drain imports itself.
 
 The same recovery procedure can reset manual RESTORING or MERGING after that work

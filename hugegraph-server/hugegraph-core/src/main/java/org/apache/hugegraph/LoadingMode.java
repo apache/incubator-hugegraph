@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.util.E;
@@ -34,14 +35,20 @@ public final class LoadingMode {
 
     private static final Logger LOG = Log.logger(LoadingMode.class);
 
+    private static final int MAX_ACTIVE = 1024;
     private static final int MAX_RELEASED = 1024;
 
+    private final Supplier<String> graphName;
     private final String instance = UUID.randomUUID().toString();
     private final Map<String, String> active = new HashMap<>();
     private final Map<String, String> released = new HashMap<>();
     private long epoch;
     private long revision;
     private volatile GraphMode mode = GraphMode.NONE;
+
+    public LoadingMode(Supplier<String> graphName) {
+        this.graphName = Objects.requireNonNull(graphName, "graphName");
+    }
 
     public GraphMode mode() {
         return this.mode;
@@ -50,9 +57,7 @@ public final class LoadingMode {
     public synchronized void mode(GraphMode mode) {
         Objects.requireNonNull(mode, "mode");
         checkState(this.active.isEmpty(), "Loading owners are active; release them before setting graph mode");
-        if (this.mode != mode) {
-            this.advanceRevision();
-        }
+        this.advanceRevision();
         this.mode = mode;
     }
 
@@ -110,6 +115,7 @@ public final class LoadingMode {
             }
             checkState(this.active.isEmpty() ? this.mode == GraphMode.NONE : this.mode == GraphMode.LOADING,
                          "Cannot acquire loading ownership of manually set graph mode %s", this.mode);
+            checkState(this.active.size() < MAX_ACTIVE, "Loading owner limit %s reached", MAX_ACTIVE);
             this.advanceRevision();
             this.active.put(key, principal);
             this.mode = GraphMode.LOADING;
@@ -146,8 +152,8 @@ public final class LoadingMode {
     }
 
     private void logChange(String action, GraphMode previousMode, int clearedOwners) {
-        LOG.info("Loading ownership {} for graph instance {}: mode {} -> {}, epoch {}, " +
-                 "activeOwners {}, clearedOwners {}", action, this.instance, previousMode, this.mode,
+        LOG.info("Loading ownership {} for graph '{}' instance {}: mode {} -> {}, epoch {}, " +
+                 "activeOwners {}, clearedOwners {}", action, this.graphName.get(), this.instance, previousMode, this.mode,
                  this.epoch, this.active.size(), clearedOwners);
     }
 

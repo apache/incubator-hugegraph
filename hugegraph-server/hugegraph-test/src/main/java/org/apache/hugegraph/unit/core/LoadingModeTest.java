@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.LoadingMode;
 import org.apache.hugegraph.type.define.GraphMode;
@@ -61,7 +62,8 @@ public class LoadingModeTest {
         configuration.addLogger(loggerName, logger);
         context.updateLoggers();
         try {
-            LoadingMode mode = new LoadingMode();
+            AtomicReference<String> graphName = new AtomicReference<>("test-space-test-graph");
+            LoadingMode mode = new LoadingMode(graphName::get);
             Map<String, Object> capability = mode.capability();
             String first = token();
             String second = token();
@@ -95,10 +97,17 @@ public class LoadingModeTest {
                                                         "activeOwners 0, clearedOwners 0"));
             for (LogEvent event : events) {
                 Assert.assertEquals(Level.INFO, event.getLevel());
+                Assert.assertTrue(event.getMessage().getFormattedMessage().contains(
+                        "graph 'test-space-test-graph' instance " + capability.get("instance")));
                 Assert.assertFalse(event.getMessage().getFormattedMessage().contains(first));
                 Assert.assertFalse(event.getMessage().getFormattedMessage().contains(second));
                 Assert.assertFalse(event.getMessage().getFormattedMessage().contains("other-user"));
             }
+            graphName.set("renamed-space-test-graph");
+            recover(mode, mode.capability());
+            Assert.assertEquals(9, events.size());
+            Assert.assertTrue(message(events, 8).contains("graph 'renamed-space-test-graph' instance " +
+                                                        capability.get("instance")));
         } finally {
             configuration.removeLogger(loggerName);
             if (previous != null) {
@@ -115,7 +124,7 @@ public class LoadingModeTest {
 
     @Test
     public void testTwoOwnersAndIdempotentRetry() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> capability = mode.capability();
         String a = token();
         String b = token();
@@ -132,7 +141,7 @@ public class LoadingModeTest {
 
     @Test
     public void testUnknownReleaseCancelsLateAcquire() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> capability = mode.capability();
         String token = token();
         update(mode, capability, token, "release");
@@ -142,7 +151,7 @@ public class LoadingModeTest {
 
     @Test
     public void testTerminalCompactionKeepsOldActiveAndRejectsLateAcquire() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> original = mode.capability();
         String b = token();
         String cancelled = token();
@@ -167,7 +176,7 @@ public class LoadingModeTest {
 
     @Test
     public void testLegacySetterCannotOverwriteOwnersOrAdoptManualMode() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> capability = mode.capability();
         String a = token();
         for (GraphMode manual : GraphMode.values()) {
@@ -191,7 +200,7 @@ public class LoadingModeTest {
 
     @Test
     public void testInstanceAndPrincipalBoundaries() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> capability = mode.capability();
         String a = token();
         update(mode, capability, a, "acquire");
@@ -208,7 +217,7 @@ public class LoadingModeTest {
 
     @Test
     public void testRecoveryRetiresOwnersAndLateRequests() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> before = mode.capability();
         String lost = token();
         update(mode, before, lost, "acquire");
@@ -232,7 +241,7 @@ public class LoadingModeTest {
 
     @Test
     public void testRecoveryCannotClearOwnerAddedAfterInspection() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> capability = mode.capability();
         String first = token();
         String second = token();
@@ -250,7 +259,7 @@ public class LoadingModeTest {
 
     @Test
     public void testRecoveryAllowsConfirmedManualModeReset() {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         mode.mode(GraphMode.RESTORING);
         Map<String, Object> before = mode.capability();
         recover(mode, before);
@@ -259,8 +268,47 @@ public class LoadingModeTest {
     }
 
     @Test
+    public void testSuccessfulSameModeWriteInvalidatesRecoverySnapshot() {
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
+        for (GraphMode manual : GraphMode.values()) {
+            mode.mode(manual);
+            Map<String, Object> inspected = mode.capability();
+            mode.mode(manual);
+            Assert.assertEquals(((Number) inspected.get("revision")).longValue() + 1,
+                                mode.capability().get("revision"));
+            Assert.assertThrows(LoadingMode.ConflictException.class, () -> recover(mode, inspected));
+            Assert.assertEquals(manual, mode.mode());
+        }
+    }
+
+    @Test
+    public void testOwnerAdmissionLimitPreservesExistingOwnersAndRecovery() {
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
+        Map<String, Object> capability = mode.capability();
+        String first = token();
+        update(mode, capability, first, "acquire");
+        for (int i = 1; i < 1024; i++) {
+            update(mode, capability, token(), "acquire");
+        }
+        Map<String, Object> full = mode.capability();
+        String rejected = token();
+        LoadingMode.ConflictException failure = Assert.assertThrows(LoadingMode.ConflictException.class,
+                () -> update(mode, capability, rejected, "acquire"));
+        Assert.assertTrue(failure.getMessage().contains("1024"));
+        Assert.assertEquals(full, mode.capability());
+        Assert.assertEquals(GraphMode.LOADING, mode.mode());
+        Assert.assertEquals("active", update(mode, capability, first, "acquire").get("state"));
+        Assert.assertEquals(full, mode.capability());
+        Assert.assertEquals("released", update(mode, capability, first, "release").get("state"));
+        Assert.assertEquals("active", update(mode, capability, rejected, "acquire").get("state"));
+        Map<String, Object> recovered = recover(mode, mode.capability());
+        Assert.assertEquals(GraphMode.NONE, recovered.get("mode"));
+        Assert.assertEquals("active", update(mode, mode.capability(), token(), "acquire").get("state"));
+    }
+
+    @Test
     public void testConcurrentAcquireAndLegacySetterAreAtomic() throws Exception {
-        LoadingMode mode = new LoadingMode();
+        LoadingMode mode = new LoadingMode(() -> "test-space-test-graph");
         Map<String, Object> capability = mode.capability();
         String a = token();
         CountDownLatch start = new CountDownLatch(1);

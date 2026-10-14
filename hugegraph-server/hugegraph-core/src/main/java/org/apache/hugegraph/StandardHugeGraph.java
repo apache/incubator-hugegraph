@@ -177,7 +177,7 @@ public class StandardHugeGraph implements HugeGraph {
     private final RamTable ramtable;
     private volatile boolean started;
     private volatile boolean closed;
-    private final LoadingMode loadingMode = new LoadingMode();
+    private final LoadingMode loadingMode = new LoadingMode(this::spaceGraphName);
     private volatile GraphReadMode readMode;
     private volatile HugeVariables variables;
     private String graphSpace;
