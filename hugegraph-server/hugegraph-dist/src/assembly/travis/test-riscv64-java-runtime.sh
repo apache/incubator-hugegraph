@@ -190,12 +190,13 @@ START_LOG="$WORK_DIR/start.log"
 STOP_LOG="$WORK_DIR/stop.log"
 PHASE_LOG="$WORK_DIR/phase.log"
 RUN_ID_FILE="$WORK_DIR/run-id"
-mkdir -p "$RUNTIME_BIN" "$RUNTIME_TRAVIS" "$WORK_DIR/tmp"
-for command in dirname date mktemp rm tee grep awk cut getconf; do
+mkdir -p "$RUNTIME_BIN" "$RUNTIME_TRAVIS" "$WORK_DIR/tmp" "$SERVER_DIR/logs"
+printf '%s\n' 'mock service log' > "$SERVER_DIR/logs/server.log"
+for command in dirname date mktemp rm tee grep awk cut getconf find; do
     ln -s "$(command -v "$command")" "$RUNTIME_BIN/$command"
 done
 cp "$MOCK_BIN/uname" "$RUNTIME_BIN/uname"
-cp "$NATIVE_SMOKE_SCRIPT" "$SMOKE_SCRIPT" "$RUNTIME_TRAVIS/"
+cp "$NATIVE_SMOKE_SCRIPT" "$SMOKE_SCRIPT" "$TRAVIS_DIR/check-java-runtime-logs.sh" "$RUNTIME_TRAVIS/"
 
 cat > "$RUNTIME_BIN/timeout" <<'EOF'
 #!/bin/bash
@@ -221,6 +222,7 @@ set -euo pipefail
 printf 'arch=%s' "$EXPECTED_ARCH" >> "$START_LOG"
 printf ' <%s>' "$@" >> "$START_LOG"
 printf '\n' >> "$START_LOG"
+printf '%s\n' "${MOCK_START_OUTPUT:-}"
 EOF
 
 cat > "$SERVER_DIR/bin/stop-hugegraph.sh" <<'EOF'
@@ -282,6 +284,14 @@ grep -q '^native-runtime-smoke-ok$' <<< "$ARM_OUTPUT"
 [[ $(grep -c '^arch=arm64 <-t> <300> <-j> <-Xms512m -Xmx2g>$' "$START_LOG") -eq 2 ]]
 [[ $(grep -c '^gtimeout ' "$RUNTIME_LOG") -eq 3 ]]
 [[ $(cat "$PHASE_LOG") == $'create\nverify' ]]
+
+if COMPATIBILITY_OUTPUT=$(run_restart_smoke MOCK_ARCH=arm64 EXPECTED_ARCH=arm64 \
+                         'MOCK_START_OUTPUT=java.lang.reflect.InaccessibleObjectException: denied' 2>&1); then
+    echo "$COMPATIBILITY_OUTPUT" >&2
+    echo "Native smoke accepted a caught Java compatibility error" >&2
+    exit 1
+fi
+grep -Fq 'Java runtime compatibility error' <<< "$COMPATIBILITY_OUTPUT"
 
 set +e
 TIMEOUT_OUTPUT=$(run_restart_smoke MOCK_ARCH=arm64 EXPECTED_ARCH=arm64 \
