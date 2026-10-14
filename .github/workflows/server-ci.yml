@@ -35,7 +35,6 @@ jobs:
       selection_result: ${{ steps.select.outcome }}
       java_result: ${{ steps.java.outcome }}
       java_versions: ${{ steps.java.outputs.versions }}
-      legacy_memory_required: ${{ steps.migration.outputs.required }}
       server: ${{ steps.select.outputs.server }}
       commons: ${{ steps.select.outputs.commons }}
       struct: ${{ steps.select.outputs.struct }}
@@ -96,18 +95,6 @@ jobs:
           retention-days: 7
           overwrite: true
 
-      - name: Check legacy required context
-        id: migration
-        if: ${{ !cancelled() && github.event_name == 'pull_request' && steps.checkout.outcome == 'success' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
-        run: |
-          BASE_REF=$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["BASE_REF"], safe=""))')
-          REQUIRED=$(gh api "repos/$GITHUB_REPOSITORY/branches/$BASE_REF" \
-            --jq '.protection.required_status_checks.contexts // [] | index("Server memory tests") != null')
-          echo "required=$REQUIRED" >> "$GITHUB_OUTPUT"
-
       - name: Test CI policy and deployment checks
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
@@ -144,27 +131,6 @@ jobs:
       backend: rocksdb
       java-versions: ${{ needs.preflight.outputs.java_versions }}
     secrets: inherit
-
-  legacy-server-memory:
-    name: Server memory tests
-    needs: [preflight, build-server]
-    if: ${{ !cancelled() && needs.preflight.outputs.legacy_memory_required == 'true' }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    env:
-      SELECTION_RESULT: ${{ needs.preflight.outputs.selection_result }}
-      SERVER_SELECTED: ${{ needs.preflight.outputs.server }}
-      JAVA_RESULT: ${{ needs.preflight.outputs.java_result }}
-      MEMORY_RESULT: ${{ needs.build-server.result }}
-    steps:
-      - name: Verify the selected Memory result during protection migration
-        run: |
-          test "$SELECTION_RESULT" = success
-          case "$SERVER_SELECTED" in
-            true) test "$JAVA_RESULT" = success && test "$MEMORY_RESULT" = success ;;
-            false) test "$MEMORY_RESULT" = skipped ;;
-            *) exit 1 ;;
-          esac
 
   commons:
     needs: preflight

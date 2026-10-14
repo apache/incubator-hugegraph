@@ -11,11 +11,23 @@ is merged and synchronized by Gitbox; verify live protection then. Failed tests 
 real failed results. Valid selection and Java outputs allow selected tests to run even when
 the preflight license checks fail.
 
-For migration, preflight keeps the existing `check-license` check name on the same runner.
-A temporary `Server memory tests` check verifies the selected Memory result while live protection
-still requires that name. It uses one lightweight `ubuntu-slim` runner and repeats no tests.
-After Gitbox applies the new configuration, this bridge skips without allocating a runner;
-no Infra intervention or change to review protection is needed.
+Preflight keeps its real `check-license` name. The temporary `Server memory tests`
+protection bridge has been removed after confirming both ASF and org master required
+contexts are empty. Actual backend jobs are named `Server memory tests (Java ...)`
+and `Server rocksdb tests (Java ...)`; their native checks report real execution.
+
+## Coverage with selective tests
+
+Each coverage upload has a stable test-group flag. [Codecov carryforward](https://docs.codecov.com/docs/carryforward-flags)
+preserves the last flagged report for unexecuted groups, so skipping unchanged Commons,
+PD/Store or backend checks does not remove their previous data from project totals.
+The PR comment explicitly marks carried-forward data. It is historical coverage,
+not evidence that a skipped test ran; native job failures remain failures.
+
+New flags need a complete initial baseline. After rollout, the existing weekly full run
+on master supplies every flagged group; before that baseline exists, the project report
+may still be incomplete. Full and selected runs retain explicit report paths and uploads.
+No extra coverage collector runner or unrelated backend run is added for ordinary PRs.
 
 ## What runs
 
@@ -85,7 +97,7 @@ Plans and selection summaries describe this run; previous results are never reus
 
 A new PR head cancels the previous PR run, including its called workflows. Manual and weekly
 runs remain independent. Each job reports its own result; there are no separate post-test
-aggregation runners after the protection migration or end-of-run metadata checks.
+aggregation runners or end-of-run metadata checks.
 
 Startup contracts run inside RocksDB validation, and Store stop contracts run inside Struct.
 Docker's static checks, deployment contracts and current-image validation share one runner.
