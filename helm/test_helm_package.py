@@ -116,6 +116,12 @@ class HelmPackageTest(unittest.TestCase):
         # Execute the actual image's validation and mappings, then stop before
         # storage initialization or Java launch. No properties encoder is copied.
         compatible = current.split("# ── Build wait-storage env", 1)[0] + "\nprintf launched > launched\n"
+        bare = compatible.replace(
+            'set_prop_encoded "server.service_id" "${service_id_encoded}" "${REST_SERVER_CONF}"',
+            'set_prop "server.service_id" "${HG_SERVER_SERVICE_ID}" "${REST_SERVER_CONF}"')
+        no_unicode = compatible.replace(r" | sed 's/\\ /\\u0020/g'", "")
+        self.assertNotEqual(compatible, bare)
+        self.assertNotEqual(compatible, no_unicode)
         comment_only = old + "\n".join("# " + line for line in current.splitlines()) + "\n"
         with tempfile.TemporaryDirectory(prefix="hugegraph-identity-wrapper-") as temporary:
             directory = Path(temporary)
@@ -132,13 +138,46 @@ class HelmPackageTest(unittest.TestCase):
             entrypoint = directory / "docker-entrypoint.sh"
             launcher = directory / "wrapper.sh"
             launcher.write_text(script)
+            reader_classpath = os.environ.get("HG_CONFIG_TEST_CLASSPATH")
+            if reader_classpath:
+                (directory / "reader").mkdir()
+                subprocess.run(["javac", "-cp", reader_classpath, "-d", str(directory / "reader"),
+                                str(ROOT / "hugegraph-server/hugegraph-dist/docker/test/ConfigReadback.java")],
+                               check=True, capture_output=True, text=True, timeout=30)
+                reader_classpath = str(directory / "reader") + os.pathsep + reader_classpath
+            else:
+                print("SKIP: native service readback (HG_CONFIG_TEST_CLASSPATH is unset); "
+                      "serialized encoder contract is checked")
+            # The real bare encoder serializes a space as backslash-space,
+            # which the existing HugeConfig contract preserves incorrectly.
+            for image in (bare, no_unicode):
+                config.write_text(original)
+                entrypoint.write_text(image)
+                direct = subprocess.run(["bash", str(entrypoint)], cwd=directory,
+                                        env={"PATH": executable_path, "HG_SERVER_SERVICE_ID": "ops team"},
+                                        capture_output=True, text=True, timeout=10)
+                self.assertEqual(0, direct.returncode, direct.stderr)
+                self.assertIn(r"server.service_id=ops\ team" + "\n", config.read_text())
+                if reader_classpath:
+                    readback = subprocess.run(["java", "-cp", reader_classpath, "ConfigReadback",
+                                               str(config), "ops team"], capture_output=True, text=True, timeout=10)
+                    self.assertNotEqual(0, readback.returncode)
+                    self.assertIn("but loaded [ops\\ team]", readback.stderr)
+                    print(next(line for line in readback.stderr.splitlines() if "but loaded" in line))
             for name, image, identity, supported in (
                     ("old service", old, {"HG_SERVER_SERVICE_ID": "analytics"}, False),
                     ("old graph space", old, {"HG_SERVER_GRAPHSPACE": "team_a"}, False),
                     ("comment-only service", comment_only, {"HG_SERVER_SERVICE_ID": "analytics"}, False),
                     ("comment-only graph space", comment_only, {"HG_SERVER_GRAPHSPACE": "team_a"}, False),
+                    ("bare service mapping", bare, {"HG_SERVER_SERVICE_ID": "ops team"}, False),
+                    ("encoded mapping without Unicode spaces", no_unicode,
+                     {"HG_SERVER_SERVICE_ID": "ops team"}, False),
                     ("current mappings", compatible,
                      {"HG_SERVER_SERVICE_ID": "analytics", "HG_SERVER_GRAPHSPACE": "team_a"}, True),
+                    ("current mapping with spaces", compatible,
+                     {"HG_SERVER_SERVICE_ID": "ops team", "HG_SERVER_GRAPHSPACE": "team_a"}, True),
+                    ("current mapping with boundary spaces", compatible,
+                     {"HG_SERVER_SERVICE_ID": " ops team ", "HG_SERVER_GRAPHSPACE": "team_a"}, True),
                     ("default old image", old, {}, True)):
                 with self.subTest(case=name):
                     config.write_text(original)
@@ -155,7 +194,15 @@ class HelmPackageTest(unittest.TestCase):
                         self.assertTrue((directory / "launched").exists())
                         self.assertIn("usePD=true\n", config.read_text())
                         if identity:
-                            self.assertIn("server.service_id=analytics\n", config.read_text())
+                            service_id = identity["HG_SERVER_SERVICE_ID"]
+                            encoded = service_id.replace(" ", r"\u0020")
+                            self.assertIn("server.service_id=" + encoded + "\n", config.read_text())
+                            if reader_classpath:
+                                readback = subprocess.run(["java", "-cp", reader_classpath, "ConfigReadback",
+                                                           str(config), service_id],
+                                                          capture_output=True, text=True, timeout=10)
+                                self.assertEqual(0, readback.returncode, readback.stderr)
+                                print(readback.stdout.strip())
                             self.assertIn("server.graphspace=team_a\n", config.read_text())
                     else:
                         self.assertNotEqual(0, run.returncode,

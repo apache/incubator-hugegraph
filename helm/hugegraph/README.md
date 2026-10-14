@@ -669,6 +669,10 @@ environment-to-property mappings before rewriting configuration or launching
 Server. An older or unrecognized entrypoint stops with a `compatible Server
 image` error instead of silently using `DEFAULT`. Select an image built with
 these mappings; the chart's default image tag is unchanged.
+The service-name mapping must convert spaces to `\u0020` before writing
+`server.service_id`. Bare mappings or encoders without this conversion are
+refused because the Server's properties reader otherwise retains a backslash
+before each space.
 
 Create the non-default graph
 space in the existing cluster before deploying Servers assigned to it; the chart
