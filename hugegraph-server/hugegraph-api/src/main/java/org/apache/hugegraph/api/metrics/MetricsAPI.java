@@ -40,8 +40,7 @@ import static org.apache.hugegraph.metrics.MetricsUtil.STR_TYPE;
 import static org.apache.hugegraph.metrics.MetricsUtil.UNTYPED;
 import static org.apache.hugegraph.metrics.MetricsUtil.VERSION_STR;
 import static org.apache.hugegraph.metrics.MetricsUtil.exportSnapshot;
-import static org.apache.hugegraph.metrics.MetricsUtil.replaceDotDashInKey;
-import static org.apache.hugegraph.metrics.MetricsUtil.replaceSlashInKey;
+import static org.apache.hugegraph.metrics.MetricsUtil.sanitizePrometheusMetricName;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -252,7 +251,7 @@ public class MetricsAPI extends API {
             final Gauge<?> gauge
                     = reporter.gauges().get(key);
             if (gauge != null) {
-                helpName = replaceDotDashInKey(key);
+                helpName = sanitizePrometheusMetricName(key);
                 promMetric.append(STR_HELP)
                           .append(helpName).append(END_LSTR);
                 promMetric.append(STR_TYPE)
@@ -266,7 +265,7 @@ public class MetricsAPI extends API {
         for (String histogramkey : reporter.histograms().keySet()) {
             final Histogram histogram = reporter.histograms().get(histogramkey);
             if (histogram != null) {
-                helpName = replaceDotDashInKey(histogramkey);
+                helpName = sanitizePrometheusMetricName(histogramkey);
                 promMetric.append(STR_HELP)
                           .append(helpName).append(END_LSTR);
                 promMetric.append(STR_TYPE)
@@ -285,7 +284,7 @@ public class MetricsAPI extends API {
         for (String meterkey : reporter.meters().keySet()) {
             final Meter metric = reporter.meters().get(meterkey);
             if (metric != null) {
-                helpName = replaceDotDashInKey(meterkey);
+                helpName = sanitizePrometheusMetricName(meterkey);
                 promMetric.append(STR_HELP)
                           .append(helpName).append(END_LSTR);
                 promMetric.append(STR_TYPE)
@@ -315,7 +314,7 @@ public class MetricsAPI extends API {
             final com.codahale.metrics.Timer timer = reporter.timers()
                                                              .get(timerkey);
             if (timer != null) {
-                helpName = replaceDotDashInKey(timerkey);
+                helpName = sanitizePrometheusMetricName(timerkey);
                 promMetric.append(STR_HELP)
                           .append(helpName).append(END_LSTR);
                 promMetric.append(STR_TYPE)
@@ -412,7 +411,7 @@ public class MetricsAPI extends API {
                   .append(SPACE_STR + "1.0" + END_LSTR);
 
         for (String methodKey : metricMap.keySet()) {
-            String metricName = replaceSlashInKey(methodKey);
+            String metricName = sanitizePrometheusMetricName(methodKey);
             promMetric.append(STR_HELP)
                       .append(metricName).append(END_LSTR);
             promMetric.append(STR_TYPE)

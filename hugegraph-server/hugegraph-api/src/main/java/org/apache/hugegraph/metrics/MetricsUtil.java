@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.metrics;
 
+import java.util.regex.Pattern;
+
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
 
 import com.codahale.metrics.Counter;
@@ -63,6 +65,9 @@ public class MetricsUtil {
     public static final String RIGHT_NAME_STR = ",} ";
     public static final String PROM_HELP_NAME = "hugegraph_info";
 
+    private static final Pattern INVALID_PROMETHEUS_NAME_CHAR =
+            Pattern.compile("[^a-zA-Z0-9_:]");
+
     public static <T> Gauge<T> registerGauge(Class<?> clazz, String name,
                                              Gauge<T> gauge) {
         return REGISTRY.register(MetricRegistry.name(clazz, name), gauge);
@@ -92,19 +97,29 @@ public class MetricsUtil {
         return REGISTRY.timer(MetricRegistry.name(clazz, name));
     }
 
-    public static String replaceDotDashInKey(String orgKey) {
-        return orgKey.replace(".", "_").replace("-", "_").replace("/", "_").replace("$", "_");
-    }
-
-    public static String replaceSlashInKey(String orgKey) {
-        return orgKey.replace("/", "_");
+    /**
+     * Convert a metric key into a valid Prometheus metric name, which must
+     * match [a-zA-Z_:][a-zA-Z0-9_:]*. Every other character becomes '_',
+     * and a leading digit gets a '_' prefix. Only call this when writing
+     * Prometheus output; registry keys stay unchanged.
+     */
+    public static String sanitizePrometheusMetricName(String originalName) {
+        String sanitized = INVALID_PROMETHEUS_NAME_CHAR.matcher(originalName)
+                                                       .replaceAll("_");
+        if (sanitized.isEmpty()) {
+            return "_";
+        }
+        if (Character.isDigit(sanitized.charAt(0))) {
+            return "_" + sanitized;
+        }
+        return sanitized;
     }
 
     public static void writePrometheusFormat(StringBuilder promeMetrics, MetricRegistry registry) {
         // gauges
         registry.getGauges().forEach((key, gauge) -> {
             if (gauge != null) {
-                String helpName = replaceDotDashInKey(key);
+                String helpName = sanitizePrometheusMetricName(key);
                 promeMetrics.append(STR_HELP)
                             .append(helpName).append(END_LSTR);
                 promeMetrics.append(STR_TYPE)
@@ -117,7 +132,7 @@ public class MetricsUtil {
         // histograms
         registry.getHistograms().forEach((key, histogram) -> {
             if (histogram != null) {
-                String helpName = replaceDotDashInKey(key);
+                String helpName = sanitizePrometheusMetricName(key);
                 promeMetrics.append(STR_HELP)
                             .append(helpName).append(END_LSTR);
                 promeMetrics.append(STR_TYPE)
@@ -134,7 +149,7 @@ public class MetricsUtil {
         // meters
         registry.getMeters().forEach((key, metric) -> {
             if (metric != null) {
-                String helpName = replaceDotDashInKey(key);
+                String helpName = sanitizePrometheusMetricName(key);
                 promeMetrics.append(STR_HELP)
                             .append(helpName).append(END_LSTR);
                 promeMetrics.append(STR_TYPE)
@@ -160,7 +175,7 @@ public class MetricsUtil {
         // timer
         registry.getTimers().forEach((key, timer) -> {
             if (timer != null) {
-                String helpName = replaceDotDashInKey(key);
+                String helpName = sanitizePrometheusMetricName(key);
                 promeMetrics.append(STR_HELP)
                             .append(helpName).append(END_LSTR);
                 promeMetrics.append(STR_TYPE)
