@@ -45,6 +45,7 @@ import org.apache.hugegraph.tinkerpop.HugeGraphTestInfrastructureTest;
 import org.apache.hugegraph.traversal.optimize.TraversalUtilOptimizeTest;
 import org.apache.hugegraph.unit.api.auth.LoginAPITest;
 import org.apache.hugegraph.unit.api.filter.AccessLogFilterTest;
+import org.apache.hugegraph.unit.api.filter.CompressInterceptorTest;
 import org.apache.hugegraph.unit.api.filter.LoadDetectFilterTest;
 import org.apache.hugegraph.unit.api.filter.PathFilterTest;
 import org.apache.hugegraph.unit.api.filter.VertexAuthorizationTest;
@@ -120,10 +121,12 @@ import org.apache.hugegraph.unit.serializer.TableBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.TextBackendEntryTest;
 import org.apache.hugegraph.unit.serializer.TextSerializerTest;
 import org.apache.hugegraph.unit.store.RamIntObjectMapTest;
+import org.apache.hugegraph.unit.traversal.ConcurrentVerticesConsumerTest;
 import org.apache.hugegraph.unit.traversal.ShortestPathTraverserTest;
 import org.apache.hugegraph.unit.util.CompressUtilTest;
 import org.apache.hugegraph.unit.util.ConsumersTest;
 import org.apache.hugegraph.unit.util.JsonUtilTest;
+import org.apache.hugegraph.unit.util.MetricsUtilTest;
 import org.apache.hugegraph.unit.util.RateLimiterTest;
 import org.apache.hugegraph.unit.util.StringEncodingTest;
 import org.apache.hugegraph.unit.util.VersionTest;
@@ -140,6 +143,7 @@ import org.junit.runners.Suite;
 @Suite.SuiteClasses({
         /* api filter */
         AccessLogFilterTest.class,
+        CompressInterceptorTest.class,
         LoadDetectFilterTest.class,
         LoginAPITest.class,
         PathFilterTest.class,
@@ -234,6 +238,7 @@ import org.junit.runners.Suite;
         HugeElementViewTest.class,
         HugePrimaryKeyTest.class,
         ShortestPathTraverserTest.class,
+        ConcurrentVerticesConsumerTest.class,
 
         /* cmd */
         InitStoreConfigTest.class,
@@ -272,6 +277,7 @@ import org.junit.runners.Suite;
         JsonUtilTest.class,
         StringEncodingTest.class,
         CompressUtilTest.class,
+        MetricsUtilTest.class,
         RateLimiterTest.FixedTimerWindowRateLimiterTest.class,
         RateLimiterTest.FixedWatchWindowRateLimiterTest.class,
 

@@ -18,6 +18,7 @@ See [launcher GC options](../docs/server-runtime.md#launcher-gc-options) for exp
 and caller JVM tuning.
 See [local loading ownership](../docs/server-runtime.md#local-loading-ownership) for
 concurrent import mode protection and its compatibility limits.
+See [pairwise same neighbors](../docs/same-neighbors-batch.md) for the batch traverser request and response.
 
 ## Backend Evolution and Compatibility
 

@@ -58,6 +58,10 @@ reused executor thread is not mistaken for the cancelled reader. Half-close does
 interrupt the reader. Queued cancelled tasks still execute their cleanup/accounting
 paths, and iterator close waits for an active read to leave the iterator.
 
+Batch-scan request state is published under its manager lock, while reader notification,
+worker scheduling and iterator cleanup run outside that lock. A half-close or receipt
+waiting for a slow read therefore does not block cancellation from interrupting the reader.
+
 Unary query and count requests share the query admission, worker and cleanup owner
 registry. Count keeps partition work parallel on the service executor. Iterator cleanup
 failure prevents successful completion and remains visible to request drain.
