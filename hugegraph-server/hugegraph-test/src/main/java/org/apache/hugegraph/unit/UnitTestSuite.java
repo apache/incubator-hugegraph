@@ -123,6 +123,7 @@ import org.apache.hugegraph.unit.traversal.ShortestPathTraverserTest;
 import org.apache.hugegraph.unit.util.CompressUtilTest;
 import org.apache.hugegraph.unit.util.ConsumersTest;
 import org.apache.hugegraph.unit.util.JsonUtilTest;
+import org.apache.hugegraph.unit.util.MetricsUtilTest;
 import org.apache.hugegraph.unit.util.RateLimiterTest;
 import org.apache.hugegraph.unit.util.StringEncodingTest;
 import org.apache.hugegraph.unit.util.VersionTest;
@@ -270,6 +271,7 @@ import org.junit.runners.Suite;
         JsonUtilTest.class,
         StringEncodingTest.class,
         CompressUtilTest.class,
+        MetricsUtilTest.class,
         RateLimiterTest.FixedTimerWindowRateLimiterTest.class,
         RateLimiterTest.FixedWatchWindowRateLimiterTest.class,
 
