@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build-server:
-    name: server_${{ inputs.backend }} (Java ${{ matrix.JAVA_VERSION }})
+    name: Server ${{ inputs.backend }} tests (Java ${{ matrix.JAVA_VERSION }})
     runs-on: ubuntu-24.04
     env:
       USE_STAGE: 'false' # Whether to include the stage repository.
@@ -229,6 +229,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ env.REPORT_DIR }}/*.xml,hugegraph-server/target/site/jacoco/jacoco.xml
+          flags: server_${{ inputs.backend }}
           disable_search: true
           fail_ci_if_error: false
 
