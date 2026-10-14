@@ -30,6 +30,11 @@ while [ -h "$SOURCE" ]; do
     [[ $SOURCE != /* ]] && SOURCE="$BIN/$SOURCE"
 done
 BIN="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+JVM_MODULE_OPTIONS="${BIN}/jvm-module.options"
+if [[ ! -r "${JVM_MODULE_OPTIONS}" ]]; then
+    echo "Missing or unreadable JVM module options file: ${JVM_MODULE_OPTIONS}" >&2
+    exit 1
+fi
 # Set $CFG to $BIN/../conf
 cd -P $BIN/../conf
 CFG=$(pwd)
@@ -122,4 +127,4 @@ if [ -n "$SCRIPT_DEBUG" ]; then
 fi
 
 # Start the JVM, execute the application, and return its exit code
-exec $JAVA $JAVA_OPTIONS $MAIN_CLASS "$@"
+exec $JAVA @"${JVM_MODULE_OPTIONS}" $JAVA_OPTIONS $MAIN_CLASS "$@"

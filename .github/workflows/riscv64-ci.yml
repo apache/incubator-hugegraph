@@ -106,10 +106,10 @@ jobs:
                   -P riscv64-protobuf-tools \
                   -pl hugegraph-server/hugegraph-dist -am \
                   -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
-              VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-              SERVER_DIR="hugegraph-server/apache-hugegraph-server-$VERSION"
-              hugegraph-server/hugegraph-dist/src/assembly/travis/check-rocksdb-only-dist.sh "$SERVER_DIR"
-              hugegraph-server/hugegraph-dist/src/assembly/travis/run-native-runtime-smoke-test.sh "$SERVER_DIR"
+              hugegraph-server/hugegraph-dist/src/assembly/travis/check-rocksdb-only-dist.sh \
+                hugegraph-server/apache-hugegraph-server-*/
+              hugegraph-server/hugegraph-dist/src/assembly/travis/run-native-runtime-smoke-test.sh \
+                hugegraph-server/apache-hugegraph-server-*/
             '
 
       - name: Show server log on failure

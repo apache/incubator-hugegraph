@@ -104,3 +104,6 @@ $TRAVIS_DIR/build-report.sh $BACKEND $JACOCO_PORT $REPORT_FILE
 
 # stop server
 $TRAVIS_DIR/stop-server.sh $SERVER_DIR
+
+# Inspect service output after shutdown so background failures cannot pass the suite.
+bash "$TRAVIS_DIR/check-java-runtime-logs.sh" "$SERVER_DIR/logs"
