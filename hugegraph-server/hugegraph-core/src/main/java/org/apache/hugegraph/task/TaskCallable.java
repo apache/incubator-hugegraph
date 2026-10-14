@@ -56,7 +56,11 @@ public abstract class TaskCallable<V> implements Callable<V> {
     }
 
     protected void done() {
-        this.closeTx();
+        // Future cancellation runs done() on its caller, whose transaction may predate the callback.
+        // The scheduler closes callback-owned transactions and the actual worker's transaction separately.
+        if (this.task == null || !this.task.isCancelled()) {
+            this.closeTx();
+        }
     }
 
     protected void cancelled() {

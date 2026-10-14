@@ -46,6 +46,168 @@ import org.mockito.Mockito;
 public class StandardTaskAdmissionTest {
 
     @Test
+    public void testCancellationFailurePreservesCallerTransaction() throws Exception {
+        try (Fixture fixture = new Fixture("standard_failed_caller_tx")) {
+            CountDownLatch occupied = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            fixture.worker.submit(() -> {
+                occupied.countDown();
+                await(release);
+            });
+            Assert.assertTrue(occupied.await(10L, TimeUnit.SECONDS));
+            AtomicBoolean reject = new AtomicBoolean(true);
+            IllegalStateException failure = new IllegalStateException("Cancellation rejected");
+            HugeTask<Object> task = new HugeTask<>(IdGenerator.of(9999952L), null, new EmptyJob()) {
+                @Override
+                public boolean cancel(boolean interrupt) {
+                    if (reject.get()) {
+                        throw failure;
+                    }
+                    return super.cancel(interrupt);
+                }
+            };
+            task.type("test");
+            task.name("failed-cancellation-caller-tx");
+            fixture.scheduler.schedule(task);
+            try {
+                fixture.graph.schema().vertexLabel("caller").useCustomizeStringId().create();
+                fixture.graph.tx().commit();
+                fixture.graph.addVertex(T.id, "pending", T.label, "caller");
+                Assert.assertThrows(IllegalStateException.class, () -> fixture.scheduler.cancel(task),
+                                    caught -> Assert.assertSame(failure, caught));
+                Assert.assertFalse(task.isCancelled());
+                Assert.assertTrue(fixture.graph.tx().isOpen());
+                fixture.graph.tx().commit();
+                Assert.assertTrue(fixture.database.submit(() -> {
+                    try {
+                        return fixture.graph.vertices("pending").hasNext();
+                    } finally {
+                        fixture.params.closeTx();
+                    }
+                }).get(10L, TimeUnit.SECONDS));
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+            } finally {
+                reject.set(false);
+                release.countDown();
+            }
+            fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+        }
+    }
+
+    @Test
+    public void testNormalWorkerTransactionCleanupControl() throws Exception {
+        try (Fixture fixture = new Fixture("standard_normal_worker_control")) {
+            BlockingJob job = new BlockingJob();
+            job.release.countDown();
+            HugeTask<Object> task = fixture.task(job);
+            fixture.scheduler.schedule(task).get(10L, TimeUnit.SECONDS);
+            fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            Assert.assertFalse(task.isCancelled());
+            Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+            Assert.assertEquals(0L, job.started.getCount());
+            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+            ThreadLocal<?> owners = Whitebox.getInternalState(fixture.graph.tx(), "transactions");
+            Assert.assertNull(fixture.worker.submit(owners::get).get(10L, TimeUnit.SECONDS));
+            Assert.assertFalse(fixture.worker.submit(() -> fixture.graph.tx().isOpen()).get(10L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    public void testDirectDefaultDoneCancellationPreservesCallerTransaction() throws Exception {
+        try (Fixture fixture = new Fixture("standard_direct_done_control")) {
+            CountDownLatch occupied = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            fixture.worker.submit(() -> {
+                occupied.countDown();
+                await(release);
+            });
+            Assert.assertTrue(occupied.await(10L, TimeUnit.SECONDS));
+            HugeTask<Object> task = fixture.task(new EmptyJob());
+            try {
+                fixture.scheduler.schedule(task);
+                fixture.graph.schema().vertexLabel("caller").useCustomizeStringId().create();
+                fixture.graph.tx().commit();
+                fixture.graph.addVertex(T.id, "pending", T.label, "caller");
+                // Direct FutureTask cancellation invokes the inherited TaskCallable.done before outer guards.
+                task.cancel(true);
+                Assert.assertTrue(fixture.graph.tx().isOpen());
+                Assert.assertTrue(fixture.graph.vertices("pending").hasNext());
+                fixture.graph.tx().commit();
+                Assert.assertTrue(fixture.database.submit(() -> {
+                    try {
+                        return fixture.graph.vertices("pending").hasNext();
+                    } finally {
+                        fixture.params.closeTx();
+                    }
+                }).get(10L, TimeUnit.SECONDS));
+            } finally {
+                release.countDown();
+            }
+            fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+        }
+    }
+
+    @Test
+    public void testQueuedDefaultCancellationPreservesCallerTransaction() throws Exception {
+        this.assertDefaultCancellationPreservesCallerTransaction(false);
+    }
+
+    @Test
+    public void testRunningDefaultCancellationPreservesCallerTransaction() throws Exception {
+        this.assertDefaultCancellationPreservesCallerTransaction(true);
+    }
+
+    private void assertDefaultCancellationPreservesCallerTransaction(boolean running) throws Exception {
+        try (Fixture fixture = new Fixture("standard_caller_tx_" + running)) {
+            CountDownLatch occupied = new CountDownLatch(1);
+            CountDownLatch release = new CountDownLatch(1);
+            if (!running) {
+                fixture.worker.submit(() -> {
+                    occupied.countDown();
+                    await(release);
+                });
+                Assert.assertTrue(occupied.await(10L, TimeUnit.SECONDS));
+            }
+            BlockingJob job = new BlockingJob();
+            HugeTask<Object> task = fixture.task(job);
+            try {
+                fixture.scheduler.schedule(task);
+                if (running) {
+                    Assert.assertTrue(job.started.await(10L, TimeUnit.SECONDS));
+                }
+                fixture.graph.schema().vertexLabel("caller").useCustomizeStringId().create();
+                fixture.graph.tx().commit();
+                fixture.graph.addVertex(T.id, "pending", T.label, "caller");
+                fixture.scheduler.cancel(task);
+                Assert.assertTrue(task.isCancelled());
+                Assert.assertTrue(fixture.graph.tx().isOpen());
+                Assert.assertTrue(fixture.graph.vertices("pending").hasNext());
+                fixture.graph.tx().commit();
+                Assert.assertFalse(fixture.graph.tx().isOpen());
+                Assert.assertTrue(fixture.database.submit(() -> {
+                    try {
+                        return fixture.graph.vertices("pending").hasNext();
+                    } finally {
+                        fixture.params.closeTx();
+                    }
+                }).get(10L, TimeUnit.SECONDS));
+                if (running) {
+                    Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                }
+            } finally {
+                release.countDown();
+                job.release.countDown();
+            }
+            fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+            ThreadLocal<?> owners = Whitebox.getInternalState(fixture.graph.tx(), "transactions");
+            Assert.assertNull(fixture.worker.submit(owners::get).get(10L, TimeUnit.SECONDS));
+            Assert.assertEquals(running ? 0L : 1L, job.started.getCount());
+        }
+    }
+
+    @Test
     public void testCancelledWorkerFencesAdmissionUntilActualExit() throws Exception {
         try (Fixture fixture = new Fixture("standard_cancel_worker")) {
             BlockingJob job = new BlockingJob();
