@@ -91,13 +91,16 @@ the attributes. A failure with no mapped metadata may have empty attributes.
 | `HugeGraph.Cypher.SyntaxError` | `Variable` followed by a backtick-quoted name and `not defined` | Declare the variable in a MATCH, UNWIND or WITH clause before referencing it |
 | `HugeGraph.Cypher.ExecutionError` | Undefined vertex label, edge label, property key or index label | Create the schema element via the schema API before running the query |
 | `HugeGraph.Cypher.UnsupportedFeature` | Translator messages beginning `Unsupported clause:`, `Unsupported match pattern:`, `Unsupported create pattern:`, `Unsupported property type:`, `Multiple labels are not supported:` or `Custom functions and predicates are not supported on target implementation:` | This construct is not covered by the built-in translator, see the Cypher compatibility guide for supported syntax |
-| `HugeGraph.Cypher.ExecutionError` | Other failures | Empty string |
+| `HugeGraph.Cypher.ExecutionError` | Other failures, including unrecognized translation failures | Empty string |
 
-The Gremlin transport exposes parser failures as messages, so classification
-recognizes the translation-1.0.4 message forms above. Other failures fall back to
-`ExecutionError`, including runtime errors such as `Unsupported predicate` and
-`CONTAINS query ... is not supported`; these codes are not a promise to identify
-every possible translator failure. There is no `HugeGraph.Cypher.MissingParameter` contract.
+`ExecutionError` is also the fallback for unrecognized translation failures; it
+does not mean traversal execution has started. For example, `reduce(...)` or
+semantic rejections without a recognized position suffix may return this code
+with an empty hint while preserving the original failure message. Classification
+recognizes only the translation-1.0.4 forms above and does not cover every
+translator failure; runtime errors such as `Unsupported predicate` and
+`CONTAINS query ... is not supported` also fall back.
+There is no `HugeGraph.Cypher.MissingParameter` contract.
 
 This contract repairs the unreleased proposal in
 [Server #3241](https://github.com/apache/hugegraph/pull/3241). The paired website
