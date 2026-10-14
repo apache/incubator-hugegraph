@@ -572,7 +572,8 @@ cannot be adopted. Original enum setters reject every request while owners are a
 including bare LOADING; their original behavior remains available without active owners.
 
 `GET /graphspaces/{space}/graphs/{graph}/mode/owners` returns
-`{"protocol":1,"instance":"<UUID>","epoch":0,"revision":0}`. `PUT` on that path accepts
+`{"protocol":1,"instance":"<UUID>","epoch":0,"revision":0}`. This response is illustrative;
+recovery must use the actual values returned by the latest GET. `PUT` on that path accepts
 `{"action":"acquire","instance":"<UUID>","epoch":0,"token":"<import UUID>"}`;
 `release` uses the same tuple. Receipts echo protocol/instance/epoch/token and return
 `state` (`active` or `released`) and the effective `mode`. Both operations use existing
