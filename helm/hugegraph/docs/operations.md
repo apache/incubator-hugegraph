@@ -293,7 +293,7 @@ Updating chart values alone does not change an existing image's behavior.
 | `HG_PD_AUTH_SECRET_KEY` missing | PD Pod Secret reference and key; chart injects the shared PD REST password automatically |
 | Server storage wait timeout | Ready PD majority, Store registration, network policies and `server.storageWaitTimeoutSeconds` |
 | NodePort/Ingress unreachable | Assigned port, reachable node/controller address, firewall and NetworkPolicy rules |
-| REST works but Gremlin reports `Could not rebind` | Run `helm test`; after PD stabilizes, replace the failing Server Pod and retry |
+| REST works but Gremlin reports `Could not rebind` | Run `helm test`. Images that include apache/hugegraph#3228 rebind Gremlin when REST loads the graph; if it persists, check the Server log for `could not be bound in Gremlin Server` or `can't be rebound in Gremlin Server`, then replace the failing Server Pod after PD stabilizes and retry |
 
 ```bash
 kubectl -n hugegraph get pods,pvc,svc

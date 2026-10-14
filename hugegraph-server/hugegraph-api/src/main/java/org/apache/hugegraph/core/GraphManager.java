@@ -1811,13 +1811,6 @@ public final class GraphManager {
     }
 
     private void loadGraph(String name, String graphConfPath) {
-        // TODO: offer a loaded graph to Gremlin Server (notify GRAPH_CREATE, as the create paths
-        // do) or fail startup when its static Gremlin instantiation failed. Today a Server whose
-        // first open failed against a PD member mid-restart serves REST and passes readiness
-        // while every Gremlin call on it fails for the life of the process. The Helm chart
-        // (helm/hugegraph) detects this with a per-Pod Gremlin query in `helm test` and documents
-        // the manual Pod deletion; retire both once this is fixed.
-        // https://github.com/apache/hugegraph/issues/3228
         HugeConfig config = new HugeConfig(graphConfPath);
 
         // Transfer `raft.group_peers` from server config to graph config
@@ -1836,10 +1829,41 @@ public final class GraphManager {
         LOG.info("Graph '{}' was successfully configured via '{}'",
                  name, graphConfPath);
 
+        this.bindLocalGraph(name, graph);
+
         if (this.requireAuthentication() &&
             !(graph instanceof HugeGraphAuthProxy)) {
             LOG.warn("You may need to support access control for '{}' with {}",
                      graphConfPath, HugeFactoryAuthProxy.GRAPH_FACTORY);
+        }
+    }
+
+    /*
+     * Gremlin Server opens the graphs in conf/graphs once, while it is being
+     * prepared, and drops any graph whose open fails there (for example when
+     * PD is briefly unreachable). Offer each locally loaded graph to it again,
+     * as the create paths do, so such a graph still gets its Gremlin binding.
+     * Rebinding the graph Gremlin already holds is harmless: both opens return
+     * the same cached instance.
+     */
+    private void bindLocalGraph(String name, Graph graph) {
+        if (!(graph instanceof HugeGraph)) {
+            return;
+        }
+        HugeGraph hugegraph = (HugeGraph) graph;
+        String graphName = defaultSpaceGraphName(name);
+        if (!graphName.equals(hugegraph.spaceGraphName())) {
+            LOG.warn("Graph '{}' is named '{}' by its config, so it can't be " +
+                     "rebound in Gremlin Server if Gremlin failed to open it",
+                     graphName, hugegraph.spaceGraphName());
+            return;
+        }
+        try {
+            this.notifyEvent(Events.GRAPH_CREATE, hugegraph);
+        } catch (Throwable e) {
+            LOG.error("Graph '{}' is served by REST but could not be bound " +
+                      "in Gremlin Server, restart the Server to retry",
+                      graphName, e);
         }
     }
 
