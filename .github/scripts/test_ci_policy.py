@@ -385,6 +385,7 @@ class PolicyTest(unittest.TestCase):
     def test_contract_scripts_reach_their_actual_inner_jobs_and_steps(self):
         workflows = Path(__file__).resolve().parents[1] / "workflows"
         cases = [("test-stop-hugegraph-store.sh", {"struct"}),
+                 ("test-check-java-runtime-logs.sh", {"struct"}),
                  ("test-check-jacoco-report.sh", {"struct"}),
                  ("test-codecov-upload-config.sh", {"struct"}),
                  ("test-riscv64-java-runtime.sh", {"server", "riscv64"})]
@@ -409,7 +410,7 @@ class PolicyTest(unittest.TestCase):
                     condition = condition.replace("inputs.run-struct", str(inputs["struct"]))
                     condition = condition.replace("inputs.run-store", str(inputs["store"]))
                     self.assertTrue(eval(condition.replace("||", "or"), {"__builtins__": {}}))
-                    step = next(step for step in struct.split("\n      - ") if script in step)
+                    step = next(step for step in struct.split("\n      - ") if Path(script).name in step)
                     self.assertNotRegex(step, r"(?m)^        if:")
                 else:
                     self.assertIn("server-rocksdb", callers)
@@ -425,6 +426,17 @@ class PolicyTest(unittest.TestCase):
                                          {"__builtins__": {}}))
         mixed = self.plan_for([policy.TRAVIS + "test-stop-hugegraph-store.sh", "hugegraph-pd/src/A.java"])
         self.assertTrue({"struct", "pd", "store", "hstore", "cluster"}.issubset(mixed["selected"]))
+        checker = self.plan_for([policy.TRAVIS + "check-java-runtime-logs.sh"])
+        self.assertEqual({"build-server", "server-rocksdb", "commons", "pd_store", "cluster", "compatibility"},
+                         self.coordinator_jobs(checker))
+        self.assertTrue(checker["hbase"] and checker["riscv64"] and checker["macos_full"])
+        master = {"ref": "refs/heads/master"}
+        for script in policy.CONTRACT_SUITES:
+            self.assertEqual([], self.plan_for([script], "push", master)["expected"])
+        runtime = "hugegraph-server/hugegraph-core/src/main/A.java"
+        self.assertEqual(self.plan_for([runtime], "push", master)["selected"],
+                         self.plan_for([runtime, policy.TRAVIS + "check-java-runtime-logs.sh"],
+                                       "push", master)["selected"])
 
     def test_coordinator_reads_and_validates_real_java_input(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
