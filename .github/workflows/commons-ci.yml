@@ -70,5 +70,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: hugegraph-commons/target/jacoco.xml
+          flags: commons
           disable_search: true
           fail_ci_if_error: false

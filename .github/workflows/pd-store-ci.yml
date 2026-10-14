@@ -334,6 +334,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ env.REPORT_FILE }}
+          flags: pd
           disable_search: true
           fail_ci_if_error: false
 
@@ -563,6 +564,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ env.REPORT_FILE }}
+          flags: store
           disable_search: true
           fail_ci_if_error: false
 
@@ -910,5 +912,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ${{ env.REPORT_DIR }}/*.xml
+          flags: hstore
           disable_search: true
           fail_ci_if_error: false
