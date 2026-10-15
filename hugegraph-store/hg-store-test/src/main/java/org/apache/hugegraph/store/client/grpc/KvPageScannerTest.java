@@ -292,18 +292,26 @@ public class KvPageScannerTest {
             CountDownLatch sending = new CountDownLatch(1);
             CountDownLatch releaseSend = new CountDownLatch(1);
             AtomicBoolean overlap = new AtomicBoolean();
+            AtomicBoolean inOnNext = new AtomicBoolean();
             AtomicInteger terminals = new AtomicInteger();
             AtomicReference<StreamObserver<KvPageRes>> response = new AtomicReference<>();
             AtomicReference<Thread> callbackThread = new AtomicReference<>();
             StreamObserver<ScanStreamReq> requestObserver = mock(StreamObserver.class);
             doAnswer(invocation -> {
+                inOnNext.set(true);
                 sending.countDown();
-                Assert.assertTrue("Request send gate timed out",
-                                  releaseSend.await(5, TimeUnit.SECONDS));
-                return null;
+                try {
+                    Assert.assertTrue("Request send gate timed out",
+                                      releaseSend.await(5, TimeUnit.SECONDS));
+                    return null;
+                } finally {
+                    inOnNext.set(false);
+                }
             }).when(requestObserver).onNext(any());
             Answer<Void> terminalAnswer = invocation -> {
-                overlap.set(releaseSend.getCount() != 0);
+                if (inOnNext.get()) {
+                    overlap.set(true);
+                }
                 terminals.incrementAndGet();
                 return null;
             };
@@ -337,6 +345,7 @@ public class KvPageScannerTest {
                 Assert.assertFalse("Request terminal overlapped onNext", overlap.get());
                 releaseSend.countDown();
                 callback.get(5, TimeUnit.SECONDS);
+                Assert.assertFalse("Request terminal overlapped onNext", overlap.get());
                 if (failed) {
                     try {
                         receiver.get(5, TimeUnit.SECONDS);
