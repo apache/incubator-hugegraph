@@ -91,6 +91,19 @@ tests:
           path: spec.containers[0].command[2]
           pattern: '"graph":"DEFAULT-Demo"'
 
+  - it: defaults a null alias for both index and business checks
+    template: tests/test-connection.yaml
+    set:
+      server.testGraphAlias: null
+      server.testGremlin: "assert graph.traversal().V().count().next() == 40"
+    asserts:
+      - matchRegex:
+          path: spec.containers[0].command[2]
+          pattern: '(?m)^\s*BODY=.*"graph":"DEFAULT-hugegraph"'
+      - matchRegex:
+          path: spec.containers[0].command[2]
+          pattern: '(?m)^\s*BUSINESS_BODY=.*"graph":"DEFAULT-hugegraph"'
+
   - it: floors the per-Pod count at the HPA minimum when HPA is enabled
     template: tests/test-connection.yaml
     set:

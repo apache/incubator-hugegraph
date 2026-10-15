@@ -72,21 +72,30 @@ elif command == "curl":
 
 
 class HelmHookTest(unittest.TestCase):
-    def render(self, directory, **values):
+    def render(self, directory, legacy_values=False, **values):
+        chart = CHART
+        if legacy_values:
+            # --reuse-values can render with old defaults that predate this key.
+            chart = directory / "legacy-chart"
+            shutil.copytree(CHART, chart)
+            defaults_file = chart / "values.yaml"
+            defaults = yaml.safe_load(defaults_file.read_text())
+            defaults["server"].pop("testGraphAlias")
+            defaults_file.write_text(yaml.safe_dump(defaults))
         configuration = directory / "values.yaml"
         configuration.write_text(yaml.safe_dump(values))
         result = subprocess.run(
-            ["helm", "template", "fixture", str(CHART), "-f", str(configuration),
+            ["helm", "template", "fixture", str(chart), "-f", str(configuration),
              "--show-only", "templates/tests/test-connection.yaml"],
             capture_output=True, text=True)
         self.assertEqual(0, result.returncode, result.stderr)
         return yaml.safe_load(result.stdout)["spec"]["containers"][0]["command"][2]
 
-    def run_hook(self, case="healthy", addresses=None, **values):
+    def run_hook(self, case="healthy", addresses=None, legacy_values=False, **values):
         temporary = tempfile.TemporaryDirectory(prefix="helm-hook-")
         self.addCleanup(temporary.cleanup)
         directory = Path(temporary.name)
-        script = self.render(directory, **values)
+        script = self.render(directory, legacy_values=legacy_values, **values)
         commands = directory / "bin"
         commands.mkdir()
         for name in ("curl", "date", "getent", "sleep"):
@@ -147,6 +156,20 @@ class HelmHookTest(unittest.TestCase):
         self.assertEqual(6, len(payloads))
         self.assertTrue(all(payload["aliases"] == {"graph": "team_a-demo"}
                             for payload in payloads))
+
+    def test_missing_or_null_alias_preserves_default_for_both_checks(self):
+        business = "assert graph.traversal().V().count().next() == 7; true"
+        for missing in (False, True):
+            with self.subTest(alias="missing" if missing else "null"):
+                server = {"testGremlin": business}
+                if not missing:
+                    server["testGraphAlias"] = None
+                result, requests, _ = self.run_hook(legacy_values=missing, server=server)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                payloads = [request["body"] for request in requests if request["body"]]
+                self.assertEqual(6, len(payloads))
+                self.assertEqual([{"graph": "DEFAULT-hugegraph"}] * 6,
+                                 [payload["aliases"] for payload in payloads])
 
     def test_business_script_is_json_data_and_auth_can_be_disabled(self):
         business = '''assert 'single' != "double"

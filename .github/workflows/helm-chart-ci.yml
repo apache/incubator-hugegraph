@@ -358,8 +358,10 @@ jobs:
           print(pom.find('{*}properties/{*}groovy.version').text)
           PY_VERSION
           )
-          curl -fsSLo /tmp/groovy.jar \
-            "https://repo.maven.apache.org/maven2/org/apache/groovy/groovy/${GROOVY_VERSION}/groovy-${GROOVY_VERSION}.jar"
+          GROOVY_URL="https://repo.maven.apache.org/maven2/org/apache/groovy/groovy/${GROOVY_VERSION}/groovy-${GROOVY_VERSION}.jar"
+          curl -fsSLo /tmp/groovy.jar "${GROOVY_URL}"
+          curl -fsSLo /tmp/groovy.jar.sha1 "${GROOVY_URL}.sha1"
+          printf '%s  /tmp/groovy.jar\n' "$(cat /tmp/groovy.jar.sha1)" | sha1sum -c -
           GROOVY_JAR=/tmp/groovy.jar python3 helm/test_helm_hook.py
 
       - name: helm test hook behaviour

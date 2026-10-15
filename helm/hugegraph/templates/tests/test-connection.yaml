@@ -90,9 +90,9 @@ spec:
           PORT="{{ .Values.server.port }}"
           FLOOR="{{ include "hugegraph.server.replicaFloor" . }}"
           DEADLINE_S="${HG_TEST_DEADLINE_S:-150}"
-          BODY='{{ dict "gremlin" $smoke "aliases" (dict "graph" .Values.server.testGraphAlias) | toJson | replace "'" "'\"'\"'" }}'
+          BODY='{{ dict "gremlin" $smoke "aliases" (dict "graph" (.Values.server.testGraphAlias | default "DEFAULT-hugegraph")) | toJson | replace "'" "'\"'\"'" }}'
           {{- if .Values.server.testGremlin }}
-          BUSINESS_BODY='{{ dict "gremlin" .Values.server.testGremlin "aliases" (dict "graph" .Values.server.testGraphAlias) | toJson | replace "'" "'\"'\"'" }}'
+          BUSINESS_BODY='{{ dict "gremlin" .Values.server.testGremlin "aliases" (dict "graph" (.Values.server.testGraphAlias | default "DEFAULT-hugegraph")) | toJson | replace "'" "'\"'\"'" }}'
           {{- else }}
           BUSINESS_BODY=""
           {{- end }}
