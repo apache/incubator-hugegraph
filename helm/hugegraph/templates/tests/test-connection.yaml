@@ -22,8 +22,9 @@
 };
 ids.each {
     def index = graph.indexLabel(it);
-    if (index.status().name() == 'INVALID') {
-        throw new IllegalStateException('INVALID index: ' + index.name())
+    if (!index.status().ok()) {
+        throw new IllegalStateException('Index ' + index.name() + ' is ' +
+                                        index.status().name() + ' (CREATED expected)')
     }
 };
 graph.traversal().V().limit(1).count()` }}

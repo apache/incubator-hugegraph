@@ -56,10 +56,13 @@ elif command == "curl":
         case = os.environ.get("FIXTURE_CASE", "healthy")
         bad_pod = "10.0.0.2" in url
         business = body["gremlin"] == os.environ.get("FIXTURE_BUSINESS")
-        failure = bad_pod and (case in ("binding", "invalid") or
+        failure = bad_pod and (case in ("binding", "invalid", "creating", "rebuilding") or
                                (case == "business" and business))
         if failure:
-            message = {"binding": "Could not rebind graph", "invalid": "INVALID index: by_age",
+            message = {"binding": "Could not rebind graph",
+                       "invalid": "Index by_age is INVALID (CREATED expected)",
+                       "creating": "Index by_age is CREATING (CREATED expected)",
+                       "rebuilding": "Index by_age is REBUILDING (CREATED expected)",
                        "business": "Assertion failed: expected index results"}[case]
             print(json.dumps({"message": message}))
             print("400" if case == "binding" else "500")
@@ -109,9 +112,11 @@ class HelmHookTest(unittest.TestCase):
         self.assertTrue(all("Authorization: Basic " in request["config"] for request in requests))
         self.assertIn("business assertions skipped", result.stdout)
 
-    def test_failed_binding_or_cached_invalid_index_reports_pod_and_stage(self):
+    def test_failed_binding_or_unready_cached_index_reports_pod_and_stage(self):
         for case, message in (("binding", "Could not rebind graph"),
-                              ("invalid", "INVALID index: by_age")):
+                              ("invalid", "Index by_age is INVALID (CREATED expected)"),
+                              ("creating", "Index by_age is CREATING (CREATED expected)"),
+                              ("rebuilding", "Index by_age is REBUILDING (CREATED expected)")):
             with self.subTest(case=case):
                 result, requests, _ = self.run_hook(case)
                 self.assertNotEqual(0, result.returncode)
@@ -154,9 +159,9 @@ true'''
         self.assertIn("pods=2 floor=3", result.stderr)
         self.assertEqual(2, sum(request["body"] is not None for request in requests))
 
-    @unittest.skipUnless(os.environ.get("GROOVY_JAR"),
-                         "GROOVY_JAR unset: rendered Groovy execution not verified")
     def test_rendered_groovy_checks_cached_ids_without_refreshing_indexes(self):
+        self.assertTrue(os.environ.get("GROOVY_JAR"),
+                        "Set GROOVY_JAR to the Server Groovy jar before running this suite")
         _, requests, directory = self.run_hook()
         payload = next(request["body"] for request in requests if request["body"])
         script = directory / "smoke.groovy"

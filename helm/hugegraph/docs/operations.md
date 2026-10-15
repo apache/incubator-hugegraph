@@ -285,12 +285,14 @@ Updating chart values alone does not change an existing image's behavior.
 
 ## Business query assertions
 
-The default `helm test` checks `DEFAULT-hugegraph` binding and rejects `INVALID` indexes
+The default `helm test` checks `DEFAULT-hugegraph` binding and requires `CREATED` indexes
 associated with the vertex/edge labels visible on each Pod. It reads those
 indexes by ID, using the same local cache path as queries; it does not refresh
 the full index cache. This does not detect missing/stale label associations,
 orphaned indexes or incorrect index data, and does not prove range-query results.
-Normal index creation/rebuild states are not rejected by this status check.
+Run it after index creation/rebuild jobs finish. Like indexed queries, the check
+rejects every other status, including `CREATING`, `REBUILDING` and `INVALID`.
+Its retry window allows transient index work to settle before the hook fails.
 
 For a graph with existing test data, provide a read-only Gremlin script that
 asserts the expected result. For example, with 40 existing `person` vertices

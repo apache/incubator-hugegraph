@@ -82,7 +82,10 @@ tests:
           pattern: "graph.indexLabel"
       - matchRegex:
           path: spec.containers[0].command[2]
-          pattern: "INVALID index"
+          pattern: "index.status.*ok"
+      - matchRegex:
+          path: spec.containers[0].command[2]
+          pattern: "CREATED expected"
       - notMatchRegex:
           path: spec.containers[0].command[2]
           pattern: "getIndexLabels"

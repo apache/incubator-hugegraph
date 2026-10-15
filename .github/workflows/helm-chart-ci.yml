@@ -329,7 +329,17 @@ jobs:
           expect 'café' 'must be printable ASCII'
 
       - name: helm test query assertions and shell quoting
-        run: python3 helm/test_helm_hook.py
+        run: |
+          # Execute the rendered query with the same Groovy version as Server.
+          GROOVY_VERSION=$(python3 - <<'PY_VERSION'
+          import xml.etree.ElementTree as ET
+          pom = ET.parse('pom.xml')
+          print(pom.find('{*}properties/{*}groovy.version').text)
+          PY_VERSION
+          )
+          curl -fsSLo /tmp/groovy.jar \
+            "https://repo.maven.apache.org/maven2/org/apache/groovy/groovy/${GROOVY_VERSION}/groovy-${GROOVY_VERSION}.jar"
+          GROOVY_JAR=/tmp/groovy.jar python3 helm/test_helm_hook.py
 
       - name: helm test hook behaviour
         shell: bash

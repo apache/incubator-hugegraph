@@ -190,8 +190,9 @@ The chart checks persisted Raft identities and storage/membership changes during
 upgrades; those changes require a coordinated procedure.
 
 `helm --wait` checks readiness. `helm test` checks graph binding and visible
-associated indexes for `INVALID` on each Server Pod. It does not prove index
-query results; add [business assertions](docs/operations.md#business-query-assertions)
+associated indexes for `CREATED` status on each Server Pod. Run it after index
+creation/rebuild jobs finish. It does not prove index query results; add
+[business assertions](docs/operations.md#business-query-assertions)
 with `--set-file server.testGremlin=assertions.groovy`. Also verify a fresh Hubble
 login and graph query. Templates and linting alone do not prove live volume,
 network or application behavior.

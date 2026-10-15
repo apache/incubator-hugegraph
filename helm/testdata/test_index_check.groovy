@@ -31,7 +31,8 @@ class FixtureGraph {
     def indexLabel(id) {
         assert id instanceof Integer : 'name lookup can refresh the cache'
         lookups.add(id)
-        return [name: { -> "index_${id}" }, status: { -> [name: { -> statuses[id] }] }]
+        return [name: { -> "index_${id}" },
+                status: { -> [name: { -> statuses[id] }, ok: { -> statuses[id] == 'CREATED' }] }]
     }
     def traversal() {
         return new FixtureTraversal()
@@ -39,19 +40,21 @@ class FixtureGraph {
 }
 
 def source = new File(args[0]).text
-[[11: 'CREATED', 22: 'CREATED'], [:], [11: 'CREATING']].each { statuses ->
+[[11: 'CREATED', 22: 'CREATED'], [:]].each { statuses ->
     def graph = new FixtureGraph(statuses: statuses)
     assert new GroovyShell(new Binding(graph: graph)).evaluate(source) == 0
     assert graph.lookups as Set == statuses.keySet()
 }
-[11, 22].each { invalidId ->
-    def graph = new FixtureGraph(statuses: [11: 'CREATED', 22: 'CREATED'])
-    graph.statuses[invalidId] = 'INVALID'
-    try {
-        new GroovyShell(new Binding(graph: graph)).evaluate(source)
-        throw new AssertionError('stale cached INVALID index must fail')
-    } catch (IllegalStateException expected) {
-        assert expected.message == "INVALID index: index_${invalidId}"
+['CREATING', 'REBUILDING', 'DELETING', 'UNDELETED', 'INVALID', 'CLEARING'].each { status ->
+    [11, 22].each { indexId ->
+        def graph = new FixtureGraph(statuses: [11: 'CREATED', 22: 'CREATED'])
+        graph.statuses[indexId] = status
+        try {
+            new GroovyShell(new Binding(graph: graph)).evaluate(source)
+            throw new AssertionError('non-CREATED cached index must fail')
+        } catch (IllegalStateException expected) {
+            assert expected.message == "Index index_${indexId} is ${status} (CREATED expected)"
+        }
     }
 }
 println 'cached index checks passed'
