@@ -17,18 +17,7 @@
 
 package org.apache.hugegraph.util;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Set;
-
-import org.slf4j.Logger;
-
 public final class CloseFailure {
-
-    private static final Logger LOG = Log.logger(CloseFailure.class);
 
     private CloseFailure() {
     }
@@ -39,35 +28,8 @@ public final class CloseFailure {
         }
         Throwable primary = next instanceof Error && !(first instanceof Error) ? next : first;
         Throwable secondary = primary == first ? next : first;
-        if (!referencesFailure(primary, secondary)) {
-            if (referencesFailure(secondary, primary)) {
-                // Keep the original diagnostic without introducing a cause/suppression cycle.
-                LOG.error("Additional cleanup failure cannot be attached without an exception cycle", secondary);
-            } else {
-                primary.addSuppressed(secondary);
-            }
-        }
+        primary.addSuppressed(secondary);
         return primary;
-    }
-
-    private static boolean referencesFailure(Throwable root, Throwable target) {
-        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
-        List<Throwable> pending = new ArrayList<>();
-        pending.add(root);
-        while (!pending.isEmpty()) {
-            Throwable current = pending.remove(pending.size() - 1);
-            if (current == target) {
-                return true;
-            }
-            if (!seen.add(current)) {
-                continue;
-            }
-            if (current.getCause() != null) {
-                pending.add(current.getCause());
-            }
-            pending.addAll(Arrays.asList(current.getSuppressed()));
-        }
-        return false;
     }
 
 }

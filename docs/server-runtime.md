@@ -590,7 +590,7 @@ A graph closed by a non-clearing removal has no successful-clear certificate. A 
 refuses that closed owner and keeps its binding, rather than reporting success while old backend data remains.
 Raft provider, node and an owned listener are closed independently. The first fatal Java Error takes
 priority over ordinary close failures; otherwise the first failure is retained. Other failures are
-reported as suppressed, except when that would create an exception cycle, in which case they are logged.
+reported as suppressed, with a repeated reference to the primary failure ignored.
 A graph using Server's shared Raft listener closes
 only its own node. Server releases that listener and its address registration on shutdown;
 deleting one graph keeps the listener available to other local graphs. An interrupted node

@@ -2532,21 +2532,16 @@ public class GraphManagerConfigTest {
 
     @Test
     public void testEarlierRuntimeFailureDoesNotHideFatalCloseError() throws Exception {
-        this.checkFatalClosePriority(false, false);
-    }
-
-    @Test
-    public void testFatalCloseDoesNotCreateCauseSuppressionCycle() throws Exception {
-        this.checkFatalClosePriority(true, false);
+        this.checkFatalClosePriority(false);
     }
 
     @Test
     public void testRepeatedFatalCloseFailureKeepsIdentity() throws Exception {
-        this.checkFatalClosePriority(false, true);
+        this.checkFatalClosePriority(true);
     }
 
-    private void checkFatalClosePriority(boolean causeLink, boolean same) throws Exception {
-        String name = causeLink ? "fatal_cause_link" : same ? "fatal_repeated" : "fatal_priority";
+    private void checkFatalClosePriority(boolean same) throws Exception {
+        String name = same ? "fatal_repeated" : "fatal_priority";
         GraphManager manager = this.dropManager(name);
         HugeGraph first = null;
         HugeGraph next = null;
@@ -2558,8 +2553,7 @@ public class GraphManagerConfigTest {
             Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", first);
             Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", next);
             AssertionError fatal = new AssertionError("fatal native release");
-            RuntimeException earlier = causeLink ? new IllegalStateException("earlier close wraps fatal", fatal) :
-                                                  new IllegalStateException("earlier close failed");
+            RuntimeException earlier = new IllegalStateException("earlier close failed");
             auth = Mockito.spy(first.authManager());
             Mockito.doThrow(same ? fatal : earlier).when(auth).close();
             first.switchAuthManager(auth);
@@ -2585,8 +2579,8 @@ public class GraphManagerConfigTest {
                 }
             });
             Assert.assertSame(fatal, caught);
-            Assert.assertEquals(same || causeLink ? 0 : 1, fatal.getSuppressed().length);
-            if (!same && !causeLink) {
+            Assert.assertEquals(same ? 0 : 1, fatal.getSuppressed().length);
+            if (!same) {
                 Assert.assertSame(earlier, fatal.getSuppressed()[0]);
             }
             Assert.assertSame(first, manager.graph(first.spaceGraphName()));
