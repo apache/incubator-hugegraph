@@ -26,15 +26,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.page.PageInfo;
-import org.apache.hugegraph.backend.query.Condition;
-import org.apache.hugegraph.backend.query.ConditionQuery;
+import org.apache.hugegraph.query.Condition;
+import org.apache.hugegraph.query.ConditionQuery;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.config.CoreOptions;
@@ -43,8 +46,8 @@ import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.iterator.ExtendableIterator;
 import org.apache.hugegraph.iterator.MapperIterator;
 import org.apache.hugegraph.job.EphemeralJob;
-import org.apache.hugegraph.schema.PropertyKey;
-import org.apache.hugegraph.schema.VertexLabel;
+import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.task.HugeTask.P;
 import org.apache.hugegraph.task.TaskCallable.SysTaskCallable;
@@ -69,13 +72,15 @@ public class StandardTaskScheduler implements TaskScheduler {
     private final ExecutorService taskDbExecutor;
 
     private final Map<Id, HugeTask<?>> tasks;
+    private final Map<Id, List<PendingTask>> executions;
 
     private volatile TaskTransaction taskTx;
+    private boolean admissionClosed;
+    private int cancellations;
 
     public StandardTaskScheduler(HugeGraphParams graph,
                                  ExecutorService taskExecutor,
-                                 ExecutorService taskDbExecutor,
-                                 ExecutorService serverInfoDbExecutor) {
+                                 ExecutorService taskDbExecutor) {
         E.checkNotNull(graph, "graph");
         E.checkNotNull(taskExecutor, "taskExecutor");
         E.checkNotNull(taskDbExecutor, "dbExecutor");
@@ -84,8 +89,9 @@ public class StandardTaskScheduler implements TaskScheduler {
         this.taskExecutor = taskExecutor;
         this.taskDbExecutor = taskDbExecutor;
 
-        this.serverManager = new ServerInfoManager(graph, serverInfoDbExecutor);
+        this.serverManager = new ServerInfoManager(graph);
         this.tasks = new ConcurrentHashMap<>();
+        this.executions = new ConcurrentHashMap<>();
 
         this.taskTx = null;
     }
@@ -116,8 +122,8 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public int pendingTasks() {
-        return this.tasks.size();
+    public synchronized int pendingTasks() {
+        return this.tasks.size() + this.cancellations;
     }
 
     private TaskTransaction tx() {
@@ -142,7 +148,8 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> void restoreTasks() {
+    public synchronized <V> void restoreTasks() {
+        this.checkAdmission();
         List<HugeTask<V>> taskList = new ArrayList<>();
         // Single-node mode: restore pending tasks without server filtering.
         // Don't restore legacy SCHEDULING/SCHEDULED tasks globally; they were
@@ -185,7 +192,8 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public <V> Future<?> schedule(HugeTask<V> task) {
+    public synchronized <V> Future<?> schedule(HugeTask<V> task) {
+        this.checkAdmission();
         E.checkArgumentNotNull(task, "Task can't be null");
 
         /*
@@ -231,7 +239,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                 throw e;
             }
         }
-        return this.taskExecutor.submit(task);
+        return this.submitExecution(task);
     }
 
     private <V> Future<?> resubmitTask(HugeTask<V> task) {
@@ -241,7 +249,88 @@ public class StandardTaskScheduler implements TaskScheduler {
         E.checkArgument(this.tasks.containsKey(task.id()),
                         "Can't resubmit task '%s' not been submitted before",
                         task.id());
-        return this.taskExecutor.submit(task);
+        return this.submitExecution(task);
+    }
+
+    private Future<?> submitExecution(HugeTask<?> task) {
+        PendingTask pending = new PendingTask(task);
+        this.executions.computeIfAbsent(task.id(), id -> new ArrayList<>()).add(pending);
+        try {
+            this.taskExecutor.execute(pending);
+        } catch (RuntimeException | Error error) {
+            this.finishExecution(pending);
+            throw error;
+        }
+        return pending;
+    }
+
+    private synchronized void finishExecution(PendingTask pending) {
+        List<PendingTask> outstanding = this.executions.get(pending.task.id());
+        if (outstanding != null && outstanding.remove(pending) && outstanding.isEmpty()) {
+            this.executions.remove(pending.task.id());
+            this.tasks.remove(pending.task.id(), pending.task);
+        }
+    }
+
+    private synchronized void cancelQueuedExecutions(Id id) {
+        List<PendingTask> outstanding = this.executions.get(id);
+        if (outstanding != null) {
+            for (PendingTask pending : new ArrayList<>(outstanding)) {
+                pending.cancelBeforeStart();
+            }
+        }
+    }
+
+    private final class PendingTask extends FutureTask<Void> {
+
+        private final HugeTask<?> task;
+        private final AtomicBoolean started = new AtomicBoolean();
+
+        private PendingTask(HugeTask<?> task) {
+            super(new ContextCallable<>(() -> {
+                task.run();
+                return null;
+            }));
+            this.task = task;
+        }
+
+        @Override
+        public void run() {
+            if (!this.started.compareAndSet(false, true)) {
+                return;
+            }
+            try {
+                super.run();
+            } finally {
+                // A cleanup failure must retain this owner and prevent close ACK.
+                StandardTaskScheduler.this.graph.closeTx();
+                StandardTaskScheduler.this.finishExecution(this);
+            }
+        }
+
+        @Override
+        protected void done() {
+            if (this.isCancelled()) {
+                // Cancelling the dispatch Future must not run HugeTask callbacks
+                // on its caller or cancel a later dependency retry.
+                this.cancelBeforeStart();
+            }
+        }
+
+        private void cancelBeforeStart() {
+            if (this.started.compareAndSet(false, true)) {
+                super.cancel(false);
+                if (StandardTaskScheduler.this.taskExecutor instanceof ThreadPoolExecutor) {
+                    ((ThreadPoolExecutor) StandardTaskScheduler.this.taskExecutor).remove(this);
+                }
+                StandardTaskScheduler.this.finishExecution(this);
+            }
+        }
+    }
+
+    private void checkAdmission() {
+        E.checkState(!this.admissionClosed, "Task scheduler for graph '%s' is closing",
+                     this.spaceGraphName());
     }
 
     public <V> void initTaskCallable(HugeTask<V> task) {
@@ -257,32 +346,48 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public synchronized <V> void cancel(HugeTask<V> task) {
+    public <V> void cancel(HugeTask<V> task) {
         E.checkArgumentNotNull(task, "Task can't be null");
-
-        if (task.completed() || task.cancelling()) {
-            return;
-        }
-
-        LOG.info("Cancel task '{}' in status {}", task.id(), task.status());
-
-        HugeTask<?> memTask = this.tasks.get(task.id());
-        if (memTask != null) {
-            boolean cancelled = memTask.cancel(true);
-            if (cancelled) {
-                task.overwriteStatus(TaskStatus.CANCELLED);
+        boolean callerTxOpen = this.graph.graph().tx().isOpen();
+        HugeTask<?> memTask;
+        synchronized (this) {
+            if (task.completed() || task.cancelling()) {
+                return;
             }
-            LOG.info("Task '{}' cancel result: {}", task.id(), cancelled);
-            return;
+            memTask = this.tasks.get(task.id());
+            if (memTask == null) {
+                this.checkAdmission();
+            }
+            this.cancellations++;
         }
-
-        if (task.status(TaskStatus.CANCELLED)) {
-            this.save(task);
-            return;
+        // HugeTask.cancel() runs done/cancelled callbacks on this caller.
+        // Do not hold the scheduler monitor while they wait for storage/workers.
+        try {
+            if (memTask != null) {
+                boolean cancelled = memTask.cancel(true);
+                if (cancelled) {
+                    task.overwriteStatus(TaskStatus.CANCELLED);
+                }
+                return;
+            }
+            if (task.status(TaskStatus.CANCELLED)) {
+                this.save(task);
+                return;
+            }
+            throw new HugeException("Can't cancel task '%s' in status %s",
+                                    task.id(), task.status());
+        } finally {
+            if (memTask != null && memTask.isCancelled()) {
+                this.cancelQueuedExecutions(task.id());
+            }
+            // Keep the callback registered until its own transaction really closes.
+            if (!callerTxOpen) {
+                this.graph.closeTx();
+            }
+            synchronized (this) {
+                this.cancellations--;
+            }
         }
-
-        throw new HugeException("Can't cancel task '%s' in status %s",
-                                task.id(), task.status());
     }
 
     @Override
@@ -291,7 +396,10 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
     @Override
     public void taskDone(HugeTask<?> task) {
-        this.remove(task);
+        // Logical completion/cancellation can precede the worker's final cleanup.
+        if (!this.executions.containsKey(task.id())) {
+            this.remove(task);
+        }
         // Single-node mode: no need to manage load
         LOG.debug("Task '{}' done", task.id());
     }
@@ -302,6 +410,9 @@ public class StandardTaskScheduler implements TaskScheduler {
 
     protected void remove(HugeTask<?> task, boolean force) {
         E.checkNotNull(task, "remove task");
+        if (this.executions.containsKey(task.id())) {
+            return;
+        }
         HugeTask<?> delTask = this.tasks.remove(task.id());
         if (delTask != null && delTask != task) {
             LOG.warn("Task '{}' may be inconsistent status {}(expect {})",
@@ -332,18 +443,60 @@ public class StandardTaskScheduler implements TaskScheduler {
     }
 
     @Override
-    public boolean close() {
-        if (!this.taskDbExecutor.isShutdown()) {
-            this.call(() -> {
-                try {
-                    this.tx().close();
-                } catch (ConnectionException ignored) {
-                    // ConnectionException means no connection established
-                }
-                this.graph.closeTx();
-            });
+    public synchronized boolean close() {
+        this.admissionClosed = true;
+        // Running tasks still need the task DB transaction to persist done().
+        // Retain the scheduler and its owners until a later close attempt.
+        if (this.pendingTasks() != 0) {
+            return false;
         }
-        return this.serverManager.close();
+        Throwable failure = null;
+        boolean closed = false;
+        try {
+            if (!this.taskDbExecutor.isShutdown()) {
+                this.call(() -> {
+                    Throwable workerFailure = null;
+                    for (Runnable close : new Runnable[]{() -> {
+                        try {
+                            this.tx().close();
+                        } catch (ConnectionException ignored) {
+                            // ConnectionException means no connection established
+                        }
+                    }, this.graph::closeTx}) {
+                        try {
+                            close.run();
+                        } catch (RuntimeException | Error error) {
+                            if (workerFailure == null) {
+                                workerFailure = error;
+                            } else if (workerFailure != error) {
+                                workerFailure.addSuppressed(error);
+                            }
+                        }
+                    }
+                    if (workerFailure instanceof Error) {
+                        throw (Error) workerFailure;
+                    }
+                    if (workerFailure != null) {
+                        throw (RuntimeException) workerFailure;
+                    }
+                });
+            }
+        } catch (RuntimeException | Error error) {
+            failure = error;
+            throw error;
+        } finally {
+            try {
+                closed = this.serverManager.close();
+            } catch (RuntimeException | Error error) {
+                if (failure == null) {
+                    throw error;
+                }
+                if (failure != error) {
+                    failure.addSuppressed(error);
+                }
+            }
+        }
+        return closed;
     }
 
     @Override
@@ -597,7 +750,7 @@ public class StandardTaskScheduler implements TaskScheduler {
                                                 boolean withResult) {
         return this.call(() -> {
             ConditionQuery query;
-            if (this.graph.backendStoreFeatures().supportsTaskAndServerVertex()) {
+            if (this.tx().storeFeatures().supportsTaskAndServerVertex()) {
                 query = new ConditionQuery(HugeType.TASK);
             } else {
                 query = new ConditionQuery(HugeType.VERTEX);

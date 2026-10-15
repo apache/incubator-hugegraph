@@ -1,0 +1,125 @@
+name: "Server Compatibility CI"
+
+on:
+  workflow_call:
+    inputs:
+      java-versions:
+        type: string
+        required: true
+      hbase:
+        type: boolean
+        default: false
+      riscv64:
+        type: boolean
+        default: false
+      macos:
+        type: boolean
+        default: false
+      macos-full:
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-server-backends:
+    if: inputs.hbase
+    uses: ./.github/workflows/server-tests.yml
+    with:
+      backend: hbase
+      java-versions: ${{ inputs.java-versions }}
+    secrets: inherit
+
+  build-server-macos-rocksdb:
+    name: macOS ARM (${{ inputs.macos-full && 'full' || 'smoke' }})
+    if: inputs.macos
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      USE_STAGE: 'false' # Whether to include the stage repository.
+      TRAVIS_DIR: hugegraph-server/hugegraph-dist/src/assembly/travis
+      REPORT_DIR: target/site/jacoco
+      BACKEND: rocksdb
+      EXPECTED_ARCH: arm64
+      EXPECTED_JAVA_MAJOR: ${{ fromJSON(inputs.java-versions)[0] }}
+      SERVER_JAVA_OPTIONS: '-Xms512m -Xmx2g'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 5
+          persist-credentials: false
+
+      - name: Install project JDK
+        uses: actions/setup-java@v6
+        with:
+          java-version-file: .github/workflows/.java-version
+          distribution: 'zulu'
+          cache: maven
+          cache-jdk: false
+
+      - name: Use staged maven repo settings
+        if: ${{ env.USE_STAGE == 'true' }}
+        run: |
+          cp "$HOME/.m2/settings.xml" /tmp/settings.xml
+          cp -vf .github/configs/settings.xml "$HOME/.m2/settings.xml" && cat "$HOME/.m2/settings.xml"
+
+      - name: Prepare bounded runtime commands
+        run: |
+          if ! command -v timeout >/dev/null 2>&1 && ! command -v gtimeout >/dev/null 2>&1; then
+            brew install coreutils
+          fi
+
+      - name: Package RocksDB distribution
+        run: |
+          mvn clean package -pl hugegraph-server/hugegraph-dist -am -U -Drocksdb-only \
+            -Dmaven.test.skip=true -Dmaven.javadoc.skip=true -ntp
+
+      - name: Run check_port unit tests
+        # Validates the ss/netstat port preflight that replaced lsof
+        run: |
+          "$TRAVIS_DIR/test-check-port.sh" \
+            hugegraph-server/hugegraph-dist/src/assembly/static \
+            hugegraph-store/hg-store-dist/src/assembly/static/bin/util.sh
+
+      - name: Run native startup, JNI and restart smoke
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          SERVER_DIR="hugegraph-server/apache-hugegraph-server-$VERSION"
+          "$TRAVIS_DIR/run-native-runtime-smoke-test.sh" "$SERVER_DIR"
+
+      - name: Run RocksDB core test
+        if: inputs.macos-full
+        run: |
+          "$TRAVIS_DIR/run-core-test.sh" "$BACKEND"
+
+      - name: Run RocksDB API test
+        if: inputs.macos-full
+        run: |
+          "$TRAVIS_DIR/run-api-test.sh" "$BACKEND" "$REPORT_DIR" true
+
+      - name: Show server log on failure
+        if: failure()
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          SERVER_DIR="hugegraph-server/apache-hugegraph-server-$VERSION"
+          if [ -f "$SERVER_DIR/logs/hugegraph-server.log" ]; then
+            tail -n 200 "$SERVER_DIR/logs/hugegraph-server.log"
+          fi
+
+      - name: Stop RocksDB server
+        if: always()
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          SERVER_DIR="hugegraph-server/apache-hugegraph-server-$VERSION"
+          if [ -f "$SERVER_DIR/bin/pid" ]; then
+            "$TRAVIS_DIR/stop-server.sh" "$SERVER_DIR" || true
+          fi
+
+  build-server-riscv64:
+    if: inputs.riscv64
+    uses: ./.github/workflows/riscv64-ci.yml
+    permissions:
+      contents: read

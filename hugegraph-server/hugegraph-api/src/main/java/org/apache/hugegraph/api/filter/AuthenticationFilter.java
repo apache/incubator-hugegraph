@@ -20,6 +20,7 @@ package org.apache.hugegraph.api.filter;
 import static org.apache.hugegraph.config.ServerOptions.WHITE_IP_STATUS;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +40,6 @@ import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
 import org.apache.tinkerpop.gremlin.server.auth.AuthenticationException;
 import org.glassfish.grizzly.http.server.Request;
-import org.glassfish.grizzly.utils.Charsets;
 import org.gridkit.jvmtool.cmd.AntPathMatcher;
 import org.slf4j.Logger;
 
@@ -75,6 +75,10 @@ public class AuthenticationFilter implements ContainerRequestFilter, ContainerRe
     private static final Logger LOG = Log.logger(AuthenticationFilter.class);
 
     private static final AntPathMatcher MATCHER = new AntPathMatcher();
+    // TODO: add the unauthenticated /readiness probe (#3221) here once it lands. The Helm chart
+    // (helm/hugegraph) defaults server.readinessPath to /versions, which stays 200 with zero
+    // Stores, and offers /readiness as an opt-in; flip that default when this set grows.
+    // https://github.com/apache/hugegraph/issues/3212
     private static final Set<String> FIXED_WHITE_API_SET = ImmutableSet.of(
             "versions",
             "openapi.json"
@@ -180,14 +184,16 @@ public class AuthenticationFilter implements ContainerRequestFilter, ContainerRe
 
         if (auth.startsWith(BASIC_AUTH_PREFIX)) {
             auth = auth.substring(BASIC_AUTH_PREFIX.length());
-            auth = new String(DatatypeConverter.parseBase64Binary(auth), Charsets.ASCII_CHARSET);
-            String[] values = auth.split(":");
-            if (values.length != 2) {
+            // RFC 7617 section 2.1 allows only UTF-8 as the declared charset, and it bars a
+            // colon from the user-id alone, so split on the first one and keep the rest
+            auth = new String(DatatypeConverter.parseBase64Binary(auth), StandardCharsets.UTF_8);
+            int colon = auth.indexOf(':');
+            if (colon < 0) {
                 throw new BadRequestException("Invalid syntax for username and password");
             }
 
-            final String username = values[0];
-            final String password = values[1];
+            final String username = auth.substring(0, colon);
+            final String password = auth.substring(colon + 1);
 
             if (StringUtils.isEmpty(username) || StringUtils.isEmpty(password)) {
                 throw new BadRequestException("Invalid syntax for username and password");

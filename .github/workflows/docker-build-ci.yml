@@ -18,40 +18,38 @@
 name: "Docker Build CI"
 
 on:
-  push:
-    branches:
-      - master
-      - 'release-*'
-  pull_request:
-    # Keep source/resources and shared build inputs; skip named documentation files.
-    paths:
-      - 'pom.xml'
-      - '.mvn/**'
-      - 'style/**'
-      - '.editorconfig'
-      - '.github/configs/**'
-      - 'hugegraph-commons/**'
-      - 'hugegraph-struct/**'
-      - 'hugegraph-pd/**'
-      - 'hugegraph-store/**'
-      - 'hugegraph-server/**'
-      - 'hugegraph-cluster-test/**'
-      - 'install-dist/**'
-      - 'docker/**'
-      - '.dockerignore'
-      - '.github/workflows/docker-build-ci.yml'
-      - '!**/README*'
-      - '!**/AGENTS.md'
-      - '!**/CLAUDE.md'
+  workflow_call:
+    inputs:
+      smoke-only:
+        type: boolean
+        default: false
+permissions:
+  contents: read
 
 jobs:
-  docker-bake-check:
-    runs-on: ubuntu-latest
+  docker-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      IMAGE_TAG: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      SOURCE_REVISION: ${{ github.sha }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        id: checkout
+        uses: actions/checkout@v7
+
+      - name: Install project JDK for deployment contracts
+        id: java
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && !inputs.smoke-only }}
+        uses: actions/setup-java@v6
+        with:
+          java-version-file: .github/workflows/.java-version
+          distribution: 'zulu'
+          cache: maven
+          cache-jdk: false
 
       - name: Verify shared Maven stages stay identical
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && !inputs.smoke-only }}
         shell: bash
         run: |
           set -euo pipefail
@@ -86,6 +84,7 @@ jobs:
           done
 
       - name: Validate shared image build graph
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && !inputs.smoke-only }}
         run: |
           set -euo pipefail
 
@@ -108,83 +107,60 @@ jobs:
               all(. == "docker"))
           ' /tmp/hugegraph-bake.json
 
-  docker-build:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        dockerfile:
-          - hugegraph-pd/Dockerfile
-          - hugegraph-store/Dockerfile
-          - hugegraph-server/Dockerfile
-          - hugegraph-server/Dockerfile-hstore
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build ${{ matrix.dockerfile }}
+      - name: Verify deployment shell and Compose contracts
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && steps.java.outcome == 'success' }}
+        timeout-minutes: 25
         run: |
-          IMAGE_ID=$(docker build -q --build-arg SOURCE_REVISION="$GITHUB_SHA" \
-            -f ${{ matrix.dockerfile }} .)
-          echo "Built: $IMAGE_ID"
-          echo "IMAGE_ID=$IMAGE_ID" >> "$GITHUB_ENV"
-          HC=$(docker inspect --format='{{json .Config.Healthcheck}}' "$IMAGE_ID")
-          echo "Healthcheck: $HC"
-          [[ "$HC" != "null" ]] || { echo "ERROR: HEALTHCHECK missing in ${{ matrix.dockerfile }}"; exit 1; }
+          set -euo pipefail
+          status=0
+          if mvn -B -ntp -pl hugegraph-commons/hugegraph-common -am clean compile dependency:build-classpath \
+              -Dmdep.outputFile=target/config-readback-classpath.txt -Dmaven.javadoc.skip=true -DskipTests; then
+            HG_CONFIG_TEST_CLASSPATH="$PWD/hugegraph-commons/hugegraph-common/target/classes"
+            HG_CONFIG_TEST_CLASSPATH+=":$(cat hugegraph-commons/hugegraph-common/target/config-readback-classpath.txt)"
+            export HG_CONFIG_TEST_CLASSPATH
+            if ! bash hugegraph-server/hugegraph-dist/docker/docker-entrypoint-test.sh; then
+              status=1
+            fi
+          else
+            status=1
+          fi
+          if ! bash hugegraph-server/hugegraph-dist/docker/test/test-docker-entrypoint.sh; then
+            status=1
+          fi
+          if ! bash hugegraph-server/hugegraph-dist/src/assembly/travis/test-check-port.sh \
+              hugegraph-server/hugegraph-dist/src/assembly/static \
+              hugegraph-store/hg-store-dist/src/assembly/static/bin/util.sh; then
+            status=1
+          fi
+          if ! bash docker/test-compose.sh render; then
+            status=1
+          fi
+          exit "$status"
 
-      - name: Test server entrypoint property mapping
-        if: matrix.dockerfile == 'hugegraph-server/Dockerfile'
-        run: bash hugegraph-server/hugegraph-dist/docker/test/test-docker-entrypoint.sh
-
-      # The startup preflight needs a socket-table tool, and the base image
-      # ships none of its own.  Without one every start reports "unknown" and
-      # a duplicate start is no longer refused, so assert the image can
-      # actually answer.  Only the server images run check_port.
-      # TODO(docker-ci): this pins the probe dependency, not the behaviour it
-      # protects.  A full duplicate-start/stop check needs a booted server with
-      # a backend, which belongs with the e2e job rather than the image build.
-      - name: Port preflight can answer inside ${{ matrix.dockerfile }}
-        if: ${{ startsWith(matrix.dockerfile, 'hugegraph-server/') }}
+      - name: Build current images and verify authentication, readiness and graph read/write
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        timeout-minutes: 45
+        env:
+          SMOKE_ONLY: ${{ inputs.smoke-only }}
         run: |
-          STATE=$(docker run --rm "$IMAGE_ID" bash -c \
-            'source /hugegraph-server/bin/util.sh && port_listen_state 8080')
-          echo "port_listen_state 8080 -> $STATE"
-          # Assert a positive answer rather than "not unknown": an empty $STATE
-          # would otherwise satisfy the check.  The step's default `bash -e`
-          # already aborts on a failed `docker run`, so this only states intent.
-          [[ "$STATE" == "free" || "$STATE" == "busy" ]] || {
-            echo "ERROR: no usable socket-table tool (ss/netstat) in ${{ matrix.dockerfile }}"
-            exit 1
-          }
+          set -euo pipefail
+          docker buildx create --driver docker-container --use
+          docker buildx bake --file docker/bake.hcl --progress=plain \
+            --set '*.platform=linux/amd64' \
+            pd store server-standalone server-hstore
 
-      - name: Server image API versions match source
-        if: ${{ startsWith(matrix.dockerfile, 'hugegraph-server/') }}
-        run: |
-          CHECK_DIR=$(mktemp -d)
-          trap 'rm -rf "$CHECK_DIR"' EXIT
-          docker run --rm --entrypoint bash \
-            -v "$CHECK_DIR:/check" "$IMAGE_ID" -c \
-            'cp /hugegraph-server/lib/hugegraph-api-*.jar \
-                /hugegraph-server/lib/hugegraph-common-*.jar /check/'
-
-          API_JAR=$(find "$CHECK_DIR" -name 'hugegraph-api-*.jar' -print -quit)
-          COMMON_JAR=$(find "$CHECK_DIR" -name 'hugegraph-common-*.jar' -print -quit)
-          EXPECTED_MANIFEST=$(sed -n \
-            's|.*<Implementation-Version>\([^<]*\)</Implementation-Version>.*|\1|p' \
-            hugegraph-server/hugegraph-api/pom.xml)
-          ACTUAL_MANIFEST=$(unzip -p "$API_JAR" META-INF/MANIFEST.MF |
-            sed -n 's/^Implementation-Version: *//p' | tr -d '\r')
-          EXPECTED_PROPERTY=$(sed -n 's/^ApiVersion=//p' \
-            hugegraph-commons/hugegraph-common/src/main/resources/version.properties)
-          ACTUAL_PROPERTY=$(unzip -p "$COMMON_JAR" version.properties |
-            sed -n 's/^ApiVersion=//p' | tr -d '\r')
-
-          [[ "$ACTUAL_MANIFEST" == "$EXPECTED_MANIFEST" ]] || {
-            echo "ERROR: API manifest is $ACTUAL_MANIFEST; expected $EXPECTED_MANIFEST"
-            exit 1
-          }
-          [[ "$ACTUAL_PROPERTY" == "$EXPECTED_PROPERTY" ]] || {
-            echo "ERROR: API property is $ACTUAL_PROPERTY; expected $EXPECTED_PROPERTY"
-            exit 1
-          }
+          # Each runtime check uses successfully built images. Preserve a failed
+          # check while allowing the independent deployment check to collect results.
+          status=0
+          if ! bash .github/scripts/check-docker-images.sh; then
+            status=1
+          fi
+          if [[ "$SMOKE_ONLY" != true ]]; then
+            if ! python3 -m unittest discover -s .github/scripts -p 'test_docker_deployment.py'; then
+              status=1
+            fi
+          fi
+          if ! python3 .github/scripts/docker-deployment.py "$IMAGE_TAG"; then
+            status=1
+          fi
+          exit "$status"

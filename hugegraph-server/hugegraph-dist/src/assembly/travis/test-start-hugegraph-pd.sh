@@ -15,14 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# test-start-hugegraph-pd.sh — Tests for start-hugegraph-pd.sh foreground mode fix
+# test-start-hugegraph-pd.sh — Foreground mode and GC option regression tests
 #
-# Baseline (unmodified code):  Tests 1 PASS — Tests 2, 3, 4 FAIL
-# After chunk 2 fix:           All 4 tests PASS
-#
-# Usage: ./test-start-hugegraph-pd.sh [path-to-pd-dist-root]
+# Usage: ./test-start-hugegraph-pd.sh [path-to-pd-dist-root] [--gc-only]
 #   path-to-pd-dist-root: path to extracted PD dist e.g.
-#                         hugegraph-pd/apache-hugegraph-pd-1.7.0/
+#                         hugegraph-pd/apache-hugegraph-pd-1.8.0/
 #                         defaults to current directory if not provided
 
 set -uo pipefail
@@ -36,6 +33,8 @@ PD_URL="http://localhost:8620"
 STARTUP_WAIT=60   # seconds to wait for PD HTTP to respond
 SETTLE_WAIT=5     # seconds after kill before checking exit
 WAIT_TIMEOUT=30   # seconds for wait_script_exit timeout
+RUNTIME_LOG_CHECK="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/check-java-runtime-logs.sh"
+ACTIVE_RUN=false
 
 PASS=0
 FAIL=0
@@ -66,6 +65,13 @@ section() {
     echo "── $1 ──"
 }
 
+start_service() {
+    mkdir -p "$PD_ROOT/logs"
+    ACTIVE_RUN=true
+    "$START_SCRIPT" "$@" > "$PD_ROOT/logs/launcher.out" 2>&1 &
+    SCRIPT_PID=$!
+}
+
 cleanup() {
     info "Cleaning up..."
     "$STOP_SCRIPT" >/dev/null 2>&1 || true
@@ -73,7 +79,6 @@ cleanup() {
         kill "$(cat "$PID_FILE")" 2>/dev/null || true
     fi
     rm -f "$PID_FILE"
-    rm -rf "$PD_ROOT/logs/"
     # kill anything still holding the PD port: fuser on Linux, lsof on macOS,
     # which ships no fuser.  Only the Linux path had to lose its lsof dependency.
     if [[ "$(uname)" == "Darwin" ]]; then
@@ -93,6 +98,15 @@ cleanup() {
         echo "Warning: Neither lsof nor fuser available for PD port cleanup"
     fi
     sleep 3
+    if [[ "$ACTIVE_RUN" == true ]]; then
+        if bash "$RUNTIME_LOG_CHECK" "$PD_ROOT/logs"; then
+            pass "startup logs contain no Java runtime compatibility errors"
+        else
+            fail "startup logs contain Java runtime compatibility errors or could not be checked"
+        fi
+        ACTIVE_RUN=false
+    fi
+    rm -rf "$PD_ROOT/logs/"
 }
 
 # Wait until PD health endpoint responds or timeout
@@ -157,7 +171,7 @@ wait_script_exit() {
 # ── preflight ─────────────────────────────────────────────────────────────────
 
 echo ""
-echo "start-hugegraph-pd.sh chunk 2 test suite"
+echo "start-hugegraph-pd.sh test suite"
 echo "root: $PD_ROOT"
 echo ""
 
@@ -167,10 +181,134 @@ if [[ ! -f "$START_SCRIPT" ]]; then
     exit 1
 fi
 
-if [[ "$(uname)" == "Darwin" ]]; then
-    _prereq_tools="lsof curl java"
+# Exercise the shipped launcher in an isolated fixture, without JNI or a service.
+# This checks shell selection/argv only; the tests below check real JVM startup.
+check_gc_options() {
+    local fixture option capture status jvm_options
+    fixture=$(mktemp -d) || { fail "could not create GC test fixture"; return 1; }
+    fixture=$(cd "$fixture" && pwd -P)
+    if ! mkdir -p "$fixture/bin" "$fixture/conf" "$fixture/lib" "$fixture/jdk/bin" ||
+       ! cp "$START_SCRIPT" "$BIN/util.sh" "$BIN/preload-topling.sh" \
+            "$BIN/jvm-module.options" "$fixture/bin/"; then
+        fail "could not prepare GC test fixture"
+        rm -rf "$fixture"
+        return 1
+    fi
+    # Make default memory selection independent of host memory and OS.
+    printf '%s\n' 'calc_xmx() { echo 1024; }' >> "$fixture/bin/util.sh"
+    touch "$fixture/lib/hg-pd-service-test.jar"
+    cat > "$fixture/jdk/bin/java" <<'JAVA'
+#!/bin/bash
+if [[ "$1" == "-version" ]]; then
+    echo 'openjdk version "17.0.1"' >&2
 else
-    _prereq_tools="fuser curl java"
+    printf '%s\n' "$@" > "$CAPTURE_FILE"
+    for arg in "$@"; do
+        if [[ "$arg" == @* ]]; then
+            sed '/^[[:space:]]*#/d; /^[[:space:]]*$/d' "${arg#@}" >> "$CAPTURE_FILE"
+        fi
+    done
+fi
+JAVA
+    # Avoid the Store allocator download, which is unrelated to GC selection.
+    printf '%s\n' '#!/bin/sh' 'echo launcher-test' > "$fixture/jdk/bin/uname"
+    chmod +x "$fixture/jdk/bin/"* "$fixture/bin/start-hugegraph-pd.sh"
+    for option in default custom-java-options user-options default-serial default-zgc \
+                  g1 G1 zgc ZGC invalid missing-module-options; do
+        capture="$fixture/$option.args"
+        local -a args=(-d false)
+        jvm_options="-Xms64m -Xmx64m"
+        case "$option" in
+            default) jvm_options="" ;;
+            custom-java-options) jvm_options="$jvm_options -Dlauncher.test.custom=true" ;;
+            user-options) jvm_options=""; args+=(-j "-Xmx96m -Dlauncher.test=true") ;;
+            missing-module-options) rm "$fixture/bin/jvm-module.options" ;;
+            default-serial) jvm_options="$jvm_options -XX:+UseSerialGC" ;;
+            default-zgc) jvm_options="$jvm_options -XX:+UseZGC" ;;
+            *) args+=(-g "$option") ;;
+        esac
+        env -u GC_OPTION -u JAVA_TOOL_OPTIONS -u LD_PRELOAD \
+            -u TOPLINGDB_ROCKSDB_PROVIDER -u TOPLING_RUNTIME_CLASSPATH -u TOPLING_ACTIVE_NATIVE \
+            JAVA_HOME="$fixture/jdk" JAVA_OPTIONS="$jvm_options" \
+            OPEN_TELEMETRY=false STDOUT_MODE=true CAPTURE_FILE="$capture" \
+            PATH="$fixture/jdk/bin:$PATH" \
+            bash "$fixture/bin/start-hugegraph-pd.sh" "${args[@]}" > "$fixture/output" 2>&1
+        status=$?
+        if [[ "$option" == missing-module-options ]]; then
+            if [[ $status -eq 1 && ! -e "$capture" ]] &&
+               grep -Fq 'JVM module options file is missing or unreadable' "$fixture/output"; then
+                pass "missing JVM module options are rejected before application launch"
+            else
+                fail "missing JVM module options were not rejected correctly"
+            fi
+        elif [[ "$option" == invalid ]]; then
+            if [[ $status -eq 1 && ! -e "$capture" ]] && \
+               grep -Fq "Unrecognized gc option: 'invalid'" "$fixture/logs/hugegraph-pd-stdout.log"; then
+                pass "invalid GC is rejected before application launch"
+            else
+                fail "invalid GC was not rejected correctly"
+            fi
+        elif [[ $status -ne 0 || ! -s "$capture" ]]; then
+            fail "GC '$option' did not reach Java (exit $status)"
+        elif ! grep -Fxq -- "@$fixture/bin/jvm-module.options" "$capture" ||
+             ! grep -Fxq -- '--add-opens=java.base/java.lang=ALL-UNNAMED' "$capture"; then
+            fail "launcher '$option' dropped mandatory JVM module access"
+        elif [[ "$option" == custom-java-options ]] &&
+             ! grep -Fxq -- '-Dlauncher.test.custom=true' "$capture"; then
+            fail "launcher dropped custom JAVA_OPTIONS"
+        elif [[ "$option" == user-options ]] &&
+             ! grep -Fxq -- '-Dlauncher.test=true' "$capture"; then
+            fail "launcher dropped custom -j options"
+        elif [[ "$option" == zgc || "$option" == ZGC ]]; then
+            if grep -Fxq -- '-XX:+UseZGC' "$capture" && \
+               ! grep -Fxq -- '-XX:InitiatingHeapOccupancyPercent=50' "$capture"; then
+                pass "GC '$option' selects ZGC without G1 tuning"
+            else
+                fail "GC '$option' selected incorrect JVM options"
+            fi
+        elif [[ "$option" == g1 || "$option" == G1 ]]; then
+            if grep -Fxq -- '-XX:+UseG1GC' "$capture" &&
+               grep -Fxq -- '-XX:InitiatingHeapOccupancyPercent=50' "$capture" &&
+               ! grep -Fxq -- '-XX:+UseZGC' "$capture"; then
+                pass "GC '$option' explicitly selects G1"
+            else
+                fail "GC '$option' did not explicitly select G1"
+            fi
+        elif grep -Fxq -- '-XX:InitiatingHeapOccupancyPercent=50' "$capture" &&
+             ! grep -Fxq -- '-XX:+UseG1GC' "$capture"; then
+            if [[ "$option" == default-serial ]] &&
+               ! grep -Fxq -- '-XX:+UseSerialGC' "$capture"; then
+                fail "default GC selection dropped the caller's Serial GC"
+            elif [[ "$option" == default-zgc ]] &&
+                 ! grep -Fxq -- '-XX:+UseZGC' "$capture"; then
+                fail "default GC selection dropped the caller's ZGC"
+            elif [[ "$option" == default ]] && grep -Fxq -- '-XX:+UseZGC' "$capture"; then
+                fail "default GC selection unexpectedly enabled ZGC"
+            else
+                pass "GC '$option' preserves JVM/caller collector selection"
+            fi
+        else
+            fail "GC '$option' selected incorrect JVM options"
+        fi
+    done
+    rm -rf "$fixture"
+}
+
+section "GC option selection (isolated launcher fixture)"
+check_gc_options
+if [[ "${2:-}" == --gc-only ]]; then
+    [[ $FAIL -eq 0 ]] && exit 0 || exit 1
+fi
+
+if [[ ! -r "$RUNTIME_LOG_CHECK" ]]; then
+    echo "ERROR: runtime log checker not found: $RUNTIME_LOG_CHECK"
+    exit 1
+fi
+
+if [[ "$(uname)" == "Darwin" ]]; then
+    _prereq_tools="lsof curl java jcmd"
+else
+    _prereq_tools="fuser curl java jcmd"
 fi
 for tool in $_prereq_tools; do
     if ! command -v "$tool" >/dev/null 2>&1; then
@@ -186,8 +324,7 @@ cleanup
 section "Test 1 — daemon mode regression"
 
 info "Starting in daemon mode (no -d flag, default behavior)..."
-"$START_SCRIPT" >/dev/null 2>&1 &
-SCRIPT_PID=$!
+start_service
 
 # daemon mode: script backgrounds Java and exits quickly
 sleep 5
@@ -233,9 +370,8 @@ cleanup
 
 section "Test 2 — foreground mode blocks until Java exits"
 
-info "Starting in foreground mode (-d false)..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
-SCRIPT_PID=$!
+info "Starting in foreground mode (-d false -g g1)..."
+start_service -d false -g g1
 
 info "Waiting up to ${STARTUP_WAIT}s for PD to come up..."
 if wait_for_pd; then
@@ -260,6 +396,17 @@ else
     info "pid file not written (expected before chunk 2 fix)"
 fi
 
+if [[ -n "$FG_PID" ]] && ps -p "$FG_PID" >/dev/null 2>&1; then
+    if GC_FLAGS=$(jcmd "$FG_PID" VM.flags 2>&1) &&
+       grep -Fq -- '-XX:+UseG1GC' <<<"$GC_FLAGS"; then
+        pass "explicit -g g1 runs the JVM with G1GC"
+    else
+        fail "explicit -g g1 did not run the JVM with G1GC: $GC_FLAGS"
+    fi
+else
+    fail "no running JVM available to verify explicit -g g1"
+fi
+
 # cleanup: kill Java or the script
 if [[ -n "$FG_PID" ]]; then
     kill "$FG_PID" 2>/dev/null || true
@@ -280,9 +427,8 @@ cleanup
 
 section "Test 3 — exit code propagates from Java"
 
-info "Starting in foreground mode (-d false)..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
-SCRIPT_PID=$!
+info "Starting in foreground mode (-d false -g ZGC)..."
+start_service -d false -g ZGC
 
 info "Waiting up to ${STARTUP_WAIT}s for PD..."
 if wait_for_pd; then
@@ -336,8 +482,7 @@ cleanup
 section "Test 4 — SIGTERM forwarded to Java in foreground mode"
 
 info "Starting in foreground mode (-d false)..."
-"$START_SCRIPT" -d false >/dev/null 2>&1 &
-SCRIPT_PID=$!
+start_service -d false
 
 info "Waiting up to ${STARTUP_WAIT}s for PD..."
 if wait_for_pd; then

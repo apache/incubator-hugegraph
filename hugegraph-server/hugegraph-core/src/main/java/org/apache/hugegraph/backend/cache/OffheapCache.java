@@ -24,15 +24,15 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.backend.id.Id;
+import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.serializer.BinaryBackendEntry;
 import org.apache.hugegraph.backend.serializer.BinarySerializer;
-import org.apache.hugegraph.backend.serializer.BytesBuffer;
+import org.apache.hugegraph.serializer.BytesBuffer;
 import org.apache.hugegraph.backend.store.BackendEntry;
-import org.apache.hugegraph.backend.store.BackendEntry.BackendColumn;
+import org.apache.hugegraph.backend.BackendColumn;
 import org.apache.hugegraph.structure.HugeEdge;
 import org.apache.hugegraph.structure.HugeVertex;
 import org.apache.hugegraph.type.HugeType;
@@ -100,17 +100,23 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
     @Override
     public boolean containsKey(Id id) {
-        return this.cache.containsKey(id);
+        return cacheableKey(id) && this.cache.containsKey(id);
     }
 
     @Override
     protected Object access(Id id) {
+        if (!cacheableKey(id)) {
+            return null;
+        }
         Value value = this.cache.get(id);
         return value == null ? null : value.value();
     }
 
     @Override
     protected boolean write(Id id, Object value, long timeOffset) {
+        if (!cacheableKey(id)) {
+            return false;
+        }
         Value serializedValue = new Value(value);
         int serializedSize;
         try {
@@ -144,7 +150,28 @@ public class OffheapCache extends AbstractCache<Id, Object> {
 
     @Override
     protected void remove(Id id) {
-        this.cache.remove(id);
+        if (cacheableKey(id)) {
+            this.cache.remove(id);
+        }
+    }
+
+    private static boolean cacheableKey(Id id) {
+        // Query text is a cache key, not a persistent graph ID. A large
+        // request must still reach the backend when its optional cache key
+        // exceeds the binary ID codec's byte limit.
+        if (!(id instanceof CachedBackendStore.QueryId)) {
+            return true;
+        }
+        int length = id.asString().length();
+        // UTF-8 needs at most three bytes per UTF-16 code unit;
+        // a surrogate pair uses four bytes for two units.
+        if (length <= BytesBuffer.ID_LEN_MAX / 3) {
+            return true;
+        }
+        if (length > BytesBuffer.ID_LEN_MAX) {
+            return false;
+        }
+        return id.asBytes().length <= BytesBuffer.ID_LEN_MAX;
     }
 
     @Override

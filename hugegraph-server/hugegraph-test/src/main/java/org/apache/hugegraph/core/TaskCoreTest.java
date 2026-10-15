@@ -28,11 +28,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hugegraph.HugeException;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.job.GremlinAPI.GremlinRequest;
-import org.apache.hugegraph.backend.id.Id;
-import org.apache.hugegraph.backend.id.IdGenerator;
+import org.apache.hugegraph.id.Id;
+import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.exception.NotFoundException;
 import org.apache.hugegraph.job.EphemeralJob;
 import org.apache.hugegraph.job.EphemeralJobBuilder;
@@ -234,7 +234,8 @@ public class TaskCoreTest extends BaseCoreTest {
         TaskScheduler scheduler = graph.taskScheduler();
 
         Id id = IdGenerator.of(88891);
-        HugeTask<?> task = new HugeTask<>(id, null, new SleepCallable<>());
+        BlockingCallable.reset();
+        HugeTask<?> task = new HugeTask<>(id, null, new BlockingCallable<>());
         task.type("test");
         task.name("delete-incomplete-task");
         scheduler.schedule(task);
@@ -248,13 +249,14 @@ public class TaskCoreTest extends BaseCoreTest {
                                           e.getMessage());
                 });
             } else {
-                waitUntilTaskRunning(scheduler);
+                Assert.assertTrue(BlockingCallable.awaitStarted());
                 HugeTask<?> deleted = scheduler.delete(id, false);
                 Assert.assertNotNull(deleted);
                 Assert.assertEquals(TaskStatus.DELETING, deleted.status());
                 Assert.assertEquals(TaskStatus.DELETING, scheduler.task(id).status());
             }
         } finally {
+            BlockingCallable.release();
             try {
                 scheduler.waitUntilAllTasksCompleted(10);
             } catch (TimeoutException ignored) {
@@ -603,6 +605,9 @@ public class TaskCoreTest extends BaseCoreTest {
 
         Assert.assertEquals(TaskStatus.SUCCESS, task.status());
         Assert.assertEquals("{\"k1\":13579,\"k2\":\"24680\"}", task.result());
+
+        // Future.get() publishes the result before done() and native owner cleanup finish.
+        scheduler.waitUntilAllTasksCompleted(10);
 
         // Ephemeral tasks are not stored in DB, so these should throw NotFoundException
         Assert.assertThrows(NotFoundException.class, () -> {
@@ -1023,24 +1028,34 @@ public class TaskCoreTest extends BaseCoreTest {
         HugeGraph graph = graph();
         TaskScheduler scheduler = graph.taskScheduler();
 
-        String gremlin = "println('task start');" +
+        BlockingCallable.reset();
+        String gremlin = "import org.apache.hugegraph.core.TaskCoreTest.BlockingCallable;" +
+                         "println('task start');" +
                          "for(int i=gremlinJob.progress(); i<=10; i++) {" +
                          "  gremlinJob.updateProgress(i);" +
+                         "  if (i == 1) BlockingCallable.pause();" +
                          "  Thread.sleep(200); " +
                          "  println('sleep=>'+i);" +
                          "}; 100;";
         HugeTask<Object> task = runGremlinJob(gremlin);
 
-        sleepAWhile(200 * 6);
-        task = scheduler.task(task.id());
-        scheduler.cancel(task);
+        try {
+            // RUNNING is set before script evaluation; wait for real progress.
+            Assert.assertTrue("Gremlin task did not reach progress 1",
+                              BlockingCallable.awaitStarted());
+            task = scheduler.task(task.id());
+            scheduler.cancel(task);
 
-        task = scheduler.task(task.id());
-        Assert.assertTrue("Task status should be CANCELLING or CANCELLED, but was " + task.status(),
-                          task.status() == TaskStatus.CANCELLING ||
-                          task.status() == TaskStatus.CANCELLED);
+            task = scheduler.task(task.id());
+            Assert.assertTrue("Task status should be CANCELLING or CANCELLED, but was " + task.status(),
+                              task.status() == TaskStatus.CANCELLING ||
+                              task.status() == TaskStatus.CANCELLED);
 
-        task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+            task = scheduler.waitUntilTaskCompleted(task.id(), 10);
+        } finally {
+            // Restored execution can pass the progress barrier and finish.
+            BlockingCallable.release();
+        }
         Assert.assertEquals(TaskStatus.CANCELLED, task.status());
         Assert.assertTrue("progress=" + task.progress(),
                           0 < task.progress() && task.progress() < 10);
@@ -1143,6 +1158,13 @@ public class TaskCoreTest extends BaseCoreTest {
 
         public static void release() {
             release.countDown();
+        }
+
+        public static void pause() throws InterruptedException, TimeoutException {
+            started.countDown();
+            if (!release.await(30L, TimeUnit.SECONDS)) {
+                throw new TimeoutException("Timed out waiting for task cancellation");
+            }
         }
 
         @Override

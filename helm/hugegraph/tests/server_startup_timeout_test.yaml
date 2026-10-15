@@ -1,0 +1,147 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+suite: Server startup timeout and explicit probe budgets
+templates:
+  - server-deployment.yaml
+tests:
+  - it: derives a 450 second probe budget for the default 300 second storage wait
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: WAIT_STORAGE_TIMEOUT_S
+            value: "300"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HG_SERVER_STARTUP_TIMEOUT_S
+            value: "150"
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 91
+
+  - it: coordinates an unspecified probe threshold with an extended storage wait
+    set:
+      server.storageWaitTimeoutSeconds: 600
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: WAIT_STORAGE_TIMEOUT_S
+            value: "600"
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 151
+
+  - it: retains an explicit sufficient startup threshold
+    set:
+      server.probes.startup.failureThreshold: 200
+      server.probes.startup.periodSeconds: 10
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HG_SERVER_STARTUP_TIMEOUT_S
+            value: "1690"
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 200
+
+  - it: refuses a conflicting explicit threshold instead of silently increasing it
+    set:
+      server.probes.startup.failureThreshold: 1
+      server.probes.startup.periodSeconds: 5
+    asserts:
+      - failedTemplate:
+          errorPattern: "server.probes.startup"
+
+  - it: accepts the minimum 120 second Server startup budget after storage waiting
+    set:
+      server.probes.startup.failureThreshold: 85
+      server.probes.startup.periodSeconds: 5
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 85
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HG_SERVER_STARTUP_TIMEOUT_S
+            value: "120"
+
+  - it: derives and rounds the unspecified threshold for a large probe period
+    set:
+      server.probes.startup.periodSeconds: 449
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 3
+
+  - it: keeps an explicitly configured initial delay
+    set:
+      server.probes.startup.initialDelaySeconds: 600
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.initialDelaySeconds
+          value: 600
+
+  - it: caps the image start budget at the entrypoint maximum without rewriting the threshold
+    set:
+      server.probes.startup.failureThreshold: 100000
+      server.probes.startup.periodSeconds: 10
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HG_SERVER_STARTUP_TIMEOUT_S
+            value: "86400"
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 100000
+
+  - it: refuses an extraEnv override that diverges from the startup probe
+    set:
+      server.extraEnv:
+        - name: HG_SERVER_STARTUP_TIMEOUT_S
+          value: "60"
+    asserts:
+      - failedTemplate:
+          errorMessage: server.extraEnv must not set the chart-managed variable HG_SERVER_STARTUP_TIMEOUT_S
+
+  - it: refuses a storage wait override through chart-owned environment variables
+    set:
+      server.extraEnv:
+        - name: WAIT_STORAGE_TIMEOUT_S
+          value: "60"
+    asserts:
+      - failedTemplate:
+          errorPattern: "server.extraEnv must not set the chart-managed variable WAIT_STORAGE_TIMEOUT_S"
+
+  - it: accepts an explicit delayed first probe with a sufficient total budget
+    set:
+      server.probes.startup.initialDelaySeconds: 600
+      server.probes.startup.failureThreshold: 1
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe.failureThreshold
+          value: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HG_SERVER_STARTUP_TIMEOUT_S
+            value: "300"
