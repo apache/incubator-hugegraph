@@ -608,8 +608,9 @@ public class TaskScheduleService {
     /**
      * The periodic entry of leader balancing. Calls balancePartitionLeader only when the
      * leader count per store has drifted further apart than pd.balance-leader-max-skew, so a
-     * balanced cluster sees no transfers. Skipped while a store that holds a shard is not
-     * active, because the target distribution would include a store that cannot take a leader.
+     * balanced cluster sees no transfers. Skipped while a shard group is not Normal or a store
+     * that holds a shard is not active, because the target distribution would include a store
+     * that cannot take a leader.
      *
      * @return shard group id -> the store id its leader was moved to; empty when skipped
      */
@@ -628,6 +629,14 @@ public class TaskScheduleService {
                                              .collect(Collectors.toSet());
         Map<Long, Integer> leaderCount = new HashMap<>();
         for (Metapb.ShardGroup group : shardGroups) {
+            // A store stays active for keepAlive-timeout after it stops, but partition
+            // heartbeats from the surviving replicas already mark its groups Warn.
+            // balancePartitionLeader plans over all groups, so skip the whole run.
+            if (group.getState() != Metapb.PartitionState.PState_Normal) {
+                log.info("periodic leader balance skipped, shard group {} is {}",
+                         group.getId(), group.getState());
+                return new HashMap<>();
+            }
             for (Metapb.Shard shard : group.getShardsList()) {
                 if (!activeStores.contains(shard.getStoreId())) {
                     log.info("periodic leader balance skipped, store {} of shard group {} is " +

@@ -101,16 +101,42 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         assertTrue(rst.isEmpty());
     }
 
-    /**
-     * Stores shard groups 0..n-1 on stores 1, 2 and 3 with the leader of group i on
-     * leaderStores[i], marks activeStores alive and runs one periodic balance.
-     */
+    @Test
+    public void testAutoBalancePartitionLeaderWithWarnGroup() throws PDException {
+        // store 3 just stopped: still in the active set, but its groups are already Warn
+        var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, Metapb.PartitionState.PState_Warn,
+                              1, 2, 3);
+        assertTrue(rst.isEmpty());
+
+        // once the group is Normal again, the same imbalance is balanced
+        rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, Metapb.PartitionState.PState_Normal,
+                          1, 2, 3);
+        assertEquals(4, rst.size());
+    }
+
     private Map<Integer, Long> autoBalance(long[] leaderStores, long... activeStores) throws
                                                                                  PDException {
+        return autoBalance(leaderStores, Metapb.PartitionState.PState_Normal, activeStores);
+    }
+
+    /**
+     * Stores shard groups 0..n-1 on stores 1, 2 and 3 with the leader of group i on
+     * leaderStores[i] and group 0 in group0State (the others Normal), marks activeStores
+     * alive and runs one periodic balance.
+     */
+    private Map<Integer, Long> autoBalance(long[] leaderStores,
+                                           Metapb.PartitionState group0State,
+                                           long... activeStores) throws PDException {
         var storeMeta = getStoreNodeService().getStoreInfoMeta();
+        // Set aside groups other tests in the suite left behind, so only ours are planned
+        var otherGroups = storeMeta.getShardGroups();
+        for (var group : otherGroups) {
+            storeMeta.deleteShardGroup(group.getId());
+        }
         var partitions = new ArrayList<Metapb.Partition>();
         for (int i = 0; i < leaderStores.length; i++) {
-            storeMeta.updateShardGroup(genShardGroup(i, leaderStores[i]));
+            var state = i == 0 ? group0State : Metapb.PartitionState.PState_Normal;
+            storeMeta.updateShardGroup(genShardGroup(i, leaderStores[i], state));
             partitions.add(genPartition(i));
         }
         for (long storeId = 1; storeId <= 3; storeId++) {
@@ -135,6 +161,9 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
             }
             for (int i = 0; i < leaderStores.length; i++) {
                 storeMeta.deleteShardGroup(i);
+            }
+            for (var group : otherGroups) {
+                storeMeta.updateShardGroup(group);
             }
         }
     }
@@ -171,7 +200,8 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                                .build();
     }
 
-    private Metapb.ShardGroup genShardGroup(int groupId, long leaderStore) {
+    private Metapb.ShardGroup genShardGroup(int groupId, long leaderStore,
+                                            Metapb.PartitionState state) {
         var shards = new ArrayList<Metapb.Shard>();
         for (long storeId = 1; storeId <= 3; storeId++) {
             var role = storeId == leaderStore ? Metapb.ShardRole.Leader :
@@ -180,6 +210,7 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         }
         return Metapb.ShardGroup.newBuilder()
                                 .setId(groupId)
+                                .setState(state)
                                 .addAllShards(shards)
                                 .build();
     }

@@ -204,8 +204,9 @@ pd:
 - `pd.initial-store-count`: Set to expected initial store count (e.g., `3` for 3 stores)
 - `pd.balance-leader-enable`: After a Store restarts, its raft groups keep the leaders they elected
   on the surviving Stores. Enable this so PD moves leaders back without a manual
-  `balanceLeaders` call. A check is skipped while a Store that holds a shard is not sending
-  heartbeats, and while a split, move or shard balance task is running.
+  `balanceLeaders` call. A check is skipped while any shard group is not in the `Normal` state,
+  while a Store that holds a shard is not sending heartbeats, and while a split, move or shard
+  balance task is running.
 
 ### Store Management Settings
 
