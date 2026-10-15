@@ -1124,7 +1124,7 @@ public final class GraphManager {
         // Clear all services
         for (String key : this.services.keySet()) {
             if (key.startsWith(name + DELIMITER)) {
-                String[] parts = key.split(DELIMITER);
+                String[] parts = key.split(DELIMITER, 2);
                 this.dropService(parts[0], parts[1]);
             }
         }
@@ -2173,7 +2173,7 @@ public final class GraphManager {
                                       PdRegisterType registerType) {
         Map<String, String> configs = new HashMap<>();
         if (StringUtils.isNotEmpty(graphSpace)) {
-            configs.put(PdRegisterLabel.REGISTER_TYPE.name(), graphSpace);
+            configs.put(PdRegisterLabel.GRAPHSPACE.name(), graphSpace);
         }
         if (StringUtils.isNotEmpty(service)) {
             configs.put(PdRegisterLabel.SERVICE_NAME.name(), service);

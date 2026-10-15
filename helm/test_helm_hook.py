@@ -138,6 +138,16 @@ class HelmHookTest(unittest.TestCase):
                                   result.stdout)
                     self.assertIn("Assertion failed: expected index results", result.stdout)
 
+    def test_selected_alias_applies_to_index_and_business_checks(self):
+        business = "assert graph.traversal().V().count().next() == 7; true"
+        result, requests, _ = self.run_hook(
+            server={"testGraphAlias": "team_a-demo", "testGremlin": business})
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        payloads = [request["body"] for request in requests if request["body"]]
+        self.assertEqual(6, len(payloads))
+        self.assertTrue(all(payload["aliases"] == {"graph": "team_a-demo"}
+                            for payload in payloads))
+
     def test_business_script_is_json_data_and_auth_can_be_disabled(self):
         business = '''assert 'single' != "double"
 // `touch injected` $(touch injected) ' "

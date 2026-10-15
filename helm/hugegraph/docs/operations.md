@@ -285,7 +285,8 @@ Updating chart values alone does not change an existing image's behavior.
 
 ## Business query assertions
 
-The default `helm test` checks `DEFAULT-hugegraph` binding and requires `CREATED` indexes
+The default `helm test` checks the `server.testGraphAlias` binding (`DEFAULT-hugegraph` by default)
+and requires `CREATED` indexes
 associated with the vertex/edge labels visible on each Pod. It reads those
 indexes by ID, using the same local cache path as queries; it does not refresh
 the full index cache. This does not detect missing/stale label associations,
@@ -315,7 +316,8 @@ helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
 helm test hugegraph -n hugegraph --logs --timeout 5m
 ```
 
-The hook runs both checks on every Ready Server Pod in each attempt. A failing
+In each attempt, the hook checks binding/index state on every Ready Server Pod,
+then runs optional business assertions on Pods where that check succeeds. A failing
 request or assertion reports its Pod IP, check stage and response, and fails
 the hook if no complete attempt succeeds before its deadline. Use
 `kubectl -n hugegraph get pods -o wide` to map IPs to Pod names. Returning a value
