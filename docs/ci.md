@@ -190,6 +190,12 @@ If submission fails, use **Re-run all jobs** or start a fresh `workflow_dispatch
 on master. **Re-run failed jobs** keeps the older generation artifact, which the
 writer rejects because both reports must be produced in the same run attempt.
 
+If a PR `dependency-review` failure reports 0 base snapshots, rerun that job only
+once the same repository's **Dependency baseline** run has succeeded for the event's
+exact `pull_request.base.sha` (not the branch's merge base or a newer master tip).
+If that SHA has no successful baseline, including a skipped run, rerunning the
+review alone cannot supply it.
+
 A fixed master-only correlator keeps successive baseline snapshots in the
 same stream within each repository; ASF and org inventories are independent. The writer's
 identity is separate from automatic PR submissions so they cannot replace its baseline.
