@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.metrics;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.tinkerpop.gremlin.server.util.MetricManager;
@@ -61,8 +62,8 @@ public class MetricsUtil {
     public static final String STDDEV_ATTR = "{name=\"stddev\",} ";
     public static final String P50_ATTR = "{name=\"p50\",} ";
 
-    public static final String LEFT_NAME_STR = "{name=";
-    public static final String RIGHT_NAME_STR = ",} ";
+    public static final String LEFT_NAME_STR = "{name=\"";
+    public static final String RIGHT_NAME_STR = "\",} ";
     public static final String PROM_HELP_NAME = "hugegraph_info";
 
     private static final Pattern INVALID_PROMETHEUS_NAME_CHAR =
@@ -196,6 +197,25 @@ public class MetricsUtil {
                 promeMetrics.append(
                         exportSnapshot(helpName, timer.getSnapshot()));
             }
+        });
+    }
+
+    /**
+     * Write the per-path request statistics, one gauge family per path with
+     * a quoted "name" label for each statistic.
+     */
+    public static void writeStatisticsPrometheusFormat(
+            StringBuilder promeMetrics, Map<String, Map<String, Object>> metricMap) {
+        metricMap.forEach((methodKey, itemMetricMap) -> {
+            String metricName = sanitizePrometheusMetricName(methodKey);
+            promeMetrics.append(STR_HELP)
+                        .append(metricName).append(END_LSTR);
+            promeMetrics.append(STR_TYPE)
+                        .append(metricName).append(SPACE_STR + GAUGE_TYPE + END_LSTR);
+            itemMetricMap.forEach((labelName, value) -> {
+                promeMetrics.append(metricName).append(LEFT_NAME_STR).append(labelName)
+                            .append(RIGHT_NAME_STR).append(value).append(END_LSTR);
+            });
         });
     }
 

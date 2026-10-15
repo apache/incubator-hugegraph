@@ -19,6 +19,8 @@ package org.apache.hugegraph.unit.util;
 
 import static org.apache.hugegraph.metrics.MetricsUtil.sanitizePrometheusMetricName;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.hugegraph.metrics.MetricsUtil;
@@ -100,5 +102,24 @@ public class MetricsUtilTest {
             }
             Assert.assertTrue(line, VALID_NAME.matcher(name).matches());
         }
+    }
+
+    @Test
+    public void testWriteStatisticsPrometheusFormatQuotesLabelValues() {
+        Map<String, Object> items = new LinkedHashMap<>();
+        items.put("MAX_RESPONSE_TIME", 12L);
+        items.put("MEAN_RESPONSE_TIME", 3.5);
+        Map<String, Map<String, Object>> metricMap = new LinkedHashMap<>();
+        metricMap.put("graphs/hugegraph/graph/vertices/GET", items);
+
+        StringBuilder output = new StringBuilder();
+        MetricsUtil.writeStatisticsPrometheusFormat(output, metricMap);
+
+        String name = "graphs_hugegraph_graph_vertices_GET";
+        Assert.assertEquals("# HELP " + name + "\n" +
+                            "# TYPE " + name + " gauge\n" +
+                            name + "{name=\"MAX_RESPONSE_TIME\",} 12\n" +
+                            name + "{name=\"MEAN_RESPONSE_TIME\",} 3.5\n",
+                            output.toString());
     }
 }

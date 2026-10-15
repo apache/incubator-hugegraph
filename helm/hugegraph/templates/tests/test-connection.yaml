@@ -78,7 +78,7 @@ spec:
           PORT="{{ .Values.server.port }}"
           FLOOR="{{ include "hugegraph.server.replicaFloor" . }}"
           DEADLINE_S="${HG_TEST_DEADLINE_S:-150}"
-          BODY='{"gremlin":"graph.traversal().V().limit(1).count()","aliases":{"graph":"DEFAULT-hugegraph"}}'
+          BODY={{ dict "gremlin" "graph.traversal().V().limit(1).count()" "aliases" (dict "graph" (.Values.server.testGraphAlias | default "DEFAULT-hugegraph")) | toJson | squote }}
           {{- if .Values.server.auth.enabled }}
           AUTH_HEADER=$(printf 'admin:%s' "${PASSWORD}" | base64 | tr -d '\r\n')
           request() {
