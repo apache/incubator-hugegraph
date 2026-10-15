@@ -44,6 +44,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -175,8 +176,12 @@ public class GraphManagerLocalGraphBindTest {
 
         this.manager.loadGraphsFromLocal(ImmutableMap.of("bind_static", path));
 
+        // The rebind ran and handed Gremlin the instance it already held
+        Assert.assertEquals(ImmutableList.of("DEFAULT-bind_static"), this.created);
         Assert.assertSame(opened, bindings.getGraph("DEFAULT-bind_static"));
         Assert.assertSame(opened, this.manager.graph("DEFAULT", "bind_static"));
+        Assert.assertSame(opened, bindings.getTraversalSource("__g_DEFAULT-bind_static")
+                                          .getGraph());
     }
 
     private String writeGraphConf(String fileName, String store)

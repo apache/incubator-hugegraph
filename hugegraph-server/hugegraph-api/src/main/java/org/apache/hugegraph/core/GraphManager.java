@@ -1824,7 +1824,9 @@ public final class GraphManager {
         this.graphs.put(defaultSpaceGraphName(name), graph);
 
         HugeConfig graphConfig = (HugeConfig) graph.configuration();
-        assert graphConfPath.equals(Objects.requireNonNull(graphConfig.file()).getPath());
+        // A graph Gremlin Server opened first from this path is cached without a file
+        assert graphConfig.file() == null ||
+               graphConfPath.equals(graphConfig.file().getPath());
 
         LOG.info("Graph '{}' was successfully configured via '{}'",
                  name, graphConfPath);
