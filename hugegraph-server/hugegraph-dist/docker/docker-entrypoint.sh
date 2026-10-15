@@ -200,8 +200,11 @@ fi
 # URLs hold no whitespace, and the Server splits the list on bare commas, so
 # "a, b" would otherwise register an escaped space in front of the second URL.
 URLS_TO_PD=$(printf '%s' "${HG_SERVER_URLS_TO_PD:-}" | tr -d '[:space:]')
-DEPLOY_IN_K8S=$(printf '%s' "${HG_SERVER_DEPLOY_IN_K8S:-}" |
-                tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+# Only surrounding whitespace is trimmed, so a value such as "t rue" stays invalid.
+DEPLOY_IN_K8S="${HG_SERVER_DEPLOY_IN_K8S:-}"
+DEPLOY_IN_K8S="${DEPLOY_IN_K8S#"${DEPLOY_IN_K8S%%[![:space:]]*}"}"
+DEPLOY_IN_K8S="${DEPLOY_IN_K8S%"${DEPLOY_IN_K8S##*[![:space:]]}"}"
+DEPLOY_IN_K8S=$(printf '%s' "${DEPLOY_IN_K8S}" | tr '[:upper:]' '[:lower:]')
 case "${DEPLOY_IN_K8S}" in
     "" | y | t | yes | on | true | n | f | no | off | false) ;;
     *) log "ERROR: invalid HG_SERVER_DEPLOY_IN_K8S '${HG_SERVER_DEPLOY_IN_K8S}'"

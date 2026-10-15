@@ -542,7 +542,7 @@ cp "${TEST_HOME}/conf/rest-server.properties" \
     "${TEST_HOME}/conf/rest-server.properties.before-k8s-flag"
 cp "${TEST_HOME}/conf/graphs/hugegraph.properties" \
     "${TEST_HOME}/conf/graphs/hugegraph.properties.before-k8s-flag"
-for invalid_k8s_flag in 1 0 enabled; do
+for invalid_k8s_flag in 1 0 enabled "t rue" "tr ue"; do
     if (
         cd "${TEST_HOME}"
         HG_SERVER_BACKEND=rocksdb \
