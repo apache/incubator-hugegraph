@@ -598,8 +598,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public Id removeOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaJob job = new OlapPropertyKeyRemoveJob();
-        return this.scheduleOlapJob(propertyKey, job);
+        return this.scheduleOlapRemoveJob(propertyKey);
     }
 
     public void removeOlapPk(Id id) {
@@ -609,8 +608,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public Id clearOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaJob job = new OlapPropertyKeyClearJob();
-        return this.scheduleOlapJob(propertyKey, job);
+        return this.scheduleOlapClearJob(propertyKey);
     }
 
     public void clearOlapPk(Id id) {
@@ -620,12 +618,19 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public Id createOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaJob job = new OlapPropertyKeyCreateJob();
-        return this.scheduleOlapJob(propertyKey, job);
+        return this.scheduleOlapCreateJob(propertyKey);
     }
 
-    private Id scheduleOlapJob(PropertyKey propertyKey, SchemaJob job) {
-        return asyncRun(this.graph(), propertyKey, job);
+    private Id scheduleOlapCreateJob(PropertyKey propertyKey) {
+        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyCreateJob());
+    }
+
+    private Id scheduleOlapClearJob(PropertyKey propertyKey) {
+        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyClearJob());
+    }
+
+    private Id scheduleOlapRemoveJob(PropertyKey propertyKey) {
+        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyRemoveJob());
     }
 
     // -- store related methods, divided into two categories:

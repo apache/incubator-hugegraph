@@ -405,26 +405,31 @@ public class SchemaTransaction extends IndexableTransaction implements ISchemaTr
     public Id createOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaJob callable = new OlapPropertyKeyCreateJob();
-        return this.scheduleOlapJob(propertyKey, callable);
+        return this.scheduleOlapCreateJob(propertyKey);
     }
 
     public Id clearOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaJob callable = new OlapPropertyKeyClearJob();
-        return this.scheduleOlapJob(propertyKey, callable);
+        return this.scheduleOlapClearJob(propertyKey);
     }
 
     public Id removeOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        SchemaJob callable = new OlapPropertyKeyRemoveJob();
-        return this.scheduleOlapJob(propertyKey, callable);
+        return this.scheduleOlapRemoveJob(propertyKey);
     }
 
-    private Id scheduleOlapJob(PropertyKey propertyKey, SchemaJob job) {
-        return asyncRun(this.graph(), propertyKey, job);
+    private Id scheduleOlapCreateJob(PropertyKey propertyKey) {
+        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyCreateJob());
+    }
+
+    private Id scheduleOlapClearJob(PropertyKey propertyKey) {
+        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyClearJob());
+    }
+
+    private Id scheduleOlapRemoveJob(PropertyKey propertyKey) {
+        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyRemoveJob());
     }
 
     @Watched(prefix = "schema")
