@@ -290,9 +290,13 @@ associated with the vertex/edge labels visible on each Pod. It reads those
 indexes by ID, using the same local cache path as queries; it does not refresh
 the full index cache. This does not detect missing/stale label associations,
 orphaned indexes or incorrect index data, and does not prove range-query results.
-Run it after index creation/rebuild jobs finish. Like indexed queries, the check
-rejects every other status, including `CREATING`, `REBUILDING` and `INVALID`.
-Its retry window allows transient index work to settle before the hook fails.
+Run it after index creation/rebuild jobs finish, with no schema changes during
+the test. Like indexed queries, the check rejects every other status, including
+`CREATING`, `REBUILDING` and `INVALID`. On HStore, reading an unfinished index can
+cache its temporary status on Pods other than the job runner. Later attempts
+reuse that cache; the retry window does not repair it. Indexed queries on those
+Pods may keep failing after the job succeeds; replace affected Server Pods only
+after the jobs finish. This check does not fix cross-Server schema cache consistency.
 
 For a graph with existing test data, provide a read-only Gremlin script that
 asserts the expected result. For example, with 40 existing `person` vertices
