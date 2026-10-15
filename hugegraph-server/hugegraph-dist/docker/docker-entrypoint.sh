@@ -109,6 +109,28 @@ migrate_env() {
 
 migrate_env "BACKEND"  "HG_SERVER_BACKEND"
 migrate_env "PD_PEERS" "HG_SERVER_PD_PEERS"
+migrate_env "SERVICE_ID" "HG_SERVER_SERVICE_ID"
+migrate_env "GRAPH_SPACE" "HG_SERVER_GRAPHSPACE"
+
+# The Server reads these properties as ISO-8859-1. Reject unsupported input
+# before writing UTF-8 bytes that would select a different service identity.
+for identity_name in HG_SERVER_SERVICE_ID HG_SERVER_GRAPHSPACE; do
+    if [[ -n "${!identity_name:-}" ]] &&
+       (( $(printf '%s' "${!identity_name}" | LC_ALL=C tr -d '\040-\176' | wc -c) > 0 )); then
+        log "ERROR: ${identity_name} must be printable ASCII (bytes 0x20-0x7E)"
+        exit 1
+    fi
+done
+
+# Match the Server API graph-space naming contract after legacy migration.
+if [[ -n "${HG_SERVER_GRAPHSPACE:-}" ]] && ! (
+    export LC_ALL=C
+    [[ "${HG_SERVER_GRAPHSPACE}" =~ ^(DEFAULT|[a-z][a-z0-9_]{0,47})$ ]]
+); then
+    log "ERROR: HG_SERVER_GRAPHSPACE must be DEFAULT or a name starting with" \
+        "a lowercase letter, followed by lowercase letters, digits or underscores (1-48 characters)"
+    exit 1
+fi
 
 if [[ -n "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
     if (( $(printf '%s' "${HG_SERVER_AUTH_TOKEN_SECRET}" | LC_ALL=C wc -c) < 32 )); then
@@ -199,6 +221,14 @@ esac
     set_prop "pd.peers" "${HG_SERVER_PD_PEERS}" "${REST_SERVER_CONF}"
 [[ -n "${HG_SERVER_CLUSTER:-}" ]] && \
     set_prop "cluster" "${HG_SERVER_CLUSTER}" "${REST_SERVER_CONF}"
+if [[ -n "${HG_SERVER_SERVICE_ID:-}" ]]; then
+    # Service names can contain spaces. Commons Configuration keeps a backslash
+    # before a literal space, but decodes Unicode escapes, including at the edges.
+    service_id_encoded=$(encode_prop_value "${HG_SERVER_SERVICE_ID}" | sed 's/\\ /\\u0020/g')
+    set_prop_encoded "server.service_id" "${service_id_encoded}" "${REST_SERVER_CONF}"
+fi
+[[ -n "${HG_SERVER_GRAPHSPACE:-}" ]] && \
+    set_prop "server.graphspace" "${HG_SERVER_GRAPHSPACE}" "${REST_SERVER_CONF}"
 [[ -n "${HG_SERVER_REST_URL:-}" ]] && set_prop "restserver.url" \
     "${HG_SERVER_REST_URL}" "${REST_SERVER_CONF}"
 # The address list this Server registers in PD, read only when

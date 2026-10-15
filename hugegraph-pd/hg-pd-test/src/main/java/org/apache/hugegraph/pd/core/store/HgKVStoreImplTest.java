@@ -24,6 +24,8 @@ import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
+import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.apache.hugegraph.pd.store.HgKVStore;
 import org.apache.hugegraph.pd.store.HgKVStoreImpl;
 import org.junit.Assert;
@@ -69,6 +71,29 @@ public class HgKVStoreImplTest {
         Assert.assertEquals(0, kvStore.scanPrefix("k".getBytes()).size());
 
         kvStore.close();
+    }
+
+    @Test
+    public void testScanLogRangeExcludesEnd() throws PDException {
+        long timestamp = 1700000000000L;
+        Metapb.LogRecord record = Metapb.LogRecord.newBuilder()
+                                                 .setAction("range-boundary")
+                                                 .setTimestamp(timestamp)
+                                                 .build();
+        byte[] key = MetadataKeyHelper.getLogKey(record);
+        byte[] start = MetadataKeyHelper.getLogKeyPrefix(record.getAction(), 0L);
+        byte[] end = MetadataKeyHelper.getLogKeyPrefix(record.getAction(), timestamp + 1L);
+        HgKVStore kvStore = new HgKVStoreImpl();
+        kvStore.init(pdConfig);
+        try {
+            kvStore.put(key, record.toByteArray());
+
+            Assert.assertEquals(0, kvStore.scanRange(start, key).size());
+            Assert.assertEquals(1, kvStore.scanRange(key, end).size());
+            Assert.assertEquals(1, kvStore.scanRange(start, end).size());
+        } finally {
+            kvStore.close();
+        }
     }
 
     @Test
