@@ -180,6 +180,9 @@ pd:
   patrol-interval: 1800             # Partition rebalancing interval (seconds)
   initial-store-count: 1            # Minimum stores for cluster availability
   initial-store-list: 127.0.0.1:8500  # Auto-activated stores
+  balance-leader-enable: false      # Periodic partition leader balancing
+  balance-leader-interval: 300      # Seconds between leader balance checks
+  balance-leader-max-skew: 2        # Tolerated leader count spread across stores
 ```
 
 | Parameter | Type | Default | Description |
@@ -188,6 +191,9 @@ pd:
 | `pd.patrol-interval` | Integer | `1800` | Interval (in seconds) for partition health patrol and automatic rebalancing. Lower values = more frequent checks. |
 | `pd.initial-store-count` | Integer | `1` | Minimum number of Store nodes required for cluster to be operational. Set to expected initial store count. |
 | `pd.initial-store-list` | String | `127.0.0.1:8500` | Comma-separated list of Store gRPC addresses to auto-activate on startup. Useful for bootstrapping. |
+| `pd.balance-leader-enable` | Boolean | `false` | Run partition leader balancing periodically on the PD leader. When off, leaders move back only through `/v1/task/balanceLeaders`. |
+| `pd.balance-leader-interval` | Integer | `300` | Seconds between periodic leader balance checks. Only read when `pd.balance-leader-enable` is `true`. |
+| `pd.balance-leader-max-skew` | Integer | `2` | A check balances leaders only when the most leaders on one store minus the fewest on another exceeds this value. |
 
 **Production Recommendations**:
 - `pd.data-path`: Use dedicated SSD with at least 50GB free space
@@ -196,6 +202,10 @@ pd:
   - Production: `1800` (30 minutes) to reduce overhead
   - Large clusters: `3600` (1 hour)
 - `pd.initial-store-count`: Set to expected initial store count (e.g., `3` for 3 stores)
+- `pd.balance-leader-enable`: After a Store restarts, its raft groups keep the leaders they elected
+  on the surviving Stores. Enable this so PD moves leaders back without a manual
+  `balanceLeaders` call. A check is skipped while a Store that holds a shard is not sending
+  heartbeats, and while a split, move or shard balance task is running.
 
 ### Store Management Settings
 

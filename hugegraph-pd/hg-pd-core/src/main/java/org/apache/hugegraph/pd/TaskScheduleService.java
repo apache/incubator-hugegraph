@@ -18,6 +18,7 @@
 package org.apache.hugegraph.pd;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.PriorityQueue;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -143,6 +145,27 @@ public class TaskScheduleService {
                     }
                 }, 2, 30,
                 TimeUnit.SECONDS);
+        if (pdConfig.isBalanceLeaderEnable()) {
+            long interval = pdConfig.getBalanceLeaderInterval();
+            if (interval > 0) {
+                executor.scheduleWithFixedDelay(() -> {
+                    try {
+                        autoBalancePartitionLeader();
+                    } catch (PDException e) {
+                        if (e.getErrorCode() == 1001) {
+                            log.info("periodic leader balance skipped: {}", e.getMessage());
+                        } else {
+                            log.warn("periodic leader balance with error:", e);
+                        }
+                    } catch (Throwable e) {
+                        log.error("periodic leader balance exception: ", e);
+                    }
+                }, interval, interval, TimeUnit.SECONDS);
+            } else {
+                log.warn("pd.balance-leader-interval must be positive, got {}; periodic " +
+                         "leader balance is disabled", interval);
+            }
+        }
         // clean expired monitor data each 10 minutes, delay 3min.
         if (isLeader() && this.pdConfig.getStore().isMonitorDataEnabled()) {
             executor.scheduleAtFixedRate(() -> {
@@ -580,6 +603,52 @@ public class TaskScheduleService {
         }
 
         return results;
+    }
+
+    /**
+     * The periodic entry of leader balancing. Calls balancePartitionLeader only when the
+     * leader count per store has drifted further apart than pd.balance-leader-max-skew, so a
+     * balanced cluster sees no transfers. Skipped while a store that holds a shard is not
+     * active, because the target distribution would include a store that cannot take a leader.
+     *
+     * @return shard group id -> the store id its leader was moved to; empty when skipped
+     */
+    public Map<Integer, Long> autoBalancePartitionLeader() throws PDException {
+        if (!isLeader()) {
+            return new HashMap<>();
+        }
+
+        List<Metapb.ShardGroup> shardGroups = storeService.getShardGroups();
+        if (shardGroups.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        Set<Long> activeStores = storeService.getActiveStores().stream()
+                                             .map(Metapb.Store::getId)
+                                             .collect(Collectors.toSet());
+        Map<Long, Integer> leaderCount = new HashMap<>();
+        for (Metapb.ShardGroup group : shardGroups) {
+            for (Metapb.Shard shard : group.getShardsList()) {
+                if (!activeStores.contains(shard.getStoreId())) {
+                    log.info("periodic leader balance skipped, store {} of shard group {} is " +
+                             "not active", shard.getStoreId(), group.getId());
+                    return new HashMap<>();
+                }
+                int leader = shard.getRole() == Metapb.ShardRole.Leader ? 1 : 0;
+                leaderCount.merge(shard.getStoreId(), leader, Integer::sum);
+            }
+        }
+
+        int skew = Collections.max(leaderCount.values()) - Collections.min(leaderCount.values());
+        if (skew <= pdConfig.getBalanceLeaderMaxSkew()) {
+            log.debug("periodic leader balance skipped, leader count by store: {}, skew {}",
+                      leaderCount, skew);
+            return new HashMap<>();
+        }
+
+        log.info("leader count by store: {}, skew {} exceeds {}, balancing leaders",
+                 leaderCount, skew, pdConfig.getBalanceLeaderMaxSkew());
+        return balancePartitionLeader(false);
     }
 
     private long getMaxIndexGap(Map<Integer, Map<Long, Long>> committedIndexMap, int partitionId) {
