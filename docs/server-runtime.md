@@ -623,7 +623,8 @@ Duplicate ADD notifications alone keep the healthy owner. Server consumes the PD
 of its own local graph creation without retaining a replacement ADD unless that exact owner already
 has failed peer cleanup; the existing cleanup retry takes priority. A healthy creation acknowledgement
 cannot republish the graph during a later reload. After removal, Server rereads the latest configuration;
-a missing configuration creates nothing.
+a missing configuration creates nothing. Reload consumes pending ADDs only after each old owner is
+successfully removed, then loads current metadata together instead of replaying ADDs during removal.
 After a peer removal fails, a later same-name PD add retries non-clearing cleanup of that exact
 owner before loading its replacement. Another cleanup failure keeps the owner for the next add
 or normal reload; no background retry is scheduled. A replacement load failure is logged and

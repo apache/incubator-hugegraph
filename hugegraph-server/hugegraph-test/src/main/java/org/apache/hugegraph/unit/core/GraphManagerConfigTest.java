@@ -1139,16 +1139,21 @@ public class GraphManagerConfigTest {
 
     @Test
     public void testReloadAfterRestCreateWithoutSelfAdd() throws Exception {
-        this.checkReloadAfterRestCreate(false);
+        this.checkReloadAfterRestCreate(false, false);
     }
 
     @Test
     public void testReloadAfterRestCreateAndSelfAdd() throws Exception {
-        this.checkReloadAfterRestCreate(true);
+        this.checkReloadAfterRestCreate(true, false);
     }
 
-    private void checkReloadAfterRestCreate(boolean selfAdd) throws Exception {
-        String name = selfAdd ? "self_add_reload" : "reload_without_add";
+    @Test
+    public void testReloadAfterHealthyDuplicateAdds() throws Exception {
+        this.checkReloadAfterRestCreate(true, true);
+    }
+
+    private void checkReloadAfterRestCreate(boolean selfAdd, boolean duplicateAdd) throws Exception {
+        String name = duplicateAdd ? "duplicate_add_reload" : selfAdd ? "self_add_reload" : "reload_without_add";
         String other = name + "_other";
         String key = "DEFAULT-" + name;
         GraphManager manager = this.dropManager(name);
@@ -1164,7 +1169,8 @@ public class GraphManagerConfigTest {
         MetaManager meta = Mockito.mock(MetaManager.class);
         GraphSpace space = new GraphSpace("DEFAULT");
         Mockito.when(meta.graphSpace("DEFAULT")).thenReturn(space);
-        Mockito.when(meta.extractGraphsFromResponse("self-add")).thenReturn(List.of(key));
+        Mockito.when(meta.extractGraphsFromResponse("self-add")).thenReturn(List.of(key, "DEFAULT-" + other));
+        Mockito.when(meta.extractGraphsFromResponse("foreign-add")).thenReturn(List.of(key, "DEFAULT-" + other));
         Mockito.when(meta.graphConfigs("DEFAULT")).thenAnswer(invocation -> new HashMap<>(configs));
         Mockito.when(meta.getGraphConfig(Mockito.eq("DEFAULT"), Mockito.anyString()))
                .thenAnswer(invocation -> {
@@ -1197,6 +1203,15 @@ public class GraphManagerConfigTest {
                         "graphAddHandler", manager, "self-add");
             }
             java.util.Set<String> pending = Whitebox.getInternalState(manager, "pendingGraphAdds");
+            if (duplicateAdd) {
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphAddHandler", manager, "foreign-add");
+                Assert.assertSame(owner, manager.graph(key));
+                Assert.assertSame(otherOwner, manager.graph("DEFAULT-" + other));
+                Assert.assertTrue(pending.contains(key));
+                Assert.assertTrue(pending.contains("DEFAULT-" + other));
+            }
+            Mockito.clearInvocations(meta);
             long begin = System.nanoTime();
             System.out.println(String.format("self-add reload before: selfAdd=%s pending=%s graphs=%s",
                                              selfAdd, pending.contains(key), manager.graphs().size()));
@@ -1215,6 +1230,9 @@ public class GraphManagerConfigTest {
             Assert.assertNotSame(otherOwner, manager.graph("DEFAULT-" + other));
             Assert.assertEquals(2, manager.graphs().size());
             Assert.assertFalse(pending.contains(key));
+            Assert.assertFalse(pending.contains("DEFAULT-" + other));
+            Mockito.verify(meta, Mockito.never()).getGraphConfig(Mockito.anyString(), Mockito.anyString());
+            Mockito.verify(meta).graphConfigs("DEFAULT");
             Assert.assertSame(manager.graph(key), bindings.getGraph(key));
             Assert.assertSame(manager.graph("DEFAULT-" + other), bindings.getGraph("DEFAULT-" + other));
             Mockito.verify(meta, Mockito.never()).removeGraphConfig(Mockito.anyString(), Mockito.anyString());

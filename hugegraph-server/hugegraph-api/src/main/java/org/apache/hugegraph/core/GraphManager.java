@@ -716,7 +716,7 @@ public final class GraphManager {
         // Remove graphs from GraphManager
         for (String graph : this.graphs.keySet()) {
             String[] parts = graph.split(DELIMITER);
-            this.dropGraph(parts[0], parts[1], false);
+            this.dropGraph(parts[0], parts[1], false, false);
         }
         int count = 0;
         while (!this.graphs.isEmpty() && count++ < 10) {
@@ -2403,6 +2403,10 @@ public final class GraphManager {
     }
 
     public void dropGraph(String graphSpace, String name, boolean clear) {
+        this.dropGraph(graphSpace, name, clear, true);
+    }
+
+    private void dropGraph(String graphSpace, String name, boolean clear, boolean replayPendingAdd) {
         if (!isPDEnabled()) {
             dropGraphLocal(name);
             return;
@@ -2410,10 +2414,10 @@ public final class GraphManager {
 
         HugeGraph graph = this.graph(graphSpace, name);
         E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
-        this.dropGraph(graphSpace, name, clear, graph);
+        this.dropGraph(graphSpace, name, clear, graph, replayPendingAdd);
     }
 
-    private void dropGraph(String graphSpace, String name, boolean clear, HugeGraph g) {
+    private void dropGraph(String graphSpace, String name, boolean clear, HugeGraph g, boolean replayPendingAdd) {
         synchronized (this) {
             if (g == null || this.graphs.get(spaceGraphName(graphSpace, name)) != g) {
                 return;
@@ -2523,7 +2527,12 @@ public final class GraphManager {
                 this.graphs.remove(graphName, g);
                 this.rpcRemovingOwners.remove(g);
                 this.failedPeerRemovals.remove(g);
-                replayAdd = this.pendingGraphAdds.contains(graphName);
+                if (replayPendingAdd) {
+                    replayAdd = this.pendingGraphAdds.contains(graphName);
+                } else {
+                    // Reload loads all current metadata after every old owner has been removed.
+                    this.pendingGraphAdds.remove(graphName);
+                }
                 if (this.clearedGraphs.get(graphName) == g) {
                     this.clearedGraphs.remove(graphName);
                 }
@@ -2865,7 +2874,7 @@ public final class GraphManager {
             if (retryOwner != null) {
                 try {
                     // Retry the exact peer owner; a concurrent replacement must never be closed here.
-                    this.dropGraph(parts[0], parts[1], false, retryOwner);
+                    this.dropGraph(parts[0], parts[1], false, retryOwner, true);
                 } catch (HugeException failure) {
                     LOG.error("Failed to retry peer cleanup for graph '{}'", graphName, failure);
                 }
@@ -2927,7 +2936,7 @@ public final class GraphManager {
             }
             HugeGraph owner = (HugeGraph) this.graphs.get(graphName);
             try {
-                this.dropGraph(parts[0], parts[1], false, owner);
+                this.dropGraph(parts[0], parts[1], false, owner, true);
             } catch (HugeException e) {
                 synchronized (this) {
                     if (this.graphs.get(graphName) == owner) {
