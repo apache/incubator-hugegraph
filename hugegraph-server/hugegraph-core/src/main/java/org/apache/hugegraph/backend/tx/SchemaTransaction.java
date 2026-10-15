@@ -406,21 +406,25 @@ public class SchemaTransaction extends IndexableTransaction implements ISchemaTr
         LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
         SchemaJob callable = new OlapPropertyKeyCreateJob();
-        return asyncRun(this.graph(), propertyKey, callable);
+        return this.scheduleOlapJob(propertyKey, callable);
     }
 
     public Id clearOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
         SchemaJob callable = new OlapPropertyKeyClearJob();
-        return asyncRun(this.graph(), propertyKey, callable);
+        return this.scheduleOlapJob(propertyKey, callable);
     }
 
     public Id removeOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
         SchemaJob callable = new OlapPropertyKeyRemoveJob();
-        return asyncRun(this.graph(), propertyKey, callable);
+        return this.scheduleOlapJob(propertyKey, callable);
+    }
+
+    private Id scheduleOlapJob(PropertyKey propertyKey, SchemaJob job) {
+        return asyncRun(this.graph(), propertyKey, job);
     }
 
     @Watched(prefix = "schema")

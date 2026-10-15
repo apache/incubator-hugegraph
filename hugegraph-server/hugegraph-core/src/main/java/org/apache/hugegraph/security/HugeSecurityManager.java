@@ -67,7 +67,8 @@ public class HugeSecurityManager extends SecurityManager {
     );
 
     private static final Set<String> ASYNC_SCHEMA_METHODS = ImmutableSet.of(
-            "removeVertexLabel", "removeEdgeLabel", "removeIndexLabel", "rebuildIndex"
+            "removeVertexLabel", "removeEdgeLabel", "removeIndexLabel", "rebuildIndex",
+            "scheduleOlapJob"
     );
 
     private static final Map<String, Set<String>> ASYNC_TASKS = ImmutableMap.of(

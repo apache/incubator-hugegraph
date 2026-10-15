@@ -599,7 +599,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
         SchemaJob job = new OlapPropertyKeyRemoveJob();
-        return asyncRun(this.graph(), propertyKey, job);
+        return this.scheduleOlapJob(propertyKey, job);
     }
 
     public void removeOlapPk(Id id) {
@@ -610,7 +610,7 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
         SchemaJob job = new OlapPropertyKeyClearJob();
-        return asyncRun(this.graph(), propertyKey, job);
+        return this.scheduleOlapJob(propertyKey, job);
     }
 
     public void clearOlapPk(Id id) {
@@ -621,6 +621,10 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
         LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
         SchemaJob job = new OlapPropertyKeyCreateJob();
+        return this.scheduleOlapJob(propertyKey, job);
+    }
+
+    private Id scheduleOlapJob(PropertyKey propertyKey, SchemaJob job) {
         return asyncRun(this.graph(), propertyKey, job);
     }
 
