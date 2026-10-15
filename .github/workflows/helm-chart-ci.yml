@@ -46,6 +46,7 @@ jobs:
           helm lint helm/hugegraph
           helm lint helm/hugegraph -f helm/hugegraph/values-single.yaml
           helm lint helm/hugegraph -f helm/hugegraph/values-cluster.yaml
+          helm lint helm/hugegraph -f helm/hugegraph/values-strict.yaml
 
       - name: packaged chart regression
         run: python3 -m unittest discover -s helm -p 'test_helm_package.py' -v
@@ -61,13 +62,13 @@ jobs:
 
       - name: helm template
         run: |
-          for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml"; do
+          for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml"; do
             # shellcheck disable=SC2086 # $preset intentionally splits into flags
             helm template ci helm/hugegraph $preset > /dev/null
           done
           # Positive coverage for every hubble wrapper branch: pd mode with
           # auth, direct mode with a custom port, and a TLS-less ingress with
-          # the explicit opt-in.
+          # ordinary HTTP configuration, without acknowledgement flags.
           helm template ci helm/hugegraph \
             --set hubble.enabled=true \
             --set server.auth.enabled=true \
@@ -130,6 +131,18 @@ jobs:
           assert ann(srv, 'checksum/auth') == h('ci-admin|password|ci-auth-token|token_secret|'
                                                + h(val('ci-admin', 'password')) + '|' + h(val('ci-auth-token', 'token_secret')))
           print('install-time checksums match the generated Secret values')
+          services = {d['metadata']['name']: d['spec'] for d in docs if d['kind'] == 'Service'}
+          assert services['ci-hugegraph-server']['type'] == 'NodePort'
+          assert services['ci-hugegraph-hubble']['type'] == 'NodePort'
+          assert services['ci-hugegraph-pd-client']['type'] == 'ClusterIP'
+          for name in ('ci-hugegraph-server', 'ci-hugegraph-hubble'):
+              assert 'nodePort' not in services[name]['ports'][0]
+          sts = [d for d in docs if d['kind'] == 'StatefulSet']
+          assert sum(int(d['spec']['replicas']) * len(d['spec'].get('volumeClaimTemplates', []))
+                     for d in sts) + sum(d['kind'] == 'PersistentVolumeClaim' for d in docs) == 7
+          assert not any(d['kind'] == 'NetworkPolicy' for d in docs)
+          assert not any('curlimages/' in str(d) for d in docs)
+          print('easy defaults: three-member groups, seven volumes and direct HTTP NodePorts')
           PY
 
       - name: reject invalid values
@@ -202,29 +215,33 @@ jobs:
           must_fail "${A[@]}" \
             --set hubble.persistence.enabled=true \
             --set hubble.persistence.size=""
-          must_fail "${A[@]}" --set hubble.service.nodePort=30080
-          # A NodePort or LoadBalancer Hubble Service publishes the plain-HTTP
-          # UI directly; it needs the same explicit acknowledgement as PD.
-          must_fail "${A[@]}" --set hubble.service.type=NodePort
-          must_fail "${A[@]}" --set hubble.service.type=LoadBalancer
-          helm template ci helm/hugegraph "${A[@]}" \
-            --set hubble.service.type=NodePort \
-            --set hubble.service.allowInsecureExposure=true > /dev/null
+          must_fail "${A[@]}" --set hubble.service.type=ClusterIP --set hubble.service.nodePort=30080
+          # HTTP is supported directly in both modes. Component choices take
+          # precedence over mode defaults and require no acknowledgement.
+          for mode in easy strict; do
+            for component in pd server hubble; do
+              for kind in NodePort LoadBalancer; do
+                helm template ci helm/hugegraph --set "mode=$mode" \
+                  --set "${component}.service.type=$kind" > /dev/null
+              done
+            done
+            helm template ci helm/hugegraph --set "mode=$mode" \
+              --set server.ingress.enabled=true \
+              --set hubble.ingress.enabled=true > /dev/null
+          done
           must_fail "${A[@]}" --set hubble.mode=bogus
           must_fail "${A[@]}" --set hubble.image.tag=""
-          must_fail "${A[@]}" --set hubble.ingress.enabled=true
-          # A NodePort or LoadBalancer Server Service publishes the plain-HTTP
-          # API, credentials and JWTs included; same acknowledgement.
-          must_fail --set server.service.type=NodePort
-          must_fail --set server.service.type=LoadBalancer
+          # When UI is explicitly disabled, stale credentials may remain unused.
+          helm template ci helm/hugegraph --set hubble.enabled=false \
+            --set server.auth.enabled=false \
+            --set server.auth.admin.password=unused-secret \
+            --set server.auth.token.value=unused-token-that-is-at-least-32-bytes > /dev/null
+          # Respect custom API-server NodePort ranges rather than assuming 30000+.
           helm template ci helm/hugegraph \
-            --set server.service.type=LoadBalancer \
-            --set server.service.allowInsecureExposure=true > /dev/null
-          # A TLS-less Server Ingress needs the explicit plain-HTTP opt-in
-          must_fail --set server.ingress.enabled=true
-          helm template ci helm/hugegraph \
-            --set server.ingress.enabled=true \
-            --set server.ingress.allowPlainHttp=true > /dev/null
+            --set server.service.nodePort=8802 \
+            --set hubble.service.nodePort=8808 > /dev/null
+          must_fail --set server.service.nodePort=65536
+          must_fail --set server.probes.startup.failureThreshold=1
           # Kubernetes refuses a StatefulSet that carries rollingUpdate
           # options with updateStrategy OnDelete; the schema rejects the
           # combination up front (a schema abort, so it lives here).
@@ -409,7 +426,7 @@ jobs:
           run_hook "127.0.0.1 127.0.0.2 127.0.0.3 ::1 ::2 ::3"
           # The auth-off render must carry no credentials.
           if helm template ci helm/hugegraph -s templates/tests/test-connection.yaml \
-              --set server.auth.enabled=false | grep -q 'Authorization'; then
+              --set hubble.enabled=false --set server.auth.enabled=false | grep -q 'Authorization'; then
             echo "the auth-off hook render must not carry credentials" >&2
             exit 1
           fi
@@ -421,7 +438,7 @@ jobs:
           curl -sSLo /tmp/kc.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
           echo "95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73  /tmp/kc.tar.gz" | sha256sum -c -
           tar -xzf /tmp/kc.tar.gz -C /tmp
-          for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml"; do
+          for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml"; do
             # shellcheck disable=SC2086 # $preset intentionally splits into flags
             helm template ci helm/hugegraph $preset | /tmp/kubeconform -strict -summary -kubernetes-version 1.23.0
           done
@@ -450,10 +467,11 @@ jobs:
           # regressed five times, so it is guarded here rather than by review.
           # `-f` is NOT equivalent: it merges over the new defaults, whereas
           # --reuse-values discards them, so the fixture must become values.yaml.
-          cp -R helm/hugegraph /tmp/legacy
-          cp helm/hugegraph/testdata/values-pre-hardening.yaml /tmp/legacy/values.yaml
-          helm template legacy /tmp/legacy > /dev/null
-          helm template legacy /tmp/legacy --is-upgrade > /dev/null
+          LEGACY_ROOT=$(mktemp -d)
+          cp -R helm/hugegraph "$LEGACY_ROOT/chart"
+          cp helm/hugegraph/testdata/values-pre-hardening.yaml "$LEGACY_ROOT/chart/values.yaml"
+          helm template legacy "$LEGACY_ROOT/chart" > /dev/null
+          helm template legacy "$LEGACY_ROOT/chart" --is-upgrade > /dev/null
 
       - name: helm package
         run: helm package helm/hugegraph -d /tmp/chart

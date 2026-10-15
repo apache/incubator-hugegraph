@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+{{ include "hugegraph.resolveValues" . }}
 {{- if get (get .Values "hubble" | default dict) "enabled" | default false }}
 {{- include "hugegraph.validateValues" . }}
 {{- $customPort := ne (int .Values.hubble.port) 8088 }}
@@ -270,19 +271,15 @@ spec:
             - name: HG_HUBBLE_SERVER_URL
               value: {{ include "hugegraph.server.clientUrl" . | quote }}
             {{- end }}
-            {{- if .Values.hubble.persistence.enabled }}
             # Hubble's H2 location is fixed to ./db inside the image classpath
             # config; Spring Boot's environment binding is the supported way to
             # point it into the mounted volume.
             - name: SPRING_DATASOURCE_URL
               value: "jdbc:h2:file:/hubble-data/db;DB_CLOSE_ON_EXIT=FALSE"
-            {{- end }}
             {{- with .Values.hubble.extraEnv }}{{ toYaml . | nindent 12 }}{{- end }}
-          {{- if .Values.hubble.persistence.enabled }}
           volumeMounts:
             - name: data
               mountPath: /hubble-data
-          {{- end }}
           startupProbe:
             httpGet:
               path: /actuator/health
@@ -310,10 +307,12 @@ spec:
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-      {{- if .Values.hubble.persistence.enabled }}
       volumes:
         - name: data
+          {{- if .Values.hubble.persistence.enabled }}
           persistentVolumeClaim:
             claimName: {{ include "hugegraph.hubble.dataName" . }}
-      {{- end }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
 {{- end }}
