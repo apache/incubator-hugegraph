@@ -334,6 +334,20 @@ public class S3CloudStorageProviderTest {
         assertTrue(a.toString().contains("bucket"));
     }
 
+    @Test
+    public void testConfigToStringOmitsCredentials() {
+        S3CloudStorageConfig c = newPopulatedConfig();
+        c.setAccessKey("AKIAIOSFODNN7EXAMPLE");
+        c.setSecretKey("super-secret-value");
+
+        String str = c.toString();
+        assertTrue(str.contains("bucket=b"));
+        assertFalse(str.contains("accessKey"));
+        assertFalse(str.contains("secretKey"));
+        assertFalse(str.contains("AKIAIOSFODNN7EXAMPLE"));
+        assertFalse(str.contains("super-secret-value"));
+    }
+
     // =========================================================================
     // Operations via a dynamic-proxy S3Client (no live S3): upload / delete /
     // deletePrefix / listFiles / fileExists / download / humanSize

@@ -18,6 +18,7 @@
 package org.apache.hugegraph.store.cloud.s3;
 
 import lombok.Data;
+import lombok.ToString;
 
 /**
  * Amazon S3 / S3-compatible provider configuration, bound from
@@ -66,12 +67,16 @@ public class S3CloudStorageConfig {
     /**
      * AWS access key ID. Omit to use the default AWS credentials chain
      * (env vars, instance profile, ~/.aws/credentials, etc.).
+     * Excluded from {@code toString()} so credentials are never written to logs.
      */
+    @ToString.Exclude
     private String accessKey;
 
     /**
      * AWS secret access key. Omit to use the default AWS credentials chain.
+     * Excluded from {@code toString()} so credentials are never written to logs.
      */
+    @ToString.Exclude
     private String secretKey;
 
 }

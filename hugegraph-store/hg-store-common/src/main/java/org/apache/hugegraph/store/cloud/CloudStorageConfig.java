@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import lombok.Data;
+import lombok.ToString;
 
 /**
  * Configuration for pluggable cloud storage providers.
@@ -132,6 +133,8 @@ public class CloudStorageConfig {
      * Provider-specific properties, mapped from {@code cloud.storage.<provider>.*} in the
      * configuration. These are passed verbatim to the provider implementation and may include
      * credentials, endpoint overrides, regions, or SDK tuning keys expected by that provider.
+     * Excluded from {@code toString()} so credentials are never written to logs.
      */
+    @ToString.Exclude
     private Map<String, String> providerProperties = new HashMap<>();
 }

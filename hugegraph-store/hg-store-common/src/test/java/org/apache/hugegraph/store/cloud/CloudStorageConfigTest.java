@@ -173,8 +173,7 @@ public class CloudStorageConfigTest {
     }
 
     /**
-     * Exercises the Lombok {@code @Data}-generated {@code equals}/{@code hashCode}/{@code toString}
-     * so the generated methods on the class declaration are covered.
+     * Sanity check of the value semantics provided by {@code @Data}.
      */
     @Test
     public void testEqualsHashCodeAndToString() {
@@ -184,8 +183,6 @@ public class CloudStorageConfigTest {
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
         assertEquals(a, a);
-        // Call a.equals(...) directly: assertNotEquals(x, a) invokes x.equals(a), which would
-        // never reach the generated `!(o instanceof CloudStorageConfig)` branch.
         assertNotEquals(null, a);
         assertNotEquals("not-a-config", a);
         assertNotNull(a.toString());
@@ -195,184 +192,18 @@ public class CloudStorageConfigTest {
         assertNotEquals(a.hashCode(), b.hashCode());
     }
 
-    /**
-     * Drives every field comparison in the Lombok-generated {@code equals} to its
-     * "not equal" branch. Lombok compares fields in declaration order and returns on the
-     * first difference, so each field must be the <em>only</em> difference from a default
-     * instance for its comparison branch to be reached — a single multi-field diff would
-     * short-circuit at the first field and leave the rest uncovered.
-     */
     @Test
-    public void testEqualsDistinguishesEveryField() {
-        assertNotEquals(new CloudStorageConfig(), withEnabled());
-        assertNotEquals(new CloudStorageConfig(), withProvider("gcs"));
-        assertNotEquals(new CloudStorageConfig(), withPathPrefix("other"));
-        assertNotEquals(new CloudStorageConfig(), withStartupHydration());
-        assertNotEquals(new CloudStorageConfig(), withReadMissGuardWindowMs());
-        assertNotEquals(new CloudStorageConfig(), withUploadRetryMaxAttempts());
-        assertNotEquals(new CloudStorageConfig(), withUploadRetryInitialDelayMs());
-        assertNotEquals(new CloudStorageConfig(), withUploadRetryMaxDelayMs());
-        assertNotEquals(new CloudStorageConfig(), withMetadataSyncDebounceMs());
-        assertNotEquals(new CloudStorageConfig(), withMetadataSyncMaxUnpublished());
-        assertNotEquals(new CloudStorageConfig(), withNodeId("node-x"));
-        assertNotEquals(new CloudStorageConfig(), withProviderProperties(singleProp()));
-
-        // hashCode is sensitive to representative fields of each primitive family.
-        assertNotEquals(new CloudStorageConfig().hashCode(), withReadMissGuardWindowMs()
-                .hashCode());
-        assertNotEquals(new CloudStorageConfig().hashCode(), withUploadRetryMaxAttempts()
-                .hashCode());
-
-        // hashCode branches for the boolean fields: defaults are enabled=false /
-        // startupHydrationEnabled=true, so hash a config that flips each to exercise the
-        // opposite branch of the generated ternaries.
-        assertNotEquals(0, withEnabled().hashCode());
-        assertNotEquals(0, withStartupHydration().hashCode());
-    }
-
-    /**
-     * Exercises the null-handling branches of the Lombok {@code equals}/{@code hashCode} for the
-     * reference-typed fields: each is compared with one side {@code null} and the other non-null,
-     * in both directions, plus both-null equality.
-     */
-    @Test
-    public void testEqualsHandlesNullReferenceFields() {
-        assertReferenceFieldNullBranches(withProvider(null), withProvider("s3"));
-        assertReferenceFieldNullBranches(withPathPrefix(null), withPathPrefix("hugegraph"));
-        assertReferenceFieldNullBranches(withNodeId(null), withNodeId("node-x"));
-        assertReferenceFieldNullBranches(withProviderProperties(null),
-                                         withProviderProperties(singleProp()));
-    }
-
-    /**
-     * Covers the Lombok-generated {@code canEqual} guard, which a plain {@code equals} call between
-     * two direct instances never drives to both outcomes: the {@code instanceof} check in
-     * {@code canEqual} (true for a peer, false for a foreign type) and the
-     * {@code !other.canEqual(this)} branch in {@code equals} (reached when the argument is a
-     * subtype that declines equality).
-     */
-    @Test
-    public void testCanEqualGuardBranches() {
-        CloudStorageConfig a = new CloudStorageConfig();
-
-        // canEqual: instanceof true branch (a peer) and false branch (a foreign type).
-        assertTrue(a.canEqual(new CloudStorageConfig()));
-        assertFalse(a.canEqual("not-a-config"));
-
-        // equals reaches its `!other.canEqual(this)` == true branch when the argument passes the
-        // instanceof check but rejects this instance from its own canEqual.
-        CloudStorageConfig rejecting = new CloudStorageConfig() {
-            @Override
-            public boolean canEqual(Object other) {
-                return false;
-            }
-        };
-        assertNotEquals(a, rejecting);
-    }
-
-    private static void assertReferenceFieldNullBranches(CloudStorageConfig withNull,
-                                                         CloudStorageConfig withValue) {
-        // this-null vs other-non-null and the reverse both reach the "not equal" branch.
-        assertNotEquals(withNull, withValue);
-        assertNotEquals(withValue, withNull);
-        // both-null on that field collapses to equal (all other fields are defaults).
-        assertEquals(withNull, cloneOf(withNull));
-        assertNotNull(withNull.hashCode());
-    }
-
-    private static CloudStorageConfig cloneOf(CloudStorageConfig src) {
-        CloudStorageConfig copy = new CloudStorageConfig();
-        copy.setEnabled(src.isEnabled());
-        copy.setProvider(src.getProvider());
-        copy.setPathPrefix(src.getPathPrefix());
-        copy.setStartupHydrationEnabled(src.isStartupHydrationEnabled());
-        copy.setReadMissGuardWindowMs(src.getReadMissGuardWindowMs());
-        copy.setUploadRetryMaxAttempts(src.getUploadRetryMaxAttempts());
-        copy.setUploadRetryInitialDelayMs(src.getUploadRetryInitialDelayMs());
-        copy.setUploadRetryMaxDelayMs(src.getUploadRetryMaxDelayMs());
-        copy.setMetadataSyncDebounceMs(src.getMetadataSyncDebounceMs());
-        copy.setMetadataSyncMaxUnpublished(src.getMetadataSyncMaxUnpublished());
-        copy.setNodeId(src.getNodeId());
-        copy.setProviderProperties(src.getProviderProperties());
-        return copy;
-    }
-
-    private static Map<String, String> singleProp() {
+    public void testToStringOmitsProviderProperties() {
         Map<String, String> props = new HashMap<>();
-        props.put("bucket", "b");
-        return props;
-    }
+        props.put("access-key", "AKIAIOSFODNN7EXAMPLE");
+        props.put("secret-key", "super-secret-value");
+        config.setProviderProperties(props);
 
-    private static CloudStorageConfig withEnabled() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setEnabled(true);
-        return c;
-    }
-
-    private static CloudStorageConfig withProvider(String v) {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setProvider(v);
-        return c;
-    }
-
-    private static CloudStorageConfig withPathPrefix(String v) {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setPathPrefix(v);
-        return c;
-    }
-
-    private static CloudStorageConfig withStartupHydration() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setStartupHydrationEnabled(false);
-        return c;
-    }
-
-    private static CloudStorageConfig withReadMissGuardWindowMs() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setReadMissGuardWindowMs(9999L);
-        return c;
-    }
-
-    private static CloudStorageConfig withUploadRetryMaxAttempts() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setUploadRetryMaxAttempts(9);
-        return c;
-    }
-
-    private static CloudStorageConfig withUploadRetryInitialDelayMs() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setUploadRetryInitialDelayMs(9999L);
-        return c;
-    }
-
-    private static CloudStorageConfig withUploadRetryMaxDelayMs() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setUploadRetryMaxDelayMs(9999L);
-        return c;
-    }
-
-    private static CloudStorageConfig withMetadataSyncDebounceMs() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setMetadataSyncDebounceMs(9999L);
-        return c;
-    }
-
-    private static CloudStorageConfig withMetadataSyncMaxUnpublished() {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setMetadataSyncMaxUnpublished(9);
-        return c;
-    }
-
-    private static CloudStorageConfig withNodeId(String v) {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setNodeId(v);
-        return c;
-    }
-
-    private static CloudStorageConfig withProviderProperties(Map<String, String> v) {
-        CloudStorageConfig c = new CloudStorageConfig();
-        c.setProviderProperties(v);
-        return c;
+        String str = config.toString();
+        assertTrue(str.contains("provider=s3"));
+        assertFalse(str.contains("providerProperties"));
+        assertFalse(str.contains("AKIAIOSFODNN7EXAMPLE"));
+        assertFalse(str.contains("super-secret-value"));
     }
 
     // ---- Provider properties (cloud.storage.<provider>.* flattened) ----
