@@ -708,7 +708,7 @@ public class GraphsAPI extends API {
     @Timed
     @Path("{name}/mode/owners")
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$owner=$name"})
+    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$name"})
     public Map<String, Object> loadingMode(@Context GraphManager manager,
                                           @PathParam("graphspace") String graphSpace,
                                           @PathParam("name") String name) {
@@ -720,7 +720,7 @@ public class GraphsAPI extends API {
     @Path("{name}/mode/owners")
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON_WITH_CHARSET)
-    @RolesAllowed({"space", "$owner=$name"})
+    @RolesAllowed({"space", "$graphspace=$graphspace $owner=$name"})
     public Map<String, Object> loadingMode(@Context GraphManager manager,
                                           @PathParam("graphspace") String graphSpace,
                                           @PathParam("name") String name,

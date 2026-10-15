@@ -19,6 +19,7 @@ package org.apache.hugegraph.unit.api.space;
 
 import static org.apache.hugegraph.HugeFactory.SYS_GRAPH;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Collections;
@@ -37,6 +38,9 @@ import org.apache.hugegraph.auth.AuthManager;
 import org.apache.hugegraph.auth.HugeAuthenticator;
 import org.apache.hugegraph.auth.HugeDefaultRole;
 import org.apache.hugegraph.auth.HugeGraphAuthProxy;
+import org.apache.hugegraph.auth.HugePermission;
+import org.apache.hugegraph.auth.HugeResource;
+import org.apache.hugegraph.auth.ResourceType;
 import org.apache.hugegraph.auth.HugeUser;
 import org.apache.hugegraph.auth.RolePermission;
 import org.apache.hugegraph.core.GraphManager;
@@ -55,9 +59,14 @@ import org.junit.After;
 import org.junit.Test;
 import org.glassfish.jersey.internal.MapPropertiesDelegate;
 import org.glassfish.jersey.server.ContainerRequest;
+import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.container.ContainerRequestFilter;
+import jakarta.ws.rs.container.ResourceInfo;
+import jakarta.ws.rs.core.FeatureContext;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.SecurityContext;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -285,6 +294,56 @@ public class GraphSpaceAPITest extends BaseUnitTest {
             graph.close();
             HugeFactory.remove(graph);
         }
+    }
+
+    @Test
+    public void testLoadingOwnerRoutesAllowScopedStatusWriter() throws Exception {
+        RolePermission role = RolePermission.role(GRAPHSPACE, GRAPH, HugePermission.WRITE);
+        role.roles().get(GRAPHSPACE).get(GRAPH).put(HugePermission.WRITE,
+                Collections.singletonMap(ResourceType.STATUS.name(),
+                        Collections.singletonList(new HugeResource(ResourceType.STATUS, "*", null))));
+        int endpoints = 0;
+        for (Method method : GraphsAPI.class.getDeclaredMethods()) {
+            if (!method.getName().equals("loadingMode")) {
+                continue;
+            }
+            endpoints++;
+            authorizeLoadingOwnerRoute(method, role, GRAPHSPACE, GRAPH);
+            authorizeLoadingOwnerRoute(method, RolePermission.admin(), GRAPHSPACE, GRAPH);
+            authorizeLoadingOwnerRoute(method, RolePermission.role(GRAPHSPACE, GRAPH, HugePermission.SPACE),
+                                       GRAPHSPACE, GRAPH);
+            Assert.assertThrows(ForbiddenException.class,
+                    () -> authorizeLoadingOwnerRoute(method, role, "other_space", GRAPH));
+            Assert.assertThrows(ForbiddenException.class,
+                    () -> authorizeLoadingOwnerRoute(method, role, GRAPHSPACE, "other_graph"));
+            Assert.assertThrows(ForbiddenException.class,
+                    () -> authorizeLoadingOwnerRoute(method, RolePermission.none(), GRAPHSPACE, GRAPH));
+        }
+        Assert.assertEquals(2, endpoints);
+    }
+
+    private static void authorizeLoadingOwnerRoute(Method method, RolePermission role,
+                                                   String space, String graph) throws IOException {
+        GraphSpace graphSpace = new GraphSpace(space);
+        graphSpace.auth(true);
+        GraphManager manager = Mockito.mock(GraphManager.class);
+        Mockito.when(manager.graphSpace(space)).thenReturn(graphSpace);
+        MultivaluedHashMap<String, String> parameters = new MultivaluedHashMap<>();
+        parameters.putSingle("graphspace", space);
+        parameters.putSingle("name", graph);
+        UriInfo uri = Mockito.mock(UriInfo.class);
+        Mockito.when(uri.getPathParameters()).thenReturn(parameters);
+        Authorizer authorizer = new Authorizer(manager, new HugeAuthenticator.User("writer", role), uri);
+        ContainerRequestContext request = Mockito.mock(ContainerRequestContext.class);
+        Mockito.when(request.getSecurityContext()).thenReturn(authorizer);
+        ResourceInfo resource = Mockito.mock(ResourceInfo.class);
+        Mockito.when(resource.getResourceMethod()).thenReturn(method);
+        Mockito.doReturn(GraphsAPI.class).when(resource).getResourceClass();
+        FeatureContext feature = Mockito.mock(FeatureContext.class);
+        new RolesAllowedDynamicFeature().configure(resource, feature);
+        ArgumentCaptor<Object> registered = ArgumentCaptor.forClass(Object.class);
+        Mockito.verify(feature).register(registered.capture());
+        ((ContainerRequestFilter) registered.getValue()).filter(request);
     }
 
     @Test
