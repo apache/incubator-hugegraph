@@ -419,7 +419,8 @@ grep -qx 'server.urls_to_pd=http://server-2:8080' \
 grep -qx 'server.deploy_in_k8s=off' "${TEST_HOME}/conf/rest-server.properties"
 
 # HugeConfig rejects 0 and 1 for a boolean, so the entrypoint refuses them
-# before writing either conf file, the URL list included.
+# before writing either conf file, the URL list included. The graph conf holds
+# backend=hstore by now, so a different backend makes its cmp able to fail.
 cp "${TEST_HOME}/conf/rest-server.properties" \
     "${TEST_HOME}/conf/rest-server.properties.before-k8s-flag"
 cp "${TEST_HOME}/conf/graphs/hugegraph.properties" \
@@ -427,7 +428,7 @@ cp "${TEST_HOME}/conf/graphs/hugegraph.properties" \
 for invalid_k8s_flag in 1 0 enabled; do
     if (
         cd "${TEST_HOME}"
-        HG_SERVER_BACKEND=hstore \
+        HG_SERVER_BACKEND=rocksdb \
         HG_SERVER_URLS_TO_PD=http://server-3:8080 \
         HG_SERVER_DEPLOY_IN_K8S="${invalid_k8s_flag}" \
             bash ./docker-entrypoint.sh
