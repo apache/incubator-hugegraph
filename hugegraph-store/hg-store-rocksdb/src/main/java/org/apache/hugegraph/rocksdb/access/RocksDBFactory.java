@@ -632,16 +632,9 @@ public final class RocksDBFactory {
             if (name == null || !name.endsWith(".sst")) {
                 continue;
             }
-            String absolutePath;
-            if (name.startsWith(File.separator) || name.startsWith("/")) {
-                absolutePath = dir.endsWith(File.separator) || dir.endsWith("/")
-                               ? dir.substring(0, dir.length() - 1) + name
-                               : dir + name;
-            } else {
-                absolutePath = dir.endsWith(File.separator) || dir.endsWith("/")
-                               ? dir + name
-                               : dir + File.separator + name;
-            }
+            // RocksDB may report the file name with a leading separator and the dir with or
+            // without a trailing one; File(parent, child) collapses the separator either way.
+            String absolutePath = new File(dir, name).getPath();
             String cfName = new String(md.columnFamilyName(), java.nio.charset.StandardCharsets.UTF_8);
             result.add(new LiveSstFile(absolutePath, cfName));
         }

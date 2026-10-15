@@ -806,11 +806,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
             FileUtils.deleteDirectory(tempFile);
             checkpoint.createCheckpoint(tempDir);
         } catch (final Exception e) {
-            try {
-                FileUtils.deleteDirectory(new File(tempDir));
-            } catch (IOException ignore) {
-                // best-effort cleanup of a partial checkpoint
-            }
+            // best-effort cleanup of a partial checkpoint
+            FileUtils.deleteQuietly(new File(tempDir));
             log.error("Fail to create metadata checkpoint at {}", tempDir, e);
             throw new DBStoreException("Fail to create metadata checkpoint at %s", e, tempDir);
         } finally {

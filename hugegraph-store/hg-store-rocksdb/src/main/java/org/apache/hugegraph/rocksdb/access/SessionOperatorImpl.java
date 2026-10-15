@@ -210,9 +210,6 @@ public class SessionOperatorImpl implements SessionOperator {
         byte[] value;
         try (CFHandleLock cf = this.getLock(table)) {
             value = rocksdb().get(cf.get(), key);
-            if (value != null) {
-                return value;
-            }
         } catch (RocksDBException e) {
             // A live SST referenced by the manifest may be physically missing (e.g. the local disk
             // was lost while the DB stayed open). RocksDB surfaces that as an exception rather than
@@ -228,6 +225,9 @@ public class SessionOperatorImpl implements SessionOperator {
                 }
             }
             throw new DBStoreException(e);
+        }
+        if (value != null) {
+            return value;
         }
 
         // Cloud hydration can perform slow I/O, so run it after releasing the CF handle lock.
