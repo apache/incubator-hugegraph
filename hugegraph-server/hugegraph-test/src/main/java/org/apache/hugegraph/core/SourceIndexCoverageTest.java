@@ -17,19 +17,26 @@
 
 package org.apache.hugegraph.core;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.backend.page.PageInfo;
+import org.apache.hugegraph.backend.store.BackendEntry;
+import org.apache.hugegraph.backend.store.BackendStore;
+import org.apache.hugegraph.backend.tx.GraphIndexTransaction;
 import org.apache.hugegraph.exception.NoIndexException;
 import org.apache.hugegraph.query.Condition;
 import org.apache.hugegraph.query.ConditionQuery;
+import org.apache.hugegraph.query.Query;
 import org.apache.hugegraph.schema.SchemaManager;
 import org.apache.hugegraph.struct.schema.IndexLabel;
 import org.apache.hugegraph.struct.schema.SchemaLabel;
 import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
+import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.tinkerpop.TestGraph;
 import org.apache.hugegraph.traversal.optimize.Text;
 import org.apache.hugegraph.type.HugeType;
@@ -47,7 +54,10 @@ import org.apache.tinkerpop.gremlin.structure.util.CloseableIterator;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.AdditionalAnswers;
+import org.mockito.Mockito;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -152,6 +162,147 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
         this.nameIndex("coverageB");
         Assert.assertEquals(expected,
                             graph().traversal().V().has("coverageName", "same").toSet());
+    }
+
+    @Test
+    public void testOrCoverageFailureClosesEarlierBranchCursors() {
+        this.prepareOrIndexes(false);
+        this.addVertices();
+        try (IndexCursorTracker tracker = new IndexCursorTracker(null)) {
+            NoIndexException failure = Assert.assertThrows(NoIndexException.class,
+                    () -> graph().vertices(this.orQuery()));
+            Assert.assertContains("Incomplete index coverage", failure.getMessage());
+            tracker.assertCounts(2, 1);
+            Assert.assertEquals(0, failure.getSuppressed().length);
+            // Closing must happen before rollback or test-fixture cleanup.
+            graph().tx().rollback();
+            tracker.assertCounts(2, 1);
+        }
+    }
+
+    @Test
+    public void testOrCoverageFailurePreservesOriginalErrorWhenCloseFails() {
+        this.prepareOrIndexes(false);
+        this.addVertices();
+        RuntimeException closeFailure = new IllegalStateException("index cursor close failed");
+        try (IndexCursorTracker tracker = new IndexCursorTracker(closeFailure)) {
+            NoIndexException failure = Assert.assertThrows(NoIndexException.class,
+                    () -> graph().vertices(this.orQuery()));
+            Assert.assertContains("Incomplete index coverage", failure.getMessage());
+            // A failed close on the first cursor must not skip the second one.
+            tracker.assertCounts(2, 1);
+            Assert.assertEquals(1, failure.getSuppressed().length);
+            Assert.assertSame(closeFailure, Throwables.getRootCause(failure.getSuppressed()[0]));
+        }
+    }
+
+    @Test
+    public void testCompleteOrPlanKeepsCursorsUntilResultClose() {
+        this.prepareOrIndexes(true);
+        Set<Vertex> expected = this.addVertices();
+        try (IndexCursorTracker tracker = new IndexCursorTracker(null)) {
+            Iterator<Vertex> results = graph().vertices(this.orQuery());
+            try {
+                tracker.assertCounts(4, 0);
+                Assert.assertTrue(results.hasNext());
+                Assert.assertTrue(expected.contains(results.next()));
+            } finally {
+                CloseableIterator.closeIterator(results);
+            }
+            // Includes the later OR branch whose results were never requested.
+            tracker.assertCounts(4, 1);
+        }
+    }
+
+    private void prepareOrIndexes(boolean complete) {
+        this.nameIndex("coverageA");
+        this.nameIndex("coverageB");
+        graph().schema().indexLabel("coverageAByScore").onV("coverageA")
+               .by("coverageScore").secondary().create();
+        if (complete) {
+            graph().schema().indexLabel("coverageBByScore").onV("coverageB")
+                   .by("coverageScore").secondary().create();
+        }
+    }
+
+    private ConditionQuery orQuery() {
+        ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+        query.query(Condition.or(
+                Condition.eq(graph().propertyKey("coverageName").id(), "same"),
+                Condition.eq(graph().propertyKey("coverageScore").id(), 10)));
+        return query;
+    }
+
+    private final class IndexCursorTracker implements AutoCloseable {
+
+        private final GraphIndexTransaction indexTx;
+        private final BackendStore original;
+        private final List<CountingIndexCursor> cursors = new ArrayList<>();
+
+        private IndexCursorTracker(RuntimeException closeFailure) {
+            this.indexTx = Whitebox.getInternalState(params().graphTransaction(), "indexTx");
+            this.original = Whitebox.getInternalState(this.indexTx, "store");
+            BackendStore observed = Mockito.mock(BackendStore.class,
+                                                 AdditionalAnswers.delegatesTo(this.original));
+            Mockito.doAnswer(invocation -> {
+                // Keep real index matching, validation, serialization and backend queries.
+                Iterator<BackendEntry> entries = this.original.query((Query) invocation.getArgument(0));
+                CountingIndexCursor cursor = new CountingIndexCursor(entries,
+                        this.cursors.isEmpty() ? closeFailure : null);
+                this.cursors.add(cursor);
+                return cursor;
+            }).when(observed).query(Mockito.any(Query.class));
+            Whitebox.setInternalState(this.indexTx, "store", observed);
+        }
+
+        private void assertCounts(int opened, int closesPerCursor) {
+            Assert.assertEquals(opened, this.cursors.size());
+            for (CountingIndexCursor cursor : this.cursors) {
+                Assert.assertEquals(closesPerCursor, cursor.closes);
+            }
+        }
+
+        @Override
+        public void close() {
+            Whitebox.setInternalState(this.indexTx, "store", this.original);
+            // Release leaks even when the regression assertion fails on old code.
+            for (CountingIndexCursor cursor : this.cursors) {
+                if (cursor.closes == 0) {
+                    CloseableIterator.closeIterator(cursor.entries);
+                }
+            }
+        }
+    }
+
+    private static final class CountingIndexCursor implements CloseableIterator<BackendEntry> {
+
+        private final Iterator<BackendEntry> entries;
+        private final RuntimeException closeFailure;
+        private int closes;
+
+        private CountingIndexCursor(Iterator<BackendEntry> entries, RuntimeException closeFailure) {
+            this.entries = entries;
+            this.closeFailure = closeFailure;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return this.entries.hasNext();
+        }
+
+        @Override
+        public BackendEntry next() {
+            return this.entries.next();
+        }
+
+        @Override
+        public void close() {
+            this.closes++;
+            CloseableIterator.closeIterator(this.entries);
+            if (this.closeFailure != null) {
+                throw this.closeFailure;
+            }
+        }
     }
 
     @Test

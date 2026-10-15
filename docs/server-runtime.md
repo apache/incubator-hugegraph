@@ -268,9 +268,11 @@ can cover sub-labels. Shared OLAP indexes follow the graph read mode.
 Normal queries exclude hidden labels and labels in `DELETING` or `UNDELETED`
 status. Internal requests that enable `showHidden` or `showDeleting` include the
 corresponding labels and still require their indexes. Visibility follows the outer
-request when a query is split into subqueries. Index state and complete coverage
-are checked before backend iterators are opened; this does not provide a snapshot
-against concurrent schema changes.
+request when a query is split into subqueries. Each branch checks index state and
+complete coverage before opening its backend iterators. If a later branch fails
+planning, the query closes cursors accumulated from earlier branches and preserves
+the original error. This does not provide a snapshot against concurrent schema
+changes.
 
 To fix incomplete coverage, specify an indexed label, for example
 `g.V().hasLabel("person").has("name", "alice")`, or add indexes compatible with the
