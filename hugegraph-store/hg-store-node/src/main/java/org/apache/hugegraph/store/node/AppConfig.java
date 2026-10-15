@@ -114,7 +114,8 @@ public class AppConfig {
 
         if (!rocksdb.containsKey("write_buffer_size") ||
             "0".equals(rocksdb.get("write_buffer_size"))) {
-            rocksdb.put("write_buffer_size", Long.toString(totalMemory / 1000));
+            rocksdb.put("write_buffer_size",
+                        Long.toString(RocksdbMemoryBudget.writeBufferSize(totalMemory)));
         }
     }
 

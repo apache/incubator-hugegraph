@@ -131,6 +131,16 @@ public final class RocksdbMemoryBudget {
         return (int) Math.pow(2, Math.round(Math.log(size) / Math.log(2))) * 32;
     }
 
+    /**
+     * The write_buffer_size AppConfig derives when the key is unset or 0: a thousandth
+     * of the budget, but never below the 1 MiB rocksdb.write_buffer_size accepts
+     * (RocksDBOptions.MEMTABLE_SIZE), which an auto-sized budget under 1 GiB would
+     * otherwise fall under.
+     */
+    public static long writeBufferSize(long totalMemory) {
+        return Math.max(totalMemory / 1000, MIB);
+    }
+
     private static long physicalMemory() {
         try {
             // Reports the cgroup v1/v2 memory limit inside a container; older JDK 17

@@ -24,6 +24,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.hugegraph.config.ConfigException;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.config.OptionSpace;
+import org.apache.hugegraph.rocksdb.access.RocksDBOptions;
 import org.junit.Test;
 
 public class RocksdbMemoryBudgetTest {
@@ -87,6 +94,36 @@ public class RocksdbMemoryBudgetTest {
         assertEquals(32, RocksdbMemoryBudget.disruptorBufferSize(512 * MIB));
         assertEquals(32, RocksdbMemoryBudget.disruptorBufferSize(1_000_000_000L));
         assertEquals(1024, RocksdbMemoryBudget.disruptorBufferSize(32_000_000_000L));
+    }
+
+    @Test
+    public void testDerivedWriteBufferSizePassesRocksdbValidation() {
+        // The 4 GiB container from apache/hugegraph#3254 auto-sizes to 512 MiB, whose
+        // thousandth is under the 1 MiB rocksdb.write_buffer_size minimum
+        long budget = RocksdbMemoryBudget.auto(4 * GIB, GIB, 512 * MIB);
+        assertEquals(MIB, RocksdbMemoryBudget.writeBufferSize(budget));
+        assertEquals(MIB, RocksdbMemoryBudget.writeBufferSize(MIB));
+        assertEquals(32_000_000L, RocksdbMemoryBudget.writeBufferSize(32_000_000_000L));
+
+        // The same validation BusinessHandlerImpl.initRocksdb() runs at Store startup
+        OptionSpace.register("rocksdb", RocksDBOptions.class.getName());
+        RocksDBOptions.instance();
+        HugeConfig config = new HugeConfig(rocksdbConfig(budget,
+                                                         RocksdbMemoryBudget.writeBufferSize(budget)));
+        assertEquals(MIB, (long) config.get(RocksDBOptions.MEMTABLE_SIZE));
+        try {
+            new HugeConfig(rocksdbConfig(budget, budget / 1000));
+            fail("accepted a write buffer under 1 MiB");
+        } catch (ConfigException e) {
+            assertTrue(e.getMessage().contains("write_buffer_size"));
+        }
+    }
+
+    private static Map<String, Object> rocksdbConfig(long totalMemory, long writeBufferSize) {
+        Map<String, Object> config = new HashMap<>();
+        config.put("rocksdb.total_memory_size", String.valueOf(totalMemory));
+        config.put("rocksdb.write_buffer_size", String.valueOf(writeBufferSize));
+        return config;
     }
 
     @Test
