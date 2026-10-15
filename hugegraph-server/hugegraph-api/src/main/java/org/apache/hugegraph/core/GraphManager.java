@@ -1829,7 +1829,7 @@ public final class GraphManager {
         LOG.info("Graph '{}' was successfully configured via '{}'",
                  name, graphConfPath);
 
-        this.bindLocalGraph(name, graph);
+        this.bindLocalGraph(name, (HugeGraph) graph);
 
         if (this.requireAuthentication() &&
             !(graph instanceof HugeGraphAuthProxy)) {
@@ -1846,20 +1846,16 @@ public final class GraphManager {
      * Rebinding the graph Gremlin already holds is harmless: both opens return
      * the same cached instance.
      */
-    private void bindLocalGraph(String name, Graph graph) {
-        if (!(graph instanceof HugeGraph)) {
-            return;
-        }
-        HugeGraph hugegraph = (HugeGraph) graph;
+    private void bindLocalGraph(String name, HugeGraph graph) {
         String graphName = defaultSpaceGraphName(name);
-        if (!graphName.equals(hugegraph.spaceGraphName())) {
+        if (!graphName.equals(graph.spaceGraphName())) {
             LOG.warn("Graph '{}' is named '{}' by its config, so it can't be " +
                      "rebound in Gremlin Server if Gremlin failed to open it",
-                     graphName, hugegraph.spaceGraphName());
+                     graphName, graph.spaceGraphName());
             return;
         }
         try {
-            this.notifyEvent(Events.GRAPH_CREATE, hugegraph);
+            this.notifyEvent(Events.GRAPH_CREATE, graph);
         } catch (Throwable e) {
             LOG.error("Graph '{}' is served by REST but could not be bound " +
                       "in Gremlin Server, restart the Server to retry",

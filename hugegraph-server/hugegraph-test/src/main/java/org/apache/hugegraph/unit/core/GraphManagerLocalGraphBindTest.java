@@ -129,6 +129,24 @@ public class GraphManagerLocalGraphBindTest {
     }
 
     @Test
+    public void testFailedBindKeepsGraphLoaded() throws IOException {
+        String path = this.writeGraphConf("bind_failed", "bind_failed");
+        EventListener failing = event -> {
+            throw new IllegalStateException("gremlin binding failed");
+        };
+        this.hub.listen(Events.GRAPH_CREATE, failing);
+
+        try {
+            this.manager.loadGraphsFromLocal(ImmutableMap.of("bind_failed", path));
+        } finally {
+            this.hub.unlisten(Events.GRAPH_CREATE, failing);
+        }
+
+        Assert.assertEquals(1, this.created.size());
+        Assert.assertNotNull(this.manager.graph("DEFAULT", "bind_failed"));
+    }
+
+    @Test
     public void testGraphMissingFromGremlinGetsBound() throws IOException {
         String path = this.writeGraphConf("bind_missing", "bind_missing");
         // No settings.graphs entry stands in for a failed static open
