@@ -22,12 +22,13 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.hugegraph.backend.page.PageInfo;
-import org.apache.hugegraph.backend.query.Condition;
-import org.apache.hugegraph.backend.query.ConditionQuery;
 import org.apache.hugegraph.exception.NoIndexException;
-import org.apache.hugegraph.schema.IndexLabel;
-import org.apache.hugegraph.schema.SchemaLabel;
+import org.apache.hugegraph.query.Condition;
+import org.apache.hugegraph.query.ConditionQuery;
 import org.apache.hugegraph.schema.SchemaManager;
+import org.apache.hugegraph.struct.schema.IndexLabel;
+import org.apache.hugegraph.struct.schema.SchemaLabel;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.tinkerpop.TestGraph;
 import org.apache.hugegraph.traversal.optimize.Text;
@@ -321,6 +322,145 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
     }
 
     @Test
+    public void testUnlabeledMixedCompositeAndJointIndexes() {
+        SchemaManager schema = graph().schema();
+        schema.indexLabel("coverageAComposite").onV("coverageA")
+              .by("coverageName", "coverageScore").secondary().create();
+        this.nameIndex("coverageB");
+        schema.indexLabel("coverageBRange").onV("coverageB")
+              .by("coverageScore").range().create();
+        Set<Vertex> expected = this.addVertices();
+        for (Vertex vertex : expected) {
+            vertex.property("coverageScore", 10);
+        }
+        // Each individual index also matches a vertex outside the intersection.
+        graph().addVertex(T.label, "coverageB", "coverageName", "other",
+                          "coverageScore", 10, "coverageBody", "gold");
+        graph().addVertex(T.label, "coverageB", "coverageName", "same",
+                          "coverageScore", 30, "coverageBody", "gold");
+        this.commitTx();
+        Assert.assertEquals(expected, graph().traversal().V()
+                .has("coverageName", "same").has("coverageScore", 10).toSet());
+
+        IndexLabel index = schema.getIndexLabel("coverageBRange");
+        try {
+            this.params().schemaTransaction().updateSchemaStatus(index, SchemaStatus.REBUILDING);
+            Assert.assertThrows(IllegalArgumentException.class, () -> graph().traversal().V()
+                    .has("coverageName", "same").has("coverageScore", 10).toSet());
+        } finally {
+            this.params().schemaTransaction().updateSchemaStatus(index, SchemaStatus.CREATED);
+        }
+        Assert.assertEquals(expected, graph().traversal().V()
+                .has("coverageName", "same").has("coverageScore", 10).toSet());
+    }
+
+    @Test
+    public void testAllVertexCandidatesDeletingReturnEmpty() {
+        this.nameIndex("coverageA");
+        this.nameIndex("coverageB");
+        Set<Vertex> expected = this.addVertices();
+        SchemaLabel a = graph().schema().getVertexLabel("coverageA");
+        SchemaLabel b = graph().schema().getVertexLabel("coverageB");
+        try {
+            for (SchemaStatus status : new SchemaStatus[]{SchemaStatus.DELETING,
+                                                         SchemaStatus.UNDELETED}) {
+                this.params().schemaTransaction().updateSchemaStatus(a, status);
+                this.params().schemaTransaction().updateSchemaStatus(b, status);
+                Assert.assertEquals(ImmutableSet.of(), graph().traversal().V()
+                        .has("coverageName", "same").toSet());
+                Assert.assertEquals(ImmutableSet.of(), graph().traversal().V()
+                        .hasLabel("coverageA").has("coverageName", "same").toSet());
+                this.assertEmptyPage(this.nameQuery(HugeType.VERTEX));
+                ConditionQuery query = this.nameQuery(HugeType.VERTEX);
+                query.showDeleting(true);
+                Assert.assertEquals(expected, ImmutableSet.copyOf(graph().vertices(query)));
+                ConditionQuery child = query.copy();
+                child.showDeleting(false);
+                child.setOriginQuery(query);
+                Assert.assertEquals(expected, ImmutableSet.copyOf(graph().vertices(child)));
+            }
+            graph().schema().indexLabel("coverageAByName").remove();
+            graph().schema().indexLabel("coverageBByName").remove();
+            Assert.assertEquals(ImmutableSet.of(), graph().traversal().V()
+                    .has("coverageName", "same").toSet());
+            ConditionQuery query = this.nameQuery(HugeType.VERTEX);
+            query.showDeleting(true);
+            Assert.assertThrows(NoIndexException.class, () -> graph().vertices(query).hasNext());
+            // A visible, unindexed candidate must still fail next to an invisible one.
+            this.params().schemaTransaction().updateSchemaStatus(a, SchemaStatus.CREATED);
+            Assert.assertThrows(NoIndexException.class, () -> graph().traversal().V()
+                    .has("coverageName", "same").toSet());
+        } finally {
+            this.params().schemaTransaction().updateSchemaStatus(a, SchemaStatus.CREATED);
+            this.params().schemaTransaction().updateSchemaStatus(b, SchemaStatus.CREATED);
+        }
+    }
+
+    @Test
+    public void testOnlyEdgeCandidateDeletingReturnsEmpty() {
+        SchemaManager schema = graph().schema();
+        schema.edgeLabel("deletingEdge").link("coverageA", "coverageB")
+              .properties("coverageName").create();
+        schema.indexLabel("deletingEdgeByName").onE("deletingEdge")
+              .by("coverageName").secondary().create();
+        Set<Vertex> vertices = this.addVertices();
+        Vertex a = vertices.stream().filter(v -> v.label().equals("coverageA")).findFirst().get();
+        Vertex b = vertices.stream().filter(v -> v.label().equals("coverageB")).findFirst().get();
+        Edge edge = a.addEdge("deletingEdge", b, "coverageName", "same");
+        this.commitTx();
+        SchemaLabel label = schema.getEdgeLabel("deletingEdge");
+        try {
+            this.params().schemaTransaction().updateSchemaStatus(label, SchemaStatus.DELETING);
+            Assert.assertEquals(ImmutableSet.of(), graph().traversal().E()
+                    .has("coverageName", "same").toSet());
+            this.assertEmptyPage(this.nameQuery(HugeType.EDGE));
+            ConditionQuery query = this.nameQuery(HugeType.EDGE);
+            query.showDeleting(true);
+            Assert.assertEquals(ImmutableSet.of(edge), ImmutableSet.copyOf(graph().edges(query)));
+            schema.indexLabel("deletingEdgeByName").remove();
+            Assert.assertEquals(ImmutableSet.of(), graph().traversal().E()
+                    .has("coverageName", "same").toSet());
+            Assert.assertThrows(NoIndexException.class, () -> graph().edges(query).hasNext());
+        } finally {
+            this.params().schemaTransaction().updateSchemaStatus(label, SchemaStatus.CREATED);
+        }
+        Assert.assertThrows(NoIndexException.class, () -> graph().traversal().E()
+                .has("coverageName", "same").toSet());
+    }
+
+    @Test
+    public void testOnlyHiddenCandidateReturnsEmpty() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("hiddenName").asText().create();
+        VertexLabel hidden = schema.vertexLabel("~coverageHidden")
+                                   .properties("hiddenName").useAutomaticId().build();
+        this.params().schemaTransaction().addVertexLabel(hidden);
+        try {
+            schema.indexLabel("hiddenByName").onV("~coverageHidden")
+                  .by("hiddenName").secondary().create();
+            Vertex vertex = this.params().graphTransaction().addVertex(
+                    this.params().graphTransaction().constructVertex(
+                            false, T.label, "~coverageHidden", "hiddenName", "same"));
+            this.commitTx();
+            Assert.assertEquals(ImmutableSet.of(), graph().traversal().V()
+                    .has("hiddenName", "same").toSet());
+            ConditionQuery query = new ConditionQuery(HugeType.VERTEX);
+            query.query(Condition.eq(graph().propertyKey("hiddenName").id(), "same"));
+            this.assertEmptyPage(query.copy());
+            query.showHidden(true);
+            Assert.assertEquals(ImmutableSet.of(vertex), ImmutableSet.copyOf(graph().vertices(query)));
+            schema.indexLabel("hiddenByName").remove();
+            Assert.assertEquals(ImmutableSet.of(), graph().traversal().V()
+                    .has("hiddenName", "same").toSet());
+            Assert.assertThrows(NoIndexException.class, () -> graph().vertices(query).hasNext());
+        } finally {
+            // System schema cannot be deleted individually. Reset the test
+            // graph so the hidden label cannot retain this test's property key.
+            CoreTestSuite.clear();
+        }
+    }
+
+    @Test
     public void testIndexStatusAndRebuild() {
         this.nameIndex("coverageA");
         this.nameIndex("coverageB");
@@ -550,6 +690,20 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
         schema.indexLabel("subBByName").onE("subB").by("coverageName").secondary().create();
         Assert.assertEquals(2,
                             graph().traversal().E().has("coverageName", "same").toList().size());
+
+        SchemaLabel subA = schema.getEdgeLabel("subA");
+        try {
+            this.params().schemaTransaction().updateSchemaStatus(subA, SchemaStatus.DELETING);
+            this.params().schemaTransaction().updateSchemaStatus(deleting, SchemaStatus.DELETING);
+            schema.indexLabel("subAByName").remove();
+            schema.indexLabel("subBByName").remove();
+            // The visible base label has no direct records of its own.
+            Assert.assertEquals(ImmutableSet.of(), graph().traversal().E()
+                    .has("coverageName", "same").toSet());
+        } finally {
+            this.params().schemaTransaction().updateSchemaStatus(subA, SchemaStatus.CREATED);
+            this.params().schemaTransaction().updateSchemaStatus(deleting, SchemaStatus.CREATED);
+        }
     }
 
     @Test
@@ -582,6 +736,22 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
         String continuation = resume;
         graph().schema().indexLabel("coverageBByName").remove();
         Assert.assertThrows(NoIndexException.class, () -> this.page(continuation));
+    }
+
+    private void assertEmptyPage(ConditionQuery query) {
+        if (!storeFeatures().supportsQueryByPage()) {
+            return;
+        }
+        query.limit(1);
+        query.page("");
+        Iterator<?> iterator = query.resultType().isVertex() ? graph().vertices(query) :
+                               graph().edges(query);
+        try {
+            Assert.assertFalse(iterator.hasNext());
+            Assert.assertNull(PageInfo.pageInfo(iterator));
+        } finally {
+            CloseableIterator.closeIterator(iterator);
+        }
     }
 
     private ConditionQuery pageQuery(String page) {

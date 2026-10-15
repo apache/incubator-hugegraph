@@ -9344,36 +9344,41 @@ public class VertexCoreTest extends BaseCoreTest {
                                     "age", 20, "city", "Beijing");
         Vertex person = graph.addVertex(T.label, "person", "name", "loop-person",
                                        "age", 20, "city", "Beijing");
-        fan.addEdge("fanLoop", fan);
+        Edge fanEdge = fan.addEdge("fanLoop", fan);
         Edge personEdge = person.addEdge("personLoop", person);
         this.commitTx();
 
         GraphTraversalSource g = graph.traversal();
-        // The existing source query uses only indexed labels. #3201 tracks
-        // complete cross-label candidates; a later label must not change this
-        // source query's behavior solely because it follows an adjacency step.
+        // A downstream label filter cannot repair incomplete source coverage.
+        Assert.assertThrows(NoIndexException.class, () ->
+                g.V().has("city", "Beijing").out().hasLabel(P.neq("author")).toSet());
+        for (String label : new String[]{"fan", "follower", "returnFan"}) {
+            graph.schema().indexLabel(label + "ByCity").onV(label)
+                 .by("city").secondary().create();
+        }
         Set<Vertex> source = g.V().has("city", "Beijing").toSet();
-        Assert.assertEquals(ImmutableSet.of(person), source);
+        Assert.assertEquals(ImmutableSet.of(person, fan), source);
         Assert.assertEquals(source, g.V().has("city", "Beijing").out().toSet());
-        Assert.assertEquals(source, g.V().has("city", "Beijing")
+        Assert.assertEquals(ImmutableSet.of(person), g.V().has("city", "Beijing")
                 .out().hasLabel("person").toSet());
         Assert.assertEquals(source, g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).toSet());
         Assert.assertEquals(source, g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).dedup().toSet());
-        Assert.assertEquals(ImmutableList.of(person), g.V().has("city", "Beijing")
+        Assert.assertEquals(ImmutableList.of(fan, person), g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).order().by("name").toList());
-        Assert.assertEquals(source, g.V().has("city", "Beijing")
-                .out().hasLabel(P.neq("author")).tail(1).toSet());
+        Assert.assertEquals(ImmutableSet.of(person), g.V().has("city", "Beijing")
+                .out().hasLabel(P.neq("author")).order().by("name").tail(1).toSet());
         Assert.assertEquals(source, g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).fold().unfold().toSet());
-        Assert.assertEquals(ImmutableList.of(20), g.V().has("city", "Beijing")
+        Assert.assertEquals(ImmutableList.of(20, 20), g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).values("age").is(P.gt(1)).toList());
-        Assert.assertEquals(ImmutableList.of(1), g.V().has("city", "Beijing")
+        Assert.assertEquals(ImmutableList.of(1, 1), g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).constant(1).toList());
         Assert.assertEquals(source, g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).sample(2).toSet());
-        Assert.assertEquals(ImmutableMap.of("person", ImmutableList.of(person)), g.V()
+        Assert.assertEquals(ImmutableMap.of("person", ImmutableList.of(person),
+                                            "returnFan", ImmutableList.of(fan)), g.V()
                 .has("city", "Beijing").out().hasLabel(P.neq("author")).group().by(T.label).next());
         Assert.assertEquals(source, g.V().has("city", "Beijing")
                 .out().hasLabel(P.neq("author")).aggregate("x").toSet());
@@ -9387,13 +9392,13 @@ public class VertexCoreTest extends BaseCoreTest {
                 .out().inE().outV().hasLabel(P.neq("author")).toSet());
         Assert.assertEquals(source, g.V().has("city", "Beijing")
                 .where(__.out().in().hasLabel(P.neq("author"))).toSet());
-        Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
+        Assert.assertEquals(ImmutableSet.of(personEdge, fanEdge), g.V().has("city", "Beijing")
                 .outE().hasLabel(P.neq("knows")).toSet());
-        Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
+        Assert.assertEquals(ImmutableSet.of(personEdge, fanEdge), g.V().has("city", "Beijing")
                 .outE().hasLabel(P.neq("knows")).dedup().toSet());
         Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
-                .outE().hasLabel(P.neq("knows")).tail(1).toSet());
-        Assert.assertEquals(ImmutableSet.of(personEdge), g.V().has("city", "Beijing")
+                .outE().hasLabel(P.neq("knows")).order().by(T.label).tail(1).toSet());
+        Assert.assertEquals(ImmutableSet.of(personEdge, fanEdge), g.V().has("city", "Beijing")
                 .outE().hasLabel(P.neq("knows")).fold().unfold().toSet());
         Assert.assertEquals(source, g.V().has("city", "Beijing")
                 .where(__.out().hasLabel(P.neq("author")).tail(1)).toSet());
@@ -9544,6 +9549,12 @@ public class VertexCoreTest extends BaseCoreTest {
         source.addEdge("link", target);
         this.commitTx();
         GraphTraversalSource g = graph.traversal();
+        Assert.assertThrows(NoIndexException.class, () ->
+                g.V().has("city", "Beijing").out().hasLabel(P.neq("indexed")).toSet());
+        for (String label : new String[]{"person", "fan", "follower"}) {
+            graph.schema().indexLabel(label + "ByCity").onV(label)
+                 .by("city").secondary().create();
+        }
         for (GraphTraversal<Vertex, Vertex> query : ImmutableList.of(
                 g.V().has("city", "Beijing").out().hasLabel(P.neq("indexed")),
                 g.V().has("city", "Beijing").out().where(__.not(__.hasLabel("indexed"))))) {
@@ -9670,6 +9681,12 @@ public class VertexCoreTest extends BaseCoreTest {
         source.addEdge("link", target);
         this.commitTx();
         GraphTraversalSource g = graph.traversal();
+        Assert.assertThrows(NoIndexException.class, () -> g.V().has("age", P.gte(60))
+                .out().hasLabel(P.neq("indexed")).count().next());
+        for (String label : new String[]{"person", "author", "fan", "follower", "unindexed"}) {
+            graph.schema().indexLabel(label + "ByAge").onV(label)
+                 .by("age").range().create();
+        }
         List<GraphTraversal<?, ?>> queries = ImmutableList.of(
                 g.V().has("age", P.gte(60)).out().hasLabel(P.neq("indexed")).count(),
                 g.V().has("age", P.gte(60)).out().where(__.not(__.hasLabel("indexed"))).count(),

@@ -251,6 +251,32 @@ without a preceding REST graph query, and subsequent REST queries must remain us
 Gremlin scripts still cannot read restricted system properties such as `java.version`
 or disable the security manager.
 
+### Property-query index coverage
+
+A global property query such as `g.V().has("name", "alice")` or
+`g.E().has("weight", 0.5)` requires compatible indexes on every visible candidate
+label. A candidate declares all queried non-OLAP properties; even a label with no
+records requires coverage. Base edge labels have no direct records; their indexes
+can cover sub-labels. Shared OLAP indexes follow the graph read mode.
+
+| Candidate state | Query behavior |
+| --- | --- |
+| Every visible candidate has compatible indexes | The query combines the indexed results. Composite and joint index plans may serve different labels in the same query. |
+| A visible candidate lacks a compatible index | The query fails with `NoIndexException`, including when other candidates are hidden or deleting. |
+| Every candidate is excluded by visibility | The query returns an empty result, including after those labels' indexes have been removed. |
+
+Normal queries exclude hidden labels and labels in `DELETING` or `UNDELETED`
+status. Internal requests that enable `showHidden` or `showDeleting` include the
+corresponding labels and still require their indexes. Visibility follows the outer
+request when a query is split into subqueries. Index state and complete coverage
+are checked before backend iterators are opened; this does not provide a snapshot
+against concurrent schema changes.
+
+To fix incomplete coverage, specify an indexed label, for example
+`g.V().hasLabel("person").has("name", "alice")`, or add indexes compatible with the
+query predicates to every candidate label. Explicit-ID lookups and adjacency
+filtering do not introduce a global property-index coverage requirement.
+
 ### Predicate and value compatibility
 
 Version-specific handling retains negated predicates and filtering barriers where
