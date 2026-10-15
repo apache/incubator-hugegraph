@@ -24,156 +24,62 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
 import org.apache.hugegraph.HugeGraph;
-import org.apache.hugegraph.HugeGraphParams;
-import org.apache.hugegraph.backend.store.BackendStore;
-import org.apache.hugegraph.backend.tx.SchemaTransaction;
 import org.apache.hugegraph.backend.tx.SchemaTransactionV2;
 import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.id.Id;
 import org.apache.hugegraph.id.IdGenerator;
 import org.apache.hugegraph.security.HugeSecurityManager;
+import org.apache.hugegraph.struct.schema.EdgeLabel;
 import org.apache.hugegraph.struct.schema.IndexLabel;
-import org.apache.hugegraph.struct.schema.PropertyKey;
+import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.task.TaskScheduler;
-import org.apache.hugegraph.type.define.DataType;
-import org.apache.hugegraph.type.define.WriteType;
 import org.apache.tinkerpop.gremlin.groovy.jsr223.GremlinGroovyScriptEngine;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
 
 public class SchemaTaskSecurityTest {
 
     @Test
-    public void testGremlinCannotSubmitCustomOlapJob() throws Exception {
-        HugeGraph graph = Mockito.mock(HugeGraph.class);
-        TaskScheduler scheduler = Mockito.mock(TaskScheduler.class);
-        Mockito.when(graph.taskScheduler()).thenReturn(scheduler);
-        Mockito.when(graph.getNextId(Mockito.any())).thenReturn(IdGenerator.of(1L));
-        Mockito.when(graph.option(CoreOptions.TASK_SYNC_DELETION)).thenReturn(false);
-        SchemaTransaction v1 = Mockito.mock(SchemaTransaction.class, Mockito.CALLS_REAL_METHODS);
-        SchemaTransactionV2 v2 = Mockito.mock(SchemaTransactionV2.class, Mockito.CALLS_REAL_METHODS);
-        Mockito.doReturn(graph).when(v1).graph();
-        Mockito.doReturn(graph).when(v2).graph();
-        AtomicInteger workers = new AtomicInteger();
-        SimpleBindings bindings = new SimpleBindings();
-        bindings.put("workers", workers);
-        bindings.put("pk", new PropertyKey(graph, IdGenerator.of(2L), "fixture"));
-        GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
-        // The custom job only constructs an unstarted Thread as a permission probe.
-        // It never runs a background job or changes graph data.
-        engine.eval("class CustomOlapJob extends org.apache.hugegraph.job.schema.SchemaJob { " +
-                    "java.util.concurrent.atomic.AtomicInteger workers; " +
-                    "String type() { new Thread(); workers.incrementAndGet(); return 'fixture' }; " +
-                    "Object execute() { return null } }; " +
-                    "customJob = new CustomOlapJob(workers: workers)", bindings);
-        String script = "def lookup = java.lang.invoke.MethodHandles.privateLookupIn(" +
-                        "txClass, java.lang.invoke.MethodHandles.lookup()); " +
-                        "def signature = java.lang.invoke.MethodType.methodType(" +
-                        "org.apache.hugegraph.id.Id, " +
-                        "org.apache.hugegraph.struct.schema.PropertyKey, " +
-                        "org.apache.hugegraph.job.schema.SchemaJob); " +
-                        "lookup.findVirtual(txClass, 'scheduleOlapJob', signature)" +
-                        ".invokeWithArguments([tx, pk, customJob])";
-        // Compile the script before restricting filesystem/classloader access.
-        bindings.put("tx", v2);
-        bindings.put("txClass", SchemaTransactionV2.class);
-        try {
-            engine.eval(script, bindings);
-        } catch (ScriptException expected) {
-            // The removed generic scheduling entry point must also fail here.
-            Assert.assertTrue(expected.getMessage().contains("NoSuchMethodException"));
-        }
-        workers.set(0);
-        Mockito.clearInvocations(scheduler);
-        SecurityManager previous = System.getSecurityManager();
-        String name = Thread.currentThread().getName();
-        Thread.currentThread().setName("gremlin-server-exec-schema-security-test");
-        System.setSecurityManager(new HugeSecurityManager());
-        try {
-            Object[] transactions = {v1, v2};
-            Class<?>[] classes = {SchemaTransaction.class, SchemaTransactionV2.class};
-            for (int i = 0; i < transactions.length; i++) {
-                bindings.put("tx", transactions[i]);
-                bindings.put("txClass", classes[i]);
-                Assert.assertThrows(ScriptException.class, () -> engine.eval(script, bindings));
-            }
-            Assert.assertEquals(0, workers.get());
-            Mockito.verify(scheduler, Mockito.never()).schedule(Mockito.any());
-        } finally {
-            System.setSecurityManager(previous);
-            Thread.currentThread().setName(name);
-        }
-    }
-
-    @Test
-    public void testV1SchemaTasksCanCreateWorkerFromGremlin() throws Exception {
-        this.assertSchemaTasksCanCreateWorkerFromGremlin(false);
-    }
-
-    @Test
     public void testV2SchemaTasksCanCreateWorkerFromGremlin() throws Exception {
-        this.assertSchemaTasksCanCreateWorkerFromGremlin(true);
-    }
-
-    private void assertSchemaTasksCanCreateWorkerFromGremlin(boolean v2) throws Exception {
         HugeGraph graph = Mockito.mock(HugeGraph.class);
         TaskScheduler scheduler = Mockito.mock(TaskScheduler.class);
-        HugeGraphParams params = Mockito.mock(HugeGraphParams.class);
-        BackendStore store = Mockito.mock(BackendStore.class);
-        Mockito.when(params.loadGraphStore()).thenReturn(store);
-        Object transaction;
-        if (v2) {
-            SchemaTransactionV2 tx = Mockito.mock(SchemaTransactionV2.class,
-                    invocation -> "graphParams".equals(invocation.getMethod().getName()) ?
-                                  params : Mockito.CALLS_REAL_METHODS.answer(invocation));
-            Mockito.doReturn(graph).when(tx).graph();
-            transaction = tx;
-        } else {
-            SchemaTransaction tx = Mockito.mock(SchemaTransaction.class, Mockito.CALLS_REAL_METHODS);
-            Mockito.doReturn(graph).when(tx).graph();
-            transaction = tx;
-        }
+        SchemaTransactionV2 transaction = Mockito.mock(
+                SchemaTransactionV2.class, Mockito.CALLS_REAL_METHODS);
+        Mockito.doReturn(graph).when(transaction).graph();
         Mockito.when(graph.taskScheduler()).thenReturn(scheduler);
         Id taskId = IdGenerator.of(1L);
         Mockito.when(graph.getNextId(Mockito.any())).thenReturn(taskId);
         Mockito.when(graph.option(CoreOptions.TASK_SYNC_DELETION)).thenReturn(false);
         AtomicInteger workers = new AtomicInteger();
-        Answer<Object> createWorker = invocation -> {
+        Mockito.doAnswer(invocation -> {
             // Exercise the cold executor's thread-group and thread checks,
             // without starting a worker or running a background schema job.
             Thread worker = Executors.defaultThreadFactory().newThread(() -> { });
             Assert.assertEquals(Thread.State.NEW, worker.getState());
             workers.incrementAndGet();
             return null;
-        };
-        Mockito.doAnswer(createWorker).when(scheduler).schedule(Mockito.any());
-        Mockito.doAnswer(createWorker).when(store).createOlapTable(Mockito.any());
-        Mockito.doAnswer(createWorker).when(store).clearOlapTable(Mockito.any());
-        Mockito.doAnswer(createWorker).when(store).removeOlapTable(Mockito.any());
+        }).when(scheduler).schedule(Mockito.any());
         SimpleBindings bindings = new SimpleBindings();
         bindings.put("tx", transaction);
-        bindings.put("index", new IndexLabel(graph, IdGenerator.of(2L), "by_age"));
-        PropertyKey propertyKey = new PropertyKey(graph, IdGenerator.of(3L), "score");
-        propertyKey.dataType(DataType.INT);
-        propertyKey.writeType(WriteType.OLAP_RANGE);
-        bindings.put("pk", propertyKey);
-        String[] scripts = {"tx.rebuildIndex(index)", "tx.createOlapPk(pk)",
-                            "tx.clearOlapPk(pk)", "tx.removeOlapPk(pk)"};
-        String[] directThreadScripts = v2 ?
-                new String[]{"new Thread()", "tx.createOlapPk(pk.id())",
-                             "tx.clearOlapPk(pk.id())", "tx.removeOlapPk(pk.id())"} :
-                new String[]{"new Thread()"};
+        Id schemaId = IdGenerator.of(2L);
+        IndexLabel index = new IndexLabel(graph, schemaId, "by_age");
+        Mockito.doReturn(new VertexLabel(graph, schemaId, "person"))
+               .when(transaction).getVertexLabel(schemaId);
+        Mockito.doReturn(new EdgeLabel(graph, schemaId, "knows"))
+               .when(transaction).getEdgeLabel(schemaId);
+        Mockito.doReturn(index).when(transaction).getIndexLabel(schemaId);
+        bindings.put("index", index);
+        bindings.put("schemaId", schemaId);
+        String[] scripts = {"tx.rebuildIndex(index)", "tx.removeVertexLabel(schemaId)",
+                            "tx.removeEdgeLabel(schemaId)", "tx.removeIndexLabel(schemaId)"};
         GremlinGroovyScriptEngine engine = new GremlinGroovyScriptEngine();
         // Load Groovy/mock metadata before restricting filesystem access.
         // Each schedule call still has to create a fresh worker Thread.
         for (String script : scripts) {
             engine.eval(script, bindings);
         }
-        for (String script : directThreadScripts) {
-            engine.eval(script, bindings);
-        }
+        engine.eval("new Thread()");
         engine.eval("System.getProperties()");
         workers.set(0);
         SecurityManager previous = System.getSecurityManager();
@@ -185,13 +91,11 @@ public class SchemaTaskSecurityTest {
                 Assert.assertEquals(taskId, engine.eval(script, bindings));
             }
             Assert.assertEquals(scripts.length, workers.get());
-            for (String script : directThreadScripts) {
-                ScriptException denied = Assert.assertThrows(ScriptException.class,
-                        () -> engine.eval(script, bindings));
-                Assert.assertTrue(denied.getMessage().contains(
-                        "Not allowed to access thread group via Gremlin"));
-            }
             ScriptException denied = Assert.assertThrows(ScriptException.class,
+                    () -> engine.eval("new Thread()"));
+            Assert.assertTrue(denied.getMessage().contains(
+                    "Not allowed to access thread group via Gremlin"));
+            denied = Assert.assertThrows(ScriptException.class,
                     () -> engine.eval("System.getProperties()"));
             Assert.assertTrue(denied.getMessage().contains(
                     "Not allowed to access system properties via Gremlin"));

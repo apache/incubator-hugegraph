@@ -598,7 +598,8 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public Id removeOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction remove olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        return this.scheduleOlapRemoveJob(propertyKey);
+        SchemaJob job = new OlapPropertyKeyRemoveJob();
+        return asyncRun(this.graph(), propertyKey, job);
     }
 
     public void removeOlapPk(Id id) {
@@ -608,7 +609,8 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public Id clearOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction clear olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        return this.scheduleOlapClearJob(propertyKey);
+        SchemaJob job = new OlapPropertyKeyClearJob();
+        return asyncRun(this.graph(), propertyKey, job);
     }
 
     public void clearOlapPk(Id id) {
@@ -618,19 +620,8 @@ public class SchemaTransactionV2 implements ISchemaTransaction {
     public Id createOlapPk(PropertyKey propertyKey) {
         LOG.debug("SchemaTransaction create olap property key {} with id '{}'",
                   propertyKey.name(), propertyKey.id());
-        return this.scheduleOlapCreateJob(propertyKey);
-    }
-
-    private Id scheduleOlapCreateJob(PropertyKey propertyKey) {
-        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyCreateJob());
-    }
-
-    private Id scheduleOlapClearJob(PropertyKey propertyKey) {
-        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyClearJob());
-    }
-
-    private Id scheduleOlapRemoveJob(PropertyKey propertyKey) {
-        return asyncRun(this.graph(), propertyKey, new OlapPropertyKeyRemoveJob());
+        SchemaJob job = new OlapPropertyKeyCreateJob();
+        return asyncRun(this.graph(), propertyKey, job);
     }
 
     // -- store related methods, divided into two categories:
