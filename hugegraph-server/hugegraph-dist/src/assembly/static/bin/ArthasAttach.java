@@ -47,6 +47,8 @@ class ArthasAttach {
             if (!server && !store) {
                 throw new IllegalArgumentException("PID does not identify a Server or Store in this distribution");
             }
+            // Allow exit cleanup only after this distribution's target has been validated.
+            Files.createFile(Path.of(args[4]));
             // FeatureCodec drops blank values. Pin a private properties file
             // first so target system/env configuration cannot restore MCP/tunnel.
             configFile = Files.createTempFile("hugegraph-arthas-", ".properties");

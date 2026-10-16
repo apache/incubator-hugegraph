@@ -23,7 +23,7 @@ usage() {
     echo "Usage: $0 [--pid PID] [--telnet-port PORT] [--command COMMAND]"
     echo "Run as the service OS user; defaults to bin/pid and loopback port 3658."
     echo "New agents disable HTTP/MCP; use the existing telnet port for an active agent."
-    echo "Use 'quit' to disconnect, 'stop' to stop Arthas."
+    echo "Exiting this helper stops Arthas, including after --command or quit; the JVM keeps running."
 }
 
 BIN=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -54,7 +54,62 @@ fi
 JAVA=${JAVA_HOME:+$JAVA_HOME/bin/}java
 ARTHAS="$TOP/lib/arthas"
 [ -f "$ARTHAS/arthas-boot.jar" ] || fail "Bundled Arthas files are missing from lib/arthas"
-"$JAVA" --add-modules jdk.attach --class-path "$ARTHAS/arthas-core.jar" \
-    "$BIN/ArthasAttach.java" "$pid" "$ARTHAS" "$port" "$TOP"
 boot_args+=(--arthas-home "$ARTHAS" --target-ip 127.0.0.1 --telnet-port "$port" --http-port -1 "$pid")
-"$JAVA" -jar "$ARTHAS/arthas-boot.jar" "${boot_args[@]}"
+# Keep the listener within this diagnosis session. Verify its PID before stopping
+# it, since an occupied port must never stop a different application's agent.
+state_dir=$(mktemp -d)
+client_pid=""
+attaching=true
+# The native client's -t option does not bound its final response wait.
+bounded_client() {
+    "$JAVA" -jar "$ARTHAS/arthas-client.jar" -t 5000 -c "$1" 127.0.0.1 "$port" &
+    local command_pid=$!
+    (sleep 10; kill -KILL "$command_pid" 2>/dev/null) >/dev/null 2>&1 &
+    local timer_pid=$!
+    local status=0
+    wait "$command_pid" || status=$?
+    kill "$timer_pid" 2>/dev/null || true
+    wait "$timer_pid" 2>/dev/null || true
+    return "$status"
+}
+stop_agent() {
+    local session
+    if ! session=$(bounded_client session 2>&1); then
+        if [[ "$session" != *"Connection refused"* ]]; then
+            echo "Warning: could not verify Arthas cleanup; check port $port and stop it manually" >&2
+        fi
+        return 0
+    fi
+    if [[ "$session" =~ JAVA_PID[[:space:]]+$pid([[:space:]]|$) ]]; then
+        bounded_client stop >/dev/null 2>&1 ||
+            echo "Warning: could not stop Arthas; run the helper with --command stop" >&2
+    fi
+}
+cleanup() {
+    trap - EXIT INT TERM HUP
+    if [ -n "$client_pid" ]; then
+        # Let an in-flight loadAgent finish before checking/closing its listener.
+        if [ "$attaching" = false ]; then
+            kill "$client_pid" 2>/dev/null || true
+        fi
+        wait "$client_pid" 2>/dev/null || true
+    fi
+    if [ -f "$state_dir/validated" ]; then
+        stop_agent
+    fi
+    rm -f "$state_dir/validated"
+    rmdir "$state_dir"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
+"$JAVA" --add-modules jdk.attach --class-path "$ARTHAS/arthas-core.jar" \
+    "$BIN/ArthasAttach.java" "$pid" "$ARTHAS" "$port" "$TOP" "$state_dir/validated" <&0 &
+client_pid=$!
+wait "$client_pid"
+attaching=false
+"$JAVA" -jar "$ARTHAS/arthas-boot.jar" "${boot_args[@]}" <&0 &
+client_pid=$!
+wait "$client_pid"
+client_pid=""

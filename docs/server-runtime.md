@@ -100,20 +100,32 @@ cache, service restarts or configuration edits. A new local agent listens on
 `127.0.0.1:3658`, with HTTP, MCP and reverse tunnels disabled. Use `--pid` or
 `--telnet-port` for another running instance, and `--command version` for a one-time
 command. Run `bin/arthas.sh --help` for usage.
+When the helper exits, including after `--command`, `quit`, or INT/TERM/HUP, it
+stops the agent and all its diagnostic sessions; the application JVM keeps running.
+SIGKILL or a host failure cannot run this cleanup: stop any surviving agent manually.
 For remote diagnosis, log in to the service host over SSH and run the same command.
+Official Server (including HStore) and Store images include JDK 17, so the same
+helper works inside the container, for example
+`docker exec -it <store-container> /hugegraph-store/bin/arthas.sh`.
+A JRE-only installation needs JDK 17 for this helper.
 If the Server API has already activated Arthas, connect to its existing telnet
 port instead: `bin/arthas.sh --telnet-port 8562` with the default configuration.
 An already running agent retains its listener settings. To switch to the helper's
 HTTP-disabled defaults, run `bin/arthas.sh --telnet-port 8562 --command stop`, then
 `bin/arthas.sh`; this stops only Arthas, and leaves the service JVM running.
-Arthas can execute code inside the JVM: access to the service's OS account and any
-SSH forwards must be restricted to trusted operators. A disabled-command list is
-not a substitute for that access control.
+Arthas can execute code inside the JVM. OS attach permissions control initial
+activation, but do not authenticate later connections to its loopback listener:
+other OS users and containers in the same Pod can connect during diagnosis.
+Only use it on a trusted host/Pod, restrict SSH forwarding, and avoid concurrent
+helper sessions because exiting one stops the shared agent. A disabled-command
+list is not a substitute for access control.
 
 Authenticated Server administrators can continue using `PUT /arthas` without an
 additional enable switch or restart. Its HTTP/telnet interfaces remain local to
 the host; HugeGraph disables the optional MCP endpoint. The activation response
-still contains the same four Arthas configuration keys.
+still contains the same four Arthas configuration keys. API activation alone
+leaves the agent running until an operator sends `stop`; connecting through the
+helper applies the helper's exit cleanup to that existing agent too.
 
 The existing `arthas.ip`, `arthas.httpPort`, `arthas.telnetPort` and
 `arthas.disabledCommands` options configure the Server API-activated agent.

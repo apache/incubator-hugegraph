@@ -15,39 +15,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Usage: bash test-arthas-cli.sh <built-server-distribution>
+# Usage: bash test-arthas-cli.sh <built-server-or-store-distribution>
 # Real native attachment; all processes and files below belong to this test.
 set -euo pipefail
-[ "$#" -eq 1 ] || { echo "Supply a built Server distribution" >&2; exit 1; }
+[ "$#" -eq 1 ] || { echo "Supply a built Server or Store distribution" >&2; exit 1; }
 python3 - "$1" <<'PY'
 import os
 import pathlib
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 
 built = pathlib.Path(sys.argv[1]).resolve()
+store = (built / "bin/start-hugegraph-store.sh").is_file()
+component = "Store" if store else "Server"
+startup = "start-hugegraph-store.sh" if store else "start-hugegraph.sh"
+other_startup = "start-hugegraph.sh" if store else "start-hugegraph-store.sh"
+assert (built / "bin" / startup).is_file(), f"Not a Server or Store distribution: {built}"
 java_home = os.environ.get("JAVA_HOME")
 java = str(pathlib.Path(java_home) / "bin/java") if java_home else "java"
 javac = str(pathlib.Path(java_home) / "bin/javac") if java_home else "javac"
 with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
-    root = pathlib.Path(work) / "native fixture"
+    root = (pathlib.Path(work) / "native fixture").resolve()
     for name in ("bin", "lib", "classes", "client-temp"):
         (root / name).mkdir(parents=True)
     for name in ("arthas.sh", "ArthasAttach.java"):
         shutil.copy(built / "bin" / name, root / "bin" / name)
     (root / "lib/arthas").symlink_to(built / "lib/arthas", target_is_directory=True)
-    (root / "bin/start-hugegraph.sh").touch()
-    source = root / "HugeGraphServerBootstrap.java"
-    source.write_text("package org.apache.hugegraph.bootstrap; "
-                      "public class HugeGraphServerBootstrap { "
+    (root / "bin" / startup).touch()
+    main = ("org.apache.hugegraph.store.node.StoreNodeApplication" if store else
+            "org.apache.hugegraph.bootstrap.HugeGraphServerBootstrap")
+    package, name = main.rsplit(".", 1)
+    source = root / f"{name}.java"
+    source.write_text(f"package {package}; public class {name} {{ "
                       "public static void main(String[] args) throws Exception { "
                       "Thread.sleep(120000); }}")
     subprocess.run([javac, "-d", str(root / "classes"), str(source)], check=True)
+    if store:
+        # Store starts from an executable jar; exercise that PID validation path
+        # using the built distribution's real bundled agent and attach helper.
+        fixture_jar = root / "lib/hg-store-node-fixture.jar"
+        with zipfile.ZipFile(fixture_jar, "w") as jar:
+            jar.writestr("META-INF/MANIFEST.MF", f"Manifest-Version: 1.0\nMain-Class: {main}\n\n")
+            for compiled in (root / "classes").rglob("*.class"):
+                jar.write(compiled, compiled.relative_to(root / "classes"))
+        launch = ["-jar", str(fixture_jar)]
+    else:
+        launch = ["-cp", str(root / "classes"), main]
     reservations = [socket.socket() for _ in range(3)]
     for reservation in reservations:
         reservation.bind(("127.0.0.1", 0))
@@ -68,7 +88,7 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                       ARTHAS_TUNNELSERVER=tunnel_url, ARTHAS_TUNNEL_SERVER=tunnel_url)
     target_env["arthas.config.location"] = str(unsafe)
     target_env["arthas.tunnelServer"] = tunnel_url
-    client_env = dict(os.environ, JAVA_TOOL_OPTIONS=f'-Djava.io.tmpdir="{root / "client-temp"}"')
+    client_env = dict(os.environ, TMPDIR=str(root / "client-temp"), JAVA_TOOL_OPTIONS=f'-Djava.io.tmpdir="{root / "client-temp"}"')
     script = ["bash", str(root / "bin/arthas.sh")]
     client = script + ["--telnet-port", str(safe_port)]
 
@@ -85,13 +105,18 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
         except OSError:
             return False
 
+    def wait_port(opened):
+        deadline = time.monotonic() + 15
+        while can_connect("127.0.0.1", safe_port) != opened:
+            assert time.monotonic() < deadline, f"Listener did not become {'open' if opened else 'closed'}"
+            time.sleep(0.1)
+
+    interactive = None
     with (root / "jvm.log").open("w") as log:
         process = subprocess.Popen([java, "-Darthas.config.location=" + str(unsafe),
                                     "-Darthas.config.overrideAll=true", "-Darthas.ip=0.0.0.0",
                                     "-Darthas.tunnelServer=" + tunnel_url,
-                                    "-cp", str(root / "classes"),
-                                    "org.apache.hugegraph.bootstrap.HugeGraphServerBootstrap",
-                                    "fixture"], env=target_env, stdout=log, stderr=subprocess.STDOUT)
+                                    *launch, "fixture"], env=target_env, stdout=log, stderr=subprocess.STDOUT)
         try:
             (root / "bin/pid").write_text(str(process.pid))
             time.sleep(1)
@@ -100,15 +125,21 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                             ["--http-port", "8563"], ["--tunnel-server", tunnel_url]):
                 run(script + options, success=False)
             # A live PID from a different component must not receive the agent.
-            (root / "bin/start-hugegraph.sh").unlink()
-            (root / "bin/start-hugegraph-store.sh").touch()
+            (root / "bin" / startup).unlink()
+            (root / "bin" / other_startup).touch()
             run(client + ["--command", "version"], success=False)
-            (root / "bin/start-hugegraph-store.sh").unlink()
-            (root / "bin/start-hugegraph.sh").touch()
+            (root / "bin" / other_startup).unlink()
+            (root / "bin" / startup).touch()
             output = run(client + ["--pid", str(process.pid), "--command", "version"])
             assert re.search(r"\n4\.1\.5\s*\n", output), output
-            assert f"Process {process.pid} already using port {safe_port}" in output, output
-            assert can_connect("127.0.0.1", safe_port)
+            assert (f"Process {process.pid} already using port {safe_port}" in output or
+                    f"The target process already listen port {safe_port}, skip attach." in output), output
+            wait_port(False)
+            assert process.poll() is None, "One-time diagnosis stopped the application JVM"
+            # Keep a real interactive client open while inspecting the live agent.
+            interactive = subprocess.Popen(client, env=client_env, text=True, stdin=subprocess.PIPE,
+                                           stdout=log, stderr=subprocess.STDOUT)
+            wait_port(True)
             assert not can_connect("127.0.0.1", unsafe_telnet)
             assert not can_connect("127.0.0.1", unsafe_http)
             try:
@@ -141,12 +172,34 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                 listeners = subprocess.check_output(["lsof", "-nP", "-a", "-p", str(process.pid),
                                                      "-iTCP", "-sTCP:LISTEN"], text=True).splitlines()[1:]
                 assert len(listeners) == 1 and f"127.0.0.1:{safe_port} " in listeners[0], listeners
+            interactive.communicate("quit\n", timeout=45)
+            assert interactive.returncode == 0, (root / "jvm.log").read_text()
+            wait_port(False)
+            # Signals sent only to the helper must also clean up its child/client.
+            for termination in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+                interactive = subprocess.Popen(client, env=client_env, text=True, stdin=subprocess.PIPE,
+                                               stdout=log, stderr=subprocess.STDOUT)
+                if termination == signal.SIGTERM:
+                    # Terminate during source compilation/attachment, before a listener exists.
+                    time.sleep(0.2)
+                else:
+                    wait_port(True)
+                interactive.send_signal(termination)
+                interactive.communicate(timeout=30)
+                assert interactive.returncode == 128 + termination, interactive.returncode
+                wait_port(False)
             run(client + ["--command", "stop"])
+            wait_port(False)
             assert process.poll() is None, "Stopping Arthas stopped the application JVM"
             assert not can_connect("127.0.0.1", safe_port)
             assert not list((root / "client-temp").glob("hugegraph-arthas-*.properties"))
-            print("PASS: PID/argument boundaries, hostile config, local-only agent, no tunnel, stop without restart")
+            assert not list((root / "client-temp").glob("tmp.*")), "Helper state was not removed"
+            print(f"PASS: {component} PID/argument boundaries, hostile config, local-only agent, no tunnel, "
+                  "command/quit/signal cleanup without restart")
         finally:
+            if interactive is not None and interactive.poll() is None:
+                interactive.kill()
+                interactive.communicate(timeout=10)
             tunnel.close()
             process.terminate()
             try:

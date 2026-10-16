@@ -374,6 +374,12 @@ jobs:
         run: |
           mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp --fail-at-end
 
+      - name: Verify Store Arthas local CLI attachment
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          STORE_DIR=hugegraph-store/apache-hugegraph-store-$VERSION
+          bash "$TRAVIS_DIR/test-arthas-cli.sh" "$STORE_DIR"
+
       - name: Verify Surefire single-class routing
         run: |
           SUREFIRE_DIR=hugegraph-store/hg-store-test/target/surefire-reports
