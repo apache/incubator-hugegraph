@@ -62,6 +62,8 @@ public class TaskScheduleService {
     private final long TurnOffAndBalanceInterval = 30 * 60 * 1000;
     // leader balances the time interval
     private final long BalanceLeaderInterval = 30 * 1000;
+    // Stores send partition heartbeats every 5 seconds; older stats no longer show a live leader
+    private static final long BALANCE_LEADER_STATS_MAX_AGE = 30 * 1000;
     private final PDConfig pdConfig;
     private final long clusterStartTime;
     private StoreNodeService storeService;
@@ -608,9 +610,10 @@ public class TaskScheduleService {
     /**
      * The periodic entry of leader balancing. Calls balancePartitionLeader only when the
      * leader count per store has drifted further apart than pd.balance-leader-max-skew, so a
-     * balanced cluster sees no transfers. Skipped while a shard group is not Normal or a store
-     * that holds a shard is not active, because the target distribution would include a store
-     * that cannot take a leader.
+     * balanced cluster sees no transfers. Skipped while a shard group is not Normal, has no
+     * recent partition heartbeat or has a shard that is neither Leader nor Follower, or while a
+     * store that holds a shard is not active, because the target distribution would include a
+     * replica that cannot take a leader.
      *
      * @return shard group id -> the store id its leader was moved to; empty when skipped
      */
@@ -627,6 +630,7 @@ public class TaskScheduleService {
         Set<Long> activeStores = storeService.getActiveStores().stream()
                                              .map(Metapb.Store::getId)
                                              .collect(Collectors.toSet());
+        long now = System.currentTimeMillis();
         Map<Long, Integer> leaderCount = new HashMap<>();
         for (Metapb.ShardGroup group : shardGroups) {
             // A store stays active for keepAlive-timeout after it stops, but partition
@@ -637,7 +641,24 @@ public class TaskScheduleService {
                          group.getId(), group.getState());
                 return new HashMap<>();
             }
+            // A group that lost its quorum stops sending stats and keeps its last state, so
+            // the state above only counts while the group's leader is still reporting it
+            Metapb.PartitionStats stats = partitionService.getPartitionStats("", group.getId());
+            if (stats == null || now - stats.getTimestamp() > BALANCE_LEADER_STATS_MAX_AGE) {
+                log.info("periodic leader balance skipped, shard group {} has no partition " +
+                         "heartbeat in the last {} ms", group.getId(),
+                         BALANCE_LEADER_STATS_MAX_AGE);
+                return new HashMap<>();
+            }
             for (Metapb.Shard shard : group.getShardsList()) {
+                // reallocShards adds a shard with role None while the membership change runs;
+                // balancePartitionLeader would pick it, or a Learner, as a transfer target
+                if (shard.getRole() != Metapb.ShardRole.Leader &&
+                    shard.getRole() != Metapb.ShardRole.Follower) {
+                    log.info("periodic leader balance skipped, shard group {} has store {} " +
+                             "as {}", group.getId(), shard.getStoreId(), shard.getRole());
+                    return new HashMap<>();
+                }
                 if (!activeStores.contains(shard.getStoreId())) {
                     log.info("periodic leader balance skipped, store {} of shard group {} is " +
                              "not active", shard.getStoreId(), group.getId());

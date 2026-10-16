@@ -25,10 +25,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 import org.apache.hugegraph.pd.TaskScheduleService;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -104,39 +106,83 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
     @Test
     public void testAutoBalancePartitionLeaderWithWarnGroup() throws PDException {
         // store 3 just stopped: still in the active set, but its groups are already Warn
-        var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, Metapb.PartitionState.PState_Warn,
-                              1, 2, 3);
+        var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1},
+                              g -> g.toBuilder().setState(Metapb.PartitionState.PState_Warn)
+                                    .build(), 0, 1, 2, 3);
         assertTrue(rst.isEmpty());
 
         // once the group is Normal again, the same imbalance is balanced
-        rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, Metapb.PartitionState.PState_Normal,
-                          1, 2, 3);
+        rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, g -> g, 0, 1, 2, 3);
         assertEquals(4, rst.size());
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithoutQuorum() throws PDException {
+        // group 0 lost its quorum: no partition heartbeat for a minute, while its last state
+        // is still Normal and every store is still in the active set
+        var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, g -> g, 60 * 1000, 1, 2, 3);
+        assertTrue(rst.isEmpty());
+
+        // group 0 never reported stats at all
+        rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, g -> g, -1, 1, 2, 3);
+        assertTrue(rst.isEmpty());
+
+        // a heartbeat within the window: the same imbalance is balanced
+        rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, g -> g, 10 * 1000, 1, 2, 3);
+        assertEquals(4, rst.size());
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithPendingMember() throws PDException {
+        // reallocShards added the shard on store 3 and left its role None
+        for (var role : List.of(Metapb.ShardRole.None, Metapb.ShardRole.Learner)) {
+            var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1},
+                                  g -> g.toBuilder().setShards(2, g.getShards(2).toBuilder()
+                                                                   .setRole(role))
+                                        .build(), 0, 1, 2, 3);
+            assertTrue(role.name(), rst.isEmpty());
+        }
     }
 
     private Map<Integer, Long> autoBalance(long[] leaderStores, long... activeStores) throws
                                                                                  PDException {
-        return autoBalance(leaderStores, Metapb.PartitionState.PState_Normal, activeStores);
+        return autoBalance(leaderStores, g -> g, 0, activeStores);
     }
 
     /**
      * Stores shard groups 0..n-1 on stores 1, 2 and 3 with the leader of group i on
-     * leaderStores[i] and group 0 in group0State (the others Normal), marks activeStores
-     * alive and runs one periodic balance.
+     * leaderStores[i], all Normal with fresh partition stats, then applies group0 to group 0
+     * and ages its stats by group0StatsAge ms (-1: no stats). Marks activeStores alive and
+     * runs one periodic balance.
      */
     private Map<Integer, Long> autoBalance(long[] leaderStores,
-                                           Metapb.PartitionState group0State,
+                                           UnaryOperator<Metapb.ShardGroup> group0,
+                                           long group0StatsAge,
                                            long... activeStores) throws PDException {
         var storeMeta = getStoreNodeService().getStoreInfoMeta();
+        var partitionMeta = MetadataFactory.newPartitionMeta(getPdConfig());
         // Set aside groups other tests in the suite left behind, so only ours are planned
         var otherGroups = storeMeta.getShardGroups();
         for (var group : otherGroups) {
             storeMeta.deleteShardGroup(group.getId());
         }
         var partitions = new ArrayList<Metapb.Partition>();
+        long now = System.currentTimeMillis();
         for (int i = 0; i < leaderStores.length; i++) {
-            var state = i == 0 ? group0State : Metapb.PartitionState.PState_Normal;
-            storeMeta.updateShardGroup(genShardGroup(i, leaderStores[i], state));
+            var group = genShardGroup(i, leaderStores[i], Metapb.PartitionState.PState_Normal);
+            long statsAge = 0;
+            if (i == 0) {
+                group = group0.apply(group);
+                statsAge = group0StatsAge;
+            }
+            storeMeta.updateShardGroup(group);
+            if (statsAge >= 0) {
+                partitionMeta.updatePartitionStats(Metapb.PartitionStats.newBuilder()
+                                                                        .setId(i)
+                                                                        .setTimestamp(
+                                                                                now - statsAge)
+                                                                        .build());
+            }
             partitions.add(genPartition(i));
         }
         for (long storeId = 1; storeId <= 3; storeId++) {
@@ -159,6 +205,7 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
             for (long storeId : activeStores) {
                 storeMeta.removeActiveStore(Metapb.Store.newBuilder().setId(storeId).build());
             }
+            partitionMeta.removePartitionStats("");
             for (int i = 0; i < leaderStores.length; i++) {
                 storeMeta.deleteShardGroup(i);
             }
