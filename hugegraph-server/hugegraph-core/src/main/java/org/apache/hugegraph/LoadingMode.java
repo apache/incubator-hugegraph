@@ -153,8 +153,8 @@ public final class LoadingMode {
 
     private void logChange(String action, GraphMode previousMode, int clearedOwners) {
         LOG.info("Loading ownership {} for graph '{}' instance {}: mode {} -> {}, epoch {}, " +
-                 "activeOwners {}, clearedOwners {}", action, this.graphName.get(), this.instance, previousMode, this.mode,
-                 this.epoch, this.active.size(), clearedOwners);
+                 "activeOwners {}, clearedOwners {}", action, this.graphName.get(), this.instance,
+                 previousMode, this.mode, this.epoch, this.active.size(), clearedOwners);
     }
 
     private void advanceRevision() {

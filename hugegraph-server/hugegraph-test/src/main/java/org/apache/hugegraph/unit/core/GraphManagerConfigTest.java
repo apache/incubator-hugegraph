@@ -1465,6 +1465,71 @@ public class GraphManagerConfigTest {
     }
 
     @Test
+    public void testNonClearingPeerCloseFailureKeepsRpcAtInitialStartup() throws Exception {
+        String name = "peer_close_open_rpc";
+        GraphManager manager = this.dropManager(name);
+        HugeGraph graph = null;
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        CountDownLatch opened = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            graph = manager.createGraphLocal(name, sharedMemoryConfig(name));
+            HugeGraph owner = graph;
+            Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", owner);
+            RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+            RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+            assertRpcResources(server, client, 0);
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            Mockito.when(meta.extractGraphsFromResponse("peer-remove")).thenReturn(List.of(owner.spaceGraphName()));
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            Future<?> transaction = worker.submit(() -> {
+                try {
+                    owner.tx().open();
+                    opened.countDown();
+                    E.checkState(release.await(15, TimeUnit.SECONDS), "Foreign transaction release timed out");
+                } catch (InterruptedException failure) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(failure);
+                } finally {
+                    Whitebox.invoke(StandardHugeGraph.class, "closeCurrentThreadTransaction", owner);
+                }
+            });
+            Assert.assertTrue(opened.await(5, TimeUnit.SECONDS));
+            Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                    "graphRemoveHandler", manager, "peer-remove");
+            Assert.assertFalse(owner.closed());
+            Assert.assertSame(owner, manager.graph(owner.spaceGraphName()));
+            assertRpcResources(server, client, 0);
+            Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+            assertRpcResources(server, client, 2);
+            release.countDown();
+            transaction.get(5, TimeUnit.SECONDS);
+            String threadName = Thread.currentThread().getName();
+            try {
+                Thread.currentThread().setName("grpc-peer-close-retry");
+                Whitebox.invoke(GraphManager.class, new Class<?>[]{Object.class},
+                        "graphRemoveHandler", manager, "peer-remove");
+            } finally {
+                Thread.currentThread().setName(threadName);
+            }
+            Assert.assertTrue(owner.closed());
+            Assert.assertFalse(manager.graphs().contains(owner.spaceGraphName()));
+            assertRpcResources(server, client, 0);
+            Mockito.verify(meta, Mockito.never()).removeGraphConfig(Mockito.anyString(), Mockito.anyString());
+        } finally {
+            release.countDown();
+            worker.shutdown();
+            Assert.assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+            manager.close();
+            if (graph != null) {
+                graph.close();
+                HugeFactory.remove(graph);
+            }
+        }
+    }
+
+    @Test
     public void testNonPdOrdinaryClosedOwnerCannotCertifyBackendClear() throws Exception {
         GraphManager manager = this.dropManager("non_pd_uncleared_close");
         HugeGraph owner = null;
@@ -2744,6 +2809,10 @@ public class GraphManagerConfigTest {
             if (retryMode == 1) {
                 Assert.assertThrows(HugeException.class, () -> manager.dropGraph("DEFAULT", name, false));
                 Assert.assertSame(proxy, progress.get(graph.spaceGraphName()));
+                Whitebox.invoke(GraphManager.class, "startRpcServer", manager);
+                RpcServer server = Whitebox.getInternalState(manager, "rpcServer");
+                RpcClientProvider client = Whitebox.getInternalState(manager, "rpcClient");
+                assertRpcResources(server, client, 0);
             } else if (retryMode == 2) {
                 manager.close();
                 Assert.assertSame(proxy, progress.get(graph.spaceGraphName()));

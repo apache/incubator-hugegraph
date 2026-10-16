@@ -2516,9 +2516,6 @@ public final class GraphManager {
                 }
             }
         }
-        synchronized (this) {
-            this.rpcRemovingOwners.add(g);
-        }
         try {
             g.close();
         } catch (Exception failure) {
