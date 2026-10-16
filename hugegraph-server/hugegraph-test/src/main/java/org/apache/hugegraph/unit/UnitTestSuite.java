@@ -18,6 +18,7 @@
 package org.apache.hugegraph.unit;
 
 import org.apache.hugegraph.HugeFactoryTest;
+import org.apache.hugegraph.unit.core.LoadingModeTest;
 import org.apache.hugegraph.GraphDropPendingTest;
 import org.apache.hugegraph.StandardTaskAdmissionTest;
 import org.apache.hugegraph.DistributedTaskAdmissionTest;
@@ -166,6 +167,7 @@ import org.junit.runners.Suite;
         StandardAuthManagerV2Test.class,
         ContextTaskTest.class,
         HugeFactoryTest.class,
+        LoadingModeTest.class,
         GraphDropPendingTest.class,
         StandardTaskAdmissionTest.class,
         DistributedTaskAdmissionTest.class,
