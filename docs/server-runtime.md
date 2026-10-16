@@ -253,17 +253,23 @@ or disable the security manager.
 
 ### Property-query index coverage
 
-A global property query such as `g.V().has("name", "alice")` or
-`g.E().has("weight", 0.5)` requires compatible indexes on every visible candidate
-label. A candidate declares all queried non-OLAP properties; even a label with no
-records requires coverage. Base edge labels have no direct records; their indexes
-can cover sub-labels. Shared OLAP indexes follow the graph read mode.
+For type-compatible values, a global property-index query such as
+`g.V().has("name", "alice")` or `g.E().has("weight", 0.5)` requires compatible
+indexes on every visible candidate label. A candidate declares all queried non-OLAP
+properties; even a label with no records requires coverage. Base edge labels have no
+direct records; their indexes can cover sub-labels. Shared OLAP indexes follow the
+graph read mode.
 
 | Candidate state | Query behavior |
 | --- | --- |
 | Every visible candidate has compatible indexes | The query combines the indexed results. Composite and joint index plans may serve different labels in the same query. |
-| A visible candidate lacks a compatible index | The query fails with `NoIndexException`, including when other candidates are hidden or deleting. |
+| A visible candidate lacks a compatible index and the values pass the property-type check | The query fails with `NoIndexException`, including when other candidates are hidden or deleting. |
 | Every candidate is excluded by visibility | The query returns an empty result, including after those labels' indexes have been removed. |
+
+When query-visible candidates remain, index matching precedes the property-type
+check. If at least one index matches but a value fails that check, the query returns
+an empty result before complete coverage is checked. If no index matches, it still
+raises `NoIndexException`, even for a type-mismatched value.
 
 Normal queries exclude hidden labels and labels in `DELETING` or `UNDELETED`
 status. Internal requests that enable `showHidden` or `showDeleting` include the

@@ -38,6 +38,7 @@ import org.apache.hugegraph.struct.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.tinkerpop.TestGraph;
+import org.apache.hugegraph.traversal.optimize.HugeGraphStep;
 import org.apache.hugegraph.traversal.optimize.Text;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphReadMode;
@@ -302,6 +303,37 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
             if (this.closeFailure != null) {
                 throw this.closeFailure;
             }
+        }
+    }
+
+    @Test
+    public void testNegativeRootLabelKeepsPropertyFilterLocal() {
+        SchemaManager schema = graph().schema();
+        schema.propertyKey("name").asText().create();
+        for (String label : new String[]{"indexed", "unindexed"}) {
+            schema.vertexLabel(label).properties("name").useAutomaticId().create();
+        }
+        schema.indexLabel("indexedByName").onV("indexed").by("name").secondary().create();
+        Vertex allowed = graph().addVertex(T.label, "indexed", "name", "alice");
+        graph().addVertex(T.label, "unindexed", "name", "alice");
+        graph().addVertex(T.label, "indexed", "name", "bob");
+        this.commitTx();
+
+        // Control: the unqualified indexed query really has incomplete coverage.
+        Assert.assertThrows(NoIndexException.class, () -> graph().traversal().V()
+                .has("name", "alice").toSet(), error ->
+                Assert.assertContains("Incomplete index coverage", error.getMessage()));
+
+        try (IndexCursorTracker tracker = new IndexCursorTracker(null)) {
+            GraphTraversal<Vertex, Vertex> query = graph().traversal().V()
+                    .hasLabel(P.neq("unindexed")).has("name", "alice");
+            query.asAdmin().applyStrategies();
+            HugeGraphStep<?, ?> source = (HugeGraphStep<?, ?>) query.asAdmin().getStartStep();
+            // The negative label keeps both predicates local, so the source
+            // scans vertices without running property-index coverage checks.
+            Assert.assertTrue(source.getHasContainers().isEmpty());
+            Assert.assertEquals(ImmutableSet.of(allowed), query.toSet());
+            tracker.assertCounts(0, 0);
         }
     }
 
