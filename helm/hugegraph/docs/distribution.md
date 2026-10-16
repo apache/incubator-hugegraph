@@ -3,7 +3,7 @@
 The OCI chart is named `hugegraph-helm`, independently of the HugeGraph service
 version. Its source remains in `helm/hugegraph`. The application name, default
 resource names and `nameOverride` / `fullnameOverride` behavior remain unchanged.
-Helm 3.8+ is required for standard OCI support.
+Use Helm 3.10+ to render and install this Chart, including OCI support.
 
 This distribution targets HugeGraph **1.8.0 and later**. Development Charts may
 use `latest` component images; production deployments need a stable Chart and

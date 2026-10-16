@@ -1,16 +1,22 @@
 # HugeGraph HStore Helm Chart
 
 Deploys **3 PD + 3 Store + 3 Server and Hubble** by default, with authentication
-and persistent storage enabled. Requires **Helm 3.8+ and Kubernetes 1.23+**.
+and persistent storage enabled. Requires **Helm 3.10+ and Kubernetes 1.23+**.
 The OCI chart is named `hugegraph-helm`; the application and default Kubernetes resource names remain
 `hugegraph`. This chart targets HugeGraph 1.8.0 and later; earlier service releases
 are not supported.
+
+Provide a default StorageClass or prepare matching PVs. The default installation
+needs **7 volumes**: 3 × 10 GiB for PD, 3 × 50 GiB for Store, and 1 × 1 GiB
+for Hubble. The chart creates PVCs; it does not create a storage provisioner.
 
 ## Install a published Chart
 
 For a quick trial, install the latest available Chart from GHCR:
 
 ```bash
+kubectl config current-context
+kubectl get storageclass
 helm install hugegraph oci://ghcr.io/hugegraph/hugegraph-helm --devel \
   -n hugegraph --create-namespace --wait --timeout 15m
 ```
@@ -28,13 +34,7 @@ checkout and commands run from its root.
 
 ## Install from source and open Hubble
 
-Provide a default StorageClass or prepare matching PVs. The default installation
-needs **7 volumes**: 3 × 10 GiB for PD, 3 × 50 GiB for Store, and 1 × 1 GiB
-for Hubble. The chart creates PVCs; it does not create a storage provisioner.
-
 ```bash
-kubectl config current-context
-kubectl get storageclass
 helm install hugegraph ./helm/hugegraph -n hugegraph \
   --create-namespace --wait --timeout 15m
 
