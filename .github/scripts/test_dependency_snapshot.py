@@ -88,10 +88,8 @@ class SnapshotTest(unittest.TestCase):
                 'head_branch': 'master', 'event': 'push', 'repository': {'full_name': 'apache/hugegraph'},
                 'path': '.github/workflows/submit-dependencies.yml',
                 'run_started_at': (now - datetime.timedelta(minutes=2)).isoformat()},
-            'actions/runs/321/attempts/2/jobs?per_page=100': {'total_count': 4,
+            'actions/runs/321/attempts/2/jobs?per_page=100': {'total_count': 3,
                 'jobs': [{'name': 'generate', 'conclusion': 'success', 'status': 'completed',
-                          'run_id': 321, 'head_sha': 'a' * 40},
-                         {'name': 'inventory', 'conclusion': 'success', 'status': 'completed',
                           'run_id': 321, 'head_sha': 'a' * 40}]},
             'actions/artifacts/789': {'id': 789, 'expired': False, 'name': 'dependency-snapshot-321-2',
                 'created_at': now.isoformat(),
@@ -310,6 +308,32 @@ class SnapshotTest(unittest.TestCase):
             self.responses[path] = original
         self.assertEqual([], self.posts)
 
+    def test_dependency_baseline_concurrency_isolates_nonmaster_dispatch(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/submit-dependencies.yml").read_text()
+        template = next(line.removeprefix("  group: ") for line in workflow.splitlines()
+                        if line.startswith("  group: "))
+
+        def group(event, ref):
+            return template.replace("${{ github.repository }}", "apache/hugegraph").replace(
+                "${{ github.ref }}", ref).replace("${{ github.event_name }}", event)
+
+        master = group("push", "refs/heads/master")
+        self.assertEqual(master, group("workflow_dispatch", "refs/heads/master"))
+        self.assertNotEqual(master, group("workflow_dispatch", "refs/heads/feature"))
+
+    def test_writer_requires_one_successful_combined_producer(self):
+        path = 'actions/runs/321/attempts/2/jobs?per_page=100'
+        producer = self.responses[path]['jobs'][0]
+        cases = [[], [producer, producer]]
+        for field, value in [('conclusion', 'failure'), ('status', 'in_progress'),
+                             ('run_id', 123), ('head_sha', 'b' * 40)]:
+            cases.append([dict(producer, **{field: value})])
+        for jobs in cases:
+            with self.subTest(jobs=jobs), self.assertRaisesRegex(ValueError, 'Producer did not succeed'):
+                self.responses[path]['jobs'] = jobs
+                self.run_writer()
+        self.assertEqual([], self.posts)
+
     def test_writer_rejects_incomplete_package_inventory_before_post(self):
         resolved = self.snapshot['manifests']['module']['resolved']
         for key in list(resolved):
@@ -353,13 +377,6 @@ class SnapshotTest(unittest.TestCase):
             with self.subTest(fields=fields), self.assertRaises((ValueError, KeyError)):
                 self.run_writer(inventory_artifact_changes=fields)
             self.responses['actions/artifacts/987'] = original
-        jobs = self.responses['actions/runs/321/attempts/2/jobs?per_page=100']['jobs']
-        for field, value in [('conclusion', 'failure'), ('head_sha', 'b' * 40), ('run_id', 123)]:
-            original = jobs[1][field]
-            jobs[1][field] = value
-            with self.subTest(field=field), self.assertRaises(ValueError):
-                self.run_writer()
-            jobs[1][field] = original
         self.assertEqual([], self.posts)
 
     def test_writer_rejects_inventory_zip_wrong_member_without_extraction(self):

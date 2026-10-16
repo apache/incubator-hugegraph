@@ -146,7 +146,8 @@ it does not guarantee a specific queue delay.
 ## Dependency baseline
 
 The separate [dependency submission workflow](../.github/workflows/submit-dependencies.yml)
-installs the complete reactor with Java 17 in a `contents: read` job, then generates
+installs the complete reactor once with Java 17 in a `contents: read` job, reusing
+`actions/setup-java`'s Maven cache, then generates
 each module's resolved graph with Ferstl 4.0.3. The repository's
 [stdlib serializer](../.github/scripts/dependency-snapshot.py) preserves the
 [official Maven parser 6.0.1](https://github.com/actions/maven-dependency-submission-action/tree/1f666f7ac2ab7b72cd5e22eaf7f23c8a581db1db)
@@ -158,8 +159,9 @@ dispatches. Only `apache/hugegraph` (not a fork) and the explicitly allowed
 `hugegraph/hugegraph` test fork on `refs/heads/master` can run the submission job,
 which alone has `contents: write`. PRs, other repositories and other refs cannot
 run the writer. Maven inherits no submission token, and checkout does not persist
-credentials. An independent `contents: read` job resolves all module dependency
-scopes with Apache Maven Dependency Plugin 3.8.1 `tree` JSON. Its
+credentials. The same read-only job separately resolves all module dependency
+scopes with Apache Maven Dependency Plugin 3.8.1 `tree` JSON, sharing the installed
+reactor while keeping the two resolvers and JSON reports independent. Its
 [stdlib inventory adapter](../.github/scripts/dependency-inventory.py) records each POM's
 package URLs, scopes and direct/indirect relationships independently of the Ferstl
 parser. The writer requires exact equality with that inventory, including empty
@@ -169,7 +171,7 @@ not replace this per-module check.
 
 A pinned `actions/upload-artifact` transfers `snapshot.json` and `inventory.json`
 as separate artifacts. The fresh writer runner uses fixed inline stdlib Python to
-verify both successful producer jobs and both artifact/run/attempt/SHA identities
+verify the successful producer job and both artifact/run/attempt/SHA identities
 before downloading. It bounds ZIP and JSON sizes, checks each archive digest,
 and reads only its one expected regular JSON member in memory. Duplicate members,
 paths and symlinks fail; no archive members are extracted to disk. A signed storage
@@ -179,7 +181,11 @@ downloaded code. The first-party upload action is permitted by the
 [ASF Actions policy](https://infra.apache.org/github-actions-policy.html).
 
 Checkout and snapshot use the event commit SHA. Master is checked before install
-and again after generation in both read-only jobs; a stale run fails. The writer
+and again after both reports are generated; a stale run fails. A newer master
+run cancels the older master run because only the current master can submit.
+Concurrency groups include the ref, so manual runs on other refs cannot cancel master. Every master
+push still starts a baseline run without path filters, so unrelated changes also
+can receive an exact-SHA baseline. The writer
 checks the run attempt, successful producer, artifact ID/name, JSON schema,
 detector/correlator and source SHA/ref. It verifies all manifest paths against the
 event commit's source tree, rejects empty or mismatched inventory, and checks master
@@ -193,8 +199,16 @@ writer rejects because both reports must be produced in the same run attempt.
 If a PR `dependency-review` failure reports 0 base snapshots, rerun that job only
 once the same repository's **Dependency baseline** run has succeeded for the event's
 exact `pull_request.base.sha` (not the branch's merge base or a newer master tip).
-If that SHA has no successful baseline, including a skipped run, rerunning the
-review alone cannot supply it.
+If that SHA has no successful baseline, including a skipped or superseded run,
+rerunning the review alone cannot supply it. The producer supports only the current
+master tip; cancelling an older run does not backfill its earlier PR events.
+
+To recover, wait until the current master has a successful baseline in the same
+repository. Normally merge that master into the PR branch (or use Update branch)
+and push the update to create a new PR event. Confirm that the new event's
+`pull_request.base.sha` is the SHA with the successful baseline, then use that
+new dependency-review run. Rerunning the old job retains its old event payload
+and cannot move its base SHA to the submitted baseline.
 
 A fixed master-only correlator keeps successive baseline snapshots in the
 same stream within each repository; ASF and org inventories are independent. The writer's

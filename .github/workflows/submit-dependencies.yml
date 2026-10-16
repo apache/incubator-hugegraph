@@ -26,8 +26,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: dependency-baseline-${{ github.repository }}-master
-  cancel-in-progress: false
+  group: dependency-baseline-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -69,6 +69,7 @@ jobs:
       GH_TOKEN: ''
     outputs:
       artifact_id: ${{ steps.snapshot.outputs.artifact-id }}
+      inventory_artifact_id: ${{ steps.inventory.outputs.artifact-id }}
     steps:
       - name: Checkout event commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -80,6 +81,7 @@ jobs:
         with:
           java-version-file: .github/workflows/.java-version
           distribution: 'temurin'
+          cache: maven
       - name: Verify checkout and current master
         env:
           EXPECTED_SHA: ${{ github.sha }}
@@ -94,7 +96,14 @@ jobs:
             -DgraphFormat=json -DoutputFileName=maven-dependency-submission-action-depgraph.json \
             -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
           python3 .github/scripts/dependency-snapshot.py "$RUNNER_TEMP/snapshot.json"
-      - name: Refuse a stale generated snapshot
+      - name: Resolve independent dependency inventory
+        run: |
+          mvn -B -ntp org.apache.maven.plugins:maven-dependency-plugin:3.8.1:tree \
+            -DoutputType=json -DoutputFile=target/dependency-inventory.json \
+            -Dverbose=false -DappendOutput=false \
+            -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
+          python3 .github/scripts/dependency-inventory.py "$RUNNER_TEMP/inventory.json"
+      - name: Refuse stale dependency reports
         env:
           EXPECTED_SHA: ${{ github.sha }}
         run: test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
@@ -107,54 +116,6 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  inventory:
-    needs: validate
-    if: >-
-      ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) ||
-       github.repository == 'hugegraph/hugegraph') &&
-      github.ref == 'refs/heads/master' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      contents: read
-    env:
-      PYTHONDONTWRITEBYTECODE: '1'
-      INPUT_TOKEN: ''
-      GITHUB_TOKEN: ''
-      GH_TOKEN: ''
-    outputs:
-      artifact_id: ${{ steps.inventory.outputs.artifact-id }}
-    steps:
-      - name: Checkout event commit
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Set up project JDK
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
-        with:
-          java-version-file: .github/workflows/.java-version
-          distribution: 'temurin'
-      - name: Verify checkout and current master
-        env:
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
-      - name: Install the complete Maven reactor
-        run: mvn -B -ntp install -Dmaven.test.skip=true -Dmaven.javadoc.skip=true --fail-at-end
-      - name: Resolve independent dependency inventory
-        run: |
-          mvn -B -ntp org.apache.maven.plugins:maven-dependency-plugin:3.8.1:tree \
-            -DoutputType=json -DoutputFile=target/dependency-inventory.json \
-            -Dverbose=false -DappendOutput=false \
-            -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
-          python3 .github/scripts/dependency-inventory.py "$RUNNER_TEMP/inventory.json"
-      - name: Refuse a stale inventory
-        env:
-          EXPECTED_SHA: ${{ github.sha }}
-        run: test "$(git ls-remote origin refs/heads/master | cut -f1)" = "$EXPECTED_SHA"
       - name: Upload inventory data only
         id: inventory
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -165,10 +126,9 @@ jobs:
           retention-days: 1
 
   submit:
-    needs: [validate, generate, inventory]
+    needs: [validate, generate]
     if: >-
       needs.validate.result == 'success' && needs.generate.result == 'success' &&
-      needs.inventory.result == 'success' &&
       ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) ||
        github.repository == 'hugegraph/hugegraph') &&
       github.ref == 'refs/heads/master' &&
@@ -187,7 +147,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
           ARTIFACT_ID: ${{ needs.generate.outputs.artifact_id }}
-          INVENTORY_ARTIFACT_ID: ${{ needs.inventory.outputs.artifact_id }}
+          INVENTORY_ARTIFACT_ID: ${{ needs.generate.outputs.inventory_artifact_id }}
         run: |
           python3 -I - <<'PY'
           import datetime
@@ -299,11 +259,10 @@ jobs:
                                       '.github/workflows/submit-dependencies.yml@master'], 'Run identity')
               jobs = api(repository, f'actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100')
               require(jobs['total_count'] <= 100, 'Too many jobs')
-              for name in ['generate', 'inventory']:
-                  producers = [job for job in jobs['jobs'] if job['name'] == name]
-                  require(len(producers) == 1 and producers[0]['conclusion'] == 'success' and
-                          producers[0]['status'] == 'completed' and producers[0]['run_id'] == int(run_id) and
-                          producers[0]['head_sha'] == sha, 'Producer did not succeed for this commit')
+              producers = [job for job in jobs['jobs'] if job['name'] == 'generate']
+              require(len(producers) == 1 and producers[0]['conclusion'] == 'success' and
+                      producers[0]['status'] == 'completed' and producers[0]['run_id'] == int(run_id) and
+                      producers[0]['head_sha'] == sha, 'Producer did not succeed for this commit')
               inventory_id = os.environ['INVENTORY_ARTIFACT_ID']
               require(re.fullmatch('[1-9][0-9]*', inventory_id) and inventory_id != artifact_id, 'Inventory ID')
 
