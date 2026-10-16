@@ -42,6 +42,7 @@ import org.junit.Test;
 public class RocksdbMemoryBudgetTest {
 
     private static final long GIB = 1024 * MIB;
+    private static final Path NO_MOUNTINFO = Path.of("/nonexistent/proc/self/mountinfo");
 
     @Test
     public void testExplicitValueIsKept() {
@@ -119,7 +120,7 @@ public class RocksdbMemoryBudgetTest {
             write(root, "kubepods/pod1/memory.max", String.valueOf(4 * GIB));
             write(root, "kubepods/pod1/ctr/memory.max", "max\n");
             Path proc = write(root, "proc-self-cgroup", "0::/kubepods/pod1/ctr\n");
-            long limit = RocksdbMemoryBudget.cgroupMemoryLimit(proc, root);
+            long limit = RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, root);
             assertEquals(4 * GIB, limit);
 
             // The case from review: a 64 GiB host reported by the JVM, -Xmx1g and
@@ -129,7 +130,7 @@ public class RocksdbMemoryBudgetTest {
 
             // The container's own lower limit wins over the pod's
             write(root, "kubepods/pod1/ctr/memory.max", String.valueOf(2 * GIB));
-            assertEquals(2 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+            assertEquals(2 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, root));
         } finally {
             FileUtils.deleteQuietly(root.toFile());
         }
@@ -142,13 +143,13 @@ public class RocksdbMemoryBudgetTest {
             // Inside a cgroup namespace the process sees "/" and the mount is its cgroup
             Path proc = write(root, "proc-self-cgroup", "0::/\n");
             write(root, "memory.max", "max");
-            assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+            assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, root));
             write(root, "memory.max", String.valueOf(3 * GIB));
-            assertEquals(3 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+            assertEquals(3 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, root));
 
             // A path the mount doesn't show falls back to the mount root
             Path hidden = write(root, "proc-hidden", "0::/system.slice/hidden.service\n");
-            assertEquals(3 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(hidden, root));
+            assertEquals(3 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(hidden, NO_MOUNTINFO, root));
         } finally {
             FileUtils.deleteQuietly(root.toFile());
         }
@@ -164,19 +165,77 @@ public class RocksdbMemoryBudgetTest {
             write(root, "memory/memory.limit_in_bytes", "9223372036854771712");
             write(root, "memory/memory.stat",
                   "cache 0\nhierarchical_memory_limit " + (4 * GIB) + "\n");
-            assertEquals(4 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+            assertEquals(4 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, root));
 
             write(root, "memory/memory.stat", "hierarchical_memory_limit 9223372036854771712\n");
-            assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+            assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, root));
         } finally {
             FileUtils.deleteQuietly(root.toFile());
         }
     }
 
     @Test
+    public void testCgroupV2SubtreeMountIsRebased() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2-subtree");
+        try {
+            // cgroupfs mounted from /kubepods: the pod's limit is at <mount>/pod1, not at
+            // <mount>/kubepods/pod1, and the mount root itself is unlimited
+            Path mount = root.resolve("sys-fs-cgroup");
+            write(mount, "memory.max", "max");
+            write(mount, "pod1/memory.max", String.valueOf(4 * GIB));
+            write(mount, "pod1/ctr/memory.max", "max");
+            Path proc = write(root, "proc-self-cgroup", "0::/kubepods/pod1/ctr\n");
+            Path mountinfo = write(root, "mountinfo",
+                                   "25 1 8:1 / / rw - ext4 /dev/sda1 rw\n" +
+                                   "30 25 0:26 /kubepods " + mount +
+                                   " rw,nosuid shared:4 - cgroup2 cgroup2 rw\n");
+            long limit = RocksdbMemoryBudget.cgroupMemoryLimit(proc, mountinfo, root);
+            assertEquals(4 * GIB, limit);
+            long physical = RocksdbMemoryBudget.effectivePhysical(64 * GIB, limit);
+            assertEquals(512 * MIB, RocksdbMemoryBudget.auto(physical, GIB, 512 * MIB));
+
+            // Without the mount root the path is looked up under kubepods/ and missed
+            assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, mount));
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testCgroupV1SubtreeMountAndEscapedMountPoint() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v1-subtree");
+        try {
+            Path mount = root.resolve("memory dir");
+            write(mount, "memory.limit_in_bytes", "9223372036854771712");
+            write(mount, "memory.stat", "hierarchical_memory_limit " + (4 * GIB) + "\n");
+            Path proc = write(root, "proc-self-cgroup", "4:memory:/docker/abc\n");
+            // mountinfo writes the space in the mount point as \040
+            Path mountinfo = write(root, "mountinfo",
+                                   "40 25 0:30 /docker/abc " +
+                                   mount.toString().replace(" ", "\\040") +
+                                   " rw,nosuid - cgroup cgroup rw,memory\n");
+            assertEquals(4 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, mountinfo, root));
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testMembershipIsRebasedOntoMountRoot() {
+        assertEquals("pod1/ctr", RocksdbMemoryBudget.rebase("/kubepods/pod1/ctr", "/kubepods"));
+        assertEquals("pod1/ctr", RocksdbMemoryBudget.rebase("/kubepods/pod1/ctr", "/kubepods/"));
+        assertEquals("", RocksdbMemoryBudget.rebase("/kubepods", "/kubepods"));
+        assertEquals("a/b", RocksdbMemoryBudget.rebase("/a/b", "/"));
+        assertEquals("", RocksdbMemoryBudget.rebase("/", "/"));
+        // A path outside the mount root is kept and then falls back to the mount
+        assertEquals("other/x", RocksdbMemoryBudget.rebase("/other/x", "/kubepods"));
+        assertEquals("kubepodsx/y", RocksdbMemoryBudget.rebase("/kubepodsx/y", "/kubepods"));
+    }
+
+    @Test
     public void testUnreadableCgroupKeepsJvmMemory() {
         Path missing = Path.of("/nonexistent/proc/self/cgroup");
-        assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(missing, Path.of("/nonexistent")));
+        assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(missing, NO_MOUNTINFO, Path.of("/nonexistent")));
         assertEquals(16 * GIB, RocksdbMemoryBudget.effectivePhysical(16 * GIB, -1L));
         assertEquals(4 * GIB, RocksdbMemoryBudget.effectivePhysical(-1L, 4 * GIB));
         assertEquals(4 * GIB, RocksdbMemoryBudget.effectivePhysical(4 * GIB, 8 * GIB));

@@ -170,6 +170,7 @@ public final class RocksdbMemoryBudget {
             jvm = -1L;
         }
         long cgroup = cgroupMemoryLimit(Paths.get("/proc/self/cgroup"),
+                                        Paths.get("/proc/self/mountinfo"),
                                         Paths.get("/sys/fs/cgroup"));
         return effectivePhysical(jvm, cgroup);
     }
@@ -187,12 +188,17 @@ public final class RocksdbMemoryBudget {
 
     /**
      * The lowest memory limit on this process's cgroup or any visible ancestor, or -1
-     * when there is none or it can't be read. cgroup v2 walks memory.max from the
-     * process's cgroup up to the mount root; cgroup v1 reads hierarchical_memory_limit,
-     * which already accounts for ancestors. Inside a private cgroup namespace the mount
-     * root is the container's own cgroup, so a limit above it stays invisible.
+     * when there is none or it can't be read. The membership path from /proc/self/cgroup
+     * is rebased onto the controller's mount using its root in /proc/self/mountinfo, so a
+     * cgroupfs mounted from a subtree (root /kubepods at /sys/fs/cgroup) is walked from
+     * the right directory; without a mountinfo entry the default root is used. cgroup v2
+     * walks memory.max from the process's cgroup up to the mount; cgroup v1 reads
+     * hierarchical_memory_limit, which already accounts for ancestors. A limit above the
+     * mount root, as inside a private cgroup namespace, stays invisible.
      */
-    static long cgroupMemoryLimit(Path procSelfCgroup, Path cgroupRoot) {
+    static long cgroupMemoryLimit(Path procSelfCgroup, Path mountinfo, Path defaultRoot) {
+        String[] v2Mount = cgroupMount(mountinfo, true);
+        String[] v1Mount = cgroupMount(mountinfo, false);
         List<String> lines;
         try {
             lines = Files.readAllLines(procSelfCgroup, StandardCharsets.UTF_8);
@@ -205,14 +211,86 @@ public final class RocksdbMemoryBudget {
             if (parts.length < 3) {
                 continue;
             }
-            String relative = parts[2].startsWith("/") ? parts[2].substring(1) : parts[2];
             if (parts[0].equals("0") && parts[1].isEmpty()) {
-                limit = lowest(limit, cgroupV2Limit(cgroupRoot, relative));
+                Path point = v2Mount == null ? defaultRoot : Paths.get(v2Mount[1]);
+                String root = v2Mount == null ? "/" : v2Mount[0];
+                limit = lowest(limit, cgroupV2Limit(point, rebase(parts[2], root)));
             } else if (("," + parts[1] + ",").contains(",memory,")) {
-                limit = lowest(limit, cgroupV1Limit(cgroupRoot.resolve("memory"), relative));
+                Path point = v1Mount == null ? defaultRoot.resolve("memory") :
+                             Paths.get(v1Mount[1]);
+                String root = v1Mount == null ? "/" : v1Mount[0];
+                limit = lowest(limit, cgroupV1Limit(point, rebase(parts[2], root)));
             }
         }
         return limit;
+    }
+
+    /**
+     * The {root, mount point} of the cgroup v2 mount, or of the cgroup v1 mount carrying
+     * the memory controller, from /proc/self/mountinfo; null when there is none.
+     */
+    private static String[] cgroupMount(Path mountinfo, boolean v2) {
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(mountinfo, StandardCharsets.UTF_8);
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+        for (String line : lines) {
+            // id parent major:minor root mount-point options [optional...] - type source super
+            int separator = line.indexOf(" - ");
+            if (separator < 0) {
+                continue;
+            }
+            String[] fields = line.substring(0, separator).split(" ");
+            String[] tail = line.substring(separator + 3).split(" ");
+            if (fields.length < 5 || tail.length < 1) {
+                continue;
+            }
+            boolean match = v2 ? tail[0].equals("cgroup2") :
+                            tail[0].equals("cgroup") && tail.length >= 3 &&
+                            ("," + tail[2] + ",").contains(",memory,");
+            if (match) {
+                return new String[]{unescape(fields[3]), unescape(fields[4])};
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The membership path relative to a mount whose root is mountRoot: /kubepods/pod1/ctr
+     * under root /kubepods is pod1/ctr. A path outside the mount root is kept as is and
+     * then falls back to the mount itself.
+     */
+    static String rebase(String membership, String mountRoot) {
+        String path = membership.startsWith("/") ? membership : "/" + membership;
+        String root = mountRoot.endsWith("/") && mountRoot.length() > 1 ?
+                      mountRoot.substring(0, mountRoot.length() - 1) : mountRoot;
+        if (!root.equals("/")) {
+            if (path.equals(root)) {
+                return "";
+            }
+            if (path.startsWith(root + "/")) {
+                path = path.substring(root.length());
+            }
+        }
+        return path.substring(1);
+    }
+
+    // mountinfo writes space, tab, newline and backslash as octal escapes such as \040
+    private static String unescape(String field) {
+        StringBuilder out = new StringBuilder(field.length());
+        for (int i = 0; i < field.length(); i++) {
+            char c = field.charAt(i);
+            if (c == '\\' && i + 4 <= field.length() &&
+                field.substring(i + 1, i + 4).matches("[0-7]{3}")) {
+                out.append((char) Integer.parseInt(field.substring(i + 1, i + 4), 8));
+                i += 3;
+            } else {
+                out.append(c);
+            }
+        }
+        return out.toString();
     }
 
     private static long cgroupV2Limit(Path root, String relative) {
