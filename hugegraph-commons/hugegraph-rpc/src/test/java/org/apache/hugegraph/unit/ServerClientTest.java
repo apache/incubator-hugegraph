@@ -750,13 +750,24 @@ public class ServerClientTest extends BaseUnitTest {
         RpcProviderConfig serverConfig = rpcServerUnexport.config();
         String service = serverConfig.addService(HelloService.class,
                                                  new HelloServiceImpl());
+        String graphService = serverConfig.addService("graph", HelloService.class,
+                                                      new GraphHelloServiceImpl("graph"));
         rpcServerUnexport.exportAll();
         RpcClientProvider isolatedClient = clientFor(rpcServerUnexport);
         try {
             HelloService client = isolatedClient.config().serviceProxy(HelloService.class);
+            HelloService graphClient = isolatedClient.config().serviceProxy("graph", HelloService.class);
+            ChannelFuture binding = listener(rpcServerUnexport);
             Assert.assertEquals("hello tom!", client.hello("tom"));
             rpcServerUnexport.unexport(service);
             Assert.assertThrows(SofaRpcException.class, () -> client.hello("tom"));
+            Assert.assertEquals("graph: hello tom!", graphClient.hello("tom"));
+            Assert.assertTrue(binding.channel().isOpen());
+            rpcServerUnexport.unexport(graphService);
+            Assert.assertTrue(binding.channel().closeFuture().awaitUninterruptibly(5, TimeUnit.SECONDS));
+            Assert.assertTrue(binding.channel().closeFuture().isSuccess());
+            Assert.assertTrue(serverConfig.configs().isEmpty());
+            Assert.assertThrows(SofaRpcException.class, () -> graphClient.hello("tom"));
         } finally {
             isolatedClient.destroy();
             stopServer(rpcServerUnexport);
