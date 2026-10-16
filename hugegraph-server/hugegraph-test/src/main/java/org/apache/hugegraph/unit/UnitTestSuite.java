@@ -95,6 +95,7 @@ import org.apache.hugegraph.unit.core.RangeTest;
 import org.apache.hugegraph.unit.core.RolePermissionTest;
 import org.apache.hugegraph.unit.core.RowLockTest;
 import org.apache.hugegraph.unit.core.SchemaElementTest;
+import org.apache.hugegraph.unit.core.SchemaTaskSecurityTest;
 import org.apache.hugegraph.unit.core.SecurityManagerTest;
 import org.apache.hugegraph.unit.core.SerialEnumTest;
 import org.apache.hugegraph.unit.core.ServerInfoManagerTest;
@@ -222,6 +223,7 @@ import org.junit.runners.Suite;
         QueryListTest.class,
         RangeTest.class,
         SecurityManagerTest.class,
+        SchemaTaskSecurityTest.class,
         OrderedScanSecurityTest.class,
         RolePermissionTest.class,
         ExceptionTest.class,
