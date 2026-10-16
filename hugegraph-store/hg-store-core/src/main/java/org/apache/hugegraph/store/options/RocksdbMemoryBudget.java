@@ -23,6 +23,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.sun.management.HotSpotDiagnosticMXBean;
@@ -189,16 +190,18 @@ public final class RocksdbMemoryBudget {
     /**
      * The lowest memory limit on this process's cgroup or any visible ancestor, or -1
      * when there is none or it can't be read. The membership path from /proc/self/cgroup
-     * is rebased onto the controller's mount using its root in /proc/self/mountinfo, so a
-     * cgroupfs mounted from a subtree (root /kubepods at /sys/fs/cgroup) is walked from
-     * the right directory; without a mountinfo entry the default root is used. cgroup v2
+     * is rebased onto every mount of the controller in /proc/self/mountinfo whose root
+     * contains it, so a cgroupfs mounted from a subtree (root /kubepods at /sys/fs/cgroup)
+     * is walked from the right directory, and the lowest limit over all those mounts is
+     * taken: a leaf-only or unrelated mount listed first can't hide a fuller view listed
+     * later. Without a matching mount the default root is used. cgroup v2
      * walks memory.max from the process's cgroup up to the mount; cgroup v1 reads
      * hierarchical_memory_limit, which already accounts for ancestors. A limit above the
      * mount root, as inside a private cgroup namespace, stays invisible.
      */
     static long cgroupMemoryLimit(Path procSelfCgroup, Path mountinfo, Path defaultRoot) {
-        String[] v2Mount = cgroupMount(mountinfo, true);
-        String[] v1Mount = cgroupMount(mountinfo, false);
+        List<String[]> v2Mounts = cgroupMounts(mountinfo, true);
+        List<String[]> v1Mounts = cgroupMounts(mountinfo, false);
         List<String> lines;
         try {
             lines = Files.readAllLines(procSelfCgroup, StandardCharsets.UTF_8);
@@ -211,30 +214,42 @@ public final class RocksdbMemoryBudget {
             if (parts.length < 3) {
                 continue;
             }
-            if (parts[0].equals("0") && parts[1].isEmpty()) {
-                Path point = v2Mount == null ? defaultRoot : Paths.get(v2Mount[1]);
-                String root = v2Mount == null ? "/" : v2Mount[0];
-                limit = lowest(limit, cgroupV2Limit(point, rebase(parts[2], root)));
-            } else if (("," + parts[1] + ",").contains(",memory,")) {
-                Path point = v1Mount == null ? defaultRoot.resolve("memory") :
-                             Paths.get(v1Mount[1]);
-                String root = v1Mount == null ? "/" : v1Mount[0];
-                limit = lowest(limit, cgroupV1Limit(point, rebase(parts[2], root)));
+            boolean v2 = parts[0].equals("0") && parts[1].isEmpty();
+            if (!v2 && !("," + parts[1] + ",").contains(",memory,")) {
+                continue;
+            }
+            boolean matched = false;
+            for (String[] mount : v2 ? v2Mounts : v1Mounts) {
+                if (!contains(mount[0], parts[2])) {
+                    // A mount of another subtree says nothing about this cgroup
+                    continue;
+                }
+                matched = true;
+                Path point = Paths.get(mount[1]);
+                String relative = rebase(parts[2], mount[0]);
+                limit = lowest(limit, v2 ? cgroupV2Limit(point, relative) :
+                                      cgroupV1Limit(point, relative));
+            }
+            if (!matched) {
+                String relative = rebase(parts[2], "/");
+                limit = lowest(limit, v2 ? cgroupV2Limit(defaultRoot, relative) :
+                                      cgroupV1Limit(defaultRoot.resolve("memory"), relative));
             }
         }
         return limit;
     }
 
     /**
-     * The {root, mount point} of the cgroup v2 mount, or of the cgroup v1 mount carrying
-     * the memory controller, from /proc/self/mountinfo; null when there is none.
+     * The {root, mount point} of every cgroup v2 mount, or of every cgroup v1 mount
+     * carrying the memory controller, in /proc/self/mountinfo order.
      */
-    private static String[] cgroupMount(Path mountinfo, boolean v2) {
+    private static List<String[]> cgroupMounts(Path mountinfo, boolean v2) {
+        List<String[]> mounts = new ArrayList<>();
         List<String> lines;
         try {
             lines = Files.readAllLines(mountinfo, StandardCharsets.UTF_8);
         } catch (IOException | RuntimeException e) {
-            return null;
+            return mounts;
         }
         for (String line : lines) {
             // id parent major:minor root mount-point options [optional...] - type source super
@@ -251,16 +266,23 @@ public final class RocksdbMemoryBudget {
                             tail[0].equals("cgroup") && tail.length >= 3 &&
                             ("," + tail[2] + ",").contains(",memory,");
             if (match) {
-                return new String[]{unescape(fields[3]), unescape(fields[4])};
+                mounts.add(new String[]{unescape(fields[3]), unescape(fields[4])});
             }
         }
-        return null;
+        return mounts;
+    }
+
+    // Whether a mount whose root is mountRoot shows the cgroup at membership
+    static boolean contains(String mountRoot, String membership) {
+        String path = membership.startsWith("/") ? membership : "/" + membership;
+        String root = mountRoot.endsWith("/") && mountRoot.length() > 1 ?
+                      mountRoot.substring(0, mountRoot.length() - 1) : mountRoot;
+        return root.equals("/") || path.equals(root) || path.startsWith(root + "/");
     }
 
     /**
      * The membership path relative to a mount whose root is mountRoot: /kubepods/pod1/ctr
-     * under root /kubepods is pod1/ctr. A path outside the mount root is kept as is and
-     * then falls back to the mount itself.
+     * under root /kubepods is pod1/ctr. A path outside the mount root is kept as is.
      */
     static String rebase(String membership, String mountRoot) {
         String path = membership.startsWith("/") ? membership : "/" + membership;

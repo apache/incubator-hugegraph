@@ -21,6 +21,7 @@ import static org.apache.hugegraph.store.options.RocksdbMemoryBudget.MAX_AUTO;
 import static org.apache.hugegraph.store.options.RocksdbMemoryBudget.MIB;
 import static org.apache.hugegraph.store.options.RocksdbMemoryBudget.MIN_AUTO;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -218,6 +219,73 @@ public class RocksdbMemoryBudgetTest {
         } finally {
             FileUtils.deleteQuietly(root.toFile());
         }
+    }
+
+    @Test
+    public void testCgroupV2MountOrderDoesNotHideAncestorLimit() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2-mounts");
+        try {
+            // A full view of the hierarchy with the 4 GiB limit on the pod
+            Path full = root.resolve("full");
+            write(full, "kubepods/pod1/memory.max", String.valueOf(4 * GIB));
+            write(full, "kubepods/pod1/ctr/memory.max", "max");
+            // A leaf-only view of the container and an unrelated subtree, both unlimited
+            Path leaf = root.resolve("leaf");
+            write(leaf, "memory.max", "max");
+            Path other = root.resolve("other");
+            write(other, "memory.max", "max");
+            Path proc = write(root, "proc-self-cgroup", "0::/kubepods/pod1/ctr\n");
+            String fullLine = "31 25 0:26 / " + full + " rw - cgroup2 cgroup2 rw\n";
+            String leafLine = "32 25 0:26 /kubepods/pod1/ctr " + leaf + " rw - cgroup2 cgroup2 rw\n";
+            String otherLine = "33 25 0:26 /system.slice " + other + " rw - cgroup2 cgroup2 rw\n";
+            for (String order : new String[]{otherLine + leafLine + fullLine,
+                                             fullLine + leafLine + otherLine,
+                                             leafLine + otherLine + fullLine}) {
+                Path mountinfo = write(root, "mountinfo", order);
+                long limit = RocksdbMemoryBudget.cgroupMemoryLimit(proc, mountinfo, root);
+                assertEquals(order, 4 * GIB, limit);
+                long physical = RocksdbMemoryBudget.effectivePhysical(64 * GIB, limit);
+                assertEquals(512 * MIB, RocksdbMemoryBudget.auto(physical, GIB, 512 * MIB));
+            }
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testCgroupV1MountOrderDoesNotHideAncestorLimit() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v1-mounts");
+        try {
+            Path full = root.resolve("full");
+            write(full, "kubepods/pod1/ctr/memory.limit_in_bytes", "9223372036854771712");
+            write(full, "kubepods/pod1/ctr/memory.stat",
+                  "hierarchical_memory_limit " + (4 * GIB) + "\n");
+            Path other = root.resolve("other");
+            write(other, "memory.limit_in_bytes", "9223372036854771712");
+            Path proc = write(root, "proc-self-cgroup", "4:memory:/kubepods/pod1/ctr\n");
+            String fullLine = "41 25 0:30 / " + full + " rw - cgroup cgroup rw,memory\n";
+            String otherLine = "42 25 0:30 /system.slice " + other + " rw - cgroup cgroup rw,memory\n";
+            // A cpu-only mount is not the memory controller and is ignored
+            String cpuLine = "43 25 0:31 / " + other + " rw - cgroup cgroup rw,cpu,cpuacct\n";
+            for (String order : new String[]{otherLine + cpuLine + fullLine,
+                                             fullLine + otherLine + cpuLine}) {
+                Path mountinfo = write(root, "mountinfo", order);
+                assertEquals(order, 4 * GIB,
+                             RocksdbMemoryBudget.cgroupMemoryLimit(proc, mountinfo, root));
+            }
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testMountRootContainsMembership() {
+        assertTrue(RocksdbMemoryBudget.contains("/", "/kubepods/pod1/ctr"));
+        assertTrue(RocksdbMemoryBudget.contains("/kubepods", "/kubepods/pod1/ctr"));
+        assertTrue(RocksdbMemoryBudget.contains("/kubepods/", "/kubepods/pod1/ctr"));
+        assertTrue(RocksdbMemoryBudget.contains("/kubepods/pod1/ctr", "/kubepods/pod1/ctr"));
+        assertFalse(RocksdbMemoryBudget.contains("/system.slice", "/kubepods/pod1/ctr"));
+        assertFalse(RocksdbMemoryBudget.contains("/kubepods", "/kubepodsx/pod1"));
     }
 
     @Test
