@@ -5,9 +5,9 @@ version. Its source remains in `helm/hugegraph`. The application name, default
 resource names and `nameOverride` / `fullnameOverride` behavior remain unchanged.
 Helm 3.8+ is required for standard OCI support.
 
-This distribution starts with HugeGraph **1.8.0**. It does not package charts for
-1.7.0 or earlier service releases. Until 1.8.0 images have been released, use a
-development chart with the current development images.
+This distribution targets HugeGraph **1.8.0 and later**. Development Charts may
+use `latest` component images; production deployments need a stable Chart and
+published fixed component images.
 
 ## Choose a version and registry
 
@@ -18,25 +18,38 @@ The same packaged chart is published to both registries:
 | GHCR | `oci://ghcr.io/hugegraph/hugegraph-helm` | Public CI |
 | Docker Hub | `oci://registry-1.docker.io/hugegraph/hugegraph-helm` | Alternative public entry point |
 
-Always choose an explicit chart version. Public access does not guarantee that
-either registry is free from rate limits or temporary outages. The commands below
-use example versions; choose a version that has actually been published.
+GHCR is recommended for public CI. To use Docker Hub, replace `CHART` with its
+reference from the table:
 
 ```bash
-# Public CI: choose a published development build while service 1.8.0 is unreleased.
-CHART_VERSION=0.2.0-dev.123
-helm pull oci://ghcr.io/hugegraph/hugegraph-helm --version "$CHART_VERSION"
-helm install hugegraph oci://ghcr.io/hugegraph/hugegraph-helm \
-  --version "$CHART_VERSION" -n hugegraph --create-namespace --wait --timeout 15m
+CHART=oci://ghcr.io/hugegraph/hugegraph-helm
+helm install hugegraph "$CHART" --devel \
+  -n hugegraph --create-namespace --wait --timeout 15m
+```
 
-# Docker Hub: the same chart and version.
-helm pull oci://registry-1.docker.io/hugegraph/hugegraph-helm \
-  --version "$CHART_VERSION"
+> [!TIP]
+> `--devel` selects the highest Chart version, including development and stable
+> versions, without limiting the version series. For production or reproducible
+> installs, replace it with `--version <published-version>` to pin your choice.
+
+[Artifact Hub](https://artifacthub.io/packages/helm/hugegraph-helm/hugegraph-helm)
+indexes versions and installation instructions. The Chart archive itself comes
+from GHCR or Docker Hub.
+
+For a single-node trial, use this instead of the default installation. Install
+the downloaded Chart so its bundled preset and templates use the same version:
+
+```bash
+CHART=oci://ghcr.io/hugegraph/hugegraph-helm
+helm pull "$CHART" --devel --untar
+helm install hugegraph ./hugegraph-helm -n hugegraph \
+  -f ./hugegraph-helm/values-single.yaml \
+  --create-namespace --wait --timeout 10m
 ```
 
 Development packages append a workflow run number to the source chart version,
 for example `0.2.0-dev.123`. They may use `latest` service images. Helm OCI tags
-come from the chart's SemVer version; `helm-dev` is not a chart version.
+come from the chart's SemVer version; `helm-dev` and `latest` are not Chart versions.
 
 Formal packages use the exact `Chart.version` maintained in source, for example
 `0.2.0`. They are published only after the corresponding HugeGraph service release
@@ -52,31 +65,70 @@ Turning off `publish` runs validation without uploading to a registry.
 
 ## Install and mirror a chart offline
 
-On an internet-connected machine, download the exact version and the required
-container images. Transfer the `.tgz` and images through your normal offline
-import process. A chart archive alone does not contain the container images.
+On an internet-connected machine, select the latest available version and
+record it before downloading. Transfer the `.tgz` and container images into
+your network. The archive contains no container images.
 
 ```bash
-CHART_VERSION=0.2.0-dev.123
-helm pull oci://ghcr.io/hugegraph/hugegraph-helm --version "$CHART_VERSION"
-
-# Direct installation from the transferred archive needs no public chart access.
-helm install hugegraph "./hugegraph-helm-${CHART_VERSION}.tgz" \
-  -n hugegraph --create-namespace -f private-images.yaml --wait --timeout 15m
-
-# Alternatively, import the unchanged archive into a private OCI registry.
-helm registry login registry.internal.example.com
-helm push "hugegraph-helm-${CHART_VERSION}.tgz" \
-  oci://registry.internal.example.com/charts
-helm pull oci://registry.internal.example.com/charts/hugegraph-helm \
-  --version "$CHART_VERSION"
+CHART=oci://ghcr.io/hugegraph/hugegraph-helm
+CHART_VERSION=$(helm show chart "$CHART" --devel | sed -n 's/^version: //p')
+helm pull "$CHART" --version "$CHART_VERSION"
 ```
 
-`helm push` takes the parent registry path: Helm adds the packaged chart name and
-version. For a private HTTP Helm repository, use that server's upload mechanism
-and update its `index.yaml` (for a static repository, `helm repo index` creates the
-index). `helm push` is the OCI operation, not a generic HTTP upload command. The
-community does not need to provide a separate HTTP chart repository for this flow.
+Set your internal container registry in `private-images.yaml`. Preserve the
+component paths, such as `hugegraph/pd`, when mirroring the images:
+
+```yaml
+# private-images.yaml
+global:
+  imageRegistry: registry.internal.example.com
+```
+
+Choose one installation method below and replace the example addresses with
+your own. Each method installs the same Chart version and uses the private images.
+
+<details open>
+<summary>Install the archive directly</summary>
+
+```bash
+helm install hugegraph "./hugegraph-helm-${CHART_VERSION}.tgz" \
+  -n hugegraph --create-namespace -f private-images.yaml --wait --timeout 15m
+```
+
+</details>
+
+<details>
+<summary>Internal OCI registry</summary>
+
+```bash
+helm registry login registry.internal.example.com
+helm push "./hugegraph-helm-${CHART_VERSION}.tgz" \
+  oci://registry.internal.example.com/charts
+helm install hugegraph oci://registry.internal.example.com/charts/hugegraph-helm \
+  --version "$CHART_VERSION" -n hugegraph --create-namespace \
+  -f private-images.yaml --wait --timeout 15m
+```
+
+`helm push` takes the parent registry path; Helm adds the Chart name and version.
+
+</details>
+
+<details>
+<summary>Internal HTTP repository</summary>
+
+Upload the same `.tgz` using the repository's upload mechanism and update
+`index.yaml`. For a static HTTP repository, `helm repo index` creates the index.
+Native `helm push` only supports OCI.
+
+```bash
+helm repo add hugegraph-internal https://charts.internal.example.com
+helm repo update hugegraph-internal
+helm install hugegraph hugegraph-internal/hugegraph-helm \
+  --version "$CHART_VERSION" -n hugegraph --create-namespace \
+  -f private-images.yaml --wait --timeout 15m
+```
+
+</details>
 
 Mirror the configured `hugegraph/pd`, `hugegraph/store`, `hugegraph/server` and,
 when enabled, `hugegraph/hubble` images at their selected tags or digests. The

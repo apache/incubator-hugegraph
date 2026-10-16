@@ -6,11 +6,27 @@ The OCI chart is named `hugegraph-helm`; the application and default Kubernetes 
 `hugegraph`. This chart targets HugeGraph 1.8.0 and later; earlier service releases
 are not supported.
 
-See [distribution and offline installation](docs/distribution.md) for versioned
-GHCR/Docker Hub commands. Source installs below use the same chart in
-`helm/hugegraph`.
+## Install a published Chart
 
-## Install and open Hubble
+For a quick trial, install the latest available Chart from GHCR:
+
+```bash
+helm install hugegraph oci://ghcr.io/hugegraph/hugegraph-helm --devel \
+  -n hugegraph --create-namespace --wait --timeout 15m
+```
+
+> [!TIP]
+> `--devel` selects the highest Chart version, including development and stable
+> versions, without limiting the version series. For production or reproducible
+> installs, replace it with `--version <published-version>` and review the images.
+
+See [distribution and offline installation](docs/distribution.md) for Docker Hub,
+the single-node preset and internal OCI/HTTP repositories. Development Charts may
+use `latest` images; pin component `image.digest` values when needed.
+The source installation and configuration examples below assume a repository
+checkout and commands run from its root.
+
+## Install from source and open Hubble
 
 Provide a default StorageClass or prepare matching PVs. The default installation
 needs **7 volumes**: 3 × 10 GiB for PD, 3 × 50 GiB for Store, and 1 × 1 GiB

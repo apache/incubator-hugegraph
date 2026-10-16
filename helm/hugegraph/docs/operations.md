@@ -4,6 +4,12 @@ Start with [installation and common settings](../README.md).
 [values.yaml](../values.yaml) documents every available parameter; this page
 covers settings that need coordination or diagnosis.
 
+Commands below use the local chart from the repository root. For a published
+Chart, replace `./helm/hugegraph` with
+`oci://ghcr.io/hugegraph/hugegraph-helm --version <published-version>`.
+Keep the installed version for configuration-only changes; choose and review a
+new version for upgrades. See [version selection](distribution.md#choose-a-version-and-registry).
+
 ## Credentials
 
 Normal Helm installations generate/reuse three kept Secrets:
