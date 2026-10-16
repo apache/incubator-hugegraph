@@ -481,6 +481,9 @@ Task database workers release their owned task and graph transactions on the wor
 thread. A failure while closing one owner must not skip cleanup of other owners or
 server-info resources. Cleanup retains the first exception and attaches later cleanup
 failures as suppressed exceptions.
+For the local Standard scheduler, a deleted task disappears from public lookup after its persisted record is
+removed, while its actual execution still counts toward drain until native cleanup finishes; late completion saves from
+that owner do not recreate the removed record.
 
 Synchronous task cancellation preserves a transaction already open on its caller,
 including uncommitted graph writes. Cancellation still runs the normal completion and
@@ -555,6 +558,84 @@ compatibility evidence. Run the read-only application examples against represent
 existing data and validate the serializers, client versions and authentication
 combinations actually used by the application.
 
+## Cache RPC graph lifecycle
+
+When cache RPC is enabled and a backend declares shared storage, Server registers both
+graph and schema cache notifiers for graphs loaded during startup and graphs created or
+loaded later. A new graph's RPC registration must succeed before its local publication.
+Graph services use the graph space and graph name together as their service identity.
+PD deletion and startup coordinate RPC removal for the same graph instance. Startup does not
+register an owner whose RPC removal is pending, even after its placement-event token is consumed,
+and checks logical closure under the actual owner's RPC lifecycle monitor before registration.
+Any retained provider configuration must be unregistered before startup can export services;
+a cleanup failure fails startup instead of re-exporting that owner. Graph clearing, task drains
+and full graph close remain outside this RPC publication gate.
+
+Internal graph loading registers RPC services in Server's administrative scope and
+restores the caller's identity afterward. Direct registration and cleanup remain
+administrative operations.
+
+Successful graph close releases that graph's notifier listeners, providers and consumer
+proxies. A failed task drain during ordinary close or non-clearing local removal retains
+the owner and its RPC resources. In PD-enabled deployments, RPC cleanup failures during
+graph DELETE retain the local owner and bindings for retry; partial cleanup does not imply
+a healthy service. This DELETE path first closes task admission and drains local executions,
+then cleans up RPC before metadata deletion and backend clearing. A failed drain or RPC
+cleanup can be retried with the same DELETE. Logical graph closure fences access before
+all resource cleanup completes. Any close failure retains the local owner and bindings;
+retrying the same DELETE retries cleanup without repeating backend clearing. A completed clear
+is remembered for that exact graph instance even if an external idle transaction delays close;
+retry after that transaction exits. A replacement graph with the same name is cleared independently.
+A graph closed by a non-clearing removal has no successful-clear certificate. A later clearing DELETE
+refuses that closed owner and keeps its binding, rather than reporting success while old backend data remains.
+Raft provider, node and an owned listener are closed independently. The first fatal Java Error takes
+priority over ordinary close failures; otherwise the first failure is retained. Other failures are
+reported as suppressed, with a repeated reference to the primary failure ignored.
+A graph using Server's shared Raft listener closes
+only its own node. Server releases that listener and its address registration on shutdown;
+deleting one graph keeps the listener available to other local graphs. An interrupted node
+join retains the graph owner and interrupt status so a later DELETE can finish cleanup.
+The context's backend, snapshot and optional read-index executors stop after node join and
+drain queued work before close completes. Their wait uses `task.wait_timeout`; timeout or
+interruption retains the graph for retry without cancelling queued operations.
+RPC cleanup can start before graph close finishes. Clearing PD DELETE unregisters RPC before
+metadata removal and backend clear. Factory, binding and quota removal require a successful graph close;
+a failed close retains their owner even if its RPC services have already been unregistered.
+One failing graph does not prevent other graphs in a PD removal batch from being processed.
+Fatal Java Errors retain their original identity and
+propagate out of the removal batch. Failures after backend clearing do not undo deletion;
+retries do not restore deleted data or placement metadata.
+
+For local deletion without PD, backend clearing precedes RPC cleanup during graph close.
+A close failure retains the same local graph, factory identity and configuration for DELETE retry,
+even when access has already been fenced by logical closure. Only a successful clear by that
+instance's local drop permits retry to skip clearing and finish its retained resource cleanup.
+An ordinary close does not provide that certificate. A failure before clearing keeps the open
+owner's existing RPC services. A later cleanup failure does not preserve or restore deleted data.
+
+Failed creation or local loading closes the candidate in Server's administrative scope.
+If rollback close fails, Server retains the local owner and factory identity for cleanup retry.
+Retained failed candidates are excluded from RPC startup even while they are still open.
+An old graph's cleanup cannot remove or re-export a replacement graph's services.
+A PD graph-add notification blocked by an existing owner is coalesced until that owner is
+released, including when independent watches deliver the new ADD before the old REMOVE.
+Duplicate ADD notifications alone keep the healthy owner. Server consumes the PD acknowledgement
+of its own local graph creation without retaining a replacement ADD unless that exact owner already
+has failed peer cleanup; the existing cleanup retry takes priority. A healthy creation acknowledgement
+cannot republish the graph during a later reload. After removal, Server rereads the latest configuration;
+a missing configuration creates nothing. Reload consumes pending ADDs only after each old owner is
+successfully removed, then loads current metadata together instead of replaying ADDs during removal.
+After a peer removal fails, a later same-name PD add retries non-clearing cleanup of that exact
+owner before loading its replacement. Another cleanup failure keeps the owner for the next add
+or normal reload; no background retry is scheduled. A replacement load failure is logged and
+remains pending for a later add or normal reload. The completed old-owner DELETE still succeeds.
+Events queued for a closed notifier are ignored; an RPC request already sent cannot be recalled.
+
+Cache RPC uses the configured peer addresses; local provider export does not establish
+that every remote consumer connection is ready. Notifications are asynchronous, and
+connection or delivery failures are logged. This lifecycle handling does not provide
+acknowledged delivery or a distributed cache consistency protocol. Validate actual DML
+and cache behavior against the deployment's shared backend and topology.
 
 ## Deleting a graph with local tasks
 
