@@ -198,6 +198,13 @@ A single Store replacement can still cause request errors or timeouts while Raft
 leadership and client routes converge. Observe application errors as well as
 shard recovery before continuing; do not blindly retry writes.
 
+With PD and Store images containing #3229's registration changes, `Up` follows
+local engine restore and graceful stops report `Offline`. Use PD's
+`heartbeatAgeMillis` to reject stale `Up` records after an abrupt stop.
+These signals do not prove Raft catch-up.
+<!-- TODO: replace the manual barrier only when Store also exposes per-group
+     Raft catch-up readiness; local restore and heartbeat freshness are insufficient. -->
+
 ### PD patrol and leader balance
 
 Partition patrol repairs shard membership; it does not balance shard leaders.
