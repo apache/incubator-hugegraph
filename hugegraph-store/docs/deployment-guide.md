@@ -370,8 +370,10 @@ cache for the Raft log comes on top of this budget.
 
 With `total_memory_size: 0`, or the key unset, the Store sizes the budget at startup as half
 of what is left after the heap, the maximum direct memory and a 1.5 GiB reserve, clamped to
-256 MiB–32 GB. Inside a container the starting point is the cgroup memory limit, so a Store
-with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
+256 MiB–32 GB. Inside a container the starting point is the cgroup memory limit, including a
+limit set only on a parent cgroup when the Store can see that cgroup; inside a private cgroup
+namespace only the container's own limit is visible, so pin the value there if only the pod or
+slice is limited. A Store with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
 `-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap; the budget counts that
 as at most 1 GiB, so set the flag when the Store needs more direct memory than that, and in
 small containers, where an uncapped 1 GiB heap already leaves only the 256 MiB floor.
@@ -381,6 +383,7 @@ On a host without a container limit the starting point is physical memory. The d
 A Store whose heap was raised gets less: 2.75 GiB on a 16 GiB host with `-Xmx8g`, 12.75 GiB on
 a 64 GiB host with `-Xmx36g`. Before this default every host got a fixed `32000000000`, so pin
 the value after upgrading if a large node relied on it.
+
 The chosen value is logged by `RocksdbMemoryBudget` at startup, with a warning when the floor
 applies, or when an explicit value is under 256 MiB or exceeds the memory left after the heap,
 direct memory and the reserve. Set a number of bytes, at least 1048576 (1 MiB), to pin it; a
@@ -388,6 +391,12 @@ smaller value or a unit suffix such as `4GB` is rejected. Before this default ex
 shipped value was `32000000000`, which can exceed a container limit and get the Store
 OOM-killed. Both caps are soft: RocksDB can briefly go over them under heavy writes, and a
 small budget with many partitions means frequent memtable flushes.
+
+**Upgrading an existing deployment.** Auto-sizing applies only when the loaded configuration
+has `total_memory_size: 0` or no value. A Store that mounts its own `conf/application-pd.yml`,
+or a tarball install that kept its `conf/` from an earlier release, still has `32000000000` and
+keeps that fixed budget; the Store logs a warning naming the old value at startup. Set the key
+to `0` or remove it, or set `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE` in Docker.
 
 ### Server Configuration
 
@@ -757,8 +766,10 @@ environment:
 
 `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE` must be a plain number of bytes; the entrypoint refuses
 anything else. When set it outranks `rocksdb.total_memory_size` in a mounted
-`conf/application-pd.yml` and a `-Drocksdb.total_memory_size` in `JAVA_OPTS`. Leave it unset to let the Store size the budget from the container
-memory limit (see [Store Configuration](#store-configuration)).
+`conf/application-pd.yml` and a `-Drocksdb.total_memory_size` in `JAVA_OPTS`. Leave it unset
+to let the Store size the budget from the container memory limit, provided the loaded config
+also has `total_memory_size: 0` or no value; a mounted `application-pd.yml` from an earlier
+release still has `32000000000` (see [Store Configuration](#store-configuration)).
 
 **Server environment variables**:
 

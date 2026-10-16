@@ -24,8 +24,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
 
 import org.apache.hugegraph.config.ConfigException;
 import org.apache.hugegraph.config.HugeConfig;
@@ -102,6 +108,85 @@ public class RocksdbMemoryBudgetTest {
         // The default launcher caps the heap at 2 GiB
         assertEquals(5888 * MIB, RocksdbMemoryBudget.auto(
                 16 * GIB, 2 * GIB, RocksdbMemoryBudget.directMemory(0L, 2 * GIB)));
+    }
+
+    @Test
+    public void testAncestorCgroupV2LimitIsUsed() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2");
+        try {
+            // A 4 GiB limit on the pod, none on the container or above the pod
+            write(root, "kubepods/memory.max", "max");
+            write(root, "kubepods/pod1/memory.max", String.valueOf(4 * GIB));
+            write(root, "kubepods/pod1/ctr/memory.max", "max\n");
+            Path proc = write(root, "proc-self-cgroup", "0::/kubepods/pod1/ctr\n");
+            long limit = RocksdbMemoryBudget.cgroupMemoryLimit(proc, root);
+            assertEquals(4 * GIB, limit);
+
+            // The case from review: a 64 GiB host reported by the JVM, -Xmx1g and
+            // -XX:MaxDirectMemorySize=512m get the 4 GiB limit's budget, not host RAM's
+            long physical = RocksdbMemoryBudget.effectivePhysical(64 * GIB, limit);
+            assertEquals(512 * MIB, RocksdbMemoryBudget.auto(physical, GIB, 512 * MIB));
+
+            // The container's own lower limit wins over the pod's
+            write(root, "kubepods/pod1/ctr/memory.max", String.valueOf(2 * GIB));
+            assertEquals(2 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testCgroupV2NamespaceRootAndNoLimit() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2");
+        try {
+            // Inside a cgroup namespace the process sees "/" and the mount is its cgroup
+            Path proc = write(root, "proc-self-cgroup", "0::/\n");
+            write(root, "memory.max", "max");
+            assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+            write(root, "memory.max", String.valueOf(3 * GIB));
+            assertEquals(3 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+
+            // A path the mount doesn't show falls back to the mount root
+            Path hidden = write(root, "proc-hidden", "0::/system.slice/hidden.service\n");
+            assertEquals(3 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(hidden, root));
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testCgroupV1HierarchicalLimitIsUsed() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v1");
+        try {
+            Path proc = write(root, "proc-self-cgroup",
+                              "12:cpu,cpuacct:/docker/abc\n4:memory:/docker/abc\n");
+            // Docker mounts the container's own memory cgroup, so /docker/abc isn't there
+            write(root, "memory/memory.limit_in_bytes", "9223372036854771712");
+            write(root, "memory/memory.stat",
+                  "cache 0\nhierarchical_memory_limit " + (4 * GIB) + "\n");
+            assertEquals(4 * GIB, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+
+            write(root, "memory/memory.stat", "hierarchical_memory_limit 9223372036854771712\n");
+            assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, root));
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testUnreadableCgroupKeepsJvmMemory() {
+        Path missing = Path.of("/nonexistent/proc/self/cgroup");
+        assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(missing, Path.of("/nonexistent")));
+        assertEquals(16 * GIB, RocksdbMemoryBudget.effectivePhysical(16 * GIB, -1L));
+        assertEquals(4 * GIB, RocksdbMemoryBudget.effectivePhysical(-1L, 4 * GIB));
+        assertEquals(4 * GIB, RocksdbMemoryBudget.effectivePhysical(4 * GIB, 8 * GIB));
+    }
+
+    private static Path write(Path root, String relative, String content) throws IOException {
+        Path file = root.resolve(relative);
+        Files.createDirectories(file.getParent());
+        Files.write(file, content.getBytes(StandardCharsets.UTF_8));
+        return file;
     }
 
     @Test

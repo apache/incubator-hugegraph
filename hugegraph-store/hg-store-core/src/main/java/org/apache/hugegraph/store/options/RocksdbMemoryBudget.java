@@ -17,7 +17,13 @@
 
 package org.apache.hugegraph.store.options;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 import com.sun.management.HotSpotDiagnosticMXBean;
 import com.sun.management.OperatingSystemMXBean;
@@ -70,6 +76,12 @@ public final class RocksdbMemoryBudget {
             if (value < MIN_AUTO) {
                 log.warn("rocksdb.total_memory_size={} is below the {} bytes auto-sizing " +
                          "never goes under", value, MIN_AUTO);
+            }
+            if (value == MAX_AUTO) {
+                // Most likely an application-pd.yml kept from before auto-sizing
+                log.warn("rocksdb.total_memory_size={} is the fixed value shipped before " +
+                         "auto-sizing; set it to 0 or remove it to size the budget from " +
+                         "the available memory", value);
             }
             long direct = maxDirectMemory(heap);
             long left = physical - heap - direct - RESERVED;
@@ -146,16 +158,122 @@ public final class RocksdbMemoryBudget {
     }
 
     private static long physicalMemory() {
+        long jvm;
         try {
-            // Reports the cgroup v1/v2 memory limit inside a container; older JDK 17
+            // Reports the cgroup v1/v2 memory limit inside a container, but older JDK 17
             // updates may not see a limit set only on a parent cgroup
             OperatingSystemMXBean os = ManagementFactory.getPlatformMXBean(
                     OperatingSystemMXBean.class);
-            return os == null ? -1L : os.getTotalMemorySize();
+            jvm = os == null ? -1L : os.getTotalMemorySize();
         } catch (RuntimeException | LinkageError e) {
             log.warn("Failed to read physical memory size", e);
+            jvm = -1L;
+        }
+        long cgroup = cgroupMemoryLimit(Paths.get("/proc/self/cgroup"),
+                                        Paths.get("/sys/fs/cgroup"));
+        return effectivePhysical(jvm, cgroup);
+    }
+
+    /**
+     * The smaller of what the JVM reports and the cgroup limit, ignoring unknown (<= 0)
+     * values.
+     */
+    static long effectivePhysical(long jvm, long cgroup) {
+        if (cgroup <= 0) {
+            return jvm;
+        }
+        return jvm <= 0 ? cgroup : Math.min(jvm, cgroup);
+    }
+
+    /**
+     * The lowest memory limit on this process's cgroup or any visible ancestor, or -1
+     * when there is none or it can't be read. cgroup v2 walks memory.max from the
+     * process's cgroup up to the mount root; cgroup v1 reads hierarchical_memory_limit,
+     * which already accounts for ancestors. Inside a private cgroup namespace the mount
+     * root is the container's own cgroup, so a limit above it stays invisible.
+     */
+    static long cgroupMemoryLimit(Path procSelfCgroup, Path cgroupRoot) {
+        List<String> lines;
+        try {
+            lines = Files.readAllLines(procSelfCgroup, StandardCharsets.UTF_8);
+        } catch (IOException | RuntimeException e) {
             return -1L;
         }
+        long limit = -1L;
+        for (String line : lines) {
+            String[] parts = line.split(":", 3);
+            if (parts.length < 3) {
+                continue;
+            }
+            String relative = parts[2].startsWith("/") ? parts[2].substring(1) : parts[2];
+            if (parts[0].equals("0") && parts[1].isEmpty()) {
+                limit = lowest(limit, cgroupV2Limit(cgroupRoot, relative));
+            } else if (("," + parts[1] + ",").contains(",memory,")) {
+                limit = lowest(limit, cgroupV1Limit(cgroupRoot.resolve("memory"), relative));
+            }
+        }
+        return limit;
+    }
+
+    private static long cgroupV2Limit(Path root, String relative) {
+        Path dir = root.resolve(relative).normalize();
+        if (!dir.startsWith(root) || !Files.isDirectory(dir)) {
+            // The process path is not visible from this mount (a cgroup namespace)
+            dir = root;
+        }
+        long limit = -1L;
+        for (Path d = dir; d != null && d.startsWith(root); d = d.getParent()) {
+            limit = lowest(limit, readLimit(d.resolve("memory.max")));
+        }
+        return limit;
+    }
+
+    private static long cgroupV1Limit(Path base, String relative) {
+        Path dir = base.resolve(relative).normalize();
+        if (!dir.startsWith(base) || !Files.isDirectory(dir)) {
+            dir = base;
+        }
+        long limit = readLimit(dir.resolve("memory.limit_in_bytes"));
+        try {
+            for (String line : Files.readAllLines(dir.resolve("memory.stat"),
+                                                  StandardCharsets.UTF_8)) {
+                if (line.startsWith("hierarchical_memory_limit ")) {
+                    limit = lowest(limit, parseLimit(line.substring(line.indexOf(' ') + 1)));
+                }
+            }
+        } catch (IOException | RuntimeException e) {
+            // memory.stat is optional here, memory.limit_in_bytes already counted
+        }
+        return limit;
+    }
+
+    private static long readLimit(Path file) {
+        try {
+            return parseLimit(new String(Files.readAllBytes(file), StandardCharsets.UTF_8));
+        } catch (IOException | RuntimeException e) {
+            return -1L;
+        }
+    }
+
+    // "max" (v2) and the near-Long.MAX_VALUE page-aligned v1 default mean no limit
+    private static long parseLimit(String value) {
+        String trimmed = value.trim();
+        if (trimmed.isEmpty() || trimmed.equals("max")) {
+            return -1L;
+        }
+        try {
+            long limit = Long.parseLong(trimmed);
+            return limit <= 0 || limit >= Long.MAX_VALUE / 2 ? -1L : limit;
+        } catch (NumberFormatException e) {
+            return -1L;
+        }
+    }
+
+    private static long lowest(long a, long b) {
+        if (a <= 0) {
+            return b;
+        }
+        return b <= 0 ? a : Math.min(a, b);
     }
 
     private static long maxDirectMemory(long heap) {
