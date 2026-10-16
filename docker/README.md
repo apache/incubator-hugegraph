@@ -358,6 +358,22 @@ The launcher never deletes dumps or `heapdump_*` directories. Each start that ge
 
 To turn heap dumps off for every JVM, set `JAVA_TOOL_OPTIONS=-XX:-HeapDumpOnOutOfMemoryError`, which also keeps the image's default `JAVA_OPTS`. Set it in the container's environment, not in the host shell: `docker run -e JAVA_TOOL_OPTIONS=...`, an `environment:` entry on the Server service in Compose (the shipped Compose files do not pass it through), or `env` on the container in Kubernetes. Putting the flag in `JAVA_OPTS` turns dumps off for the Server JVM only, because the JVMs it starts do not see its command line, and setting `JAVA_OPTS` replaces the image default (`-XX:+UseContainerSupport -XX:MaxRAMPercentage=50 ...`), so repeat those flags. Either way, each start still creates its empty `heapdump_*` directory, unless creating it failed or the logs path contains a double quote or `%`.
 
+### JVM thread creation failures during startup
+
+If startup reports `pthread_create failed (EPERM)`, the host may be denying the
+JVM's thread-creation syscall through its seccomp profile. The entrypoint checks
+new JVM crash files and newly appended Server log output after an initialization
+or Server readiness failure, and prints a diagnostic without changing the exit code.
+Crash files left by previous starts do not trigger the hint.
+
+To confirm a seccomp restriction, retry the same container with
+`--security-opt seccomp=unconfined`. Use a compatible Docker/runtime seccomp profile
+for normal operation. Inspect host process/thread limits too; if they are too low,
+set `--ulimit nproc=65535:65535`. A generic `Cannot create worker GC thread` message
+can also indicate insufficient memory, so check the container's memory budget
+before attributing that error to seccomp. The entrypoint changes neither the
+host security policy nor the container limits.
+
 ## Developers
 
 ### Images and Compose files
