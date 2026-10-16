@@ -31,12 +31,13 @@ function print_jvm_thread_hint() {
     ')
     case "$kind" in
         denied)
-            echo 'ERROR: JVM thread creation was denied (EPERM). Check the Docker host seccomp profile and thread limits.' >&2
+            echo 'ERROR: JVM thread creation was denied (EPERM). Check the Docker host seccomp profile and security policy.' >&2
             echo 'To diagnose seccomp restrictions, retry with --security-opt seccomp=unconfined; use a compatible host/runtime profile for normal operation.' >&2
-            echo 'If the process limit is too low, set --ulimit nproc=65535:65535.' >&2
             ;;
         resources)
-            echo 'ERROR: JVM could not create a GC worker thread. Check available memory and process/thread limits.' >&2
+            echo 'ERROR: JVM could not create a GC worker thread. Possible causes include seccomp denial, insufficient memory, or process/thread limits.' >&2
+            echo 'Look for pthread_create failed (EPERM) above in the container log; if present, check the host seccomp profile and security policy.' >&2
+            echo 'To diagnose seccomp restrictions, retry with --security-opt seccomp=unconfined; use a compatible host/runtime profile for normal operation.' >&2
             echo 'If the process limit is too low, set --ulimit nproc=65535:65535.' >&2
             ;;
         *) return 1 ;;
