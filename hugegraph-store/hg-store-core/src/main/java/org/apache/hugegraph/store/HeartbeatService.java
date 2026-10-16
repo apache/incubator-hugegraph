@@ -70,6 +70,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     // Thread sleep time
     private volatile int timerNextDelay = 1000;
     private volatile boolean terminated = false;
+    private boolean restored = false;
     private final AtomicBoolean fatalExitRequested = new AtomicBoolean();
     private Thread storeHeartbeatThread;
     private Thread partitionHeartbeatThread;
@@ -200,13 +201,20 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             this.storeInfo.setStoreAddress(IpUtil.getNearestAddress(options.getGrpcAddress()));
             this.storeInfo.setRaftAddress(IpUtil.getNearestAddress(options.getRaftAddress()));
 
-            // Obtain the identity needed by partition recovery without advertising this Store Up.
-            this.storeInfo.setState(Metapb.StoreState.Offline);
-            long storeId = pdProvider.registerStore(this.storeInfo);
+            // Recovery is needed once per process, not when an established stream reconnects.
+            boolean restoring = !restored;
+            this.storeInfo.setState(restoring ? Metapb.StoreState.Offline : Metapb.StoreState.Up);
+            long storeId;
+            try {
+                storeId = pdProvider.registerStore(this.storeInfo);
+            } finally {
+                // Retry registration after a failure instead of heartbeating an unregistered Store.
+                this.storeInfo.setState(Metapb.StoreState.Offline);
+            }
             if (storeId != 0) {
                 storeInfo.setId(storeId);
                 storeMetadata.save(storeInfo);
-                if (storeEngine != null) {
+                if (restoring && storeEngine != null) {
                     try {
                         storeEngine.stateChanged(storeInfo, Metapb.StoreState.Offline, Metapb.StoreState.Up);
                     } catch (RuntimeException e) {
@@ -215,13 +223,14 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                         return;
                     }
                 }
+                restored = true;
                 if (terminated) {
                     return;
                 }
                 boolean registered = false;
                 try {
                     storeInfo.setState(Metapb.StoreState.Up);
-                    registered = pdProvider.registerStore(storeInfo) != 0;
+                    registered = !restoring || pdProvider.registerStore(storeInfo) != 0;
                 } finally {
                     if (!registered) {
                         storeInfo.setState(Metapb.StoreState.Offline);

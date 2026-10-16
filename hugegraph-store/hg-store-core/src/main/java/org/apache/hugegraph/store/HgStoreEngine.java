@@ -286,16 +286,23 @@ public class HgStoreEngine implements Lifecycle<HgStoreEngineOptions>, StoreStat
                             "Please delete the redundant data manually,  {}", partition);
                 });
             }
+            List<Exception> failures = new ArrayList<>();
             partitionManager.getPartitions().forEach((k, g) -> {
                 g.forEach((id, p) -> {
                     try {
                         createPartitionEngine(p);
                     } catch (Exception e) {
-                        throw new IllegalStateException("Failed to restore partition " +
-                                                        p.getGraphName() + "-" + p.getId(), e);
+                        failures.add(new IllegalStateException("Failed to restore partition " +
+                                                               p.getGraphName() + "-" + p.getId(), e));
                     }
                 });
             });
+            if (!failures.isEmpty()) {
+                IllegalStateException failure = new IllegalStateException("Failed to restore " +
+                                                                          failures.size() + " partitions");
+                failures.forEach(failure::addSuppressed);
+                throw failure;
+            }
         } catch (PDException e) {
             throw new IllegalStateException("Failed to synchronize partitions before restore", e);
         }

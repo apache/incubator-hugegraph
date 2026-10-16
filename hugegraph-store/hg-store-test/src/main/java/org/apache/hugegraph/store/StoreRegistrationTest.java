@@ -19,12 +19,16 @@ package org.apache.hugegraph.store;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hugegraph.pd.client.ClientCache;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.store.meta.Partition;
+import org.apache.hugegraph.store.meta.PartitionManager;
 import org.apache.hugegraph.store.meta.Store;
 import org.apache.hugegraph.store.meta.StoreMetadata;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
@@ -74,6 +78,82 @@ public class StoreRegistrationTest {
         } finally {
             service.shutdown();
         }
+    }
+
+    @Test
+    public void testReconnectRegistersUpWithoutRestoringAgain() throws Exception {
+        List<String> events = new ArrayList<>();
+        HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
+        PdProvider provider = Mockito.mock(PdProvider.class);
+        Mockito.when(provider.registerStore(Mockito.any())).thenAnswer(call -> {
+            events.add(((Store) call.getArgument(0)).getState().name());
+            return 7L;
+        });
+        HeartbeatService service = service(engine, provider);
+        try {
+            service.registerStore();
+            Assert.assertEquals(List.of("Offline", "Up"), events);
+            events.clear();
+            service.onStateChanged(Metapb.StoreState.Offline);
+            service.registerStore();
+            Assert.assertEquals(List.of("Up"), events);
+            Assert.assertEquals(Metapb.StoreState.Up, service.getStoreInfo().getState());
+            Mockito.verify(engine).stateChanged(Mockito.any(), Mockito.any(), Mockito.eq(Metapb.StoreState.Up));
+        } finally {
+            service.shutdown();
+        }
+    }
+
+    @Test
+    public void testFailedUpRegistrationRetriesWithoutRestoringAgain() throws Exception {
+        HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
+        PdProvider provider = Mockito.mock(PdProvider.class);
+        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L)
+               .thenThrow(new PDException(1, "unavailable")).thenReturn(7L);
+        HeartbeatService service = service(engine, provider);
+        try {
+            service.registerStore();
+            Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
+            service.registerStore();
+            Assert.assertEquals(Metapb.StoreState.Up, service.getStoreInfo().getState());
+            Mockito.verify(engine).stateChanged(Mockito.any(), Mockito.any(), Mockito.eq(Metapb.StoreState.Up));
+        } finally {
+            service.shutdown();
+        }
+    }
+
+    @Test
+    public void testRestoreAttemptsHealthyPartitionAfterFailure() throws Exception {
+        HgStoreEngine engine = Mockito.mock(HgStoreEngine.class, Mockito.CALLS_REAL_METHODS);
+        HgStoreEngineOptions options = new HgStoreEngineOptions();
+        options.setFakePD(true);
+        Field optionsField = HgStoreEngine.class.getDeclaredField("options");
+        optionsField.setAccessible(true);
+        optionsField.set(engine, options);
+        PartitionManager manager = Mockito.mock(PartitionManager.class);
+        engine.setPartitionManager(manager);
+        Partition first = new Partition();
+        first.setId(1);
+        first.setGraphName("graph");
+        Partition second = new Partition();
+        second.setId(2);
+        second.setGraphName("graph");
+        Map<Integer, Partition> partitions = new LinkedHashMap<>();
+        partitions.put(1, first);
+        partitions.put(2, second);
+        Mockito.when(manager.getPartitions()).thenReturn(Map.of("graph", partitions));
+        Mockito.doThrow(new IllegalStateException("broken raft group")).when(engine).createPartitionEngine(first);
+        PartitionEngine healthy = Mockito.mock(PartitionEngine.class);
+        Mockito.doReturn(healthy).when(engine).createPartitionEngine(second);
+        try {
+            engine.restoreLocalPartitionEngine();
+            Assert.fail("partial restore must not publish the Store Up");
+        } catch (IllegalStateException e) {
+            Assert.assertEquals(1, e.getSuppressed().length);
+            Assert.assertTrue(e.getSuppressed()[0].getMessage().contains("graph-1"));
+            Assert.assertEquals("broken raft group", e.getSuppressed()[0].getCause().getMessage());
+        }
+        Mockito.verify(engine).createPartitionEngine(second);
     }
 
     @Test

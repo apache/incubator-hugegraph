@@ -214,7 +214,7 @@ public class StoreNodeService {
             checkStoreStatus();
         } else if (storeState == Metapb.StoreState.Offline &&
                    lastStore.getState() == Metapb.StoreState.Up) {
-            storeInfoMeta.removeActiveStore(store);
+            // Keep the existing keepalive window during a temporary restart; do not renew it.
             onStoreStatusChanged(store, Metapb.StoreState.Up, Metapb.StoreState.Offline);
             checkStoreStatus();
         }
@@ -292,6 +292,8 @@ public class StoreNodeService {
         }
 
         storeInfoMeta.updateStore(store);
+        // Temporary Offline reports retain the existing keepalive entry without renewing it.
+        // Removing it here makes a rolling restart fail the initial-store-count gate.
         if (store.getState() != Metapb.StoreState.Unknown &&
             store.getState() != lastStore.getState()) {
             // If you want to take the store offline
@@ -314,9 +316,6 @@ public class StoreNodeService {
                     storeInfoMeta.removeActiveStore(store);
                 }
                 storeTurnoff(store);
-            } else if (store.getState() == Metapb.StoreState.Offline) {
-                // Monitor that the store has gone offline and is removed from the active
-                storeInfoMeta.removeActiveStore(store);
             } else if (store.getState() == Metapb.StoreState.Tombstone) {
                 // When the status changes, the store is shut down, the shardGroup is modified,
                 // and the replica is migrated

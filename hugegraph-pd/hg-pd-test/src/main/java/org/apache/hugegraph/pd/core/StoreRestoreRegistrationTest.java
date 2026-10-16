@@ -17,6 +17,8 @@
 
 package org.apache.hugegraph.pd.core;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,13 +38,14 @@ public class StoreRestoreRegistrationTest {
     private StoreNodeService service;
     private StoreInfoMeta metadata;
     private AtomicReference<Metapb.Store> current;
+    private PDConfig config;
 
     @Before
     public void setUp() throws Exception {
         service = Mockito.mock(StoreNodeService.class, Mockito.CALLS_REAL_METHODS);
         metadata = Mockito.mock(StoreInfoMeta.class);
         current = new AtomicReference<>(store(Metapb.StoreState.Up));
-        PDConfig config = Mockito.mock(PDConfig.class);
+        config = Mockito.mock(PDConfig.class);
         Mockito.when(config.getInitialStoreMap()).thenReturn(Map.of());
         Whitebox.setInternalState(service, "pdConfig", config);
         Whitebox.setInternalState(service, "storeInfoMeta", metadata);
@@ -60,7 +63,7 @@ public class StoreRestoreRegistrationTest {
     public void testRestoringStoreRemainsOfflineUntilSecondRegistration() throws Exception {
         Metapb.Store restoring = service.register(store(Metapb.StoreState.Offline));
         Assert.assertEquals(Metapb.StoreState.Offline, restoring.getState());
-        Mockito.verify(metadata).removeActiveStore(restoring);
+        Mockito.verify(metadata, Mockito.never()).removeActiveStore(Mockito.any());
         Mockito.verify(metadata, Mockito.never()).keepStoreAlive(Mockito.any());
 
         Metapb.Store restored = service.register(store(Metapb.StoreState.Up));
@@ -83,6 +86,62 @@ public class StoreRestoreRegistrationTest {
         current.set(store(Metapb.StoreState.Offline));
         Assert.assertEquals(Metapb.StoreState.Up,
                             service.register(store(Metapb.StoreState.Up)).getState());
+    }
+
+    @Test
+    public void testShutdownOfflinePreservesThreeStoreReadinessUntilExpiry() throws Exception {
+        assertTemporaryOfflinePreservesReadiness(false);
+    }
+
+    @Test
+    public void testRestoreRegistrationPreservesThreeStoreReadinessUntilExpiry() throws Exception {
+        assertTemporaryOfflinePreservesReadiness(true);
+    }
+
+    private void assertTemporaryOfflinePreservesReadiness(boolean registering) throws Exception {
+        Map<Long, Metapb.Store> stores = new HashMap<>();
+        for (long id = 7; id < 10; id++) {
+            stores.put(id, store(Metapb.StoreState.Up).toBuilder().setId(id).build());
+        }
+        Map<Long, Metapb.Store> active = new HashMap<>(stores);
+        Mockito.when(config.getMinStoreCount()).thenReturn(3);
+        Mockito.doCallRealMethod().when(service).checkStoreStatus();
+        Mockito.when(metadata.getStore(Mockito.anyLong())).thenAnswer(call -> stores.get(call.getArgument(0)));
+        Mockito.when(metadata.getActiveStores()).thenAnswer(call -> new ArrayList<>(active.values()));
+        Mockito.when(metadata.getShardGroups()).thenReturn(List.of(Metapb.ShardGroup.newBuilder()
+                .setId(1).addShards(Metapb.Shard.newBuilder().setStoreId(7))
+                .addShards(Metapb.Shard.newBuilder().setStoreId(8))
+                .addShards(Metapb.Shard.newBuilder().setStoreId(9)).build()));
+        Mockito.doAnswer(call -> {
+            Metapb.Store store = call.getArgument(0);
+            stores.put(store.getId(), store);
+            return null;
+        }).when(metadata).updateStore(Mockito.any());
+        Mockito.doAnswer(call -> {
+            active.remove(((Metapb.Store) call.getArgument(0)).getId());
+            return null;
+        }).when(metadata).removeActiveStore(Mockito.any());
+        Mockito.doAnswer(call -> {
+            Metapb.Store store = call.getArgument(0);
+            active.put(store.getId(), store);
+            return null;
+        }).when(metadata).keepStoreAlive(Mockito.any());
+
+        Metapb.Store offline = store(Metapb.StoreState.Offline);
+        if (registering) {
+            service.register(offline);
+        } else {
+            service.updateStore(offline);
+        }
+        Assert.assertEquals(Metapb.StoreState.Offline, service.getStore(7).getState());
+        Metapb.StoreStats heartbeat = Metapb.StoreStats.newBuilder().setStoreId(8).build();
+        Assert.assertEquals(Metapb.ClusterState.Cluster_OK, service.heartBeat(heartbeat).getState());
+        Mockito.verify(metadata, Mockito.never()).removeActiveStore(Mockito.any());
+        Mockito.verify(metadata, Mockito.never()).keepStoreAlive(Mockito.argThat(store -> store.getId() == 7));
+
+        // Expiry still removes a Store that never comes back; Offline must not renew the lease.
+        active.remove(7L);
+        Assert.assertEquals(Metapb.ClusterState.Cluster_Not_Ready, service.heartBeat(heartbeat).getState());
     }
 
     private static Metapb.Store store(Metapb.StoreState state) {
