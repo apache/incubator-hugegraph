@@ -40,6 +40,10 @@ public final class RocksdbMemoryBudget {
     // and other native allocations that sit outside the budget
     static final long RESERVED = 1024 * MIB + 512 * MIB;
     static final long MIN_AUTO = 256 * MIB;
+    // Direct memory counted when -XX:MaxDirectMemorySize is unset. The JVM then allows
+    // as much as the heap, but the Store's gRPC/Netty buffers do not grow with the heap,
+    // and counting a 36 GB heap twice would leave rocksdb the floor on a large host
+    static final long UNSET_DIRECT = 1024 * MIB;
     // RaftRocksdbOptions gives the write buffer manager 2/3 of the budget, and a 0-byte
     // write buffer manager means no memtable limit at all
     static final long MIN_EXPLICIT = MIB;
@@ -158,13 +162,19 @@ public final class RocksdbMemoryBudget {
         try {
             HotSpotDiagnosticMXBean hotspot = ManagementFactory.getPlatformMXBean(
                     HotSpotDiagnosticMXBean.class);
-            long direct = Long.parseLong(
-                    hotspot.getVMOption("MaxDirectMemorySize").getValue());
-            // 0 means unset, and the JVM then allows as much direct memory as heap
-            return direct > 0 ? direct : heap;
+            return directMemory(Long.parseLong(
+                    hotspot.getVMOption("MaxDirectMemorySize").getValue()), heap);
         } catch (RuntimeException | LinkageError e) {
-            log.warn("Failed to read MaxDirectMemorySize, assuming the heap size", e);
-            return heap;
+            log.warn("Failed to read MaxDirectMemorySize, assuming it is unset", e);
+            return directMemory(0L, heap);
         }
+    }
+
+    /**
+     * The direct memory the budget leaves room for: an explicit -XX:MaxDirectMemorySize
+     * as given, otherwise (0, unset) the heap size capped at UNSET_DIRECT.
+     */
+    static long directMemory(long configured, long heap) {
+        return configured > 0 ? configured : Math.min(heap, UNSET_DIRECT);
     }
 }

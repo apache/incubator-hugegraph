@@ -84,6 +84,27 @@ public class RocksdbMemoryBudgetTest {
     }
 
     @Test
+    public void testUnsetDirectMemoryIsCappedAtOneGib() {
+        assertEquals(512 * MIB, RocksdbMemoryBudget.directMemory(512 * MIB, 8 * GIB));
+        assertEquals(4 * GIB, RocksdbMemoryBudget.directMemory(4 * GIB, 8 * GIB));
+        assertEquals(GIB, RocksdbMemoryBudget.directMemory(0L, 8 * GIB));
+        assertEquals(512 * MIB, RocksdbMemoryBudget.directMemory(0L, 512 * MIB));
+    }
+
+    @Test
+    public void testLargeHeapWithoutDirectCapKeepsAUsableBudget() {
+        // Bare-metal Stores with a raised heap and no -XX:MaxDirectMemorySize; counting
+        // the unset cap as a second heap gave all of these the 256 MiB floor
+        assertEquals(2816 * MIB, RocksdbMemoryBudget.auto(
+                16 * GIB, 8 * GIB, RocksdbMemoryBudget.directMemory(0L, 8 * GIB)));
+        assertEquals(13056 * MIB, RocksdbMemoryBudget.auto(
+                64 * GIB, 36 * GIB, RocksdbMemoryBudget.directMemory(0L, 36 * GIB)));
+        // The default launcher caps the heap at 2 GiB
+        assertEquals(5888 * MIB, RocksdbMemoryBudget.auto(
+                16 * GIB, 2 * GIB, RocksdbMemoryBudget.directMemory(0L, 2 * GIB)));
+    }
+
+    @Test
     public void testAutoIsClamped() {
         assertEquals(MIN_AUTO, RocksdbMemoryBudget.auto(2 * GIB, GIB, GIB));
         assertEquals(MAX_AUTO, RocksdbMemoryBudget.auto(1024 * GIB, 8 * GIB, 8 * GIB));

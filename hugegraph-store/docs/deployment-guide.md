@@ -372,8 +372,15 @@ With `total_memory_size: 0`, or the key unset, the Store sizes the budget at sta
 of what is left after the heap, the maximum direct memory and a 1.5 GiB reserve, clamped to
 256 MiB–32 GB. Inside a container the starting point is the cgroup memory limit, so a Store
 with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
-`-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap, and the budget counts
-it that way, so set it explicitly in small containers or the budget falls to the 256 MiB floor.
+`-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap; the budget counts that
+as at most 1 GiB, so set the flag when the Store needs more direct memory than that, and in
+small containers, where an uncapped 1 GiB heap already leaves only the 256 MiB floor.
+
+On a host without a container limit the starting point is physical memory. The default
+`bin/start-hugegraph-store.sh` caps the heap at 2 GiB, so a 16 GiB host gets about 5.75 GiB.
+A Store whose heap was raised gets less: 2.75 GiB on a 16 GiB host with `-Xmx8g`, 12.75 GiB on
+a 64 GiB host with `-Xmx36g`. Before this default every host got a fixed `32000000000`, so pin
+the value after upgrading if a large node relied on it.
 The chosen value is logged by `RocksdbMemoryBudget` at startup, with a warning when the floor
 applies, or when an explicit value is under 256 MiB or exceeds the memory left after the heap,
 direct memory and the reserve. Set a number of bytes, at least 1048576 (1 MiB), to pin it; a
