@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -182,7 +183,7 @@ public class StandardHugeGraph implements HugeGraph {
     private volatile boolean closed;
     private boolean closeCompleted;
     private volatile boolean dropBackendCleared;
-    private volatile GraphMode mode;
+    private final LoadingMode loadingMode = new LoadingMode(this::spaceGraphName);
     private volatile GraphReadMode readMode;
     private volatile HugeVariables variables;
     private String graphSpace;
@@ -231,7 +232,6 @@ public class StandardHugeGraph implements HugeGraph {
         this.started = false;
         this.closed = false;
         this.closeCompleted = false;
-        this.mode = GraphMode.NONE;
         this.readMode = GraphReadMode.OLTP_ONLY;
 
         // Init process-wide static configs before lock, so that validation
@@ -446,13 +446,29 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public GraphMode mode() {
-        return this.mode;
+        return this.loadingMode.mode();
     }
 
     @Override
     public void mode(GraphMode mode) {
+        this.loadingMode.mode(mode);
         LOG.info("Graph {} will work in {} mode", this, mode);
-        this.mode = mode;
+    }
+
+    @Override
+    public Map<String, Object> loadingMode() {
+        return this.loadingMode.capability();
+    }
+
+    @Override
+    public Map<String, Object> loadingMode(String action, String instance, long epoch,
+                                            String token, String principal) {
+        return this.loadingMode.update(action, instance, epoch, token, principal);
+    }
+
+    @Override
+    public Map<String, Object> recoverLoadingMode(String instance, long epoch, long revision) {
+        return this.loadingMode.recover(instance, epoch, revision);
     }
 
     @Override

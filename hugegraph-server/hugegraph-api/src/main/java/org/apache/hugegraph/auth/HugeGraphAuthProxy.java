@@ -813,6 +813,27 @@ public final class HugeGraphAuthProxy implements HugeGraph {
     }
 
     @Override
+    public Map<String, Object> loadingMode() {
+        this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+        return this.hugegraph.loadingMode();
+    }
+
+    @Override
+    public Map<String, Object> loadingMode(String action, String instance, long epoch,
+                                            String token, String principal) {
+        this.verifyPermission(HugePermission.WRITE, ResourceType.STATUS);
+        Context context = getContext();
+        E.checkState(context != null, "Missing authenticated loading owner context");
+        return this.hugegraph.loadingMode(action, instance, epoch, token, context.user().username());
+    }
+
+    @Override
+    public Map<String, Object> recoverLoadingMode(String instance, long epoch, long revision) {
+        this.verifyAdminPermission();
+        return this.hugegraph.recoverLoadingMode(instance, epoch, revision);
+    }
+
+    @Override
     public GraphReadMode readMode() {
         this.verifyStatusPermission();
         return this.hugegraph.readMode();

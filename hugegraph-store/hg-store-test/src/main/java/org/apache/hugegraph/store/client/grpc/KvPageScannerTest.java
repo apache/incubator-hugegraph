@@ -34,6 +34,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -51,6 +53,7 @@ import org.apache.hugegraph.store.grpc.stream.KvPageRes;
 import org.apache.hugegraph.store.grpc.stream.ScanStreamReq;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.stubbing.Answer;
 
 import com.google.protobuf.ByteString;
 
@@ -277,6 +280,154 @@ public class KvPageScannerTest {
             Assert.assertTrue("Scan receiver failed to stop",
                               executor.awaitTermination(5, TimeUnit.SECONDS));
         }
+    }
+
+    @Test
+    public void testRequestTerminalsWaitForRequestSend() throws Exception {
+        var clientError = KvPageScanner.class.getDeclaredMethod("clientError", String.class);
+        clientError.setAccessible(true);
+        for (int terminal = 0; terminal < 3; terminal++) {
+            boolean failed = terminal != 0;
+            boolean cancelled = terminal == 2;
+            CountDownLatch sending = new CountDownLatch(1);
+            CountDownLatch releaseSend = new CountDownLatch(1);
+            AtomicBoolean overlap = new AtomicBoolean();
+            AtomicBoolean inOnNext = new AtomicBoolean();
+            AtomicInteger terminals = new AtomicInteger();
+            AtomicReference<StreamObserver<KvPageRes>> response = new AtomicReference<>();
+            AtomicReference<Thread> callbackThread = new AtomicReference<>();
+            StreamObserver<ScanStreamReq> requestObserver = mock(StreamObserver.class);
+            doAnswer(invocation -> {
+                inOnNext.set(true);
+                sending.countDown();
+                try {
+                    Assert.assertTrue("Request send gate timed out",
+                                      releaseSend.await(5, TimeUnit.SECONDS));
+                    return null;
+                } finally {
+                    inOnNext.set(false);
+                }
+            }).when(requestObserver).onNext(any());
+            Answer<Void> terminalAnswer = invocation -> {
+                if (inOnNext.get()) {
+                    overlap.set(true);
+                }
+                terminals.incrementAndGet();
+                return null;
+            };
+            doAnswer(terminalAnswer).when(requestObserver).onCompleted();
+            doAnswer(terminalAnswer).when(requestObserver).onError(any());
+            KvPageScanner scanner = new KvPageScanner(session(),
+                    ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
+                    observer -> {
+                        response.set(observer);
+                        return requestObserver;
+                    });
+            var error = (cancelled ? Status.CANCELLED : Status.INVALID_ARGUMENT)
+                    .withDescription("scan failed").asRuntimeException();
+            ExecutorService executor = Executors.newFixedThreadPool(2);
+            try {
+                Future<Boolean> receiver = executor.submit(scanner::hasNext);
+                Assert.assertTrue(sending.await(5, TimeUnit.SECONDS));
+                Future<?> callback = executor.submit(() -> {
+                    callbackThread.set(Thread.currentThread());
+                    if (cancelled) {
+                        clientError.invoke(scanner, "scan timed out");
+                        response.get().onError(error);
+                    } else if (failed) {
+                        response.get().onError(error);
+                    } else {
+                        response.get().onNext(page(true, 7));
+                    }
+                    return null;
+                });
+                awaitRequestTerminalBlocked(callbackThread, callback, terminals);
+                Assert.assertFalse("Request terminal overlapped onNext", overlap.get());
+                releaseSend.countDown();
+                callback.get(5, TimeUnit.SECONDS);
+                Assert.assertFalse("Request terminal overlapped onNext", overlap.get());
+                if (failed) {
+                    try {
+                        receiver.get(5, TimeUnit.SECONDS);
+                        Assert.fail("The original scan error must reach the caller");
+                    } catch (java.util.concurrent.ExecutionException e) {
+                        Assert.assertSame(error, e.getCause().getCause());
+                    }
+                } else {
+                    Assert.assertTrue(receiver.get(5, TimeUnit.SECONDS));
+                    Assert.assertEquals(7, scanner.next().getKey().byteAt(0) & 0xff);
+                    Assert.assertFalse(scanner.hasNext());
+                }
+                response.get().onCompleted();
+                scanner.close();
+                Assert.assertEquals(1, terminals.get());
+                verify(requestObserver).onNext(any());
+                if (cancelled) {
+                    verify(requestObserver).onError(any());
+                    verify(requestObserver, never()).onCompleted();
+                } else {
+                    verify(requestObserver).onCompleted();
+                    verify(requestObserver, never()).onError(any());
+                }
+            } finally {
+                releaseSend.countDown();
+                executor.shutdownNow();
+                Assert.assertTrue("Scan workers failed to stop",
+                                  executor.awaitTermination(5, TimeUnit.SECONDS));
+            }
+        }
+    }
+
+    @Test
+    public void testTimeoutCancellationPreservesLateErrorWithoutFurtherRequests() throws Exception {
+        try (FailureFixture fixture = new FailureFixture()) {
+            AtomicReference<StreamObserver<KvPageRes>> response = new AtomicReference<>();
+            StreamObserver<ScanStreamReq> requestObserver = mock(StreamObserver.class);
+            KvPageScanner scanner = new KvPageScanner(fixture.session,
+                    ScanStreamReq.newBuilder().setMethod(ScanMethod.ALL).setTable("table"),
+                    observer -> {
+                        response.set(observer);
+                        return requestObserver;
+                    });
+            // Exercise receive-timeout cancellation without waiting for the configured timeout.
+            var clientError = KvPageScanner.class.getDeclaredMethod("clientError", String.class);
+            clientError.setAccessible(true);
+            clientError.invoke(scanner, "scan timed out");
+            clientError.invoke(scanner, "late timeout");
+            scanner.close();
+            var error = Status.UNAVAILABLE.withDescription("late transport failure")
+                                          .asRuntimeException();
+            response.get().onError(error);
+            response.get().onCompleted();
+            verify(requestObserver).onError(any());
+            verify(requestObserver, never()).onNext(any());
+            verify(requestObserver, never()).onCompleted();
+            Assert.assertNull(fixture.manager.getStoreNode(fixture.nodeId));
+            Assert.assertFalse(AbstractGrpcClient.channels.containsKey(fixture.target));
+            try {
+                scanner.hasNext();
+                Assert.fail("The original transport error must remain visible");
+            } catch (HgStoreClientException e) {
+                Assert.assertSame(error, e.getCause());
+            }
+        }
+    }
+
+    private static void awaitRequestTerminalBlocked(AtomicReference<Thread> callbackThread,
+                                                    Future<?> callback,
+                                                    AtomicInteger terminals) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (System.nanoTime() < deadline) {
+            Thread thread = callbackThread.get();
+            if (terminals.get() > 0 || callback.isDone() ||
+                thread != null && thread.getState() == Thread.State.BLOCKED) {
+                break;
+            }
+            Thread.sleep(1);
+        }
+        Assert.assertEquals("Request terminal must wait until onNext returns", 0, terminals.get());
+        Assert.assertNotNull(callbackThread.get());
+        Assert.assertEquals(Thread.State.BLOCKED, callbackThread.get().getState());
     }
 
     private static void awaitBlockedReceiver(Thread receiver, Future<?> result) throws Exception {

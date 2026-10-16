@@ -95,6 +95,46 @@ to use `emptyDir`. Component storage flags override that global setting.
 PVC failures never cause an automatic fallback. Do not switch initialized
 PD/Store data between persistent and temporary storage.
 
+### Server service identity
+
+`server.serviceId` and `server.graphSpace` select the Server's PD service metadata.
+Both default to `DEFAULT`, which preserves the image configuration. Non-default
+values inject `HG_SERVER_SERVICE_ID` and `HG_SERVER_GRAPHSPACE` for the image
+entrypoint. Service IDs accept printable ASCII, including spaces and backslashes;
+the full name, including `/` and `-`, survives metadata reload and graph-space
+clearing. Dollar signs remain literal through Kubernetes environment expansion.
+Graph spaces must be `DEFAULT` or up to 48 lowercase letters, digits and
+underscores, starting with a letter. Create the target space before starting its
+assigned Server; these settings do not create it.
+
+```bash
+helm upgrade --install hugegraph ./helm/hugegraph -n hugegraph \
+  --set-string server.serviceId=analytics \
+  --set-string server.graphSpace=team_a \
+  --set-string server.testGraphAlias=team_a-demo
+```
+
+Use a chart and Server image build from the same source version containing these
+mappings. Older release images without them ignore these environment settings;
+select a matching image build explicitly. The chart does not detect old images.
+The Server's existing `SERVICE_ID` normalization (`GraphManager.serviceId()`) is
+unchanged: select `GRAPHSPACE` and the complete raw `SERVICE_NAME` in discovery
+queries. Identifier-only lookup has no uniqueness or isolation guarantee.
+
+`server.testGraphAlias` selects an existing Gremlin binding for every Server Pod,
+defaulting to `DEFAULT-hugegraph`. It does not create a graph or infer its binding
+from `server.graphSpace`. Match the binding's case: `Demo.properties` can register
+`DEFAULT-Demo`, while REST-created graph names are lowercase. A successful query
+of the default local binding does not verify a graph in `team_a`. Before replacing
+a Pod after `Could not rebind`, verify that the graph exists and the selected alias
+matches its binding; restarting cannot create a missing graph or correct an alias.
+
+These settings do not change the REST default path graph space or Hubble's
+selected service. Use explicit `/graphspaces/team_a/...` paths and the matching
+Hubble selection. Non-default discovery, authentication and graph-space isolation
+still need verification with a running Linux cluster. See the
+[container identity contract](../../docker/README.md#server-service-identity).
+
 ## Modes and entry points
 
 `mode: easy` is the default. `mode: strict` changes Server/Hubble to ClusterIP
@@ -146,6 +186,8 @@ with `-f`; see [values.yaml](values.yaml) for all fields and their comments.
 | `pd.storage.enabled` / `store.storage.enabled` / `hubble.persistence.enabled` | Explicit component storage override | `null` (inherits) |
 | `*.storageClassName` | Cluster default when empty; `"-"` means no class | `""` |
 | `pd.storage.size` / `store.storage.size` / `hubble.persistence.size` | Volume capacities | `10Gi` / `50Gi` / `1Gi` |
+| `server.serviceId` / `server.graphSpace` | PD service name and existing graph space | `DEFAULT` / `DEFAULT` |
+| `server.testGraphAlias` | Existing Gremlin binding checked by `helm test` | `DEFAULT-hugegraph` |
 | `server.storageWaitTimeoutSeconds` | Storage-ready deadline | `300` |
 | `networkPolicy.enabled` | Explicit policy override; null inherits mode | resolved `false` |
 
@@ -189,9 +231,16 @@ an existing account; follow [credential rotation](docs/operations.md#credentials
 The chart checks persisted Raft identities and storage/membership changes during
 upgrades; those changes require a coordinated procedure.
 
-`helm --wait` checks readiness; `helm test` checks graph-bound Gremlin on each
-Server Pod. Also verify a fresh Hubble login and graph query. Templates and
-linting alone do not prove live volume, network or application behavior.
+`helm --wait` checks readiness. `helm test` checks graph binding and visible
+associated indexes for `CREATED` status on each Server Pod. Run it after index
+creation/rebuild jobs finish, with no schema changes during the test. On HStore,
+reading an unfinished index can cache its temporary status on other Pods;
+retries do not refresh that state, and indexed queries may keep failing until
+those Pods restart after the jobs finish. It does not prove index query results; add
+[business assertions](docs/operations.md#business-query-assertions)
+with `--set-file server.testGremlin=assertions.groovy`. Also verify a fresh Hubble
+login and graph query. Templates and linting alone do not prove live volume,
+network or application behavior.
 
 Website guides: [Helm deployment](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm/)
 and [Kubernetes operations](https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm-operations/).
