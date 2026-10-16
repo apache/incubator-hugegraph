@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
  * {@code hg.store.state{store,state}} is 1 for the store's current state and 0 for the
  * others, and {@code hg.store.leader.count{store}} counts the shard groups it leads.
  * Stores are registered and removed at runtime, so the meters follow the store list on
- * every refresh. The gauges, and {@code hg.stores} for stores not yet registered, trigger
+ * every refresh. The gauges, and {@code hg.stores} through {@link #storeCount()}, trigger
  * the refresh themselves at most once per {@link #REFRESH_INTERVAL_MS}, so one scrape reads
  * the metadata once.
  */
@@ -125,6 +125,15 @@ final class StoreStateMetrics {
     private double state(long storeId, Metapb.StoreState state) {
         this.refreshIfStale();
         return this.states.get(storeId) == state ? 1 : 0;
+    }
+
+    /**
+     * The number of stores PD had at the last refresh, which hg.stores reports so a scrape
+     * reads the store list once
+     */
+    long storeCount() {
+        this.refreshIfStale();
+        return this.states.size();
     }
 
     private double leaderCount(long storeId) {

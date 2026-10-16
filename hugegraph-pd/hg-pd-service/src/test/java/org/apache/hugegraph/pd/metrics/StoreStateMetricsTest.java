@@ -19,6 +19,7 @@ package org.apache.hugegraph.pd.metrics;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
@@ -108,17 +109,21 @@ public class StoreStateMetricsTest {
     @Test
     public void testPrometheusScrape() {
         var prometheus = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-        var scraped = new StoreStateMetrics(prometheus, () -> this.stores, () -> this.groups);
-        // Like hg.stores in PDMetrics: the refresh registers meters while a scrape runs
-        Gauge.builder("hg.stores", () -> {
-            scraped.refreshIfStale();
-            return this.stores.size();
-        }).register(prometheus);
+        var reads = new AtomicInteger();
+        var scraped = new StoreStateMetrics(prometheus, () -> {
+            reads.incrementAndGet();
+            return this.stores;
+        }, () -> this.groups);
+        // As hg.stores in PDMetrics: the refresh registers meters while a scrape runs
+        Gauge.builder("hg.stores", scraped::storeCount).register(prometheus);
         this.stores.add(store(7, Metapb.StoreState.Up));
         this.groups.add(group(1, 7));
 
         prometheus.scrape();
         String body = prometheus.scrape();
+        // Both scrapes fall in one refresh interval, and hg.stores reuses the refreshed list
+        Assert.assertEquals(1, reads.get());
+        Assert.assertTrue(body, body.contains("hg_stores 1.0"));
         Assert.assertTrue(body, body.contains("hg_store_state{state=\"Up\",store=\"7\",} 1.0"));
         Assert.assertTrue(body,
                           body.contains("hg_store_state{state=\"Offline\",store=\"7\",} 0.0"));

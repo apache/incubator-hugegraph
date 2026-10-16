@@ -117,23 +117,12 @@ public final class PDMetrics {
     }
 
     private long updateStores() {
-        // Registers the per-store gauges of stores that joined since the last scrape
-        this.storeStateMetrics.refreshIfStale();
-        return getStores();
+        // Also registers the per-store gauges of stores that joined since the last scrape
+        return this.storeStateMetrics.storeCount();
     }
 
     private long getGraphs() {
         return getGraphMetas().size();
-    }
-
-    private long getStores() {
-        try {
-            return this.pdService.getStoreNodeService().getStores(null).size();
-        } catch (PDException e) {
-            log.error(e.getMessage(), e);
-            e.printStackTrace();
-        }
-        return 0;
     }
 
     private long setTerms() {
