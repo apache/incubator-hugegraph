@@ -34,6 +34,8 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -590,6 +592,54 @@ public class CypherApiTest extends BaseApiTest {
         Assert.assertEquals(name, properties.get("name"));
         Assert.assertEquals(age, ((Number) properties.get("age")).intValue());
         Assert.assertEquals(city, properties.get("city"));
+    }
+
+    @Test
+    public void testSyntaxErrorHasStructuredErrorWithHint() throws Exception {
+        this.assertError("MATCH (n:cypher_person) RETURN not_defined_var",
+                         "HugeGraph.Cypher.SyntaxError",
+                         "Declare the variable in a MATCH, UNWIND or WITH clause " +
+                         "before referencing it");
+    }
+
+    @Test
+    public void testParserErrorHasStructuredErrorWithHint() throws Exception {
+        this.assertError("MATCH (n:cypher_person RETURN n", "HugeGraph.Cypher.SyntaxError",
+                         "Check the query syntax and function names supported by " +
+                         "the built-in Cypher translator");
+    }
+
+    @Test
+    public void testMultipleStatementsHaveStructuredError() throws Exception {
+        this.assertError("MATCH (n) RETURN n; MATCH (m) RETURN m",
+                         "HugeGraph.Cypher.SyntaxError",
+                         "Submit exactly one Cypher statement per request");
+    }
+
+    @Test
+    public void testUndefinedLabelHasSchemaHint() throws Exception {
+        this.assertError("MATCH (n:robot) RETURN n", "HugeGraph.Cypher.ExecutionError",
+                         "Create the schema element via the schema API before running the query");
+    }
+
+    @Test
+    public void testMissingParameterHasFallbackError() throws Exception {
+        this.assertError("RETURN $missing AS value",
+                         "HugeGraph.Cypher.ExecutionError", "");
+    }
+
+    private void assertError(String query, String code, String hint) throws Exception {
+        Response r = client().post(PATH, query);
+        JsonNode response = new ObjectMapper().readTree(assertResponseStatus(200, r));
+        Assert.assertEquals(3, response.size());
+        Assert.assertFalse(response.has("errors"));
+        Assert.assertEquals(400, response.at("/status/code").asInt());
+        Assert.assertFalse(response.at("/status/message").asText().isEmpty());
+        Assert.assertEquals(1, response.at("/status/attributes/errors").size());
+        JsonNode error = response.at("/status/attributes/errors/0");
+        Assert.assertEquals(code, error.get("code").asText());
+        Assert.assertEquals(hint, error.get("hint").asText());
+        Assert.assertFalse(error.get("message").asText().isEmpty());
     }
 
     private String testCypherQueryAndContains(String cypher,

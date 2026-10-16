@@ -66,11 +66,16 @@ public class HugeSecurityManager extends SecurityManager {
             "java.specification.version"
     );
 
+    private static final Set<String> ASYNC_SCHEMA_METHODS = ImmutableSet.of(
+            "removeVertexLabel", "removeEdgeLabel", "removeIndexLabel", "rebuildIndex"
+    );
+
     private static final Map<String, Set<String>> ASYNC_TASKS = ImmutableMap.of(
             // Fixed https://github.com/apache/hugegraph/pull/892#issue-387202362
             "org.apache.hugegraph.backend.tx.SchemaTransaction",
-            ImmutableSet.of("removeVertexLabel", "removeEdgeLabel",
-                            "removeIndexLabel", "rebuildIndex"),
+            ASYNC_SCHEMA_METHODS,
+            "org.apache.hugegraph.backend.tx.SchemaTransactionV2",
+            ASYNC_SCHEMA_METHODS,
             "org.apache.hugegraph.backend.tx.GraphIndexTransaction",
             ImmutableSet.of("asyncRemoveIndexLeft")
     );
