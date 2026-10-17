@@ -58,6 +58,8 @@ DEPENDENTS = {
     "toolchain": {"client": {"loader", "tools", "spark", "hubble"}, "loader": {"hubble"}},
 }
 MAINTENANCE_INPUTS = {
+    ".github/actions/helm-checks/action.yml": {"helm"},
+    ".github/actions/rocksdb-compatibility/action.yml": {"pd", "store", "hstore"},
     ".asf.yaml": set(), ".editorconfig": set(), ".licenserc.yaml": set(),
     ".github/PULL_REQUEST_TEMPLATE.md": set(), ".github/dependabot.yml": set(),
     ".github/workflows/.java-version": MAINLINE | {"macos_full", "hbase", "riscv64"},
@@ -70,6 +72,7 @@ MAINTENANCE_INPUTS = {
 }
 PRESETS = {
     "mainline": MAINLINE,
+    "dependencies": {"dependency_license"},
     "distributed": {"struct", "pd", "store", "hstore", "cluster", "distributed_smoke"},
     "macos-arm": {"macos", "macos_full"}, "hbase": {"hbase"},
     "riscv64": {"riscv64"}, "codeql": {"security"}, "full": set(MODULES["server"]),

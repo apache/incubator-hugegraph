@@ -86,10 +86,10 @@ class SnapshotTest(unittest.TestCase):
         self.responses = {
             'actions/runs/321/attempts/2': {'id': 321, 'run_attempt': 2, 'head_sha': 'a' * 40,
                 'head_branch': 'master', 'event': 'push', 'repository': {'full_name': 'apache/hugegraph'},
-                'path': '.github/workflows/submit-dependencies.yml',
+                'path': '.github/workflows/server-ci.yml',
                 'run_started_at': (now - datetime.timedelta(minutes=2)).isoformat()},
             'actions/runs/321/attempts/2/jobs?per_page=100': {'total_count': 3,
-                'jobs': [{'name': 'generate', 'conclusion': 'success', 'status': 'completed',
+                'jobs': [{'name': 'dependency_license / dependency-check', 'conclusion': 'success', 'status': 'completed',
                           'run_id': 321, 'head_sha': 'a' * 40}]},
             'actions/artifacts/789': {'id': 789, 'expired': False, 'name': 'dependency-snapshot-321-2',
                 'created_at': now.isoformat(),
@@ -258,7 +258,7 @@ class SnapshotTest(unittest.TestCase):
 
     def test_writer_accepts_master_path_suffix_and_rejects_other_refs(self):
         run = self.responses['actions/runs/321/attempts/2']
-        path = '.github/workflows/submit-dependencies.yml'
+        path = '.github/workflows/server-ci.yml'
         run['path'] = path + '@master'
         self.run_writer()
         self.assertEqual([self.snapshot], self.posts)
@@ -298,7 +298,7 @@ class SnapshotTest(unittest.TestCase):
                                   ('actions/artifacts/789', 'expired', True),
                                   ('actions/artifacts/789', 'workflow_run', {'id': 123}),
                                   ('actions/runs/321/attempts/2/jobs?per_page=100', 'jobs',
-                                   [{'name': 'generate', 'conclusion': 'failure'}]),
+                                   [{'name': 'dependency_license / dependency-check', 'conclusion': 'failure'}]),
                                   ('git/trees/' + 'a' * 40 + '?recursive=1', 'truncated', True),
                                   ('git/ref/heads/master', 'object', {'sha': 'b' * 40})]:
             original = copy.deepcopy(self.responses[path])
@@ -308,18 +308,24 @@ class SnapshotTest(unittest.TestCase):
             self.responses[path] = original
         self.assertEqual([], self.posts)
 
-    def test_dependency_baseline_concurrency_isolates_nonmaster_dispatch(self):
-        workflow = (Path(__file__).resolve().parents[1] / "workflows/submit-dependencies.yml").read_text()
-        template = next(line.removeprefix("  group: ") for line in workflow.splitlines()
-                        if line.startswith("  group: "))
-
-        def group(event, ref):
-            return template.replace("${{ github.repository }}", "apache/hugegraph").replace(
-                "${{ github.ref }}", ref).replace("${{ github.event_name }}", event)
-
-        master = group("push", "refs/heads/master")
-        self.assertEqual(master, group("workflow_dispatch", "refs/heads/master"))
-        self.assertNotEqual(master, group("workflow_dispatch", "refs/heads/feature"))
+    def test_writer_accepts_trusted_coordinator_events_and_rejects_pull_requests(self):
+        run = self.responses['actions/runs/321/attempts/2']
+        for event in ['push', 'workflow_dispatch']:
+            run['event'] = event
+            self.posts.clear()
+            self.run_writer()
+            self.assertEqual([self.snapshot], self.posts)
+        for field, value in [('event', 'schedule'), ('event', 'pull_request'), ('event', 'pull_request_target'),
+                             ('path', '.github/workflows/submit-dependencies.yml')]:
+            original = copy.deepcopy(run)
+            run['event'] = 'push'
+            run[field] = value
+            self.posts.clear()
+            with self.subTest(field=field, value=value), self.assertRaisesRegex(ValueError, 'Run identity'):
+                self.run_writer()
+            self.assertEqual([], self.posts)
+            run.clear()
+            run.update(original)
 
     def test_writer_requires_one_successful_combined_producer(self):
         path = 'actions/runs/321/attempts/2/jobs?per_page=100'

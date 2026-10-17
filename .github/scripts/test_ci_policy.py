@@ -328,6 +328,7 @@ class PolicyTest(unittest.TestCase):
             expression = re.sub(r"needs\.preflight\.outputs\.([\w]+)",
                                 lambda match: repr(outputs.get(match.group(1), "")), expression)
             expression = expression.replace("needs.preflight.result", repr(result))
+            expression = expression.replace("needs.dependency_license.result", repr(result))
             expression = expression.replace("!cancelled()", "not cancelled")
             expression = expression.replace("&&", "and").replace("||", "or")
             jobs[name] = bool(eval(expression, {"__builtins__": {}}, {"cancelled": cancelled}))
@@ -338,7 +339,7 @@ class PolicyTest(unittest.TestCase):
         preflight = re.search(r"^  preflight:\n(.*?)(?=^  [\w-]+:|\Z)", workflow, re.M | re.S).group(1)
         self.assertEqual("check-license", re.search(r"^    name: (.+)$", preflight, re.M).group(1))
         full = self.plan_for([], "workflow_dispatch", {"inputs": {"test-set": "full"}})
-        expected = {"build-server", "server-rocksdb", "commons", "pd_store", "cluster", "docker", "helm",
+        expected = {"build-server", "server-rocksdb", "commons", "pd_store", "cluster", "docker",
                     "dependency_license", "compatibility", "codeql"}
         self.assertEqual(expected, self.coordinator_jobs(full))
         self.assertEqual(expected, self.coordinator_jobs(full, result="failure"))
@@ -356,7 +357,7 @@ class PolicyTest(unittest.TestCase):
             with self.subTest(selection=state):
                 self.assertEqual(set(), self.coordinator_jobs(full, selection=state, result="failure"))
             with self.subTest(java=state):
-                self.assertEqual({"helm"}, self.coordinator_jobs(full, java=state, result="failure"))
+                self.assertEqual(set(), self.coordinator_jobs(full, java=state, result="failure"))
         self.assertEqual(set(), self.coordinator_jobs(full, cancelled=True))
 
     def test_contract_scripts_reach_their_actual_inner_jobs_and_steps(self):
@@ -386,7 +387,7 @@ class PolicyTest(unittest.TestCase):
                     condition = re.search(r"^    if: (.+)$", struct, re.M).group(1)
                     condition = condition.replace("inputs.run-struct", str(inputs["struct"]))
                     condition = condition.replace("inputs.run-store", str(inputs["store"]))
-                    self.assertTrue(eval(condition.replace("||", "or"), {"__builtins__": {}}))
+                    self.assertTrue(eval(condition.replace("||", "or").replace("&&", "and").replace("!", "not "), {"__builtins__": {}}))
                     step = next(step for step in struct.split("\n      - ") if Path(script).name in step)
                     self.assertNotRegex(step, r"(?m)^        if:")
                 else:
@@ -414,6 +415,125 @@ class PolicyTest(unittest.TestCase):
         self.assertEqual(self.plan_for([runtime], "push", master)["selected"],
                          self.plan_for([runtime, policy.TRAVIS + "check-java-runtime-logs.sh"],
                                        "push", master)["selected"])
+
+    @staticmethod
+    def workflow_expression(expression, values):
+        expression = expression.strip().removeprefix("${{").removesuffix("}}").strip()
+        expression = re.sub(r"\b(?:github|inputs|needs|steps)\.[\w.-]+",
+                            lambda match: repr(values.get(match.group(), "")), expression)
+        expression = expression.replace("&&", "and").replace("||", "or")
+        expression = re.sub(r"!(?!=)", "not ", expression)
+        return eval(expression, {"__builtins__": {}}, {"true": True, "false": False,
+                    "cancelled": lambda: False, "format": lambda pattern, value: pattern.format(value)})
+
+    def test_shared_dependency_install_preserves_inventory_build_arguments(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/check-dependencies.yml").read_text()
+        step = next(step for step in workflow.split("\n      - ") if step.startswith("name: mvn install\n"))
+        code = textwrap.dedent(step.split("        run: |\n", 1)[1])
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            recorded = root / "arguments.jsonl"
+            maven = root / "mvn"
+            maven.write_text("#!/usr/bin/env python3\nimport json, os, sys\n"
+                             "with open(os.environ['RECORDED_ARGS'], 'a') as output:\n"
+                             "    output.write(json.dumps(sys.argv[1:]) + '\\n')\n")
+            maven.chmod(0o755)
+            for inventory in [True, False]:
+                recorded.unlink(missing_ok=True)
+                subprocess.run(["bash", "-e", "-c", code], check=True, env={**os.environ,
+                    "PATH": str(root) + os.pathsep + os.environ["PATH"], "RECORDED_ARGS": str(recorded),
+                    "CHECK_INVENTORY": str(inventory).lower()})
+                commands = [json.loads(line) for line in recorded.read_text().splitlines()]
+                with self.subTest(inventory=inventory):
+                    self.assertEqual(1, len(commands))
+                    self.assertEqual("install", commands[0][0])
+                    self.assertIn("-Dmaven.test.skip=true", commands[0])
+                    self.assertEqual(not inventory, "-Dmaven.javadoc.skip=true" in commands[0])
+
+    def test_master_baseline_is_selected_only_for_trusted_full_runs(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
+        expression = re.search(r"^          ENABLED: (.+)$", workflow, re.M).group(1)
+        values = {"github.repository": "apache/hugegraph", "github.event.repository.fork": False,
+                  "github.ref": "refs/heads/master", "github.event_name": "push", "inputs.test-set": "mainline"}
+        for event in ["push", "workflow_dispatch"]:
+            with self.subTest(event=event):
+                self.assertTrue(self.workflow_expression(expression, dict(values, **{"github.event_name": event})))
+        for field, value in [("github.event_name", "schedule"), ("github.event_name", "pull_request"),
+                             ("github.event_name", "pull_request_target"),
+                             ("github.ref", "refs/heads/release-1.7"), ("github.repository", "unknown/fork"),
+                             ("github.event.repository.fork", True)]:
+            with self.subTest(field=field, value=value):
+                self.assertFalse(self.workflow_expression(expression, dict(values, **{field: value})))
+        for preset in ["distributed", "codeql", "macos-arm"]:
+            self.assertFalse(self.workflow_expression(expression, dict(values, **{
+                "github.event_name": "workflow_dispatch", "inputs.test-set": preset})))
+        self.assertTrue(self.workflow_expression(expression, dict(values, **{
+            "github.repository": "hugegraph/hugegraph", "github.event.repository.fork": True})))
+        dependencies = self.plan_for([], "workflow_dispatch", {"inputs": {"test-set": "dependencies"}})
+        self.assertEqual({"dependency_license"}, set(dependencies["selected"]))
+        self.assertTrue(self.workflow_expression(expression, dict(values, **{
+            "github.event_name": "workflow_dispatch", "inputs.test-set": "dependencies"})))
+        plan = self.plan_for(["README.md"], "push", {"ref": "refs/heads/master"})
+        plan["dependency_baseline"] = True
+        self.assertEqual({"dependency_license", "dependency_baseline"}, self.coordinator_jobs(plan))
+        self.assertEqual(set(), self.coordinator_jobs(plan, result="failure"))
+
+    def test_new_master_push_replaces_queued_work_without_cancelling_manual_or_weekly_runs(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
+        template = re.search(r"^  group: (.+)$", workflow, re.M).group(1)
+        cancellation = re.search(r"^  cancel-in-progress: (.+)$", workflow, re.M).group(1)
+
+        def context(event, run, ref="refs/heads/master"):
+            return {"github.workflow": "HugeGraph-Server CI", "github.event_name": event,
+                    "github.ref": ref, "github.run_id": run, "github.run_attempt": 1,
+                    "github.event.pull_request.number": 42 if event == "pull_request" else ""}
+
+        def group(values):
+            return re.sub(r"\$\{\{(.*?)\}\}",
+                          lambda match: str(self.workflow_expression(match.group(1), values)), template)
+
+        for event in ["push", "pull_request"]:
+            first, second = context(event, 100), context(event, 101)
+            self.assertEqual(group(first), group(second))
+            self.assertTrue(self.workflow_expression(cancellation, first))
+        for event in ["workflow_dispatch", "schedule"]:
+            first, second = context(event, 100), context(event, 101)
+            self.assertNotEqual(group(first), group(second))
+            self.assertFalse(self.workflow_expression(cancellation, first))
+        release = context("push", 100, "refs/heads/release-1.7")
+        self.assertFalse(self.workflow_expression(cancellation, release))
+        self.assertNotEqual(group(release), group(context("push", 101, "refs/heads/release-1.7")))
+
+    def test_distributed_checks_keep_exactly_one_host_and_preserve_struct_fallback(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/pd-store-ci.yml").read_text()
+        jobs = dict(re.findall(r"^  ([\w-]+):\n(.*?)(?=^  [\w-]+:\n|\Z)",
+                               workflow.split("\njobs:\n", 1)[1], re.M | re.S))
+        for mask in range(16):
+            values = {"inputs.run-" + name: bool(mask & (1 << index))
+                      for index, name in enumerate(["struct", "pd", "store", "hstore"])}
+            active = {name: body for name, body in jobs.items() if self.workflow_expression(
+                re.search(r"^    if: (.+)$", body, re.M).group(1), values)}
+            hosts = []
+            for name, body in active.items():
+                for step in body.split("\n      - "):
+                    if "uses: ./.github/actions/rocksdb-compatibility" in step:
+                        condition = re.search(r"^        if: (.+)$", step, re.M).group(1)
+                        if self.workflow_expression(condition, values):
+                            hosts.append(name)
+            with self.subTest(inputs=values):
+                expected = [name for name in ["pd", "store", "hstore"] if values["inputs.run-" + name]][:1]
+                self.assertEqual(expected, hosts)
+                self.assertEqual(values["inputs.run-struct"] and not values["inputs.run-store"], "struct" in active)
+                if values["inputs.run-struct"] or values["inputs.run-store"]:
+                    host = active["store" if values["inputs.run-store"] else "struct"]
+                    for script in ["test-stop-hugegraph-store.sh", "test-check-java-runtime-logs.sh",
+                                   "test-check-jacoco-report.sh", "test-codecov-upload-config.sh",
+                                   "test-tinkerpop-reports.sh"]:
+                        self.assertIn(script, host)
+                        if values["inputs.run-store"]:
+                            step = next(step for step in host.split("\n      - ") if script in step)
+                            self.assertIn("if: ${{ !cancelled() }}", step)
+                    self.assertIn("Run hugegraph-struct test", host)
 
     def test_coordinator_reads_and_validates_real_java_input(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()

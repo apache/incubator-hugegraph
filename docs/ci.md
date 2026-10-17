@@ -3,7 +3,8 @@
 [HugeGraph-Server CI](../.github/workflows/server-ci.yml) is the single entry point for
 PRs, supported branch pushes, weekly coverage and manual validation. Its preflight job
 selects affected tests, reads the project Java version, checks CI policy and verifies
-license headers and RAT. Selected suites run through reusable workflows in the same run.
+license headers and RAT. Selected Helm checks run as steps in preflight; other selected suites
+run through reusable workflows in the same run.
 
 CI results become advisory after [`.asf.yaml`](../.asf.yaml) is applied. It requests no required CI contexts
 and retains one approving review. This protection change takes effect after the configuration
@@ -65,8 +66,10 @@ Contract scripts explicitly select their executing suites without adding runtime
 
 ### Documentation
 
-Documentation-only ordinary PRs and pushes allocate just the preflight CI runner. This count
-excludes the non-test [Auto PR Commenter](../.github/workflows/auto-pr-review.yml), which runs
+Documentation-only ordinary PRs allocate just the preflight CI runner. On the two trusted
+master repositories, pushes also run the shared dependency producer and isolated writer so
+that the exact event commit has a dependency baseline; other documentation-only pushes use
+only preflight. This count excludes the non-test [Auto PR Commenter](../.github/workflows/auto-pr-review.yml), which runs
 once when a PR opens. Scheduled and manual selections still run their requested suites.
 
 Plain documentation includes regular-file root prose, README/AGENTS files and supported prose
@@ -80,6 +83,7 @@ Use **Actions → HugeGraph-Server CI → Run workflow**, select a branch and ch
 
 | Test set | Validation |
 | --- | --- |
+| `dependencies` | Dependency inventory and PR review; on trusted master, generate and submit a baseline |
 | `mainline` (default) | Full mainline modules, deployment/dependency checks and CodeQL; ARM smoke |
 | `distributed` | Struct, PD, Store, HStore and Cluster, plus distributed smoke |
 | `macos-arm` | ARM smoke and full RocksDB core/API tests |
@@ -120,18 +124,28 @@ Preflight verifies that the event merge commit's second parent matches the curre
 A stale PR head fails preflight. Target-branch advancement alone does not invalidate a run.
 Plans and selection summaries describe this run; previous results are never reused.
 
-A new PR head cancels the previous PR run, including its called workflows. Manual and weekly
-runs remain independent. Each job reports its own result; there are no separate post-test
-aggregation runners or end-of-run metadata checks.
+A new PR head or master push cancels the previous automatic run for that PR or master ref,
+including its called workflows. Release/test branch pushes, manual runs, weekly runs and
+explicit rerun attempts remain independent. Checks keep their real failed results; there
+are no separate post-test aggregation runners or end-of-run metadata checks.
 
-Startup contracts run inside RocksDB validation, and Store stop contracts run inside Struct.
+Startup contracts run inside RocksDB validation. Struct tests and their shell contracts run
+inside the selected Store job, reusing its reactor build; a Struct-only selection retains
+its own runner. RocksDB version compatibility runs once inside the first selected PD, Store
+or HStore job, in that order. These added steps still execute after ordinary host-job failures;
+a host timeout or cancellation can stop them. Helm uses preflight, whose total budget is
+20 minutes. PR dependency review runs as the last step of the existing dependency job even
+if its build or inventory check failed. These mergers remove four runner allocations from
+a complete mainline PR run, without dropping checks; heavy module suites remain separate.
 Docker's static checks, deployment contracts and current-image validation share one runner.
 The Docker job has a 90-minute total budget, with 25 minutes for deployment contracts and
 45 minutes for image build/runtime validation. Distributed smoke builds current PD, Store
 and Server images and checks authentication, readiness and graph read/write. It does not
 substitute published images for the current commit.
 
-PD, Store and Commons have total job budgets of 30, 45 and 20 minutes. Cluster has 120 minutes
+PD and Store reserve 45 and 70 minutes including their merged checks, rather than
+sharing the previous 30/45-minute limits. The dependency job retains the existing inventory
+budget; baseline-only builds keep a 60-minute limit. Commons has 20 minutes. Cluster has 120 minutes
 for its two 45-minute test windows and build/diagnostics. Other budgets are in the workflows.
 TinkerPop suites keep their dedicated branch policy: the source, target or push/manual branch
 must start with `release-`, `test-` or `tinkerpop-`. Executed suites require non-empty reports
@@ -145,17 +159,21 @@ it does not guarantee a specific queue delay.
 
 ## Dependency baseline
 
-The separate [dependency submission workflow](../.github/workflows/submit-dependencies.yml)
-installs the complete reactor once with Java 17 in a `contents: read` job, reusing
-`actions/setup-java`'s Maven cache, then generates
+The main CI coordinator selects the [shared dependency job](../.github/workflows/check-dependencies.yml)
+for every trusted master push and manual `dependencies`, `mainline` or `full` run on master.
+Other manual presets keep their requested scope. The job installs the complete reactor
+once with Java 17 and `contents: read`, reusing `actions/setup-java`'s Maven cache. When the
+path classifier also selects dependency inventory checks, those checks and baseline
+production share this same installation instead of building the reactor twice. It generates
 each module's resolved graph with Ferstl 4.0.3. The repository's
 [stdlib serializer](../.github/scripts/dependency-snapshot.py) preserves the
 [official Maven parser 6.0.1](https://github.com/actions/maven-dependency-submission-action/tree/1f666f7ac2ab7b72cd5e22eaf7f23c8a581db1db)
 package URLs and relationships. Non-test scopes take precedence when Ferstl merges
 scopes onto one artifact; only test-only artifacts are development dependencies.
 Every tracked POM must have a graph; empty aggregator manifests are allowed, but a
-completely empty inventory fails. It runs on master pushes or manual
-dispatches. Only `apache/hugegraph` (not a fork) and the explicitly allowed
+completely empty inventory fails. Fixture validation shares preflight and the dependency job;
+there is no separate validation runner. The [reusable submission workflow](../.github/workflows/submit-dependencies.yml)
+contains only the isolated writer. Only `apache/hugegraph` (not a fork) and the explicitly allowed
 `hugegraph/hugegraph` test fork on `refs/heads/master` can run the submission job,
 which alone has `contents: write`. PRs, other repositories and other refs cannot
 run the writer. Maven inherits no submission token, and checkout does not persist
@@ -171,7 +189,8 @@ not replace this per-module check.
 
 A pinned `actions/upload-artifact` transfers `snapshot.json` and `inventory.json`
 as separate artifacts. The fresh writer runner uses fixed inline stdlib Python to
-verify the successful producer job and both artifact/run/attempt/SHA identities
+verify the successful `dependency_license / dependency-check` producer in the same
+`server-ci.yml` run and both artifact/run/attempt/SHA identities
 before downloading. It bounds ZIP and JSON sizes, checks each archive digest,
 and reads only its one expected regular JSON member in memory. Duplicate members,
 paths and symlinks fail; no archive members are extracted to disk. A signed storage
@@ -182,10 +201,12 @@ downloaded code. The first-party upload action is permitted by the
 
 Checkout and snapshot use the event commit SHA. Master is checked before install
 and again after both reports are generated; a stale run fails. A newer master
-run cancels the older master run because only the current master can submit.
-Concurrency groups include the ref, so manual runs on other refs cannot cancel master. Every master
-push still starts a baseline run without path filters, so unrelated changes also
-can receive an exact-SHA baseline. The writer
+push cancels the older master run because only the current master can submit.
+Manual and scheduled runs use separate concurrency groups and cannot cancel automatic
+master pushes. Every trusted master push still selects the producer without path filters,
+so unrelated changes also can receive an exact-SHA baseline. Such a push still requires
+one complete reactor install; merging jobs removes duplicate builds, not that inherent cost.
+The writer
 checks the run attempt, successful producer, artifact ID/name, JSON schema,
 detector/correlator and source SHA/ref. It verifies all manifest paths against the
 event commit's source tree, rejects empty or mismatched inventory, and checks master
@@ -193,11 +214,13 @@ immediately before and after submission. Snapshots retain the checked event SHA
 if master advances during submission; that run fails its final freshness check.
 
 If submission fails, use **Re-run all jobs** or start a fresh `workflow_dispatch`
-on master. **Re-run failed jobs** keeps the older generation artifact, which the
+of **HugeGraph-Server CI**, choosing `dependencies` on master. **Re-run failed jobs**
+keeps the older generation artifact, which the
 writer rejects because both reports must be produced in the same run attempt.
 
 If a PR `dependency-review` failure reports 0 base snapshots, rerun that job only
-once the same repository's **Dependency baseline** run has succeeded for the event's
+once the same repository's **HugeGraph-Server CI** run has successfully submitted the
+baseline for the event's
 exact `pull_request.base.sha` (not the branch's merge base or a newer master tip).
 If that SHA has no successful baseline, including a skipped or superseded run,
 rerunning the review alone cannot supply it. The producer supports only the current
@@ -225,4 +248,7 @@ first master submission, including its SHA/ref, non-empty module manifests and a
 dependency-review comparison against that baseline. Until then, that repository's baseline
 acceptance remains open. This workflow changes no repository settings.
 
-Dependency snapshot producer and submission-workflow changes select dependency checks. Snapshot fixture tests run in the entry job; they do not select runtime suites. Changes to the CI classifier still receive conservative mainline validation.
+Dependency snapshot producer and submission-workflow changes select dependency checks.
+Snapshot fixture tests run in the entry job; they do not select runtime suites. Local Helm
+and RocksDB compatibility action changes select their existing owners. Changes to the CI
+classifier still receive conservative mainline validation.
