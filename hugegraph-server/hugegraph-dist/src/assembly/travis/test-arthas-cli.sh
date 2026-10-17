@@ -287,6 +287,10 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                         # Queue the attach request before signaling the group.
                         time.sleep(0.1)
                         os.killpg(interactive.pid, termination)
+                        if termination == signal.SIGHUP:
+                            # Kernel and interactive Bash can deliver HUP almost together.
+                            time.sleep(0.00006)
+                            os.killpg(interactive.pid, termination)
                         time.sleep(1)
                         assert interactive.poll() is None, "Group signal interrupted in-flight attachment"
                     finally:
@@ -355,6 +359,7 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                                         *impersonating, "--command", "version"], success=False)
                 assert f"no Arthas listener at 127.0.0.1:{unsafe_http}" in missing, missing
                 assert "API default 8562" in missing and "retry with --telnet-port" in missing, missing
+                assert "Arthas listener closed at" not in missing, missing
                 assert can_connect("127.0.0.1", safe_port), "Missing-port diagnosis stopped the existing agent"
                 mismatch = run(client + ["--pid", str(process.pid), *impersonating,
                                          "--command", "version"], success=False)

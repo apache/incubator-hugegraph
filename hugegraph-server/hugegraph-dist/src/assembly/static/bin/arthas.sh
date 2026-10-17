@@ -175,7 +175,10 @@ cleanup() {
         if [ "$attaching" = false ]; then
             kill "$client_pid" 2>/dev/null || true
         fi
-        wait "$client_pid" 2>/dev/null || true
+        # A queued second signal can interrupt wait even after traps are ignored.
+        while kill -0 "$client_pid" 2>/dev/null; do
+            wait "$client_pid" 2>/dev/null || true
+        done
     fi
     if [ -f "$state_dir/validated" ]; then
         stop_agent || { [ "$status" -ne 0 ] || status=1; }
@@ -204,6 +207,7 @@ connect_ip=$(cat "$state_dir/connect-ip")
 if ! session=$(bounded_client session 2>&1) && [[ "$session" == *"Connection refused"* ]]; then
     echo "Error: no Arthas listener at $(format_endpoint);" \
          "an existing agent may use another port (API default 8562); retry with --telnet-port" >&2
+    rm -f "$state_dir/validated"
     exit 1
 fi
 if [ -n "$command" ]; then
