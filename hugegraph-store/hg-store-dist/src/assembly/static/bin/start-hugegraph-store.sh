@@ -171,8 +171,13 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     fi
     # Cap direct memory at the heap size picked here, the JVM's own unset default, so the
     # RocksDB auto-sizing (RocksdbMemoryBudget) counts a limit the JVM actually enforces.
-    # A -XX:MaxDirectMemorySize in -j comes later on the command line and wins.
-     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MaxDirectMemorySize=${XMX}m -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
+    # Leave it out when -j sets the heap or the cap itself: a fixed cap from the computed
+    # heap would no longer match a -j -Xmx, and the JVM then defaults it to that heap.
+    DIRECT_MEMORY_OPTION="-XX:MaxDirectMemorySize=${XMX}m"
+    case " ${USER_OPTION} " in
+        *" -Xmx"* | *"-XX:MaxDirectMemorySize="*) DIRECT_MEMORY_OPTION="" ;;
+    esac
+     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m ${DIRECT_MEMORY_OPTION} -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
     # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
     # Rolling out detailed GC logs

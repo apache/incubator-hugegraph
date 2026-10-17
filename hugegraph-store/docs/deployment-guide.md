@@ -375,8 +375,10 @@ limit set only on a parent cgroup when the Store can see that cgroup; inside a p
 namespace only the container's own limit is visible, so pin the value there if only the pod or
 slice is limited. A Store with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
 `-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap, and the budget counts
-it that way. `bin/start-hugegraph-store.sh` sets the flag to the heap it picks unless `-j`
-passes one, so the budget always counts a limit the JVM enforces. In small containers set a
+it that way. `bin/start-hugegraph-store.sh` sets the flag to the heap it picks; when `-j` sets
+`-Xmx` or `-XX:MaxDirectMemorySize` itself, the launcher leaves the flag out and the JVM's
+default (that heap) or the given cap applies. Either way the budget counts a limit the JVM
+enforces. In small containers set a
 cap below the heap, or the budget falls to the 256 MiB floor.
 
 On a host without a container limit the starting point is physical memory. The default
