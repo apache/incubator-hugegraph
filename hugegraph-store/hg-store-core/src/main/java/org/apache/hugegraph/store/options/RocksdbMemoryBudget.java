@@ -67,7 +67,10 @@ public final class RocksdbMemoryBudget {
     public static long resolve(String configured) {
         long value = isAuto(configured) ? 0L : parse(configured);
         long heap = Runtime.getRuntime().maxMemory();
-        long physical = physicalMemory();
+        CgroupLimit cgroup = cgroupLimit(Paths.get("/proc/self/cgroup"),
+                                         Paths.get("/proc/self/mountinfo"),
+                                         Paths.get("/sys/fs/cgroup"));
+        long physical = effectivePhysical(jvmMemory(), cgroup.bytes);
         if (value > 0) {
             if (value < MIN_EXPLICIT) {
                 throw new IllegalArgumentException(String.format(
@@ -98,6 +101,13 @@ public final class RocksdbMemoryBudget {
         long budget = auto(physical, heap, direct);
         log.info("rocksdb.total_memory_size is unset or 0, auto-sizing to {} bytes " +
                  "(physical={}, heap={}, direct={})", budget, physical, heap, direct);
+        if (cgroup.unmatched) {
+            log.warn("No cgroup mount in /proc/self/mountinfo contains this process's " +
+                     "cgroup (an inherited mount in a cgroup namespace), so only the " +
+                     "limits visible at the mount root are counted and a tighter limit on " +
+                     "the process's own cgroup may be missed; set rocksdb.total_memory_size " +
+                     "or HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE explicitly");
+        }
         if (physical > 0 && physical - heap - direct - RESERVED < 2 * MIN_AUTO) {
             log.warn("Heap, direct memory and the {} bytes reserve leave too little of the " +
                      "{} bytes physical memory, rocksdb gets the {} bytes floor; lower -Xmx " +
@@ -158,22 +168,33 @@ public final class RocksdbMemoryBudget {
         return Math.max(totalMemory / 1000, MIB);
     }
 
-    private static long physicalMemory() {
-        long jvm;
+    private static long jvmMemory() {
         try {
             // Reports the cgroup v1/v2 memory limit inside a container, but older JDK 17
             // updates may not see a limit set only on a parent cgroup
             OperatingSystemMXBean os = ManagementFactory.getPlatformMXBean(
                     OperatingSystemMXBean.class);
-            jvm = os == null ? -1L : os.getTotalMemorySize();
+            return os == null ? -1L : os.getTotalMemorySize();
         } catch (RuntimeException | LinkageError e) {
             log.warn("Failed to read physical memory size", e);
-            jvm = -1L;
+            return -1L;
         }
-        long cgroup = cgroupMemoryLimit(Paths.get("/proc/self/cgroup"),
-                                        Paths.get("/proc/self/mountinfo"),
-                                        Paths.get("/sys/fs/cgroup"));
-        return effectivePhysical(jvm, cgroup);
+    }
+
+    /**
+     * A cgroup memory limit in bytes (-1 for none), and whether a cgroup mount existed
+     * but none of them contained this process's cgroup, in which case bytes only covers
+     * what is visible at those mounts' roots.
+     */
+    static final class CgroupLimit {
+
+        final long bytes;
+        final boolean unmatched;
+
+        CgroupLimit(long bytes, boolean unmatched) {
+            this.bytes = bytes;
+            this.unmatched = unmatched;
+        }
     }
 
     /**
@@ -200,15 +221,20 @@ public final class RocksdbMemoryBudget {
      * mount root, as inside a private cgroup namespace, stays invisible.
      */
     static long cgroupMemoryLimit(Path procSelfCgroup, Path mountinfo, Path defaultRoot) {
+        return cgroupLimit(procSelfCgroup, mountinfo, defaultRoot).bytes;
+    }
+
+    static CgroupLimit cgroupLimit(Path procSelfCgroup, Path mountinfo, Path defaultRoot) {
         List<String[]> v2Mounts = cgroupMounts(mountinfo, true);
         List<String[]> v1Mounts = cgroupMounts(mountinfo, false);
         List<String> lines;
         try {
             lines = Files.readAllLines(procSelfCgroup, StandardCharsets.UTF_8);
         } catch (IOException | RuntimeException e) {
-            return -1L;
+            return new CgroupLimit(-1L, false);
         }
         long limit = -1L;
+        boolean unmatched = false;
         for (String line : lines) {
             String[] parts = line.split(":", 3);
             if (parts.length < 3) {
@@ -218,8 +244,9 @@ public final class RocksdbMemoryBudget {
             if (!v2 && !("," + parts[1] + ",").contains(",memory,")) {
                 continue;
             }
+            List<String[]> mounts = v2 ? v2Mounts : v1Mounts;
             boolean matched = false;
-            for (String[] mount : v2 ? v2Mounts : v1Mounts) {
+            for (String[] mount : mounts) {
                 if (!contains(mount[0], parts[2])) {
                     // A mount of another subtree says nothing about this cgroup
                     continue;
@@ -230,13 +257,23 @@ public final class RocksdbMemoryBudget {
                 limit = lowest(limit, v2 ? cgroupV2Limit(point, relative) :
                                       cgroupV1Limit(point, relative));
             }
-            if (!matched) {
+            if (!matched && !mounts.isEmpty()) {
+                // In a cgroup namespace /proc/self/cgroup says "/" while a mount made
+                // outside it has a root such as "/..": the process's own cgroup can't be
+                // located from here. The limits at each mount root still bound it.
+                unmatched = true;
+                for (String[] mount : mounts) {
+                    Path point = Paths.get(mount[1]);
+                    limit = lowest(limit, v2 ? readLimit(point.resolve("memory.max")) :
+                                          cgroupV1Limit(point, ""));
+                }
+            } else if (!matched) {
                 String relative = rebase(parts[2], "/");
                 limit = lowest(limit, v2 ? cgroupV2Limit(defaultRoot, relative) :
                                       cgroupV1Limit(defaultRoot.resolve("memory"), relative));
             }
         }
-        return limit;
+        return new CgroupLimit(limit, unmatched);
     }
 
     /**

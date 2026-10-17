@@ -279,6 +279,65 @@ public class RocksdbMemoryBudgetTest {
     }
 
     @Test
+    public void testInheritedNamespaceMountIsFlaggedNotTreatedAsUnlimited() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2-namespace");
+        try {
+            // cgroup_namespaces(7): /proc/self/cgroup says "/" while a cgroup2 mount made
+            // outside the namespace has root "/..". The namespace root is a child with a
+            // 2 GiB limit whose name can't be learned from inside; its parent is unlimited
+            Path mount = root.resolve("sys-fs-cgroup");
+            write(mount, "memory.max", "max");
+            write(mount, "ns-child/memory.max", String.valueOf(2 * GIB));
+            Path proc = write(root, "proc-self-cgroup", "0::/\n");
+            Path mountinfo = write(root, "mountinfo",
+                                   "35 25 0:26 /.. " + mount + " rw - cgroup2 cgroup2 rw\n");
+            RocksdbMemoryBudget.CgroupLimit limit =
+                    RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
+            assertTrue(limit.unmatched);
+            assertEquals(-1L, limit.bytes);
+
+            // A limit at the visible mount root still bounds the result
+            write(mount, "memory.max", String.valueOf(8 * GIB));
+            limit = RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
+            assertTrue(limit.unmatched);
+            assertEquals(8 * GIB, limit.bytes);
+
+            // v1 with the same layout
+            Path v1 = root.resolve("memory");
+            write(v1, "memory.limit_in_bytes", "9223372036854771712");
+            write(v1, "memory.stat", "hierarchical_memory_limit " + (8 * GIB) + "\n");
+            Path proc1 = write(root, "proc-v1", "4:memory:/\n");
+            Path mountinfo1 = write(root, "mountinfo-v1",
+                                    "45 25 0:30 /.. " + v1 + " rw - cgroup cgroup rw,memory\n");
+            limit = RocksdbMemoryBudget.cgroupLimit(proc1, mountinfo1, root);
+            assertTrue(limit.unmatched);
+            assertEquals(8 * GIB, limit.bytes);
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testMatchedOrMissingMountsAreNotFlagged() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2-flag");
+        try {
+            Path mount = root.resolve("sys-fs-cgroup");
+            write(mount, "memory.max", String.valueOf(4 * GIB));
+            Path proc = write(root, "proc-self-cgroup", "0::/\n");
+            Path mountinfo = write(root, "mountinfo",
+                                   "30 25 0:26 / " + mount + " rw - cgroup2 cgroup2 rw\n");
+            RocksdbMemoryBudget.CgroupLimit limit =
+                    RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
+            assertFalse(limit.unmatched);
+            assertEquals(4 * GIB, limit.bytes);
+            // Without any mountinfo entry the default layout is used and nothing is flagged
+            assertFalse(RocksdbMemoryBudget.cgroupLimit(proc, NO_MOUNTINFO, mount).unmatched);
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
     public void testMountRootContainsMembership() {
         assertTrue(RocksdbMemoryBudget.contains("/", "/kubepods/pod1/ctr"));
         assertTrue(RocksdbMemoryBudget.contains("/kubepods", "/kubepods/pod1/ctr"));
