@@ -466,7 +466,7 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> ARTHAS_IP =
             new ConfigOption<>(
                     "arthas.ip",
-                    "Arthas loopback bind address; remote addresses are rejected at activation",
+                    "Arthas bind address; use loopback unless external access is intended",
                     disallowEmpty(),
                     "127.0.0.1"
             );
@@ -474,17 +474,17 @@ public class ServerOptions extends OptionHolder {
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS =
             new ConfigOption<>(
                     "arthas.disabled_commands",
-                    "arthas disabled commands",
-                    disallowEmpty(),
-                    "jad"
+                    "Optional comma-separated Arthas disabled commands, empty by default",
+                    null,
+                    ""
             );
 
     public static final ConfigOption<String> ARTHAS_DISABLED_COMMANDS_LEGACY =
             new ConfigOption<>(
                     "arthas.disabledCommands",
-                    "Legacy alias: arthas disabled commands",
-                    disallowEmpty(),
-                    "jad"
+                    "Legacy alias: optional comma-separated Arthas disabled commands",
+                    null,
+                    ""
             );
 
     public static final ConfigOption<Boolean> ALLOW_TRACE =

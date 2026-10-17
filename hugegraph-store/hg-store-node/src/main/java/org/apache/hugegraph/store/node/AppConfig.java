@@ -217,7 +217,7 @@ public class AppConfig {
         @Value("${arthas.ip:127.0.0.1}")
         private String arthasip;
 
-        @Value("${arthas.disabledCommands:jad}")
+        @Value("${arthas.disabledCommands:}")
         private String disCmd;
     }
 

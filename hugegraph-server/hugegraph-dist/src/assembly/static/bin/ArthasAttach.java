@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -31,11 +32,10 @@ import com.taobao.arthas.core.config.FeatureCodec;
 class ArthasAttach {
     public static void main(String[] args) throws Exception {
         String ip = args[5];
-        // Accept numeric loopback literals only; never resolve arbitrary hostnames.
-        if (!ip.matches("[0-9.]+|[0-9a-fA-F]*:[0-9a-fA-F:.]*") ||
-            !InetAddress.getByName(ip).isLoopbackAddress()) {
-            throw new IllegalArgumentException("Target IP must be a loopback literal");
-        }
+        InetAddress address = InetAddress.getByName(ip);
+        String connectIp = address.isAnyLocalAddress() ?
+                           (address.getAddress().length == 4 ? "127.0.0.1" : "::1") : ip;
+        Files.writeString(Path.of(args[4]).resolveSibling("connect-ip"), connectIp);
         Path home = Path.of(args[1]);
         Path top = Path.of(args[3]);
         VirtualMachine vm = VirtualMachine.attach(args[0]);
@@ -56,14 +56,28 @@ class ArthasAttach {
             }
             // Allow exit cleanup only after this distribution's target has been validated.
             Files.createFile(Path.of(args[4]));
-            // FeatureCodec drops blank values. Pin a private properties file
-            // first so target system/env configuration cannot restore MCP/tunnel
-            // or disable the commands needed to verify and stop the agent.
+            // FeatureCodec drops blank values; a properties file preserves them.
             configFile = Files.createTempFile("hugegraph-arthas-", ".properties");
-            Files.writeString(configFile, "arthas.config.overrideAll=true\n" +
-                              "arthas.ip=" + ip + "\narthas.telnetPort=" + args[2] +
-                              "\narthas.httpPort=-1\narthas.mcpEndpoint=\narthas.tunnelServer=\n" +
-                              "arthas.disabledCommands=\narthas.sessionTimeout=1800\n");
+            Properties settings = new Properties();
+            settings.setProperty("arthas.config.overrideAll", "true");
+            settings.setProperty("arthas.ip", ip);
+            settings.setProperty("arthas.telnetPort", args[2]);
+            settings.setProperty("arthas.httpPort", "-1");
+            settings.setProperty("arthas.mcpEndpoint", "");
+            settings.setProperty("arthas.tunnelServer", "");
+            settings.setProperty("arthas.disabledCommands", "");
+            settings.setProperty("arthas.sessionTimeout", "1800");
+            if (!args[6].isEmpty() || !args[7].isEmpty()) {
+                settings.setProperty("arthas.username", args[6].isEmpty() ? "arthas" : args[6]);
+            }
+            if (!args[7].isEmpty()) {
+                settings.setProperty("arthas.password", args[7]);
+            }
+            settings.setProperty("arthas.localConnectionNonAuth",
+                                 target.getProperty("arthas.localConnectionNonAuth", "true"));
+            try (OutputStream output = Files.newOutputStream(configFile)) {
+                settings.store(output, null);
+            }
             Map<String, String> config = new LinkedHashMap<>();
             config.put("config.overrideAll", "true");
             config.put("config.location", configFile.toString());

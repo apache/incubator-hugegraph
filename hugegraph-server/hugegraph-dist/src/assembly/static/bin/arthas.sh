@@ -20,7 +20,8 @@ set -euo pipefail
 
 fail() { echo "Error: $*" >&2; exit 1; }
 usage() {
-    echo "Usage: $0 [--pid PID] [--telnet-port PORT] [--target-ip LOOPBACK] [--command COMMAND]"
+    echo "Usage: $0 [--pid PID] [--telnet-port PORT] [--target-ip ADDRESS] [--command COMMAND]"
+    echo "          [--username USER] [--password PASSWORD]"
     echo "Run as the service OS user; defaults to bin/pid and loopback port 3658."
     echo "New agents disable HTTP/MCP; use the existing telnet port for an active agent."
     echo "Exiting this helper stops Arthas, including after --command or quit; the JVM keeps running."
@@ -31,22 +32,30 @@ TOP=$(cd -P "$BIN/.." && pwd)
 pid=""
 port=3658
 target_ip=127.0.0.1
+username=""
+password=""
 command=""
 boot_args=()
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --pid|--telnet-port|--target-ip|--command)
+        --pid|--telnet-port|--target-ip|--command|--username|--password)
             [ "$#" -ge 2 ] || fail "Missing value for $1"
             case "$1" in
                 --pid) pid=$2 ;;
                 --telnet-port) port=$2 ;;
                 --target-ip) target_ip=$2 ;;
-                --command) command=$2; boot_args=(--command "$2") ;;
+                --command) command=$2 ;;
+                --username) username=$2 ;;
+                --password) password=$2 ;;
             esac
             shift 2 ;;
         -h|--help) usage; exit 0 ;;
         *) usage >&2; fail "Unknown option: $1" ;;
     esac
+done
+# Native batch files contain one command per line.
+for credential in "$username" "$password"; do
+    [[ "$credential" != *$'\n'* && "$credential" != *$'\r'* ]] || fail "Credentials must be single-line values"
 done
 if [ -z "$pid" ]; then
     [ -r "$BIN/pid" ] || fail "No bin/pid; start the service or supply --pid PID"
@@ -61,15 +70,40 @@ esac
 JAVA=${JAVA_HOME:+$JAVA_HOME/bin/}java
 ARTHAS="$TOP/lib/arthas"
 [ -f "$ARTHAS/arthas-boot.jar" ] || fail "Bundled Arthas files are missing from lib/arthas"
-boot_args+=(--arthas-home "$ARTHAS" --target-ip "$target_ip" --telnet-port "$port" --http-port -1 "$pid")
 # Keep the listener within this diagnosis session. Verify its PID before stopping
 # it, since an occupied port must never stop a different application's agent.
 state_dir=$(mktemp -d)
 client_pid=""
 attaching=true
+connect_ip=$target_ip
+quote_argument() {
+    local value=${1//\'/\'\\\'\'}
+    printf "'%s'" "$value"
+}
+write_batch() {
+    local file=$1
+    local commands=$2
+    {
+        if [ -n "$password" ]; then
+            printf 'auth --username %s %s\n' "$(quote_argument "${username:-arthas}")" "$(quote_argument "$password")"
+        fi
+        # Match arthas-client --command's semicolon-separated command syntax.
+        printf '%s\n' "${commands//;/$'\n'}"
+    } > "$file"
+}
+redact_auth_echo() {
+    local line
+    while IFS= read -r line || [ -n "$line" ]; do
+        case "$line" in
+            *'$ auth --username '*) printf '%s$ auth [credentials omitted]\n' "${line%%'$ auth --username '*}" ;;
+            *) printf '%s\n' "$line" ;;
+        esac
+    done
+}
 # The native client's -t option does not bound its final response wait.
 bounded_client() {
-    "$JAVA" -jar "$ARTHAS/arthas-client.jar" -t 5000 -c "$1" "$target_ip" "$port" &
+    write_batch "$state_dir/cleanup.commands" "$1"
+    "$JAVA" -jar "$ARTHAS/arthas-client.jar" -t 5000 -f "$state_dir/cleanup.commands" "$connect_ip" "$port" &
     local command_pid=$!
     (sleep 10; kill -KILL "$command_pid" 2>/dev/null) >/dev/null 2>&1 &
     local timer_pid=$!
@@ -81,6 +115,7 @@ bounded_client() {
 }
 stop_agent() {
     local session attempt agent_pid
+    connect_ip=$(cat "$state_dir/connect-ip")
     if ! session=$(bounded_client session 2>&1); then
         if [[ "$session" == *"Connection refused"* ]]; then
             return 0
@@ -95,7 +130,8 @@ stop_agent() {
             return 1
         fi
     else
-        echo "Error: could not verify the target PID for cleanup; session must be enabled at $target_ip:$port" >&2
+        echo "Error: could not verify the target PID for cleanup;" \
+             "check Arthas credentials and session at $target_ip:$port; stop the agent manually" >&2
         return 1
     fi
     bounded_client stop >/dev/null 2>&1 || true
@@ -123,7 +159,7 @@ cleanup() {
     if [ -f "$state_dir/validated" ]; then
         stop_agent || { [ "$status" -ne 0 ] || status=1; }
     fi
-    rm -f "$state_dir/validated"
+    rm -f "$state_dir/validated" "$state_dir/connect-ip" "$state_dir/cleanup.commands" "$state_dir/run.commands"
     rmdir "$state_dir"
     exit "$status"
 }
@@ -136,12 +172,30 @@ echo "Waiting for PID $pid to answer the attach request..." >&2
     # Group signals must not end the client before target-side loadAgent finishes.
     trap '' INT TERM HUP
     exec "$JAVA" --add-modules jdk.attach --class-path "$ARTHAS/arthas-core.jar" \
-        "$BIN/ArthasAttach.java" "$pid" "$ARTHAS" "$port" "$TOP" "$state_dir/validated" "$target_ip"
+        "$BIN/ArthasAttach.java" "$pid" "$ARTHAS" "$port" "$TOP" "$state_dir/validated" "$target_ip" \
+        "$username" "$password"
 ) <&0 &
 client_pid=$!
 wait "$client_pid"
 attaching=false
-"$JAVA" -jar "$ARTHAS/arthas-boot.jar" "${boot_args[@]}" <&0 &
+connect_ip=$(cat "$state_dir/connect-ip")
+if [ -n "$command" ]; then
+    if [ -n "$password" ]; then
+        write_batch "$state_dir/run.commands" "$command"
+        boot_args+=(--batch-file "$state_dir/run.commands")
+    else
+        boot_args+=(--command "$command")
+    fi
+fi
+[ -z "$username" ] || boot_args+=(--username "$username")
+[ -z "$password" ] || boot_args+=(--password "$password")
+boot_args+=(--arthas-home "$ARTHAS" --target-ip "$connect_ip" --telnet-port "$port" --http-port -1 "$pid")
+if [ -n "$password" ] && [ -n "$command" ]; then
+    # The native batch client echoes commands, including its auth command.
+    "$JAVA" -jar "$ARTHAS/arthas-boot.jar" "${boot_args[@]}" <&0 > >(redact_auth_echo) &
+else
+    "$JAVA" -jar "$ARTHAS/arthas-boot.jar" "${boot_args[@]}" <&0 &
+fi
 client_pid=$!
 wait "$client_pid"
 client_pid=""

@@ -80,9 +80,10 @@ existing precedence; see [container heap sizing](../docker/README.md#server-heap
 ### Arthas diagnostics
 
 Server and Store bundle Arthas 4.1.5, managed by the root POM. PD does not embed
-an Arthas agent. Diagnostic ports bind to loopback by default. Server's `PUT /arthas` requires authentication to be enabled
-and the caller to be an authenticated administrator. It rejects non-loopback
-`arthas.ip` values, including `0.0.0.0`; `localhost` is normalized to `127.0.0.1`.
+an Arthas agent. Diagnostic ports bind to `127.0.0.1` by default. Administrators
+can explicitly configure another valid address, including `0.0.0.0` for all IPv4
+interfaces; `localhost` is normalized to `127.0.0.1`. Server's `PUT /arthas`
+requires authentication to be enabled and the caller to be an authenticated administrator.
 Without authentication, the Server endpoint returns HTTP 403, including requests
 from localhost or through a reverse proxy. Store has no equivalent administrator
 authentication, so `GET /v1/arthasstart` always returns HTTP 403.
@@ -104,30 +105,70 @@ without `-it`, use `--command` instead. Run `bin/arthas.sh --help` for usage.
 When the helper exits, including after `--command`, `quit`, or INT/TERM/HUP, it
 stops the agent and all its diagnostic sessions; the application JVM keeps running.
 SIGKILL or a host failure cannot run this cleanup: stop any surviving agent manually.
-For remote diagnosis, log in to the service host over SSH and run the same command.
+For remote diagnosis, log in to the service host over SSH and run the same command,
+or explicitly configure a reachable listener with appropriate authentication and
+network access controls as described below.
 Official Server (including HStore) and Store images include JDK 17, so the same
 helper works inside the container, for example
 `docker exec -it <store-container> /hugegraph-store/bin/arthas.sh`.
 A JRE-only installation needs JDK 17 for this helper.
 If the Server API has already activated Arthas, connect to its existing telnet
 port instead: `bin/arthas.sh --telnet-port 8562` with the default configuration.
-If `arthas.ip` uses another loopback address, supply the same address to the helper,
-for example `bin/arthas.sh --target-ip ::1 --telnet-port 8562 --command version`.
-`--target-ip` defaults to `127.0.0.1` and accepts only numeric loopback addresses
-(or `localhost`, mapped to `127.0.0.1`); it controls attachment, connection and cleanup.
-An already running agent retains its listener settings. To switch to the helper's
+Use `--target-ip` to select another bind address, for example
+`bin/arthas.sh --target-ip 0.0.0.0` or
+`bin/arthas.sh --target-ip ::1 --telnet-port 8562 --command version`.
+The default is `127.0.0.1`; `localhost` maps to `127.0.0.1`. Wildcard addresses
+`0.0.0.0` and `::` bind all corresponding interfaces, while the helper connects
+and cleans up through `127.0.0.1` and `::1` respectively. Remote clients connect
+to the service host's actual reachable address, not the wildcard address.
+An already running agent retains its listener and authentication settings;
+helper options do not reconfigure it. To switch to the helper's
 HTTP-disabled defaults, run `bin/arthas.sh --telnet-port 8562 --command stop`, then
 `bin/arthas.sh`; this stops only Arthas, and leaves the service JVM running.
 Arthas can execute code inside the JVM. OS attach permissions control initial
-activation, but do not authenticate later connections to its loopback listener:
-other OS users and containers in the same Pod can connect during diagnosis.
-Only use it on a trusted host/Pod, restrict SSH forwarding, and avoid concurrent
-helper sessions because exiting one stops the shared agent. A disabled-command
-list is not a substitute for access control.
+activation; HugeGraph administrator authentication protects only the activation
+API, not subsequent diagnostic connections. We recommend enabling Arthas native
+authentication, especially when binding beyond loopback. Without it,
+any network-reachable client can execute commands, including other OS users and
+containers in the same Pod. Restrict host/Pod access, firewall rules, port mappings
+and SSH forwarding to trusted operators. Authentication does not encrypt telnet
+or ordinary HTTP traffic; use a protected network or encrypted transport for
+remote access. Avoid concurrent helper sessions because exiting one stops the
+shared agent. A disabled-command list is optional and is not access control.
+
+Pass native Arthas credentials when starting or reusing an agent:
+
+```bash
+bin/arthas.sh --target-ip 0.0.0.0 \
+    --username diagnostics --password '<arthas-password>'
+```
+
+Use single-line credentials; printable ASCII avoids the bundled Arthas 4.1.5
+telnet client's Unicode limitation. Password-only use defaults to username `arthas`.
+These credentials are separate from HugeGraph accounts. Batch commands and exit
+cleanup use the supplied credentials automatically. For interactive diagnosis,
+if prompted, enter `auth --username diagnostics <arthas-password>` in the Arthas
+console. Existing agents require their existing credentials; passing new values
+does not change them. Password arguments may appear in shell history and process
+listings, so handle them on a trusted host. With `--username` alone, native Arthas
+generates a password in the target JVM's Arthas log. Supply `--password` for
+authenticated batch commands and automatic cleanup. If cleanup fails, the helper
+returns nonzero and the agent may remain running; use the logged password with
+native `auth`, then `stop`, to close it without stopping the service JVM.
+
+[Arthas native authentication](https://arthas.aliyun.com/en/doc/auth.html) remains
+optional and follows upstream defaults: `arthas.localConnectionNonAuth=true`
+allows connections from `127.0.0.1` to skip authentication. The helper uses a private
+configuration, so editing `lib/arthas/arthas.properties` does not configure it.
+If required, the target JVM property `-Darthas.localConnectionNonAuth=false` is
+honored. Arthas 4.1.5 generates a password when
+binding `0.0.0.0` without an explicit password and prints it in the target
+JVM output and Arthas log; explicitly supplying credentials is more convenient
+for remote diagnosis and authenticated cleanup.
 
 Authenticated Server administrators can continue using `PUT /arthas` without an
-additional enable switch or restart. Its HTTP/telnet interfaces remain local to
-the host; HugeGraph disables the optional MCP endpoint. The activation response
+additional enable switch or restart. Its HTTP/telnet interfaces use the configured
+bind address; HugeGraph disables the optional MCP endpoint. The activation response
 still contains the same four Arthas configuration keys. API activation alone
 leaves the agent running until an operator sends `stop`; connecting through the
 helper applies the helper's exit cleanup to that existing agent too.
@@ -139,6 +180,10 @@ remain accepted, but failed PID verification or listener cleanup makes the helpe
 print an error and exit nonzero; the agent may remain running. To recover from an
 agent with `stop` disabled, remove that restriction and restart the service before
 activating Arthas again. Newly attached local agents keep both commands available.
+
+No commands are disabled by default. Administrators can optionally set
+`arthas.disabled_commands=jad,mc` to restrict selected commands for API activation;
+new local agents do not inherit this list.
 
 The existing `arthas.ip`, `arthas.httpPort`, `arthas.telnetPort` and
 `arthas.disabledCommands` options configure the Server API-activated agent.

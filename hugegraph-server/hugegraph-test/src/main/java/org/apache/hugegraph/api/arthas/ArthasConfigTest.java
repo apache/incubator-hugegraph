@@ -86,7 +86,7 @@ public class ArthasConfigTest {
     @Test
     public void testDefaults() {
         Map<String, String> config = ArthasAPI.arthasConfig(new HugeConfig(Collections.emptyMap()));
-        assertOptions(config, "8562", "8561", "jad");
+        assertOptions(config, "8562", "8561", "");
         Assert.assertEquals("127.0.0.1", config.get("arthas.ip"));
         Assert.assertTrue(this.events.isEmpty());
     }
@@ -126,8 +126,8 @@ public class ArthasConfigTest {
         Map<String, Object> properties = properties("telnetPort", "httpPort", "disabledCommands");
         properties.put("arthas.telnet_port", "8562");
         properties.put("arthas.http_port", "8561");
-        properties.put("arthas.disabled_commands", "jad");
-        assertOptions(ArthasAPI.arthasConfig(new HugeConfig(properties)), "8562", "8561", "jad");
+        properties.put("arthas.disabled_commands", "");
+        assertOptions(ArthasAPI.arthasConfig(new HugeConfig(properties)), "8562", "8561", "");
         Assert.assertEquals(3, this.events.size());
         assertConflictWarning(2, "disabled_commands", "disabledCommands");
     }
@@ -141,17 +141,26 @@ public class ArthasConfigTest {
     }
 
     @Test
-    public void testCanonicalAndLegacyKeysAreValidated() {
-        for (String key : new String[]{"telnet_port", "telnetPort", "http_port", "httpPort",
-                                       "disabled_commands", "disabledCommands"}) {
+    public void testCanonicalAndLegacyPortsAndIpRejectEmptyValues() {
+        for (String key : new String[]{"telnet_port", "telnetPort", "http_port", "httpPort", "ip"}) {
             Assert.assertThrows(ConfigException.class,
                                 () -> new HugeConfig(Collections.singletonMap("arthas." + key, "")));
         }
     }
 
     @Test
-    public void testLoopbackAddresses() {
-        for (String ip : new String[]{"127.0.0.1", "127.0.0.2", "::1", "localhost"}) {
+    public void testCanonicalAndLegacyDisabledCommandsCanBeEmpty() {
+        for (String key : new String[]{"disabled_commands", "disabledCommands"}) {
+            Map<String, String> config = ArthasAPI.arthasConfig(
+                    new HugeConfig(Collections.singletonMap("arthas." + key, "")));
+            assertOptions(config, "8562", "8561", "");
+        }
+    }
+
+    @Test
+    public void testExplicitBindAddresses() {
+        for (String ip : new String[]{"127.0.0.1", "127.0.0.2", "::1", "localhost",
+                                      "0.0.0.0", "::", "192.0.2.1", "2001:db8::1", "fe80::1%1"}) {
             Map<String, String> config = ArthasAPI.arthasConfig(
                     new HugeConfig(Collections.singletonMap("arthas.ip", ip)));
             Assert.assertEquals("localhost".equals(ip) ? "127.0.0.1" : ip, config.get("arthas.ip"));
@@ -159,8 +168,8 @@ public class ArthasConfigTest {
     }
 
     @Test
-    public void testRemoteAndWildcardAddressesAreRejected() {
-        for (String ip : new String[]{"0.0.0.0", "::", "192.0.2.1", "2001:db8::1", "example.com"}) {
+    public void testInvalidBindAddressesAreRejected() {
+        for (String ip : new String[]{"2001:db8::xyz", "2001:db8:::1", "[::1", "0.0.0.0:3658"}) {
             HugeConfig config = new HugeConfig(Collections.singletonMap("arthas.ip", ip));
             Assert.assertThrows(IllegalArgumentException.class, () -> ArthasAPI.arthasConfig(config));
         }

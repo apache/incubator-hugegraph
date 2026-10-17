@@ -119,10 +119,10 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
     class Terminal:
         # fork gives the helper a real controlling terminal: closing its master
         # reproduces terminal hangup, including the kernel's process-group HUP.
-        def __init__(self, shell=False):
+        def __init__(self, shell=False, options=()):
             self.pid, self.master = pty.fork()
             if self.pid == 0:
-                arguments = ["bash", "--noprofile", "--norc", "-i"] if shell else client
+                arguments = ["bash", "--noprofile", "--norc", "-i"] if shell else client + list(options)
                 os.execvpe(arguments[0], arguments, client_env)
             self.returncode = None
             self.output = ""
@@ -176,10 +176,13 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             (root / "bin/pid").write_text(str(process.pid))
             time.sleep(1)
             for options in (["--pid", "-1"], ["--pid", "1; unsafe"], ["--pid", "9999999999"],
-                            ["--telnet-port", "65536"], ["--target-ip", "0.0.0.0"],
-                            ["--target-ip", "loopback.invalid"],
+                            ["--telnet-port", "65536"], ["--target-ip", "::not-an-ip"],
+                            ["--username", "line\nbreak"],
                             ["--http-port", "8563"], ["--tunnel-server", tunnel_url]):
-                run(script + options + ["--command", "version"], success=False)
+                output = run(script + options + ["--command", "version"], success=False)
+                if options[0] == "--username":
+                    assert "single-line values" in output and "Waiting for PID" not in output, output
+                    assert not can_connect("127.0.0.1", safe_port)
             # EOF and piped input must fail before attaching; batch callers need --command.
             for input_text in ("", "version\n"):
                 result = subprocess.run(client, env=client_env, input=input_text, text=True,
@@ -294,18 +297,54 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             # macOS requires an explicit interface alias for 127.0.0.2; Linux
             # routes all of 127/8 locally and exercises that address in CI.
             hosts = ("127.0.0.2", "::1", "localhost") if sys.platform.startswith("linux") else ("::1", "localhost")
-            for host in hosts:
-                output = run(client + ["--target-ip", host, "--command", "version"])
+            for host in (*hosts, "0.0.0.0", "::"):
+                credentials = (["--username", "bind-user", "--password", "bind ; secret"]
+                               if host in ("0.0.0.0", "::") else [])
+                output = run(client + ["--target-ip", host, *credentials, "--command", "version"])
+                assert "bind ; secret" not in output, output
                 assert re.search(r"\n4\.1\.5\s*\n", output), output
-                wait_port(False, "127.0.0.1" if host == "localhost" else host)
+                connect_host = {"localhost": "127.0.0.1", "0.0.0.0": "127.0.0.1", "::": "::1"}.get(host, host)
+                wait_port(False, connect_host)
             run(client + ["--command", "stop"])
             wait_port(False)
-            assert process.poll() is None, "Stopping Arthas stopped the application JVM"
+            # Disable native local authentication bypass for the following
+            # attachments; earlier signal cases exercise native no-auth defaults.
+            run(client + ["--command", "sysprop arthas.localConnectionNonAuth false"])
+            wait_port(False)
+            password = "p a;ss'\"\\word"
+            auth = ["--username", "operator name", "--password", password]
+            for options in (auth, ["--password", password]):
+                output = run(client + options + ["--command", "version"])
+                assert re.search(r"\n4\.1\.5\s*\n", output), output
+                assert password not in output and "auth --username" not in output, output
+                wait_port(False)
+                assert process.poll() is None, "Authenticated command stopped the application JVM"
+            interactive = Terminal(options=auth)
+            wait_port(True)
+            interactive.ready()
+            # An independent unauthenticated loopback client must be rejected.
+            unauthenticated = run([java, "-jar", str(root / "lib/arthas/arthas-client.jar"),
+                                   "-c", "version", "127.0.0.1", str(safe_port)])
+            assert "command not permitted" in unauthenticated, unauthenticated
+            assert not re.search(r"\n4\.1\.5\s*\n", unauthenticated), unauthenticated
+            # A running agent retains its credentials; invalid credentials must
+            # fail diagnosis/cleanup without stopping the existing listener.
+            wrong = run(client + ["--username", "operator name", "--password", "incorrect ; secret",
+                                  "--command", "version"], success=False)
+            assert "command not permitted" in wrong and "incorrect ; secret" not in wrong, wrong
+            wait_port(True)
+            quoted_password = "'" + password.replace("'", "'\\''") + "'"
+            os.write(interactive.master,
+                     f'auth --username "operator name" {quoted_password}\nversion\nquit\n'.encode())
+            assert interactive.wait(45) == 0, interactive.output
+            assert re.search(r"[\r\n]4\.1\.5\s*[\r\n]", interactive.output), interactive.output
+            wait_port(False)
+            assert process.poll() is None, "Authenticated quit stopped the application JVM"
             assert not can_connect("127.0.0.1", safe_port)
             assert not list((root / "client-temp").glob("hugegraph-arthas-*.properties"))
             assert not list((root / "client-temp").glob("tmp.*")), "Helper state was not removed"
             print(f"PASS: {component} PID/argument boundaries, hostile config, local-only agent, no tunnel, "
-                  "command/quit/terminal/group/repeated-signal cleanup, loopback compatibility without restart")
+                  "command/quit/terminal/group/repeated-signal cleanup, explicit binds/authentication without restart")
         finally:
             if interactive is not None and interactive.poll() is None:
                 os.kill(interactive.pid, signal.SIGKILL)
