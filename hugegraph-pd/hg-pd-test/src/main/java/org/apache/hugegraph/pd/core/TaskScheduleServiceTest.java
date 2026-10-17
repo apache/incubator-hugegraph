@@ -25,7 +25,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.ToLongBiFunction;
+import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
 
 import org.apache.hugegraph.pd.StoreNodeService;
@@ -150,12 +154,29 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
     public void testAutoBalancePartitionLeaderWithChangeAfterCheck() throws PDException {
         // reallocShards turns store 3's shards into new None members right after the check
         // read the groups: the plan is made from the checked groups and no transfer is sent
-        var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, g -> g, 0,
-                              (storeId, groupId) -> 10_000,
-                              g -> g.toBuilder().setShards(2, g.getShards(2).toBuilder()
-                                                               .setRole(Metapb.ShardRole.None))
-                                    .build(), 1, 2, 3);
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .afterRead(g -> g.toBuilder().setShards(2, g.getShards(2).toBuilder()
+                                                        .setRole(Metapb.ShardRole.None))
+                                 .build())
+                .run();
         assertTrue(rst.isEmpty());
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderAfterLosingLeadership() throws PDException {
+        // this PD is the leader when the run starts and loses leadership before it sends
+        var calls = new AtomicInteger();
+        var service = new TaskScheduleService(getPdConfig(), getStoreNodeService(),
+                                              getPartitionService()) {
+            @Override
+            protected boolean isLeader() {
+                return calls.getAndIncrement() == 0;
+            }
+        };
+        var rst = new Balance(1, 1, 1, 1, 1, 1).on(service).run();
+        assertTrue(rst.isEmpty());
+        // the planned transfers were rechecked, not skipped before planning
+        assertTrue(calls.get() > 1);
     }
 
     @Test
@@ -163,19 +184,62 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         // store 3's replicas trail the leaders by 5000 entries or report no index: its share
         // of the leaders stays on store 1 and only store 2 takes leaders
         for (long store3Index : new long[]{5_000, -1}) {
-            var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, g -> g, 0,
-                                  (storeId, groupId) -> storeId == 3 ? store3Index : 10_000,
-                                  null, 1, 2, 3);
+            var rst = new Balance(1, 1, 1, 1, 1, 1)
+                    .appliedIndex((storeId, groupId) -> storeId == 3 ? store3Index : 10_000)
+                    .run();
             assertEquals(2, rst.size());
             assertTrue(rst.values().stream().allMatch(storeId -> storeId == 2L));
         }
 
         // 500 entries behind is close enough to take a leader
-        var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, g -> g, 0,
-                              (storeId, groupId) -> storeId == 3 ? 9_500 : 10_000,
-                              null, 1, 2, 3);
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 9_500 : 10_000)
+                .run();
         assertEquals(4, rst.size());
         assertTrue(rst.containsValue(3L));
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithOlderFollowerReport() throws PDException {
+        // The leaders on store 1 apply 100 entries/s. Store 3's last heartbeat reached PD 15 s
+        // before the others', so its caught-up replicas report 1500 entries less.
+        ToLongFunction<Long> reportAge = storeId -> storeId == 3 ? 15_000 : 0;
+
+        // With no earlier run to tell the write rate, store 3 looks 1500 behind and waits
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 8_500 : 10_000)
+                .reportAge(reportAge)
+                .run();
+        assertEquals(2, rst.size());
+        assertTrue(rst.values().stream().allMatch(storeId -> storeId == 2L));
+
+        // A run 30 s earlier saw the leaders at 7000 and skipped because group 0 was Warn.
+        // At the rate that gives, store 3 is caught up and takes its share of the leaders.
+        var service = newTaskService();
+        rst = new Balance(1, 1, 1, 1, 1, 1).group0(warn(), 0)
+                                           .appliedIndex((storeId, groupId) -> 7_000)
+                                           .reportAge(storeId -> 30_000)
+                                           .on(service).run();
+        assertTrue(rst.isEmpty());
+        rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 8_500 : 10_000)
+                .reportAge(reportAge)
+                .on(service).run();
+        assertEquals(4, rst.size());
+        assertTrue(rst.containsValue(3L));
+
+        // At the same rate a report of 5000 from store 3 is 3500 behind, so it still waits
+        service = newTaskService();
+        new Balance(1, 1, 1, 1, 1, 1).group0(warn(), 0)
+                                     .appliedIndex((storeId, groupId) -> 7_000)
+                                     .reportAge(storeId -> 30_000)
+                                     .on(service).run();
+        rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 5_000 : 10_000)
+                .reportAge(reportAge)
+                .on(service).run();
+        assertEquals(2, rst.size());
+        assertTrue(rst.values().stream().allMatch(storeId -> storeId == 2L));
     }
 
     @Test
@@ -190,106 +254,215 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         }
     }
 
-    private Map<Integer, Long> autoBalance(long[] leaderStores, long... activeStores) throws
-                                                                                 PDException {
-        return autoBalance(leaderStores, g -> g, 0, activeStores);
-    }
-
-    private Map<Integer, Long> autoBalance(long[] leaderStores,
-                                           UnaryOperator<Metapb.ShardGroup> group0,
-                                           long group0StatsAge,
-                                           long... activeStores) throws PDException {
-        return autoBalance(leaderStores, group0, group0StatsAge, (storeId, groupId) -> 10_000,
-                           null, activeStores);
+    @Test
+    public void testInitSchedulesLeaderBalance() throws InterruptedException {
+        // disabled, or enabled with an interval or skew out of range: no timer
+        assertFalse(initSchedulesLeaderBalance(false, 1, 2));
+        assertFalse(initSchedulesLeaderBalance(true, 0, 2));
+        assertFalse(initSchedulesLeaderBalance(true, -5, 2));
+        assertFalse(initSchedulesLeaderBalance(true, 1, -1));
+        // enabled with valid settings, including a skew of 0: the timer runs the balance
+        assertTrue(initSchedulesLeaderBalance(true, 1, 0));
+        assertTrue(initSchedulesLeaderBalance(true, 1, 2));
     }
 
     /**
-     * Stores shard groups 0..n-1 on stores 1, 2 and 3 with the leader of group i on
-     * leaderStores[i], all Normal with fresh partition stats, then applies group0 to group 0
-     * and ages its stats by group0StatsAge ms (-1: no stats). Marks activeStores alive, each
-     * reporting appliedIndex(store, group) for every group (negative: not reported), and runs
-     * one periodic balance. A non-null afterRead is applied to every stored group right after
-     * the balance reads the group list, like a change landing between check and transfer.
+     * Runs init() with the given leader balance settings and returns whether it scheduled the
+     * periodic leader balance. When it did, the timer must call the balance within 10 s.
      */
+    private boolean initSchedulesLeaderBalance(boolean enable, long interval, int maxSkew) throws
+                                                                                       InterruptedException {
+        var config = getPdConfig();
+        config.setBalanceLeaderEnable(enable);
+        config.setBalanceLeaderInterval(interval);
+        config.setBalanceLeaderMaxSkew(maxSkew);
+        var ran = new CountDownLatch(1);
+        var service = new TaskScheduleService(config, new StoreNodeService(config),
+                                              getPartitionService()) {
+            @Override
+            public synchronized Map<Integer, Long> autoBalancePartitionLeader() {
+                ran.countDown();
+                return Map.of();
+            }
+        };
+        try {
+            service.init();
+            boolean scheduled = service.isLeaderBalanceScheduled();
+            if (scheduled) {
+                assertTrue(ran.await(10, TimeUnit.SECONDS));
+            }
+            return scheduled;
+        } finally {
+            service.shutDown();
+            config.setBalanceLeaderEnable(false);
+            config.setBalanceLeaderInterval(300);
+            config.setBalanceLeaderMaxSkew(2);
+        }
+    }
+
+    private static UnaryOperator<Metapb.ShardGroup> warn() {
+        return g -> g.toBuilder().setState(Metapb.PartitionState.PState_Warn).build();
+    }
+
+    // A fresh service, so a balance run by another test does not hit the rate limit
+    private TaskScheduleService newTaskService() {
+        return new TaskScheduleService(getPdConfig(), getStoreNodeService(),
+                                       getPartitionService());
+    }
+
+    private Map<Integer, Long> autoBalance(long[] leaderStores, long... activeStores) throws
+                                                                                 PDException {
+        return new Balance(leaderStores).active(activeStores).run();
+    }
+
     private Map<Integer, Long> autoBalance(long[] leaderStores,
                                            UnaryOperator<Metapb.ShardGroup> group0,
                                            long group0StatsAge,
-                                           ToLongBiFunction<Long, Integer> appliedIndex,
-                                           UnaryOperator<Metapb.ShardGroup> afterRead,
                                            long... activeStores) throws PDException {
-        var storeMeta = getStoreNodeService().getStoreInfoMeta();
-        var partitionMeta = MetadataFactory.newPartitionMeta(getPdConfig());
-        // Set aside groups other tests in the suite left behind, so only ours are planned
-        var otherGroups = storeMeta.getShardGroups();
-        for (var group : otherGroups) {
-            storeMeta.deleteShardGroup(group.getId());
+        return new Balance(leaderStores).group0(group0, group0StatsAge).active(activeStores)
+                                        .run();
+    }
+
+    /**
+     * One periodic balance over shard groups 0..n-1 on stores 1, 2 and 3, with the leader of
+     * group i on leaderStores[i]. By default every group is Normal with fresh partition stats,
+     * stores 1-3 are active and each reports applied index 10000 for every group in a
+     * heartbeat PD received at the time of the run.
+     */
+    private class Balance {
+
+        private final long[] leaderStores;
+        private long[] activeStores = {1, 2, 3};
+        private UnaryOperator<Metapb.ShardGroup> group0 = g -> g;
+        private long group0StatsAge = 0;
+        private ToLongBiFunction<Long, Integer> appliedIndex = (storeId, groupId) -> 10_000;
+        private ToLongFunction<Long> reportAge = storeId -> 0;
+        private UnaryOperator<Metapb.ShardGroup> afterRead;
+        private TaskScheduleService service;
+
+        Balance(long... leaderStores) {
+            this.leaderStores = leaderStores;
         }
-        var partitions = new ArrayList<Metapb.Partition>();
-        long now = System.currentTimeMillis();
-        for (int i = 0; i < leaderStores.length; i++) {
-            var group = genShardGroup(i, leaderStores[i], Metapb.PartitionState.PState_Normal);
-            long statsAge = 0;
-            if (i == 0) {
-                group = group0.apply(group);
-                statsAge = group0StatsAge;
-            }
-            storeMeta.updateShardGroup(group);
-            if (statsAge >= 0) {
-                partitionMeta.updatePartitionStats(Metapb.PartitionStats.newBuilder()
-                                                                        .setId(i)
-                                                                        .setTimestamp(
-                                                                                now - statsAge)
-                                                                        .build());
-            }
-            partitions.add(genPartition(i));
+
+        // Stores marked alive; the others among 1-3 are removed from the active set
+        Balance active(long... activeStores) {
+            this.activeStores = activeStores;
+            return this;
         }
-        for (long storeId = 1; storeId <= 3; storeId++) {
-            var stats = Metapb.StoreStats.newBuilder();
+
+        // Applied to group 0, whose stats are aged by statsAge ms (-1: no stats)
+        Balance group0(UnaryOperator<Metapb.ShardGroup> group0, long statsAge) {
+            this.group0 = group0;
+            this.group0StatsAge = statsAge;
+            return this;
+        }
+
+        // The applied index each store reports for each group (negative: not reported)
+        Balance appliedIndex(ToLongBiFunction<Long, Integer> appliedIndex) {
+            this.appliedIndex = appliedIndex;
+            return this;
+        }
+
+        // How many ms before the run PD received each store's heartbeat
+        Balance reportAge(ToLongFunction<Long> reportAge) {
+            this.reportAge = reportAge;
+            return this;
+        }
+
+        // Applied to every stored group right after the balance reads the group list, like a
+        // change landing between check and transfer. Runs on a fresh service.
+        Balance afterRead(UnaryOperator<Metapb.ShardGroup> afterRead) {
+            this.afterRead = afterRead;
+            return this;
+        }
+
+        // Runs on this service instead of a fresh one
+        Balance on(TaskScheduleService service) {
+            this.service = service;
+            return this;
+        }
+
+        Map<Integer, Long> run() throws PDException {
+            var storeMeta = getStoreNodeService().getStoreInfoMeta();
+            var partitionMeta = MetadataFactory.newPartitionMeta(getPdConfig());
+            // Set aside groups other tests in the suite left behind, so only ours are planned
+            var otherGroups = storeMeta.getShardGroups();
+            for (var group : otherGroups) {
+                storeMeta.deleteShardGroup(group.getId());
+            }
+            var partitions = new ArrayList<Metapb.Partition>();
+            long now = System.currentTimeMillis();
             for (int i = 0; i < leaderStores.length; i++) {
-                long index = appliedIndex.applyAsLong(storeId, i);
-                if (index >= 0) {
-                    stats.addRaftStats(Metapb.RaftStats.newBuilder().setPartitionId(i)
-                                                       .setCommittedIndex(index));
+                var group = genShardGroup(i, leaderStores[i],
+                                          Metapb.PartitionState.PState_Normal);
+                long statsAge = 0;
+                if (i == 0) {
+                    group = group0.apply(group);
+                    statsAge = group0StatsAge;
+                }
+                storeMeta.updateShardGroup(group);
+                if (statsAge >= 0) {
+                    partitionMeta.updatePartitionStats(Metapb.PartitionStats.newBuilder()
+                                                                            .setId(i)
+                                                                            .setTimestamp(
+                                                                                    now - statsAge)
+                                                                            .build());
+                }
+                partitions.add(genPartition(i));
+            }
+            for (long storeId = 1; storeId <= 3; storeId++) {
+                var stats = Metapb.StoreStats.newBuilder();
+                for (int i = 0; i < leaderStores.length; i++) {
+                    long index = appliedIndex.applyAsLong(storeId, i);
+                    if (index >= 0) {
+                        stats.addRaftStats(Metapb.RaftStats.newBuilder().setPartitionId(i)
+                                                           .setCommittedIndex(index));
+                    }
+                }
+                var store = Metapb.Store.newBuilder().setId(storeId).setStats(stats)
+                                        .setLastHeartbeat(now - reportAge.applyAsLong(storeId))
+                                        .build();
+                if (Arrays.stream(activeStores).anyMatch(id -> id == store.getId())) {
+                    storeMeta.keepStoreAlive(store);
+                } else {
+                    storeMeta.removeActiveStore(store);
                 }
             }
-            var store = Metapb.Store.newBuilder().setId(storeId).setStats(stats).build();
-            if (Arrays.stream(activeStores).anyMatch(id -> id == store.getId())) {
-                storeMeta.keepStoreAlive(store);
-            } else {
-                storeMeta.removeActiveStore(store);
-            }
-        }
-        getPdConfig().getPartition().setShardCount(3);
-        getPartitionService().updatePartition(partitions);
-        try {
-            StoreNodeService storeService = getStoreNodeService();
-            if (afterRead != null) {
-                storeService = new StoreNodeService(getPdConfig()) {
-                    @Override
-                    public List<Metapb.ShardGroup> getShardGroups() throws PDException {
-                        var groups = super.getShardGroups();
-                        for (var group : groups) {
-                            storeMeta.updateShardGroup(afterRead.apply(group));
-                        }
-                        return groups;
+            getPdConfig().getPartition().setShardCount(3);
+            getPartitionService().updatePartition(partitions);
+            try {
+                var balanceService = service;
+                if (balanceService == null) {
+                    StoreNodeService storeService = getStoreNodeService();
+                    if (afterRead != null) {
+                        storeService = new StoreNodeService(getPdConfig()) {
+                            @Override
+                            public List<Metapb.ShardGroup> getShardGroups() throws PDException {
+                                var groups = super.getShardGroups();
+                                for (var group : groups) {
+                                    storeMeta.updateShardGroup(afterRead.apply(group));
+                                }
+                                return groups;
+                            }
+                        };
                     }
-                };
-            }
-            // A fresh service, so a balance run by another test does not hit the rate limit
-            var service = new TaskScheduleService(getPdConfig(), storeService,
-                                                  getPartitionService());
-            return service.autoBalancePartitionLeader();
-        } finally {
-            getPdConfig().getPartition().setShardCount(1);
-            for (long storeId : activeStores) {
-                storeMeta.removeActiveStore(Metapb.Store.newBuilder().setId(storeId).build());
-            }
-            partitionMeta.removePartitionStats("");
-            for (int i = 0; i < leaderStores.length; i++) {
-                storeMeta.deleteShardGroup(i);
-            }
-            for (var group : otherGroups) {
-                storeMeta.updateShardGroup(group);
+                    balanceService = new TaskScheduleService(getPdConfig(), storeService,
+                                                             getPartitionService());
+                }
+                return balanceService.autoBalancePartitionLeader();
+            } finally {
+                getPdConfig().getPartition().setShardCount(1);
+                for (long storeId : activeStores) {
+                    storeMeta.removeActiveStore(Metapb.Store.newBuilder().setId(storeId)
+                                                            .build());
+                }
+                partitionMeta.removePartitionStats("");
+                for (int i = 0; i < leaderStores.length; i++) {
+                    storeMeta.deleteShardGroup(i);
+                }
+                for (var group : otherGroups) {
+                    storeMeta.updateShardGroup(group);
+                }
             }
         }
     }

@@ -208,9 +208,11 @@ pd:
   has sent no partition heartbeat in the last 30 seconds, or has a replica that is not a Leader
   or Follower (a membership change in progress); while a Store that holds a shard is not sending
   heartbeats; and while a split, move or shard balance task is running. A planned transfer is
-  not sent if its shard group changed after the check, or if the target's applied index, from
-  its Store's last heartbeat, trails the leader's by more than 1000 entries. The leader stays
-  where it is until a later check.
+  not sent if this PD is no longer the leader, if its shard group changed after the check, or
+  if the target's applied index trails the leader's by more than 1000 entries. The indexes come
+  from each Store's last heartbeat, and PD moves the leader's index to the time of the target's
+  report at the rate it grew since the previous check; until a check has seen that rate, PD
+  compares the indexes as reported. The leader stays where it is until a later check.
 
 ### Store Management Settings
 
