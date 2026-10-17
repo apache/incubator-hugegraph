@@ -91,10 +91,11 @@
 {{- end }}
 
 {{/*
-Expand the name of the chart.
+Keep the application identity stable when the distribution chart is renamed.
+The OCI artifact is hugegraph-helm; Kubernetes resources still use hugegraph.
 */}}
 {{- define "hugegraph.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default "hugegraph" .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -104,7 +105,7 @@ Create a default fully qualified app name.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- $name := default "hugegraph" .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}

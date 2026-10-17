@@ -38,6 +38,8 @@ class HelmPackageTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix="hugegraph-chart-")
         cls.addClassCleanup(temporary.cleanup)
         cls.directory = Path(temporary.name)
+        cls.version = re.search(r"(?m)^version: (.+)$",
+                                (CHART / "Chart.yaml").read_text()).group(1)
         subprocess.run(["helm", "package", str(CHART), "--destination", str(cls.directory)],
                        check=True, capture_output=True, text=True)
         packages = list(cls.directory.glob("*.tgz"))
@@ -48,8 +50,19 @@ class HelmPackageTest(unittest.TestCase):
             cls.files = {}
             for member in archive.getmembers():
                 if member.isfile():
-                    name = member.name.removeprefix("hugegraph/")
+                    name = member.name.removeprefix("hugegraph-helm/")
                     cls.files[name] = archive.extractfile(member).read()
+
+    def test_distribution_identity(self):
+        self.assertEqual(f"hugegraph-helm-{self.version}.tgz", self.package.name)
+        self.assertRegex(self.files["Chart.yaml"].decode(),
+                         r"(?m)^name: hugegraph-helm$")
+        rendered = subprocess.run(
+            ["helm", "template", "hugegraph", str(self.package)],
+            check=True, capture_output=True, text=True).stdout
+        self.assertIn("name: hugegraph-server\n", rendered)
+        self.assertIn('app.kubernetes.io/name: "hugegraph"', rendered)
+        self.assertIn(f"helm.sh/chart: hugegraph-helm-{self.version}", rendered)
 
     def test_archive_budget(self):
         self.assertLess(self.package.stat().st_size, PACKAGE_BUDGET,
@@ -65,7 +78,7 @@ class HelmPackageTest(unittest.TestCase):
     def test_required_configuration_is_preserved(self):
         required = ("Chart.yaml", "README.md", "values.yaml", "values.schema.json",
                     "values-single.yaml", "values-cluster.yaml", "values-strict.yaml",
-                    "docs/operations.md", "examples/README.md")
+                    "docs/operations.md", "docs/distribution.md", "examples/README.md")
         for name in required:
             with self.subTest(file=name):
                 self.assertIn(name, self.files)
