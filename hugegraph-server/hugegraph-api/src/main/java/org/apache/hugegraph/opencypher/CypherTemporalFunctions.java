@@ -100,7 +100,7 @@ public final class CypherTemporalFunctions {
             Object merged = mergeParameters(parametersField.get(ast), fold.bindings);
             statementField.set(ast, folded);
             parametersField.set(ast, merged);
-        } catch (Exception e) {
+        } catch (Exception | LinkageError e) {
             logger.warn("Failed to fold temporal functions, keeping the parsed statement", e);
             return parameters;
         }
@@ -288,11 +288,7 @@ public final class CypherTemporalFunctions {
             if (!changed) {
                 return set;
             }
-            scala.collection.Set<Object> result = scala.collection.immutable.Set$.MODULE$.empty();
-            for (Object element : copies) {
-                result = result.$plus(element);
-            }
-            return result;
+            return JavaConverters.asScalaBuffer(copies).toSet();
         }
 
         private Object rebuild(Product product) throws Exception {

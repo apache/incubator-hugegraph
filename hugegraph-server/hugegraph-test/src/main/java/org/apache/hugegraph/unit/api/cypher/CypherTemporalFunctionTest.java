@@ -21,9 +21,11 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -101,6 +103,45 @@ public class CypherTemporalFunctionTest {
         Assert.assertNotNull(folded.getKey());
         Assert.assertEquals(expectedDate("yyyy-MM-dd", "2000-01-01"),
                             syntheticBinding(folded.getValue(), "  cypher.fold.date."));
+    }
+
+    @Test
+    public void testDateInLabelledMatchWhereFolds() throws Exception {
+        Map.Entry<String, Map<String, Object>> folded = translate(
+                "MATCH (n:cypher_person) WHERE n.birthday = date('2000-01-01') RETURN n.name AS name",
+                Collections.emptyMap());
+
+        Assert.assertTrue(folded.getKey(), folded.getKey().contains("g.V()"));
+        Assert.assertEquals(expectedDate("yyyy-MM-dd", "2000-01-01"),
+                            syntheticBinding(folded.getValue(), "  cypher.fold.date."));
+    }
+
+    @Test
+    public void testDateInLabelledPropertyMapFolds() throws Exception {
+        Map.Entry<String, Map<String, Object>> folded = translate(
+                "MATCH (n:cypher_person {note: date('2024-02-05')}) RETURN count(n) AS count",
+                Collections.emptyMap());
+
+        Assert.assertTrue(folded.getKey(), folded.getKey().contains("g.V()"));
+        Assert.assertEquals(expectedDate("yyyy-MM-dd", "2024-02-05"),
+                            syntheticBinding(folded.getValue(), "  cypher.fold.date."));
+    }
+
+    @Test
+    public void testDateUnderAndRangeFolds() throws Exception {
+        Map.Entry<String, Map<String, Object>> folded = translate(
+                "MATCH (n) WHERE n.d0 > date('2024-02-05') AND n.d0 < date('2025-01-01') RETURN n",
+                Collections.emptyMap());
+
+        List<Object> foldedDates = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : folded.getValue().entrySet()) {
+            if (entry.getKey().startsWith("  cypher.fold.date.")) {
+                foldedDates.add(entry.getValue());
+            }
+        }
+        Assert.assertEquals(2, foldedDates.size());
+        Assert.assertTrue(foldedDates.remove(expectedDate("yyyy-MM-dd", "2024-02-05")));
+        Assert.assertTrue(foldedDates.remove(expectedDate("yyyy-MM-dd", "2025-01-01")));
     }
 
     @Test
