@@ -209,10 +209,14 @@ pd:
   or Follower (a membership change in progress); while a Store that holds a shard is not sending
   heartbeats; and while a split, move or shard balance task is running. A planned transfer is
   not sent if this PD is no longer the leader, if its shard group changed after the check, or
-  if the target's applied index trails the leader's by more than 1000 entries. The indexes come
-  from each Store's last heartbeat, and PD moves the leader's index to the time of the target's
-  report at the rate it grew since the previous check; until a check has seen that rate, PD
-  compares the indexes as reported. The leader stays where it is until a later check.
+  if the target's applied index trails the leader's by more than an estimated 1000 entries. The
+  indexes come from each Store's last heartbeat, and PD estimates the leader's index at the time
+  of the target's report from its average rate since the previous check; when there is no usable
+  earlier sample from the same leader Store, PD compares the indexes as reported. The leader stays
+  where it is until a later check. The estimate is best effort, not a strict bound: a write burst
+  late in the interval can keep a caught-up Store waiting for later checks, and a burst early in
+  it can let a Store that fell behind through, in which case JRaft ends the transfer after its
+  timeout and the old leader takes writes again.
 
 ### Store Management Settings
 

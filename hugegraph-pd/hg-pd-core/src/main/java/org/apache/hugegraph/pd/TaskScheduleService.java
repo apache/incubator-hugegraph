@@ -66,7 +66,10 @@ public class TaskScheduleService {
     // Stores send partition heartbeats every 5 seconds; older stats no longer show a live leader
     private static final long BALANCE_LEADER_STATS_MAX_AGE = 30 * 1000;
     // A raft leader rejects writes while it waits for a transfer target to catch up, so the
-    // periodic balance skips a target whose reported applied index trails the leader's by more
+    // periodic balance skips a target whose applied index trails the leader's by more than this,
+    // as estimated by canTakeLeader. The estimate is best effort: bursty writes can make a
+    // caught-up target wait for a later run, or let a lagging one through, and in that case
+    // JRaft ends the transfer after its timeout and the old leader takes writes again.
     private static final long BALANCE_LEADER_MAX_INDEX_GAP = 1000;
     private final PDConfig pdConfig;
     private final long clusterStartTime;
@@ -81,7 +84,11 @@ public class TaskScheduleService {
     private long lastBalanceLeaderTime = 0;
     private ScheduledFuture<?> balanceLeaderTask;
     // shard group id -> the leader store's applied index report seen by the previous periodic
-    // leader balance, to tell how fast the leader's index grows between two store heartbeats
+    // leader balance, to tell how fast the leader's index grows between two store heartbeats.
+    // It is used only while the same store still leads the group, and is cleared by a run that
+    // finds this PD is not the leader. It is not tied to a leadership term: if this PD loses
+    // and regains leadership, or the group's leader moves away and back, between two runs, the
+    // entry stays and the rate is averaged over that whole time.
     private final Map<Integer, IndexReport> lastLeaderIndexReports = new HashMap<>();
 
     /**
@@ -766,7 +773,11 @@ public class TaskScheduleService {
     /**
      * Checks a periodic transfer right before it is sent: this PD must still be the leader, the
      * group must be unchanged since autoBalancePartitionLeader checked it, and the target's
-     * reported applied index must trail the leader's by at most BALANCE_LEADER_MAX_INDEX_GAP.
+     * applied index must trail the leader's by at most BALANCE_LEADER_MAX_INDEX_GAP. That gap is
+     * estimated from store heartbeats taken at different times, with the leader's progress in
+     * between taken as its average rate since the previous run, so it is not a strict bound:
+     * a burst late in that time makes a caught-up target look behind, and a burst early in it
+     * hides a target that fell behind.
      */
     private boolean canTakeLeader(Metapb.ShardGroup group, long storeId,
                                   Map<Integer, Map<Long, IndexReport>> indexReports,
@@ -794,9 +805,9 @@ public class TaskScheduleService {
             return false;
         }
         // Stores send their heartbeats at different times, so a caught-up target reporting
-        // earlier than the leader looks behind by the writes in between. Move the leader's
-        // index to the time of the target's report, at the rate it grew since the previous run.
-        // Without that rate, compare the indexes as reported.
+        // earlier than the leader looks behind by the writes in between. Estimate the leader's
+        // index at the time of the target's report, at the average rate it grew since the
+        // previous run. Without that rate, compare the indexes as reported.
         long leaderIndex = leader.index();
         IndexReport previous = previousLeaderReports.get(group.getId());
         if (previous != null && previous.storeId() == leader.storeId() &&
@@ -807,8 +818,8 @@ public class TaskScheduleService {
         }
         if (leaderIndex - target.index() > BALANCE_LEADER_MAX_INDEX_GAP) {
             log.info("periodic leader balance keeps the leader of shard group {}, store {} is " +
-                     "at index {} and leader store {} at about {} at that time", group.getId(),
-                     storeId, target.index(), leaderStore, leaderIndex);
+                     "at index {} and leader store {} at an estimated {} at that time",
+                     group.getId(), storeId, target.index(), leaderStore, leaderIndex);
             return false;
         }
         return true;

@@ -243,6 +243,86 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
     }
 
     @Test
+    public void testAutoBalancePartitionLeaderWithLateBurst() throws PDException {
+        // The leaders went from 7000 to 10000 over 300 s, all of it in the last 15 s. Store 3
+        // reported 7000 15 s before the others, so it was caught up when it reported. The
+        // average rate is 10 entries/s, which puts the leader at about 9850 then: an estimated
+        // gap of 2850. The estimate is best effort, so store 3's leaders wait for a later run.
+        var service = newTaskService();
+        warmUp(service, 7_000, 300_000);
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 7_000 : 10_000)
+                .reportAge(storeId -> storeId == 3 ? 15_000 : 0)
+                .on(service).run();
+        assertEquals(2, rst.size());
+        assertTrue(rst.values().stream().allMatch(storeId -> storeId == 2L));
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithEarlyBurst() throws PDException {
+        // The leaders went from 7000 to 10000 over 30 s. Store 3 reported 8500 15 s before the
+        // others. At the average 100 entries/s that matches the leader then, so store 3 takes
+        // its share. Had all the writes come before store 3's report, it was 1500 behind; the
+        // estimate cannot tell, and JRaft's transfer timeout bounds what that costs.
+        var service = newTaskService();
+        warmUp(service, 7_000, 30_000);
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 8_500 : 10_000)
+                .reportAge(storeId -> storeId == 3 ? 15_000 : 0)
+                .on(service).run();
+        assertEquals(4, rst.size());
+        assertTrue(rst.containsValue(3L));
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithNewerFollowerReport() throws PDException {
+        // Store 3 reported 15 s after the others. The leaders went from 7000 to 10000 in the
+        // 30 s before their report, 100 entries/s, so they were at about 11500 when store 3
+        // reported.
+        ToLongFunction<Long> reportAge = storeId -> storeId == 3 ? 0 : 15_000;
+
+        // At 11400 store 3 is 100 behind the estimate and takes its share
+        var service = newTaskService();
+        warmUp(service, 7_000, 45_000);
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 11_400 : 10_000)
+                .reportAge(reportAge)
+                .on(service).run();
+        assertEquals(4, rst.size());
+        assertTrue(rst.containsValue(3L));
+
+        // At 10000 it is 1500 behind the estimate and waits
+        service = newTaskService();
+        warmUp(service, 7_000, 45_000);
+        rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> 10_000)
+                .reportAge(reportAge)
+                .on(service).run();
+        assertEquals(2, rst.size());
+        assertTrue(rst.values().stream().allMatch(storeId -> storeId == 2L));
+
+        // With no earlier run there is no rate, and the same reports compare as equal
+        rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> 10_000)
+                .reportAge(reportAge)
+                .run();
+        assertEquals(4, rst.size());
+        assertTrue(rst.containsValue(3L));
+    }
+
+    /**
+     * A run that skips because group 0 is Warn, so the service only records every store at
+     * applied index `index` in a heartbeat received `age` ms before the run
+     */
+    private void warmUp(TaskScheduleService service, long index, long age) throws PDException {
+        var rst = new Balance(1, 1, 1, 1, 1, 1).group0(warn(), 0)
+                                               .appliedIndex((storeId, groupId) -> index)
+                                               .reportAge(storeId -> age)
+                                               .on(service).run();
+        assertTrue(rst.isEmpty());
+    }
+
+    @Test
     public void testAutoBalancePartitionLeaderWithNegativeSkew() throws PDException {
         // with the default skew this layout moves four leaders; -1 must not run a plan
         getPdConfig().setBalanceLeaderMaxSkew(-1);
