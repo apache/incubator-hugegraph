@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import java.net.InetAddress;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -29,6 +30,12 @@ import com.taobao.arthas.core.config.FeatureCodec;
 
 class ArthasAttach {
     public static void main(String[] args) throws Exception {
+        String ip = args[5];
+        // Accept numeric loopback literals only; never resolve arbitrary hostnames.
+        if (!ip.matches("[0-9.]+|[0-9a-fA-F]*:[0-9a-fA-F:.]*") ||
+            !InetAddress.getByName(ip).isLoopbackAddress()) {
+            throw new IllegalArgumentException("Target IP must be a loopback literal");
+        }
         Path home = Path.of(args[1]);
         Path top = Path.of(args[3]);
         VirtualMachine vm = VirtualMachine.attach(args[0]);
@@ -53,7 +60,7 @@ class ArthasAttach {
             // first so target system/env configuration cannot restore MCP/tunnel.
             configFile = Files.createTempFile("hugegraph-arthas-", ".properties");
             Files.writeString(configFile, "arthas.config.overrideAll=true\n" +
-                              "arthas.ip=127.0.0.1\narthas.telnetPort=" + args[2] +
+                              "arthas.ip=" + ip + "\narthas.telnetPort=" + args[2] +
                               "\narthas.httpPort=-1\narthas.mcpEndpoint=\narthas.tunnelServer=\n" +
                               "arthas.sessionTimeout=1800\n");
             Map<String, String> config = new LinkedHashMap<>();

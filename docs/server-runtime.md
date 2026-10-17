@@ -99,7 +99,8 @@ requires JDK 17 and uses `bin/pid`, without downloads, runtime extraction, a use
 cache, service restarts or configuration edits. A new local agent listens on
 `127.0.0.1:3658`, with HTTP, MCP and reverse tunnels disabled. Use `--pid` or
 `--telnet-port` for another running instance, and `--command version` for a one-time
-command. Run `bin/arthas.sh --help` for usage.
+command. Interactive mode requires a terminal; for pipes, scripts or `docker exec`
+without `-it`, use `--command` instead. Run `bin/arthas.sh --help` for usage.
 When the helper exits, including after `--command`, `quit`, or INT/TERM/HUP, it
 stops the agent and all its diagnostic sessions; the application JVM keeps running.
 SIGKILL or a host failure cannot run this cleanup: stop any surviving agent manually.
@@ -110,6 +111,10 @@ helper works inside the container, for example
 A JRE-only installation needs JDK 17 for this helper.
 If the Server API has already activated Arthas, connect to its existing telnet
 port instead: `bin/arthas.sh --telnet-port 8562` with the default configuration.
+If `arthas.ip` uses another loopback address, supply the same address to the helper,
+for example `bin/arthas.sh --target-ip ::1 --telnet-port 8562 --command version`.
+`--target-ip` defaults to `127.0.0.1` and accepts only numeric loopback addresses
+(or `localhost`, mapped to `127.0.0.1`); it controls attachment, connection and cleanup.
 An already running agent retains its listener settings. To switch to the helper's
 HTTP-disabled defaults, run `bin/arthas.sh --telnet-port 8562 --command stop`, then
 `bin/arthas.sh`; this stops only Arthas, and leaves the service JVM running.

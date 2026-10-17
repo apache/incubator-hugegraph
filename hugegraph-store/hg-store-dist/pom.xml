@@ -39,6 +39,12 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>com.taobao.arthas</groupId>
+            <artifactId>arthas-packaging</artifactId>
+            <version>${arthas.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-node</artifactId>
             <version>${revision}</version>

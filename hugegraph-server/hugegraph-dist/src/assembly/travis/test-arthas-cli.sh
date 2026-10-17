@@ -22,7 +22,10 @@ set -euo pipefail
 python3 - "$1" <<'PY'
 import os
 import pathlib
+import pty
 import re
+import select
+import shlex
 import shutil
 import signal
 import socket
@@ -94,7 +97,7 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
 
     def run(arguments, success=True):
         result = subprocess.run(arguments, env=client_env, text=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=45)
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, input="", timeout=45)
         assert (result.returncode == 0) == success, result.stdout
         return result.stdout
 
@@ -105,11 +108,60 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
         except OSError:
             return False
 
-    def wait_port(opened):
+    def wait_port(opened, host="127.0.0.1"):
         deadline = time.monotonic() + 15
-        while can_connect("127.0.0.1", safe_port) != opened:
+        while can_connect(host, safe_port) != opened:
             assert time.monotonic() < deadline, f"Listener did not become {'open' if opened else 'closed'}"
             time.sleep(0.1)
+
+    class Terminal:
+        # fork gives the helper a real controlling terminal: closing its master
+        # reproduces terminal hangup, including the kernel's process-group HUP.
+        def __init__(self, shell=False):
+            self.pid, self.master = pty.fork()
+            if self.pid == 0:
+                arguments = ["bash", "--noprofile", "--norc", "-i"] if shell else client
+                os.execvpe(arguments[0], arguments, client_env)
+            self.returncode = None
+            self.output = ""
+            if shell:
+                os.write(self.master, (shlex.join(client) + "\n").encode())
+
+        def poll(self):
+            if self.returncode is None:
+                child, status = os.waitpid(self.pid, os.WNOHANG)
+                if child:
+                    self.returncode = os.waitstatus_to_exitcode(status)
+            return self.returncode
+
+        def drain(self):
+            if self.master is not None and select.select([self.master], [], [], 0)[0]:
+                try:
+                    output = os.read(self.master, 65536).decode(errors="replace")
+                    self.output += output
+                    log.write(output)
+                    log.flush()
+                except OSError:
+                    pass  # The slave closes when the helper exits.
+
+        def ready(self):
+            deadline = time.monotonic() + 15
+            while "[arthas@" not in self.output:
+                self.drain()
+                assert self.poll() is None and time.monotonic() < deadline, self.output
+                time.sleep(0.02)
+
+        def wait(self, timeout=30):
+            deadline = time.monotonic() + timeout
+            while self.poll() is None:
+                self.drain()
+                assert time.monotonic() < deadline, "Interactive helper did not exit"
+                time.sleep(0.02)
+            self.drain()
+            if self.master is not None:
+                os.close(self.master)
+                self.master = None
+            return self.returncode
 
     interactive = None
     with (root / "jvm.log").open("w") as log:
@@ -122,8 +174,15 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             time.sleep(1)
             for options in (["--pid", "-1"], ["--pid", "1; unsafe"], ["--pid", "9999999999"],
                             ["--telnet-port", "65536"], ["--target-ip", "0.0.0.0"],
+                            ["--target-ip", "loopback.invalid"],
                             ["--http-port", "8563"], ["--tunnel-server", tunnel_url]):
-                run(script + options, success=False)
+                run(script + options + ["--command", "version"], success=False)
+            # EOF and piped input must fail before attaching; batch callers need --command.
+            for input_text in ("", "version\n"):
+                result = subprocess.run(client, env=client_env, input=input_text, text=True,
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10)
+                assert result.returncode != 0 and "use --command" in result.stdout, result.stdout
+                assert not can_connect("127.0.0.1", safe_port)
             # A live PID from a different component must not receive the agent.
             (root / "bin" / startup).unlink()
             (root / "bin" / other_startup).touch()
@@ -137,8 +196,7 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             wait_port(False)
             assert process.poll() is None, "One-time diagnosis stopped the application JVM"
             # Keep a real interactive client open while inspecting the live agent.
-            interactive = subprocess.Popen(client, env=client_env, text=True, stdin=subprocess.PIPE,
-                                           stdout=log, stderr=subprocess.STDOUT)
+            interactive = Terminal()
             wait_port(True)
             assert not can_connect("127.0.0.1", unsafe_telnet)
             assert not can_connect("127.0.0.1", unsafe_http)
@@ -172,22 +230,46 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                 listeners = subprocess.check_output(["lsof", "-nP", "-a", "-p", str(process.pid),
                                                      "-iTCP", "-sTCP:LISTEN"], text=True).splitlines()[1:]
                 assert len(listeners) == 1 and f"127.0.0.1:{safe_port} " in listeners[0], listeners
-            interactive.communicate("quit\n", timeout=45)
-            assert interactive.returncode == 0, (root / "jvm.log").read_text()
+            os.write(interactive.master, b"quit\n")
+            assert interactive.wait(45) == 0, (root / "jvm.log").read_text()
             wait_port(False)
+            # Interactive Bash propagates the terminal HUP to its foreground job.
+            # Closing a direct helper PTY alone does not reproduce that signal sequence.
+            interactive = Terminal(shell=True)
+            wait_port(True)
+            interactive.ready()
+            os.close(interactive.master)
+            interactive.master = None
+            status = interactive.wait()
+            assert status in (-signal.SIGHUP, 128 + signal.SIGHUP), status
+            wait_port(False)
+            assert process.poll() is None, "Terminal hangup stopped the application JVM"
             # Signals sent only to the helper must also clean up its child/client.
             for termination in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
-                interactive = subprocess.Popen(client, env=client_env, text=True, stdin=subprocess.PIPE,
-                                               stdout=log, stderr=subprocess.STDOUT)
+                interactive = Terminal()
                 if termination == signal.SIGTERM:
                     # Terminate during source compilation/attachment, before a listener exists.
                     time.sleep(0.2)
                 else:
                     wait_port(True)
-                interactive.send_signal(termination)
-                interactive.communicate(timeout=30)
-                assert interactive.returncode == 128 + termination, interactive.returncode
+                    interactive.ready()
+                os.kill(interactive.pid, termination)
+                if termination != signal.SIGTERM:
+                    # Repeated/mixed signals during cleanup must not interrupt stop_agent.
+                    for repeat in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM) * 5:
+                        time.sleep(0.02)
+                        if interactive.poll() is None:
+                            os.kill(interactive.pid, repeat)
+                assert interactive.wait() == 128 + termination, (root / "jvm.log").read_text()
                 wait_port(False)
+                assert process.poll() is None, "Terminal/signal cleanup stopped the application JVM"
+            # macOS requires an explicit interface alias for 127.0.0.2; Linux
+            # routes all of 127/8 locally and exercises that address in CI.
+            hosts = ("127.0.0.2", "::1", "localhost") if sys.platform.startswith("linux") else ("::1", "localhost")
+            for host in hosts:
+                output = run(client + ["--target-ip", host, "--command", "version"])
+                assert re.search(r"\n4\.1\.5\s*\n", output), output
+                wait_port(False, "127.0.0.1" if host == "localhost" else host)
             run(client + ["--command", "stop"])
             wait_port(False)
             assert process.poll() is None, "Stopping Arthas stopped the application JVM"
@@ -195,11 +277,11 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             assert not list((root / "client-temp").glob("hugegraph-arthas-*.properties"))
             assert not list((root / "client-temp").glob("tmp.*")), "Helper state was not removed"
             print(f"PASS: {component} PID/argument boundaries, hostile config, local-only agent, no tunnel, "
-                  "command/quit/signal cleanup without restart")
+                  "command/quit/terminal/repeated-signal cleanup, loopback compatibility without restart")
         finally:
             if interactive is not None and interactive.poll() is None:
-                interactive.kill()
-                interactive.communicate(timeout=10)
+                os.kill(interactive.pid, signal.SIGKILL)
+                interactive.wait(10)
             tunnel.close()
             process.terminate()
             try:

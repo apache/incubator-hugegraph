@@ -35,8 +35,8 @@ RUN --mount=type=cache,id=hugegraph-maven-${SOURCE_REVISION},target=/root/.m2,sh
 
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13
-# Local Arthas attach requires the JDK attach and compiler modules.
 FROM eclipse-temurin:17-jdk-jammy
+# Local Arthas attach requires the JDK attach and compiler modules.
 
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
 
