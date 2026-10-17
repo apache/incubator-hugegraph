@@ -37,8 +37,10 @@ JSON null values are accepted and normalized by the Server.
 
 Cypher follows the Server authentication mode. When authentication is disabled,
 GET and POST requests do not require an `Authorization` header, and the Server
-uses an anonymous Gremlin connection without inheriting credentials from
-`conf/remote-objects.yaml`. When authentication is enabled, requests still need
+uses an anonymous Gremlin connection. Both the request's `Authorization` header
+and credentials in `conf/remote-objects.yaml` are ignored. Mixed modes with REST
+authentication disabled and Gremlin authentication enabled are unsupported.
+When authentication is enabled, requests still need
 valid Basic or Bearer credentials and retain the caller's graph permissions.
 Use `bin/enable-auth.sh` to configure authentication consistently for both REST
 and Gremlin; enabling only the REST authenticator does not protect the Gremlin
