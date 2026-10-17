@@ -81,8 +81,10 @@ existing precedence; see [container heap sizing](../docker/README.md#server-heap
 
 Server and Store bundle Arthas 4.1.5, managed by the root POM. PD does not embed
 an Arthas agent. Diagnostic ports bind to `127.0.0.1` by default. Administrators
-can explicitly configure another valid address, including `0.0.0.0` for all IPv4
-interfaces; `localhost` is normalized to `127.0.0.1`. Server's `PUT /arthas`
+can explicitly configure another valid address, including wildcard `0.0.0.0` or
+`::`; `localhost` is normalized to `127.0.0.1`. Wildcard listeners can accept both
+IPv4 and IPv6 depending on the OS/JVM configuration; restrict both in firewall
+rules. Server's `PUT /arthas`
 requires authentication to be enabled and the caller to be an authenticated administrator.
 Without authentication, the Server endpoint returns HTTP 403, including requests
 from localhost or through a reverse proxy. Store has no equivalent administrator
@@ -118,8 +120,8 @@ Use `--target-ip` to select another bind address, for example
 `bin/arthas.sh --target-ip 0.0.0.0` or
 `bin/arthas.sh --target-ip ::1 --telnet-port 8562 --command version`.
 The default is `127.0.0.1`; `localhost` maps to `127.0.0.1`. Wildcard addresses
-`0.0.0.0` and `::` bind all corresponding interfaces, while the helper connects
-and cleans up through `127.0.0.1` and `::1` respectively. Remote clients connect
+`0.0.0.0` and `::` may accept both IPv4 and IPv6; the helper connects and cleans
+up through `127.0.0.1` for either wildcard. Remote clients connect
 to the service host's actual reachable address, not the wildcard address.
 An already running agent retains its listener and authentication settings;
 helper options do not reconfigure it. To switch to the helper's
@@ -128,10 +130,13 @@ HTTP-disabled defaults, run `bin/arthas.sh --telnet-port 8562 --command stop`, t
 Arthas can execute code inside the JVM. OS attach permissions control initial
 activation; HugeGraph administrator authentication protects only the activation
 API, not subsequent diagnostic connections. We recommend enabling Arthas native
-authentication, especially when binding beyond loopback. Without it,
-any network-reachable client can execute commands, including other OS users and
-containers in the same Pod. Restrict host/Pod access, firewall rules, port mappings
-and SSH forwarding to trusted operators. Authentication does not encrypt telnet
+authentication, especially when binding beyond loopback. However, native defaults
+allow connections from `127.0.0.1` to skip authentication even with credentials;
+other OS users or containers in the same Pod can still connect this way. To disable
+this bypass, set `-Darthas.localConnectionNonAuth=false` on the service JVM and
+restart it. Restrict host/Pod and port-forward access to trusted operators, and
+limit firewall rules, port mappings and SSH forwarding accordingly. Authentication
+does not encrypt telnet
 or ordinary HTTP traffic; use a protected network or encrypted transport for
 remote access. Avoid concurrent helper sessions because exiting one stops the
 shared agent. A disabled-command list is optional and is not access control.
@@ -161,15 +166,21 @@ optional and follows upstream defaults: `arthas.localConnectionNonAuth=true`
 allows connections from `127.0.0.1` to skip authentication. The helper uses a private
 configuration, so editing `lib/arthas/arthas.properties` does not configure it.
 If required, the target JVM property `-Darthas.localConnectionNonAuth=false` is
-honored. Arthas 4.1.5 generates a password when
-binding `0.0.0.0` without an explicit password and prints it in the target
+honored after restarting the service JVM. Arthas 4.1.5 generates a password when
+binding `0.0.0.0` or `::` without an explicit password and prints it in the target
 JVM output and Arthas log; explicitly supplying credentials is more convenient
 for remote diagnosis and authenticated cleanup.
 
 Authenticated Server administrators can continue using `PUT /arthas` without an
 additional enable switch or restart. Its HTTP/telnet interfaces use the configured
 bind address; HugeGraph disables the optional MCP endpoint. The activation response
-still contains the same four Arthas configuration keys. API activation alone
+still contains the same four Arthas configuration keys. For API activation with
+native credentials, add `-Darthas.username=diagnostics` and
+`-Darthas.password=<arthas-password>` to the Server JVM startup options and restart
+Server before activation. These are native JVM properties, not new REST
+configuration keys. They may expose secrets in process listings. Without native
+credential settings, a specific non-loopback bind address does not require login; wildcard
+binds use the generated password described above. API activation alone
 leaves the agent running until an operator sends `stop`; connecting through the
 helper applies the helper's exit cleanup to that existing agent too.
 

@@ -113,36 +113,57 @@ bounded_client() {
     wait "$timer_pid" 2>/dev/null || true
     return "$status"
 }
+format_endpoint() {
+    case "$connect_ip" in
+        *:*) printf '[%s]:%s' "$connect_ip" "$port" ;;
+        *) printf '%s:%s' "$connect_ip" "$port" ;;
+    esac
+}
 stop_agent() {
-    local session attempt agent_pid
+    local session attempt agent_pid="" line endpoint rows=0
     connect_ip=$(cat "$state_dir/connect-ip")
+    endpoint=$(format_endpoint)
     if ! session=$(bounded_client session 2>&1); then
         if [[ "$session" == *"Connection refused"* ]]; then
+            echo "Arthas listener closed at $endpoint" >&2
             return 0
         fi
-        echo "Error: could not verify Arthas cleanup at $target_ip:$port; check the agent manually" >&2
+        if [[ "$session" == *"not permitted"* ]]; then
+            echo "Error: Arthas credentials rejected at $endpoint; agent left running" >&2
+        else
+            echo "Error: could not verify Arthas cleanup at $endpoint; agent left running" >&2
+        fi
         return 1
     fi
-    if [[ "$session" =~ JAVA_PID[[:space:]]+([0-9]+)([[:space:]]|$) ]]; then
-        agent_pid=${BASH_REMATCH[1]}
-        if [ "$agent_pid" != "$pid" ]; then
-            echo "Error: Arthas port $target_ip:$port belongs to PID $agent_pid, expected $pid; left running" >&2
-            return 1
+    # AuthCommand echoes the username. Trust only one complete session table row.
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^[[:space:]]*JAVA_PID[[:space:]]+([0-9]+)[[:space:]]*$ ]]; then
+            agent_pid=${BASH_REMATCH[1]}
+            rows=$((rows + 1))
         fi
-    else
-        echo "Error: could not verify the target PID for cleanup;" \
-             "check Arthas credentials and session at $target_ip:$port; stop the agent manually" >&2
+    done <<< "$session"
+    if [ "$rows" -ne 1 ]; then
+        if [ "$rows" -eq 0 ] && [[ "$session" == *"not permitted"* ]]; then
+            echo "Error: Arthas credentials rejected at $endpoint; agent left running" >&2
+        else
+            echo "Error: could not verify an unambiguous Arthas PID at $endpoint; agent left running" >&2
+        fi
+        return 1
+    fi
+    if [ "$agent_pid" != "$pid" ]; then
+        echo "Error: Arthas at $endpoint belongs to PID $agent_pid, expected $pid; agent left running" >&2
         return 1
     fi
     bounded_client stop >/dev/null 2>&1 || true
     # Command errors can return zero; verify closure after asynchronous shutdown.
     for attempt in 1 2 3; do
         if ! session=$(bounded_client session 2>&1) && [[ "$session" == *"Connection refused"* ]]; then
+            echo "Arthas listener closed at $endpoint" >&2
             return 0
         fi
         sleep 0.2
     done
-    echo "Error: could not stop Arthas at $target_ip:$port; check session/stop settings or restart the service" >&2
+    echo "Error: could not stop Arthas at $endpoint; check session/stop settings before retrying" >&2
     return 1
 }
 cleanup() {
@@ -177,8 +198,14 @@ echo "Waiting for PID $pid to answer the attach request..." >&2
 ) <&0 &
 client_pid=$!
 wait "$client_pid"
+client_pid=""
 attaching=false
 connect_ip=$(cat "$state_dir/connect-ip")
+if ! session=$(bounded_client session 2>&1) && [[ "$session" == *"Connection refused"* ]]; then
+    echo "Error: no Arthas listener at $(format_endpoint);" \
+         "an existing agent may use another port (API default 8562); retry with --telnet-port" >&2
+    exit 1
+fi
 if [ -n "$command" ]; then
     if [ -n "$password" ]; then
         write_batch "$state_dir/run.commands" "$command"

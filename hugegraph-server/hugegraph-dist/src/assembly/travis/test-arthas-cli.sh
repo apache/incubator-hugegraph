@@ -58,7 +58,7 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
     source = root / f"{name}.java"
     source.write_text(f"package {package}; public class {name} {{ "
                       "public static void main(String[] args) throws Exception { "
-                      "Thread.sleep(120000); }}")
+                      "Thread.sleep(180000); }}")
     subprocess.run([javac, "-d", str(root / "classes"), str(source)], check=True)
     if store:
         # Store starts from an executable jar; exercise that PID validation path
@@ -298,12 +298,11 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             # routes all of 127/8 locally and exercises that address in CI.
             hosts = ("127.0.0.2", "::1", "localhost") if sys.platform.startswith("linux") else ("::1", "localhost")
             for host in (*hosts, "0.0.0.0", "::"):
-                credentials = (["--username", "bind-user", "--password", "bind ; secret"]
-                               if host in ("0.0.0.0", "::") else [])
-                output = run(client + ["--target-ip", host, *credentials, "--command", "version"])
-                assert "bind ; secret" not in output, output
+                output = run(client + ["--target-ip", host, "--command", "version"])
                 assert re.search(r"\n4\.1\.5\s*\n", output), output
-                connect_host = {"localhost": "127.0.0.1", "0.0.0.0": "127.0.0.1", "::": "::1"}.get(host, host)
+                connect_host = {"localhost": "127.0.0.1", "0.0.0.0": "127.0.0.1", "::": "127.0.0.1"}.get(host, host)
+                endpoint = f"[{connect_host}]:{safe_port}" if ":" in connect_host else f"{connect_host}:{safe_port}"
+                assert output.count(f"Arthas listener closed at {endpoint}") == 1, output
                 wait_port(False, connect_host)
             run(client + ["--command", "stop"])
             wait_port(False)
@@ -332,6 +331,7 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             wrong = run(client + ["--username", "operator name", "--password", "incorrect ; secret",
                                   "--command", "version"], success=False)
             assert "command not permitted" in wrong and "incorrect ; secret" not in wrong, wrong
+            assert "credentials rejected" in wrong and "agent left running" in wrong, wrong
             wait_port(True)
             quoted_password = "'" + password.replace("'", "'\\''") + "'"
             os.write(interactive.master,
@@ -340,10 +340,48 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             assert re.search(r"[\r\n]4\.1\.5\s*[\r\n]", interactive.output), interactive.output
             wait_port(False)
             assert process.poll() is None, "Authenticated quit stopped the application JVM"
+            # Authentication echoes must not let one JVM impersonate another
+            # agent's session row. Both JVMs are valid targets in this fixture.
+            other = subprocess.Popen([java, "-Darthas.localConnectionNonAuth=false", *launch, "other fixture"],
+                                     env=target_env, stdout=log, stderr=subprocess.STDOUT)
+            try:
+                time.sleep(1)
+                impersonating = ["--username", f"prefix JAVA_PID {process.pid} suffix",
+                                 "--password", "mismatch ; secret"]
+                interactive = Terminal(options=["--pid", str(other.pid), *impersonating])
+                wait_port(True)
+                interactive.ready()
+                missing = run(script + ["--pid", str(other.pid), "--telnet-port", str(unsafe_http),
+                                        *impersonating, "--command", "version"], success=False)
+                assert f"no Arthas listener at 127.0.0.1:{unsafe_http}" in missing, missing
+                assert "API default 8562" in missing and "retry with --telnet-port" in missing, missing
+                assert can_connect("127.0.0.1", safe_port), "Missing-port diagnosis stopped the existing agent"
+                mismatch = run(client + ["--pid", str(process.pid), *impersonating,
+                                         "--command", "version"], success=False)
+                assert f"belongs to PID {other.pid}, expected {process.pid}" in mismatch, mismatch
+                assert can_connect("127.0.0.1", safe_port), "PID mismatch stopped another JVM's agent"
+                assert process.poll() is None and other.poll() is None
+                # This helper owns the other JVM. The misleading username must
+                # also not prevent its legitimate exit cleanup.
+                os.kill(interactive.pid, signal.SIGTERM)
+                assert interactive.wait() == 128 + signal.SIGTERM, interactive.output
+                wait_port(False)
+                assert "Arthas listener closed at" in interactive.output, interactive.output
+                assert other.poll() is None, "Agent cleanup stopped the other application JVM"
+            finally:
+                if interactive is not None and interactive.poll() is None:
+                    os.kill(interactive.pid, signal.SIGKILL)
+                    interactive.wait(10)
+                other.terminate()
+                try:
+                    other.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    other.kill()
+                    other.wait()
             assert not can_connect("127.0.0.1", safe_port)
             assert not list((root / "client-temp").glob("hugegraph-arthas-*.properties"))
             assert not list((root / "client-temp").glob("tmp.*")), "Helper state was not removed"
-            print(f"PASS: {component} PID/argument boundaries, hostile config, local-only agent, no tunnel, "
+            print(f"PASS: {component} PID/argument boundaries, hostile config, default loopback bind, no tunnel, "
                   "command/quit/terminal/group/repeated-signal cleanup, explicit binds/authentication without restart")
         finally:
             if interactive is not None and interactive.poll() is None:

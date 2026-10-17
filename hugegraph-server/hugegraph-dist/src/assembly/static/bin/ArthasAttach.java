@@ -33,8 +33,8 @@ class ArthasAttach {
     public static void main(String[] args) throws Exception {
         String ip = args[5];
         InetAddress address = InetAddress.getByName(ip);
-        String connectIp = address.isAnyLocalAddress() ?
-                           (address.getAddress().length == 4 ? "127.0.0.1" : "::1") : ip;
+        // Prefer native IPv4 loopback access for wildcard listeners, including dual-stack ::.
+        String connectIp = address.isAnyLocalAddress() ? "127.0.0.1" : ip;
         Files.writeString(Path.of(args[4]).resolveSibling("connect-ip"), connectIp);
         Path home = Path.of(args[1]);
         Path top = Path.of(args[3]);
