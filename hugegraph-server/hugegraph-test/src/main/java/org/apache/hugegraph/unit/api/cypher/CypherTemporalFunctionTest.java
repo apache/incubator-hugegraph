@@ -22,12 +22,14 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.hugegraph.opencypher.CypherTemporalFunctions;
 import org.junit.Assert;
@@ -82,6 +84,20 @@ public class CypherTemporalFunctionTest {
                 "RETURN localdatetime('2024-02-05T10:15:30.123')", Collections.emptyMap());
         Assert.assertEquals(expectedDate("yyyy-MM-dd'T'HH:mm:ss.SSS", "2024-02-05T10:15:30.123"),
                             syntheticBinding(localdatetime.getValue(), "  cypher.fold.localdatetime."));
+    }
+
+    @Test
+    public void testFractionalSecondsFoldAsFractionOfSecond() throws Exception {
+        Map.Entry<String, Map<String, Object>> datetime = translate(
+                "RETURN datetime('2024-02-05T10:15:30.5')", Collections.emptyMap());
+        Assert.assertEquals(expectedDate(2024, 2, 5, 10, 15, 30, 500),
+                            syntheticBinding(datetime.getValue(), "  cypher.fold.datetime."));
+
+        Map.Entry<String, Map<String, Object>> localdatetime = translate(
+                "RETURN localdatetime('2024-02-05T10:15:30.12')", Collections.emptyMap());
+        Assert.assertEquals(expectedDate(2024, 2, 5, 10, 15, 30, 120),
+                            syntheticBinding(localdatetime.getValue(),
+                                             "  cypher.fold.localdatetime."));
     }
 
     @Test
@@ -147,7 +163,8 @@ public class CypherTemporalFunctionTest {
     @Test
     public void testUnfoldableDateStaysUnknownFunction() {
         for (String query : new String[]{"MATCH (n) RETURN date(n.x)",
-                                         "RETURN date('tomorrow')"}) {
+                                         "RETURN date('tomorrow')",
+                                         "RETURN date('2024-2-5')"}) {
             Exception failure = Assert.assertThrows(Exception.class,
                                                     () -> translate(query, Collections.emptyMap()));
             Assert.assertTrue(query, failure.getMessage().contains("Unknown function 'date'"));
@@ -187,6 +204,15 @@ public class CypherTemporalFunctionTest {
         SimpleDateFormat format = new SimpleDateFormat(pattern, Locale.ROOT);
         format.setLenient(false);
         return format.parse(literal);
+    }
+
+    private static Date expectedDate(int year, int month, int day, int hour,
+                                     int minute, int second, int millis) {
+        Calendar calendar = Calendar.getInstance(TimeZone.getDefault(), Locale.ROOT);
+        calendar.clear();
+        calendar.set(year, month - 1, day, hour, minute, second);
+        calendar.set(Calendar.MILLISECOND, millis);
+        return calendar.getTime();
     }
 
     private static Date syntheticBinding(Map<String, Object> parameters, String prefix) {

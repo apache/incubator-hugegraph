@@ -21,15 +21,14 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.text.ParsePosition;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import org.opencypher.gremlin.translation.CypherAst;
@@ -65,10 +64,6 @@ public final class CypherTemporalFunctions {
     private static final String DATE = "date";
     private static final String DATETIME = "datetime";
     private static final String LOCALDATETIME = "localdatetime";
-
-    private static final String[] DATE_FORMATS = {"yyyy-MM-dd"};
-    private static final String[] DATETIME_FORMATS = {"yyyy-MM-dd'T'HH:mm:ss",
-                                                      "yyyy-MM-dd'T'HH:mm:ss.SSS"};
 
     // Two leading spaces: parameter names coming from a Cypher query can
     // never collide with this prefix, like the translator's own reserved names.
@@ -228,19 +223,20 @@ public final class CypherTemporalFunctions {
         }
 
         private static Date parse(String name, String literal) {
-            String[] patterns = DATE.equals(name) ? DATE_FORMATS : DATETIME_FORMATS;
-            for (String pattern : patterns) {
-                SimpleDateFormat format = new SimpleDateFormat(pattern, Locale.ROOT);
-                format.setLenient(false);
-                // Require the literal to match the pattern completely, so a
-                // shorter pattern cannot silently drop a trailing part.
-                ParsePosition position = new ParsePosition(0);
-                Date parsed = format.parse(literal, position);
-                if (parsed != null && position.getIndex() == literal.length()) {
-                    return parsed;
+            // ISO parsing reads the fractional part as a fraction of a
+            // second, like Cypher and the server's own date parsing do.
+            try {
+                if (DATE.equals(name)) {
+                    return Date.from(LocalDate.parse(literal)
+                                         .atStartOfDay(ZoneId.systemDefault())
+                                         .toInstant());
                 }
+                return Date.from(LocalDateTime.parse(literal)
+                                     .atZone(ZoneId.systemDefault())
+                                     .toInstant());
+            } catch (DateTimeParseException e) {
+                return null;
             }
-            return null;
         }
 
         private Object copyIndexedSeq(scala.collection.IndexedSeq<?> seq) throws Exception {
