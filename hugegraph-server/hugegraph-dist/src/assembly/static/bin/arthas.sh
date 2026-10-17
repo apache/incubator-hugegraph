@@ -80,7 +80,7 @@ bounded_client() {
     return "$status"
 }
 stop_agent() {
-    local session attempt
+    local session attempt agent_pid
     if ! session=$(bounded_client session 2>&1); then
         if [[ "$session" == *"Connection refused"* ]]; then
             return 0
@@ -88,7 +88,13 @@ stop_agent() {
         echo "Error: could not verify Arthas cleanup at $target_ip:$port; check the agent manually" >&2
         return 1
     fi
-    if [[ ! "$session" =~ JAVA_PID[[:space:]]+$pid([[:space:]]|$) ]]; then
+    if [[ "$session" =~ JAVA_PID[[:space:]]+([0-9]+)([[:space:]]|$) ]]; then
+        agent_pid=${BASH_REMATCH[1]}
+        if [ "$agent_pid" != "$pid" ]; then
+            echo "Error: Arthas port $target_ip:$port belongs to PID $agent_pid, expected $pid; left running" >&2
+            return 1
+        fi
+    else
         echo "Error: could not verify the target PID for cleanup; session must be enabled at $target_ip:$port" >&2
         return 1
     fi
@@ -125,6 +131,7 @@ trap cleanup EXIT
 trap 'trap "" INT TERM HUP; exit 130' INT
 trap 'trap "" INT TERM HUP; exit 143' TERM
 trap 'trap "" INT TERM HUP; exit 129' HUP
+echo "Waiting for PID $pid to answer the attach request..." >&2
 (
     # Group signals must not end the client before target-side loadAgent finishes.
     trap '' INT TERM HUP
