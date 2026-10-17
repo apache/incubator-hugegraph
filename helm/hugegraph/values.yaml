@@ -284,6 +284,11 @@ store:
 
 server:
   replicas: 3
+  # DEFAULT preserves the image config; non-default values select PD service metadata.
+  # serviceId accepts printable ASCII, including spaces and backslashes.
+  # Create a non-default graph space before starting a Server assigned to it.
+  serviceId: DEFAULT
+  graphSpace: DEFAULT
   image:
     repository: hugegraph/server
     # TODO: leave tag empty to inherit Chart.appVersion after the 1.8.0
@@ -341,6 +346,13 @@ server:
     minAvailable: 2
   # Optional Helm test image override; empty reuses the Server image.
   waitImage: ""
+  # Existing Gremlin graph binding checked on every Server Pod. Select the
+  # target graph explicitly; graphSpace does not create or infer this binding.
+  testGraphAlias: DEFAULT-hugegraph
+  # Optional Gremlin assertions, run with the hook's Server credential on every Pod.
+  # Supply trusted read-only scripts; read-only execution is not enforced.
+  # Use --set-file server.testGremlin=/path/to/assertions.groovy; assert expected results.
+  testGremlin: ""
   # Resources for the Helm test hook container. Bounded by default so the hook
   # cannot run unlimited on a restricted or quota-managed namespace.
   testResources:
