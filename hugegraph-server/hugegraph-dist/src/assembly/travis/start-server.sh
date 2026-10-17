@@ -48,9 +48,10 @@ function set_property() {
     local file=$1
     local key=$2
     local value=$3
-    local pattern
+    # The keys passed here are fixed names whose only regex character is ".".
+    # Escape it in the shell: BSD sed rejects a "/" inside a bracket expression.
+    local pattern=${key//./\\.}
 
-    pattern=$(printf '%s' "$key" | sed 's/[][\.*^$/]/\\&/g')
     sed_in_place "/^[[:space:]]*${pattern}[[:space:]]*[=:]/d" "$file"
     echo "${key}=${value}" >> "$file"
 }
