@@ -47,10 +47,6 @@ public final class RocksdbMemoryBudget {
     // and other native allocations that sit outside the budget
     static final long RESERVED = 1024 * MIB + 512 * MIB;
     static final long MIN_AUTO = 256 * MIB;
-    // Direct memory counted when -XX:MaxDirectMemorySize is unset. The JVM then allows
-    // as much as the heap, but the Store's gRPC/Netty buffers do not grow with the heap,
-    // and counting a 36 GB heap twice would leave rocksdb the floor on a large host
-    static final long UNSET_DIRECT = 1024 * MIB;
     // RaftRocksdbOptions gives the write buffer manager 2/3 of the budget, and a 0-byte
     // write buffer manager means no memtable limit at all
     static final long MIN_EXPLICIT = MIB;
@@ -426,10 +422,12 @@ public final class RocksdbMemoryBudget {
     }
 
     /**
-     * The direct memory the budget leaves room for: an explicit -XX:MaxDirectMemorySize
-     * as given, otherwise (0, unset) the heap size capped at UNSET_DIRECT.
+     * The direct memory the budget leaves room for: -XX:MaxDirectMemorySize as given, or,
+     * when it is unset (0), the heap size, which is what the JVM then allows.
+     * bin/start-hugegraph-store.sh sets the flag to the heap it picks unless -j overrides
+     * it, so a large heap with a smaller cap should pass that cap explicitly.
      */
     static long directMemory(long configured, long heap) {
-        return configured > 0 ? configured : Math.min(heap, UNSET_DIRECT);
+        return configured > 0 ? configured : heap;
     }
 }

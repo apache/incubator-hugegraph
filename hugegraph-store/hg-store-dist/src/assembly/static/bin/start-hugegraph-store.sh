@@ -169,7 +169,10 @@ if [ "$JAVA_OPTIONS" = "" ]; then
              >> ${OUTPUT}
         exit 1
     fi
-     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
+    # Cap direct memory at the heap size picked here, the JVM's own unset default, so the
+    # RocksDB auto-sizing (RocksdbMemoryBudget) counts a limit the JVM actually enforces.
+    # A -XX:MaxDirectMemorySize in -j comes later on the command line and wins.
+     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MaxDirectMemorySize=${XMX}m -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
     # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
     # Rolling out detailed GC logs

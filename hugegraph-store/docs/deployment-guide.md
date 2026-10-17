@@ -374,15 +374,18 @@ of what is left after the heap, the maximum direct memory and a 1.5 GiB reserve,
 limit set only on a parent cgroup when the Store can see that cgroup; inside a private cgroup
 namespace only the container's own limit is visible, so pin the value there if only the pod or
 slice is limited. A Store with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
-`-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap; the budget counts that
-as at most 1 GiB, so set the flag when the Store needs more direct memory than that, and in
-small containers, where an uncapped 1 GiB heap already leaves only the 256 MiB floor.
+`-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap, and the budget counts
+it that way. `bin/start-hugegraph-store.sh` sets the flag to the heap it picks unless `-j`
+passes one, so the budget always counts a limit the JVM enforces. In small containers set a
+cap below the heap, or the budget falls to the 256 MiB floor.
 
 On a host without a container limit the starting point is physical memory. The default
-`bin/start-hugegraph-store.sh` caps the heap at 2 GiB, so a 16 GiB host gets about 5.75 GiB.
-A Store whose heap was raised gets less: 2.75 GiB on a 16 GiB host with `-Xmx8g`, 12.75 GiB on
-a 64 GiB host with `-Xmx36g`. Before this default every host got a fixed `32000000000`, so pin
-the value after upgrading if a large node relied on it.
+`bin/start-hugegraph-store.sh` caps the heap at 2 GiB and direct memory at the same 2 GiB, so a
+16 GiB host gets about 5.25 GiB. When you raise the heap, pass a direct-memory cap with it,
+for example `-j "-Xmx36g -XX:MaxDirectMemorySize=2g"`; otherwise direct memory counts as a
+second heap. With a 2 GiB cap a 16 GiB host with `-Xmx8g` gets 2.25 GiB and a 64 GiB host with
+`-Xmx36g` gets 12.25 GiB. Before this default every host got a fixed `32000000000`, so pin the
+value after upgrading if a large node relied on it.
 
 The chosen value is logged by `RocksdbMemoryBudget` at startup, with a warning when the floor
 applies, or when an explicit value is under 256 MiB or exceeds the memory left after the heap,

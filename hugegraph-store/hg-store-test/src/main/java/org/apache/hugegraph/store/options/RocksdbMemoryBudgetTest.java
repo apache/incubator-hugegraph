@@ -92,24 +92,24 @@ public class RocksdbMemoryBudgetTest {
     }
 
     @Test
-    public void testUnsetDirectMemoryIsCappedAtOneGib() {
+    public void testUnsetDirectMemoryCountsAsTheHeap() {
         assertEquals(512 * MIB, RocksdbMemoryBudget.directMemory(512 * MIB, 8 * GIB));
         assertEquals(4 * GIB, RocksdbMemoryBudget.directMemory(4 * GIB, 8 * GIB));
-        assertEquals(GIB, RocksdbMemoryBudget.directMemory(0L, 8 * GIB));
+        // Unset: the JVM allows as much direct memory as heap, so the budget counts that
+        assertEquals(8 * GIB, RocksdbMemoryBudget.directMemory(0L, 8 * GIB));
         assertEquals(512 * MIB, RocksdbMemoryBudget.directMemory(0L, 512 * MIB));
     }
 
     @Test
-    public void testLargeHeapWithoutDirectCapKeepsAUsableBudget() {
-        // Bare-metal Stores with a raised heap and no -XX:MaxDirectMemorySize; counting
-        // the unset cap as a second heap gave all of these the 256 MiB floor
-        assertEquals(2816 * MIB, RocksdbMemoryBudget.auto(
-                16 * GIB, 8 * GIB, RocksdbMemoryBudget.directMemory(0L, 8 * GIB)));
-        assertEquals(13056 * MIB, RocksdbMemoryBudget.auto(
+    public void testBareMetalBudgetsWithTheLauncherDirectCap() {
+        // The default launcher picks a heap of at most 2 GiB and caps direct memory at it
+        assertEquals(5376 * MIB, RocksdbMemoryBudget.auto(16 * GIB, 2 * GIB, 2 * GIB));
+        // A raised heap with a smaller explicit -XX:MaxDirectMemorySize keeps a usable budget
+        assertEquals(2304 * MIB, RocksdbMemoryBudget.auto(16 * GIB, 8 * GIB, 2 * GIB));
+        assertEquals(12544 * MIB, RocksdbMemoryBudget.auto(64 * GIB, 36 * GIB, 2 * GIB));
+        // Without one, direct memory counts as a second heap and the floor applies
+        assertEquals(MIN_AUTO, RocksdbMemoryBudget.auto(
                 64 * GIB, 36 * GIB, RocksdbMemoryBudget.directMemory(0L, 36 * GIB)));
-        // The default launcher caps the heap at 2 GiB
-        assertEquals(5888 * MIB, RocksdbMemoryBudget.auto(
-                16 * GIB, 2 * GIB, RocksdbMemoryBudget.directMemory(0L, 2 * GIB)));
     }
 
     @Test
