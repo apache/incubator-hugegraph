@@ -15,64 +15,81 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# run-api-test.sh starts the same Server directory twice. Run start-server.sh
-# twice on one fixture, with init-store and the launcher stubbed, and check
-# that every key it writes appears exactly once: a duplicate usePD reached
-# HugeConfig as '[true, true]' and failed the second init-store.
-set -euo pipefail
+# Verifies that start-server.sh can run twice on one configuration, as
+# run-api-test.sh does: the second start must leave the config unchanged and
+# each line the script appends must be there exactly once, since a key set
+# twice is read back as a list (usePD as '[true, true]').
 
-TRAVIS_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-STATIC_BIN="${TRAVIS_DIR}/../static/bin"
-FIXTURE=$(mktemp -d "${TMPDIR:-/tmp}/start-server-test.XXXXXX")
-trap 'rm -rf "${FIXTURE}"' EXIT
+set -uo pipefail
 
-PASS=0
-FAIL=0
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+START_SERVER="${1:-${SCRIPT_DIR}/start-server.sh}"
+STATIC_DIR=$(cd "${SCRIPT_DIR}/../static" && pwd)
+TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/start-server-test.XXXXXX")
+FAILURES=0
 
-expect_once() {
-    # expect_once <file> <key> <value>
-    local lines
-    lines=$(grep -E "^[[:space:]]*${2//./\\.}[[:space:]]*[=:]" "$1" || true)
-    if [[ "${lines}" == "$2=$3" ]]; then
-        PASS=$((PASS + 1))
-    else
-        echo "  FAIL $(basename "$1"): expected one '$2=$3', got: ${lines:-nothing}" >&2
-        FAIL=$((FAIL + 1))
+trap 'rm -rf "${TMP_DIR}"' EXIT
+
+fail() {
+    echo "FAIL: $1" >&2
+    FAILURES=$((FAILURES + 1))
+}
+
+start_server() {
+    if ! bash "$START_SERVER" "$server_dir" "$backend" > "${TMP_DIR}/start.log" 2>&1; then
+        cat "${TMP_DIR}/start.log" >&2
+        fail "${backend}: start-server.sh exited non-zero"
+        return 1
     fi
 }
 
-for backend in hstore hbase; do
-    base="${FIXTURE}/${backend}"
-    mkdir -p "${base}/bin" "${base}/conf/graphs" "${base}/travis"
-    cp "${TRAVIS_DIR}/start-server.sh" "${base}/travis/"
-    cp "${STATIC_BIN}/util.sh" "${base}/bin/"
-    printf '#!/bin/bash\ncat >/dev/null\n' > "${base}/bin/init-store.sh"
-    printf '#!/bin/bash\nexit 0\n' > "${base}/bin/start-hugegraph.sh"
-    chmod +x "${base}/bin/"*.sh "${base}/travis/start-server.sh"
-    printf 'backend=rocksdb\nserializer=binary\n' > "${base}/conf/graphs/hugegraph.properties"
-    printf 'restserver.url=http://127.0.0.1:8080\n' > "${base}/conf/rest-server.properties"
-    printf 'evaluationTimeout: 30000\n' > "${base}/conf/gremlin-server.yaml"
+# The lines that set the key must be exactly key=value, or none if value is empty
+assert_key() {
+    local file=$1 key=$2 value=$3 actual
+    actual=$(awk -v prefix="${key}=" 'index($0, prefix) == 1' "$file" | paste -sd ' ' -)
+    [[ "$actual" == "${value:+${key}=${value}}" ]] ||
+        fail "${backend}: ${file##*/} has '${actual}' for ${key}, expected '${value:+${key}=${value}}'"
+}
 
-    for run in 1 2; do
-        if ! bash "${base}/travis/start-server.sh" "${base}" "${backend}" "" \
-                > "${base}/start-${run}.log" 2>&1; then
-            echo "  FAIL ${backend}: start-server.sh run ${run} failed" >&2
-            tail -5 "${base}/start-${run}.log" >&2
-            FAIL=$((FAIL + 1))
-        fi
-    done
+if [[ ! -f "$START_SERVER" ]]; then
+    echo "ERROR: start script not found: $START_SERVER"
+    exit 2
+fi
 
-    graph="${base}/conf/graphs/hugegraph.properties"
-    rest="${base}/conf/rest-server.properties"
-    expect_once "${graph}" "backend" "${backend}"
-    expect_once "${graph}" "schema.sync_deletion" "true"
-    if [[ "${backend}" == hstore ]]; then
-        expect_once "${rest}" "usePD" "true"
-    else
-        expect_once "${rest}" "restserver.request_timeout" "200"
-        expect_once "${rest}" "gremlinserver.timeout" "200"
-    fi
+for backend in hstore hbase rocksdb memory; do
+    # A copy of the packaged files, with the backend initialization and the
+    # Server launch stubbed
+    server_dir="${TMP_DIR}/${backend}"
+    mkdir -p "${server_dir}/bin" "${server_dir}/conf/graphs"
+    cp "${STATIC_DIR}/bin/util.sh" "${server_dir}/bin/"
+    cp "${STATIC_DIR}/conf/rest-server.properties" "${STATIC_DIR}/conf/gremlin-server.yaml" "${server_dir}/conf/"
+    cp "${STATIC_DIR}/conf/graphs/hugegraph.properties" "${server_dir}/conf/graphs/"
+    printf '#!/bin/bash\ncat >/dev/null\n' > "${server_dir}/bin/init-store.sh"
+    printf '#!/bin/bash\n' > "${server_dir}/bin/start-hugegraph.sh"
+    chmod +x "${server_dir}/bin/init-store.sh" "${server_dir}/bin/start-hugegraph.sh"
+
+    start_server || continue
+    cp -R "${server_dir}/conf" "${TMP_DIR}/${backend}-first-start"
+    start_server || continue
+    (cd "$TMP_DIR" && diff -ru "${backend}-first-start" "${backend}/conf") >&2 ||
+        fail "${backend}: the second start changed the config as shown above"
+
+    use_pd=""
+    hbase_timeout=""
+    case "$backend" in
+        hstore) use_pd=true ;;
+        hbase) hbase_timeout=200 ;;
+    esac
+    rest_conf="${server_dir}/conf/rest-server.properties"
+    assert_key "$rest_conf" usePD "$use_pd"
+    assert_key "$rest_conf" restserver.request_timeout "$hbase_timeout"
+    assert_key "$rest_conf" gremlinserver.timeout "$hbase_timeout"
+    assert_key "${server_dir}/conf/graphs/hugegraph.properties" schema.sync_deletion true
 done
 
-echo "start-server.sh twice on one directory: ${PASS} passed, ${FAIL} failed"
-[[ "${FAIL}" -eq 0 ]]
+if [[ "$FAILURES" -gt 0 ]]; then
+    echo "FAIL: ${FAILURES} check(s) failed after two starts" >&2
+    exit 1
+fi
+
+echo "PASS: start-server.sh run twice sets each config line once for hstore, hbase, rocksdb and memory"

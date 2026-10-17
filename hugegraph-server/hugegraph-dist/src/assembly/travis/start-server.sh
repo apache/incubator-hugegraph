@@ -42,18 +42,13 @@ function sed_in_place() {
     esac
 }
 
-# Leave exactly one key=value line: run-api-test.sh starts the same directory
-# more than once, and a key appended twice reaches HugeConfig as a list.
-function set_property() {
-    local file=$1
-    local key=$2
-    local value=$3
-    # The keys passed here are fixed names whose only regex character is ".".
-    # Escape it in the shell: BSD sed rejects a "/" inside a bracket expression.
-    local pattern=${key//./\\.}
+# run-api-test.sh starts the Server twice on the same configuration, and a
+# key appended twice is read back as a list, so append each line only once
+function append_once() {
+    local line=$1
+    local file=$2
 
-    sed_in_place "/^[[:space:]]*${pattern}[[:space:]]*[=:]/d" "$file"
-    echo "${key}=${value}" >> "$file"
+    grep -qxF "$line" "$file" || echo "$line" >> "$file"
 }
 
 case "$BACKEND" in
@@ -78,18 +73,18 @@ write_property "$CONF" "serializer" "$SERIALIZER"
 
 # Set timeout for hbase
 if [ "$BACKEND" == "hbase" ]; then
-    set_property "$REST_CONF" "restserver.request_timeout" "200"
-    set_property "$REST_CONF" "gremlinserver.timeout" "200"
+    append_once "restserver.request_timeout=200" "$REST_CONF"
+    append_once "gremlinserver.timeout=200" "$REST_CONF"
     sed_in_place 's/evaluationTimeout.*/evaluationTimeout: 200000/' "$GREMLIN_CONF"
 fi
 
 # Set usePD=true for hstore
 if [ "$BACKEND" == "hstore" ]; then
-    set_property "$REST_CONF" "usePD" "true"
+    append_once "usePD=true" "$REST_CONF"
 fi
 
 # Append schema.sync_deletion=true to config file
-set_property "$CONF" "schema.sync_deletion" "true"
+append_once "schema.sync_deletion=true" "$CONF"
 
 JACOCO_OPTION=""
 if [ -n "$JACOCO_PORT" ]; then
