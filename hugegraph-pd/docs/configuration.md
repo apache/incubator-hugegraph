@@ -192,8 +192,8 @@ pd:
 | `pd.initial-store-count` | Integer | `1` | Minimum number of Store nodes required for cluster to be operational. Set to expected initial store count. |
 | `pd.initial-store-list` | String | `127.0.0.1:8500` | Comma-separated list of Store gRPC addresses to auto-activate on startup. Useful for bootstrapping. |
 | `pd.balance-leader-enable` | Boolean | `false` | Run partition leader balancing periodically on the PD leader. When off, leaders move back only through `/v1/task/balanceLeaders`. |
-| `pd.balance-leader-interval` | Integer | `300` | Seconds between periodic leader balance checks. Only read when `pd.balance-leader-enable` is `true`. |
-| `pd.balance-leader-max-skew` | Integer | `2` | A check balances leaders only when the most leaders on one store minus the fewest on another exceeds this value. |
+| `pd.balance-leader-interval` | Integer | `300` | Seconds between periodic leader balance checks. Only read when `pd.balance-leader-enable` is `true`. Must be positive; otherwise PD logs a warning and does not run periodic balancing. |
+| `pd.balance-leader-max-skew` | Integer | `2` | A check balances leaders only when the most leaders on one store minus the fewest on another exceeds this value. Must be `0` or more; otherwise PD logs a warning and does not run periodic balancing. |
 
 **Production Recommendations**:
 - `pd.data-path`: Use dedicated SSD with at least 50GB free space
@@ -207,7 +207,10 @@ pd:
   `balanceLeaders` call. A check is skipped while any shard group is not in the `Normal` state,
   has sent no partition heartbeat in the last 30 seconds, or has a replica that is not a Leader
   or Follower (a membership change in progress); while a Store that holds a shard is not sending
-  heartbeats; and while a split, move or shard balance task is running.
+  heartbeats; and while a split, move or shard balance task is running. A planned transfer is
+  not sent if its shard group changed after the check, or if the target's applied index, from
+  its Store's last heartbeat, trails the leader's by more than 1000 entries. The leader stays
+  where it is until a later check.
 
 ### Store Management Settings
 

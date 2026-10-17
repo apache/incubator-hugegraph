@@ -64,7 +64,7 @@ public class PDConfig implements InitializingBean {
     private boolean balanceLeaderEnable = false;
     @Value("${pd.balance-leader-interval:300}")
     private long balanceLeaderInterval = 300;
-    // Skip the periodic run while max - min leaders per store is at or below this
+    // Skip the periodic run while max - min leaders per store is at or below this (0 or more)
     @Value("${pd.balance-leader-max-skew:2}")
     private int balanceLeaderMaxSkew = 2;
 

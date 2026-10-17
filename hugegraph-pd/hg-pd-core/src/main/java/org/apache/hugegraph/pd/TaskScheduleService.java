@@ -64,6 +64,9 @@ public class TaskScheduleService {
     private final long BalanceLeaderInterval = 30 * 1000;
     // Stores send partition heartbeats every 5 seconds; older stats no longer show a live leader
     private static final long BALANCE_LEADER_STATS_MAX_AGE = 30 * 1000;
+    // A raft leader rejects writes while it waits for a transfer target to catch up, so the
+    // periodic balance skips a target whose reported applied index trails the leader's by more
+    private static final long BALANCE_LEADER_MAX_INDEX_GAP = 1000;
     private final PDConfig pdConfig;
     private final long clusterStartTime;
     private StoreNodeService storeService;
@@ -149,7 +152,8 @@ public class TaskScheduleService {
                 TimeUnit.SECONDS);
         if (pdConfig.isBalanceLeaderEnable()) {
             long interval = pdConfig.getBalanceLeaderInterval();
-            if (interval > 0) {
+            int maxSkew = pdConfig.getBalanceLeaderMaxSkew();
+            if (interval > 0 && maxSkew >= 0) {
                 executor.scheduleWithFixedDelay(() -> {
                     try {
                         autoBalancePartitionLeader();
@@ -164,8 +168,9 @@ public class TaskScheduleService {
                     }
                 }, interval, interval, TimeUnit.SECONDS);
             } else {
-                log.warn("pd.balance-leader-interval must be positive, got {}; periodic " +
-                         "leader balance is disabled", interval);
+                log.warn("pd.balance-leader-interval must be positive and " +
+                         "pd.balance-leader-max-skew 0 or more, got {} and {}; periodic " +
+                         "leader balance is disabled", interval, maxSkew);
             }
         }
         // clean expired monitor data each 10 minutes, delay 3min.
@@ -495,19 +500,27 @@ public class TaskScheduleService {
      */
     public synchronized Map<Integer, Long> balancePartitionLeader(boolean immediately) throws
                                                                                        PDException {
-        Map<Integer, Long> results = new HashMap<>();
-
         if (!isLeader()) {
-            return results;
+            return new HashMap<>();
         }
+        return balancePartitionLeader(immediately, storeService.getShardGroups(), false);
+    }
+
+    /**
+     * Plans leader transfers over shardGroups. A periodic run passes the groups that
+     * autoBalancePartitionLeader checked, and each of its transfers is checked again with
+     * canTakeLeader right before it is sent.
+     */
+    private Map<Integer, Long> balancePartitionLeader(boolean immediately,
+                                                      List<Metapb.ShardGroup> shardGroups,
+                                                      boolean periodic) throws PDException {
+        Map<Integer, Long> results = new HashMap<>();
 
         if (!immediately &&
             System.currentTimeMillis() - lastBalanceLeaderTime < BalanceLeaderInterval) {
             return results;
         }
         lastBalanceLeaderTime = System.currentTimeMillis();
-
-        List<Metapb.ShardGroup> shardGroups = storeService.getShardGroups();
 
         // When a task is split or scaled-in, it is exited
         var taskMeta = storeService.getTaskInfoMeta();
@@ -570,6 +583,8 @@ public class TaskScheduleService {
                                       .collect(Collectors.toList()));
         log.info("target count: {}", targetCount);
 
+        Map<Integer, Map<Long, Long>> committedIndexMap =
+                periodic ? partitionService.getCommittedIndexStats() : null;
         for (var group : shardGroups) {
             var map = group.getShardsList().stream()
                            .collect(Collectors.toMap(Metapb.Shard::getStoreId, shard -> shard));
@@ -581,10 +596,14 @@ public class TaskScheduleService {
                 var storeId = pair.getKey();
                 if (map.containsKey(storeId)) {
                     if (map.get(storeId).getRole() != Metapb.ShardRole.Leader) {
-                        log.info("shard group{}, store id:{}, set to leader", group.getId(),
-                                 storeId);
-                        partitionService.transferLeader(group.getId(), map.get(storeId));
-                        results.put(group.getId(), storeId);
+                        // A deferred transfer still uses up the store's slot, so the leader
+                        // stays where it is until a later run
+                        if (!periodic || canTakeLeader(group, storeId, committedIndexMap)) {
+                            log.info("shard group{}, store id:{}, set to leader", group.getId(),
+                                     storeId);
+                            partitionService.transferLeader(group.getId(), map.get(storeId));
+                            results.put(group.getId(), storeId);
+                        }
                     } else {
                         log.info("shard group {}, store id :{}, is leader, no need change",
                                  group.getId(), storeId);
@@ -613,12 +632,15 @@ public class TaskScheduleService {
      * balanced cluster sees no transfers. Skipped while a shard group is not Normal, has no
      * recent partition heartbeat or has a shard that is neither Leader nor Follower, or while a
      * store that holds a shard is not active, because the target distribution would include a
-     * replica that cannot take a leader.
+     * replica that cannot take a leader. The plan uses the groups checked here; a group that
+     * changes before its transfer is sent, or whose target trails the leader, keeps its leader.
      *
      * @return shard group id -> the store id its leader was moved to; empty when skipped
      */
-    public Map<Integer, Long> autoBalancePartitionLeader() throws PDException {
-        if (!isLeader()) {
+    public synchronized Map<Integer, Long> autoBalancePartitionLeader() throws PDException {
+        // init() does not schedule this with a negative skew, which would balance every run
+        int maxSkew = pdConfig.getBalanceLeaderMaxSkew();
+        if (!isLeader() || maxSkew < 0) {
             return new HashMap<>();
         }
 
@@ -670,15 +692,45 @@ public class TaskScheduleService {
         }
 
         int skew = Collections.max(leaderCount.values()) - Collections.min(leaderCount.values());
-        if (skew <= pdConfig.getBalanceLeaderMaxSkew()) {
+        if (skew <= maxSkew) {
             log.debug("periodic leader balance skipped, leader count by store: {}, skew {}",
                       leaderCount, skew);
             return new HashMap<>();
         }
 
         log.info("leader count by store: {}, skew {} exceeds {}, balancing leaders",
-                 leaderCount, skew, pdConfig.getBalanceLeaderMaxSkew());
-        return balancePartitionLeader(false);
+                 leaderCount, skew, maxSkew);
+        return balancePartitionLeader(false, shardGroups, true);
+    }
+
+    /**
+     * Checks a periodic transfer right before it is sent: the group must be unchanged since
+     * autoBalancePartitionLeader checked it, and the applied index the target's store last
+     * reported must trail the leader's by at most BALANCE_LEADER_MAX_INDEX_GAP.
+     */
+    private boolean canTakeLeader(Metapb.ShardGroup group, long storeId,
+                                  Map<Integer, Map<Long, Long>> committedIndexMap) throws
+                                                                                  PDException {
+        if (!group.equals(storeService.getShardGroup(group.getId()))) {
+            log.info("periodic leader balance keeps the leader of shard group {}, the group " +
+                     "changed after the check", group.getId());
+            return false;
+        }
+        Long leaderStore = group.getShardsList().stream()
+                                .filter(shard -> shard.getRole() == Metapb.ShardRole.Leader)
+                                .map(Metapb.Shard::getStoreId)
+                                .findFirst().orElse(null);
+        Map<Long, Long> indexes = committedIndexMap.getOrDefault(group.getId(), Map.of());
+        Long leaderIndex = leaderStore == null ? null : indexes.get(leaderStore);
+        Long targetIndex = indexes.get(storeId);
+        if (leaderIndex == null || targetIndex == null ||
+            leaderIndex - targetIndex > BALANCE_LEADER_MAX_INDEX_GAP) {
+            log.info("periodic leader balance keeps the leader of shard group {}, store {} is " +
+                     "at index {} and leader store {} at {}", group.getId(), storeId,
+                     targetIndex, leaderStore, leaderIndex);
+            return false;
+        }
+        return true;
     }
 
     private long getMaxIndexGap(Map<Integer, Map<Long, Long>> committedIndexMap, int partitionId) {
