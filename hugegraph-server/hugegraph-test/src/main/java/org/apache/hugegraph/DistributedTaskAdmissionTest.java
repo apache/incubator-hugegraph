@@ -558,6 +558,64 @@ public class DistributedTaskAdmissionTest {
         }
     }
 
+    @Test
+    public void testDeleteAfterLocalOwnerFinishesStillRemovesRecord() throws Exception {
+        try (Fixture fixture = new Fixture("delete_finished_owner")) {
+            DeleteCompletionCallable.started = new CountDownLatch(1);
+            DeleteCompletionCallable.finish = new CountDownLatch(1);
+            HugeTask<?> task = new HugeTask<>(IdGenerator.of(9999952L), null, new DeleteCompletionCallable());
+            task.type("test");
+            task.name("delete-finished-owner");
+            Map<Id, HugeTask<?>> running = Whitebox.getInternalState(fixture.scheduler, "runningTasks");
+            Map<Id, HugeTask<?>> observed = Mockito.spy(running);
+            AtomicBoolean intercept = new AtomicBoolean();
+            Mockito.doAnswer(invocation -> {
+                HugeTask<?> value = (HugeTask<?>) invocation.callRealMethod();
+                if (intercept.compareAndSet(true, false)) {
+                    Assert.assertSame(task, value);
+                    DeleteCompletionCallable.finish.countDown();
+                    // The actual worker completes persistence and releases ownership before delete continues.
+                    fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+                    Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+                    Assert.assertEquals(TaskStatus.SUCCESS, fixture.scheduler.task(task.id(), false).status());
+                    Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+                }
+                return value;
+            }).when(observed).get(task.id());
+            Whitebox.setInternalState(fixture.scheduler, "runningTasks", observed);
+            try {
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue(DeleteCompletionCallable.started.await(10L, TimeUnit.SECONDS));
+                intercept.set(true);
+                Assert.assertNotNull(fixture.scheduler.delete(task.id(), false));
+                Assert.assertFalse(intercept.get());
+                Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                                    () -> fixture.scheduler.task(task.id(), false));
+                fixture.assertWorkerClean();
+            } finally {
+                DeleteCompletionCallable.finish.countDown();
+            }
+        }
+    }
+
+    public static class DeleteCompletionCallable extends org.apache.hugegraph.job.UserJob<Object> {
+
+        private static CountDownLatch started;
+        private static CountDownLatch finish;
+
+        @Override
+        public String type() {
+            return "test";
+        }
+
+        @Override
+        public Object execute() {
+            started.countDown();
+            awaitUninterruptibly(finish);
+            return null;
+        }
+    }
+
     private static void awaitUninterruptibly(CountDownLatch release) {
         while (release.getCount() != 0L) {
             try {

@@ -16,7 +16,7 @@
 #
 
 apiVersion: v2
-name: hugegraph
+name: hugegraph-helm
 description: Helm chart for Apache HugeGraph HStore cluster (PD + Store + Server)
 type: application
 version: 0.2.0
@@ -29,6 +29,7 @@ keywords:
   - hstore
   - raft
 home: https://hugegraph.apache.org/
+icon: https://hugegraph.apache.org/img/logo.svg
 sources:
   - https://github.com/apache/hugegraph
 maintainers:

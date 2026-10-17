@@ -18,6 +18,7 @@
 package org.apache.hugegraph.unit;
 
 import org.apache.hugegraph.HugeFactoryTest;
+import org.apache.hugegraph.unit.core.LoadingModeTest;
 import org.apache.hugegraph.GraphDropPendingTest;
 import org.apache.hugegraph.StandardTaskAdmissionTest;
 import org.apache.hugegraph.DistributedTaskAdmissionTest;
@@ -43,6 +44,7 @@ import org.apache.hugegraph.store.client.OrderedScanSecurityTest;
 import org.apache.hugegraph.tinkerpop.HugeGraphTestInfrastructureTest;
 import org.apache.hugegraph.traversal.optimize.TraversalUtilOptimizeTest;
 import org.apache.hugegraph.unit.api.auth.LoginAPITest;
+import org.apache.hugegraph.unit.api.cypher.CypherErrorTest;
 import org.apache.hugegraph.unit.api.filter.AccessLogFilterTest;
 import org.apache.hugegraph.unit.api.filter.CompressInterceptorTest;
 import org.apache.hugegraph.unit.api.filter.LoadDetectFilterTest;
@@ -77,6 +79,8 @@ import org.apache.hugegraph.unit.core.DirectionsTest;
 import org.apache.hugegraph.unit.core.ExceptionTest;
 import org.apache.hugegraph.unit.core.GraphManagerAdminInitTest;
 import org.apache.hugegraph.unit.core.GraphManagerConfigTest;
+import org.apache.hugegraph.unit.core.GraphManagerLocalGraphBindTest;
+import org.apache.hugegraph.unit.core.GraphManagerServiceNamesTest;
 import org.apache.hugegraph.unit.core.GroovyScriptEngineCompatibilityTest;
 import org.apache.hugegraph.unit.core.HugeFeaturesTest;
 import org.apache.hugegraph.unit.core.HstoreSessionsTest;
@@ -92,6 +96,7 @@ import org.apache.hugegraph.unit.core.RangeTest;
 import org.apache.hugegraph.unit.core.RolePermissionTest;
 import org.apache.hugegraph.unit.core.RowLockTest;
 import org.apache.hugegraph.unit.core.SchemaElementTest;
+import org.apache.hugegraph.unit.core.SchemaTaskSecurityTest;
 import org.apache.hugegraph.unit.core.SecurityManagerTest;
 import org.apache.hugegraph.unit.core.SerialEnumTest;
 import org.apache.hugegraph.unit.core.ServerInfoManagerTest;
@@ -148,6 +153,9 @@ import org.junit.runners.Suite;
         PathFilterTest.class,
         VertexAuthorizationTest.class,
 
+        /* api cypher */
+        CypherErrorTest.class,
+
         /* api gremlin */
         GremlinQueryAPITest.class,
         CypherClientTest.class,
@@ -161,6 +169,7 @@ import org.junit.runners.Suite;
         StandardAuthManagerV2Test.class,
         ContextTaskTest.class,
         HugeFactoryTest.class,
+        LoadingModeTest.class,
         GraphDropPendingTest.class,
         StandardTaskAdmissionTest.class,
         DistributedTaskAdmissionTest.class,
@@ -215,11 +224,14 @@ import org.junit.runners.Suite;
         QueryListTest.class,
         RangeTest.class,
         SecurityManagerTest.class,
+        SchemaTaskSecurityTest.class,
         OrderedScanSecurityTest.class,
         RolePermissionTest.class,
         ExceptionTest.class,
         GraphManagerAdminInitTest.class,
         GraphManagerConfigTest.class,
+        GraphManagerLocalGraphBindTest.class,
+        GraphManagerServiceNamesTest.class,
         HstoreSessionsTest.class,
         HstoreTableRoutingTest.class,
         BackendStoreInfoTest.class,
