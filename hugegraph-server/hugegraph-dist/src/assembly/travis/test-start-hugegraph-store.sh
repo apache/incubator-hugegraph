@@ -173,7 +173,8 @@ JAVA
     chmod +x "$fixture/jdk/bin/"* "$fixture/bin/start-hugegraph-store.sh"
     for option in default custom-java-options user-options default-serial default-zgc \
                   g1 G1 zgc ZGC direct-default direct-heap-lower direct-heap-raised \
-                  direct-explicit-cap invalid missing-module-options; do
+                  direct-heap-tab direct-heap-alias direct-explicit-cap \
+                  invalid missing-module-options; do
         capture="$fixture/$option.args"
         local -a args=(-d false)
         jvm_options="-Xms64m -Xmx64m"
@@ -185,6 +186,8 @@ JAVA
             direct-default) jvm_options="" ;;
             direct-heap-lower) jvm_options=""; args+=(-j "-Xmx512m") ;;
             direct-heap-raised) jvm_options=""; args+=(-j "-Dlauncher.test=true -Xmx4g") ;;
+            direct-heap-tab) jvm_options=""; args+=(-j $'-Dlauncher.test=true\t-Xmx4g') ;;
+            direct-heap-alias) jvm_options=""; args+=(-j "-XX:MaxHeapSize=4g") ;;
             direct-explicit-cap) jvm_options=""; args+=(-j "-XX:MaxDirectMemorySize=256m") ;;
             missing-module-options) rm "$fixture/bin/jvm-module.options" ;;
             default-serial) jvm_options="$jvm_options -XX:+UseSerialGC" ;;

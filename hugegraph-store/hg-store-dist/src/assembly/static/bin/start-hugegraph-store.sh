@@ -174,9 +174,12 @@ if [ "$JAVA_OPTIONS" = "" ]; then
     # Leave it out when -j sets the heap or the cap itself: a fixed cap from the computed
     # heap would no longer match a -j -Xmx, and the JVM then defaults it to that heap.
     DIRECT_MEMORY_OPTION="-XX:MaxDirectMemorySize=${XMX}m"
-    case " ${USER_OPTION} " in
-        *" -Xmx"* | *"-XX:MaxDirectMemorySize="*) DIRECT_MEMORY_OPTION="" ;;
-    esac
+    # Split -j the way it reaches the JVM below (unquoted: spaces, tabs and newlines)
+    for opt in ${USER_OPTION}; do
+        case "$opt" in
+            -Xmx* | -XX:MaxHeapSize=* | -XX:MaxDirectMemorySize=*) DIRECT_MEMORY_OPTION="" ;;
+        esac
+    done
      JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m ${DIRECT_MEMORY_OPTION} -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
     # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
 
