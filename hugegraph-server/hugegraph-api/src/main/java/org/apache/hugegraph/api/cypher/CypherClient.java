@@ -55,6 +55,10 @@ public final class CypherClient {
     private String password;
     private String token;
 
+    CypherClient(Supplier<Configuration> configurationSupplier) {
+        this.configurationSupplier = configurationSupplier;
+    }
+
     CypherClient(String userName, String password,
                  Supplier<Configuration> configurationSupplier) {
         this.userName = userName;
@@ -229,6 +233,12 @@ public final class CypherClient {
      */
     private Configuration getConfig() {
         Configuration conf = this.configurationSupplier.get();
+        if (this.userName == null && this.token == null) {
+            // Anonymous queries must not inherit a service identity from the YAML file.
+            conf.clearProperty("username");
+            conf.clearProperty("password");
+            return conf;
+        }
         conf.addProperty("username", this.token == null ? this.userName : this.token);
         conf.addProperty("password", this.token == null ? this.password : "");
 
