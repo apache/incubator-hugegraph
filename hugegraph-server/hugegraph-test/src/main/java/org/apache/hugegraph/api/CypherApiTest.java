@@ -283,6 +283,41 @@ public class CypherApiTest extends BaseApiTest {
     }
 
     @Test
+    public void testOrderByNullableBooleanGroupingKey() {
+        // #3319: sorting a Boolean-or-null grouping key once crashed with a
+        // ClassCastException when the translator null marker met ordered values
+        createAndAssert(URL_PREFIX + "/graph/vertices", JsonUtil.toJson(ImmutableMap.of(
+                "label", "cypher_person",
+                "properties", ImmutableMap.of("name", "noactive", "age", 50,
+                                              "city", "Beijing"))));
+        String cypher = "MATCH (n:cypher_person) " +
+                        "OPTIONAL MATCH (n)-[r0:cypher_knows]->(n1 {city: 'Nowhere'}) " +
+                        "WITH n.active AS g, count(n1.name) AS c " +
+                        "RETURN g, c ORDER BY g ";
+        List<?> rows = query(cypher + "DESC");
+        Assert.assertEquals(3, rows.size());
+        assertGroupRow(rows.get(0), null);
+        assertGroupRow(rows.get(1), true);
+        assertGroupRow(rows.get(2), false);
+
+        rows = query(cypher + "ASC");
+        Assert.assertEquals(3, rows.size());
+        assertGroupRow(rows.get(0), false);
+        assertGroupRow(rows.get(1), true);
+        assertGroupRow(rows.get(2), null);
+
+        query("MATCH (n:cypher_person {name: 'noactive'}) DETACH DELETE n");
+        Assert.assertEquals(4, nativeVertices().size());
+    }
+
+    private static void assertGroupRow(Object row, Object groupKey) {
+        Map<?, ?> map = assertMapValue(Collections.singletonList(row), 0);
+        Assert.assertEquals(2, map.size());
+        Assert.assertEquals(groupKey, map.get("g"));
+        Assert.assertEquals(0L, ((Number) map.get("c")).longValue());
+    }
+
+    @Test
     public void testParameters() {
         assertColumn(bound("MATCH (n:cypher_person) WHERE n.name = $name AND " +
                            "n.age >= $age AND n.active = $active RETURN n.name AS name",
