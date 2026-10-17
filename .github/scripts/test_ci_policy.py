@@ -357,7 +357,8 @@ class PolicyTest(unittest.TestCase):
                  ("test-check-jacoco-report.sh", {"struct"}),
                  ("test-codecov-upload-config.sh", {"struct"}),
                  ("test-riscv64-java-runtime.sh", {"server", "riscv64"}),
-                 ("test-store-docker-entrypoint.sh", {"store"})]
+                 ("test-store-docker-entrypoint.sh", {"store"}),
+                 ("test-start-server.sh", {"server"})]
         for name, suites in cases:
             script = policy.TRAVIS + name
             with self.subTest(script=script):
