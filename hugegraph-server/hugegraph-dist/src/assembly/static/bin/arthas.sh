@@ -80,19 +80,31 @@ bounded_client() {
     return "$status"
 }
 stop_agent() {
-    local session
+    local session attempt
     if ! session=$(bounded_client session 2>&1); then
-        if [[ "$session" != *"Connection refused"* ]]; then
-            echo "Warning: could not verify Arthas cleanup; check port $port and stop it manually" >&2
+        if [[ "$session" == *"Connection refused"* ]]; then
+            return 0
         fi
-        return 0
+        echo "Error: could not verify Arthas cleanup at $target_ip:$port; check the agent manually" >&2
+        return 1
     fi
-    if [[ "$session" =~ JAVA_PID[[:space:]]+$pid([[:space:]]|$) ]]; then
-        bounded_client stop >/dev/null 2>&1 ||
-            echo "Warning: could not stop Arthas; run the helper with --command stop" >&2
+    if [[ ! "$session" =~ JAVA_PID[[:space:]]+$pid([[:space:]]|$) ]]; then
+        echo "Error: could not verify the target PID for cleanup; session must be enabled at $target_ip:$port" >&2
+        return 1
     fi
+    bounded_client stop >/dev/null 2>&1 || true
+    # Command errors can return zero; verify closure after asynchronous shutdown.
+    for attempt in 1 2 3; do
+        if ! session=$(bounded_client session 2>&1) && [[ "$session" == *"Connection refused"* ]]; then
+            return 0
+        fi
+        sleep 0.2
+    done
+    echo "Error: could not stop Arthas at $target_ip:$port; check session/stop settings or restart the service" >&2
+    return 1
 }
 cleanup() {
+    local status=$?
     trap '' INT TERM HUP
     trap - EXIT
     if [ -n "$client_pid" ]; then
@@ -103,10 +115,11 @@ cleanup() {
         wait "$client_pid" 2>/dev/null || true
     fi
     if [ -f "$state_dir/validated" ]; then
-        stop_agent
+        stop_agent || { [ "$status" -ne 0 ] || status=1; }
     fi
     rm -f "$state_dir/validated"
     rmdir "$state_dir"
+    exit "$status"
 }
 trap cleanup EXIT
 trap 'trap "" INT TERM HUP; exit 130' INT

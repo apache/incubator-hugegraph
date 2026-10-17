@@ -132,6 +132,14 @@ still contains the same four Arthas configuration keys. API activation alone
 leaves the agent running until an operator sends `stop`; connecting through the
 helper applies the helper's exit cleanup to that existing agent too.
 
+Before reusing an API-started agent, leave `session` and `stop` out of
+`arthas.disabled_commands` (or its legacy alias). `session` verifies the target
+PID; `stop` closes Arthas without stopping the service JVM. Existing configurations
+remain accepted, but failed PID verification or listener cleanup makes the helper
+print an error and exit nonzero; the agent may remain running. To recover from an
+agent with `stop` disabled, remove that restriction and restart the service before
+activating Arthas again. Newly attached local agents keep both commands available.
+
 The existing `arthas.ip`, `arthas.httpPort`, `arthas.telnetPort` and
 `arthas.disabledCommands` options configure the Server API-activated agent.
 The distribution uses `arthas.telnet_port`, `arthas.http_port` and

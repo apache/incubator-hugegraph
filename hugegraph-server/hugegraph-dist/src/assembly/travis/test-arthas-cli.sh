@@ -85,10 +85,12 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
     unsafe = root / "unsafe.properties"
     unsafe.write_text(f"arthas.config.overrideAll=true\narthas.ip=0.0.0.0\n"
                       f"arthas.telnetPort={unsafe_telnet}\narthas.httpPort={unsafe_http}\n"
-                      f"arthas.mcpEndpoint=/mcp\narthas.tunnelServer={tunnel_url}\n")
+                      f"arthas.mcpEndpoint=/mcp\narthas.tunnelServer={tunnel_url}\n"
+                      "arthas.disabledCommands=stop,session\n")
     target_env = dict(os.environ, ARTHAS_CONFIG_LOCATION=str(unsafe),
                       ARTHAS_CONFIG_OVERRIDE_ALL="true", ARTHAS_CONFIG_OVERRIDEALL="true", ARTHAS_IP="0.0.0.0",
-                      ARTHAS_TUNNELSERVER=tunnel_url, ARTHAS_TUNNEL_SERVER=tunnel_url)
+                      ARTHAS_TUNNELSERVER=tunnel_url, ARTHAS_TUNNEL_SERVER=tunnel_url,
+                      ARTHAS_DISABLEDCOMMANDS="stop,session")
     target_env["arthas.config.location"] = str(unsafe)
     target_env["arthas.tunnelServer"] = tunnel_url
     client_env = dict(os.environ, TMPDIR=str(root / "client-temp"), JAVA_TOOL_OPTIONS=f'-Djava.io.tmpdir="{root / "client-temp"}"')
@@ -168,6 +170,7 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
         process = subprocess.Popen([java, "-Darthas.config.location=" + str(unsafe),
                                     "-Darthas.config.overrideAll=true", "-Darthas.ip=0.0.0.0",
                                     "-Darthas.tunnelServer=" + tunnel_url,
+                                    "-Darthas.disabledCommands=stop,session",
                                     *launch, "fixture"], env=target_env, stdout=log, stderr=subprocess.STDOUT)
         try:
             (root / "bin/pid").write_text(str(process.pid))

@@ -57,12 +57,13 @@ class ArthasAttach {
             // Allow exit cleanup only after this distribution's target has been validated.
             Files.createFile(Path.of(args[4]));
             // FeatureCodec drops blank values. Pin a private properties file
-            // first so target system/env configuration cannot restore MCP/tunnel.
+            // first so target system/env configuration cannot restore MCP/tunnel
+            // or disable the commands needed to verify and stop the agent.
             configFile = Files.createTempFile("hugegraph-arthas-", ".properties");
             Files.writeString(configFile, "arthas.config.overrideAll=true\n" +
                               "arthas.ip=" + ip + "\narthas.telnetPort=" + args[2] +
                               "\narthas.httpPort=-1\narthas.mcpEndpoint=\narthas.tunnelServer=\n" +
-                              "arthas.sessionTimeout=1800\n");
+                              "arthas.disabledCommands=\narthas.sessionTimeout=1800\n");
             Map<String, String> config = new LinkedHashMap<>();
             config.put("config.overrideAll", "true");
             config.put("config.location", configFile.toString());
