@@ -47,6 +47,10 @@ endpoint used to execute Cypher.
 The Gremlin host and port in `conf/remote-objects.yaml` must point to the same
 Server's Gremlin endpoint, including when using nondefault ports.
 
+The API test runner exercises anonymous GET and POST before enabling
+authentication, then runs the authenticated suite, including missing-header
+rejection and a read-only user's write and cross-graph rejection cases.
+
 ## Response envelope
 
 Responses retain the Gremlin-compatible top-level fields `requestId`, `status`
