@@ -29,6 +29,7 @@ keywords:
   - hstore
   - raft
 home: https://hugegraph.apache.org/
+icon: https://hugegraph.apache.org/img/logo.svg
 sources:
   - https://github.com/apache/hugegraph
 maintainers:
