@@ -112,8 +112,12 @@ trap cleanup EXIT
 trap 'trap "" INT TERM HUP; exit 130' INT
 trap 'trap "" INT TERM HUP; exit 143' TERM
 trap 'trap "" INT TERM HUP; exit 129' HUP
-"$JAVA" --add-modules jdk.attach --class-path "$ARTHAS/arthas-core.jar" \
-    "$BIN/ArthasAttach.java" "$pid" "$ARTHAS" "$port" "$TOP" "$state_dir/validated" "$target_ip" <&0 &
+(
+    # Group signals must not end the client before target-side loadAgent finishes.
+    trap '' INT TERM HUP
+    exec "$JAVA" --add-modules jdk.attach --class-path "$ARTHAS/arthas-core.jar" \
+        "$BIN/ArthasAttach.java" "$pid" "$ARTHAS" "$port" "$TOP" "$state_dir/validated" "$target_ip"
+) <&0 &
 client_pid=$!
 wait "$client_pid"
 attaching=false

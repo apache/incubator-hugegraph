@@ -263,6 +263,31 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                 assert interactive.wait() == 128 + termination, (root / "jvm.log").read_text()
                 wait_port(False)
                 assert process.poll() is None, "Terminal/signal cleanup stopped the application JVM"
+            # Linux mktemp honors TMPDIR, exposing only this fixture's marker.
+            # macOS mktemp ignores it; the other terminal/signal cases run there.
+            if sys.platform.startswith("linux"):
+                # Pause after validation so loadAgent cannot finish before the
+                # signal reaches both the helper and its attach JVM.
+                for termination in (signal.SIGTERM, signal.SIGHUP):
+                    interactive = Terminal()
+                    deadline = time.monotonic() + 15
+                    while not list((root / "client-temp").glob("tmp.*/validated")):
+                        interactive.drain()
+                        assert interactive.poll() is None and time.monotonic() < deadline, interactive.output
+                        time.sleep(0.001)
+                    os.kill(process.pid, signal.SIGSTOP)
+                    try:
+                        assert not can_connect("127.0.0.1", safe_port), "Agent started before the attach pause"
+                        # Queue the attach request before signaling the group.
+                        time.sleep(0.1)
+                        os.killpg(interactive.pid, termination)
+                        time.sleep(1)
+                        assert interactive.poll() is None, "Group signal interrupted in-flight attachment"
+                    finally:
+                        os.kill(process.pid, signal.SIGCONT)
+                    assert interactive.wait() == 128 + termination, interactive.output
+                    wait_port(False)
+                    assert process.poll() is None, "Group signal stopped the application JVM"
             # macOS requires an explicit interface alias for 127.0.0.2; Linux
             # routes all of 127/8 locally and exercises that address in CI.
             hosts = ("127.0.0.2", "::1", "localhost") if sys.platform.startswith("linux") else ("::1", "localhost")
@@ -277,12 +302,14 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             assert not list((root / "client-temp").glob("hugegraph-arthas-*.properties"))
             assert not list((root / "client-temp").glob("tmp.*")), "Helper state was not removed"
             print(f"PASS: {component} PID/argument boundaries, hostile config, local-only agent, no tunnel, "
-                  "command/quit/terminal/repeated-signal cleanup, loopback compatibility without restart")
+                  "command/quit/terminal/group/repeated-signal cleanup, loopback compatibility without restart")
         finally:
             if interactive is not None and interactive.poll() is None:
                 os.kill(interactive.pid, signal.SIGKILL)
                 interactive.wait(10)
             tunnel.close()
+            if process.poll() is None:
+                os.kill(process.pid, signal.SIGCONT)
             process.terminate()
             try:
                 process.wait(timeout=10)
