@@ -37,11 +37,11 @@ runs:
       helm lint helm/hugegraph
       helm lint helm/hugegraph -f helm/hugegraph/values-single.yaml
       helm lint helm/hugegraph -f helm/hugegraph/values-cluster.yaml
+      helm lint helm/hugegraph -f helm/hugegraph/values-strict.yaml
 
   - name: packaged chart regression
     shell: 'bash -e {0}'
-    run: |
-      python3 -m unittest discover -s helm -p 'test_helm_package.py' -v
+    run: python3 -m unittest discover -s helm -p 'test_helm_package.py' -v
 
   - name: helm unittest
     shell: 'bash -e {0}'
@@ -56,13 +56,13 @@ runs:
   - name: helm template
     shell: 'bash -e {0}'
     run: |
-      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml"; do
+      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml"; do
         # shellcheck disable=SC2086 # $preset intentionally splits into flags
         helm template ci helm/hugegraph $preset > /dev/null
       done
       # Positive coverage for every hubble wrapper branch: pd mode with
       # auth, direct mode with a custom port, and a TLS-less ingress with
-      # the explicit opt-in.
+      # ordinary HTTP configuration, without acknowledgement flags.
       helm template ci helm/hugegraph \
         --set hubble.enabled=true \
         --set server.auth.enabled=true \
@@ -125,6 +125,18 @@ runs:
       assert ann(srv, 'checksum/auth') == h('ci-admin|password|ci-auth-token|token_secret|'
                                            + h(val('ci-admin', 'password')) + '|' + h(val('ci-auth-token', 'token_secret')))
       print('install-time checksums match the generated Secret values')
+      services = {d['metadata']['name']: d['spec'] for d in docs if d['kind'] == 'Service'}
+      assert services['ci-hugegraph-server']['type'] == 'NodePort'
+      assert services['ci-hugegraph-hubble']['type'] == 'NodePort'
+      assert services['ci-hugegraph-pd-client']['type'] == 'ClusterIP'
+      for name in ('ci-hugegraph-server', 'ci-hugegraph-hubble'):
+          assert 'nodePort' not in services[name]['ports'][0]
+      sts = [d for d in docs if d['kind'] == 'StatefulSet']
+      assert sum(int(d['spec']['replicas']) * len(d['spec'].get('volumeClaimTemplates', []))
+                 for d in sts) + sum(d['kind'] == 'PersistentVolumeClaim' for d in docs) == 7
+      assert not any(d['kind'] == 'NetworkPolicy' for d in docs)
+      assert not any('curlimages/' in str(d) for d in docs)
+      print('easy defaults: three-member groups, seven volumes and direct HTTP NodePorts')
       PY
 
   - name: reject invalid values
@@ -147,6 +159,27 @@ runs:
         helm template ci helm/hugegraph \
           --set "${component}.probes.readiness.successThreshold=2" > /dev/null
       done
+      # These deployment inputs must serialize unchanged through the properties reader.
+      must_fail --set-string server.serviceId=café
+      must_fail --set-string server.serviceId=😀
+      must_fail --set-string "$(printf 'server.serviceId=ops\tteam')"
+      # Match the Server API graph-space names, including its 48-character limit.
+      must_fail --set-string server.graphSpace=TeamA
+      must_fail --set-string server.graphSpace=team-a
+      must_fail --set-string server.graphSpace=1team
+      graph_space_max=$(printf 'a%.0s' {1..48})
+      helm template ci helm/hugegraph --set-string "server.graphSpace=${graph_space_max}" > /dev/null
+      must_fail --set-string "server.graphSpace=${graph_space_max}a"
+      # The hook queries an explicit, fully qualified existing graph binding.
+      must_fail --set-string server.testGraphAlias=
+      must_fail --set-string server.testGraphAlias=team_a
+      must_fail --set-string server.testGraphAlias=team_a-demo-name
+      must_fail --set-string "server.testGraphAlias=team_a-demo'"
+      graph_name_max=$(printf 'g%.0s' {1..48})
+      helm template ci helm/hugegraph \
+        --set-string "server.testGraphAlias=${graph_space_max}-${graph_name_max}" > /dev/null
+      must_fail --set-string "server.testGraphAlias=${graph_space_max}a-demo"
+      must_fail --set-string "server.testGraphAlias=team_a-${graph_name_max}g"
       must_fail --set pd.replicas=100
       must_fail --set pd.pdb.minAvailable=3
       must_fail --set server.hpa.enabled=true
@@ -198,29 +231,33 @@ runs:
       must_fail "${A[@]}" \
         --set hubble.persistence.enabled=true \
         --set hubble.persistence.size=""
-      must_fail "${A[@]}" --set hubble.service.nodePort=30080
-      # A NodePort or LoadBalancer Hubble Service publishes the plain-HTTP
-      # UI directly; it needs the same explicit acknowledgement as PD.
-      must_fail "${A[@]}" --set hubble.service.type=NodePort
-      must_fail "${A[@]}" --set hubble.service.type=LoadBalancer
-      helm template ci helm/hugegraph "${A[@]}" \
-        --set hubble.service.type=NodePort \
-        --set hubble.service.allowInsecureExposure=true > /dev/null
+      must_fail "${A[@]}" --set hubble.service.type=ClusterIP --set hubble.service.nodePort=30080
+      # HTTP is supported directly in both modes. Component choices take
+      # precedence over mode defaults and require no acknowledgement.
+      for mode in easy strict; do
+        for component in pd server hubble; do
+          for kind in NodePort LoadBalancer; do
+            helm template ci helm/hugegraph --set "mode=$mode" \
+              --set "${component}.service.type=$kind" > /dev/null
+          done
+        done
+        helm template ci helm/hugegraph --set "mode=$mode" \
+          --set server.ingress.enabled=true \
+          --set hubble.ingress.enabled=true > /dev/null
+      done
       must_fail "${A[@]}" --set hubble.mode=bogus
       must_fail "${A[@]}" --set hubble.image.tag=""
-      must_fail "${A[@]}" --set hubble.ingress.enabled=true
-      # A NodePort or LoadBalancer Server Service publishes the plain-HTTP
-      # API, credentials and JWTs included; same acknowledgement.
-      must_fail --set server.service.type=NodePort
-      must_fail --set server.service.type=LoadBalancer
+      # When UI is explicitly disabled, stale credentials may remain unused.
+      helm template ci helm/hugegraph --set hubble.enabled=false \
+        --set server.auth.enabled=false \
+        --set server.auth.admin.password=unused-secret \
+        --set server.auth.token.value=unused-token-that-is-at-least-32-bytes > /dev/null
+      # Respect custom API-server NodePort ranges rather than assuming 30000+.
       helm template ci helm/hugegraph \
-        --set server.service.type=LoadBalancer \
-        --set server.service.allowInsecureExposure=true > /dev/null
-      # A TLS-less Server Ingress needs the explicit plain-HTTP opt-in
-      must_fail --set server.ingress.enabled=true
-      helm template ci helm/hugegraph \
-        --set server.ingress.enabled=true \
-        --set server.ingress.allowPlainHttp=true > /dev/null
+        --set server.service.nodePort=8802 \
+        --set hubble.service.nodePort=8808 > /dev/null
+      must_fail --set server.service.nodePort=65536
+      must_fail --set server.probes.startup.failureThreshold=1
       # Kubernetes refuses a StatefulSet that carries rollingUpdate
       # options with updateStrategy OnDelete; the schema rejects the
       # combination up front (a schema abort, so it lives here).
@@ -307,6 +344,22 @@ runs:
       expect "$(printf 'review\tsecret')" 'must be printable ASCII'
       expect 'café' 'must be printable ASCII'
 
+  - name: helm test query assertions and shell quoting
+    shell: 'bash -e {0}'
+    run: |
+      # Execute the rendered query with the same Groovy version as Server.
+      GROOVY_VERSION=$(python3 - <<'PY_VERSION'
+      import xml.etree.ElementTree as ET
+      pom = ET.parse('pom.xml')
+      print(pom.find('{*}properties/{*}groovy.version').text)
+      PY_VERSION
+      )
+      GROOVY_URL="https://repo.maven.apache.org/maven2/org/apache/groovy/groovy/${GROOVY_VERSION}/groovy-${GROOVY_VERSION}.jar"
+      curl -fsSLo /tmp/groovy.jar "${GROOVY_URL}"
+      curl -fsSLo /tmp/groovy.jar.sha1 "${GROOVY_URL}.sha1"
+      printf '%s  /tmp/groovy.jar\n' "$(cat /tmp/groovy.jar.sha1)" | sha1sum -c -
+      GROOVY_JAR=/tmp/groovy.jar python3 helm/test_helm_hook.py
+
   - name: helm test hook behaviour
     shell: bash
     run: |
@@ -329,7 +382,7 @@ runs:
       printf '#!/bin/sh\nfor ip in ${STUB_IPS}; do printf "%%s STREAM host\\n" "$ip"; done\n' > /tmp/stub/getent
       chmod +x /tmp/stub/getent
       cat > /tmp/fixture.py <<'PY'
-      import http.server, os, sys, threading, time
+      import http.server, json, os, sys, threading, time
       calls = {}
       class H(http.server.BaseHTTPRequestHandler):
           def _send(self, code, body):
@@ -341,7 +394,9 @@ runs:
           def do_GET(self):
               self._send(200, b'{"versions":{}}')
           def do_POST(self):
-              self.rfile.read(int(self.headers.get('Content-Length', 0)))
+              body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
+              expected_alias = ('team_a-demo' if os.path.exists('/tmp/selected-graph')
+                                else 'DEFAULT-hugegraph')
               ip = self.server.server_address[0]
               # broken-<ip>: every Gremlin call fails. flip-odd-<ip> /
               # flip-even-<ip>: the odd or even calls fail, counted from
@@ -351,6 +406,7 @@ runs:
               even = os.path.exists('/tmp/flip-even-' + ip)
               n = calls[ip] = (calls.get(ip, 0) + 1) if (odd or even) else 0
               broken = (os.path.exists('/tmp/broken-' + ip)
+                        or body.get('aliases', {}).get('graph') != expected_alias
                         or (odd and n % 2 == 1)
                         or (even and n % 2 == 0))
               if broken:
@@ -368,7 +424,7 @@ runs:
       sleep 1
       run_hook() {
         PATH="/tmp/stub:${PATH}" PASSWORD=ci-password HG_TEST_DEADLINE_S=8 \
-          STUB_IPS="$1" sh /tmp/hook.sh
+          STUB_IPS="$1" sh "${2:-/tmp/hook.sh}"
       }
       # Healthy: three Pods, all Gremlin-bound.
       run_hook "127.0.0.1 127.0.0.2 127.0.0.3"
@@ -403,9 +459,29 @@ runs:
         exit 1
       fi
       run_hook "127.0.0.1 127.0.0.2 127.0.0.3 ::1 ::2 ::3"
+      # A non-default graph space must query the explicitly selected graph.
+      # A missing alias still fails rather than weakening the per-Pod sweep.
+      touch /tmp/selected-graph
+      for alias in team_a-demo team_a-missing; do
+        helm template ci helm/hugegraph -s templates/tests/test-connection.yaml \
+          --set-string server.graphSpace=team_a \
+          --set-string "server.testGraphAlias=${alias}" > "/tmp/hook-${alias}.yaml"
+      done
+      python3 - <<'PY'
+      import yaml
+      for alias in ('team_a-demo', 'team_a-missing'):
+          d = yaml.safe_load(open('/tmp/hook-' + alias + '.yaml'))
+          open('/tmp/hook-' + alias + '.sh', 'w').write(d['spec']['containers'][0]['command'][2])
+      PY
+      run_hook "127.0.0.1 127.0.0.2 127.0.0.3" /tmp/hook-team_a-demo.sh
+      if run_hook "127.0.0.1 127.0.0.2 127.0.0.3" /tmp/hook-team_a-missing.sh; then
+        echo "expected the hook to fail on a missing selected graph" >&2
+        exit 1
+      fi
+      rm /tmp/selected-graph
       # The auth-off render must carry no credentials.
       if helm template ci helm/hugegraph -s templates/tests/test-connection.yaml \
-          --set server.auth.enabled=false | grep -q 'Authorization'; then
+          --set hubble.enabled=false --set server.auth.enabled=false | grep -q 'Authorization'; then
         echo "the auth-off hook render must not carry credentials" >&2
         exit 1
       fi
@@ -417,7 +493,7 @@ runs:
       curl -sSLo /tmp/kc.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
       echo "95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73  /tmp/kc.tar.gz" | sha256sum -c -
       tar -xzf /tmp/kc.tar.gz -C /tmp
-      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml"; do
+      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml"; do
         # shellcheck disable=SC2086 # $preset intentionally splits into flags
         helm template ci helm/hugegraph $preset | /tmp/kubeconform -strict -summary -kubernetes-version 1.23.0
       done
@@ -447,12 +523,12 @@ runs:
       # regressed five times, so it is guarded here rather than by review.
       # `-f` is NOT equivalent: it merges over the new defaults, whereas
       # --reuse-values discards them, so the fixture must become values.yaml.
-      cp -R helm/hugegraph /tmp/legacy
-      cp helm/hugegraph/testdata/values-pre-hardening.yaml /tmp/legacy/values.yaml
-      helm template legacy /tmp/legacy > /dev/null
-      helm template legacy /tmp/legacy --is-upgrade > /dev/null
+      LEGACY_ROOT=$(mktemp -d)
+      cp -R helm/hugegraph "$LEGACY_ROOT/chart"
+      cp helm/hugegraph/testdata/values-pre-hardening.yaml "$LEGACY_ROOT/chart/values.yaml"
+      helm template legacy "$LEGACY_ROOT/chart" > /dev/null
+      helm template legacy "$LEGACY_ROOT/chart" --is-upgrade > /dev/null
 
   - name: helm package
     shell: 'bash -e {0}'
-    run: |
-      helm package helm/hugegraph -d /tmp/chart
+    run: helm package helm/hugegraph -d /tmp/chart

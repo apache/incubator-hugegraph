@@ -18,6 +18,14 @@
 # Default values for HugeGraph HStore Helm chart.
 # See values-single.yaml and values-cluster.yaml for presets.
 
+# easy: browser/API NodePorts; strict: internal Services and NetworkPolicy.
+# Explicit component parameters always override these mode defaults.
+mode: easy
+global:
+  imageRegistry: ""
+persistence:
+  enabled: true
+
 fullnameOverride: ""
 nameOverride: ""
 
@@ -85,6 +93,8 @@ pd:
     # When existingSecret and value are empty, create a kept release-pd-auth Secret.
     autoGenerate: true
   storage:
+    # Unset inherits persistence.enabled; false uses temporary emptyDir.
+    enabled:
     size: 10Gi
     storageClassName: ""
   resources: {}
@@ -125,10 +135,7 @@ pd:
   service:
     type: ClusterIP
     annotations: {}
-    # A non-ClusterIP type exposes PD's gRPC port, which has no
-    # authentication (raft membership RPCs included). The render refuses it
-    # unless this acknowledgement is set and reachability is restricted by
-    # other means (NetworkPolicy, load balancer allowlist, firewall).
+    # Legacy acknowledgement, accepted for compatibility; no render gate.
     allowInsecureExposure: false
     # Optional fixed NodePorts; require service.type NodePort or LoadBalancer.
     restNodePort:
@@ -205,6 +212,8 @@ store:
     rest: 8520
   dataPath: /hugegraph-store/storage
   storage:
+    # Unset inherits persistence.enabled; false uses temporary emptyDir.
+    enabled:
     size: 50Gi
     storageClassName: ""
   resources: {}
@@ -240,7 +249,8 @@ store:
   pdb:
     enabled: true
     minAvailable: 2
-  waitImage: curlimages/curl:8.5.0
+  # Optional tool image override; empty reuses the Store image.
+  waitImage: ""
   # HTTP path the init container polls on every PD peer; a majority must
   # answer 2xx before the Store starts. /v1/ready makes that majority a
   # raft quorum instead of a set of live listeners.
@@ -274,6 +284,11 @@ store:
 
 server:
   replicas: 3
+  # DEFAULT preserves the image config; non-default values select PD service metadata.
+  # serviceId accepts printable ASCII, including spaces and backslashes.
+  # Create a non-default graph space before starting a Server assigned to it.
+  serviceId: DEFAULT
+  graphSpace: DEFAULT
   image:
     repository: hugegraph/server
     # TODO: leave tag empty to inherit Chart.appVersion after the 1.8.0
@@ -329,8 +344,15 @@ server:
   pdb:
     enabled: false
     minAvailable: 2
-  # Image used by the Helm test hook.
-  waitImage: curlimages/curl:8.5.0
+  # Optional Helm test image override; empty reuses the Server image.
+  waitImage: ""
+  # Existing Gremlin graph binding checked on every Server Pod. Select the
+  # target graph explicitly; graphSpace does not create or infer this binding.
+  testGraphAlias: DEFAULT-hugegraph
+  # Optional Gremlin assertions, run with the hook's Server credential on every Pod.
+  # Supply trusted read-only scripts; read-only execution is not enforced.
+  # Use --set-file server.testGremlin=/path/to/assertions.groovy; assert expected results.
+  testGremlin: ""
   # Resources for the Helm test hook container. Bounded by default so the hook
   # cannot run unlimited on a restricted or quota-managed namespace.
   testResources:
@@ -344,6 +366,8 @@ server:
   # concurrent Server replicas never initialize the same backend. No
   # HG_SERVER_SKIP_INIT and no init Job.
   initStoreEnabled: false
+  # Maximum storage wait; startup probe defaults adapt to this value.
+  storageWaitTimeoutSeconds: 300
   auth:
     # On by default: a chart-managed release-admin Secret supplies the password
     # unless admin.existingSecret or admin.password is set. Set enabled=false
@@ -375,13 +399,10 @@ server:
   # Set this to a URL reachable from outside the cluster (NodePort, LoadBalancer, or Ingress) when an external Hubble uses PD mode; all replicas then announce that shared logical endpoint.
   advertiseUrl: ""
   service:
-    type: ClusterIP
+    # Unset inherits mode (easy: NodePort, strict: ClusterIP).
+    type:
     annotations: {}
-    # A non-ClusterIP type publishes the plain-HTTP Server API, and with it
-    # Basic-auth credentials and JWTs in cleartext, outside the cluster. The
-    # render refuses it unless this acknowledgement is set and reachability
-    # is restricted by other means (NetworkPolicy, load balancer allowlist,
-    # firewall). Prefer an HTTPS-terminating Ingress.
+    # Legacy acknowledgement, accepted for compatibility; no render gate.
     allowInsecureExposure: false
   ingress:
     enabled: false
@@ -400,14 +421,10 @@ server:
     targetCPUUtilizationPercentage: 70
   probes:
     startup:
-      # The guaranteed probe budget is (failureThreshold - 1) * periodSeconds,
-      # because kubelet may run the first probe immediately; 91 x 5 guarantees
-      # 450s, covering the 300s storage wait and Server process startup. The
-      # chart passes the guaranteed budget minus the storage wait to the image
-      # as HG_SERVER_STARTUP_TIMEOUT_S, so the start command and the probe
-      # give up together instead of the command self-killing at the image
-      # default of 120s.
-      failureThreshold: 91
+      # A first probe can run immediately; (failureThreshold - 1) * periodSeconds
+      # must cover the storage wait plus at least 120 seconds for Server startup.
+      # Unset derives a budget from storageWaitTimeoutSeconds.
+      failureThreshold:
       periodSeconds: 5
       timeoutSeconds: 5
     readiness:
@@ -419,10 +436,9 @@ server:
       failureThreshold: 3
       timeoutSeconds: 5
 
-# Optional Hubble UI. Serves plain HTTP; keep it on a ClusterIP Service or
-# behind an HTTPS-terminating Ingress, never directly on an untrusted network.
+# Hubble UI is enabled by default; disable with hubble.enabled=false.
 hubble:
-  enabled: false
+  enabled: true
   # pd: discover the cluster through PD (enables the cluster operations view).
   # direct: talk to the Server client Service only, without PD discovery.
   # Current Hubble images require server.auth to be enabled: the UI login
@@ -446,7 +462,8 @@ hubble:
   # size and storageClassName apply at install time only; the PVC is kept
   # on helm uninstall.
   persistence:
-    enabled: false
+    # Unset inherits persistence.enabled.
+    enabled:
     size: 1Gi
     storageClassName: ""
   resources: {}
@@ -476,14 +493,10 @@ hubble:
     # This chart makes no Kubernetes API calls, so no token is mounted.
     automountServiceAccountToken: false
   service:
-    type: ClusterIP
+    # Unset inherits mode (easy: NodePort, strict: ClusterIP).
+    type:
     annotations: {}
-    # A non-ClusterIP type publishes Hubble's plain-HTTP UI, which has no
-    # login of its own and carries the graph credentials typed into it,
-    # outside the cluster. The render refuses it unless this
-    # acknowledgement is set and reachability is restricted by other means
-    # (NetworkPolicy, load balancer allowlist, firewall). Prefer an
-    # HTTPS-terminating Ingress.
+    # Legacy acknowledgement, accepted for compatibility; no render gate.
     allowInsecureExposure: false
   ingress:
     enabled: false
@@ -495,9 +508,7 @@ hubble:
           - path: /
             pathType: Prefix
     tls: []
-    # Hubble serves plain HTTP, so an Ingress without tls is rejected at
-    # render time unless this is explicitly set to true for a trusted
-    # network.
+    # Legacy acknowledgement, accepted for compatibility.
     allowPlainHttp: false
   probes:
     startup:
@@ -513,20 +524,18 @@ hubble:
       failureThreshold: 3
       timeoutSeconds: 5
 
-# Kubernetes NetworkPolicy: one policy per component that admits only the
-# traffic the components exchange, plus DNS. Off here because these values
-# cannot know this release's clients; values-cluster.yaml turns it on. Only
+# Kubernetes NetworkPolicy: mode default plus explicit per-component rules.
+# easy does not isolate clients; strict isolates release traffic and DNS. Only
 # enforced when the network plugin implements NetworkPolicy (kind v0.25+,
 # k3s, Calico, Cilium); elsewhere the objects are accepted and do nothing.
 # Nothing outside the release is admitted unless it is listed in
 # <component>.extraIngress as standard NetworkPolicy ingress rules: apps in
 # other namespaces, Prometheus, Vermeer, and the Ingress controller. Exposing
-# a component (NodePort/LoadBalancer pd, server or hubble Service, a Server or
-# Hubble Ingress, server.advertiseUrl) with an empty extraIngress fails the
-# render. Every extra rule must name its peers ("from", or "to" for egress);
-# to admit any address, say so with an ipBlock such as 0.0.0.0/0.
+# a component does not automatically add callers: configure extraIngress
+# and extraEgress using native Kubernetes NetworkPolicy rules.
 networkPolicy:
-  enabled: false
+  # Unset inherits mode (easy: false, strict: true).
+  enabled:
   pd:
     extraIngress: []
   store:

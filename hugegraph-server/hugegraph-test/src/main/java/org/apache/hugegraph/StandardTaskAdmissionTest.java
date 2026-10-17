@@ -392,6 +392,463 @@ public class StandardTaskAdmissionTest {
         }
     }
 
+    @Test
+    public void testForceDeleteHidesPublicTaskWhileNativeWorkerRetainsOwnership() throws Exception {
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch interrupted = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        java.util.Map<String, Object> observed = new java.util.LinkedHashMap<>();
+        boolean publicPresent;
+        boolean listPresent;
+        try (Fixture fixture = new Fixture("standard_force_delete_native")) {
+            ExecutorService observerWorker = Executors.newSingleThreadExecutor();
+            ExecutorService observerDatabase = Executors.newSingleThreadExecutor(runnable ->
+                    new Thread(runnable, "standard-independent-db"));
+            StandardTaskScheduler observer = new StandardTaskScheduler(fixture.params, observerWorker,
+                                                                       observerDatabase);
+            BlockingJob job = new BlockingJob() {
+                @Override
+                public Object execute() {
+                    this.graph().vertices().hasNext();
+                    started.countDown();
+                    boolean wasInterrupted = false;
+                    while (release.getCount() != 0L) {
+                        try {
+                            release.await();
+                        } catch (InterruptedException ignored) {
+                            wasInterrupted = true;
+                            interrupted.countDown();
+                        }
+                    }
+                    if (wasInterrupted) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return null;
+                }
+            };
+            HugeTask<Object> task = fixture.task(job);
+            try {
+                fixture.scheduler.save(task);
+                Assert.assertNotNull(observer.findTask(task.id()));
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue(started.await(10L, TimeUnit.SECONDS));
+                Assert.assertNotNull(observer.findTask(task.id()));
+                HugeTask<?> deleted = fixture.scheduler.delete(task.id(), true);
+                Assert.assertNotNull(deleted);
+                Assert.assertTrue(interrupted.await(10L, TimeUnit.SECONDS));
+                Assert.assertEquals(1L, release.getCount());
+                try {
+                    observed.put("public_task_status_before_release",
+                                 fixture.scheduler.task(task.id()).status().name());
+                    publicPresent = true;
+                } catch (org.apache.hugegraph.exception.NotFoundException missing) {
+                    publicPresent = false;
+                }
+                listPresent = fixture.scheduler.tasks(java.util.Collections.singletonList(task.id())).hasNext();
+                try {
+                    fixture.scheduler.task(task.id(), false);
+                    observed.put("public_task_without_result_present_before_release", true);
+                } catch (org.apache.hugegraph.exception.NotFoundException missing) {
+                    observed.put("public_task_without_result_present_before_release", false);
+                }
+                observed.put("public_ids_without_result_present_before_release", fixture.scheduler.tasks(
+                        java.util.Collections.singletonList(task.id()), false).hasNext());
+                Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                                    () -> observer.findTask(task.id()));
+                Assert.assertFalse(observer.findAllTask(10L, null, false).hasNext());
+                int pending = fixture.scheduler.pendingTasks();
+                boolean closed = fixture.scheduler.close();
+                observed.put("public_task_present_before_release", publicPresent);
+                observed.put("public_task_ids_list_present_before_release", listPresent);
+                observed.put("independent_committed_db_present_before_release", false);
+                observed.put("native_worker_interrupted_and_still_held", true);
+                observed.put("pending_before_release", pending);
+                observed.put("close_before_release", closed);
+                observed.put("logical_task_cancelled", task.isCancelled());
+                observed.put("native_scheduler_origin", StandardTaskScheduler.class.getProtectionDomain()
+                            .getCodeSource().getLocation().toString());
+                Assert.assertEquals(1, pending);
+                Assert.assertFalse(closed);
+                release.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+                fixture.scheduler.waitUntilAllTasksCompleted(10L);
+                Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                                    () -> fixture.scheduler.task(task.id()));
+                Assert.assertFalse(fixture.scheduler.tasks(java.util.Collections.singletonList(task.id())).hasNext());
+                Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                                    () -> observer.findTask(task.id()));
+                Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+                Assert.assertTrue(fixture.scheduler.close());
+                observed.put("public_task_present_after_release", false);
+                observed.put("public_task_ids_list_present_after_release", false);
+                observed.put("independent_committed_db_present_after_release", false);
+                observed.put("pending_after_release", 0);
+                observed.put("close_after_release", true);
+                observed.put("one_persisted_task_one_delete", true);
+                String evidence = System.getProperty("hugegraph.task.delete.evidence");
+                if (evidence != null) {
+                    java.nio.file.Files.writeString(java.nio.file.Paths.get(evidence, "standard-observation.json"),
+                                                   org.apache.hugegraph.util.JsonUtil.toJson(observed));
+                }
+            } finally {
+                release.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+                Assert.assertTrue(observer.close());
+                observerWorker.shutdownNow();
+                observerDatabase.shutdownNow();
+                Assert.assertTrue(observerWorker.awaitTermination(10L, TimeUnit.SECONDS));
+                Assert.assertTrue(observerDatabase.awaitTermination(10L, TimeUnit.SECONDS));
+            }
+        }
+        // Admission accounting must keep the true native owner above, while
+        // the established Standard force-delete API contract requires absence.
+        Assert.assertFalse("force-deleted task is still publicly visible", publicPresent);
+        Assert.assertFalse("force-deleted task is still listed by ID", listPresent);
+        Assert.assertEquals(false, observed.get("public_task_without_result_present_before_release"));
+        Assert.assertEquals(false, observed.get("public_ids_without_result_present_before_release"));
+    }
+
+    @Test
+    public void testDeletingTaskStillVisibleWhileItsRecordExists() throws Exception {
+        try (Fixture fixture = new Fixture("standard_deleting_db_visible")) {
+            BlockingJob job = new BlockingJob();
+            HugeTask<Object> task = fixture.task(job);
+            fixture.scheduler.schedule(task);
+            try {
+                Assert.assertTrue(job.started.await(10L, TimeUnit.SECONDS));
+                task.overwriteStatus(TaskStatus.DELETING);
+                fixture.scheduler.save(task);
+                for (boolean withResult : new boolean[]{true, false}) {
+                    Assert.assertEquals(TaskStatus.DELETING, fixture.scheduler.task(task.id(), withResult).status());
+                    java.util.Iterator<HugeTask<Object>> tasks = fixture.scheduler.tasks(
+                            java.util.Collections.singletonList(task.id()), withResult);
+                    Assert.assertTrue(tasks.hasNext());
+                    Assert.assertEquals(TaskStatus.DELETING, tasks.next().status());
+                    Assert.assertFalse(tasks.hasNext());
+                }
+            } finally {
+                job.release.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
+    public void testOrdinaryTaskVisibilityRetainsResultSelection() throws Exception {
+        try (Fixture fixture = new Fixture("standard_normal_task_visible")) {
+            HugeTask<Object> task = fixture.task(new ResultJob());
+            fixture.scheduler.schedule(task).get(10L, TimeUnit.SECONDS);
+            for (boolean withResult : new boolean[]{true, false}) {
+                HugeTask<Object> loaded = fixture.scheduler.task(task.id(), withResult);
+                Assert.assertEquals(TaskStatus.SUCCESS, loaded.status());
+                Assert.assertEquals(withResult ? task.result() : null, loaded.result());
+                java.util.Iterator<HugeTask<Object>> tasks = fixture.scheduler.tasks(
+                        java.util.Collections.singletonList(task.id()), withResult);
+                Assert.assertTrue(tasks.hasNext());
+                HugeTask<Object> listed = tasks.next();
+                Assert.assertEquals(TaskStatus.SUCCESS, listed.status());
+                Assert.assertEquals(withResult ? task.result() : null, listed.result());
+                Assert.assertFalse(tasks.hasNext());
+            }
+        }
+    }
+
+    @Test
+    public void testForceDeleteCompletedOwnerDoesNotResurrectAfterDoneSave() throws Exception {
+        java.util.Map<String, Object> observed = new java.util.LinkedHashMap<>();
+        boolean publicPresent;
+        boolean idsPresent;
+        boolean dbResurrected;
+        try (Fixture fixture = new Fixture("standard_force_delete_done_save")) {
+            HugeGraphParams nativeParams = (HugeGraphParams) Whitebox.getInternalState(fixture.graph, "params");
+            @SuppressWarnings("unchecked")
+            java.util.Map<HugeGraphParams, org.apache.hugegraph.task.TaskScheduler> schedulers =
+                    (java.util.Map<HugeGraphParams, org.apache.hugegraph.task.TaskScheduler>) Whitebox
+                            .getInternalState(org.apache.hugegraph.task.TaskManager.instance(), "schedulers");
+            org.apache.hugegraph.task.TaskScheduler original = schedulers.put(nativeParams, fixture.scheduler);
+            ExecutorService observerWorker = Executors.newSingleThreadExecutor();
+            ExecutorService observerDatabase = Executors.newSingleThreadExecutor();
+            StandardTaskScheduler observer = new StandardTaskScheduler(fixture.params, observerWorker,
+                                                                       observerDatabase);
+            CompletionSaveJob job = new CompletionSaveJob();
+            HugeTask<Object> task = fixture.task(job);
+            try {
+                Assert.assertSame(fixture.scheduler, fixture.graph.taskScheduler());
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue(job.beforeSave.await(10L, TimeUnit.SECONDS));
+                Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+                Assert.assertTrue(task.completed());
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                Assert.assertNotNull(observer.findTask(task.id()));
+                HugeTask<?> deleted = fixture.scheduler.delete(task.id(), true);
+                Assert.assertNotNull(deleted);
+                Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                                    () -> observer.findTask(task.id()));
+                try {
+                    observed.put("public_status_after_delete_before_done_save",
+                                 fixture.scheduler.task(task.id()).status().name());
+                    publicPresent = true;
+                } catch (org.apache.hugegraph.exception.NotFoundException missing) {
+                    publicPresent = false;
+                }
+                idsPresent = fixture.scheduler.tasks(java.util.Collections.singletonList(task.id())).hasNext();
+                observed.put("success_owner_retained_before_delete", true);
+                observed.put("public_present_after_delete_before_done_save", publicPresent);
+                observed.put("ids_present_after_delete_before_done_save", idsPresent);
+                observed.put("committed_db_present_after_delete_before_done_save", false);
+                observed.put("pending_before_done_save", fixture.scheduler.pendingTasks());
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                Assert.assertFalse(fixture.scheduler.close());
+                observed.put("close_before_done_save", false);
+                job.releaseSave.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+                Assert.assertTrue(job.saved.await(10L, TimeUnit.SECONDS));
+                try {
+                    observed.put("db_status_after_real_done_save", observer.findTask(task.id()).status().name());
+                    dbResurrected = true;
+                } catch (org.apache.hugegraph.exception.NotFoundException missing) {
+                    dbResurrected = false;
+                }
+                observed.put("committed_db_resurrected_after_real_done_save", dbResurrected);
+                observed.put("pending_after_real_done_save", fixture.scheduler.pendingTasks());
+                Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+                Assert.assertTrue(fixture.scheduler.close());
+                observed.put("close_after_real_done_save", true);
+                observed.put("real_sysjob_done_save_scheduler_binding", true);
+                String evidence = System.getProperty("hugegraph.task.delete.evidence");
+                if (evidence != null) {
+                    java.nio.file.Files.writeString(
+                            java.nio.file.Paths.get(evidence, "completion-save-observation.json"),
+                            org.apache.hugegraph.util.JsonUtil.toJson(observed));
+                }
+            } finally {
+                job.releaseSave.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+                Assert.assertTrue(schedulers.replace(nativeParams, fixture.scheduler, original));
+                Assert.assertTrue(observer.close());
+                observerWorker.shutdownNow();
+                observerDatabase.shutdownNow();
+                Assert.assertTrue(observerWorker.awaitTermination(10L, TimeUnit.SECONDS));
+                Assert.assertTrue(observerDatabase.awaitTermination(10L, TimeUnit.SECONDS));
+            }
+        }
+        Assert.assertFalse("completed owner still visible after force deletion", publicPresent);
+        Assert.assertFalse("completed owner still listed after force deletion", idsPresent);
+        Assert.assertFalse("real done save recreated force-deleted task", dbResurrected);
+    }
+
+    @Test
+    public void testDoneSaveBeforeDeleteRetainsNativeCleanupOwner() throws Exception {
+        this.doneSaveBeforeDelete(true);
+    }
+
+    @Test
+    public void testNonForceCompletedDeleteRetainsNativeCleanupOwner() throws Exception {
+        this.doneSaveBeforeDelete(false);
+    }
+
+    @Test
+    public void testNonForceDeleteDatabaseFailureCanRetryWithDurableCompletion() throws Exception {
+        this.doneSaveBeforeDelete(false, true);
+    }
+
+    private void doneSaveBeforeDelete(boolean force) throws Exception {
+        this.doneSaveBeforeDelete(force, false);
+    }
+
+    private void doneSaveBeforeDelete(boolean force, boolean failure) throws Exception {
+        try (Fixture fixture = new Fixture("standard_save_before_delete");
+             SchedulerBinding binding = new SchedulerBinding(fixture)) {
+            CountDownLatch closing = new CountDownLatch(1);
+            CountDownLatch close = new CountDownLatch(1);
+            AtomicBoolean first = new AtomicBoolean(true);
+            Mockito.doAnswer(invocation -> {
+                if (Thread.currentThread().getName().equals("standard-test-worker") &&
+                    first.compareAndSet(true, false)) {
+                    closing.countDown();
+                    await(close);
+                }
+                return invocation.callRealMethod();
+            }).when(fixture.params).closeTx();
+            HugeTask<Object> task = fixture.task(new ResultJob());
+            try {
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue(closing.await(10L, TimeUnit.SECONDS));
+                Assert.assertEquals(TaskStatus.SUCCESS, fixture.scheduler.findTask(task.id()).status());
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                if (failure) {
+                    org.apache.hugegraph.task.TaskTransaction transaction = (org.apache.hugegraph.task.TaskTransaction)
+                            Whitebox.getInternalState(fixture.scheduler, "taskTx");
+                    org.apache.hugegraph.task.TaskTransaction rejecting = Mockito.spy(transaction);
+                    Error rejected = new AssertionError("native completed delete rejected before mutation");
+                    Mockito.doThrow(rejected).doCallRealMethod().when(rejecting)
+                           .removeTaskVertex(Mockito.any(org.apache.hugegraph.structure.HugeVertex.class));
+                    Whitebox.setInternalState(fixture.scheduler, "taskTx", rejecting);
+                    Throwable failed = Assert.assertThrows(RuntimeException.class,
+                                                          () -> fixture.scheduler.delete(task.id(), force));
+                    Throwable cause = failed;
+                    while (cause.getCause() != null) {
+                        cause = cause.getCause();
+                    }
+                    Assert.assertSame(rejected, cause);
+                    Assert.assertEquals(TaskStatus.SUCCESS, fixture.scheduler.findTask(task.id()).status());
+                    Assert.assertEquals(TaskStatus.SUCCESS, fixture.scheduler.task(task.id()).status());
+                    Assert.assertEquals(TaskStatus.DELETING, task.status());
+                    Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                }
+                fixture.scheduler.delete(task.id(), force);
+                Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                                    () -> fixture.scheduler.findTask(task.id()));
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                Assert.assertFalse(fixture.scheduler.close());
+                assertTaskAbsent(fixture.scheduler, task);
+            } finally {
+                close.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            }
+            assertTaskAbsent(fixture.scheduler, task);
+            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+        }
+    }
+
+    @Test
+    public void testDeleteDatabaseFailureRetainsRecordForRetryAndOriginalError() throws Exception {
+        try (Fixture fixture = new Fixture("standard_delete_db_failure");
+             SchedulerBinding binding = new SchedulerBinding(fixture)) {
+            CompletionSaveJob job = new CompletionSaveJob();
+            HugeTask<Object> task = fixture.task(job);
+            try {
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue(job.beforeSave.await(10L, TimeUnit.SECONDS));
+                org.apache.hugegraph.task.TaskTransaction transaction = (org.apache.hugegraph.task.TaskTransaction)
+                        Whitebox.getInternalState(fixture.scheduler, "taskTx");
+                org.apache.hugegraph.task.TaskTransaction rejecting = Mockito.spy(transaction);
+                Error rejected = new AssertionError("native delete boundary rejected before mutation");
+                Mockito.doThrow(rejected).doCallRealMethod().when(rejecting)
+                       .removeTaskVertex(Mockito.any(org.apache.hugegraph.structure.HugeVertex.class));
+                Whitebox.setInternalState(fixture.scheduler, "taskTx", rejecting);
+                Throwable failed = Assert.assertThrows(RuntimeException.class,
+                                                      () -> fixture.scheduler.delete(task.id(), true));
+                Throwable cause = failed;
+                while (cause.getCause() != null) {
+                    cause = cause.getCause();
+                }
+                Assert.assertSame(rejected, cause);
+                Assert.assertNotNull(fixture.scheduler.findTask(task.id()));
+                Assert.assertNotNull(fixture.scheduler.task(task.id()));
+                Assert.assertEquals(TaskStatus.DELETING, task.status());
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                fixture.scheduler.delete(task.id(), true);
+                assertTaskAbsent(fixture.scheduler, task);
+                job.releaseSave.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+                Assert.assertTrue(job.saved.await(10L, TimeUnit.SECONDS));
+                assertTaskAbsent(fixture.scheduler, task);
+                Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+            } finally {
+                job.releaseSave.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
+    public void testUnownedExplicitSaveCanRestoreDeletingRecord() throws Exception {
+        try (Fixture fixture = new Fixture("standard_unowned_explicit_save")) {
+            HugeTask<Object> task = fixture.task(new EmptyJob());
+            task.overwriteStatus(TaskStatus.DELETING);
+            fixture.scheduler.save(task);
+            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+            Assert.assertEquals(TaskStatus.DELETING, fixture.scheduler.task(task.id()).status());
+            fixture.scheduler.delete(task.id(), true);
+            assertTaskAbsent(fixture.scheduler, task);
+            fixture.scheduler.save(task);
+            Assert.assertEquals(TaskStatus.DELETING, fixture.scheduler.findTask(task.id()).status());
+            Assert.assertEquals(0, fixture.scheduler.pendingTasks());
+        }
+    }
+
+    @Test
+    public void testNonForceDeleteStillRequiresPersistedCompletion() throws Exception {
+        try (Fixture fixture = new Fixture("standard_nonforce_durable_check");
+             SchedulerBinding binding = new SchedulerBinding(fixture)) {
+            CompletionSaveJob job = new CompletionSaveJob();
+            HugeTask<Object> task = fixture.task(job);
+            try {
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue(job.beforeSave.await(10L, TimeUnit.SECONDS));
+                Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+                Assert.assertEquals(TaskStatus.RUNNING, fixture.scheduler.findTask(task.id()).status());
+                Assert.assertThrows(RuntimeException.class, () -> fixture.scheduler.delete(task.id(), false));
+                Assert.assertEquals(TaskStatus.SUCCESS, task.status());
+                Assert.assertEquals(TaskStatus.RUNNING, fixture.scheduler.findTask(task.id()).status());
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                Assert.assertFalse(task.isCancelled());
+                job.releaseSave.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+                Assert.assertEquals(TaskStatus.SUCCESS, fixture.scheduler.findTask(task.id()).status());
+                fixture.scheduler.delete(task.id(), false);
+                assertTaskAbsent(fixture.scheduler, task);
+            } finally {
+                job.releaseSave.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    @Test
+    public void testNonForceDeleteRejectsActuallyRunningTask() throws Exception {
+        try (Fixture fixture = new Fixture("standard_nonforce_running");
+             SchedulerBinding binding = new SchedulerBinding(fixture)) {
+            BlockingJob job = new BlockingJob();
+            HugeTask<Object> task = fixture.task(job);
+            try {
+                fixture.scheduler.schedule(task);
+                Assert.assertTrue(job.started.await(10L, TimeUnit.SECONDS));
+                Assert.assertEquals(TaskStatus.RUNNING, task.status());
+                Assert.assertThrows(IllegalArgumentException.class, () -> fixture.scheduler.delete(task.id(), false));
+                Assert.assertEquals(TaskStatus.RUNNING, task.status());
+                Assert.assertNotNull(fixture.scheduler.findTask(task.id()));
+                Assert.assertEquals(1, fixture.scheduler.pendingTasks());
+                Assert.assertFalse(task.isCancelled());
+            } finally {
+                job.release.countDown();
+                fixture.worker.submit(() -> null).get(10L, TimeUnit.SECONDS);
+            }
+        }
+    }
+
+    private static void assertTaskAbsent(StandardTaskScheduler scheduler, HugeTask<?> task) {
+        for (boolean withResult : new boolean[]{true, false}) {
+            Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                                () -> scheduler.task(task.id(), withResult));
+            Assert.assertFalse(scheduler.tasks(java.util.Collections.singletonList(task.id()), withResult).hasNext());
+        }
+        Assert.assertThrows(org.apache.hugegraph.exception.NotFoundException.class,
+                            () -> scheduler.findTask(task.id()));
+    }
+
+    private static final class SchedulerBinding implements AutoCloseable {
+        private final java.util.Map<HugeGraphParams, org.apache.hugegraph.task.TaskScheduler> schedulers;
+        private final HugeGraphParams nativeParams;
+        private final org.apache.hugegraph.task.TaskScheduler original;
+        private final StandardTaskScheduler owner;
+        @SuppressWarnings("unchecked")
+        private SchedulerBinding(Fixture fixture) {
+            this.schedulers = (java.util.Map<HugeGraphParams, org.apache.hugegraph.task.TaskScheduler>)
+                    Whitebox.getInternalState(org.apache.hugegraph.task.TaskManager.instance(), "schedulers");
+            this.nativeParams = (HugeGraphParams) Whitebox.getInternalState(fixture.graph, "params");
+            this.owner = fixture.scheduler;
+            this.original = this.schedulers.put(this.nativeParams, this.owner);
+            Assert.assertNotNull(this.original);
+            Assert.assertSame(this.owner, fixture.graph.taskScheduler());
+        }
+        @Override
+        public void close() {
+            Assert.assertTrue(this.schedulers.replace(this.nativeParams, this.owner, this.original));
+        }
+    }
+
     private static void await(CountDownLatch latch) {
         boolean interrupted = false;
         while (true) {
@@ -469,6 +926,34 @@ public class StandardTaskAdmissionTest {
         @Override
         public Object execute() {
             return null;
+        }
+    }
+
+    public static class CompletionSaveJob extends EmptyJob {
+        private final CountDownLatch beforeSave = new CountDownLatch(1);
+        private final CountDownLatch releaseSave = new CountDownLatch(1);
+        private final CountDownLatch saved = new CountDownLatch(1);
+        @Override
+        public Object execute() {
+            this.graph().vertices().hasNext();
+            return "completion-result";
+        }
+        @Override
+        protected void done() {
+            this.beforeSave.countDown();
+            await(this.releaseSave);
+            try {
+                super.done();
+            } finally {
+                this.saved.countDown();
+            }
+        }
+    }
+
+    public static class ResultJob extends EmptyJob {
+        @Override
+        public Object execute() {
+            return "ordinary-result";
         }
     }
 

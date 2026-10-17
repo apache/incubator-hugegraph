@@ -15,11 +15,87 @@
 # limitations under the License.
 #
 
+{{/* Resolve inherited defaults once. Never use default/or for explicit booleans. */}}
+{{- define "hugegraph.resolveValues" -}}
+{{- if not (get .Values "__hugegraphResolved") -}}
+{{- $_ := set .Values "__hugegraphResolved" true -}}
+{{- $legacy := not (hasKey .Values "mode") -}}
+{{- if not (hasKey .Values "hubble") -}}
+{{- $_ := set .Values "hubble" (dict "enabled" false "service" dict "persistence" dict) -}}
+{{- end -}}
+{{- $strict := eq (.Values.mode | default "easy") "strict" -}}
+{{- $serviceType := ternary "ClusterIP" "NodePort" (or $strict $legacy) -}}
+{{- range $comp := list "server" "hubble" -}}
+{{- $component := get $.Values $comp -}}
+{{- $svc := get $component "service" | default dict -}}
+{{- $_ := set $component "service" $svc -}}
+{{- $typeInherited := or (not (hasKey $svc "type")) (eq (get $svc "type" | toString) "<nil>") -}}
+{{- $_ := set $component "__serviceTypeInherited" $typeInherited -}}
+{{- if $typeInherited -}}{{- $_ := set $svc "type" $serviceType -}}{{- end -}}
+{{- end -}}
+{{- $np := .Values.networkPolicy | default dict -}}
+{{- $_ := set .Values "networkPolicy" $np -}}
+{{- if or (not (hasKey $np "enabled")) (eq (get $np "enabled" | toString) "<nil>") -}}{{- $_ := set $np "enabled" $strict -}}{{- end -}}
+{{- $persistent := true -}}
+{{- if hasKey (.Values.persistence | default dict) "enabled" -}}{{- $persistent = .Values.persistence.enabled -}}{{- end -}}
+{{- range $comp := list "pd" "store" "hubble" -}}
+{{- $component := get $.Values $comp -}}
+{{- $key := ternary "persistence" "storage" (eq $comp "hubble") -}}
+{{- $storage := get $component $key | default dict -}}
+{{- $_ := set $component $key $storage -}}
+{{- if or (not (hasKey $storage "enabled")) (eq (get $storage "enabled" | toString) "<nil>") -}}{{- $_ := set $storage "enabled" $persistent -}}{{- end -}}
+{{- end -}}
+{{- $registry := trimSuffix "/" (get (.Values.global | default dict) "imageRegistry" | default "") -}}
+{{- if contains "://" $registry -}}{{- fail "global.imageRegistry must be a registry host/path without http:// or https://" -}}{{- end -}}
+{{- if $registry -}}
+{{- range $comp := list "pd" "store" "server" "hubble" -}}
+{{- $image := get (get $.Values $comp) "image" | default dict -}}
+{{- if $image -}}
+{{- $_ := set $image "repository" (include "hugegraph.registryImage" (dict "reference" $image.repository "registry" $registry)) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- range $comp := list "store" "server" -}}
+{{- $values := get $.Values $comp -}}
+{{- $override := get $values "waitImage" | default "" -}}
+{{- $componentImage := include "hugegraph.image" (dict "image" $values.image "appVersion" $.Chart.AppVersion) -}}
+{{- if $override -}}
+{{- $_ := set $values "waitImage" (include "hugegraph.registryImage" (dict "reference" $override "registry" $registry)) -}}
+{{- else -}}
+{{- $_ := set $values "waitImage" $componentImage -}}
+{{- end -}}
+{{- $_ := set $values "__waitImageInherited" (eq $values.waitImage $componentImage) -}}
+{{- end -}}
+{{- $server := .Values.server -}}
+{{- if not (hasKey $server "storageWaitTimeoutSeconds") -}}{{- $_ := set $server "storageWaitTimeoutSeconds" 300 -}}{{- end -}}
+{{- $startup := $server.probes.startup -}}
+{{- if $legacy -}}
+{{- $period := int $startup.periodSeconds -}}
+{{- $budget := add (int $server.storageWaitTimeoutSeconds) 150 -}}
+{{- $_ := set $startup "failureThreshold" (max (int $startup.failureThreshold) (add (div (add (sub $budget 1) $period) $period) 1)) -}}
+{{- end -}}
+{{- if or (not (hasKey $startup "failureThreshold")) (eq (get $startup "failureThreshold" | toString) "<nil>") -}}
+{{- $period := int $startup.periodSeconds -}}
+{{- $budget := add (int $server.storageWaitTimeoutSeconds) 150 -}}
+{{- $_ := set $startup "failureThreshold" (add (div (add (sub $budget 1) $period) $period) 1) -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/* A qualified component reference overrides the global registry. */}}
+{{- define "hugegraph.registryImage" -}}
+{{- $reference := .reference -}}
+{{- $first := first (splitList "/" $reference) -}}
+{{- $qualified := and (contains "/" $reference) (or (contains "." $first) (contains ":" $first) (eq $first "localhost")) -}}
+{{- if and .registry (not $qualified) -}}{{- printf "%s/%s" .registry $reference -}}{{- else -}}{{- $reference -}}{{- end -}}
+{{- end }}
+
 {{/*
-Expand the name of the chart.
+Keep the application identity stable when the distribution chart is renamed.
+The OCI artifact is hugegraph-helm; Kubernetes resources still use hugegraph.
 */}}
 {{- define "hugegraph.name" -}}
-{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- default "hugegraph" .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
@@ -29,7 +105,7 @@ Create a default fully qualified app name.
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- $name := default "hugegraph" .Values.nameOverride }}
 {{- if contains $name .Release.Name }}
 {{- .Release.Name | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -573,18 +649,12 @@ leader election waits on; empty preserves the image default.
 {{- end }}
 
 {{/*
-Keep the startup probe alive for the 300-second storage wait, the Server's
-start command, and process overhead, on a conservative timeline: kubelet may
-run the first probe immediately, so the guaranteed alive time is
-(failureThreshold - 1) * periodSeconds, not the full product. The minimum
-below keeps that guaranteed time at 450 seconds or more. Older stored values
-remain accepted, but their rendered threshold is raised to this floor.
+Unspecified probes reserve storageWaitTimeoutSeconds plus 150 seconds.
+An explicitly configured threshold is preserved and checked by validateValues.
+Kubelet may probe immediately: the budget is (failureThreshold - 1) * periodSeconds.
 */}}
 {{- define "hugegraph.server.startupFailureThreshold" -}}
-{{- $period := int .Values.server.probes.startup.periodSeconds -}}
-{{- $configured := int .Values.server.probes.startup.failureThreshold -}}
-{{- $minimum := add (div (add 449 $period) $period) 1 -}}
-{{- max $configured $minimum -}}
+{{- .Values.server.probes.startup.failureThreshold -}}
 {{- end }}
 
 {{/*
@@ -593,16 +663,20 @@ HG_SERVER_STARTUP_TIMEOUT_S. The image defaults that to 120 seconds, which is
 shorter than the storage wait alone, so a Server still coming up kills itself
 before Kubernetes has given up on it. The value therefore tracks the startup
 probe's guaranteed alive time, (failureThreshold - 1) * periodSeconds,
-because the first probe can fail immediately, minus the 300-second storage
+because the first probe can fail immediately, minus the configured storage
 wait the entrypoint runs before the start command, so the start command and
 kubelet give up together instead of the image outliving the probe. Floored
 at the image's own 120-second default, and capped at the entrypoint's 86400
 maximum rather than rendered into a Pod that refuses to start.
 */}}
+{{- define "hugegraph.server.startupProbeBudget" -}}
+{{- $startup := .Values.server.probes.startup -}}
+{{- add (int ($startup.initialDelaySeconds | default 0)) (mul (sub (int $startup.failureThreshold) 1) (int $startup.periodSeconds)) -}}
+{{- end }}
+
 {{- define "hugegraph.server.startupTimeoutSeconds" -}}
-{{- $period := int .Values.server.probes.startup.periodSeconds -}}
-{{- $threshold := include "hugegraph.server.startupFailureThreshold" . | int -}}
-{{- min 86400 (max 120 (sub (mul (sub $threshold 1) $period) 300)) -}}
+{{- $budget := include "hugegraph.server.startupProbeBudget" . | int -}}
+{{- min 86400 (max 120 (sub $budget (int .Values.server.storageWaitTimeoutSeconds))) -}}
 {{- end }}
 
 {{/*
@@ -653,6 +727,11 @@ The minimum Server replica count that a PDB must remain valid against.
 Cross-field validation that JSON Schema draft-07 cannot express.
 */}}
 {{- define "hugegraph.validateValues" -}}
+{{- include "hugegraph.resolveValues" . -}}
+{{- $startupBudget := include "hugegraph.server.startupProbeBudget" . | int -}}
+{{- if lt $startupBudget (add (int .Values.server.storageWaitTimeoutSeconds) 120) -}}
+{{- fail "server.probes.startup.failureThreshold and periodSeconds must leave at least server.storageWaitTimeoutSeconds + 120 seconds to wait for storage and start Server; increase the probe budget or reduce server.storageWaitTimeoutSeconds" -}}
+{{- end -}}
 {{- range $comp := list "pd" "store" "server" "hubble" -}}
 {{- $compLabels := get (get $.Values $comp | default dict) "podLabels" | default dict -}}
 {{- range $reserved := list "app.kubernetes.io/name" "app.kubernetes.io/instance" "app.kubernetes.io/component" -}}
@@ -694,15 +773,25 @@ and skip it. An operator who has completed the documented manual scale-down
 procedure has already scaled the live StatefulSet, so desired equals live
 and the upgrade passes.
 */}}
+{{- if .Release.IsUpgrade -}}
 {{- range $comp := list "pd" "store" -}}
 {{- $stsName := "" -}}
 {{- if eq $comp "pd" -}}{{- $stsName = include "hugegraph.pd.name" $ -}}{{- else -}}{{- $stsName = include "hugegraph.store.name" $ -}}{{- end -}}
 {{- $live := lookup "apps/v1" "StatefulSet" $.Release.Namespace $stsName -}}
 {{- if $live -}}
+{{- $wasPersistent := false -}}
+{{- range $claim := get (get $live "spec") "volumeClaimTemplates" | default list -}}
+{{- if eq (dig "metadata" "name" "" $claim) (printf "%s-data" $comp) -}}{{- $wasPersistent = true -}}{{- end -}}
+{{- end -}}
+{{- if ne $wasPersistent (get (get (get $.Values $comp) "storage") "enabled") -}}
+{{- fail (printf "%s.storage.enabled cannot change on an initialized release: StatefulSet volumeClaimTemplates are immutable and changing storage can discard data. Use a fresh release and migrate data" $comp) -}}
+{{- end -}}
+
 {{- $liveReplicas := int (dig "spec" "replicas" 0 $live) -}}
 {{- $desired := int (get (get $.Values $comp) "replicas") -}}
 {{- if and (gt $liveReplicas 0) (lt $desired $liveReplicas) -}}
-{{- fail (printf "%s.replicas cannot shrink from %d to %d through a helm upgrade: raft and shard membership are persisted, and removing Pods does not reconfigure them. Follow the manual scale-down procedure in the README (Scaling), which ends by scaling the live StatefulSet; the upgrade passes once the live replicas match the value" $comp $liveReplicas $desired) -}}
+{{- $procedure := ternary "Reconfigure the persisted PD voting membership before scaling the live StatefulSet" "Retire leaving Store IDs and migrate their shards before scaling the live StatefulSet" (eq $comp "pd") -}}
+{{- fail (printf "%s.replicas cannot shrink from %d to %d through a helm upgrade: persisted membership is not changed by removing Pods. %s; see docs/operations.md (Topology and scheduling). The upgrade passes once live replicas match the value" $comp $liveReplicas $desired $procedure) -}}
 {{- end -}}
 {{/*
 PD raft membership is the persisted voting configuration, and the peer list
@@ -715,7 +804,7 @@ from no REST route, so the chart cannot perform it and does not pretend to.
 Growing Store is ordinary scale-out and stays allowed.
 */}}
 {{- if and (eq $comp "pd") (gt $liveReplicas 0) (gt $desired $liveReplicas) -}}
-{{- fail (printf "pd.replicas cannot grow from %d to %d through a helm upgrade: the rendered peer list reaches raft only as the initial configuration, so new Pods would start without joining the voting configuration. Change the persisted membership through PD first, then scale the live StatefulSet, then upgrade with the matching value; the README (Scaling) has the procedure and its limits. A fresh install at any replica count is unaffected" $liveReplicas $desired) -}}
+{{- fail (printf "pd.replicas cannot grow from %d to %d through a helm upgrade: the rendered peer list reaches raft only as the initial configuration, so new Pods would start without joining the voting configuration. Change the persisted membership through PD first, then scale the live StatefulSet, then upgrade with the matching value; see docs/operations.md (Topology and scheduling) for the supported lifecycle. A fresh install at any replica count is unaffected" $liveReplicas $desired) -}}
 {{- end -}}
 {{/*
 Raft identity. Every PD and Store names itself to its peers as
@@ -760,6 +849,22 @@ the instance and component labels instead, which do not depend on the name.
 {{- $labels := dig "metadata" "labels" dict $sts -}}
 {{- if and (eq (get $labels "app.kubernetes.io/instance" | default "") $.Release.Name) (eq (get $labels "app.kubernetes.io/component" | default "") $comp) (ne (dig "metadata" "name" "" $sts) $stsName) -}}
 {{- fail (printf "release %s already owns the %s StatefulSet %s, but the values now name it %s (nameOverride or fullnameOverride changed): the StatefulSet name is the raft address of every Pod and the prefix of every PersistentVolumeClaim, so the rename would start empty Pods under new identities and leave the data volumes detached. Restore the previous override; a rename needs a fresh install and a data migration" $.Release.Name $comp (dig "metadata" "name" "" $sts) $stsName) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $hubbleLive := lookup "apps/v1" "Deployment" .Release.Namespace (include "hugegraph.hubble.name" .) -}}
+{{- if and $hubbleLive .Values.hubble.enabled -}}
+{{- $wasPersistent := false -}}
+{{- $hasDataVolume := false -}}
+{{- range $volume := dig "spec" "template" "spec" "volumes" list $hubbleLive -}}
+{{- if eq ($volume.name | default "") "data" -}}{{- $hasDataVolume = true -}}{{- end -}}
+{{- if and (eq ($volume.name | default "") "data") (hasKey $volume "persistentVolumeClaim") -}}{{- $wasPersistent = true -}}{{- end -}}
+{{- end -}}
+{{- if ne $wasPersistent .Values.hubble.persistence.enabled -}}
+{{- if not $hasDataVolume -}}
+{{- fail "hubble.persistence.enabled cannot change on an initialized release: legacy Hubble has no data volume and its UI records are in the container filesystem. Keep hubble.persistence.enabled=false with --reuse-values or an explicit GitOps value; enabling persistence requires a reviewed metadata migration first" -}}
+{{- end -}}
+{{- fail "hubble.persistence.enabled cannot change on an initialized release: changing storage can discard UI records. Migrate the data into a fresh deployment first" -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
@@ -811,9 +916,6 @@ keys for releases stored before the values existed.
 {{- if and (get $svc "nodePort") (not (has (get $svc "type" | default "ClusterIP") (list "NodePort" "LoadBalancer"))) -}}
 {{- fail "server.service.nodePort requires server.service.type to be NodePort or LoadBalancer" -}}
 {{- end -}}
-{{- if and (ne (get $svc "type" | default "ClusterIP") "ClusterIP") (not (get $svc "allowInsecureExposure" | default false)) -}}
-{{- fail "server.service.type NodePort or LoadBalancer publishes the plain-HTTP Server API outside the cluster, so Basic-auth credentials and JWTs cross the network in cleartext; keep ClusterIP behind a port-forward or an HTTPS-terminating Ingress (server.ingress.tls), or set server.service.allowInsecureExposure=true once reachability is restricted by other means (NetworkPolicy, load balancer allowlist, firewall)" -}}
-{{- end -}}
 {{- $advertiseUrl := trim (default "" .Values.server.advertiseUrl) -}}
 {{- if and $advertiseUrl (not (or (hasPrefix "http://" $advertiseUrl) (hasPrefix "https://" $advertiseUrl))) -}}
 {{- fail "server.advertiseUrl must be an absolute http:// or https:// URL when set" -}}
@@ -823,18 +925,12 @@ keys for releases stored before the values existed.
 {{- if and (or (get $pdSvc "restNodePort") (get $pdSvc "grpcNodePort")) (not (has $pdSvcType (list "NodePort" "LoadBalancer"))) -}}
 {{- fail "pd.service.restNodePort and pd.service.grpcNodePort require pd.service.type to be NodePort or LoadBalancer" -}}
 {{- end -}}
-{{- if and (ne $pdSvcType "ClusterIP") (not (get $pdSvc "allowInsecureExposure" | default false)) -}}
-{{- fail "pd.service.type NodePort or LoadBalancer exposes PD's unauthenticated gRPC port outside the cluster, raft membership RPCs included; keep ClusterIP, or set pd.service.allowInsecureExposure=true once reachability is restricted by other means (NetworkPolicy, load balancer allowlist, firewall)" -}}
-{{- end -}}
 {{- $serverPdb := get .Values.server "pdb" | default dict -}}
 {{- $serverReplicaFloor := include "hugegraph.server.replicaFloor" . | int -}}
 {{- if and (get $serverPdb "enabled" | default false) (gt $serverReplicaFloor 1) (ge (int (get $serverPdb "minAvailable" | default 1)) $serverReplicaFloor) -}}
 {{- fail "server.pdb.minAvailable must be less than the active Server replica floor (server.hpa.minReplicas when HPA is enabled, otherwise server.replicas), otherwise the PDB permanently blocks voluntary disruptions such as node drains" -}}
 {{- end -}}
 {{- $serverIngress := get .Values.server "ingress" | default dict -}}
-{{- if and (get $serverIngress "enabled" | default false) (empty (get $serverIngress "tls")) (not (get $serverIngress "allowPlainHttp" | default false)) -}}
-{{- fail "server.ingress.enabled without tls publishes Basic-auth credentials and JWTs over plain HTTP; configure server.ingress.tls, or set server.ingress.allowPlainHttp=true to accept that on a trusted network" -}}
-{{- end -}}
 {{- if get (get .Values.server "securityContext" | default dict) "readOnlyRootFilesystem" | default false -}}
 {{- fail "server.securityContext.readOnlyRootFilesystem=true breaks Server: its wrapper rewrites conf/rest-server.properties inside the image at startup and the chart mounts no writable volume there" -}}
 {{- end -}}
@@ -851,7 +947,7 @@ start-hugegraph-pd.sh, start-hugegraph-store.sh, and hugegraph-server.sh).
 {{- $reservedEnv := dict
       "pd" (list "HG_PD_GRPC_HOST" "HG_PD_GRPC_PORT" "HG_PD_REST_PORT" "HG_PD_RAFT_ADDRESS" "HG_PD_RAFT_PEERS_LIST" "HG_PD_INITIAL_STORE_LIST" "HG_PD_INITIAL_STORE_COUNT" "HG_PD_DATA_PATH" "HG_PD_AUTH_SECRET_KEY" "JAVA_OPTS" "JAVA_OPTIONS")
       "store" (list "HG_STORE_PD_ADDRESS" "HG_STORE_GRPC_HOST" "HG_STORE_GRPC_PORT" "HG_STORE_REST_PORT" "HG_STORE_RAFT_ADDRESS" "HG_STORE_DATA_PATH" "JAVA_OPTS" "JAVA_OPTIONS")
-      "server" (list "POD_IP" "HG_SERVER_BACKEND" "HG_SERVER_PD_PEERS" "HG_SERVER_PD_REST_ENDPOINT" "STORE_REST" "HG_SERVER_INIT_STORE_ENABLED" "HG_SERVER_URLS_TO_PD" "HG_SERVER_STARTUP_TIMEOUT_S" "PD_AUTH_PASSWORD" "PASSWORD" "HG_SERVER_AUTH_TOKEN_SECRET" "JAVA_OPTS" "JAVA_OPTIONS")
+      "server" (list "POD_IP" "HG_SERVER_SERVICE_ID" "HG_SERVER_GRAPHSPACE" "SERVICE_ID" "GRAPH_SPACE" "HG_SERVER_BACKEND" "HG_SERVER_PD_PEERS" "HG_SERVER_PD_REST_ENDPOINT" "STORE_REST" "HG_SERVER_INIT_STORE_ENABLED" "HG_SERVER_URLS_TO_PD" "HG_SERVER_DEPLOY_IN_K8S" "HG_SERVER_STARTUP_TIMEOUT_S" "WAIT_STORAGE_TIMEOUT_S" "PD_AUTH_PASSWORD" "PASSWORD" "HG_SERVER_AUTH_TOKEN_SECRET" "JAVA_OPTS" "JAVA_OPTIONS")
       "hubble" (list "HG_HUBBLE_PD_PEERS" "HG_HUBBLE_PD_SERVER" "HG_HUBBLE_PD_PASSWORD" "HG_HUBBLE_STORE_TARGETS" "HG_HUBBLE_SERVER_URL" "SPRING_DATASOURCE_URL") -}}
 {{- range $component, $reserved := $reservedEnv -}}
 {{- $componentValues := get $.Values $component | default dict -}}
@@ -870,9 +966,6 @@ start-hugegraph-pd.sh, start-hugegraph-store.sh, and hugegraph-server.sh).
 {{- if and (get $hubbleSvc "nodePort") (not (has (get $hubbleSvc "type" | default "ClusterIP") (list "NodePort" "LoadBalancer"))) -}}
 {{- fail "hubble.service.nodePort requires hubble.service.type to be NodePort or LoadBalancer" -}}
 {{- end -}}
-{{- if and (ne (get $hubbleSvc "type" | default "ClusterIP") "ClusterIP") (not (get $hubbleSvc "allowInsecureExposure" | default false)) -}}
-{{- fail "hubble.service.type NodePort or LoadBalancer publishes the plain-HTTP Hubble UI outside the cluster, with no login of its own and the graph credentials typed into it; keep ClusterIP behind a port-forward or an HTTPS-terminating Ingress, or set hubble.service.allowInsecureExposure=true once reachability is restricted by other means (NetworkPolicy, load balancer allowlist, firewall)" -}}
-{{- end -}}
 {{- $hubbleImage := get $hubble "image" | default dict -}}
 {{- if and (eq (trim (get $hubbleImage "tag" | default "")) "") (eq (trim (get $hubbleImage "digest" | default "")) "") -}}
 {{- fail "hubble.image needs a tag or a digest: the chart appVersion tracks the Server release, not Hubble, so there is no meaningful fallback" -}}
@@ -881,9 +974,6 @@ start-hugegraph-pd.sh, start-hugegraph-store.sh, and hugegraph-server.sh).
 {{- fail "hubble.securityContext.readOnlyRootFilesystem=true breaks Hubble: its wrapper writes conf/hugegraph-hubble.properties inside the image at startup and the chart mounts no writable volume there" -}}
 {{- end -}}
 {{- $hubbleIngress := get $hubble "ingress" | default dict -}}
-{{- if and (get $hubbleIngress "enabled" | default false) (empty (get $hubbleIngress "tls")) (not (get $hubbleIngress "allowPlainHttp" | default false)) -}}
-{{- fail "hubble.ingress.enabled without tls publishes the plain-HTTP, unauthenticated Hubble UI; configure hubble.ingress.tls, or set hubble.ingress.allowPlainHttp=true to accept that on a trusted network" -}}
-{{- end -}}
 {{- end -}}
 {{- $pdAuth := get .Values.pd "auth" | default dict -}}
 {{/* A values set with no pd.auth block at all (a release stored before the
@@ -905,27 +995,7 @@ start-hugegraph-pd.sh, start-hugegraph-store.sh, and hugegraph-server.sh).
 {{- fail "server.auth.token requires existingSecret, value, or autoGenerate=true when auth is enabled" -}}
 {{- end -}}
 {{- end -}}
-{{/* NetworkPolicy exposure check runs last, so an exposure the other checks
-     refuse (allowInsecureExposure, Ingress TLS) is reported first. */}}
-{{- $networkPolicy := get .Values "networkPolicy" | default dict -}}
-{{- if get $networkPolicy "enabled" -}}
-{{- $exposed := dict
-      "pd" (ne $pdSvcType "ClusterIP")
-      "server" (or (ne (get $svc "type" | default "ClusterIP") "ClusterIP") (get $serverIngress "enabled" | default false) (ne $advertiseUrl ""))
-      "hubble" (and (get $hubble "enabled" | default false) (or (ne (get (get $hubble "service" | default dict) "type" | default "ClusterIP") "ClusterIP") (get (get $hubble "ingress" | default dict) "enabled" | default false))) -}}
-{{- range $comp := list "pd" "server" "hubble" -}}
-{{- if and (get $exposed $comp) (empty (get (get $networkPolicy $comp | default dict) "extraIngress")) -}}
-{{- fail (printf "networkPolicy.enabled admits nothing from outside the release, so the %s exposure (NodePort/LoadBalancer Service, Ingress%s) is unreachable; list its callers in networkPolicy.%s.extraIngress, for example the Ingress controller's namespace or a client CIDR" $comp (ternary ", server.advertiseUrl" "" (eq $comp "server")) $comp) -}}
-{{- end -}}
-{{- end -}}
-{{/* An in-cluster Hubble in pd mode receives whatever Server URL PD hands
-     out. With server.advertiseUrl set, that is the advertised external URL,
-     and Hubble's egress policy only admits traffic to Server Pods, so the
-     discovered URL would be unreachable from Hubble. */}}
-{{- if and (get $hubble "enabled" | default false) (eq (get $hubble "mode" | default "pd") "pd") (ne $advertiseUrl "") (empty (get (get $networkPolicy "hubble" | default dict) "extraEgress")) -}}
-{{- fail "networkPolicy.enabled restricts Hubble egress to the release's own Pods, but server.advertiseUrl makes PD hand Hubble that external URL for discovery; allow Hubble to reach it in networkPolicy.hubble.extraEgress, or leave server.advertiseUrl empty for in-cluster discovery" -}}
-{{- end -}}
-{{- end -}}
+
 {{- end }}
 
 {{/*

@@ -34,6 +34,8 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -268,6 +270,41 @@ public class CypherApiTest extends BaseApiTest {
     }
 
     @Test
+    public void testOrderByNullableBooleanGroupingKey() {
+        // #3319: sorting a Boolean-or-null grouping key once crashed with a
+        // ClassCastException when the translator null marker met ordered values
+        createAndAssert(URL_PREFIX + "/graph/vertices", JsonUtil.toJson(ImmutableMap.of(
+                "label", "cypher_person",
+                "properties", ImmutableMap.of("name", "noactive", "age", 50,
+                                              "city", "Beijing"))));
+        String cypher = "MATCH (n:cypher_person) " +
+                        "OPTIONAL MATCH (n)-[r0:cypher_knows]->(n1 {city: 'Nowhere'}) " +
+                        "WITH n.active AS g, count(n1.name) AS c " +
+                        "RETURN g, c ORDER BY g ";
+        List<?> rows = query(cypher + "DESC");
+        Assert.assertEquals(3, rows.size());
+        assertGroupRow(rows.get(0), null);
+        assertGroupRow(rows.get(1), true);
+        assertGroupRow(rows.get(2), false);
+
+        rows = query(cypher + "ASC");
+        Assert.assertEquals(3, rows.size());
+        assertGroupRow(rows.get(0), false);
+        assertGroupRow(rows.get(1), true);
+        assertGroupRow(rows.get(2), null);
+
+        query("MATCH (n:cypher_person {name: 'noactive'}) DETACH DELETE n");
+        Assert.assertEquals(4, nativeVertices().size());
+    }
+
+    private static void assertGroupRow(Object row, Object groupKey) {
+        Map<?, ?> map = assertMapValue(Collections.singletonList(row), 0);
+        Assert.assertEquals(2, map.size());
+        Assert.assertEquals(groupKey, map.get("g"));
+        Assert.assertEquals(0L, ((Number) map.get("c")).longValue());
+    }
+
+    @Test
     public void testParameters() {
         assertColumn(bound("MATCH (n:cypher_person) WHERE n.name = $name AND " +
                            "n.age >= $age AND n.active = $active RETURN n.name AS name",
@@ -398,6 +435,76 @@ public class CypherApiTest extends BaseApiTest {
         assertExecutionError(response);
         assertColumn(query("MATCH (n:cypher_person) RETURN n.name AS name ORDER BY name"),
                      "name", "alice", "dave", "marko", "peter");
+    }
+
+    @Test
+    public void testRejectMissingAuthorization() {
+        RestClient anonymous = new RestClient(baseUrl(), false);
+        try {
+            assertResponseStatus(401, anonymous.get(PATH, ImmutableMap.of("cypher", "RETURN 1")));
+            assertResponseStatus(401, anonymous.post(PATH, "RETURN 1"));
+        } finally {
+            anonymous.close();
+        }
+    }
+
+    @Test
+    public void testReadOnlyUserCannotWriteOrReadAnotherGraph() {
+        assumeStandaloneMode();
+        String graph = "cypher_reader_other";
+        String graphPath = "graphspaces/DEFAULT/graphs/" + graph;
+        Deque<String[]> created = new ArrayDeque<>();
+        RestClient reader = null;
+        boolean graphCreated = false;
+        try {
+            String config = JsonUtil.toJson(ImmutableMap.of(
+                    "gremlin.graph", "org.apache.hugegraph.auth.HugeFactoryAuthProxy",
+                    "backend", "memory", "serializer", "text", "store", graph));
+            Response response = client().post(graphPath, Entity.json(config));
+            graphCreated = response.getStatus() == 201;
+            assertResponseStatus(201, response);
+            reader = new RestClient(baseUrl(), "cypher_reader", "cypher-reader-password");
+            String group = this.createAuth(created, "auth/groups",
+                                           "{\"group_name\":\"cypher_read_only_group\"}");
+            String target = this.createAuth(created, "graphspaces/DEFAULT/auth/targets",
+                                            "{\"target_name\":\"cypher_read_only_target\"," +
+                                            "\"target_graph\":\"hugegraph\"," +
+                                            "\"target_resources\":[{\"type\":\"ALL\"}]}");
+            for (String permission : ImmutableList.of("READ", "EXECUTE")) {
+                this.createAuth(created, "graphspaces/DEFAULT/auth/accesses", String.format(
+                        "{\"group\":\"%s\",\"target\":\"%s\",\"access_permission\":\"%s\"}",
+                        group, target, permission));
+            }
+            String user = this.createAuth(created, "graphspaces/DEFAULT/auth/users",
+                                          "{\"user_name\":\"cypher_reader\"," +
+                                          "\"user_password\":\"cypher-reader-password\"}");
+            this.createAuth(created, "graphspaces/DEFAULT/auth/belongs", String.format(
+                    "{\"user\":\"%s\",\"group\":\"%s\"}", user, group));
+
+            assertColumn(assertCypherSuccessData(assertResponseStatus(200, reader.post(PATH, QUERY))),
+                         "name", "marko", "peter");
+            assertPermissionDenied(reader.post(PATH,
+                    "CREATE (n:cypher_person {name:'cypher_denied',age:1,city:'Beijing'}) RETURN n"),
+                    "write", "hugegraph");
+            Assert.assertNull(this.nativeVertex("cypher_denied"));
+            // This existing graph is accessible to the administrator but not to the reader.
+            assertCypherSuccessData(assertResponseStatus(200, client().post(
+                    graphPath + "/cypher", "MATCH (n) RETURN n")));
+            assertPermissionDenied(reader.post(graphPath + "/cypher", "MATCH (n) RETURN n"),
+                                   "execute", graph);
+        } finally {
+            if (reader != null) {
+                reader.close();
+            }
+            try {
+                this.deleteAuth(created);
+            } finally {
+                if (graphCreated) {
+                    assertResponseStatus(204, client().delete(graphPath, ImmutableMap.of(
+                            "confirm_message", "I'm sure to drop the graph")));
+                }
+            }
+        }
     }
 
     @Test
@@ -534,6 +641,17 @@ public class CypherApiTest extends BaseApiTest {
         Assert.assertNull(assertMapValue(body, "result").get("data"));
     }
 
+    private static void assertPermissionDenied(Response response, String operation, String graph) {
+        String content = assertResponseStatus(200, response);
+        Map<?, ?> body = JsonUtil.fromJson(content, Map.class);
+        Map<?, ?> status = assertMapValue(body, "status");
+        Assert.assertEquals(400, ((Number) status.get("code")).intValue());
+        String message = String.valueOf(status.get("message"));
+        assertContains("Permission denied: " + operation, message);
+        assertContains("graph=" + graph + ",", message);
+        Assert.assertNull(assertMapValue(body, "result").get("data"));
+    }
+
     private void addVertex(String name, int age, String city, boolean active) {
         createAndAssert(URL_PREFIX + "/graph/vertices", JsonUtil.toJson(ImmutableMap.of(
                 "label", "cypher_person", "properties", ImmutableMap.of(
@@ -590,6 +708,54 @@ public class CypherApiTest extends BaseApiTest {
         Assert.assertEquals(name, properties.get("name"));
         Assert.assertEquals(age, ((Number) properties.get("age")).intValue());
         Assert.assertEquals(city, properties.get("city"));
+    }
+
+    @Test
+    public void testSyntaxErrorHasStructuredErrorWithHint() throws Exception {
+        this.assertError("MATCH (n:cypher_person) RETURN not_defined_var",
+                         "HugeGraph.Cypher.SyntaxError",
+                         "Declare the variable in a MATCH, UNWIND or WITH clause " +
+                         "before referencing it");
+    }
+
+    @Test
+    public void testParserErrorHasStructuredErrorWithHint() throws Exception {
+        this.assertError("MATCH (n:cypher_person RETURN n", "HugeGraph.Cypher.SyntaxError",
+                         "Check the query syntax and function names supported by " +
+                         "the built-in Cypher translator");
+    }
+
+    @Test
+    public void testMultipleStatementsHaveStructuredError() throws Exception {
+        this.assertError("MATCH (n) RETURN n; MATCH (m) RETURN m",
+                         "HugeGraph.Cypher.SyntaxError",
+                         "Submit exactly one Cypher statement per request");
+    }
+
+    @Test
+    public void testUndefinedLabelHasSchemaHint() throws Exception {
+        this.assertError("MATCH (n:robot) RETURN n", "HugeGraph.Cypher.ExecutionError",
+                         "Create the schema element via the schema API before running the query");
+    }
+
+    @Test
+    public void testMissingParameterHasFallbackError() throws Exception {
+        this.assertError("RETURN $missing AS value",
+                         "HugeGraph.Cypher.ExecutionError", "");
+    }
+
+    private void assertError(String query, String code, String hint) throws Exception {
+        Response r = client().post(PATH, query);
+        JsonNode response = new ObjectMapper().readTree(assertResponseStatus(200, r));
+        Assert.assertEquals(3, response.size());
+        Assert.assertFalse(response.has("errors"));
+        Assert.assertEquals(400, response.at("/status/code").asInt());
+        Assert.assertFalse(response.at("/status/message").asText().isEmpty());
+        Assert.assertEquals(1, response.at("/status/attributes/errors").size());
+        JsonNode error = response.at("/status/attributes/errors/0");
+        Assert.assertEquals(code, error.get("code").asText());
+        Assert.assertEquals(hint, error.get("hint").asText());
+        Assert.assertFalse(error.get("message").asText().isEmpty());
     }
 
     private String testCypherQueryAndContains(String cypher,

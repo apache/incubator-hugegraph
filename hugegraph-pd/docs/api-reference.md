@@ -871,6 +871,19 @@ A cluster has lost its quorum when `sum(hg_raft_leader) == 0` or when `hg_raft_h
 
 Do not aggregate `hg_raft_alive_peers` across instances: it is `NaN` on every node but the leader, and one `NaN` sample turns the result of `sum()` or `avg()` into `NaN` as well. Select the leader's series instead, for example `hg_raft_alive_peers and on(instance) (hg_raft_leader == 1)`.
 
+#### Store state gauges
+
+Exported on `/actuator/prometheus` for each store registered in PD, from the store and shard group metadata PD keeps:
+
+| Gauge | Value |
+|-------|-------|
+| `hg_store_state{store="<id>",state="<state>"}` | `1` for the store's current state, `0` for the others. `state` is one of `Unknown`, `Pending`, `Up`, `Offline`, `Exiting`, `Tombstone` |
+| `hg_store_leader_count{store="<id>"}` | Number of shard groups whose leader is on the store |
+
+A new store's series can take one extra scrape to appear, and they disappear once the store is removed from PD. Every PD member reads the same replicated metadata, so select one instance, such as the leader, before aggregating: `hg_store_leader_count and on(instance) (hg_raft_leader == 1)`.
+
+`hg_store_leader_count` shows where leadership sits during and after a Store recovery: a rebuilt store reports `0` until leaders move back to it, either through `/v1/task/balanceLeaders` or by raft elections.
+
 ### Partition API
 
 #### List Partitions

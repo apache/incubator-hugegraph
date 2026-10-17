@@ -173,16 +173,20 @@ class PolicyTest(unittest.TestCase):
         self.assertTrue(native["riscv64"])
         self.assertTrue(self.plan_for([policy.TRAVIS + "check-rocksdb-only-dist.sh"])["riscv64"])
 
-    def test_security_tracks_security_and_dependencies_only(self):
+    def test_security_tracks_sensitive_inputs_and_dependencies(self):
         paths = [policy.SERVER_CORE + "auth/AuthManager.java", policy.SERVER_CORE + "security/HugeSecurityManager.java",
                  policy.SERVER_CORE + "config/AuthOptions.java",
                  policy.SERVER_API + "api/filter/AuthenticationFilter.java", "hugegraph-pd/hg-pd-core/pom.xml",
-                 ".github/workflows/codeql-analysis.yml"]
+                 ".github/workflows/codeql-analysis.yml",
+                 policy.SERVER_CORE + "backend/cache/CachedSchemaTransaction.java",
+                 policy.SERVER_CORE + "backend/cache/CachedSchemaTransactionV2.java"]
         for path in paths:
             with self.subTest(path=path):
                 self.assertTrue(self.plan_for([path])["security"])
         for path in [policy.SERVER_CORE + "api/Author.java", "hugegraph-pd/hg-pd-core/src/main/A.java",
-                     "docker/Dockerfile", "helm/templates/service.yaml"]:
+                     "docker/Dockerfile", "helm/templates/service.yaml",
+                     policy.SERVER_CORE + "backend/cache/CacheManager.java",
+                     policy.SERVER_CORE + "backend/cache/CachedSchemaTransactionTest.java"]:
             self.assertFalse(self.plan_for([path])["security"])
 
     def test_documentation_and_nested_readmes_skip_every_test_lane(self):

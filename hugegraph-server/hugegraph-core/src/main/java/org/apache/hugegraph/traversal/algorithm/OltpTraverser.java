@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -287,7 +286,7 @@ public abstract class OltpTraverser extends HugeTraverser
         private final Set<Id> excluded;
         private final Set<Id> neighbors;
         private final long limit;
-        private final AtomicInteger count;
+        private int count;
 
         public ConcurrentVerticesConsumer(Id sourceV, Set<Id> excluded, long limit,
                                           Set<Id> neighbors) {
@@ -295,12 +294,13 @@ public abstract class OltpTraverser extends HugeTraverser
             this.excluded = excluded;
             this.limit = limit;
             this.neighbors = neighbors;
-            this.count = new AtomicInteger(0);
+            this.count = 0;
         }
 
         @Override
-        public void accept(EdgeId edgeId) {
-            if (this.limit != NO_LIMIT && count.get() >= this.limit) {
+        public synchronized void accept(EdgeId edgeId) {
+            // Each BFS layer shares a non-thread-safe result set across workers.
+            if (this.limit != NO_LIMIT && this.count >= this.limit) {
                 throw new Consumers.StopExecution("reach limit");
             }
 
@@ -315,7 +315,7 @@ public abstract class OltpTraverser extends HugeTraverser
 
             if (this.neighbors.add(targetV)) {
                 if (this.limit != NO_LIMIT) {
-                    this.count.getAndIncrement();
+                    this.count++;
                 }
             }
         }

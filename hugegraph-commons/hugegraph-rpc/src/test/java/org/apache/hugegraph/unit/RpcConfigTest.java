@@ -17,7 +17,9 @@
 
 package org.apache.hugegraph.unit;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,14 +34,273 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.hugegraph.unit.ServerClientTest.HelloService;
 import org.apache.hugegraph.unit.ServerClientTest.HelloServiceImpl;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.alipay.sofa.rpc.bootstrap.ConsumerBootstrap;
+import com.alipay.sofa.rpc.bootstrap.DefaultConsumerBootstrap;
+import com.alipay.sofa.rpc.client.Cluster;
+import com.alipay.sofa.rpc.client.FailoverCluster;
 import com.alipay.sofa.rpc.config.ConsumerConfig;
 import com.alipay.sofa.rpc.config.ProviderConfig;
+import com.alipay.sofa.rpc.ext.Extension;
+import com.alipay.sofa.rpc.ext.ExtensionLoaderFactory;
 
 public class RpcConfigTest extends BaseUnitTest {
 
     private static final String HELLO = HelloService.class.getName();
+
+    private static ConsumerFailure consumerFailure;
+
+    @BeforeClass
+    public static void registerCleanupBootstrap() {
+        ExtensionLoaderFactory.getExtensionLoader(ConsumerBootstrap.class)
+                              .loadExtension(CleanupBootstrap.class);
+        ExtensionLoaderFactory.getExtensionLoader(Cluster.class)
+                              .loadExtension(CleanupCluster.class);
+    }
+
+    @Test
+    public void testReferFailureRetainsCleanupOwner() {
+        this.assertReferCleanup(new IllegalStateException("refer failure"), false, false);
+    }
+
+    @Test
+    public void testReferErrorPreservedOnSelfSuppression() {
+        this.assertReferCleanup(new AssertionError("refer error"), true, false);
+    }
+
+    @Test
+    public void testCleanupErrorPromotedAboveReferException() {
+        this.assertReferCleanup(new IllegalStateException("refer failure"), false, true);
+    }
+
+    @Test
+    public void testReferFailureWithSuccessfulCleanupReleasesOwner() {
+        RpcConsumerConfig owner = new RpcConsumerConfig(new HugeConfig(Collections.emptyMap()),
+                                                       "127.0.0.1:1");
+        ConsumerFailure control = new ConsumerFailure(owner, new IllegalStateException("refer failure"));
+        control.disarm();
+        try {
+            Assert.assertSame(control.referFailure, captureFailure(() -> owner.serviceProxy(HELLO)));
+            Assert.assertGt(0, control.destroyCalls.get());
+            Assert.assertFalse(control.retained());
+            Assert.assertNull(control.bootstrap.getProxyIns());
+        } finally {
+            control.close();
+        }
+    }
+
+    private void assertReferCleanup(Throwable primary, boolean sameCleanup, boolean fatalCleanup) {
+        RpcConsumerConfig owner = new RpcConsumerConfig(new HugeConfig(Collections.emptyMap()),
+                                                       "127.0.0.1:1");
+        ConsumerFailure control = new ConsumerFailure(owner, primary);
+        control.unreferFailure = sameCleanup ? primary : new IllegalStateException("unrefer failure");
+        if (fatalCleanup) {
+            control.clusterFailure = new AssertionError("cluster error");
+        } else if (sameCleanup) {
+            control.clusterFailure = new AssertionError("secondary cluster error");
+        }
+        try {
+            Throwable thrown = captureFailure(() -> owner.serviceProxy(HELLO));
+            Assert.assertNotNull(control.bootstrap.getProxyIns());
+            Assert.assertSame(fatalCleanup ? control.clusterFailure : primary, thrown);
+            if (fatalCleanup) {
+                Assert.assertSame(primary, thrown.getSuppressed()[0]);
+            }
+            Assert.assertGt(0, control.destroyCalls.get());
+            Assert.assertTrue(control.retained());
+            control.disarm();
+            owner.destroy();
+            Assert.assertFalse(control.retained());
+            Assert.assertNull(control.bootstrap.getProxyIns());
+        } finally {
+            control.close();
+        }
+    }
+
+    @Test
+    public void testClusterCleanupFailureRetainsOwnerForRetry() {
+        RpcConsumerConfig owner = new RpcConsumerConfig(new HugeConfig(Collections.emptyMap()),
+                                                       "127.0.0.1:1");
+        ConsumerFailure control = new ConsumerFailure(owner, new IllegalStateException("refer failure"));
+        control.failUnrefer = false;
+        control.clusterFailure = new IllegalStateException("cluster failure");
+        try {
+            Assert.assertSame(control.referFailure, captureFailure(() -> owner.serviceProxy(HELLO)));
+            // Native unRefer swallows a cluster Exception, so the explicit destroy must also run.
+            Assert.assertGte(2, control.destroyCalls.get());
+            Assert.assertTrue(control.retained());
+            control.disarm();
+            owner.destroy();
+            Assert.assertFalse(control.retained());
+        } finally {
+            control.close();
+        }
+    }
+
+    @Test
+    public void testDestroyContinuesRemainingConsumers() {
+        RpcConsumerConfig owner = new RpcConsumerConfig(new HugeConfig(Collections.emptyMap()),
+                                                       "127.0.0.1:1");
+        ConsumerFailure first = new ConsumerFailure(owner, new IllegalStateException("first refer"));
+        ConsumerFailure second = null;
+        try {
+            captureFailure(() -> owner.serviceProxy(HELLO));
+            second = new ConsumerFailure(owner, new IllegalStateException("second refer"));
+            captureFailure(() -> owner.serviceProxy(HELLO));
+            second.disarm();
+            Assert.assertSame(first.unreferFailure, captureFailure(owner::removeAllServiceProxy));
+            Assert.assertNull(second.bootstrap.getProxyIns());
+            // Unrefer-only cleanup retains owners for the subsequent explicit destroy.
+            Assert.assertTrue(second.retained());
+            Assert.assertSame(first.unreferFailure, captureFailure(owner::destroy));
+            Assert.assertTrue(first.retained());
+            Assert.assertFalse(second.retained());
+            Assert.assertNull(second.bootstrap.getProxyIns());
+            first.disarm();
+            owner.destroy();
+            Assert.assertFalse(first.retained());
+        } finally {
+            first.close();
+            if (second != null) {
+                second.close();
+            }
+        }
+    }
+
+    @Test
+    public void testRemoveConsumerRetainsFailedCleanupOwner() {
+        RpcConsumerConfig owner = new RpcConsumerConfig(new HugeConfig(Collections.emptyMap()),
+                                                       "127.0.0.1:1");
+        ConsumerFailure control = new ConsumerFailure(owner, null);
+        try {
+            HelloService proxy = owner.serviceProxy(HELLO);
+            Assert.assertSame(control.unreferFailure, captureFailure(() -> {
+                owner.removeServiceProxy(null, HELLO, proxy);
+            }));
+            Assert.assertGt(0, control.destroyCalls.get());
+            Assert.assertTrue(control.retained());
+            Map<String, ConsumerConfig<?>> configs = Whitebox.getInternalState(owner, "configs");
+            Assert.assertSame(control.bootstrap.getConsumerConfig(), configs.get(HELLO));
+            control.disarm();
+            owner.destroy();
+            Assert.assertFalse(control.retained());
+        } finally {
+            control.close();
+        }
+    }
+
+    private static Throwable captureFailure(Runnable action) {
+        try {
+            action.run();
+        } catch (RuntimeException | Error failure) {
+            return failure;
+        }
+        throw new AssertionError("Expected consumer failure");
+    }
+
+    private static final class ConsumerFailure implements AutoCloseable {
+
+        private static final AtomicInteger IDS = new AtomicInteger();
+        private final RpcConsumerConfig owner;
+        private final Throwable referFailure;
+        private final AtomicInteger destroyCalls = new AtomicInteger();
+        private Throwable unreferFailure = new IllegalStateException("unrefer failure");
+        private Throwable clusterFailure;
+        private boolean failUnrefer = true;
+        private CleanupBootstrap bootstrap;
+
+        private ConsumerFailure(RpcConsumerConfig owner, Throwable referFailure) {
+            this.owner = owner;
+            this.referFailure = referFailure;
+            ConsumerConfig<HelloService> config = new ConsumerConfig<>();
+            config.setInterfaceId(HELLO).setUniqueId("cleanup-" + IDS.incrementAndGet())
+                  .setProtocol("bolt").setDirectUrl("127.0.0.1:1")
+                  .setLazy(true).setCheck(false).setInJVM(false)
+                  .setBootstrap("hugegraph_cleanup_test").setCluster("hugegraph_cleanup_test");
+            Map<String, ConsumerConfig<?>> configs = Whitebox.getInternalState(owner, "configs");
+            configs.put(HELLO, config);
+            consumerFailure = this;
+        }
+
+        private boolean retained() {
+            List<?> bootstraps = Whitebox.getInternalState(this.owner, "bootstraps");
+            return bootstraps.contains(this.bootstrap);
+        }
+
+        private void disarm() {
+            this.failUnrefer = false;
+            this.clusterFailure = null;
+        }
+
+        @Override
+        public void close() {
+            this.disarm();
+            if (this.bootstrap != null) {
+                this.bootstrap.unRefer();
+                this.bootstrap.getCluster().destroy();
+            }
+            consumerFailure = null;
+        }
+    }
+
+    @Extension("hugegraph_cleanup_test")
+    public static final class CleanupBootstrap extends DefaultConsumerBootstrap<HelloService> {
+
+        private final ConsumerFailure control;
+
+        public CleanupBootstrap(ConsumerConfig<HelloService> config) {
+            super(config);
+            this.control = consumerFailure;
+            this.control.bootstrap = this;
+        }
+
+        @Override
+        public HelloService refer() {
+            HelloService proxy = super.refer();
+            if (this.control.referFailure != null) {
+                throwFailure(this.control.referFailure);
+            }
+            return proxy;
+        }
+
+        @Override
+        public void unRefer() {
+            if (this.control.failUnrefer) {
+                throwFailure(this.control.unreferFailure);
+            }
+            super.unRefer();
+        }
+
+        private static void throwFailure(Throwable failure) {
+            if (failure instanceof Error) {
+                throw (Error) failure;
+            }
+            throw (RuntimeException) failure;
+        }
+    }
+
+    @Extension("hugegraph_cleanup_test")
+    public static final class CleanupCluster extends FailoverCluster {
+
+        private final ConsumerFailure control;
+
+        public CleanupCluster(ConsumerBootstrap<?> bootstrap) {
+            super(bootstrap);
+            this.control = ((CleanupBootstrap) bootstrap).control;
+        }
+
+        @Override
+        public void destroy() {
+            // Use the native cluster lifecycle; control only the cleanup failure boundary.
+            this.control.destroyCalls.incrementAndGet();
+            if (this.control.clusterFailure != null) {
+                CleanupBootstrap.throwFailure(this.control.clusterFailure);
+            }
+            super.destroy();
+        }
+    }
 
     @Test
     public void testExcludeSelfUrl() {
@@ -171,11 +432,39 @@ public class RpcConfigTest extends BaseUnitTest {
         Assert.assertEquals("g1", graph.getUniqueId());
         Assert.assertEquals("fanout", graph.getCluster());
 
-        // Configs are cached per service id
-        Assert.assertSame(plain, consumerConfig(consumer, null, HELLO));
-        Assert.assertSame(graph, consumerConfig(consumer, "g1", HELLO));
-        Assert.assertNotSame(graph, consumerConfig(consumer, "g2", HELLO));
         consumer.destroy();
+    }
+
+    @Test
+    public void testConsumerConfigCachedThroughServiceProxy() {
+        RpcServer server = new RpcServer(config("server-random"));
+        RpcConsumerConfig consumer = null;
+        try {
+            server.config().addService(HelloService.class, new HelloServiceImpl());
+            server.config().addService("g1", HelloService.class, new HelloServiceImpl());
+            server.config().addService("g2", HelloService.class, new HelloServiceImpl());
+            server.exportAll();
+            consumer = new RpcConsumerConfig(config("client"), server.host() + ":" + server.port());
+            ConsumerConfig<?> plain = referredConfig(consumer, null);
+            ConsumerConfig<?> graph = referredConfig(consumer, "g1");
+            Assert.assertSame(plain, referredConfig(consumer, null));
+            Assert.assertSame(graph, referredConfig(consumer, "g1"));
+            Assert.assertNotSame(graph, referredConfig(consumer, "g2"));
+        } finally {
+            if (consumer != null) {
+                consumer.destroy();
+            }
+            stopServer(server);
+        }
+    }
+
+    private static ConsumerConfig<?> referredConfig(RpcConsumerConfig consumer, String graph) {
+        HelloService proxy = consumer.serviceProxy(graph, HELLO);
+        Assert.assertEquals("hello tom!", proxy.hello("tom"));
+        Map<String, ConsumerConfig<?>> configs = Whitebox.getInternalState(consumer, "configs");
+        String id = graph == null ? HELLO : HELLO + ":" + graph;
+        Assert.assertNotNull(configs.get(id));
+        return configs.get(id);
     }
 
     @Test
