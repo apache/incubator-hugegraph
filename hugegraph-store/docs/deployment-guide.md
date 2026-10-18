@@ -772,7 +772,8 @@ environment:
 
 `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE` must be a plain number of bytes; the entrypoint refuses
 anything else. When set it outranks `rocksdb.total_memory_size` in a mounted
-`conf/application-pd.yml` and a `-Drocksdb.total_memory_size` in `JAVA_OPTS`. Leave it unset
+`conf/application-pd.yml`, a `-Drocksdb.total_memory_size` in `JAVA_OPTS`, and an
+`application-pd.yml` that PD distributes to every Store. Leave it unset
 to let the Store size the budget from the container memory limit, provided the loaded config
 also has `total_memory_size: 0` or no value; a mounted `application-pd.yml` from an earlier
 release still has `32000000000` (see [Store Configuration](#store-configuration)).
