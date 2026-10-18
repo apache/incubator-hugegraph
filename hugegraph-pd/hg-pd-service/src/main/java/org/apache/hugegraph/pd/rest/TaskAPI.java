@@ -27,6 +27,7 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.service.PDRestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -109,12 +110,12 @@ public class TaskAPI extends API {
     }
 
     @GetMapping(value = "/compact")
-    public String dbCompaction() {
+    public ResponseEntity<String> dbCompaction() {
         try {
             pdRestService.dbCompaction();
-            return "compact ok";
+            return ResponseEntity.ok().contentType(MediaType.TEXT_PLAIN).body("compact ok");
         } catch (PDException e) {
-            return toJSON(e);
+            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(toJSON(e));
         }
     }
 }

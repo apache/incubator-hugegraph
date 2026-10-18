@@ -291,7 +291,11 @@ public class TaskScheduleService {
                 }
                 partIds.add(partition.getId());
 
-                storeService.storeTurnoff(pair.getValue());
+                for (Integer changed : storeService.storeTurnoffWithResult(pair.getValue())) {
+                    if (!result.reallocatedShardGroups.contains(changed)) {
+                        result.reallocatedShardGroups.add(changed);
+                    }
+                }
                 partitionService.shardOffline(partition, pair.getValue().getId());
                 // shardOffline logs its own failures; report a request, not a completed repair.
                 result.offlineShardRequests.put(partition.getId(), pair.getValue().getId());

@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.hugegraph.pd.TaskScheduleService.PartitionPatrolResult;
 import org.apache.hugegraph.pd.common.KVPair;
+import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.raft.RaftEngine;
@@ -29,6 +30,7 @@ import org.apache.hugegraph.pd.service.PDRestService;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.junit.Assert;
 import org.junit.Test;
+import org.springframework.http.MediaType;
 
 import com.alipay.sofa.jraft.Node;
 import com.alipay.sofa.jraft.entity.PeerId;
@@ -59,7 +61,7 @@ public class TaskAPIResultTest {
             api.pdRestService = new PDRestService();
             for (String response : new String[]{api.patrolStores(), api.patrolPartitions(),
                                                api.balancePartitions(), api.balanceLeaders(),
-                                               api.splitPartitions(), api.dbCompaction()}) {
+                                               api.splitPartitions(), api.dbCompaction().getBody()}) {
                 JsonNode body = json(response);
                 Assert.assertEquals(Pdpb.ErrorType.NOT_LEADER_VALUE, body.get("status").asInt());
                 Assert.assertTrue(body.get("error").asText().contains("127.0.0.2:8610"));
@@ -107,6 +109,29 @@ public class TaskAPIResultTest {
         TaskAPI completed = new TaskAPI();
         completed.pdRestService = balanceService(Map.of());
         Assert.assertEquals("{}", completed.balancePartitions());
+    }
+
+    @Test
+    public void testCompactionContentTypesPreservePlainTextSuccess() throws Exception {
+        TaskAPI api = new TaskAPI();
+        api.pdRestService = new PDRestService() {
+            @Override
+            public void dbCompaction() {
+            }
+        };
+        Assert.assertEquals("compact ok", api.dbCompaction().getBody());
+        Assert.assertEquals(MediaType.TEXT_PLAIN,
+                            api.dbCompaction().getHeaders().getContentType());
+        api.pdRestService = new PDRestService() {
+            @Override
+            public void dbCompaction() throws PDException {
+                throw new PDException(Pdpb.ErrorType.NOT_LEADER_VALUE, "follower");
+            }
+        };
+        Assert.assertEquals(MediaType.APPLICATION_JSON,
+                            api.dbCompaction().getHeaders().getContentType());
+        Assert.assertEquals(Pdpb.ErrorType.NOT_LEADER_VALUE,
+                            json(api.dbCompaction().getBody()).get("status").asInt());
     }
 
     private static TaskAPI patrolAPI(PartitionPatrolResult result) {

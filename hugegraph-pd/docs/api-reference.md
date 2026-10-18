@@ -845,11 +845,15 @@ can also return this error; inspect cluster state before retrying.
 `reallocatedShardGroups` (IDs whose allocation changed) and `offlineShardRequests`
 (group ID to retired Store ID). Offline-shard requests do not prove completed
 repairs. Empty collections distinguish a completed patrol with nothing to do.
+The changed-group IDs include tombstone-triggered reallocations and are deduplicated
+against the initial shard-count pass.
 
 Leader and partition balances retain their transfer maps. A skipped partition
 balance instead returns `{"status":0,"outcome":"skipped"}`; a completed balance
 with no transfers returns `{}`. Transfers are asynchronous, so verify membership
 and leaders before proceeding with maintenance.
+`/v1/task/compact` preserves its `compact ok` success body as `text/plain`;
+structured error bodies use `application/json`, including follower refusals.
 
 ### Metrics
 
