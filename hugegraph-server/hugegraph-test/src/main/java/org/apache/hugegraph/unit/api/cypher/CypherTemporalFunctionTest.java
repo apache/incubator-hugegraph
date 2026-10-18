@@ -279,6 +279,25 @@ public class CypherTemporalFunctionTest {
         Assert.assertFalse(gremlin, gremlin.contains(folded.toString()));
     }
 
+    @Test
+    public void testCaseReturnWithFoldedDateKeepsValueMap() throws Exception {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("d", expectedDate("yyyy-MM-dd", "2000-01-01"));
+        Map.Entry<String, Map<String, Object>> bound = translate(
+                "MATCH (n) RETURN CASE WHEN n.d > $d THEN n END AS m", parameters);
+        Assert.assertTrue(bound.getKey(), bound.getKey().contains("valueMap"));
+
+        Map.Entry<String, Map<String, Object>> folded = translate(
+                "MATCH (n) RETURN CASE WHEN n.d > date('2000-01-01') THEN n END AS m",
+                Collections.emptyMap());
+        Assert.assertTrue(folded.getKey(), folded.getKey().contains("valueMap"));
+
+        Map.Entry<String, Map<String, Object>> relationship = translate(
+                "MATCH (a)-[r]->(b) RETURN CASE WHEN r.since > date('2000-01-01') THEN r END AS rel",
+                Collections.emptyMap());
+        Assert.assertTrue(relationship.getKey(), relationship.getKey().contains("valueMap"));
+    }
+
     private static Map.Entry<String, Map<String, Object>> translate(String query,
                                                                     Map<String, Object> parameters) {
         CypherAst ast = CypherAst.parse(query, parameters);

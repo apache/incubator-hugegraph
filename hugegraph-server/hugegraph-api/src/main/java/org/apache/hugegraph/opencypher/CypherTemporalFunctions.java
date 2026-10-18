@@ -28,17 +28,20 @@ import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 import org.opencypher.gremlin.translation.CypherAst;
+import org.opencypher.v9_0.expressions.Expression;
 import org.opencypher.v9_0.expressions.FunctionInvocation;
 import org.opencypher.v9_0.expressions.Parameter;
 import org.opencypher.v9_0.expressions.StringLiteral;
 import org.opencypher.v9_0.util.InputPosition;
 import org.opencypher.v9_0.util.symbols.AnyType;
+import org.opencypher.v9_0.util.symbols.CypherType;
 import org.slf4j.Logger;
 
 import scala.Option;
@@ -81,23 +84,28 @@ public final class CypherTemporalFunctions {
      * instance when nothing was folded, a copy carrying the synthetic
      * bindings otherwise. The parsed statement is only replaced when the
      * rewrite completed without errors, so a fold failure leaves the query
-     * exactly as it was parsed.
+     * exactly as it was parsed. The inferred types of the rebuilt expressions
+     * are carried over with the statement.
      */
     public static Map<String, Object> fold(CypherAst ast, Map<String, Object> parameters) {
         TemporalFold fold = new TemporalFold(parameters);
         try {
             Field statementField = CypherAst.class.getDeclaredField("statement");
             Field parametersField = CypherAst.class.getDeclaredField("parameters");
+            Field typesField = CypherAst.class.getDeclaredField("expressionTypes");
             statementField.setAccessible(true);
             parametersField.setAccessible(true);
+            typesField.setAccessible(true);
 
             Object folded = fold.copy(ast.statement());
             if (fold.bindings.isEmpty()) {
                 return parameters;
             }
             Object merged = mergeParameters(parametersField.get(ast), fold.bindings);
+            Object types = carryTypes(typesField.get(ast), fold.copies);
             statementField.set(ast, folded);
             parametersField.set(ast, merged);
+            typesField.set(ast, types);
         } catch (Exception | LinkageError e) {
             logger.warn("Failed to fold temporal functions, keeping the parsed statement", e);
             return parameters;
@@ -115,6 +123,29 @@ public final class CypherTemporalFunctions {
             merged = merged.$plus(new Tuple2<>(binding.getKey(), binding.getValue()));
         }
         return merged;
+    }
+
+    /**
+     * Returns the expression type map extended with the types of the rebuilt
+     * expressions, so a statement the fold touched still finds the type of
+     * every expression, for example the valueMap() decision for a RETURN
+     * item that holds a node or relationship.
+     */
+    @SuppressWarnings("unchecked")
+    private static Object carryTypes(Object types, Map<Object, Object> copies) {
+        scala.collection.immutable.Map<Expression, CypherType> expressionTypes =
+                (scala.collection.immutable.Map<Expression, CypherType>) types;
+        scala.collection.immutable.Map<Expression, CypherType> carried = expressionTypes;
+        for (Map.Entry<Object, Object> pair : copies.entrySet()) {
+            if (pair.getKey() == pair.getValue()) {
+                continue;
+            }
+            Option<CypherType> type = expressionTypes.get((Expression) pair.getKey());
+            if (type.isDefined()) {
+                carried = carried.$plus(new Tuple2<>((Expression) pair.getValue(), type.get()));
+            }
+        }
+        return carried;
     }
 
     /**
@@ -165,6 +196,9 @@ public final class CypherTemporalFunctions {
 
         private final Map<String, Object> parameters;
         private final Map<String, Object> bindings = new LinkedHashMap<>();
+        // Identity pairs of every visited expression and its rebuilt copy;
+        // the inferred types travel to the copies after the fold.
+        private final Map<Object, Object> copies = new IdentityHashMap<>();
         // One clock read per statement: the bare constructors of a query
         // derive from a single instant.
         private final Instant now = Instant.now();
@@ -181,6 +215,14 @@ public final class CypherTemporalFunctions {
          * copy stays minimal.
          */
         private Object copy(Object node) throws Exception {
+            Object copied = copyNode(node);
+            if (node instanceof Expression) {
+                this.copies.put(node, copied);
+            }
+            return copied;
+        }
+
+        private Object copyNode(Object node) throws Exception {
             if (node == null || node instanceof String || node instanceof Number ||
                 node instanceof Boolean || node instanceof Character) {
                 return node;
