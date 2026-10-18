@@ -849,7 +849,7 @@ The changed-group IDs include tombstone-triggered reallocations and are deduplic
 against the initial shard-count pass.
 
 Leader and partition balances retain their transfer maps. A skipped partition
-balance instead returns `{"status":0,"outcome":"skipped"}`; a completed balance
+balance instead returns `status: 0` with `outcome: skipped`; a completed balance
 with no transfers returns `{}`. Transfers are asynchronous, so verify membership
 and leaders before proceeding with maintenance.
 `/v1/task/compact` preserves its `compact ok` success body as `text/plain`;
