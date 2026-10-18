@@ -310,6 +310,92 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         assertTrue(rst.containsValue(3L));
     }
 
+    @Test
+    public void testAutoBalancePartitionLeaderWithSkewAtLimit() throws PDException {
+        // max-skew is 2: leaders 3/1/2 are at the limit and stay, 4/1/1 are over it
+        var rst = autoBalance(new long[]{1, 1, 1, 2, 3, 3}, 1, 2, 3);
+        assertTrue(rst.isEmpty());
+
+        rst = autoBalance(new long[]{1, 1, 1, 1, 2, 3}, 1, 2, 3);
+        assertFalse(rst.isEmpty());
+        assertFalse(rst.containsValue(1L));
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithLeadersOnTargets() throws PDException {
+        // Seven groups on three stores: the planner gives store 3 the odd leader, 2/2/3. With
+        // max-skew 0 that spread is over the limit, but the leaders are already there.
+        getPdConfig().setBalanceLeaderMaxSkew(0);
+        try {
+            var rst = autoBalance(new long[]{1, 1, 2, 2, 3, 3, 3}, 1, 2, 3);
+            assertTrue(rst.isEmpty());
+
+            // 3/2/2 is the same spread on other stores, so the planner runs and ends at 2/2/3
+            rst = autoBalance(new long[]{1, 1, 1, 2, 2, 3, 3}, 1, 2, 3);
+            assertEquals(Map.of(2, 2L, 4, 3L), rst);
+        } finally {
+            getPdConfig().setBalanceLeaderMaxSkew(2);
+        }
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithStaleReport() throws PDException {
+        // The leaders apply 100 entries/s. Store 3 at 75000, reported 250 s ago, matches the
+        // leader's estimated index then, but it has sent no heartbeat since: it waits.
+        var service = newTaskService();
+        warmUp(service, 70_000, 300_000);
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 75_000 : 100_000)
+                .reportAge(storeId -> storeId == 3 ? 250_000 : 0)
+                .on(service).run();
+        assertEquals(2, rst.size());
+        assertTrue(rst.values().stream().allMatch(storeId -> storeId == 2L));
+
+        // A report 50 s old at the estimated index still counts
+        service = newTaskService();
+        warmUp(service, 70_000, 300_000);
+        rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 95_000 : 100_000)
+                .reportAge(storeId -> storeId == 3 ? 50_000 : 0)
+                .on(service).run();
+        assertEquals(4, rst.size());
+        assertTrue(rst.containsValue(3L));
+
+        // A leader store whose report is 90 s old moves none of its leaders
+        rst = new Balance(1, 1, 1, 1, 1, 1)
+                .reportAge(storeId -> storeId == 1 ? 90_000 : 0)
+                .run();
+        assertTrue(rst.isEmpty());
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithShortInterval() throws PDException {
+        // Runs every 10 s against 30 s store heartbeats, so the third run sees the same
+        // leader heartbeat as the second. It keeps the first one, 30 s older, for the rate.
+        long now = System.currentTimeMillis();
+        long first = now - 40_000;
+        long second = now - 10_000;
+        var service = newTaskService();
+        var rst = new Balance(1, 1, 1, 1, 1, 1).group0(warn(), 0)
+                                               .appliedIndex((storeId, groupId) -> 7_000)
+                                               .reportTime(storeId -> first)
+                                               .on(service).run();
+        assertTrue(rst.isEmpty());
+        rst = new Balance(1, 1, 1, 1, 1, 1).group0(warn(), 0)
+                                           .appliedIndex((storeId, groupId) -> 10_000)
+                                           .reportTime(storeId -> second)
+                                           .on(service).run();
+        assertTrue(rst.isEmpty());
+
+        // Store 3 reported 8500 15 s before that heartbeat: caught up at 100 entries/s
+        rst = new Balance(1, 1, 1, 1, 1, 1)
+                .appliedIndex((storeId, groupId) -> storeId == 3 ? 8_500 : 10_000)
+                .reportTime(storeId -> storeId == 3 ? second - 15_000 : second)
+                .on(service).run();
+        assertEquals(4, rst.size());
+        assertTrue(rst.containsValue(3L));
+    }
+
     /**
      * A run that skips because group 0 is Warn, so the service only records every store at
      * applied index `index` in a heartbeat received `age` ms before the run
@@ -417,6 +503,7 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         private long group0StatsAge = 0;
         private ToLongBiFunction<Long, Integer> appliedIndex = (storeId, groupId) -> 10_000;
         private ToLongFunction<Long> reportAge = storeId -> 0;
+        private ToLongFunction<Long> reportTime;
         private UnaryOperator<Metapb.ShardGroup> afterRead;
         private TaskScheduleService service;
 
@@ -446,6 +533,13 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         // How many ms before the run PD received each store's heartbeat
         Balance reportAge(ToLongFunction<Long> reportAge) {
             this.reportAge = reportAge;
+            return this;
+        }
+
+        // When PD received each store's heartbeat, in place of reportAge, so two runs can see
+        // the same heartbeat
+        Balance reportTime(ToLongFunction<Long> reportTime) {
+            this.reportTime = reportTime;
             return this;
         }
 
@@ -499,8 +593,10 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                                                            .setCommittedIndex(index));
                     }
                 }
+                long heartbeat = reportTime != null ? reportTime.applyAsLong(storeId) :
+                                 now - reportAge.applyAsLong(storeId);
                 var store = Metapb.Store.newBuilder().setId(storeId).setStats(stats)
-                                        .setLastHeartbeat(now - reportAge.applyAsLong(storeId))
+                                        .setLastHeartbeat(heartbeat)
                                         .build();
                 if (Arrays.stream(activeStores).anyMatch(id -> id == store.getId())) {
                     storeMeta.keepStoreAlive(store);

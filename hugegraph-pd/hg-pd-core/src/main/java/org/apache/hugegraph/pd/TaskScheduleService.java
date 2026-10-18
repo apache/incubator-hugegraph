@@ -71,6 +71,11 @@ public class TaskScheduleService {
     // caught-up target wait for a later run, or let a lagging one through, and in that case
     // JRaft ends the transfer after its timeout and the old leader takes writes again.
     private static final long BALANCE_LEADER_MAX_INDEX_GAP = 1000;
+    // Stores send their heartbeat every 30 s. A store whose applied index report is older than
+    // two of them is not reporting, though it stays active for keepAlive-timeout, so its index
+    // says nothing about how far it is behind now; the periodic balance does not move a leader
+    // to or from it.
+    private static final long BALANCE_LEADER_REPORT_MAX_AGE = 60 * 1000;
     private final PDConfig pdConfig;
     private final long clusterStartTime;
     private StoreNodeService storeService;
@@ -83,13 +88,16 @@ public class TaskScheduleService {
     private long lastStoreTurnoffTime = 0;
     private long lastBalanceLeaderTime = 0;
     private ScheduledFuture<?> balanceLeaderTask;
-    // shard group id -> the leader store's applied index report seen by the previous periodic
-    // leader balance, to tell how fast the leader's index grows between two store heartbeats.
-    // It is used only while the same store still leads the group, and is cleared by a run that
-    // finds this PD is not the leader. It is not tied to a leadership term: if this PD loses
-    // and regains leadership, or the group's leader moves away and back, between two runs, the
-    // entry stays and the rate is averaged over that whole time.
+    // shard group id -> the latest leader store applied index report a periodic leader balance
+    // saw, and the one before it from the same store with an earlier time, to tell how fast the
+    // leader's index grows between two store heartbeats. A run at a shorter interval than the
+    // 30 s store heartbeat can see the same report twice; it then keeps the earlier one, so the
+    // rate is not lost. The entries are used only while the same store still leads the group,
+    // and are cleared by a run that finds this PD is not the leader. They are not tied to a
+    // leadership term: if this PD loses and regains leadership, or the group's leader moves away
+    // and back, between two runs, they stay and the rate is averaged over that whole time.
     private final Map<Integer, IndexReport> lastLeaderIndexReports = new HashMap<>();
+    private final Map<Integer, IndexReport> earlierLeaderIndexReports = new HashMap<>();
 
     /**
      * The applied index a store reported for a shard group, and when PD received the report
@@ -571,45 +579,8 @@ public class TaskScheduleService {
             return results;
         }
 
-        Map<Long, Integer> storeShardCount = new HashMap<>();
-
-        shardGroups.forEach(group -> {
-            group.getShardsList().forEach(shard -> {
-                storeShardCount.put(shard.getStoreId(),
-                                    storeShardCount.getOrDefault(shard.getStoreId(), 0) + 1);
-            });
-        });
-
-        log.info("balancePartitionLeader, shard group size: {}, by store: {}", shardGroups.size(),
-                 storeShardCount);
-
-        // Calculate the leader count for each store, divided into integer and remainder parts.
-        var tmpCountMap = new HashMap<Long, Integer>();
-        PriorityQueue<KVPair<Long, Integer>> countReminder =
-                new PriorityQueue<>(new KvPairComparator<>(false));
-        int sum = 0;
-
-        for (var entry : storeShardCount.entrySet()) {
-            var storeId = entry.getKey();
-            var count = entry.getValue();
-            // First, allocate the integer part.
-            int v = count / pdConfig.getPartition().getShardCount();
-            sum += v;
-            var remainder = count % pdConfig.getPartition().getShardCount();
-            tmpCountMap.put(storeId, v);
-            if (remainder != 0) {
-                countReminder.add(new KVPair<>(storeId, remainder));
-            }
-        }
-
-        int reminderCount = shardGroups.size() - sum;
-
-        // Then, according to the distribution of reminders
-        while (!countReminder.isEmpty() && reminderCount > 0) {
-            var pair = countReminder.poll();
-            tmpCountMap.put(pair.getKey(), tmpCountMap.getOrDefault(pair.getKey(), 0) + 1);
-            reminderCount -= 1;
-        }
+        Map<Long, Integer> tmpCountMap = leaderTargets(shardGroups);
+        log.info("balancePartitionLeader, shard group size: {}", shardGroups.size());
 
         PriorityQueue<KVPair<Long, Integer>> targetCount =
                 new PriorityQueue<>(new KvPairComparator<>(true));
@@ -661,13 +632,14 @@ public class TaskScheduleService {
 
     /**
      * The periodic entry of leader balancing. Calls balancePartitionLeader only when the
-     * leader count per store has drifted further apart than pd.balance-leader-max-skew, so a
-     * balanced cluster sees no transfers. Skipped while a shard group is not Normal, has no
+     * leader count per store has drifted further apart than pd.balance-leader-max-skew and does
+     * not already match the planner's targets, so a balanced cluster sees no transfers. Skipped while a shard group is not Normal, has no
      * recent partition heartbeat or has a shard that is neither Leader nor Follower, or while a
      * store that holds a shard is not active, because the target distribution would include a
      * replica that cannot take a leader. The plan uses the groups checked here; a group keeps
-     * its leader when this PD is no longer the leader, the group changed, or the target trails
-     * the leader by the time the transfer would be sent.
+     * its leader when this PD is no longer the leader, the group changed, the target or leader
+     * store has not reported for BALANCE_LEADER_REPORT_MAX_AGE, or the target trails the leader
+     * by the time the transfer would be sent.
      *
      * @return shard group id -> the store id its leader was moved to; empty when skipped
      */
@@ -676,6 +648,7 @@ public class TaskScheduleService {
         int maxSkew = pdConfig.getBalanceLeaderMaxSkew();
         if (!isLeader() || maxSkew < 0) {
             lastLeaderIndexReports.clear();
+            earlierLeaderIndexReports.clear();
             return new HashMap<>();
         }
 
@@ -698,19 +671,39 @@ public class TaskScheduleService {
                                                                 store.getLastHeartbeat()));
             }
         }
-        // Plan with the leader reports of the previous run and keep this run's for the next,
-        // including runs that skip below, so a later run can tell the leader's write rate
-        Map<Integer, IndexReport> previousLeaderReports = new HashMap<>(lastLeaderIndexReports);
-        lastLeaderIndexReports.clear();
+        // Record this run's leader reports, including on runs that skip below, so a later run
+        // can tell the leader's write rate. The plan uses, for each group, the latest recorded
+        // report from the same leader store that is older than the current one.
+        Map<Integer, IndexReport> latestReports = new HashMap<>();
+        Map<Integer, IndexReport> earlierReports = new HashMap<>();
         for (Metapb.ShardGroup group : shardGroups) {
             Long leaderStore = getLeaderStore(group);
             IndexReport report = leaderStore == null ? null :
                                  indexReports.getOrDefault(group.getId(), Map.of())
                                              .get(leaderStore);
-            if (report != null) {
-                lastLeaderIndexReports.put(group.getId(), report);
+            if (report == null) {
+                continue;
+            }
+            IndexReport latest = lastLeaderIndexReports.get(group.getId());
+            IndexReport earlier = earlierLeaderIndexReports.get(group.getId());
+            if (latest == null || latest.storeId() != report.storeId()) {
+                latest = report;
+                earlier = null;
+            } else if (report.time() > latest.time()) {
+                earlier = latest;
+                latest = report;
+            }
+            // Otherwise this is the report the previous run saw: keep the one before it
+            latestReports.put(group.getId(), latest);
+            if (earlier != null) {
+                earlierReports.put(group.getId(), earlier);
             }
         }
+        lastLeaderIndexReports.clear();
+        lastLeaderIndexReports.putAll(latestReports);
+        earlierLeaderIndexReports.clear();
+        earlierLeaderIndexReports.putAll(earlierReports);
+        Map<Integer, IndexReport> previousLeaderReports = earlierReports;
         long now = System.currentTimeMillis();
         Map<Long, Integer> leaderCount = new HashMap<>();
         for (Metapb.ShardGroup group : shardGroups) {
@@ -757,10 +750,64 @@ public class TaskScheduleService {
             return new HashMap<>();
         }
 
+        // Uneven shard placement can leave the planner's best spread above max-skew. When the
+        // leaders already sit where it would put them, planning would move nothing.
+        Map<Long, Integer> targets = leaderTargets(shardGroups);
+        if (leaderCount.equals(targets)) {
+            log.debug("periodic leader balance skipped, leader count by store: {} already " +
+                      "matches the targets, skew {}", leaderCount, skew);
+            return new HashMap<>();
+        }
+
         log.info("leader count by store: {}, skew {} exceeds {}, balancing leaders",
                  leaderCount, skew, maxSkew);
         return balancePartitionLeader(false, shardGroups, (group, storeId) ->
                 canTakeLeader(group, storeId, indexReports, previousLeaderReports));
+    }
+
+    /**
+     * The number of leaders balancePartitionLeader aims to give each store holding a shard of
+     * shardGroups: its shard count divided by the replica count, with the remainders handed out
+     * to the stores with the largest ones until every group has a leader
+     */
+    private Map<Long, Integer> leaderTargets(List<Metapb.ShardGroup> shardGroups) {
+        Map<Long, Integer> storeShardCount = new HashMap<>();
+
+        shardGroups.forEach(group -> {
+            group.getShardsList().forEach(shard -> {
+                storeShardCount.put(shard.getStoreId(),
+                                    storeShardCount.getOrDefault(shard.getStoreId(), 0) + 1);
+            });
+        });
+
+        // Calculate the leader count for each store, divided into integer and remainder parts.
+        var tmpCountMap = new HashMap<Long, Integer>();
+        PriorityQueue<KVPair<Long, Integer>> countReminder =
+                new PriorityQueue<>(new KvPairComparator<>(false));
+        int sum = 0;
+
+        for (var entry : storeShardCount.entrySet()) {
+            var storeId = entry.getKey();
+            var count = entry.getValue();
+            // First, allocate the integer part.
+            int v = count / pdConfig.getPartition().getShardCount();
+            sum += v;
+            var remainder = count % pdConfig.getPartition().getShardCount();
+            tmpCountMap.put(storeId, v);
+            if (remainder != 0) {
+                countReminder.add(new KVPair<>(storeId, remainder));
+            }
+        }
+
+        int reminderCount = shardGroups.size() - sum;
+
+        // Then, according to the distribution of reminders
+        while (!countReminder.isEmpty() && reminderCount > 0) {
+            var pair = countReminder.poll();
+            tmpCountMap.put(pair.getKey(), tmpCountMap.getOrDefault(pair.getKey(), 0) + 1);
+            reminderCount -= 1;
+        }
+        return tmpCountMap;
     }
 
     private static Long getLeaderStore(Metapb.ShardGroup group) {
@@ -802,6 +849,15 @@ public class TaskScheduleService {
             log.info("periodic leader balance keeps the leader of shard group {}, no applied " +
                      "index reported by store {} or leader store {}", group.getId(), storeId,
                      leaderStore);
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        if (now - target.time() > BALANCE_LEADER_REPORT_MAX_AGE ||
+            now - leader.time() > BALANCE_LEADER_REPORT_MAX_AGE) {
+            log.info("periodic leader balance keeps the leader of shard group {}, the applied " +
+                     "index reports of store {} ({} ms old) or leader store {} ({} ms old) " +
+                     "are older than {} ms", group.getId(), storeId, now - target.time(),
+                     leaderStore, now - leader.time(), BALANCE_LEADER_REPORT_MAX_AGE);
             return false;
         }
         // Stores send their heartbeats at different times, so a caught-up target reporting
