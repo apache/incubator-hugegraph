@@ -97,12 +97,13 @@ public final class RocksdbMemoryBudget {
         long budget = auto(physical, heap, direct);
         log.info("rocksdb.total_memory_size is unset or 0, auto-sizing to {} bytes " +
                  "(physical={}, heap={}, direct={})", budget, physical, heap, direct);
-        if (cgroup.unmatched) {
-            log.warn("No cgroup mount in /proc/self/mountinfo contains this process's " +
-                     "cgroup (an inherited mount in a cgroup namespace), so only the " +
-                     "limits visible at the mount root are counted and a tighter limit on " +
-                     "the process's own cgroup may be missed; set rocksdb.total_memory_size " +
-                     "or HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE explicitly");
+        if (cgroup.incomplete) {
+            log.warn("The cgroup mounts in /proc/self/mountinfo don't show this process's " +
+                     "whole cgroup hierarchy (an inherited mount in a cgroup namespace, or " +
+                     "only cgroup2 subtree mounts), so a tighter limit on the process's " +
+                     "cgroup or above the mounted subtree may be missed; set " +
+                     "rocksdb.total_memory_size or HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE " +
+                     "explicitly");
         }
         if (physical > 0 && physical - heap - direct - RESERVED < 2 * MIN_AUTO) {
             log.warn("Heap, direct memory and the {} bytes reserve leave too little of the " +
@@ -178,18 +179,19 @@ public final class RocksdbMemoryBudget {
     }
 
     /**
-     * A cgroup memory limit in bytes (-1 for none), and whether a cgroup mount existed
-     * but none of them contained this process's cgroup, in which case bytes only covers
-     * what is visible at those mounts' roots.
+     * A cgroup memory limit in bytes (-1 for none), and whether the mounts may hide a
+     * stricter one: a cgroup mount existed but none contained this process's cgroup, or
+     * every matching cgroup2 mount was a subtree, so bytes only covers what is visible
+     * from those mounts' roots down.
      */
     static final class CgroupLimit {
 
         final long bytes;
-        final boolean unmatched;
+        final boolean incomplete;
 
-        CgroupLimit(long bytes, boolean unmatched) {
+        CgroupLimit(long bytes, boolean incomplete) {
             this.bytes = bytes;
-            this.unmatched = unmatched;
+            this.incomplete = incomplete;
         }
     }
 
@@ -230,7 +232,7 @@ public final class RocksdbMemoryBudget {
             return new CgroupLimit(-1L, false);
         }
         long limit = -1L;
-        boolean unmatched = false;
+        boolean incomplete = false;
         for (String line : lines) {
             String[] parts = line.split(":", 3);
             if (parts.length < 3) {
@@ -242,22 +244,30 @@ public final class RocksdbMemoryBudget {
             }
             List<String[]> mounts = v2 ? v2Mounts : v1Mounts;
             boolean matched = false;
+            boolean fullView = false;
             for (String[] mount : mounts) {
                 if (!contains(mount[0], parts[2])) {
                     // A mount of another subtree says nothing about this cgroup
                     continue;
                 }
                 matched = true;
+                fullView |= mount[0].equals("/");
                 Path point = Paths.get(mount[1]);
                 String relative = rebase(parts[2], mount[0]);
                 limit = lowest(limit, v2 ? cgroupV2Limit(point, relative) :
                                       cgroupV1Limit(point, relative));
             }
+            if (v2 && matched && !fullView) {
+                // Every matching cgroup2 mount is a subtree such as /kubepods, so the walk
+                // stops at its root and a stricter memory.max above it can't be read. v1
+                // has no such gap: hierarchical_memory_limit already covers the ancestors
+                incomplete = true;
+            }
             if (!matched && !mounts.isEmpty()) {
                 // In a cgroup namespace /proc/self/cgroup says "/" while a mount made
                 // outside it has a root such as "/..": the process's own cgroup can't be
                 // located from here. The limits at each mount root still bound it.
-                unmatched = true;
+                incomplete = true;
                 for (String[] mount : mounts) {
                     Path point = Paths.get(mount[1]);
                     limit = lowest(limit, v2 ? readLimit(point.resolve("memory.max")) :
@@ -269,7 +279,7 @@ public final class RocksdbMemoryBudget {
                                       cgroupV1Limit(defaultRoot.resolve("memory"), relative));
             }
         }
-        return new CgroupLimit(limit, unmatched);
+        return new CgroupLimit(limit, incomplete);
     }
 
     /**

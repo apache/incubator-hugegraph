@@ -372,8 +372,9 @@ With `total_memory_size: 0`, or the key unset, the Store sizes the budget at sta
 of what is left after the heap, the maximum direct memory and a 1.5 GiB reserve, clamped to
 256 MiB–32 GB. Inside a container the starting point is the cgroup memory limit, including a
 limit set only on a parent cgroup when the Store can see that cgroup; inside a private cgroup
-namespace only the container's own limit is visible, so pin the value there if only the pod or
-slice is limited. A Store with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
+namespace, or when only a subtree of the cgroup2 hierarchy is mounted, a limit above it is not
+visible, so pin the value there if only the pod or slice is limited (the Store logs a warning
+when it detects such a mount). A Store with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
 `-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap, and the budget counts
 it that way. `bin/start-hugegraph-store.sh` sets the flag to the heap it picks; when `-j` sets
 `-Xmx`, `-XX:MaxHeapSize` or `-XX:MaxDirectMemorySize` itself, the launcher leaves the flag out and the JVM's

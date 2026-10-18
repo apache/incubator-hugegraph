@@ -194,9 +194,48 @@ public class RocksdbMemoryBudgetTest {
             assertEquals(4 * GIB, limit);
             long physical = RocksdbMemoryBudget.effectivePhysical(64 * GIB, limit);
             assertEquals(512 * MIB, RocksdbMemoryBudget.auto(physical, GIB, 512 * MIB));
+            // Only a subtree is mounted, so anything above /kubepods is invisible
+            assertTrue(RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root).incomplete);
 
             // Without the mount root the path is looked up under kubepods/ and missed
             assertEquals(-1L, RocksdbMemoryBudget.cgroupMemoryLimit(proc, NO_MOUNTINFO, mount));
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
+    public void testStricterLimitAboveCgroupV2SubtreeMount() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2-above-subtree");
+        try {
+            // kubepods is limited to 2 GiB, the pod to 4 GiB and the container not at all
+            Path full = root.resolve("full");
+            write(full, "kubepods/memory.max", String.valueOf(2 * GIB));
+            write(full, "kubepods/pod1/memory.max", String.valueOf(4 * GIB));
+            write(full, "kubepods/pod1/ctr/memory.max", "max");
+            // The same hierarchy mounted from /kubepods shows the pod and below only
+            Path sub = root.resolve("sub");
+            write(sub, "memory.max", "max");
+            write(sub, "pod1/memory.max", String.valueOf(4 * GIB));
+            write(sub, "pod1/ctr/memory.max", "max");
+            Path proc = write(root, "proc-self-cgroup", "0::/kubepods/pod1/ctr\n");
+            String fullLine = "31 25 0:26 / " + full + " rw - cgroup2 cgroup2 rw\n";
+            String subLine = "32 25 0:26 /kubepods " + sub + " rw - cgroup2 cgroup2 rw\n";
+
+            // Subtree only: the 2 GiB limit above /kubepods is missed, and that is flagged
+            Path subOnly = write(root, "mountinfo-sub", subLine);
+            RocksdbMemoryBudget.CgroupLimit limit =
+                    RocksdbMemoryBudget.cgroupLimit(proc, subOnly, root);
+            assertEquals(4 * GIB, limit.bytes);
+            assertTrue(limit.incomplete);
+
+            // With a full-hierarchy view in either order the stricter limit is found
+            for (String order : new String[]{subLine + fullLine, fullLine + subLine}) {
+                Path mountinfo = write(root, "mountinfo", order);
+                limit = RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
+                assertEquals(order, 2 * GIB, limit.bytes);
+                assertFalse(order, limit.incomplete);
+            }
         } finally {
             FileUtils.deleteQuietly(root.toFile());
         }
@@ -293,13 +332,13 @@ public class RocksdbMemoryBudgetTest {
                                    "35 25 0:26 /.. " + mount + " rw - cgroup2 cgroup2 rw\n");
             RocksdbMemoryBudget.CgroupLimit limit =
                     RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
-            assertTrue(limit.unmatched);
+            assertTrue(limit.incomplete);
             assertEquals(-1L, limit.bytes);
 
             // A limit at the visible mount root still bounds the result
             write(mount, "memory.max", String.valueOf(8 * GIB));
             limit = RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
-            assertTrue(limit.unmatched);
+            assertTrue(limit.incomplete);
             assertEquals(8 * GIB, limit.bytes);
 
             // v1 with the same layout
@@ -310,7 +349,7 @@ public class RocksdbMemoryBudgetTest {
             Path mountinfo1 = write(root, "mountinfo-v1",
                                     "45 25 0:30 /.. " + v1 + " rw - cgroup cgroup rw,memory\n");
             limit = RocksdbMemoryBudget.cgroupLimit(proc1, mountinfo1, root);
-            assertTrue(limit.unmatched);
+            assertTrue(limit.incomplete);
             assertEquals(8 * GIB, limit.bytes);
         } finally {
             FileUtils.deleteQuietly(root.toFile());
@@ -328,10 +367,10 @@ public class RocksdbMemoryBudgetTest {
                                    "30 25 0:26 / " + mount + " rw - cgroup2 cgroup2 rw\n");
             RocksdbMemoryBudget.CgroupLimit limit =
                     RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
-            assertFalse(limit.unmatched);
+            assertFalse(limit.incomplete);
             assertEquals(4 * GIB, limit.bytes);
             // Without any mountinfo entry the default layout is used and nothing is flagged
-            assertFalse(RocksdbMemoryBudget.cgroupLimit(proc, NO_MOUNTINFO, mount).unmatched);
+            assertFalse(RocksdbMemoryBudget.cgroupLimit(proc, NO_MOUNTINFO, mount).incomplete);
         } finally {
             FileUtils.deleteQuietly(root.toFile());
         }
