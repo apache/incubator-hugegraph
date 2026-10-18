@@ -218,13 +218,13 @@ public class RaftEngineReadinessTest {
 
         stateMachine.onLeaderStart(6);
         engine.refreshAlivePeerCount();
-        Assert.assertEquals(2, engine.getAlivePeerCount());
+        Assert.assertEquals(-1, engine.getAlivePeerCount());
 
         stateMachine.onShutdown();
         engine.refreshAlivePeerCount();
         Assert.assertEquals(-1, engine.getAlivePeerCount());
-        // Twice, once per leader phase: the terminal states never reached the node
-        verify(mockNode, times(2)).listAlivePeers();
+        // Only the initial leader phase reads the node; queued starts cannot recover terminal state.
+        verify(mockNode, times(1)).listAlivePeers();
     }
 
     @Test
