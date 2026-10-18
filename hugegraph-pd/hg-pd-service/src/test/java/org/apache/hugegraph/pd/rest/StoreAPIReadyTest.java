@@ -153,6 +153,45 @@ public class StoreAPIReadyTest {
     }
 
     @Test
+    public void testQueuedFollowerCallbacksCannotRecoverFatalError() {
+        Whitebox.setInternalState(RaftEngine.getInstance(), "raftNode", untouchableNode());
+        this.stateMachine.onLeaderStart(5);
+        this.stateMachine.onError(new RaftException());
+        this.stateMachine.onLeaderStop(Status.OK());
+        this.stateMachine.onStartFollowing(context());
+        this.stateMachine.onStopFollowing(context());
+        assertTerminal(State.STATE_ERROR);
+    }
+
+    @Test
+    public void testQueuedLeaderStartCannotRecoverFatalError() {
+        Whitebox.setInternalState(RaftEngine.getInstance(), "raftNode", untouchableNode());
+        this.stateMachine.onError(new RaftException());
+        this.stateMachine.onLeaderStart(6);
+        this.stateMachine.onLeaderStop(Status.OK());
+        assertTerminal(State.STATE_ERROR);
+    }
+
+    @Test
+    public void testQueuedTransitionsCannotRecoverShutdown() {
+        Whitebox.setInternalState(RaftEngine.getInstance(), "raftNode", untouchableNode());
+        this.stateMachine.onShutdown();
+        this.stateMachine.onLeaderStart(6);
+        this.stateMachine.onLeaderStop(Status.OK());
+        this.stateMachine.onStartFollowing(context());
+        this.stateMachine.onStopFollowing(context());
+        assertTerminal(State.STATE_SHUTDOWN);
+    }
+
+    private void assertTerminal(State state) {
+        Assert.assertEquals(HttpStatus.SERVICE_UNAVAILABLE, this.api.checkHealthy().getStatusCode());
+        ResponseEntity<Map<String, Object>> response = this.api.checkReady();
+        Assert.assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        Assert.assertEquals(state.name(), response.getBody().get("state"));
+        Assert.assertEquals(Boolean.FALSE, response.getBody().get("isLeader"));
+    }
+
+    @Test
     public void testShutdownIsNotLive() {
         this.stateMachine.onShutdown();
         Assert.assertEquals(HttpStatus.SERVICE_UNAVAILABLE,

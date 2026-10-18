@@ -203,6 +203,9 @@ public class RaftStateMachine extends StateMachineAdapter {
 
     @Override
     public void onLeaderStart(final long term) {
+        if (isTerminal()) {
+            return;
+        }
         this.leaderTerm.set(term);
         this.probeView = new ProbeView(State.STATE_LEADER, true);
         super.onLeaderStart(term);
@@ -215,7 +218,7 @@ public class RaftStateMachine extends StateMachineAdapter {
     public void onLeaderStop(final Status status) {
         this.leaderTerm.set(-1);
         // JRaft steps down after reporting a fatal error. That callback does not recover the node.
-        if (this.probeView.state != State.STATE_ERROR) {
+        if (!isTerminal()) {
             this.probeView = new ProbeView(State.STATE_FOLLOWER, false);
         }
         super.onLeaderStop(status);
@@ -224,9 +227,17 @@ public class RaftStateMachine extends StateMachineAdapter {
 
     @Override
     public void onStartFollowing(final LeaderChangeContext ctx) {
+        if (isTerminal()) {
+            return;
+        }
         this.probeView = new ProbeView(State.STATE_FOLLOWER, true);
         super.onStartFollowing(ctx);
         notifyStateListeners();
+    }
+
+    private boolean isTerminal() {
+        State state = this.probeView.state;
+        return state == State.STATE_ERROR || state == State.STATE_SHUTDOWN;
     }
 
     @Override
