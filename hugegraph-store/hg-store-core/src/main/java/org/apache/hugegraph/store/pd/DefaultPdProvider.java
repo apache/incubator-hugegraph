@@ -138,11 +138,12 @@ public class DefaultPdProvider implements PdProvider {
                                                Metapb.StoreState.Up : Metapb.StoreState.Offline)
                                      .build();
         try {
-            storeId = pdClient.registerStore(protoObj);
+            Metapb.Store registered = pdClient.registerStoreWithState(protoObj);
+            storeId = registered.getId();
             store.setId(storeId);
-            if (pdClient.getStore(storeId).getState() != Metapb.StoreState.Up) {
+            if (registered.getState() == Metapb.StoreState.Pending) {
                 LOG.warn("Store {} is not activated, state is {}", storeId,
-                         pdClient.getStore(storeId).getState());
+                         registered.getState());
             }
         } catch (PDException e) {
             LOG.error(

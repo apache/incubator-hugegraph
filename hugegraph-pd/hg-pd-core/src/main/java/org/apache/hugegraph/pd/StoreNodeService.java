@@ -212,10 +212,12 @@ public class StoreNodeService {
             storeInfoMeta.keepStoreAlive(store);
             onStoreStatusChanged(store, Metapb.StoreState.Offline, Metapb.StoreState.Up);
             checkStoreStatus();
-        } else if (storeState == Metapb.StoreState.Offline &&
-                   lastStore.getState() == Metapb.StoreState.Up) {
-            // Keep the existing keepalive window during a temporary restart; do not renew it.
-            onStoreStatusChanged(store, Metapb.StoreState.Up, Metapb.StoreState.Offline);
+        } else if (restoring && storeState == Metapb.StoreState.Offline) {
+            // A returned Store is alive even while its engines recover. Renew on each retry.
+            storeInfoMeta.keepStoreAlive(store);
+            if (lastStore.getState() == Metapb.StoreState.Up) {
+                onStoreStatusChanged(store, Metapb.StoreState.Up, Metapb.StoreState.Offline);
+            }
             checkStoreStatus();
         }
 
@@ -272,6 +274,7 @@ public class StoreNodeService {
      * Update the store information, detect the change of store status, and notify Hugestore
      */
     public synchronized Metapb.Store updateStore(Metapb.Store store) throws PDException {
+        boolean administrativeOffline = store.getState() == Metapb.StoreState.Offline;
         log.info("updateStore storeId: {}, address: {}, state: {}", store.getId(),
                  store.getAddress(), store.getState());
         Metapb.Store lastStore = storeInfoMeta.getStore(store.getId());
@@ -292,8 +295,10 @@ public class StoreNodeService {
         }
 
         storeInfoMeta.updateStore(store);
-        // Temporary Offline reports retain the existing keepalive entry without renewing it.
-        // Removing it here makes a rolling restart fail the initial-store-count gate.
+        if (administrativeOffline) {
+            // A crashed restoring Store may already be Offline while its lease is still present.
+            storeInfoMeta.removeActiveStore(store);
+        }
         if (store.getState() != Metapb.StoreState.Unknown &&
             store.getState() != lastStore.getState()) {
             // If you want to take the store offline
@@ -330,6 +335,18 @@ public class StoreNodeService {
             onStoreStatusChanged(lastStore, lastStore.getState(), store.getState());
         }
         return store;
+    }
+
+    public synchronized Metapb.Store reportStoreShutdown(long storeId) throws PDException {
+        Metapb.Store current = getStore(storeId);
+        if (current.getState() != Metapb.StoreState.Up) {
+            return current;
+        }
+        Metapb.Store offline = current.toBuilder().setState(Metapb.StoreState.Offline).build();
+        storeInfoMeta.updateStore(offline);
+        // Preserve the existing lease, including its expiry; administrative Offline still removes it.
+        onStoreStatusChanged(offline, Metapb.StoreState.Up, Metapb.StoreState.Offline);
+        return offline;
     }
 
     /**

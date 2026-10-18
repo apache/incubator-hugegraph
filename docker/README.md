@@ -240,14 +240,22 @@ partition engines, and then register `Up`. A restore failure keeps the Store
 offline and the heartbeat loop retries it. Graceful shutdown stops heartbeat
 producers before reporting `Offline` to PD; if PD is unavailable, normal heartbeat
 expiry remains the fallback. A temporary stop does not request permanent retirement.
-Offline reports retain the existing keepalive window without extending it, so a
+Shutdown reports retain the existing keepalive window without extending it, so a
 quick restart does not fail the cluster's initial-store-count gate. A Store that
 does not return is still removed by normal expiry. Stream reconnects after a
 successful restore register `Up` directly without restoring the engines again.
 Restoration attempts every local partition before reporting any failures.
+Recovery runs on an owned worker while the heartbeat thread renews the restoring
+Store's lease through Offline registrations. A slow or failed partition therefore
+does not let a returned Store expire from the initial-store-count gate.
+Partition heartbeat reports wait until the pulse stream starts after restoration.
 
 Upgrade PD before Store to enable this registration handshake. Older Stores keep
 their existing registration behavior; older PD versions ignore the restore gate.
+Temporary shutdown uses a dedicated `ReportStoreShutdown` RPC, independent of
+cluster readiness. Older PDs do not implement it, so Store logs the failed report
+and relies on expiry; it never falls back to administrative `setStore(Offline)`.
+Administrative Offline requests retain their readiness gate and active-entry removal.
 `Up` confirms local engine restore, not Raft catch-up or full shard-group health.
 PD's authenticated `/v1/stores` and `/v1/store/{id}` responses also expose
 `heartbeatAgeMillis`, computed with PD's clock (`-1` when no heartbeat is known).

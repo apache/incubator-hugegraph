@@ -403,6 +403,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
             Metapb.Store store = storeNodeService.register(request.getStore());
             response = Pdpb.RegisterStoreResponse.newBuilder().setHeader(okHeader)
                                                  .setStoreId(store.getId())
+                                                 .setStore(store)
                                                  .build();
         } catch (PDException e) {
             response = Pdpb.RegisterStoreResponse.newBuilder().setHeader(newErrorHeader(e)).build();
@@ -434,6 +435,24 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
             log.error("{} getStore exception: {}", StreamObserverUtil.getRemoteIP(observer), e);
         }
 
+        observer.onNext(response);
+        observer.onCompleted();
+    }
+
+    @Override
+    public void reportStoreShutdown(Pdpb.SetStoreRequest request,
+                                    StreamObserver<Pdpb.SetStoreResponse> observer) {
+        if (!isLeader()) {
+            redirectToLeader(PDGrpc.getReportStoreShutdownMethod(), request, observer);
+            return;
+        }
+        Pdpb.SetStoreResponse response;
+        try {
+            Metapb.Store store = storeNodeService.reportStoreShutdown(request.getStore().getId());
+            response = Pdpb.SetStoreResponse.newBuilder().setHeader(okHeader).setStore(store).build();
+        } catch (PDException e) {
+            response = Pdpb.SetStoreResponse.newBuilder().setHeader(newErrorHeader(e)).build();
+        }
         observer.onNext(response);
         observer.onCompleted();
     }

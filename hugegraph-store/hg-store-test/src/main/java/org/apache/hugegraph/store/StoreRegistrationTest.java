@@ -22,8 +22,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import org.apache.hugegraph.pd.client.ClientCache;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.grpc.Metapb;
@@ -32,10 +39,10 @@ import org.apache.hugegraph.store.meta.PartitionManager;
 import org.apache.hugegraph.store.meta.Store;
 import org.apache.hugegraph.store.meta.StoreMetadata;
 import org.apache.hugegraph.store.options.HgStoreEngineOptions;
+import org.apache.hugegraph.store.pd.DefaultPdProvider;
 import org.apache.hugegraph.store.pd.PdProvider;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 public class StoreRegistrationTest {
@@ -56,8 +63,8 @@ public class StoreRegistrationTest {
         }).when(engine).stateChanged(Mockito.any(), Mockito.any(), Mockito.eq(Metapb.StoreState.Up));
         HeartbeatService service = service(engine, provider);
         try {
-            service.registerStore();
-            Assert.assertEquals(List.of("Offline", "restore", "Up"), events);
+            registerRestored(service);
+            Assert.assertEquals(List.of("Offline", "restore", "Offline", "Up"), events);
         } finally {
             service.shutdown();
         }
@@ -73,7 +80,9 @@ public class StoreRegistrationTest {
         HeartbeatService service = service(engine, provider);
         try {
             service.registerStore();
-            Mockito.verify(provider, Mockito.times(1)).registerStore(Mockito.any());
+            Assert.assertThrows(ExecutionException.class, () -> restoreTask(service).get(5, TimeUnit.SECONDS));
+            service.registerStore();
+            Mockito.verify(provider, Mockito.times(2)).registerStore(Mockito.any());
             Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
         } finally {
             service.shutdown();
@@ -91,11 +100,22 @@ public class StoreRegistrationTest {
         });
         HeartbeatService service = service(engine, provider);
         try {
-            service.registerStore();
-            Assert.assertEquals(List.of("Offline", "Up"), events);
+            registerRestored(service);
+            Assert.assertEquals(List.of("Offline", "Offline", "Up"), events);
             events.clear();
+            CountDownLatch offline = new CountDownLatch(1);
+            CountDownLatch up = new CountDownLatch(1);
+            service.addStateListener((store, previous, state) -> {
+                if (state == Metapb.StoreState.Offline) {
+                    offline.countDown();
+                } else if (state == Metapb.StoreState.Up) {
+                    up.countDown();
+                }
+            });
             service.onStateChanged(Metapb.StoreState.Offline);
+            Assert.assertTrue(offline.await(5, TimeUnit.SECONDS));
             service.registerStore();
+            Assert.assertTrue(up.await(5, TimeUnit.SECONDS));
             Assert.assertEquals(List.of("Up"), events);
             Assert.assertEquals(Metapb.StoreState.Up, service.getStoreInfo().getState());
             Mockito.verify(engine).stateChanged(Mockito.any(), Mockito.any(), Mockito.eq(Metapb.StoreState.Up));
@@ -108,10 +128,12 @@ public class StoreRegistrationTest {
     public void testFailedUpRegistrationRetriesWithoutRestoringAgain() throws Exception {
         HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
         PdProvider provider = Mockito.mock(PdProvider.class);
-        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L)
+        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L, 7L)
                .thenThrow(new PDException(1, "unavailable")).thenReturn(7L);
         HeartbeatService service = service(engine, provider);
         try {
+            service.registerStore();
+            restoreTask(service).get(5, TimeUnit.SECONDS);
             service.registerStore();
             Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
             service.registerStore();
@@ -161,19 +183,17 @@ public class StoreRegistrationTest {
         PdProvider provider = Mockito.mock(PdProvider.class);
         PDClient client = Mockito.mock(PDClient.class);
         Mockito.when(provider.getPDClient()).thenReturn(client);
-        Mockito.when(client.getCache()).thenReturn(Mockito.mock(ClientCache.class));
         Metapb.Store remote = Metapb.Store.newBuilder().setId(7).setState(Metapb.StoreState.Up)
                                        .setRaftAddress("127.0.0.1:8510")
                                        .addLabels(Metapb.StoreLabel.newBuilder()
                                                                  .setKey("zone").setValue("a")).build();
-        Mockito.when(client.getStore(7)).thenReturn(remote);
+        Mockito.when(client.reportStoreShutdown(7)).thenReturn(remote.toBuilder()
+                .setState(Metapb.StoreState.Offline).build());
         HeartbeatService service = service(null, provider);
         service.getStoreInfo().setId(7);
         service.shutdown();
-        ArgumentCaptor<Metapb.Store> request = ArgumentCaptor.forClass(Metapb.Store.class);
-        Mockito.verify(client).updateStore(request.capture());
-        Assert.assertEquals(remote.toBuilder().setState(Metapb.StoreState.Offline).build(),
-                            request.getValue());
+        Mockito.verify(client).reportStoreShutdown(7);
+        Mockito.verify(client, Mockito.never()).updateStore(Mockito.any());
         Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
     }
 
@@ -182,8 +202,7 @@ public class StoreRegistrationTest {
         PdProvider provider = Mockito.mock(PdProvider.class);
         PDClient client = Mockito.mock(PDClient.class);
         Mockito.when(provider.getPDClient()).thenReturn(client);
-        Mockito.when(client.getCache()).thenReturn(Mockito.mock(ClientCache.class));
-        Mockito.when(client.getStore(7)).thenThrow(new PDException(1, "unavailable"));
+        Mockito.when(client.reportStoreShutdown(7)).thenThrow(new PDException(1, "unavailable"));
         HeartbeatService service = service(null, provider);
         service.getStoreInfo().setId(7);
         service.shutdown();
@@ -207,9 +226,126 @@ public class StoreRegistrationTest {
         return service;
     }
 
+    private static FutureTask<?> restoreTask(HeartbeatService service) throws Exception {
+        Field field = HeartbeatService.class.getDeclaredField("restoreTask");
+        field.setAccessible(true);
+        return (FutureTask<?>) field.get(service);
+    }
+
+    private static void registerRestored(HeartbeatService service) throws Exception {
+        CountDownLatch up = new CountDownLatch(1);
+        service.addStateListener((store, previous, state) -> {
+            if (state == Metapb.StoreState.Up) {
+                up.countDown();
+            }
+        });
+        service.registerStore();
+        restoreTask(service).get(5, TimeUnit.SECONDS);
+        service.registerStore();
+        Assert.assertTrue(up.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testSlowRestoreKeepsRegisteringOfflineAndSkipsPartitionPulse() throws Exception {
+        HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
+        PdProvider provider = Mockito.mock(PdProvider.class);
+        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        Mockito.doAnswer(call -> {
+            entered.countDown();
+            Assert.assertTrue(release.await(5, TimeUnit.SECONDS));
+            return null;
+        }).when(engine).stateChanged(Mockito.any(), Mockito.any(), Mockito.any());
+        HeartbeatService service = service(engine, provider);
+        Mockito.when(provider.getClusterStats()).thenReturn(Metapb.ClusterStats.newBuilder()
+                .setState(Metapb.ClusterState.Cluster_OK).build(), Metapb.ClusterStats.newBuilder()
+                .setState(Metapb.ClusterState.Cluster_Not_Ready).build());
+        try {
+            service.registerStore();
+            Assert.assertTrue(entered.await(5, TimeUnit.SECONDS));
+            Assert.assertTrue(service.isClusterReady());
+            service.registerStore();
+            Assert.assertFalse(service.isClusterReady());
+            Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
+            Mockito.verify(provider, Mockito.times(2)).registerStore(Mockito.argThat(
+                    store -> store.getState() == Metapb.StoreState.Offline));
+            service.partitionHeartbeat();
+            Mockito.verify(engine, Mockito.never()).getLeaderPartition();
+            Mockito.verify(provider, Mockito.never()).partitionHeartbeat(Mockito.anyList());
+        } finally {
+            release.countDown();
+            service.shutdown();
+        }
+    }
+
     private static void set(Object target, String name, Object value) throws Exception {
         Field field = target.getClass().getDeclaredField(name);
         field.setAccessible(true);
         field.set(target, value);
+    }
+
+    @Test
+    public void testOlderPdShutdownDoesNotFallBackToAdministrativeOffline() throws Exception {
+        PdProvider provider = Mockito.mock(PdProvider.class);
+        PDClient client = Mockito.mock(PDClient.class);
+        Mockito.when(provider.getPDClient()).thenReturn(client);
+        Mockito.when(client.reportStoreShutdown(7)).thenThrow(io.grpc.Status.UNIMPLEMENTED.asRuntimeException());
+        HeartbeatService service = service(null, provider);
+        service.getStoreInfo().setId(7);
+        service.shutdown();
+        Mockito.verify(client, Mockito.never()).updateStore(Mockito.any());
+        Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
+    }
+
+    @Test
+    public void testShutdownWaitsForRestoreWorker() throws Exception {
+        HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
+        PdProvider provider = Mockito.mock(PdProvider.class);
+        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        Mockito.doAnswer(call -> {
+            entered.countDown();
+            Assert.assertTrue(release.await(5, TimeUnit.SECONDS));
+            return null;
+        }).when(engine).stateChanged(Mockito.any(), Mockito.any(), Mockito.any());
+        HeartbeatService service = service(engine, provider);
+        ExecutorService closer = Executors.newSingleThreadExecutor();
+        try {
+            service.registerStore();
+            Assert.assertTrue(entered.await(5, TimeUnit.SECONDS));
+            Future<?> closed = closer.submit(service::shutdown);
+            Assert.assertThrows(TimeoutException.class, () -> closed.get(100, TimeUnit.MILLISECONDS));
+            release.countDown();
+            closed.get(5, TimeUnit.SECONDS);
+            Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
+        } finally {
+            release.countDown();
+            service.shutdown();
+            closer.shutdownNow();
+        }
+    }
+
+    @Test
+    public void testProviderUsesRegistrationStateWithoutCachedLookup() throws Exception {
+        DefaultPdProvider provider = Mockito.mock(DefaultPdProvider.class, Mockito.CALLS_REAL_METHODS);
+        PDClient client = Mockito.mock(PDClient.class);
+        Field field = DefaultPdProvider.class.getDeclaredField("pdClient");
+        field.setAccessible(true);
+        field.set(provider, client);
+        Metapb.Store offline = Metapb.Store.newBuilder().setId(7).setState(Metapb.StoreState.Offline).build();
+        Mockito.when(client.registerStoreWithState(Mockito.any())).thenReturn(offline,
+                offline.toBuilder().setState(Metapb.StoreState.Up).build());
+        Store store = new Store();
+        store.setStoreAddress("127.0.0.1:8500");
+        store.setRaftAddress("127.0.0.1:8510");
+        store.setDeployPath("");
+        store.setDataPath("");
+        store.setState(Metapb.StoreState.Offline);
+        Assert.assertEquals(7L, provider.registerStore(store));
+        store.setState(Metapb.StoreState.Up);
+        Assert.assertEquals(7L, provider.registerStore(store));
+        Mockito.verify(client, Mockito.never()).getStore(Mockito.anyLong());
     }
 }

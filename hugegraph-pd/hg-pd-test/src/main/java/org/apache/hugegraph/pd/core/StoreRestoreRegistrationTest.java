@@ -64,7 +64,7 @@ public class StoreRestoreRegistrationTest {
         Metapb.Store restoring = service.register(store(Metapb.StoreState.Offline));
         Assert.assertEquals(Metapb.StoreState.Offline, restoring.getState());
         Mockito.verify(metadata, Mockito.never()).removeActiveStore(Mockito.any());
-        Mockito.verify(metadata, Mockito.never()).keepStoreAlive(Mockito.any());
+        Mockito.verify(metadata).keepStoreAlive(restoring);
 
         Metapb.Store restored = service.register(store(Metapb.StoreState.Up));
         Assert.assertEquals(Metapb.StoreState.Up, restored.getState());
@@ -131,17 +131,44 @@ public class StoreRestoreRegistrationTest {
         if (registering) {
             service.register(offline);
         } else {
-            service.updateStore(offline);
+            service.reportStoreShutdown(7);
         }
         Assert.assertEquals(Metapb.StoreState.Offline, service.getStore(7).getState());
         Metapb.StoreStats heartbeat = Metapb.StoreStats.newBuilder().setStoreId(8).build();
         Assert.assertEquals(Metapb.ClusterState.Cluster_OK, service.heartBeat(heartbeat).getState());
         Mockito.verify(metadata, Mockito.never()).removeActiveStore(Mockito.any());
-        Mockito.verify(metadata, Mockito.never()).keepStoreAlive(Mockito.argThat(store -> store.getId() == 7));
+        if (!registering) {
+            Mockito.verify(metadata, Mockito.never()).keepStoreAlive(Mockito.argThat(store -> store.getId() == 7));
+        }
 
         // Expiry still removes a Store that never comes back; Offline must not renew the lease.
         active.remove(7L);
         Assert.assertEquals(Metapb.ClusterState.Cluster_Not_Ready, service.heartBeat(heartbeat).getState());
+        if (registering) {
+            service.register(offline);
+            Assert.assertEquals(Metapb.ClusterState.Cluster_OK, service.heartBeat(heartbeat).getState());
+        }
+    }
+
+    @Test
+    public void testAdministrativeOfflineStillRemovesActiveEntry() throws Exception {
+        service.updateStore(store(Metapb.StoreState.Offline));
+        Mockito.verify(metadata).removeActiveStore(Mockito.any());
+    }
+
+    @Test
+    public void testAdministrativeOfflineRemovesAlreadyOfflineLease() throws Exception {
+        current.set(store(Metapb.StoreState.Offline));
+        service.updateStore(store(Metapb.StoreState.Offline));
+        Mockito.verify(metadata).removeActiveStore(Mockito.any());
+    }
+
+    @Test
+    public void testMetadataOnlyUpdateDoesNotRemoveRestoringLease() throws Exception {
+        current.set(store(Metapb.StoreState.Offline));
+        service.updateStore(Metapb.Store.newBuilder().setId(7)
+                .addLabels(Metapb.StoreLabel.newBuilder().setKey("zone").setValue("a")).build());
+        Mockito.verify(metadata, Mockito.never()).removeActiveStore(Mockito.any());
     }
 
     private static Metapb.Store store(Metapb.StoreState state) {

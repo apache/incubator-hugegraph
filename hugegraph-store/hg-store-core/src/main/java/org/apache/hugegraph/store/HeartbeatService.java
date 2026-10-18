@@ -23,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.hugegraph.pd.common.PDException;
@@ -59,7 +61,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     private HgStoreEngineOptions options;
     private PdProvider pdProvider;
     private Store storeInfo;
-    private Metapb.ClusterStats clusterStats;
+    private volatile Metapb.ClusterStats clusterStats;
     private StoreMetadata storeMetadata;
     private final List<StoreStateListener> stateListeners;
     private final Object partitionThreadLock = new Object();
@@ -71,6 +73,9 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     private volatile int timerNextDelay = 1000;
     private volatile boolean terminated = false;
     private boolean restored = false;
+    private FutureTask<Void> restoreTask;
+    private Thread restoreThread;
+    private volatile boolean pulseConnected;
     private final AtomicBoolean fatalExitRequested = new AtomicBoolean();
     private Thread storeHeartbeatThread;
     private Thread partitionHeartbeatThread;
@@ -118,10 +123,12 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
 
     // Whether the cluster is ready
     public boolean isClusterReady() {
-        if (clusterStats == null) {
-            clusterStats = pdProvider.getClusterStats();
+        Metapb.ClusterStats stats = clusterStats;
+        if (stats == null) {
+            stats = pdProvider.getClusterStats();
+            clusterStats = stats;
         }
-        return clusterStats != null && clusterStats.getState() == Metapb.ClusterState.Cluster_OK;
+        return stats != null && stats.getState() == Metapb.ClusterState.Cluster_OK;
     }
 
     /**
@@ -215,11 +222,28 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                 storeInfo.setId(storeId);
                 storeMetadata.save(storeInfo);
                 if (restoring && storeEngine != null) {
+                    this.clusterStats = pdProvider.getClusterStats();
+                    timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;
+                    if (restoreTask == null) {
+                        restoreTask = new FutureTask<>(() -> {
+                            storeEngine.stateChanged(storeInfo, Metapb.StoreState.Offline, Metapb.StoreState.Up);
+                            return null;
+                        });
+                        restoreThread = new Thread(restoreTask, "store-partition-restore");
+                        restoreThread.start();
+                        return;
+                    }
+                    if (!restoreTask.isDone()) {
+                        return;
+                    }
                     try {
-                        storeEngine.stateChanged(storeInfo, Metapb.StoreState.Offline, Metapb.StoreState.Up);
-                    } catch (RuntimeException e) {
+                        restoreTask.get();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    } catch (ExecutionException e) {
                         log.error("Store {} remains Offline after partition restore failed", storeId, e);
-                        timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;
+                        restoreTask = null;
                         return;
                     }
                 }
@@ -248,7 +272,8 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                 log.info("Register Store id= {} successfully. store = {}, clusterStats {}",
                          storeInfo.getId(), storeInfo, this.clusterStats);
                 // Listen to partition messages
-                pdProvider.startHeartbeatStream(error -> {
+                pulseConnected = pdProvider.startHeartbeatStream(error -> {
+                    pulseConnected = false;
                     onStateChanged(Metapb.StoreState.Offline);
                     timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;
                     wakeupHeartbeatThread();
@@ -350,7 +375,7 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     }
 
     protected void partitionHeartbeat() {
-        if (storeEngine == null) {
+        if (storeEngine == null || !pulseConnected) {
             return;
         }
 
@@ -438,8 +463,9 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             stopProducers();
             interrupted |= joinHeartbeat(storeHeartbeatThread);
             interrupted |= joinHeartbeat(partitionHeartbeatThread);
-            // Producers may have submitted callbacks that create partition owners.
-            // Never hold this monitor while joining the producer threads.
+            interrupted |= joinHeartbeat(restoreThread);
+            // Finish restoration and queued state notifications before partition owners close.
+            // Never hold this monitor while joining owned threads.
             synchronized (stateChangeLock) {
                 // Acquiring the monitor waits for any in-flight state callback to finish.
                 reportOffline();
@@ -461,13 +487,8 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             return;
         }
         try {
-            // Preserve PD's current metadata, and never use Exiting for a temporary restart.
-            var client = pdProvider.getPDClient();
-            client.getCache().removeStore(storeInfo.getId());
-            Metapb.Store current = client.getStore(storeInfo.getId());
-            if (current.getState() == Metapb.StoreState.Up) {
-                client.updateStore(current.toBuilder().setState(Metapb.StoreState.Offline).build());
-            }
+            // Older PDs reject this dedicated RPC; never fall back to administrative Offline.
+            pdProvider.getPDClient().reportStoreShutdown(storeInfo.getId());
         } catch (PDException | RuntimeException e) {
             // PD may be unavailable during cluster shutdown; heartbeat expiry remains the fallback.
             log.warn("Failed to report Store {} offline during shutdown", storeInfo.getId(), e);

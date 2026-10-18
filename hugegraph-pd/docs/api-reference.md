@@ -205,9 +205,19 @@ partition engines, then register `Up`. Upgrade PD before Store: older PD version
 ignore this restore gate, and older Stores retain their previous registration
 behavior. Pending Stores still require activation. `Up` does not guarantee Raft
 catch-up; graceful shutdown reports `Offline` without requesting permanent retirement.
-Temporary Offline reports retain the existing keepalive entry without renewing it;
-expiry still removes a Store that does not return. Once local restore succeeds,
+Temporary shutdown reports retain the existing keepalive entry without renewing it;
+expiry still removes a Store that does not return. During recovery, repeated Offline
+registrations renew the returned Store's lease while an owned worker restores engines.
+Once local restore succeeds,
 stream reconnects register `Up` directly without repeating recovery.
+`RegisterStoreResponse.store` supplies the authoritative registration state; older
+responses without this additive field fall back to a fresh Store lookup.
+
+`ReportStoreShutdown(SetStoreRequest)` returns `SetStoreResponse` and records
+temporary Offline by Store ID, preserving PD metadata and the existing lease even
+when the cluster is not ready. Older PDs return `UNIMPLEMENTED`; updated Stores
+fall back to expiry, never to `SetStore`. Administrative `SetStore(Offline)` keeps
+its cluster-readiness guard and removes the active entry as before.
 
 **Request**:
 ```protobuf
