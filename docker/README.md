@@ -367,6 +367,8 @@ policy. HotSpot prints this warning to its stdout (the container log with
 `Cannot create worker GC thread` message. After an initialization or Server
 readiness failure, the entrypoint checks new crash files and newly appended
 Server log output and prints possible causes without changing the exit code.
+With `STDOUT_MODE=false`, it scans newly written `logs/hugegraph-server-stdout.log`
+bytes before crash files, so a generic crash header cannot hide the EPERM warning.
 Check the preceding JVM output for the specific error. Crash files left by
 previous starts do not trigger the hint.
 

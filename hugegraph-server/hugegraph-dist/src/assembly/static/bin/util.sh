@@ -19,6 +19,7 @@
 function record_jvm_startup_diagnostics() {
     JVM_STARTUP_TIME=$(date -u +'%Y-%m-%d %H:%M:%S.%N UTC')
     JVM_STARTUP_LOG_OFFSET=$(stat -c %s ./logs/hugegraph-server.log 2>/dev/null || echo 0)
+    JVM_STARTUP_STDOUT_OFFSET=$(stat -c %s ./logs/hugegraph-server-stdout.log 2>/dev/null || echo 0)
 }
 
 function print_jvm_thread_hint() {
@@ -36,7 +37,7 @@ function print_jvm_thread_hint() {
             ;;
         resources)
             echo 'ERROR: JVM could not create a GC worker thread. Possible causes include seccomp denial, insufficient memory, or process/thread limits.' >&2
-            echo 'Look for pthread_create failed (EPERM) above in the container log; if present, check the host seccomp profile and security policy.' >&2
+            echo 'Look for pthread_create failed (EPERM) in the JVM output: the container log, or logs/hugegraph-server-stdout.log with STDOUT_MODE=false.' >&2
             echo 'To diagnose seccomp restrictions, retry with --security-opt seccomp=unconfined; use a compatible host/runtime profile for normal operation.' >&2
             echo 'If the process limit is too low, set --ulimit nproc=65535:65535.' >&2
             ;;
@@ -46,6 +47,14 @@ function print_jvm_thread_hint() {
 
 function diagnose_jvm_startup_failure() {
     local crash size offset
+    if [[ -r ./logs/hugegraph-server-stdout.log ]]; then
+        size=$(stat -c %s ./logs/hugegraph-server-stdout.log 2>/dev/null || echo 0)
+        offset=$JVM_STARTUP_STDOUT_OFFSET
+        [[ "$size" -ge "$offset" ]] || offset=0
+        if tail -c +$((offset + 1)) ./logs/hugegraph-server-stdout.log | print_jvm_thread_hint; then
+            return 0
+        fi
+    fi
     while IFS= read -r -d '' crash; do
         if [[ -r "$crash" ]] && print_jvm_thread_hint < "$crash"; then
             return 0

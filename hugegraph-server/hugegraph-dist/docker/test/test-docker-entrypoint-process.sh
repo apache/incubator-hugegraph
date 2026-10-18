@@ -57,6 +57,8 @@ with tempfile.TemporaryDirectory(prefix='hugegraph-entrypoint-process-') as dire
                            ('TERM', 143), ('INT', 130), ('groupTERM', 143),
                            ('early42', 42), ('early0', 1), ('timeout', 1),
                            ('early42-eperm-stdout', 42),
+                           ('early42-file-output', 42), ('early42-file-output-no-crash', 42),
+                           ('early42-stale-stdout', 42), ('early42-truncated-stdout', 42),
                            ('early42-resource', 42), ('early42-stale-file', 42),
                            ('early42-stale-log', 42), ('early37-init', 37),
                            ('timeout-ignore', 1), ('partition42', 42),
@@ -78,6 +80,8 @@ with tempfile.TemporaryDirectory(prefix='hugegraph-entrypoint-process-') as dire
             os.utime(stale, (1, 1))
         if mode == 'early42-stale-log':
             (work / 'logs/hugegraph-server.log').write_text('pthread_create failed (EPERM)\n')
+        if mode in ['early42-stale-stdout', 'early42-truncated-stdout']:
+            (work / 'logs/hugegraph-server-stdout.log').write_text('pthread_create failed (EPERM)\n' * 10)
         backend = 'hstore' if mode.startswith('partition') else 'rocksdb'
         (work / 'conf/graphs/hugegraph.properties').write_text('backend=' + backend + '\n')
         (work / 'conf/rest-server.properties').write_text(
@@ -188,7 +192,11 @@ def stop(signum, frame):
 signal.signal(signal.SIGTERM, signal.SIG_IGN if mode == 'timeout-ignore' else stop)
 (work / 'child-running').touch()
 if mode.startswith('early'):
-    if mode in ['early42-eperm-stdout', 'early42-resource']:
+    if mode in ['early42-file-output', 'early42-file-output-no-crash', 'early42-truncated-stdout']:
+        (work / 'logs/hugegraph-server-stdout.log').write_text('pthread_create failed (EPERM)\\n')
+        if mode == 'early42-file-output':
+            (work / 'logs/hs_err_pid42.log').write_text('Cannot create worker GC thread\\n')
+    elif mode in ['early42-eperm-stdout', 'early42-resource']:
         if mode == 'early42-eperm-stdout':
             print('Failed to start thread "GC Thread#0" - pthread_create failed (EPERM)', flush=True)
         (work / 'logs/hs_err_pid42.log').write_text('Cannot create worker GC thread\\n')
@@ -208,6 +216,9 @@ sys.exit(int((work / 'child-exit').read_text()))
         env.update(PATH=str(work / 'tools') + ':' + os.environ['PATH'],
                    TEST_CHILD_MODE=mode, HG_SERVER_STARTUP_TIMEOUT_S='3',
                    TEST_REAL_CURL=shutil.which('curl'), NO_PROXY='127.0.0.1', no_proxy='127.0.0.1')
+        if mode in ['early42-file-output', 'early42-file-output-no-crash',
+                    'early42-stale-stdout', 'early42-truncated-stdout']:
+            env['STDOUT_MODE'] = 'false'
         if mode.startswith('readiness'):
             env['HG_SERVER_STARTUP_TIMEOUT_S'] = '60'
         if mode.startswith('partitionDiagnostic'):
@@ -250,11 +261,15 @@ sys.exit(int((work / 'child-exit').read_text()))
                 actual = process.wait(timeout=5)
                 assert actual == expected, (mode, expected, actual, (work / 'output').read_text())
                 diagnostic = (work / 'output').read_text()
-                if mode in ['early42-eperm-stdout', 'early42-resource', 'early37-init']:
+                if mode in ['early42-file-output', 'early42-file-output-no-crash', 'early42-truncated-stdout']:
+                    assert 'JVM thread creation was denied (EPERM)' in diagnostic, diagnostic
+                    assert 'Possible causes' not in diagnostic, diagnostic
+                    assert '--ulimit nproc' not in diagnostic, diagnostic
+                elif mode in ['early42-eperm-stdout', 'early42-resource', 'early37-init']:
                     assert '--security-opt seccomp=unconfined' in diagnostic, diagnostic
                     assert '--ulimit nproc=65535:65535' in diagnostic, diagnostic
                     assert 'Possible causes include seccomp denial, insufficient memory' in diagnostic, diagnostic
-                    assert 'Look for pthread_create failed (EPERM) above' in diagnostic, diagnostic
+                    assert 'logs/hugegraph-server-stdout.log with STDOUT_MODE=false' in diagnostic, diagnostic
                     assert 'JVM thread creation was denied' not in diagnostic, diagnostic
                     if mode != 'early42-resource':
                         assert 'Failed to start thread "GC Thread#0"' in diagnostic, diagnostic
