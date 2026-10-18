@@ -208,34 +208,45 @@ public class RocksdbMemoryBudgetTest {
     public void testStricterLimitAboveCgroupV2SubtreeMount() throws IOException {
         Path root = Files.createTempDirectory("cgroup-v2-above-subtree");
         try {
-            // kubepods is limited to 2 GiB, the pod to 4 GiB and the container not at all
+            // /outer is limited to 2 GiB, the pod to 4 GiB, kubepods and the container not
             Path full = root.resolve("full");
-            write(full, "kubepods/memory.max", String.valueOf(2 * GIB));
-            write(full, "kubepods/pod1/memory.max", String.valueOf(4 * GIB));
-            write(full, "kubepods/pod1/ctr/memory.max", "max");
-            // The same hierarchy mounted from /kubepods shows the pod and below only
+            write(full, "outer/memory.max", String.valueOf(2 * GIB));
+            write(full, "outer/kubepods/memory.max", "max");
+            write(full, "outer/kubepods/pod1/memory.max", String.valueOf(4 * GIB));
+            write(full, "outer/kubepods/pod1/ctr/memory.max", "max");
+            // The same hierarchy mounted from /outer/kubepods hides the 2 GiB on /outer
             Path sub = root.resolve("sub");
             write(sub, "memory.max", "max");
             write(sub, "pod1/memory.max", String.valueOf(4 * GIB));
             write(sub, "pod1/ctr/memory.max", "max");
-            Path proc = write(root, "proc-self-cgroup", "0::/kubepods/pod1/ctr\n");
+            Path proc = write(root, "proc-self-cgroup", "0::/outer/kubepods/pod1/ctr\n");
             String fullLine = "31 25 0:26 / " + full + " rw - cgroup2 cgroup2 rw\n";
-            String subLine = "32 25 0:26 /kubepods " + sub + " rw - cgroup2 cgroup2 rw\n";
+            String subLine = "32 25 0:26 /outer/kubepods " + sub +
+                             " rw - cgroup2 cgroup2 rw\n";
 
-            // Subtree only: the 2 GiB limit above /kubepods is missed, and that is flagged
+            // Subtree only: the 2 GiB limit above the mount is missed, and that is flagged
             Path subOnly = write(root, "mountinfo-sub", subLine);
             RocksdbMemoryBudget.CgroupLimit limit =
                     RocksdbMemoryBudget.cgroupLimit(proc, subOnly, root);
             assertEquals(4 * GIB, limit.bytes);
             assertTrue(limit.incomplete);
 
-            // With a full-hierarchy view in either order the stricter limit is found
+            // With a readable full-hierarchy view in either order the 2 GiB is found
             for (String order : new String[]{subLine + fullLine, fullLine + subLine}) {
                 Path mountinfo = write(root, "mountinfo", order);
                 limit = RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
                 assertEquals(order, 2 * GIB, limit.bytes);
                 assertFalse(order, limit.incomplete);
             }
+
+            // A "/" mount that doesn't show the process's path doesn't count as a full view
+            Path empty = root.resolve("empty-full");
+            write(empty, "memory.max", "max");
+            Path unreadable = write(root, "mountinfo-unreadable", subLine +
+                                    "33 25 0:26 / " + empty + " rw - cgroup2 cgroup2 rw\n");
+            limit = RocksdbMemoryBudget.cgroupLimit(proc, unreadable, root);
+            assertEquals(4 * GIB, limit.bytes);
+            assertTrue(limit.incomplete);
         } finally {
             FileUtils.deleteQuietly(root.toFile());
         }

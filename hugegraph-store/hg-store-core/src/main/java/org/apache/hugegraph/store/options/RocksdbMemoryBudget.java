@@ -251,9 +251,11 @@ public final class RocksdbMemoryBudget {
                     continue;
                 }
                 matched = true;
-                fullView |= mount[0].equals("/");
                 Path point = Paths.get(mount[1]);
                 String relative = rebase(parts[2], mount[0]);
+                // A full-hierarchy mount only covers the ancestors if this process's own
+                // directory is actually reachable through it
+                fullView |= mount[0].equals("/") && visible(point, relative);
                 limit = lowest(limit, v2 ? cgroupV2Limit(point, relative) :
                                       cgroupV1Limit(point, relative));
             }
@@ -356,6 +358,11 @@ public final class RocksdbMemoryBudget {
             }
         }
         return out.toString();
+    }
+
+    private static boolean visible(Path point, String relative) {
+        Path dir = point.resolve(relative).normalize();
+        return dir.startsWith(point) && Files.isDirectory(dir);
     }
 
     private static long cgroupV2Limit(Path root, String relative) {
