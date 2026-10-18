@@ -219,7 +219,9 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
         Seq<GremlinStep> ir = ast.translate(strTranslator.flavor(),
                                             strTranslator.features(), procedureContext);
 
-        String gremlin = TranslationWriter.write(ir, strTranslator, parameters);
+        Map<String, Object> explainParameters =
+                CypherTemporalFunctions.explainParameters(parameters);
+        String gremlin = TranslationWriter.write(ir, strTranslator, explainParameters);
         logger.trace("Gremlin: {}", gremlin);
 
         if (ast.getOptions().contains(EXPLAIN)) {

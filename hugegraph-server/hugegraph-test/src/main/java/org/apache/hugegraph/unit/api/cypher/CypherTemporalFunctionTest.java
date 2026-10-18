@@ -35,7 +35,12 @@ import org.apache.hugegraph.opencypher.CypherTemporalFunctions;
 import org.junit.Assert;
 import org.junit.Test;
 import org.opencypher.gremlin.translation.CypherAst;
+import org.opencypher.gremlin.translation.groovy.GroovyPredicate;
+import org.opencypher.gremlin.translation.ir.TranslationWriter;
+import org.opencypher.gremlin.translation.ir.model.GremlinStep;
 import org.opencypher.gremlin.translation.translator.Translator;
+import org.opencypher.gremlin.traversal.ProcedureContext;
+import scala.collection.Seq;
 
 public class CypherTemporalFunctionTest {
 
@@ -188,6 +193,90 @@ public class CypherTemporalFunctionTest {
 
         Assert.assertSame(parameters, folded.getValue());
         Assert.assertTrue(folded.getKey(), folded.getKey().contains("marko"));
+    }
+
+    @Test
+    public void testUpperAndMixedCaseConstructorsFold() throws Exception {
+        Map.Entry<String, Map<String, Object>> upper = translate(
+                "MATCH (n) WHERE n.d0 = DATE('2000-01-01') RETURN n",
+                Collections.emptyMap());
+        Assert.assertEquals(expectedDate("yyyy-MM-dd", "2000-01-01"),
+                            syntheticBinding(upper.getValue(), "  cypher.fold.date."));
+
+        Map.Entry<String, Map<String, Object>> mixed = translate(
+                "RETURN DateTime('2024-02-05T10:15:30')", Collections.emptyMap());
+        Assert.assertEquals(expectedDate("yyyy-MM-dd'T'HH:mm:ss", "2024-02-05T10:15:30"),
+                            syntheticBinding(mixed.getValue(), "  cypher.fold.datetime."));
+
+        Map.Entry<String, Map<String, Object>> local = translate(
+                "RETURN localDateTime('2024-02-05T10:15:30')", Collections.emptyMap());
+        Assert.assertEquals(expectedDate("yyyy-MM-dd'T'HH:mm:ss", "2024-02-05T10:15:30"),
+                            syntheticBinding(local.getValue(), "  cypher.fold.localdatetime."));
+    }
+
+    @Test
+    public void testSyntheticNameSkipsOccupiedLiteralBinding() throws Exception {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("  cypher.fold.date.0", "original");
+        Map.Entry<String, Map<String, Object>> folded = translate(
+                "RETURN date('2024-02-05') AS d, $`  cypher.fold.date.0` AS other", parameters);
+
+        Assert.assertEquals("original", folded.getValue().get("  cypher.fold.date.0"));
+        Assert.assertEquals(expectedDate("yyyy-MM-dd", "2024-02-05"),
+                            folded.getValue().get("  cypher.fold.date.1"));
+        Assert.assertTrue(folded.getKey(), folded.getKey().contains("original"));
+    }
+
+    @Test
+    public void testSyntheticNameSkipsOccupiedParameterBinding() throws Exception {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("d", "2024-02-05");
+        parameters.put("  cypher.fold.date.0", "original");
+        Map.Entry<String, Map<String, Object>> folded = translate(
+                "RETURN date($d) AS d, $`  cypher.fold.date.0` AS other", parameters);
+
+        Assert.assertEquals("original", folded.getValue().get("  cypher.fold.date.0"));
+        Assert.assertEquals(expectedDate("yyyy-MM-dd", "2024-02-05"),
+                            folded.getValue().get("  cypher.fold.date.1"));
+        Assert.assertEquals("2024-02-05", folded.getValue().get("d"));
+    }
+
+    @Test
+    public void testBareConstructorsShareOneInstant() throws Exception {
+        Map.Entry<String, Map<String, Object>> folded = translate(
+                "CREATE (a {t: datetime()}), (b {t: datetime()}) RETURN count(*)",
+                Collections.emptyMap());
+
+        List<Date> values = new ArrayList<>();
+        for (Map.Entry<String, Object> entry : folded.getValue().entrySet()) {
+            if (entry.getKey().startsWith("  cypher.fold.datetime.")) {
+                values.add((Date) entry.getValue());
+            }
+        }
+        Assert.assertEquals(2, values.size());
+        Assert.assertEquals(values.get(0), values.get(1));
+    }
+
+    @Test
+    public void testExplainTranslationPrintsFoldedDatesAsConstructors() {
+        String query = "MATCH (n) WHERE n.d0 = date('2000-01-01') RETURN n";
+        Map<String, Object> empty = Collections.emptyMap();
+        CypherAst ast = CypherAst.parse(query, empty);
+        Map<String, Object> effective = CypherTemporalFunctions.fold(ast, empty);
+        Date folded = syntheticBinding(effective, "  cypher.fold.date.");
+
+        Translator<String, GroovyPredicate> strTranslator = Translator.builder()
+                                                                      .gremlinGroovy()
+                                                                      .build("gremlin+cfog_server_extensions" +
+                                                                             "+inline_parameters");
+        Seq<GremlinStep> ir = ast.translate(strTranslator.flavor(),
+                                            strTranslator.features(),
+                                            ProcedureContext.global());
+        String gremlin = TranslationWriter.write(ir, strTranslator,
+                CypherTemporalFunctions.explainParameters(effective));
+
+        Assert.assertTrue(gremlin, gremlin.contains("new Date(" + folded.getTime() + "L)"));
+        Assert.assertFalse(gremlin, gremlin.contains(folded.toString()));
     }
 
     private static Map.Entry<String, Map<String, Object>> translate(String query,

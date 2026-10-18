@@ -143,6 +143,9 @@ string literal argument, or a parameter bound to a string; `date()` uses the
 that are not foldable, other temporal forms such as map or duration arguments,
 and the remaining temporal functions (`time()`, `localtime()`, `duration()`)
 keep failing translation with `Unknown function` as before.
+Constructor names are case-insensitive like the rest of Cypher, and the bare
+constructors of one statement read the clock once. EXPLAIN prints a folded
+value as an explicit `new Date(...)` constructor instead of a stringified date.
 
 ## Regression checks
 

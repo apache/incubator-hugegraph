@@ -21,6 +21,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -29,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.opencypher.gremlin.translation.CypherAst;
@@ -65,8 +67,9 @@ public final class CypherTemporalFunctions {
     private static final String DATETIME = "datetime";
     private static final String LOCALDATETIME = "localdatetime";
 
-    // Two leading spaces: parameter names coming from a Cypher query can
-    // never collide with this prefix, like the translator's own reserved names.
+    // Two leading spaces keep the prefix away from ordinary parameter names;
+    // backtick-escaped Cypher parameters can still carry it, so generated
+    // names skip every one the request already occupies.
     private static final String SYNTHETIC_PREFIX = "  cypher.fold.";
 
     private CypherTemporalFunctions() {
@@ -114,10 +117,57 @@ public final class CypherTemporalFunctions {
         return merged;
     }
 
+    /**
+     * Returns a copy of the given parameters in which folded temporal values
+     * are replaced by a printable constructor form, so the string translation
+     * stays executable Groovy instead of rendering a date through toString.
+     */
+    public static Map<String, Object> explainParameters(Map<String, Object> parameters) {
+        boolean folded = false;
+        for (String name : parameters.keySet()) {
+            if (name.startsWith(SYNTHETIC_PREFIX)) {
+                folded = true;
+                break;
+            }
+        }
+        if (!folded) {
+            return parameters;
+        }
+        Map<String, Object> explainable = new LinkedHashMap<>(parameters);
+        for (Map.Entry<String, Object> entry : explainable.entrySet()) {
+            if (entry.getKey().startsWith(SYNTHETIC_PREFIX) &&
+                entry.getValue() instanceof Date) {
+                entry.setValue(new GroovyDate((Date) entry.getValue()));
+            }
+        }
+        return explainable;
+    }
+
+    /**
+     * Renders a folded date as an explicit constructor so that the EXPLAIN
+     * translation of the string writer stays valid Groovy.
+     */
+    private static final class GroovyDate {
+
+        private final Date date;
+
+        private GroovyDate(Date date) {
+            this.date = date;
+        }
+
+        @Override
+        public String toString() {
+            return "new Date(" + this.date.getTime() + "L)";
+        }
+    }
+
     private static final class TemporalFold {
 
         private final Map<String, Object> parameters;
         private final Map<String, Object> bindings = new LinkedHashMap<>();
+        // One clock read per statement: the bare constructors of a query
+        // derive from a single instant.
+        private final Instant now = Instant.now();
         private int counter = 0;
 
         private TemporalFold(Map<String, Object> parameters) {
@@ -174,7 +224,9 @@ public final class CypherTemporalFunctions {
         }
 
         private Object foldCall(FunctionInvocation call) {
-            String name = call.name();
+            // Function names resolve case-insensitively, like the parser and
+            // the translator do, so match the lower-case spelling.
+            String name = call.name().toLowerCase(Locale.ROOT);
             if (!DATE.equals(name) && !DATETIME.equals(name) && !LOCALDATETIME.equals(name)) {
                 return null;
             }
@@ -197,9 +249,18 @@ public final class CypherTemporalFunctions {
             } else {
                 return null;
             }
-            String binding = SYNTHETIC_PREFIX + name + '.' + counter++;
+            String binding = nextBindingName(name);
             this.bindings.put(binding, value);
             return new Parameter(binding, AnyType.instance(), call.position());
+        }
+
+        private String nextBindingName(String name) {
+            String binding = SYNTHETIC_PREFIX + name + '.' + this.counter++;
+            while (this.parameters.containsKey(binding) ||
+                   this.bindings.containsKey(binding)) {
+                binding = SYNTHETIC_PREFIX + name + '.' + this.counter++;
+            }
+            return binding;
         }
 
         private String literalOf(Object argument) {
@@ -215,11 +276,13 @@ public final class CypherTemporalFunctions {
             return null;
         }
 
-        private static Date currentValue(String name) {
+        private Date currentValue(String name) {
             if (DATE.equals(name)) {
-                return Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+                return Date.from(LocalDate.ofInstant(this.now, ZoneId.systemDefault())
+                                         .atStartOfDay(ZoneId.systemDefault())
+                                         .toInstant());
             }
-            return new Date();
+            return Date.from(this.now);
         }
 
         private static Date parse(String name, String literal) {
