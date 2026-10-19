@@ -26,7 +26,6 @@ function print_jvm_thread_hint() {
     local kind
     kind=$(awk '
         /pthread_create.*\(EPERM\)|pthread_create.*Operation not permitted/ { denied = 1 }
-        /[Tt]hread.*Operation not permitted/ { denied = 1 }
         /Cannot create worker GC thread/ { resources = 1 }
         END { if (denied) print "denied"; else if (resources) print "resources" }
     ')

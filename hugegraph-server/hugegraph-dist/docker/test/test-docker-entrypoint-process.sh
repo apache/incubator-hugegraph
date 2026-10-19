@@ -57,6 +57,7 @@ with tempfile.TemporaryDirectory(prefix='hugegraph-entrypoint-process-') as dire
                            ('TERM', 143), ('INT', 130), ('groupTERM', 143),
                            ('early42', 42), ('early0', 1), ('timeout', 1),
                            ('early42-eperm-stdout', 42),
+                           ('early42-file-eperm-stdout', 42), ('early42-file-eperm-log', 42),
                            ('early42-file-output', 42), ('early42-file-output-no-crash', 42),
                            ('early42-stale-stdout', 42), ('early42-truncated-stdout', 42),
                            ('early42-resource', 42), ('early42-stale-file', 42),
@@ -196,6 +197,15 @@ if mode.startswith('early'):
         (work / 'logs/hugegraph-server-stdout.log').write_text('pthread_create failed (EPERM)\\n')
         if mode == 'early42-file-output':
             (work / 'logs/hs_err_pid42.log').write_text('Cannot create worker GC thread\\n')
+    elif mode in ['early42-file-eperm-stdout', 'early42-file-eperm-log']:
+        if mode == 'early42-file-eperm-stdout':
+            target = work / 'logs/hugegraph-server-stdout.log'
+            message = 'Exception in thread "main" java.nio.file.FileSystemException: /data/LOCK: Operation not permitted'
+        else:
+            target = work / 'logs/hugegraph-server.log'
+            message = '[pool-3-thread-1] [ERROR] RocksDBStore - Failed to open RocksDB: lock: Operation not permitted'
+        with target.open('a') as output:
+            output.write(message + '\\n')
     elif mode in ['early42-eperm-stdout', 'early42-resource']:
         if mode == 'early42-eperm-stdout':
             print('Failed to start thread "GC Thread#0" - pthread_create failed (EPERM)', flush=True)
@@ -261,6 +271,9 @@ sys.exit(int((work / 'child-exit').read_text()))
                 actual = process.wait(timeout=5)
                 assert actual == expected, (mode, expected, actual, (work / 'output').read_text())
                 diagnostic = (work / 'output').read_text()
+                if mode in ['early42-file-eperm-stdout', 'early42-file-eperm-log']:
+                    assert 'JVM thread creation was denied' not in diagnostic, diagnostic
+                    assert '--security-opt seccomp=unconfined' not in diagnostic, diagnostic
                 if mode in ['early42-file-output', 'early42-file-output-no-crash', 'early42-truncated-stdout']:
                     assert 'JVM thread creation was denied (EPERM)' in diagnostic, diagnostic
                     assert 'Possible causes' not in diagnostic, diagnostic
