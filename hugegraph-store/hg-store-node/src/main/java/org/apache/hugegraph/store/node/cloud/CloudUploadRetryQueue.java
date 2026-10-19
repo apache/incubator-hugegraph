@@ -105,7 +105,7 @@ public class CloudUploadRetryQueue implements Closeable {
 
     /**
      * Invoked with {@code dbName} after an upload becomes durable via retry, so the
-     * caller can (debounced) publish CURRENT/MANIFEST for that DB. Without this, a retry that
+     * caller can (coalesced) publish CURRENT/MANIFEST for that DB. Without this, a retry that
      * succeeds during a quiet period would leave the SST in cloud but the mirrored CURRENT stale
      * until some unrelated sync fires (or never, on an idle DB) — widening the recovery point.
      */
@@ -450,7 +450,7 @@ public class CloudUploadRetryQueue implements Closeable {
                          dbName, sourceSstPath, callbackError.getMessage());
             }
             // The SST set is now more durable than the mirrored CURRENT/MANIFEST — trigger a
-            // (debounced) metadata publish so the recovery point advances even if this retry
+            // (coalesced) metadata publish so the recovery point advances even if this retry
             // succeeded during an otherwise-quiet period on an idle DB.
             triggerMetadataSync(dbName);
             // If we uploaded from a staging hard-link, clean it up now.

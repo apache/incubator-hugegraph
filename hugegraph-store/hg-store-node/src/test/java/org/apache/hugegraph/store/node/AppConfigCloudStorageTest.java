@@ -58,7 +58,6 @@ public class AppConfigCloudStorageTest {
         mockEnv.setProperty("cloud.storage.upload-retry-initial-delay-ms", "500");
         mockEnv.setProperty("cloud.storage.upload-retry-max-delay-ms", "30000");
         mockEnv.setProperty("cloud.storage.metadata-sync-debounce-ms", "250");
-        mockEnv.setProperty("cloud.storage.metadata-sync-max-unpublished", "8");
         mockEnv.setProperty("cloud.storage.node-id", "node-7");
 
         mockEnv.setProperty("cloud.storage.s3.bucket", "test-bucket");
@@ -79,7 +78,6 @@ public class AppConfigCloudStorageTest {
         assertEquals(500L, cfg.getUploadRetryInitialDelayMs());
         assertEquals(30_000L, cfg.getUploadRetryMaxDelayMs());
         assertEquals(250L, cfg.getMetadataSyncDebounceMs());
-        assertEquals(8, cfg.getMetadataSyncMaxUnpublished());
         assertEquals("node-7", cfg.getNodeId());
 
         // Provider-specific properties forwarded verbatim
@@ -120,7 +118,6 @@ public class AppConfigCloudStorageTest {
         assertTrue(cfg.isEnabled());
         assertEquals("hugegraph", cfg.getPathPrefix());
         assertEquals(1_000L, cfg.getMetadataSyncDebounceMs());
-        assertEquals(32, cfg.getMetadataSyncMaxUnpublished());
     }
 
     /**

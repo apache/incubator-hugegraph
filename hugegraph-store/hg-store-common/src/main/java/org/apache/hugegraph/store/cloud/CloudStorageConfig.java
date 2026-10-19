@@ -99,21 +99,13 @@ public class CloudStorageConfig {
     private long uploadRetryMaxDelayMs = 60_000L;
 
     /**
-     * Debounce window in milliseconds for the per-SST metadata sync triggered by
-     * {@code onTableFileCreated}. Within a window per DB, at most one metadata publish runs (plus a
-     * trailing publish), coalescing the checkpoint + S3 list/prune cost under write-heavy load.
-     * Values {@code <= 0} disable debouncing (publish on every SST). Default: {@code 1000} ms.
-     * Event-driven publishes (delete guard, compaction, DB open) are never debounced.
+     * Interval in milliseconds at which DBs with SST uploads since their last metadata publish are
+     * drained: each such DB gets at most one metadata publish per interval, coalescing the
+     * checkpoint + S3 list/prune cost under write-heavy load. Failed publishes are retried on the
+     * next interval. Values {@code <= 0} publish inline on every SST. Default: {@code 1000} ms.
+     * Event-driven publishes (delete guard, compaction, DB open) are never coalesced.
      */
     private long metadataSyncDebounceMs = 1_000L;
-
-    /**
-     * Backlog bound for the metadata-sync debounce: once this many SST uploads accumulate without a
-     * metadata publish for a DB, a publish is forced regardless of {@link #metadataSyncDebounceMs},
-     * bounding the cloud recovery point by count (not just time) during heavy-ingestion bursts.
-     * Values {@code <= 0} disable the count bound (time-only debounce). Default: {@code 32}.
-     */
-    private int metadataSyncMaxUnpublished = 32;
 
     /**
      * Stable per-node identity used to derive the cloud key scope ({@code store-<nodeId>}).

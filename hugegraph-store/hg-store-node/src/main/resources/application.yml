@@ -62,17 +62,14 @@ cloud:
     upload-retry-max-attempts: 3
     upload-retry-initial-delay-ms: 1000
     upload-retry-max-delay-ms: 60000
-    # Debounce window (ms) for the per-SST metadata sync; coalesces checkpoint+list/prune cost under
-    # write-heavy load. <= 0 publishes on every SST (pre-debounce behavior). Event-driven publishes
-    # (delete guard, compaction, DB open) are never debounced.
+    # Interval (ms) at which DBs with new SST uploads get one coalesced metadata publish; failed
+    # publishes retry on the next interval. <= 0 publishes on every SST. Event-driven publishes
+    # (delete guard, compaction, DB open) are never coalesced.
     metadata-sync-debounce-ms: 1000
-    # Force a metadata publish once this many SSTs are uploaded-but-unmirrored, bounding the cloud
-    # recovery point by count (not just time) during heavy-ingestion bursts. <= 0 disables.
-    metadata-sync-max-unpublished: 32
     # Mirror a consistent CURRENT/MANIFEST/OPTIONS snapshot so cloud objects stay
     # recoverable (a node that lost its local disk reopens from cloud, not an empty DB).
     # Metadata sync is always enabled when cloud storage is enabled.
-    # Sync is event-triggered by storage events; there is no background interval scheduler.
+    # Sync is triggered by storage events; SST-upload syncs are coalesced per the interval above.
     # Capture forces a MemTable flush so the un-flushed tail is persisted into an SST and mirrored;
     # the RocksDB WAL is disabled under Raft (the Raft log is the tail's durability source), so a
     # flush is the only way to push recent writes into cloud.

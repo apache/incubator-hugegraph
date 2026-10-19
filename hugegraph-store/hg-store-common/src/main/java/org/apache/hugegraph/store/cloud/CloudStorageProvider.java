@@ -19,8 +19,6 @@ package org.apache.hugegraph.store.cloud;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -80,15 +78,11 @@ public interface CloudStorageProvider extends Closeable {
     /**
      * Lists object keys under a remote directory/prefix.
      *
-     * <p>Default implementation returns an empty list so existing providers remain compatible.
-     *
      * @param remoteDirPrefix directory/prefix inside bucket (without provider pathPrefix)
      * @return object keys relative to provider root (without provider pathPrefix)
      * @throws IOException on I/O or network failure
      */
-    default List<String> listFiles(String remoteDirPrefix) throws IOException {
-        return Collections.emptyList();
-    }
+    List<String> listFiles(String remoteDirPrefix) throws IOException;
 
     /**
      * Downloads an object from cloud storage to a local file.
@@ -100,33 +94,14 @@ public interface CloudStorageProvider extends Closeable {
     void downloadFile(String remoteKey, String localPath) throws IOException;
 
     /**
-     * Deletes all objects under a prefix in a single best-effort operation.
-     *
-     * <p>Default implementation lists and deletes individually for backward compatibility.
-     * Implementations should override to provide more efficient bulk-delete semantics
-     * where supported by the underlying storage backend (e.g. S3 DeleteObjects API).
+     * Deletes all objects under a prefix. Implementations should use bulk-delete semantics where
+     * the underlying storage backend supports them (e.g. S3 DeleteObjects API).
      *
      * @param remoteDirPrefix directory/prefix inside bucket (without provider pathPrefix)
      * @return number of objects deleted
-     * @throws IOException on I/O or network failure
+     * @throws IOException on I/O or network failure, including a partial delete
      */
-    default int deletePrefix(String remoteDirPrefix) throws IOException {
-        List<String> keys = listFiles(remoteDirPrefix);
-        List<String> failures = new ArrayList<>();
-        for (String key : keys) {
-            try {
-                deleteFile(key);
-            } catch (IOException e) {
-                failures.add(key + ": " + e.getMessage());
-            }
-        }
-        if (!failures.isEmpty()) {
-            throw new IOException("deletePrefix failed for " + failures.size() + " of "
-                                  + keys.size() + " objects under '" + remoteDirPrefix
-                                  + "': " + failures);
-        }
-        return keys.size();
-    }
+    int deletePrefix(String remoteDirPrefix) throws IOException;
 
     /**
      * Releases resources held by the provider (e.g. HTTP clients, connections).

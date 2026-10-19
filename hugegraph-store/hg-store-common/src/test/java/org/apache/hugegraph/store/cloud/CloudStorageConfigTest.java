@@ -154,17 +154,6 @@ public class CloudStorageConfigTest {
     }
 
     @Test
-    public void testMetadataSyncMaxUnpublished() {
-        assertEquals(32, config.getMetadataSyncMaxUnpublished());
-
-        config.setMetadataSyncMaxUnpublished(8);
-        assertEquals(8, config.getMetadataSyncMaxUnpublished());
-
-        config.setMetadataSyncMaxUnpublished(0);
-        assertEquals(0, config.getMetadataSyncMaxUnpublished());
-    }
-
-    @Test
     public void testNodeId() {
         assertEquals("", config.getNodeId());
 

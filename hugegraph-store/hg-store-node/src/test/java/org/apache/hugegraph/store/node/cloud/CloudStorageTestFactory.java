@@ -83,8 +83,7 @@ final class CloudStorageTestFactory {
                                                   String storeScopePrefix) {
         return newListener(provider, dataRoots, startupHydrationEnabled, readMissGuardWindowMs,
                             retryQueue, syncTracker, storeScopePrefix,
-                            CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                            CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED);
+                            CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS);
     }
 
     static CloudStorageEventListener newListener(CloudStorageProvider provider,
@@ -94,12 +93,10 @@ final class CloudStorageTestFactory {
                                                   CloudUploadRetryQueue retryQueue,
                                                   CloudSyncTracker syncTracker,
                                                   String storeScopePrefix,
-                                                  long metadataSyncDebounceMs,
-                                                  int metadataSyncMaxUnpublished) {
+                                                  long metadataSyncDebounceMs) {
         return new CloudStorageEventListener(provider, dataRoots, startupHydrationEnabled,
                                               readMissGuardWindowMs, retryQueue, syncTracker,
-                                              storeScopePrefix, metadataSyncDebounceMs,
-                                              metadataSyncMaxUnpublished);
+                                              storeScopePrefix, metadataSyncDebounceMs);
     }
 
     static CloudUploadRetryQueue newRetryQueue(CloudStorageProvider provider, int maxAttempts,

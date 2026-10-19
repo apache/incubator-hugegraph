@@ -796,7 +796,7 @@ run_recovery_test() {
          local vol="${COMPOSE_PROJECT_NAME}_hg-store${i}-data"
          local count
          count=$(docker run --rm --entrypoint /bin/sh -v "${vol}:/s" "$MINIO_MC_IMAGE" -c '
-             mc find /s --name "*.hyd-tmp" 2>/dev/null | wc -l | tr -d " "
+             mc find /s --name "*.hyd-tmp-*" 2>/dev/null | wc -l | tr -d " "
          ' 2>/dev/null || echo "0")
          count="${count//[^0-9]/}"
          if [[ -n "$count" && "$count" -gt 0 ]]; then

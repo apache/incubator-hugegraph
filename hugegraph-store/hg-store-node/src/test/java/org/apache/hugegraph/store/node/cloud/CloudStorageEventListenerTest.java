@@ -240,10 +240,9 @@ public class CloudStorageEventListenerTest {
                 new CloudStorageEventListener(provider, List.of(tmpRoot.toString()),
                 true, CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null,
                 new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
-            void requestDebouncedMetadataSync(CloudStorageProvider provider, String dbName) {
+            void markMetadataDirty(String dbName) {
                 observedDbName.set(dbName);
                 metadataSyncCalled.countDown();
             }
@@ -279,8 +278,7 @@ public class CloudStorageEventListenerTest {
                 new CloudStorageEventListener(provider, List.of(tmpRoot.toString()),
                 true, CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null,
                 new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
             boolean syncMetadataSnapshotInline(CloudStorageProvider provider, String dbName) {
                 observedDbName.set(dbName);
@@ -426,8 +424,7 @@ public class CloudStorageEventListenerTest {
         CloudStorageEventListener l = new CloudStorageEventListener(provider, List.of(DATA_ROOT),
                 true, CloudStorageEventListener.DEFAULT_READ_MISS_GUARD_WINDOW_MS, null,
                 new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
             boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
                 return true;
@@ -732,8 +729,7 @@ public class CloudStorageEventListenerTest {
             super(new CapturingProvider(), List.of(DATA_ROOT), true,
                   DEFAULT_READ_MISS_GUARD_WINDOW_MS,
                   null,
-                  new CloudSyncTracker(), null, DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                  DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED);
+                  new CloudSyncTracker(), null, DEFAULT_METADATA_SYNC_DEBOUNCE_MS);
             this.snapshots = snapshots;
             this.blockedGeneration = blockedGeneration;
             this.blockedEntered = blockedEntered;
@@ -1431,7 +1427,7 @@ public class CloudStorageEventListenerTest {
         OrderingListener(CloudStorageProvider provider, String dataRoot, CloudSyncTracker tracker,
                          boolean syncResult) {
             super(provider, List.of(dataRoot), false, 0L, null, tracker, null,
-                  DEFAULT_METADATA_SYNC_DEBOUNCE_MS, DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED);
+                  DEFAULT_METADATA_SYNC_DEBOUNCE_MS);
             this.syncResult = syncResult;
         }
 
@@ -1523,8 +1519,7 @@ public class CloudStorageEventListenerTest {
         AtomicBoolean metadataHealthy = new AtomicBoolean(false);
         CloudStorageEventListener l = new CloudStorageEventListener(provider,
                 List.of(tmpRoot.toString()), true, 0L, null, new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
             List<LiveSstFile> currentLiveSstFiles(String dbName) {
                 return List.of();
@@ -1574,8 +1569,7 @@ public class CloudStorageEventListenerTest {
 
         CloudStorageEventListener l = new CloudStorageEventListener(provider,
                 List.of(tmpRoot.toString()), true, 0L, null, tracker, null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
             List<LiveSstFile> currentLiveSstFiles(String dbName) {
                 return List.of(new LiveSstFile(liveSst.toString(), "default"));
@@ -1617,8 +1611,7 @@ public class CloudStorageEventListenerTest {
         // so the live set is not durable.
         CloudStorageEventListener l = new CloudStorageEventListener(provider,
                 List.of(DATA_ROOT), false, 0L, null, tracker, null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
             List<LiveSstFile> currentLiveSstFiles(String dbName) {
                 return List.of(new LiveSstFile(DATA_ROOT + "/db0/000010.sst", "default"));

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
@@ -365,6 +366,16 @@ public class CloudUploadRetryQueueTest {
         @Override
         public boolean fileExists(String remoteKey) {
             return false;
+        }
+
+        @Override
+        public List<String> listFiles(String remoteDirPrefix) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public int deletePrefix(String remoteDirPrefix) {
+            return 0;
         }
 
         @Override

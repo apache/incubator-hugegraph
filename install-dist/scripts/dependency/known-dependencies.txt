@@ -34,8 +34,6 @@ auth-2.33.8.jar
 auto-service-annotations-1.0.jar
 automaton-1.11-8.jar
 aws-core-2.33.8.jar
-aws-crt-0.38.9.jar
-aws-crt-client-2.33.8.jar
 aws-query-protocol-2.33.8.jar
 aws-xml-protocol-2.33.8.jar
 ayza-10.0.0.jar
@@ -542,7 +540,6 @@ token-provider-2.0.1.jar
 tomcat-embed-el-9.0.75.jar
 tracer-core-3.0.8.jar
 translation-1.0.4.jar
-url-connection-client-2.33.8.jar
 util-9.0-9.0.20190305.jar
 utils-2.33.8.jar
 validation-api-1.1.0.Final.jar

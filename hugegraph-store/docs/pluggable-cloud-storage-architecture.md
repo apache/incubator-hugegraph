@@ -79,8 +79,7 @@ The pluggable cloud-storage behavior is controlled from `application.yml` under
 | `cloud.storage.upload-retry-max-attempts`            | `3`         | Whole-file retry attempts after a first upload failure. Default `3` retries are enabled to protect against transient network errors. <br/>Set to `0` to disable whole-file retries (failures are given up on immediately) when the provider already has sufficient internal retry logic. `CloudStorageNonRetryableException` always bypasses retries and is given up on immediately regardless of this value. |
 | `cloud.storage.upload-retry-initial-delay-ms`        | `1000`      | Delay before first whole-file retry; subsequent retries use exponential backoff. Only used when `upload-retry-max-attempts > 0`.                                                                                                                                                                                                                                                               |
 | `cloud.storage.upload-retry-max-delay-ms`            | `60000`     | Upper bound for exponential backoff delay between whole-file retry attempts. Only used when `upload-retry-max-attempts > 0`.                                                                                                                                                                                                                                                                   |
-| `cloud.storage.metadata-sync-debounce-ms`            | `1000`      | Debounce window for the per-SST metadata sync triggered by `onTableFileCreated`. Within a window per DB at most one metadata publish runs (plus a trailing publish), coalescing checkpoint + list/prune cost under write-heavy load. `<= 0` publishes on every SST (pre-debounce behavior). Event-driven publishes (delete guard, compaction, DB open) are **never** debounced.               |
-| `cloud.storage.metadata-sync-max-unpublished`        | `32`        | Count bound on the debounce: once this many SST uploads accumulate without a metadata publish for a DB, a publish is forced regardless of `metadata-sync-debounce-ms`, bounding the cloud recovery point by count (not just time) during heavy-ingestion bursts. `<= 0` disables the count bound (time-only debounce).                                                                        |
+| `cloud.storage.metadata-sync-debounce-ms`            | `1000`      | Interval at which DBs with SST uploads since their last metadata publish are drained: each such DB gets at most one coalesced publish per interval, and a failed publish is retried on the next interval. Shutdown flushes pending DBs once. `<= 0` publishes on every SST. Event-driven publishes (delete guard, compaction, DB open) are **never** coalesced. |
 | `cloud.storage.node-id`                              | _(blank)_   | Stable per-node identity used to derive the cloud key scope (`store-<node-id>`). When set, it is authoritative and stable across restarts, IP/hostname changes, **and** local disk loss, so recovery always finds prior remote objects — recommended for production (e.g. a StatefulSet pod ordinal or provisioned node UUID). Blank falls back to a scope persisted in the data root (`.cloud-store-scope`), which is stable across network-identity drift but lost with the disk, and is in turn seeded from the runtime network address on first start. See "Cloud key scope resolution" below.            |
 
 Notes:
@@ -92,7 +91,7 @@ Notes:
 - Failed uploads are tracked via metrics (`cloud_storage_upload_failures_total`) and structured logs. Automatic retry occurs on subsequent compactions; no manual recovery needed.
 - Metadata sync publishes a consistent `CURRENT`/`MANIFEST`/`OPTIONS` snapshot so a full-disk-loss node can reopen from cloud. Capture forces a MemTable flush so the un-flushed tail is persisted into an SST and mirrored (the RocksDB WAL is disabled under Raft — the Raft log is the tail's durability source — so a flush is the only path that pushes recent writes to cloud).
 - Metadata sync is always enabled when cloud storage is enabled.
-- Metadata sync is event-triggered by storage events; there is no background interval scheduler. The per-SST sync is debounced (`metadata-sync-debounce-ms`) and bounded by count (`metadata-sync-max-unpublished`); event-driven publishes (delete guard, compaction, DB open) are never debounced.
+- Metadata sync is triggered by storage events. Each SST upload marks its DB dirty, and a fixed-delay drain (`metadata-sync-debounce-ms`) publishes each dirty DB once per interval; event-driven publishes (delete guard, compaction, DB open) are never coalesced.
 - Uploads that exhaust whole-file retries are given up on: logged at ERROR, counted in `cloud_storage_uploads_given_up_total`, and re-uploaded by startup SST backfill.
 - Set a stable `cloud.storage.node-id` for production so the cloud key scope survives IP/hostname changes and local disk loss (see "Cloud key scope resolution").
 - Provider-specific properties (e.g., bucket, region, credentials) are configured under `cloud.storage.<provider>.*` namespace.
@@ -115,25 +114,25 @@ disabled, this forced flush is the **only** mechanism that proactively pushes re
 (still-in-MemTable) writes into cloud. When the MemTable is empty the flush is a no-op.
 
 - *Cloud RPO for the recent tail:* bounded by the metadata-sync cadence
-  (`metadata-sync-debounce-ms` / `metadata-sync-max-unpublished`).
+  (`metadata-sync-debounce-ms`).
 - *Cost:* a small extra L0 SST per non-empty capture (write amplification + cloud object churn +
-  compaction pressure), whose frequency is bounded by the debounce window. The Raft log is the
+  compaction pressure), whose frequency is bounded by the drain interval. The Raft log is the
   tail's durability source for any single/partial-node loss regardless of cloud cadence.
 
-#### Is the metadata-sync debounce a data-loss window?
+#### Is metadata-sync coalescing a data-loss window?
 
-No uploaded SST bytes are ever lost to the debounce. In `SstUploadTask.run()` the SST object is
+No uploaded SST bytes are ever lost to coalescing. In `SstUploadTask.run()` the SST object is
 uploaded to cloud **first** (the code notes *"the SST is already durable in cloud"*); only the
-subsequent `CURRENT`/`MANIFEST` **pointer publish** is debounced. So the window is a **bounded
+subsequent `CURRENT`/`MANIFEST` **pointer publish** is coalesced. So the window is a **bounded
 metadata / recovery-point lag, not a byte-loss hole**:
 
 - The newest uploaded SST(s) may exist in cloud but not yet be *referenced* by the mirrored MANIFEST
-  for up to `metadata-sync-debounce-ms` (default 1 s) **or** `metadata-sync-max-unpublished` SSTs
-  (default 32), whichever comes first. A leading-edge + trailing publish guarantees the final state
-  is always published even if writes then stop; `onCompacted` / `onDBCreated` / delete-guard /
-  shutdown-drain publish **inline** (never debounced).
+  for about one `metadata-sync-debounce-ms` interval (default 1 s), longer only while publishes
+  fail. The dirty DB stays marked until a publish succeeds, so the final state is always published
+  even if writes then stop; `onCompacted` / `onDBCreated` / delete-guard / shutdown flush publish
+  **inline** (never coalesced).
 - This lag becomes observable data loss **only** under a total, simultaneous loss of *all* Raft
-  peers' local state followed by a cloud-only restore that lands inside that ≤1 s / ≤32-SST window —
+  peers' local state followed by a cloud-only restore that lands inside that ~1 s window —
   then the newest unreferenced SSTs are orphans not in the restored set.
 - For any lesser failure (single / partial node loss) the **Raft log** holds the committed tail and
   is the primary recovery source, so the cloud metadata lag is irrelevant. Restore is also
@@ -141,8 +140,7 @@ metadata / recovery-point lag, not a byte-loss hole**:
   references a missing MANIFEST — worst case an older but fully consistent point).
 
 To tighten the cloud recovery point — at the cost of more frequent metadata publishes and forced
-flushes — lower `metadata-sync-debounce-ms` (`0` = publish on every SST)
-and/or `metadata-sync-max-unpublished`.
+flushes — lower `metadata-sync-debounce-ms` (`0` = publish on every SST).
 
 ### S3 provider-specific options (`cloud.storage.s3.*`)
 
@@ -179,8 +177,7 @@ cloud:
 
     # Metadata durability (CURRENT/MANIFEST/OPTIONS)
     # Metadata sync is always enabled when cloud storage is enabled
-    metadata-sync-debounce-ms: 1000        # coalesce per-SST metadata sync; <= 0 = publish on every SST
-    metadata-sync-max-unpublished: 32      # force publish after N unmirrored SSTs; <= 0 disables count bound
+    metadata-sync-debounce-ms: 1000        # coalesced per-SST metadata sync interval; <= 0 = publish on every SST
 
     # Stable per-node identity for the cloud key scope (store-<node-id>). Blank => persist one in the
     # data root (seeded from the network address). Set a deployment-stable value (e.g. StatefulSet
@@ -536,7 +533,7 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 - Unknown provider name or missing plugin JAR fails initialization in `AppConfig`.
 - **Resolved once, never reconfigured.** `AppConfig` selects the provider via `ServiceLoader`, calls `init()` once, and passes it to `CloudUploadRetryQueue` and `CloudStorageEventListener` as a final, non-null field. When `cloud.storage.enabled=false`, neither is constructed and no provider is loaded.
 - **Failed `@PostConstruct` cleanup.** If cloud-storage wiring throws during startup, `AppConfig` closes the retry queue and the provider so a failed init does not leak the provider's client/threads (Spring does not invoke `@PreDestroy` when `@PostConstruct` throws), then fails startup.
-- **`deletePrefix` now surfaces failures.** The default `CloudStorageProvider.deletePrefix()` still attempts every key, but throws an `IOException` summarizing the failed keys if any deletion failed (previously it swallowed per-key errors best-effort), so callers such as the DB-purge path can detect an incomplete purge and keep the tombstone + local marker.
+- **`listFiles` and `deletePrefix` are required.** `CloudStorageProvider` has no default implementations for them: every provider must list keys and must throw an `IOException` from `deletePrefix()` if any object under the prefix could not be deleted, so callers such as the DB-purge path can detect an incomplete purge and keep the tombstone + local marker.
 
 ### Non-retryable upload failures (`CloudStorageNonRetryableException`)
 
@@ -588,7 +585,7 @@ Failure-mode and RPO-oriented recovery summary:
 |-----------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Single Store crash                            | No                                                                                                                                                                                            | 0s                                                                                                           | 2/3 Raft quorum survives. Leader re-election continues service. In-flight (not SST-flushed) data is recovered from Raft logs; flushed data remains available via local/cloud SSTs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Keep 3+ replicas across zones, alert on replica loss, and use durable PV-backed store nodes.                                                                                                                 |
 | 2 of 3 Stores crash                           | No (service stalls until quorum restored)                                                                                                                                                     | 0s                                                                                                           | Surviving replica Raft log bootstraps recovering nodes after restart. In-flight data is recovered from Raft log replay.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Enforce anti-affinity and failure-domain isolation to prevent correlated failures.                                                                                                                           |
-| Catastrophic loss: all Store disks destroyed  | Yes — writes committed after the last cloud metadata publish (`CURRENT`/`MANIFEST`) are unrecoverable because both the Raft log (the tail's durability source) and the local SSTs are gone.   | Seconds to minutes (bounded by flush/compaction cadence + async upload latency + the metadata-sync window)   | Nodes recover from the last cloud-mirrored `CURRENT`/`MANIFEST` + SST set. **Scope re-seed risk:** `.cloud-store-scope` is also lost; the node falls back to the runtime address to derive its cloud key scope. If the address changed (new VM, rescheduled pod), the node silently scopes to a wrong prefix and starts empty. Set `cloud.storage.node-id` to a stable value so the scope is config-driven and survives address changes (see "Cloud key scope resolution"). | Set `cloud.storage.node-id` (StatefulSet ordinal or node UUID). Use durable disks, scheduled backups, and tighter `metadata-sync-debounce-ms` / `metadata-sync-max-unpublished` for a smaller recovery point.|
+| Catastrophic loss: all Store disks destroyed  | Yes — writes committed after the last cloud metadata publish (`CURRENT`/`MANIFEST`) are unrecoverable because both the Raft log (the tail's durability source) and the local SSTs are gone.   | Seconds to minutes (bounded by flush/compaction cadence + async upload latency + the metadata-sync window)   | Nodes recover from the last cloud-mirrored `CURRENT`/`MANIFEST` + SST set. **Scope re-seed risk:** `.cloud-store-scope` is also lost; the node falls back to the runtime address to derive its cloud key scope. If the address changed (new VM, rescheduled pod), the node silently scopes to a wrong prefix and starts empty. Set `cloud.storage.node-id` to a stable value so the scope is config-driven and survives address changes (see "Cloud key scope resolution"). | Set `cloud.storage.node-id` (StatefulSet ordinal or node UUID). Use durable disks, scheduled backups, and a lower `metadata-sync-debounce-ms` for a smaller recovery point.|
 
 Notes:
 
@@ -597,8 +594,8 @@ Notes:
 - SST upload is always asynchronous and event-triggered: each `onTableFileCreated` (flush/compaction)
   eagerly uploads the new SST on the shared upload executor, with failures routed to the retry queue.
   There is no periodic/interval uploader and no synchronous-upload mode. The cloud recovery point
-  is bounded by how soon the SSTs upload and the subsequent debounced `CURRENT`/`MANIFEST` publish
-  lands (`metadata-sync-debounce-ms` / `metadata-sync-max-unpublished`).
+  is bounded by how soon the SSTs upload and the subsequent coalesced `CURRENT`/`MANIFEST` publish
+  lands (`metadata-sync-debounce-ms`).
 - Recovery correctness is protected by the metadata-before-delete invariant: before deleting superseded SSTs, Store confirms manifest-referenced SST durability and publishes updated `MANIFEST`/`CURRENT`, preventing stale or missing-manifest references after compaction retries.
 - Policy note: for how managed delete vs accidental local-loss is distinguished during hydration, see `## 4) Read Path` -> `Scope: managed delete vs accidental local loss`.
 

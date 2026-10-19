@@ -476,8 +476,7 @@ public class CloudStorageIntegrationTest {
         CloudStorageEventListener guardedListener = new CloudStorageEventListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             private boolean gen10Published = false;
 
             @Override
@@ -531,8 +530,7 @@ public class CloudStorageIntegrationTest {
         CloudStorageEventListener listener = new CloudStorageEventListener(store,
                 Collections.singletonList(dataRoot.toString()),
                 true, 0L, null, new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
             MetadataSnapshot captureMetadataSnapshot(String dbName) {
                 return perThread.get();
@@ -732,8 +730,7 @@ public class CloudStorageIntegrationTest {
 
         CloudStorageEventListener listener = new CloudStorageEventListener(provider,
                 Collections.singletonList(dataRoot.toString()), true, 0L, retryQueue, tracker,
-                null, CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                null, CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
             @Override
             MetadataSnapshot captureMetadataSnapshot(String db) {
                 try {
@@ -873,46 +870,14 @@ public class CloudStorageIntegrationTest {
     }
 
     // =========================================================================
-    // 17b. A leaked "truncating" latch self-heals so cloud deletes/mirroring resume
+    // 17b. A failed truncate clears the "truncating" latch via the abort callback
     // =========================================================================
 
     @Test
-    public void truncatingLatch_selfHealsWhenTruncationNeverCompletes() throws Exception {
-        // Simulate RocksDBSession.truncate() throwing between onDBTruncateBegin and onDBTruncated
-        // (dropTables/createTables raise the unchecked DBStoreException with no finally), which
-        // leaves the "truncating" latch stuck. Unlike the 5s grace period, the latch is UNBOUNDED,
-        // so a stuck latch would silently disable cloud object deletion + metadata mirroring for
-        // this DB for the lifetime of the process. The fix bounds the latch with a max window.
-        Path dbDir = mkdirs("hugegraph/db");
-
-        CloudStorageEventListener listener = listenerFor(store, dataRoot);
-        // Shrink the stale-latch window so the test does not wait a real minute.
-        listener.setMaxTruncationDurationMsForTest();
-
-        // Begin truncation but never complete it — the latch is now set and, without the fix,
-        // would stay set forever.
-        listener.onDBTruncateBegin("hugegraph", dbDir.toString());
-        assertTrue(listener.isActivelyTruncating("hugegraph"),
-                   "Latch must be active immediately after truncate begins");
-
-        // Wait past the stale-latch window: the leaked latch must self-heal so cloud metadata
-        // mirroring, object deletion, and the delete guard resume for this DB.
-        Thread.sleep(80L);
-        assertFalse(listener.isActivelyTruncating("hugegraph"),
-                    "Stale truncating latch must self-heal after the max window (else cloud "
-                    + "mirroring/deletes are disabled for this DB forever)");
-
-        // A brand-new truncation still latches correctly (self-heal must not be sticky).
-        listener.onDBTruncateBegin("hugegraph", dbDir.toString());
-        assertTrue(listener.isActivelyTruncating("hugegraph"),
-                   "A fresh truncate must re-arm the latch");
-    }
-
-    @Test
     public void truncateAbort_clearsLatchImmediately_withoutPurgingRemote() throws Exception {
-        // Source-level guarantee: RocksDBSession.truncate() now calls notifyTruncateAbort in a
-        // finally when drop/create throws, so the listener clears suppression at once — no need to
-        // wait for the stale-latch window — and must NOT purge remote (data may still exist locally).
+        // RocksDBSession.truncate() calls notifyTruncateAbort in a finally when drop/create throws,
+        // so the listener clears suppression at once and must NOT purge remote (data may still
+        // exist locally).
         Path dbDir = mkdirs("hugegraph/db");
         // Seed remote data that a wrongful purge-on-abort would destroy.
         store.put("hugegraph/db/000001.sst", bytes("still-needed"));
@@ -1104,100 +1069,110 @@ public class CloudStorageIntegrationTest {
     }
 
     // =========================================================================
-    // 17c. Post-upload metadata sync is debounced (coalesced) per DB
+    // 17c. Post-upload metadata sync is coalesced into a periodic drain of dirty DBs
     // =========================================================================
 
     @Test
-    public void metadataSync_debounced_coalescesBurstThenPublishesTrailing() throws Exception {
+    public void metadataSync_coalescesBurstIntoOneDrainedPublish() throws Exception {
         AtomicInteger syncCount = new AtomicInteger(0);
-        CloudStorageEventListener listener = new CloudStorageEventListener(store,
+        CloudStorageEventListener listener = countingListener(100L, syncCount, () -> true);
+        try {
+            // A burst of 5 "post-upload" requests only marks the DB dirty; nothing publishes inline.
+            for (int i = 0; i < 5; i++) {
+                listener.markMetadataDirty("hugegraph");
+            }
+            assertEquals(0, syncCount.get(), "Marking a DB dirty must not publish inline");
+
+            assertTrue(awaitCondition(() -> syncCount.get() >= 1, 3_000),
+                       "The drain must publish the dirty DB");
+            // A successful publish clears the dirty mark, so later drains do not republish.
+            Thread.sleep(350L);
+            assertEquals(1, syncCount.get(), "The coalesced burst must publish exactly once");
+        } finally {
+            listener.close();
+        }
+    }
+
+    @Test
+    public void metadataSync_failedPublishIsRetriedOnNextDrain() throws Exception {
+        AtomicInteger syncCount = new AtomicInteger(0);
+        // First two publishes fail; the DB must stay dirty until the third succeeds.
+        CloudStorageEventListener listener =
+                countingListener(50L, syncCount, () -> syncCount.get() >= 3);
+        try {
+            listener.markMetadataDirty("hugegraph");
+            assertTrue(awaitCondition(() -> syncCount.get() >= 3, 3_000),
+                       "A failed publish must be retried on the next drain");
+            Thread.sleep(200L);
+            assertEquals(3, syncCount.get(), "Retries must stop once a publish succeeds");
+        } finally {
+            listener.close();
+        }
+    }
+
+    @Test
+    public void metadataSync_skipsDirtyDbWhileTruncating() throws Exception {
+        Path dbDir = mkdirs("hugegraph/db");
+        AtomicInteger syncCount = new AtomicInteger(0);
+        CloudStorageEventListener listener = countingListener(50L, syncCount, () -> true);
+        try {
+            listener.markMetadataDirty("hugegraph");
+            listener.onDBTruncateBegin("hugegraph", dbDir.toString());
+            // Marks requested during the truncate are ignored outright.
+            listener.markMetadataDirty("hugegraph");
+            Thread.sleep(250L);
+            assertEquals(0, syncCount.get(),
+                         "A truncating DB must not republish metadata over the purge");
+
+            // The drained mark was dropped, not deferred: aborting the truncate publishes nothing.
+            listener.onDBTruncateAbort("hugegraph", dbDir.toString());
+            Thread.sleep(250L);
+            assertEquals(0, syncCount.get(), "The dropped mark must not be retried later");
+        } finally {
+            listener.close();
+        }
+    }
+
+    @Test
+    public void metadataSync_closeFlushesDirtyDbsOnceThenPublishesInline() throws Exception {
+        AtomicInteger syncCount = new AtomicInteger(0);
+        // A drain interval that never elapses during the test isolates the close() flush.
+        CloudStorageEventListener listener = countingListener(60_000L, syncCount, () -> true);
+        listener.markMetadataDirty("hugegraph");
+        assertEquals(0, syncCount.get());
+
+        listener.close();
+        assertEquals(1, syncCount.get(), "close() must flush each dirty DB once");
+
+        // After shutdown (e.g. a retry-queue completion), requests publish inline.
+        listener.markMetadataDirty("hugegraph");
+        assertEquals(2, syncCount.get(), "Requests after close() must publish inline");
+    }
+
+    @Test
+    public void metadataSync_nonPositiveIntervalPublishesInline() {
+        AtomicInteger syncCount = new AtomicInteger(0);
+        CloudStorageEventListener listener = countingListener(0L, syncCount, () -> true);
+        try {
+            listener.markMetadataDirty("hugegraph");
+            listener.markMetadataDirty("hugegraph");
+            assertEquals(2, syncCount.get(), "An interval <= 0 must publish on every request");
+        } finally {
+            listener.close();
+        }
+    }
+
+    private CloudStorageEventListener countingListener(long debounceMs, AtomicInteger syncCount,
+                                                       BooleanSupplier publishResult) {
+        return new CloudStorageEventListener(store,
                 Collections.singletonList(dataRoot.toString()),
-                true, 0L, null, new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
+                true, 0L, null, new CloudSyncTracker(), null, debounceMs) {
             @Override
             boolean syncMetadataSnapshotInline(CloudStorageProvider p, String db) {
                 syncCount.incrementAndGet();
-                return true;
+                return publishResult.getAsBoolean();
             }
         };
-        listener.setMetadataSyncDebounceMs(300L);
-
-        // A burst of 5 "post-upload" sync requests inside one window must collapse to a single
-        // immediate (leading-edge) publish — the other 4 only arm one trailing sync.
-        for (int i = 0; i < 5; i++) {
-            listener.requestDebouncedMetadataSync(store, "hugegraph");
-        }
-        assertEquals(1,
-                     syncCount.get(),
-                     "Burst within the debounce window must publish exactly once (leading edge)");
-
-        // The trailing sync must eventually fire so the final state is published even though the
-        // burst was coalesced.
-        boolean trailing = awaitCondition(() -> syncCount.get() >= 2, 3_000);
-        assertTrue(trailing,
-                   "A trailing metadata sync must publish the final state after the window");
-        assertEquals(2,
-                     syncCount.get(),
-                     "Exactly one trailing sync must fire for the coalesced burst");
-
-        // After the window has elapsed, a fresh request publishes immediately again (leading edge).
-        Thread.sleep(350L);
-        listener.requestDebouncedMetadataSync(store, "hugegraph");
-        assertEquals(3,
-                     syncCount.get(),
-                     "A request after the window must publish immediately");
-    }
-
-    // =========================================================================
-    // 17d. Metadata-sync backlog bound forces a publish by count (RPO by count)
-    // =========================================================================
-
-    @Test
-    public void metadataSync_backlogBound_forcesPublishByCountWithinWindow() throws Exception {
-        Path tempDir = mkdirs("hugegraph/meta-tmp");
-        // A minimal non-null snapshot; uploadMetadataSnapshot is stubbed so its files are unused.
-        MetadataSnapshot fake = new MetadataSnapshot(
-                tempDir.toString(), tempDir.toString(), "CURRENT", "MANIFEST-000001",
-                Collections.emptyList(), Collections.emptyList(), 1L);
-
-        AtomicInteger publishes = new AtomicInteger(0);
-        CloudStorageEventListener listener = createListener(fake, publishes);
-
-        // 9 uploads: request 1 publishes (leading edge); the count bound then forces a publish
-        // every 3rd unmirrored upload (requests 4 and 7); requests 8-9 stay coalesced.
-        for (int i = 0; i < 9; i++) {
-            listener.requestDebouncedMetadataSync(store, "hugegraph");
-        }
-
-        assertEquals(3,
-                     publishes.get(),
-                     "count bound must force a publish every 3 unmirrored uploads plus the leading "
-                     + "publish (requests 1, 4, 7)");
-    }
-
-    private @NotNull CloudStorageEventListener createListener(MetadataSnapshot fake,
-                                                              AtomicInteger publishes) {
-        CloudStorageEventListener listener = new CloudStorageEventListener(store,
-                Collections.singletonList(dataRoot.toString()),
-                true, 0L, null, new CloudSyncTracker(), null,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS,
-                CloudStorageEventListener.DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED) {
-            @Override
-            MetadataSnapshot captureMetadataSnapshot(String db) {
-                return fake;
-            }
-
-            @Override
-            boolean uploadMetadataSnapshot(CloudStorageProvider p, String db, MetadataSnapshot s) {
-                publishes.incrementAndGet();
-                return true;
-            }
-        };
-        // Make the time window effectively never elapse on its own, isolating the COUNT bound.
-        listener.setMetadataSyncDebounceMs(60_000L);
-        listener.setMetadataSyncMaxUnpublished(3);
-        return listener;
     }
 
     @Test
@@ -1302,13 +1277,8 @@ public class CloudStorageIntegrationTest {
     private static void assertNoHydTmpFiles(Path root) throws Exception {
         try (Stream<Path> stream = Files.walk(root)) {
             List<Path> stale = stream
-                    // Production names temp files ".hyd-tmp-<threadId>-<nanoTime>" (pre-hydration)
-                    // and ".hydrate-<threadId>-<nanoTime>" (read-miss). A plain endsWith(".hyd-tmp")
-                    // would match NEITHER, so use a substring match to actually catch leftovers.
-                    .filter(p -> {
-                        String name = p.getFileName().toString();
-                        return name.contains(".hyd-tmp") || name.contains(".hydrate");
-                    })
+                    // Production names every hydration temp "<name>.hyd-tmp-<threadId>-<nanoTime>".
+                    .filter(p -> p.getFileName().toString().contains(".hyd-tmp-"))
                     .toList();
             assertTrue(stale.isEmpty(), "No stale hydration temp files must remain: " + stale);
         }

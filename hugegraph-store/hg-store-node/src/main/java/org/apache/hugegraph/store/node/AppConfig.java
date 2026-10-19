@@ -230,8 +230,7 @@ public class AppConfig {
                     retryQueue,
                     syncTracker,
                     storeScopePrefix,
-                    cfg.getMetadataSyncDebounceMs(),
-                    cfg.getMetadataSyncMaxUnpublished());
+                    cfg.getMetadataSyncDebounceMs());
 
             // After a retry upload becomes durable, publish CURRENT/MANIFEST so the
             // mirrored recovery point advances even on an idle DB (the tracker-confirm callback
@@ -258,15 +257,14 @@ public class AppConfig {
                     + "readMissHydration=true, "
                     + "readMissGuardWindowMs={}, uploadRetryMaxAttempts={}, "
                     + "uploadRetryInitialDelayMs={}, uploadRetryMaxDelayMs={}, "
-                    + "metadataSyncDebounceMs={}, metadataSyncMaxUnpublished={})",
+                    + "metadataSyncDebounceMs={})",
                     cfg.getProvider(), resolvedDataRoots, storeScopePrefix,
                     cfg.isStartupHydrationEnabled(),
                     cfg.getReadMissGuardWindowMs(),
                     cfg.getUploadRetryMaxAttempts(),
                     cfg.getUploadRetryInitialDelayMs(),
                     cfg.getUploadRetryMaxDelayMs(),
-                    cfg.getMetadataSyncDebounceMs(),
-                    cfg.getMetadataSyncMaxUnpublished());
+                    cfg.getMetadataSyncDebounceMs());
         } catch (Exception e) {
             log.error("Failed to initialize cloud storage provider '{}': {}",
                       cfg.getProvider(), e.getMessage(), e);

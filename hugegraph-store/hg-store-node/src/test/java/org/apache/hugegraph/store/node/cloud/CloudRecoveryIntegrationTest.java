@@ -420,6 +420,16 @@ public class CloudRecoveryIntegrationTest {
         }
 
         @Override
+        public List<String> listFiles(String remoteDirPrefix) {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public int deletePrefix(String remoteDirPrefix) {
+            return 0;
+        }
+
+        @Override
         public void downloadFile(String remoteKey, String localPath) throws IOException {
             throw new IOException("download not supported in this test provider");
         }

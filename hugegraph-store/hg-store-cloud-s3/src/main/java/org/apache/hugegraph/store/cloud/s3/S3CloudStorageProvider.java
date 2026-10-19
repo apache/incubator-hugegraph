@@ -45,9 +45,9 @@ import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.retry.RetryMode;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.S3AsyncClientBuilder;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
-import software.amazon.awssdk.services.s3.S3CrtAsyncClientBuilder;
 import software.amazon.awssdk.services.s3.model.Delete;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
@@ -160,13 +160,12 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
         if (endpoint != null && !endpoint.isEmpty()) {
             builder.endpointOverride(URI.create(endpoint));
             // Path-style required for most non-AWS S3 services
-            builder.serviceConfiguration(
-                    software.amazon.awssdk.services.s3.S3Configuration.builder()
-                                                                       .pathStyleAccessEnabled(true)
-                                                                       .build());
+            builder.forcePathStyle(true);
         }
 
-        S3CrtAsyncClientBuilder asyncBuilder = S3AsyncClient.crtBuilder();
+        // Java-based multipart async client (no native CRT dependency); backs S3TransferManager.
+        S3AsyncClientBuilder asyncBuilder = S3AsyncClient.builder().multipartEnabled(true);
+        asyncBuilder.overrideConfiguration(buildRetryOverride());
         applyCredentials(asyncBuilder::credentialsProvider, ak, sk);
         if (region != null && !region.isEmpty()) {
             asyncBuilder.region(Region.of(region));

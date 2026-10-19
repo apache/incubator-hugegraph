@@ -66,24 +66,10 @@
             <version>${aws.sdk.version}</version>
         </dependency>
 
-        <!-- URL connection client (lightweight alternative to netty for small files) -->
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>url-connection-client</artifactId>
-            <version>${aws.sdk.version}</version>
-        </dependency>
-
         <!-- Transfer Manager: multipart upload/download orchestration over an async S3 client -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3-transfer-manager</artifactId>
-            <version>${aws.sdk.version}</version>
-        </dependency>
-
-        <!-- CRT-based async S3 client backing Transfer Manager (AWS's recommended pairing) -->
-        <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>aws-crt-client</artifactId>
             <version>${aws.sdk.version}</version>
         </dependency>
 
@@ -111,7 +97,7 @@
     <build>
         <plugins>
             <!--
-              Stages this plugin's own runtime dependencies (AWS SDK v2, CRT client, etc.) under
+              Stages this plugin's own runtime dependencies (AWS SDK v2 and its transitive jars) under
               target/dependency, for anything that copies this jar into a plugins/ directory
               (e.g. docker/cloud-storage/scripts/test-graph-queries-and-sst.sh) — a provider jar
               without its dependency jars alongside it will fail with ClassNotFoundException/

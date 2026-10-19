@@ -20,9 +20,11 @@ package org.apache.hugegraph.store.node.cloud;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -43,8 +45,6 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import lombok.Getter;
-
-import lombok.Setter;
 
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory;
 import org.apache.hugegraph.rocksdb.access.RocksDBFactory.LiveSstFile;
@@ -154,62 +154,29 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     private final ThreadPoolExecutor uploadExecutor;
 
     // -----------------------------------------------------------------------
-    // Metadata-sync debounce
+    // Metadata-sync coalescing
     // -----------------------------------------------------------------------
     // onTableFileCreated fires once per flushed/compacted SST; syncing metadata inline on every
-    // one triggers a full RocksDB checkpoint + S3 list/prune per SST. These fields coalesce those
-    // high-frequency syncs into at most one per debounce window per DB, with a trailing sync so
-    // the final state is always eventually published even if writes stop mid-window. Event-driven
-    // callers that need an immediate publish (delete guard, onCompacted, onDBCreated) still call
-    // syncMetadataSnapshotInline directly and are NOT debounced.
+    // one triggers a full RocksDB checkpoint + S3 list/prune per SST. Instead each upload marks
+    // its DB dirty and a fixed-delay drain publishes each dirty DB at most once per interval.
+    // Event-driven callers that need an immediate publish (delete guard, onCompacted,
+    // onDBCreated) still call syncMetadataSnapshotInline directly and are NOT coalesced.
 
-    /** Default debounce window for the post-upload metadata sync. */
+    /** Default drain interval for the post-upload metadata sync. */
     static final long DEFAULT_METADATA_SYNC_DEBOUNCE_MS = 1_000L;
 
     /**
-     * Scheduler for trailing (deferred) metadata syncs and purge/delete retries. Owned by this
-     * listener and shut down by {@link #close()}; a schedule after that throws
+     * Scheduler for the metadata-sync drain and purge/delete retries. Owned by this listener and
+     * shut down by {@link #close()}; a schedule after that throws
      * {@link RejectedExecutionException}, which every call site handles.
      */
     private final ScheduledExecutorService metadataSyncScheduler;
 
-    /** Effective debounce window; overridable in tests.
-     * -- SETTER --
-     *  Sets the debounce window (ms) for the per-SST metadata sync. Values
-     *  disable
-     *  debouncing (publish metadata on every SST upload, the pre-debounce behavior).
-     */
-    @Setter
-    private volatile long metadataSyncDebounceMs;
+    /** Drain interval (ms); {@code <= 0} publishes inline on every SST upload instead. */
+    private final long metadataSyncDebounceMs;
 
-    /**
-     * Backlog bound on the debounce: the time window alone lets an unbounded number of SSTs be
-     * uploaded-but-not-yet-mirrored during a heavy-ingestion burst, widening the cloud recovery
-     * point (a crash + local-disk-loss in that window loses the flushed SSTs whose manifest was
-     * not yet republished). Once this many uploads accumulate without a metadata publish for a DB,
-     * a publish is forced immediately regardless of the time window, bounding RPO by count as well
-     * as by time. {@code <= 0} disables the count bound (time-only debounce).
-     */
-    static final int DEFAULT_METADATA_SYNC_MAX_UNPUBLISHED = 32;
-    /**
-     * -- SETTER --
-     *  Sets the maximum number of uploaded-but-unmirrored SSTs tolerated before a metadata publish
-     *  is forced regardless of the debounce window (bounds the cloud recovery point by count during
-     *  heavy-ingestion bursts). Values
-     *  disable the count bound (time-only debounce).
-     */
-    @Setter
-    private volatile int metadataSyncMaxUnpublished;
-
-    /** Last time a post-upload metadata sync completed, per DB (epoch millis). */
-    private final Map<String, Long> lastMetadataSyncMs = new ConcurrentHashMap<>();
-
-    /** Count of SST uploads confirmed but not yet reflected in a published manifest, per DB. */
-    private final Map<String, java.util.concurrent.atomic.AtomicInteger> unpublishedUploads =
-            new ConcurrentHashMap<>();
-
-    /** DBs with a trailing metadata sync already scheduled (coalescing guard). */
-    private final Set<String> pendingMetadataSync = ConcurrentHashMap.newKeySet();
+    /** DBs with uploads not yet reflected in a published manifest; drained by the scheduler. */
+    private final Set<String> dirtyMetadataDbs = ConcurrentHashMap.newKeySet();
 
     // -----------------------------------------------------------------------
     // Metadata (CURRENT/MANIFEST/OPTIONS) mirroring & consistent restore
@@ -265,11 +232,13 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      */
     static final String DB_TOMBSTONE_SUFFIX = "_DELETED";
 
+    /** Infix of hydration temp files ({@code <name>.hyd-tmp-<threadId>-<nanoTime>}). */
+    private static final String HYDRATION_TEMP_MARKER = ".hyd-tmp-";
+
     /**
      * Fully-parameterised constructor: the listener is completely configured the moment it is
-     * constructed, so there is no window in which a registered listener can be observed with the
-     * tuning setters not yet applied. The equivalent {@code set*} methods remain for tests and
-     * runtime overrides.
+     * constructed, so there is no window in which a registered listener can be observed
+     * partially configured.
      *
      * @param provider initialized cloud storage provider
      * @param dataRoots configured store data roots (typically parsed from comma-separated
@@ -284,10 +253,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      *                    Must be shared with the retry queue. Pass {@code null} for a fresh
      *                    {@link CloudSyncTracker}.
      * @param storeScopePrefix optional per-store key prefix to isolate cloud objects
-     * @param metadataSyncDebounceMs debounce window (ms) for the per-SST metadata sync; see
-     *                               {@link #setMetadataSyncDebounceMs(long)}
-     * @param metadataSyncMaxUnpublished backlog bound on the debounce; see
-     *                                   {@link #setMetadataSyncMaxUnpublished(int)}
+     * @param metadataSyncDebounceMs drain interval (ms) for the per-SST metadata sync;
+     *                               {@code <= 0} publishes inline on every SST upload
      */
     public CloudStorageEventListener(CloudStorageProvider provider,
                                      List<String> dataRoots,
@@ -296,8 +263,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                                      CloudUploadRetryQueue retryQueue,
                                      CloudSyncTracker syncTracker,
                                      String storeScopePrefix,
-                                     long metadataSyncDebounceMs,
-                                     int metadataSyncMaxUnpublished) {
+                                     long metadataSyncDebounceMs) {
         // Fail fast on a missing/empty data-root list: primaryDataRoot is derived from index 0
         // below, and every key<->path conversion depends on at least one root. Without this guard
         // the constructor would throw an opaque IndexOutOfBoundsException at
@@ -340,7 +306,12 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             return t;
         });
         this.metadataSyncDebounceMs = metadataSyncDebounceMs;
-        this.metadataSyncMaxUnpublished = metadataSyncMaxUnpublished;
+        if (metadataSyncDebounceMs > 0) {
+            this.metadataSyncScheduler.scheduleWithFixedDelay(this::drainDirtyMetadata,
+                                                              metadataSyncDebounceMs,
+                                                              metadataSyncDebounceMs,
+                                                              TimeUnit.MILLISECONDS);
+        }
 
         // A crash may leave local pending-delete markers whose remote cleanup never completed.
         // Kick off bounded async retries for each so stale remote data is eventually purged even if
@@ -382,8 +353,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      * deregistered, so uploads started before shutdown have a chance to finish.
      */
     void close(long timeout, TimeUnit unit) {
-        // Drain the upload executor FIRST, while the scheduler is still alive, so trailing syncs
-        // requested by in-flight uploads can still be scheduled.
+        // Drain the upload executor FIRST so DBs marked dirty by in-flight uploads are flushed below.
         uploadExecutor.shutdown();
         try {
             if (!uploadExecutor.awaitTermination(timeout, unit)) {
@@ -396,12 +366,13 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             Thread.currentThread().interrupt();
         }
         metadataSyncScheduler.shutdownNow();
-        // shutdownNow() discards trailing syncs still waiting out their debounce window. Publish
-        // them inline so uploads that completed during the drain are referenced by the mirrored
-        // CURRENT/MANIFEST. Later requests (e.g. retry-queue completions) hit the
-        // RejectedExecutionException fallback in requestDebouncedMetadataSync and publish inline.
-        for (String dbName : new ArrayList<>(pendingMetadataSync)) {
-            runTrailingMetadataSync(dbName);
+        // Flush dirty DBs once so uploads that completed during the drain are referenced by the
+        // mirrored CURRENT/MANIFEST. Later requests (e.g. retry-queue completions) see the
+        // scheduler shut down in markMetadataDirty and publish inline.
+        for (String dbName : new ArrayList<>(dirtyMetadataDbs)) {
+            if (dirtyMetadataDbs.remove(dbName)) {
+                publishDirtyMetadata(dbName);
+            }
         }
     }
 
@@ -541,31 +512,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                              + "db={}, key={}", dbName, remoteKey);
                     continue;
                 }
-                Files.createDirectories(localPath.getParent());
-                // Download to a UNIQUE sibling temp file, then atomically move into place. The
-                // per-thread/per-attempt suffix prevents two concurrent restorers from writing the
-                // same temp file (which would interleave into a corrupt SST), and REPLACE_EXISTING
-                // makes a late second mover a harmless idempotent overwrite. A crash mid-download
-                // never leaves RocksDB reading a truncated SST at the expected path.
-                Path tmp = localPath.resolveSibling(
-                        localPath.getFileName() + ".hydrate-" + Thread.currentThread().getId()
-                        + "-" + System.nanoTime());
-                try {
-                    provider.downloadFile(remoteKey, tmp.toString());
-                    try {
-                        Files.move(tmp, localPath,
-                                   java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                                   java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    } catch (java.nio.file.AtomicMoveNotSupportedException ex) {
-                        // Cross-filesystem / FS without atomic-move support: fall back to a
-                        // non-atomic replace so restore still succeeds.
-                        Files.move(tmp, localPath,
-                                   java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    }
-                } catch (IOException e) {
-                    deleteIfExistsQuietly(tmp, "read-miss restore temp cleanup");
-                    throw e;
-                }
+                downloadAtomically(provider, remoteKey, localPath);
                 syncTracker.markConfirmed(dbName, live.getAbsolutePath());
                 restored++;
             } catch (IOException e) {
@@ -649,23 +596,23 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         // Tombstone lives OUTSIDE the data prefix (sibling, not child) so it is not
         // accidentally deleted by purgeRemotePrefix when SST objects are still present.
         String tombstoneKey = prefix + DB_TOMBSTONE_SUFFIX;
-        Path tmp = null;
         try {
-            tmp = Files.createTempFile("hgstore-tombstone-", ".tmp");
-            Files.writeString(tmp, "deleted");
-            provider.uploadFile(tmp.toString(), tombstoneKey);
+            writeTombstone(prefix);
             log.info("Cloud DB tombstone written: db={}, key={}", dbName, tombstoneKey);
         } catch (Exception e) {
             log.warn("Cloud DB tombstone write failed (onDBDeleted will still purge): "
                      + "db={}, key={}, reason={}", dbName, tombstoneKey, e.getMessage());
+        }
+    }
+
+    /** Uploads the sibling delete-tombstone for {@code prefix} from a short-lived temp file. */
+    private void writeTombstone(String prefix) throws IOException {
+        Path tmp = Files.createTempFile("hgstore-tombstone-", ".tmp");
+        try {
+            Files.writeString(tmp, "deleted");
+            provider.uploadFile(tmp.toString(), prefix + DB_TOMBSTONE_SUFFIX);
         } finally {
-            if (tmp != null) {
-                try {
-                    Files.deleteIfExists(tmp);
-                } catch (IOException ignore) {
-                    // best-effort temp-file cleanup
-                }
-            }
+            deleteIfExistsQuietly(tmp, "tombstone temp cleanup");
         }
     }
 
@@ -693,9 +640,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         truncationTimes.remove(dbName);
         truncatingDbs.remove(dbName);
         deferredSstDeletes.removeIf(t -> dbName.equals(t.dbName));
-        lastMetadataSyncMs.remove(dbName);
-        pendingMetadataSync.remove(dbName);
-        unpublishedUploads.remove(dbName);
+        dirtyMetadataDbs.remove(dbName);
         // Remove per-DB meters so meter cardinality does not grow without bound as DBs churn.
         CloudStorageMetrics.unregisterDatabaseMetrics(dbName);
 
@@ -742,7 +687,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     @Override
     public void onDBTruncateBegin(String dbName, String dbPath) {
         truncatingDbs.add(dbName);
-        truncationTimes.put(dbName, System.currentTimeMillis());
         syncTracker.clearDb(dbName);
         readMissAttemptTs.entrySet().removeIf(e -> e.getKey().startsWith(dbName + "::"));
         deferredSstDeletes.removeIf(t -> dbName.equals(t.dbName));
@@ -1039,26 +983,15 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     /** Writes the delete-tombstone if it is not already present (best-effort). */
     private void ensureTombstonePresent(CloudStorageProvider provider, String dbName, String prefix) {
         String tombstoneKey = prefix + DB_TOMBSTONE_SUFFIX;
-        Path tmp = null;
         try {
             if (provider.fileExists(tombstoneKey)) {
                 return;
             }
-            tmp = Files.createTempFile("hgstore-tombstone-", ".tmp");
-            Files.writeString(tmp, "deleted");
-            provider.uploadFile(tmp.toString(), tombstoneKey);
+            writeTombstone(prefix);
             log.info("Cloud DB tombstone written (deferred): db={}, key={}", dbName, tombstoneKey);
         } catch (Exception e) {
             log.warn("Deferred tombstone write failed for db={}, key={}: {}",
                      dbName, tombstoneKey, e.getMessage());
-        } finally {
-            if (tmp != null) {
-                try {
-                    Files.deleteIfExists(tmp);
-                } catch (IOException ignore) {
-                    // best-effort temp cleanup
-                }
-            }
         }
     }
 
@@ -1174,46 +1107,13 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     }
 
     /**
-     * Upper bound on how long a truncate may legitimately stay "in progress". A truncate is a
-     * drop+recreate of column families and completes in well under this window; anything longer
-     * means the completion callback ({@link #onDBTruncated}) never fired.
-     */
-    private static final long MAX_TRUNCATION_DURATION_MS = 60_000L;
-
-    /** Effective max-truncation window; overridable in tests to avoid a 60 s wait. */
-    private volatile long maxTruncationDurationMs = MAX_TRUNCATION_DURATION_MS;
-
-    /** Test seam: shrink the stale-latch window so self-healing can be exercised quickly. */
-    void setMaxTruncationDurationMsForTest() {
-        this.maxTruncationDurationMs = 50L;
-    }
-
-    /**
-     * Returns {@code true} while a truncate is actively in progress for {@code dbName}.
-     *
-     * <p><b>Self-healing latch.</b> {@code truncatingDbs} is set by {@link #onDBTruncateBegin} and
-     * normally cleared by {@link #onDBTruncated}. However {@code RocksDBSession.truncate()} invokes
-     * {@code dropTables}/{@code createTables} (which throw the unchecked {@code DBStoreException})
-     * between the begin and completion notifications without a {@code finally}, so a failure there
-     * leaves the completion callback un-invoked and the latch stuck. A stuck latch would silently
-     * disable metadata mirroring, cloud object deletion, and the delete guard for that DB for the
-     * lifetime of the process. To bound that blast radius, treat the latch as stale (and clear it)
-     * once the recorded truncation start is older than {@link #MAX_TRUNCATION_DURATION_MS}.
+     * Returns {@code true} while a truncate is in progress for {@code dbName}. The latch set by
+     * {@link #onDBTruncateBegin} is always cleared by {@link #onDBTruncated} or
+     * {@link #onDBTruncateAbort}: {@code RocksDBSession.truncate()} fires one of them in a
+     * {@code finally}.
      */
     boolean isActivelyTruncating(String dbName) {
-        if (!truncatingDbs.contains(dbName)) {
-            return false;
-        }
-        Long startedAt = truncationTimes.get(dbName);
-        if (startedAt != null
-                && System.currentTimeMillis() - startedAt > maxTruncationDurationMs) {
-            truncatingDbs.remove(dbName);
-            log.warn("Cleared stale 'truncating' flag for db={} ({} ms elapsed with no completion "
-                     + "callback) — resuming cloud metadata mirroring and cleanup", dbName,
-                     System.currentTimeMillis() - startedAt);
-            return false;
-        }
-        return true;
+        return truncatingDbs.contains(dbName);
     }
 
     /** Test seam exposing {@link #isInTruncationGracePeriod} for assertions. */
@@ -1402,10 +1302,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                 long syncLatencyMs = System.currentTimeMillis() - startTimeMs;
                 CloudStorageMetrics.recordSyncLatency(dbName, syncLatencyMs);
                 try {
-                    // Coalesce the per-SST metadata sync: at most one publish per debounce window
-                    // per DB, with a trailing sync. (Truncation/grace suppression is handled inside
-                    // requestDebouncedMetadataSync.)
-                    requestDebouncedMetadataSync(provider, dbName);
+                    // Coalesce the per-SST metadata sync into the periodic drain. (Truncation/grace
+                    // suppression is handled inside markMetadataDirty.)
+                    markMetadataDirty(dbName);
                 } catch (Exception e) {
                     log.warn("Cloud upload succeeded but post-upload metadata-sync scheduling "
                              + "failed (SST is durable; CURRENT/MANIFEST will catch up on the next "
@@ -1799,108 +1698,67 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     }
 
     /**
-     * Coalesces the high-frequency, per-SST metadata sync triggered by {@link #onTableFileCreated}.
-     *
-     * <p>At most one sync runs per {@link #metadataSyncDebounceMs} window per DB. The first upload
-     * in a window publishes immediately (leading edge); further uploads within the window schedule
-     * a single trailing sync so the final MANIFEST/CURRENT is always eventually published even if
-     * writes stop mid-window. This does not weaken the durability contract: SST objects are
-     * uploaded eagerly in {@link #onTableFileCreated} regardless — only the (idempotent, generation
-     * -guarded) metadata pointer publish is coalesced. Event-driven callers that must publish
-     * immediately (delete guard, {@link #onCompacted}, {@link #onDBCreated}) call
-     * {@link #syncMetadataSnapshotInline} directly and are intentionally not routed through here.
+     * Coalesces the high-frequency, per-SST metadata sync triggered by {@link #onTableFileCreated}
+     * by marking {@code dbName} dirty for {@link #drainDirtyMetadata}. This does not weaken the
+     * durability contract: SST objects are uploaded eagerly regardless — only the (idempotent,
+     * generation-guarded) metadata pointer publish is coalesced. Publishes inline instead when
+     * coalescing is disabled or the scheduler has shut down.
      */
-    void requestDebouncedMetadataSync(CloudStorageProvider provider, String dbName) {
+    void markMetadataDirty(String dbName) {
         if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
             return;
         }
-        // Count this upload as not-yet-mirrored. syncMetadataSnapshotInline resets the counter on a
-        // successful publish, so it reflects the SSTs uploaded since the last mirrored manifest.
-        int pending = unpublishedUploads
-                .computeIfAbsent(dbName, k -> new java.util.concurrent.atomic.AtomicInteger())
-                .incrementAndGet();
-
-        long now = System.currentTimeMillis();
-        Long last = lastMetadataSyncMs.get(dbName);
-        boolean windowElapsed = (last == null || now - last >= metadataSyncDebounceMs);
-        boolean backlogExceeded = (metadataSyncMaxUnpublished > 0
-                                   && pending >= metadataSyncMaxUnpublished);
-        if (windowElapsed || backlogExceeded) {
-            // Leading edge (window elapsed) OR the unpublished-upload backlog hit its bound: publish
-            // now so the cloud recovery point cannot fall arbitrarily far behind during a burst.
-            // Record the time first so uploads during the (slow) sync defer to a single trailing run
-            // rather than piling up behind the per-DB metadata lock.
-            lastMetadataSyncMs.put(dbName, now);
-            // Consume the backlog for THIS forced attempt up front, regardless of the publish
-            // outcome. syncMetadataSnapshotInline also resets the counter to 0 on a successful
-            // publish; doing it here as well ensures a FAILED publish (e.g. a metadata-publish
-            // outage while SST uploads still succeed, or a transient capture failure) cannot leave
-            // the counter pinned at/above the bound. If it did, every subsequent upload would take
-            // this branch and run a full checkpoint + publish attempt inline on the upload
-            // executor, starving it. Subtract the observed count (rather than set 0) so uploads
-            // that raced in after we read `pending` are still counted toward the next bound.
-            //
-            // Drain with a floor-at-zero CAS loop rather than a plain addAndGet(-pending): two
-            // concurrent forced attempts each read their own `pending` and would otherwise both
-            // subtract, driving the counter negative. A negative counter means many subsequent
-            // uploads must first climb back to zero before the bound can be hit again, delaying or
-            // skipping forced publishes and widening the recovery point past
-            // metadataSyncMaxUnpublished.
-            java.util.concurrent.atomic.AtomicInteger counter = unpublishedUploads.get(dbName);
-            if (counter != null) {
-                int prev;
-                int next;
-                do {
-                    prev = counter.get();
-                    next = Math.max(0, prev - pending);
-                } while (!counter.compareAndSet(prev, next));
-            }
-            syncMetadataSnapshotInline(provider, dbName);
+        if (metadataSyncDebounceMs <= 0) {
+            publishDirtyMetadata(dbName);
             return;
         }
-        // Within the window and under the backlog bound: ensure exactly one trailing sync captures
-        // the final state.
-        if (!pendingMetadataSync.add(dbName)) {
-            return; // a trailing sync is already scheduled for this DB
-        }
-        long delay = Math.max(0L, metadataSyncDebounceMs - (now - last));
-        try {
-            metadataSyncScheduler.schedule(() -> runTrailingMetadataSync(dbName),
-                               delay, TimeUnit.MILLISECONDS);
-        } catch (RejectedExecutionException e) {
-            // Scheduler shutting down: don't drop the sync — run it inline now.
-            pendingMetadataSync.remove(dbName);
-            lastMetadataSyncMs.put(dbName, now);
-            syncMetadataSnapshotInline(provider, dbName);
+        dirtyMetadataDbs.add(dbName);
+        // Re-check after adding so a mark racing close()'s final flush is not stranded.
+        if (metadataSyncScheduler.isShutdown() && dirtyMetadataDbs.remove(dbName)) {
+            publishDirtyMetadata(dbName);
         }
     }
 
     /**
      * Trigger invoked by {@link CloudUploadRetryQueue} after an upload becomes durable via retry.
-     * Publishes CURRENT/MANIFEST (debounced) so the mirrored recovery point advances
+     * Publishes CURRENT/MANIFEST (coalesced) so the mirrored recovery point advances
      * even when the retry succeeded during an otherwise-quiet period on an idle DB — without this,
      * cloud could hold the SST but keep exposing a stale CURRENT. Runs on the retry-queue thread.
      */
     public void onRetryUploadDurable(String dbName) {
         // During shutdown the retry queue is closed AFTER this listener and BEFORE the provider, so
         // a retry that becomes durable in that window must still advance the pointer. Once the
-        // scheduler is shut down, requestDebouncedMetadataSync falls back to an inline publish.
-        requestDebouncedMetadataSync(provider, dbName);
+        // scheduler is shut down, markMetadataDirty falls back to an inline publish.
+        markMetadataDirty(dbName);
         // A newly durable upload may unblock one or more deferred superseded-SST deletes.
         scheduleDeferredSstDeleteRetry(0L);
     }
 
-    /** Trailing (deferred) metadata sync body; runs on {@link #metadataSyncScheduler}. */
-    private void runTrailingMetadataSync(String dbName) {
-        pendingMetadataSync.remove(dbName);
-        if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
-            return;
+    /**
+     * Periodic drain on {@link #metadataSyncScheduler}: publishes each dirty DB once, re-marking
+     * it when the publish fails so the next run retries.
+     */
+    private void drainDirtyMetadata() {
+        for (String dbName : new ArrayList<>(dirtyMetadataDbs)) {
+            if (dirtyMetadataDbs.remove(dbName) && !publishDirtyMetadata(dbName)) {
+                dirtyMetadataDbs.add(dbName);
+            }
         }
-        lastMetadataSyncMs.put(dbName, System.currentTimeMillis());
+    }
+
+    /**
+     * Publishes metadata for a dirty DB. Returns {@code true} when published or when the DB is
+     * truncating (the purge supersedes the publish); {@code false} when the publish failed.
+     */
+    private boolean publishDirtyMetadata(String dbName) {
+        if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
+            return true;
+        }
         try {
-            syncMetadataSnapshotInline(provider, dbName);
+            return syncMetadataSnapshotInline(provider, dbName);
         } catch (Exception e) {
             log.warn("Deferred cloud metadata-sync failed for db={}: {}", dbName, e.getMessage());
+            return false;
         }
     }
 
@@ -1915,8 +1773,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      * recent writes are recoverable from cloud (the RocksDB WAL is disabled under Raft, so a flush is
      * the only way to push the tail into cloud; the Raft log is the tail's local durability source).
      * The cost is a small extra L0 SST (write amplification) whose <em>frequency</em> is bounded by
-     * the metadata-sync debounce window and the unpublished-upload backlog cap; when the memtable is
-     * empty the flush is a no-op.
+     * the metadata-sync drain interval; when the memtable is empty the flush is a no-op.
      *
      * <p>Package-private for testability.
      */
@@ -1928,18 +1785,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                 return false;
             }
             try {
-                boolean published = publishSnapshotWithGenerationCheck(provider, dbName, snapshot);
-                if (published) {
-                    // The mirrored manifest now reflects the current live set — clear the
-                    // unpublished-upload backlog so the count bound measures uploads since THIS
-                    // publish. Reset to 0 (rather than decrement) since the checkpoint captured the
-                    // state as of its start; any uploads racing the publish are re-counted next.
-                    java.util.concurrent.atomic.AtomicInteger c = unpublishedUploads.get(dbName);
-                    if (c != null) {
-                        c.set(0);
-                    }
-                }
-                return published;
+                return publishSnapshotWithGenerationCheck(provider, dbName, snapshot);
             } finally {
                 snapshot.cleanup();
             }
@@ -2276,14 +2122,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         }
 
         // Clean up any stale temp files left by a previous crashed download before
-        // deciding whether a local file is complete.  Match both legacy ".hyd-tmp" and the
-        // current per-thread naming ".hyd-tmp-<threadId>-<nanoTime>" so all crash leftovers
-        // are removed regardless of which code version created them.
+        // deciding whether a local file is complete.
         try (Stream<Path> stale = Files.walk(root, 10)) {
-            stale.filter(p -> {
-                     String name = p.getFileName().toString();
-                     return name.endsWith(".hyd-tmp") || name.contains(".hyd-tmp-");
-                 })
+            stale.filter(p -> p.getFileName().toString().contains(HYDRATION_TEMP_MARKER))
                  .forEach(p -> deleteIfExistsQuietly(p, "pre-hydration stale-temp cleanup"));
         } catch (IOException e) {
             log.debug("Failed to scan stale hydration temp files under {}: {}",
@@ -2306,30 +2147,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                 continue;
             }
             try {
-                Files.createDirectories(localPath.getParent());
-                // Download to a unique sibling temp file, then atomically move into place. The
-                // per-thread/per-attempt suffix prevents two concurrent restorers from writing the
-                // same temp file (which would interleave into a corrupt SST), and REPLACE_EXISTING
-                // makes a late second mover a harmless idempotent overwrite. A crash mid-download
-                // never leaves RocksDB reading a truncated SST at the expected path.
-                Path tmp = localPath.resolveSibling(
-                        localPath.getFileName() + ".hyd-tmp-" + Thread.currentThread().getId()
-                        + "-" + System.nanoTime());
-                try {
-                    provider.downloadFile(remoteKey, tmp.toString());
-                    try {
-                        Files.move(tmp, localPath,
-                                   java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                                   java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    } catch (java.nio.file.AtomicMoveNotSupportedException ex) {
-                        // Cross-filesystem fallback: non-atomic but still a replace.
-                        Files.move(tmp, localPath,
-                                   java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                    }
-                } catch (IOException e) {
-                    deleteIfExistsQuietly(tmp, "pre-hydration temp cleanup");
-                    throw e;
-                }
+                downloadAtomically(provider, remoteKey, localPath);
                 downloaded++;
             } catch (IOException e) {
                 throw new IllegalStateException(
@@ -2395,14 +2213,13 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             return;
         }
         String currentRemoteKey = toRelativeKey(localCurrent.toString());
-        Path tmp = null;
+        Path remoteCurrent = hydrationTempFor(localCurrent);
         try {
             if (!provider.fileExists(currentRemoteKey)) {
                 return; // no remote CURRENT to compare against
             }
-            tmp = Files.createTempFile("hg-current-cmp-", ".tmp");
-            provider.downloadFile(currentRemoteKey, tmp.toString());
-            String remoteManifest = Files.readString(tmp).trim();
+            provider.downloadFile(currentRemoteKey, remoteCurrent.toString());
+            String remoteManifest = Files.readString(remoteCurrent).trim();
             String localManifest = Files.readString(localCurrent).trim();
             long remoteGen = parseManifestGeneration(remoteManifest);
             long localGen = parseManifestGeneration(localManifest);
@@ -2415,15 +2232,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                 return;
             }
             if (remoteGen > localGen) {
-                try {
-                    Files.move(tmp, localCurrent,
-                               java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                               java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                } catch (java.nio.file.AtomicMoveNotSupportedException e) {
-                    Files.move(tmp, localCurrent,
-                               java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-                }
-                tmp = null;
+                moveReplacing(remoteCurrent, localCurrent);
                 log.warn("Cloud pre-hydration: local CURRENT for db={} pointed at {} (gen {}) but "
                          + "cloud holds {} (gen {}); adopted the newer remote generation to avoid a "
                          + "silent rollback.", dbName, localManifest, localGen, remoteManifest,
@@ -2436,13 +2245,43 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             log.warn("Cloud pre-hydration: CURRENT reconciliation failed for db={}: {} — keeping "
                      + "local pointer", dbName, e.getMessage());
         } finally {
-            if (tmp != null) {
-                try {
-                    Files.deleteIfExists(tmp);
-                } catch (IOException ignore) {
-                    // best-effort temp cleanup
-                }
-            }
+            deleteIfExistsQuietly(remoteCurrent, "CURRENT reconciliation temp cleanup");
+        }
+    }
+
+    /**
+     * Downloads {@code remoteKey} to a unique sibling temp file, then atomically moves it to
+     * {@code dest}. The per-thread/per-attempt suffix prevents two concurrent restorers from
+     * writing the same temp file (which would interleave into a corrupt SST), and REPLACE_EXISTING
+     * makes a late second mover a harmless idempotent overwrite. A crash mid-download never leaves
+     * RocksDB reading a truncated file at the expected path; the temp file is removed on failure.
+     */
+    private static void downloadAtomically(CloudStorageProvider provider, String remoteKey,
+                                           Path dest) throws IOException {
+        Files.createDirectories(dest.getParent());
+        Path tmp = hydrationTempFor(dest);
+        try {
+            provider.downloadFile(remoteKey, tmp.toString());
+            moveReplacing(tmp, dest);
+        } finally {
+            deleteIfExistsQuietly(tmp, "hydration temp cleanup");
+        }
+    }
+
+    /** Unique sibling temp path for {@code dest}, swept by {@link #preHydrateDbFiles} on startup. */
+    private static Path hydrationTempFor(Path dest) {
+        return dest.resolveSibling(dest.getFileName() + HYDRATION_TEMP_MARKER
+                                   + Thread.currentThread().getId() + "-" + System.nanoTime());
+    }
+
+    /** Atomically replaces {@code dest} with {@code src}, falling back to a non-atomic replace. */
+    private static void moveReplacing(Path src, Path dest) throws IOException {
+        try {
+            Files.move(src, dest, StandardCopyOption.ATOMIC_MOVE,
+                       StandardCopyOption.REPLACE_EXISTING);
+        } catch (AtomicMoveNotSupportedException e) {
+            // Cross-filesystem / FS without atomic-move support: still a replace.
+            Files.move(src, dest, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
