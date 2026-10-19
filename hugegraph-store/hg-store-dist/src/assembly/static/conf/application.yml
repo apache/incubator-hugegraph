@@ -130,3 +130,4 @@ cloud:
       access-key:
       secret-key:
 
+# HTTP Arthas activation is disabled. Use bin/arthas.sh locally without restarting Store.

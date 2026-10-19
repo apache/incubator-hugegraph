@@ -374,6 +374,12 @@ jobs:
         run: |
           mvn clean package -U -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp --fail-at-end
 
+      - name: Verify Store Arthas local CLI attachment
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          STORE_DIR=hugegraph-store/apache-hugegraph-store-$VERSION
+          bash "$TRAVIS_DIR/test-arthas-cli.sh" "$STORE_DIR"
+
       - name: Verify Surefire single-class routing
         run: |
           SUREFIRE_DIR=hugegraph-store/hg-store-test/target/surefire-reports
@@ -446,9 +452,9 @@ jobs:
           echo "PD_DIR=hugegraph-pd/apache-hugegraph-pd-$VERSION" >> "$GITHUB_ENV"
           echo "STORE_DIR=hugegraph-store/apache-hugegraph-store-$VERSION" >> "$GITHUB_ENV"
 
-      # -Dtest scopes the run to hg-store-node's own tests; without it -am would also run the test
-      # suites of every upstream module. StoredRowIngressTest is listed by name because
-      # hg-store-core also has tests in org.apache.hugegraph.store.business.
+      # -Dtest scopes the run to hg-store-node's own tests (including ArthasSecurityTest); without it
+      # -am would also run the test suites of every upstream module. StoredRowIngressTest is listed
+      # by name because hg-store-core also has tests in org.apache.hugegraph.store.business.
       - name: Run store-node tests
         run: |
           set -o pipefail
@@ -530,6 +536,8 @@ jobs:
             "$TEST_REPORT_DIR/TEST-org.apache.hugegraph.store.service.ServerSuiteTest.xml" \
             --require-test-report \
             "hugegraph-store/hg-store-node/target/surefire-reports/TEST-org.apache.hugegraph.store.business.StoredRowIngressTest.xml" \
+            --require-test-report \
+            "hugegraph-store/hg-store-node/target/surefire-reports/TEST-org.apache.hugegraph.store.node.controller.ArthasSecurityTest.xml" \
             --require-covered-group hg-store-common \
             --require-covered-group hg-store-client \
             --require-covered-group hg-store-rocksdb \

@@ -33,6 +33,26 @@ send `?parameters=...` to bind a GET query. Invalid binding values, including th
 reserved translator null marker, also fail before traversal execution; explicit
 JSON null values are accepted and normalized by the Server.
 
+## Authentication
+
+Cypher follows the Server authentication mode. When authentication is disabled,
+GET and POST requests do not require an `Authorization` header, and the Server
+uses an anonymous Gremlin connection. Both the request's `Authorization` header
+and credentials in `conf/remote-objects.yaml` are ignored. Mixed modes with REST
+authentication disabled and Gremlin authentication enabled are unsupported.
+When authentication is enabled, requests still need
+valid Basic or Bearer credentials and retain the caller's graph permissions.
+Use `bin/enable-auth.sh` to configure authentication consistently for both REST
+and Gremlin; enabling only the REST authenticator does not protect the Gremlin
+endpoint used to execute Cypher.
+
+The Gremlin host and port in `conf/remote-objects.yaml` must point to the same
+Server's Gremlin endpoint, including when using nondefault ports.
+
+The API test runner exercises anonymous GET and POST before enabling
+authentication, then runs the authenticated suite, including missing-header
+rejection and a read-only user's write and cross-graph rejection cases.
+
 ## Response envelope
 
 Responses retain the Gremlin-compatible top-level fields `requestId`, `status`

@@ -22,6 +22,7 @@ import org.apache.hugegraph.unit.core.LoadingModeTest;
 import org.apache.hugegraph.GraphDropPendingTest;
 import org.apache.hugegraph.StandardTaskAdmissionTest;
 import org.apache.hugegraph.DistributedTaskAdmissionTest;
+import org.apache.hugegraph.api.arthas.ArthasConfigTest;
 import org.apache.hugegraph.api.auth.GraphSpaceAuthPayloadTest;
 import org.apache.hugegraph.api.auth.GraphSpaceGroupAPITest;
 import org.apache.hugegraph.api.cypher.CypherClientTest;
@@ -78,6 +79,7 @@ import org.apache.hugegraph.unit.core.MetaManagerClusterTest;
 import org.apache.hugegraph.unit.core.DirectionsTest;
 import org.apache.hugegraph.unit.core.ExceptionTest;
 import org.apache.hugegraph.unit.core.GraphManagerAdminInitTest;
+import org.apache.hugegraph.unit.core.GraphManagerClearGraphSpaceTest;
 import org.apache.hugegraph.unit.core.GraphManagerConfigTest;
 import org.apache.hugegraph.unit.core.GraphManagerLocalGraphBindTest;
 import org.apache.hugegraph.unit.core.GraphManagerServiceNamesTest;
@@ -151,6 +153,7 @@ import org.junit.runners.Suite;
         LoadDetectFilterTest.class,
         LoginAPITest.class,
         PathFilterTest.class,
+        ArthasConfigTest.class,
         VertexAuthorizationTest.class,
 
         /* api cypher */
@@ -229,6 +232,7 @@ import org.junit.runners.Suite;
         RolePermissionTest.class,
         ExceptionTest.class,
         GraphManagerAdminInitTest.class,
+        GraphManagerClearGraphSpaceTest.class,
         GraphManagerConfigTest.class,
         GraphManagerLocalGraphBindTest.class,
         GraphManagerServiceNamesTest.class,
