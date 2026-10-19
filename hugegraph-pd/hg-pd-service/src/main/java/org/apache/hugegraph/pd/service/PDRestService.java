@@ -295,7 +295,10 @@ public class PDRestService implements InitializingBean {
 
     public void dbCompaction() throws PDException {
         runLeaderTask(() -> {
-            monitorService.dbCompaction("");
+            if (!monitorService.dbCompaction("")) {
+                throw new PDException(Pdpb.ErrorType.NOT_LEADER_VALUE,
+                                      "Compaction was refused by the scheduler; retry on the PD leader");
+            }
             return null;
         });
     }

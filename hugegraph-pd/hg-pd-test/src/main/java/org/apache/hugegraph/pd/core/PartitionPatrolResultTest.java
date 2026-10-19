@@ -122,6 +122,23 @@ public class PartitionPatrolResultTest {
     }
 
     @Test
+    public void testCompactionRefusalSurvivesLeadershipRegain() throws Exception {
+        // The outer checks both see a leader, but the scheduler observed a follower in between.
+        Mockito.when(node.isLeader(true)).thenReturn(true);
+        TaskScheduleService scheduler = Mockito.mock(TaskScheduleService.class);
+        Mockito.when(scheduler.dbCompaction("")).thenReturn(false);
+        PDRestService rest = new PDRestService();
+        Whitebox.setInternalState(rest, "monitorService", scheduler);
+        TaskAPI api = new TaskAPI();
+        Whitebox.setInternalState(api, "pdRestService", rest);
+        JsonNode response = new ObjectMapper().readTree(api.dbCompaction().getBody());
+        Assert.assertEquals(Pdpb.ErrorType.NOT_LEADER_VALUE, response.get("status").asInt());
+        Mockito.verify(scheduler).dbCompaction("");
+        Mockito.when(scheduler.dbCompaction("")).thenReturn(true);
+        Assert.assertEquals("compact ok", api.dbCompaction().getBody());
+    }
+
+    @Test
     public void testReportsTombstoneReallocationWithCorrectInitialShardCount() throws Exception {
         assertTombstoneReallocation(false);
     }
