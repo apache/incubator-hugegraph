@@ -812,6 +812,10 @@ Two unauthenticated endpoints are meant for probes and startup gates:
 | `GET /v1/health` | Liveness: the REST listener is up and Raft has no terminal error. Empty text body. | `503` for `STATE_ERROR` or `STATE_SHUTDOWN`, `200` otherwise |
 | `GET /v1/ready` | Readiness: the raft node is active and sees a leader, so this PD is inside a quorum. | `200` when ready, `503` otherwise |
 
+The health probe reads Raft state only; it does not verify metadata-store initialization.
+Metadata open failures propagate through startup; bounded LOCK retry remains tracked in
+[#3226](https://github.com/apache/hugegraph/issues/3226).
+
 ```bash
 curl -i http://localhost:8620/v1/ready
 ```

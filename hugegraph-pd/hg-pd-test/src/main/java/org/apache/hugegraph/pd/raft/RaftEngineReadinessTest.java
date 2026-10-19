@@ -18,6 +18,8 @@
 package org.apache.hugegraph.pd.raft;
 
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.testutil.Whitebox;
 import org.junit.Assert;
@@ -200,6 +202,22 @@ public class RaftEngineReadinessTest {
         Assert.assertFalse(status.isLocalLeader());
         Assert.assertEquals(State.STATE_SHUTDOWN.name(), status.getState());
         Assert.assertFalse(engine.hasLeader());
+    }
+
+    @Test
+    public void testNewNodeResetAllowsLeadershipAfterShutdown() throws Exception {
+        stateMachine.onLeaderStart(5);
+        stateMachine.onShutdown();
+        stateMachine.stopLeaderCallbacks();
+        CountDownLatch notified = new CountDownLatch(1);
+        stateMachine.addStateListener(notified::countDown);
+        stateMachine.resetForNewNode();
+        Assert.assertEquals(State.STATE_UNINITIALIZED.name(), engine.getRaftStatus().getState());
+        Assert.assertFalse(stateMachine.isLeader());
+        stateMachine.onLeaderStart(7);
+        Assert.assertEquals(State.STATE_LEADER.name(), engine.getRaftStatus().getState());
+        Assert.assertTrue(stateMachine.isLeader());
+        Assert.assertTrue(notified.await(5, TimeUnit.SECONDS));
     }
 
     @Test

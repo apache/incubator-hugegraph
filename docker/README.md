@@ -183,7 +183,9 @@ for the Raft node lock.
 A failed snapshot, for example after the PD disk fills, leaves JRaft in a terminal
 error state. Free disk space before restarting the affected PD; freeing space
 alone does not reinitialize its Raft node. Configure liveness against `/v1/health`
-with an image containing this fix and gate traffic on `/v1/ready`. Older images
+with an image containing this fix and gate traffic on `/v1/ready` using an external
+readiness gate. The shipped Compose `service_healthy` dependencies still use
+`/v1/health`; they do not wait for PD quorum readiness. Older images
 still need the single-PD readiness-based liveness workaround supplied by the Helm chart.
 
 ### Stop or remove a deployment

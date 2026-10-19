@@ -110,6 +110,15 @@ public class RaftStateMachine extends StateMachineAdapter {
         return this.probeView;
     }
 
+    // Called only before starting a new node, after the previous node has joined.
+    void resetForNewNode() {
+        synchronized (this.callbackMonitor) {
+            this.leaderTerm.set(-1);
+            this.probeView = new ProbeView(State.STATE_UNINITIALIZED, false);
+            this.stoppingCallbacks = false;
+        }
+    }
+
     @Override
     public void onApply(Iterator iter) {
         while (iter.hasNext()) {
