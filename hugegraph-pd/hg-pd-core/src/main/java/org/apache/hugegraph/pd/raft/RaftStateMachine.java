@@ -117,6 +117,15 @@ public class RaftStateMachine extends StateMachineAdapter {
         return this.probeView;
     }
 
+    // Called only before starting a new node, after the previous node has joined.
+    void resetForNewNode() {
+        synchronized (this.callbackMonitor) {
+            this.leaderTerm.set(-1);
+            this.probeView = new ProbeView(State.STATE_UNINITIALIZED, false);
+            this.stoppingCallbacks = false;
+        }
+    }
+
     @Override
     public void onApply(Iterator iter) {
         while (iter.hasNext()) {
@@ -210,6 +219,9 @@ public class RaftStateMachine extends StateMachineAdapter {
 
     @Override
     public void onLeaderStart(final long term) {
+        if (isTerminal()) {
+            return;
+        }
         this.leaderTerm.set(term);
         this.probeView = new ProbeView(State.STATE_LEADER, true);
         super.onLeaderStart(term);
@@ -221,22 +233,27 @@ public class RaftStateMachine extends StateMachineAdapter {
     @Override
     public void onLeaderStop(final Status status) {
         this.leaderTerm.set(-1);
-        // TODO: keep STATE_ERROR set by onError instead of overwriting it with STATE_FOLLOWER, so
-        // the probe view, and with it /v1/ready, reports a PD that stepped down for good after a
-        // snapshot failure. /v1/health does not read this view; making it report the state is the
-        // separate TODO at StoreAPI.checkHealthy. The Helm chart (helm/hugegraph) works around both
-        // by deriving a single PD's startup and liveness probes to /v1/ready.
-        // https://github.com/apache/hugegraph/issues/3222
-        this.probeView = new ProbeView(State.STATE_FOLLOWER, false);
+        // JRaft steps down after reporting a fatal error. That callback does not recover the node.
+        if (!isTerminal()) {
+            this.probeView = new ProbeView(State.STATE_FOLLOWER, false);
+        }
         super.onLeaderStop(status);
         log.info("Raft  lost leader ");
     }
 
     @Override
     public void onStartFollowing(final LeaderChangeContext ctx) {
+        if (isTerminal()) {
+            return;
+        }
         this.probeView = new ProbeView(State.STATE_FOLLOWER, true);
         super.onStartFollowing(ctx);
         notifyStateListeners();
+    }
+
+    private boolean isTerminal() {
+        State state = this.probeView.state;
+        return state == State.STATE_ERROR || state == State.STATE_SHUTDOWN;
     }
 
     @Override

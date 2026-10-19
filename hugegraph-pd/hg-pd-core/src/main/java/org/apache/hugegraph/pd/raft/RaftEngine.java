@@ -153,6 +153,7 @@ public class RaftEngine {
         // construct raft group and start raft
         this.raftGroupService =
                 new RaftGroupService(groupId, serverId, nodeOptions, rpcServer, true);
+        this.stateMachine.resetForNewNode();
         this.raftNode = raftGroupService.start(false);
         startAlivePeersRefresher();
         log.info("RaftEngine start successfully: id = {}, peers list = {}", groupId,
