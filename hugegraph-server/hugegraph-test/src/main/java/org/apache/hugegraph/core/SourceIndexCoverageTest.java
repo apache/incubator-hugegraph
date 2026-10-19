@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.hugegraph.backend.page.PageInfo;
+import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.store.BackendEntry;
 import org.apache.hugegraph.backend.store.BackendStore;
 import org.apache.hugegraph.backend.tx.GraphIndexTransaction;
@@ -42,6 +43,7 @@ import org.apache.hugegraph.traversal.optimize.HugeGraphStep;
 import org.apache.hugegraph.traversal.optimize.Text;
 import org.apache.hugegraph.type.HugeType;
 import org.apache.hugegraph.type.define.GraphReadMode;
+import org.apache.hugegraph.type.define.HugeKeys;
 import org.apache.hugegraph.type.define.IdStrategy;
 import org.apache.hugegraph.type.define.SchemaStatus;
 import org.apache.hugegraph.type.define.WriteType;
@@ -215,6 +217,269 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
         }
     }
 
+    @Test
+    public void testLabeledSubEdgeUsesParentIndex() {
+        Assume.assumeTrue(storeFeatures().supportsFatherAndSubEdgeLabel());
+        SchemaManager schema = graph().schema();
+        List<Edge> edges = this.addSubEdges();
+        Edge expected = edges.get(0);
+        Edge sibling = edges.get(1);
+        schema.indexLabel("parentEdgeByName").onE("parentEdge")
+              .by("coverageName").secondary().create();
+        Assert.assertEquals(2,
+                            graph().traversal().E().has("coverageName", "same").toList().size());
+        Assert.assertEquals(ImmutableList.of(sibling), graph().traversal().E()
+                .hasLabel("subB").has("coverageName", "same").limit(1).toList());
+        Assert.assertEquals(ImmutableSet.of(expected), graph().traversal().E()
+                .hasLabel("subA").has("coverageName", "same").toSet());
+        Assert.assertEquals(ImmutableList.of(expected), graph().traversal().E()
+                .hasLabel("subA").has("coverageName", "same").limit(1).toList());
+        if (storeFeatures().supportsQueryByPage()) {
+            for (Edge edge : edges) {
+                Set<Edge> actual = new HashSet<>();
+                String page = "";
+                int pages = 0;
+                do {
+                    ConditionQuery query = this.nameQuery(HugeType.EDGE);
+                    query.eq(HugeKeys.LABEL, graph().edgeLabel(edge.label()).id());
+                    query.limit(1);
+                    query.page(page);
+                    Iterator<Edge> results = graph().edges(query);
+                    try {
+                        results.forEachRemaining(actual::add);
+                        page = PageInfo.pageInfo(results);
+                    } finally {
+                        CloseableIterator.closeIterator(results);
+                    }
+                    Assert.assertTrue(++pages < 10);
+                } while (page != null && !page.isEmpty());
+                Assert.assertEquals(ImmutableSet.of(edge), actual);
+            }
+        }
+
+        SchemaLabel parentLabel = schema.getEdgeLabel("parentEdge");
+        try {
+            this.params().schemaTransaction().updateSchemaStatus(parentLabel, SchemaStatus.DELETING);
+            Assert.assertThrows(NoIndexException.class, () -> graph().traversal().E()
+                    .hasLabel("subA").has("coverageName", "same").toSet());
+            ConditionQuery query = this.nameQuery(HugeType.EDGE);
+            query.eq(HugeKeys.LABEL, graph().edgeLabel("subA").id());
+            query.showDeleting(true);
+            Assert.assertEquals(ImmutableSet.of(expected), ImmutableSet.copyOf(graph().edges(query)));
+        } finally {
+            this.params().schemaTransaction().updateSchemaStatus(parentLabel, SchemaStatus.CREATED);
+        }
+
+        IndexLabel parent = schema.getIndexLabel("parentEdgeByName");
+        try {
+            this.params().schemaTransaction().updateSchemaStatus(parent, SchemaStatus.REBUILDING);
+            try (IndexCursorTracker tracker = new IndexCursorTracker(null)) {
+                Assert.assertThrows(IllegalArgumentException.class, () -> graph().traversal().E()
+                        .hasLabel("subA").has("coverageName", "same").toSet(), error ->
+                        Assert.assertContains("REBUILDING", error.getMessage()));
+                tracker.assertCounts(0, 0);
+            }
+            schema.indexLabel("subAByName").onE("subA").by("coverageName").secondary().create();
+            // A compatible direct index is preferred over the parent fallback.
+            try (IndexCursorTracker tracker = new IndexCursorTracker(null)) {
+                Assert.assertEquals(ImmutableSet.of(expected), graph().traversal().E()
+                        .hasLabel("subA").has("coverageName", "same").toSet());
+                tracker.assertCounts(1, 1);
+            }
+        } finally {
+            this.params().schemaTransaction().updateSchemaStatus(parent, SchemaStatus.CREATED);
+        }
+    }
+
+    @Test
+    public void testLabeledSubEdgeUsesParentRangeJointAndSearchIndexes() {
+        Assume.assumeTrue(storeFeatures().supportsFatherAndSubEdgeLabel());
+        SchemaManager schema = graph().schema();
+        Edge expected = this.addSubEdges().get(1);
+        schema.indexLabel("parentByScore").onE("parentEdge").by("coverageScore").range().create();
+        Assert.assertEquals(ImmutableList.of(expected), graph().traversal().E()
+                .hasLabel("subB").has("coverageScore", P.gte(1)).limit(1).toList());
+        schema.indexLabel("parentByName").onE("parentEdge").by("coverageName").secondary().create();
+        Assert.assertEquals(ImmutableList.of(expected), graph().traversal().E()
+                .hasLabel("subB").has("coverageName", "same")
+                .has("coverageScore", P.gte(1)).limit(1).toList());
+        schema.indexLabel("parentByName").remove();
+        schema.indexLabel("parentSearchByName").onE("parentEdge").by("coverageName").search().create();
+        Assert.assertEquals(ImmutableList.of(expected), graph().traversal().E()
+                .hasLabel("subB").has("coverageName", Text.contains("same")).limit(1).toList());
+    }
+
+    private List<Edge> addSubEdges() {
+        SchemaManager schema = graph().schema();
+        schema.edgeLabel("parentEdge").asBase().properties("coverageName", "coverageScore")
+              .multiTimes().sortKeys("coverageScore").create();
+        for (String label : new String[]{"subA", "subB"}) {
+            schema.edgeLabel(label).withBase("parentEdge").link("coverageA", "coverageB")
+                  .properties("coverageName", "coverageScore")
+                  .multiTimes().sortKeys("coverageScore").create();
+        }
+        Set<Vertex> vertices = this.addVertices();
+        Vertex a = vertices.stream().filter(v -> v.label().equals("coverageA")).findFirst().get();
+        Vertex b = vertices.stream().filter(v -> v.label().equals("coverageB")).findFirst().get();
+        Edge first = a.addEdge("subA", b, "coverageName", "same", "coverageScore", 1);
+        Edge second = a.addEdge("subB", b, "coverageName", "same", "coverageScore", 2);
+        this.commitTx();
+        return ImmutableList.of(first, second);
+    }
+
+    @Test
+    public void testSingleBranchFailureClosesPartialCursors() {
+        this.nameIndex("coverageA");
+        this.nameIndex("coverageB");
+        this.addVertices();
+        RuntimeException injected = new IllegalStateException("second index query failed");
+        try (IndexCursorTracker tracker = new IndexCursorTracker(null, injected, 2)) {
+            RuntimeException failure = Assert.assertThrows(RuntimeException.class,
+                    () -> graph().vertices(this.nameQuery(HugeType.VERTEX)));
+            Assert.assertSame(injected, Throwables.getRootCause(failure));
+            tracker.assertCounts(1, 1);
+        }
+    }
+
+    @Test
+    public void testJointBranchFailureClosesPartialCursors() {
+        this.prepareJointIndexes();
+        ConditionQuery query = this.jointQuery();
+        RuntimeException injected = new IllegalStateException("second joint index query failed");
+        try (IndexCursorTracker tracker = new IndexCursorTracker(null, injected, 2)) {
+            RuntimeException failure = Assert.assertThrows(RuntimeException.class,
+                    () -> graph().vertices(query));
+            Assert.assertSame(injected, Throwables.getRootCause(failure));
+            tracker.assertCounts(1, 1);
+        }
+    }
+
+    @Test
+    public void testSingleBranchFailurePreservesErrorAndClosesAllCursors() {
+        this.nameIndex("coverageA");
+        this.nameIndex("coverageB");
+        graph().schema().vertexLabel("coverageC").properties("coverageName")
+               .useAutomaticId().create();
+        this.nameIndex("coverageC");
+        this.addVertices();
+        RuntimeException injected = new IllegalStateException("third index query failed");
+        RuntimeException closing = new IllegalStateException("first index cursor close failed");
+        try (IndexCursorTracker tracker = new IndexCursorTracker(closing, injected, 3)) {
+            RuntimeException failure = Assert.assertThrows(RuntimeException.class,
+                    () -> graph().vertices(this.nameQuery(HugeType.VERTEX)));
+            Assert.assertSame(injected, Throwables.getRootCause(failure));
+            tracker.assertCounts(2, 1);
+            Assert.assertEquals(1, injected.getSuppressed().length);
+            Assert.assertSame(closing, Throwables.getRootCause(injected.getSuppressed()[0]));
+        }
+    }
+
+    @Test
+    public void testJointPlanClosesUnselectedCursorsAndTransfersSelected() {
+        Set<Vertex> expected = this.prepareJointIndexes();
+        ConditionQuery query = this.jointQuery();
+        try (IndexCursorTracker tracker = new IndexCursorTracker(null)) {
+            Iterator<Vertex> results = graph().vertices(query);
+            try {
+                Assert.assertEquals(2, tracker.cursors.size());
+                Assert.assertEquals(1, tracker.cursors.stream().mapToInt(cursor -> cursor.closes).sum());
+                Assert.assertEquals(expected, ImmutableSet.copyOf(results));
+            } finally {
+                CloseableIterator.closeIterator(results);
+            }
+            tracker.assertCounts(2, 1);
+        }
+    }
+
+    @Test
+    public void testJointReadFailureClosesAllCursorsAndPreservesError() {
+        this.prepareJointIndexes();
+        RuntimeException injected = new IllegalStateException("second joint cursor read failed");
+        RuntimeException closing = new IllegalStateException("first joint cursor close failed");
+        try (IndexCursorTracker tracker = new IndexCursorTracker(closing)) {
+            tracker.failOnRead = 2;
+            tracker.readFailure = injected;
+            RuntimeException failure = Assert.assertThrows(RuntimeException.class,
+                    () -> graph().vertices(this.jointQuery()));
+            Assert.assertSame(injected, Throwables.getRootCause(failure));
+            tracker.assertCounts(2, 1);
+            Assert.assertEquals(1, injected.getSuppressed().length);
+            Assert.assertSame(closing, Throwables.getRootCause(injected.getSuppressed()[0]));
+        }
+    }
+
+    @Test
+    public void testSearchReadFailureClosesCursorAndPreservesError() {
+        graph().schema().indexLabel("coverageASearch").onV("coverageA")
+               .by("coverageBody").search().create();
+        this.addVertices();
+        RuntimeException injected = new IllegalStateException("search index cursor read failed");
+        RuntimeException closing = new IllegalStateException("search index cursor close failed");
+        try (IndexCursorTracker tracker = new IndexCursorTracker(closing)) {
+            tracker.failOnRead = 1;
+            tracker.readFailure = injected;
+            RuntimeException failure = Assert.assertThrows(RuntimeException.class,
+                    () -> graph().traversal().V().hasLabel("coverageA")
+                            .has("coverageBody", Text.contains("gold")).toSet());
+            Assert.assertSame(injected, Throwables.getRootCause(failure));
+            tracker.assertCounts(1, 1);
+            Assert.assertEquals(1, injected.getSuppressed().length);
+            Assert.assertSame(closing, Throwables.getRootCause(injected.getSuppressed()[0]));
+        }
+    }
+
+    @Test
+    public void testSearchDecodeFailureClosesCursorAndPreservesError() {
+        graph().schema().indexLabel("coverageASearch").onV("coverageA")
+               .by("coverageBody").search().create();
+        this.addVertices();
+        RuntimeException injected = new IllegalStateException("search index decode failed");
+        RuntimeException closing = new IllegalStateException("search index cursor close failed");
+        GraphIndexTransaction indexTx = Whitebox.getInternalState(params().graphTransaction(), "indexTx");
+        AbstractSerializer original = Whitebox.getInternalState(indexTx, "serializer");
+        AbstractSerializer observed = Mockito.mock(AbstractSerializer.class,
+                                                    AdditionalAnswers.delegatesTo(original));
+        Mockito.doAnswer(invocation -> {
+            // Decode a real backend entry before failing outside the iterator wrapper.
+            original.readIndex(invocation.getArgument(0), invocation.getArgument(1),
+                               invocation.getArgument(2));
+            throw injected;
+        }).when(observed).readIndex(Mockito.any(), Mockito.any(), Mockito.any());
+        Whitebox.setInternalState(indexTx, "serializer", observed);
+        try (IndexCursorTracker tracker = new IndexCursorTracker(closing)) {
+            RuntimeException failure = Assert.assertThrows(RuntimeException.class,
+                    () -> graph().traversal().V().hasLabel("coverageA")
+                            .has("coverageBody", Text.contains("gold")).toSet());
+            Assert.assertSame(injected, Throwables.getRootCause(failure));
+            tracker.assertCounts(1, 1);
+            Assert.assertEquals(1, injected.getSuppressed().length);
+            Assert.assertSame(closing, Throwables.getRootCause(injected.getSuppressed()[0]));
+        } finally {
+            Whitebox.setInternalState(indexTx, "serializer", original);
+        }
+    }
+
+    private Set<Vertex> prepareJointIndexes() {
+        this.nameIndex("coverageA");
+        graph().schema().indexLabel("coverageAByScore").onV("coverageA")
+               .by("coverageScore").secondary().create();
+        // Exceed the fixture's intersection threshold of 2 to retain lazy cursors.
+        Set<Vertex> expected = new HashSet<>();
+        for (int i = 0; i < 3; i++) {
+            expected.add(graph().addVertex(T.label, "coverageA", "coverageName", "same",
+                                          "coverageScore", 10, "coverageBody", "gold"));
+        }
+        this.commitTx();
+        return expected;
+    }
+
+    private ConditionQuery jointQuery() {
+        ConditionQuery query = this.nameQuery(HugeType.VERTEX);
+        query.eq(HugeKeys.LABEL, graph().vertexLabel("coverageA").id());
+        query.query(Condition.eq(graph().propertyKey("coverageScore").id(), 10));
+        return query;
+    }
+
     private void prepareOrIndexes(boolean complete) {
         this.nameIndex("coverageA");
         this.nameIndex("coverageB");
@@ -239,18 +504,31 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
         private final GraphIndexTransaction indexTx;
         private final BackendStore original;
         private final List<CountingIndexCursor> cursors = new ArrayList<>();
+        private int failOnRead;
+        private RuntimeException readFailure;
 
         private IndexCursorTracker(RuntimeException closeFailure) {
+            this(closeFailure, null, 0);
+        }
+
+        private IndexCursorTracker(RuntimeException closeFailure, RuntimeException queryFailure,
+                                   int failOnQuery) {
             this.indexTx = Whitebox.getInternalState(params().graphTransaction(), "indexTx");
             this.original = Whitebox.getInternalState(this.indexTx, "store");
             BackendStore observed = Mockito.mock(BackendStore.class,
                                                  AdditionalAnswers.delegatesTo(this.original));
             Mockito.doAnswer(invocation -> {
+                if (queryFailure != null && this.cursors.size() + 1 == failOnQuery) {
+                    throw queryFailure;
+                }
                 // Keep real index matching, validation, serialization and backend queries.
                 Iterator<BackendEntry> entries = this.original.query((Query) invocation.getArgument(0));
                 CountingIndexCursor cursor = new CountingIndexCursor(entries,
                         this.cursors.isEmpty() ? closeFailure : null);
                 this.cursors.add(cursor);
+                if (this.cursors.size() == this.failOnRead) {
+                    cursor.readFailure = this.readFailure;
+                }
                 return cursor;
             }).when(observed).query(Mockito.any(Query.class));
             Whitebox.setInternalState(this.indexTx, "store", observed);
@@ -280,6 +558,7 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
         private final Iterator<BackendEntry> entries;
         private final RuntimeException closeFailure;
         private int closes;
+        private RuntimeException readFailure;
 
         private CountingIndexCursor(Iterator<BackendEntry> entries, RuntimeException closeFailure) {
             this.entries = entries;
@@ -288,6 +567,9 @@ public class SourceIndexCoverageTest extends BaseCoreTest {
 
         @Override
         public boolean hasNext() {
+            if (this.readFailure != null) {
+                throw this.readFailure;
+            }
             return this.entries.hasNext();
         }
 

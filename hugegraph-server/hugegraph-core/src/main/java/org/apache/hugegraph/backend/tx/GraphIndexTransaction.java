@@ -43,6 +43,7 @@ import org.apache.hugegraph.backend.page.PageInfo;
 import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.page.SortByCountIdHolderList;
 import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
+import org.apache.hugegraph.backend.query.QueryBatch;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -416,28 +417,55 @@ public class GraphIndexTransaction extends AbstractTransaction {
 
         // Do index query
         IdHolderList holders = new IdHolderList(paging);
-        for (MatchedIndex index : indexes) {
-            if (index.containsSearchIndex()) {
-                // Do search-index query
-                holders.addAll(this.doSearchIndex(query, index));
-            } else {
-                // Do secondary-index, range-index or shard-index query
-                IndexQueries queries = constructIndexQueries(query, index);
-                assert !paging || queries.size() <= 1;
-                IdHolder holder = this.doSingleOrJointIndex(queries);
-                holders.add(holder);
-            }
+        try {
+            for (MatchedIndex index : indexes) {
+                ConditionQuery indexQuery = prepareIndexQuery(query, index);
+                if (index.containsSearchIndex()) {
+                    // Do search-index query
+                    holders.addAll(this.doSearchIndex(indexQuery, index));
+                } else {
+                    // Do secondary-index, range-index or shard-index query
+                    IndexQueries queries = constructIndexQueries(indexQuery, index);
+                    assert !paging || queries.size() <= 1;
+                    IdHolder holder = this.doSingleOrJointIndex(queries);
+                    holders.add(holder);
+                }
 
-            /*
-             * NOTE: need to skip the offset if offset > 0, but can't handle
-             * it here because the query may a sub-query after flatten,
-             * so the offset will be handle in QueryList.IndexQuery
-             *
-             * TODO: finish early here if records exceeds required limit with
-             *       FixedIdHolder.
-             */
+                /*
+                 * NOTE: need to skip the offset if offset > 0, but can't handle
+                 * it here because the query may a sub-query after flatten,
+                 * so the offset will be handle in QueryList.IndexQuery
+                 *
+                 * TODO: finish early here if records exceeds required limit with
+                 *       FixedIdHolder.
+                 */
+            }
+            return holders;
+        } catch (Throwable failure) {
+            throw closeIndexHolders(failure, holders);
         }
-        return holders;
+    }
+
+    private static ConditionQuery prepareIndexQuery(ConditionQuery query, MatchedIndex index) {
+        Id label = query.singleConditionValueOrNull(HugeKeys.LABEL);
+        if (!query.resultType().isEdge() || label == null ||
+            index.schemaLabel().id().equals(label)) {
+            return query;
+        }
+        // BaseEdge exposes the parent as LABEL and the actual child as SUB_LABEL.
+        // Filter on the child after fetching from the shared parent index.
+        ConditionQuery filtered = query.copy();
+        filtered.unsetCondition(HugeKeys.LABEL);
+        filtered.eq(HugeKeys.SUB_LABEL, label);
+        filtered.optimized(OptimizedType.INDEX_FILTER);
+        if (!query.paging()) {
+            filtered.limit(Query.NO_LIMIT);
+        }
+        if (!index.containsSearchIndex()) {
+            // Search queries install their word-aware filter after rewriting.
+            filtered.registerResultsFilter(element -> filtered.test(element, null));
+        }
+        return filtered;
     }
 
     @Watched(prefix = "index")
@@ -447,18 +475,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Sorted by matched count
         IdHolderList holders = new SortByCountIdHolderList(query.paging());
         List<ConditionQuery> flatten = ConditionQueryFlatten.flatten(query);
-        for (ConditionQuery q : flatten) {
-            if (!q.noLimit() && flatten.size() > 1) {
-                // Increase limit for union operation
-                increaseLimit(q);
+        try {
+            for (ConditionQuery q : flatten) {
+                if (!q.noLimit() && flatten.size() > 1) {
+                    // Increase limit for union operation
+                    increaseLimit(q);
+                }
+                IndexQueries queries = constructIndexQueries(q, index);
+                assert !query.paging() || queries.size() <= 1;
+                IdHolder holder = this.doSingleOrJointIndex(queries);
+                // NOTE: ids will be merged into one IdHolder if not in paging
+                holders.add(holder);
             }
-            IndexQueries queries = constructIndexQueries(q, index);
-            assert !query.paging() || queries.size() <= 1;
-            IdHolder holder = this.doSingleOrJointIndex(queries);
-            // NOTE: ids will be merged into one IdHolder if not in paging
-            holders.add(holder);
+            return holders;
+        } catch (Throwable failure) {
+            throw closeIndexHolders(failure, holders);
         }
-        return holders;
     }
 
     @Watched(prefix = "index")
@@ -490,61 +522,79 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<Id> intersectIds = null;
         boolean filtering = false;
         IdHolder resultHolder = null;
-        for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
-            IndexLabel indexLabel = e.getKey();
-            ConditionQuery query = e.getValue();
-            assert !query.paging();
-            if (!query.noLimit() && queries.size() > 1) {
-                // Unset limit for intersection operation
-                query.limit(Query.NO_LIMIT);
-            }
-            /*
-             * Try to query by joint indexes:
-             * 1 If there is any index exceeded the threshold, transform into
-             *   partial index query, then filter after back-table.
-             * 1.1 Return the holder of the first index that not exceeded the
-             *     threshold if there exists one index, this holder will be used
-             *     as the only query condition.
-             * 1.2 Return the holder of the first index if all indexes exceeded
-             *     the threshold.
-             * 2 Else intersect holders for all indexes, and return intersection
-             *   ids of all indexes.
-             */
-            IdHolder holder = this.doIndexQuery(indexLabel, query);
-            if (resultHolder == null) {
-                resultHolder = holder;
-                this.storeSelectedIndexField(indexLabel, query);
-            }
-            assert this.indexIntersectThresh > 0; // default value is 1000
-            Set<Id> ids = ((BatchIdHolder) holder).peekNext(
-                    this.indexIntersectThresh).ids();
-            if (ids.size() >= this.indexIntersectThresh) {
-                // Transform into filtering
-                filtering = true;
-                query.optimized(OptimizedType.INDEX_FILTER);
-            } else if (filtering) {
-                assert ids.size() < this.indexIntersectThresh;
-                resultHolder = holder;
-                this.storeSelectedIndexField(indexLabel, query);
-                break;
-            } else {
-                if (intersectIds == null) {
-                    intersectIds = ids;
-                } else {
-                    CollectionUtil.intersectWithModify(intersectIds, ids);
+        List<IdHolder> holders = new ArrayList<>(queries.size());
+        try {
+            for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
+                IndexLabel indexLabel = e.getKey();
+                ConditionQuery query = e.getValue();
+                assert !query.paging();
+                if (!query.noLimit() && queries.size() > 1) {
+                    // Unset limit for intersection operation
+                    query.limit(Query.NO_LIMIT);
                 }
-                if (intersectIds.isEmpty()) {
+                /*
+                 * Try to query by joint indexes:
+                 * 1 If there is any index exceeded the threshold, transform into
+                 *   partial index query, then filter after back-table.
+                 * 1.1 Return the holder of the first index that not exceeded the
+                 *     threshold if there exists one index, this holder will be used
+                 *     as the only query condition.
+                 * 1.2 Return the holder of the first index if all indexes exceeded
+                 *     the threshold.
+                 * 2 Else intersect holders for all indexes, and return intersection
+                 *   ids of all indexes.
+                 */
+                IdHolder holder = this.doIndexQuery(indexLabel, query);
+                holders.add(holder);
+                if (resultHolder == null) {
+                    resultHolder = holder;
+                    this.storeSelectedIndexField(indexLabel, query);
+                }
+                assert this.indexIntersectThresh > 0; // default value is 1000
+                Set<Id> ids = ((BatchIdHolder) holder).peekNext(
+                        this.indexIntersectThresh).ids();
+                if (ids.size() >= this.indexIntersectThresh) {
+                    // Transform into filtering
+                    filtering = true;
+                    query.optimized(OptimizedType.INDEX_FILTER);
+                } else if (filtering) {
+                    assert ids.size() < this.indexIntersectThresh;
+                    resultHolder = holder;
+                    this.storeSelectedIndexField(indexLabel, query);
                     break;
+                } else {
+                    if (intersectIds == null) {
+                        intersectIds = ids;
+                    } else {
+                        CollectionUtil.intersectWithModify(intersectIds, ids);
+                    }
+                    if (intersectIds.isEmpty()) {
+                        break;
+                    }
                 }
             }
-        }
 
-        if (filtering) {
-            return resultHolder;
-        } else {
-            assert intersectIds != null;
-            return new FixedIdHolder(queries.asJointQuery(), intersectIds);
+            IdHolder result = filtering ? resultHolder :
+                              new FixedIdHolder(queries.asJointQuery(), intersectIds);
+            // Transfer only the selected holder. Other lazy cursors may still
+            // be open when an index exceeded the intersection threshold.
+            QueryBatch.closeAll(holders.stream().filter(holder -> holder != result).toArray());
+            return result;
+        } catch (Throwable failure) {
+            throw closeIndexHolders(failure, holders);
         }
+    }
+
+    private static RuntimeException closeIndexHolders(Throwable failure,
+                                                      Collection<? extends IdHolder> holders) {
+        try {
+            QueryBatch.closeAll(holders.toArray());
+        } catch (Throwable closing) {
+            if (closing != failure) {
+                failure.addSuppressed(closing);
+            }
+        }
+        return QueryBatch.propagate(failure);
     }
 
     private void storeSelectedIndexField(IndexLabel indexLabel,
@@ -703,6 +753,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         query.resultType()));
             }
             schemaLabels = ImmutableList.of(schemaLabel);
+            if (schemaLabel instanceof EdgeLabel && ((EdgeLabel) schemaLabel).hasFather()) {
+                // Include the parent in visibility filtering and index matching;
+                // the original query label still filters out sibling edges.
+                EdgeLabel father = schema.getEdgeLabel(((EdgeLabel) schemaLabel).fatherId());
+                schemaLabels = ImmutableList.of(schemaLabel, father);
+            }
         } else {
             // Query doesn't have LABEL condition or it doesn't resolve
             // to a single label, so keep the conservative fallback.
@@ -734,6 +790,11 @@ public class GraphIndexTransaction extends AbstractTransaction {
             MatchedIndex index = this.collectMatchedIndex(schemaLabel, query);
             if (index != null) {
                 matchedIndexes.add(index);
+                // Prefer a compatible direct index for an explicit sub-label.
+                // Its parent, when present, follows it in querySchemaLabels().
+                if (schemaLabel.id().equals(query.singleConditionValueOrNull(HugeKeys.LABEL))) {
+                    break;
+                }
             }
         }
         return matchedIndexes;

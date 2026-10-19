@@ -257,8 +257,10 @@ For type-compatible values, a global property-index query such as
 `g.V().has("name", "alice")` or `g.E().has("weight", 0.5)` requires compatible
 indexes on every visible candidate label. A candidate declares all queried non-OLAP
 properties; even a label with no records requires coverage. Base edge labels have no
-direct records; their indexes can cover sub-labels. Shared OLAP indexes follow the
-graph read mode.
+direct records; their indexes can cover sub-labels. An explicit sub-label query
+also uses a compatible query-visible parent index when no compatible direct index
+exists, while still filtering out sibling sub-labels. Shared OLAP indexes follow the graph read
+mode.
 
 | Candidate state | Query behavior |
 | --- | --- |
@@ -275,10 +277,11 @@ Normal queries exclude hidden labels and labels in `DELETING` or `UNDELETED`
 status. Internal requests that enable `showHidden` or `showDeleting` include the
 corresponding labels and still require their indexes. Visibility follows the outer
 request when a query is split into subqueries. Each branch checks index state and
-complete coverage before opening its backend iterators. If a later branch fails
-planning, the query closes cursors accumulated from earlier branches and preserves
-the original error. This does not provide a snapshot against concurrent schema
-changes.
+complete coverage before opening its backend iterators. If branch construction
+fails, the query closes cursors from both the unfinished branch and earlier
+branches, preserving the original error. Joint index planning closes unselected
+cursors and transfers the selected cursor to the result. This does not provide a
+snapshot against concurrent schema changes.
 
 To fix incomplete coverage, specify an indexed label, for example
 `g.V().hasLabel("person").has("name", "alice")`, or add indexes compatible with the
