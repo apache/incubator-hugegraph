@@ -264,6 +264,12 @@ from a recent heartbeat without waiting for keep-alive expiry. A future timestam
 caused by a PD clock adjustment reports zero age.
 Keep the cluster preset's manual rollout barrier and verify fresh heartbeats,
 membership and leaders before replacing another Store.
+The shutdown report succeeds only if PD accepts a privileged internal credential:
+set `HG_PD_AUTH_SECRET_KEY` in Store to match PD's `auth.secret-key`. Without it,
+or if the RPC fails, shutdown continues and the existing lease expires normally.
+Restoring Offline Stores retain their liveness lease but cannot receive new
+placements until `Up`; recovery retries back off to the heartbeat interval.
+
 
 ### Select image versions
 

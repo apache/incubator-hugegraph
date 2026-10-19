@@ -67,7 +67,7 @@ public class DefaultPdProvider implements PdProvider {
     private GraphManager graphManager = null;
 
     public static String name = "store";
-    public static String authority = "default";
+    public static String authority = System.getenv().getOrDefault("HG_PD_AUTH_SECRET_KEY", "default");
 
     PDEventListener listener = new PDEventListener() {
         // Listening to pd change information listener

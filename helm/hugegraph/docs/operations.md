@@ -210,6 +210,12 @@ using the administrative Offline path, so a PD rollback does not remove that lea
 These signals do not prove Raft catch-up.
 <!-- TODO: replace the manual barrier only when Store also exposes per-group
      Raft catch-up readiness; local restore and heartbeat freshness are insufficient. -->
+The shutdown report succeeds only if PD accepts a privileged internal credential:
+set `HG_PD_AUTH_SECRET_KEY` in Store to match PD's `auth.secret-key`. Without it,
+or if the RPC fails, shutdown continues and the existing lease expires normally.
+Restoring Offline Stores retain their liveness lease but cannot receive new
+placements until `Up`; recovery retries back off to the heartbeat interval.
+
 
 ### PD patrol and leader balance
 

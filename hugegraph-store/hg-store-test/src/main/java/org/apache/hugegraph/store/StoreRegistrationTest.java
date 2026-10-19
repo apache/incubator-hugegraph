@@ -64,7 +64,7 @@ public class StoreRegistrationTest {
         HeartbeatService service = service(engine, provider);
         try {
             registerRestored(service);
-            Assert.assertEquals(List.of("Offline", "restore", "Offline", "Up"), events);
+            Assert.assertEquals(List.of("Offline", "restore", "Up"), events);
         } finally {
             service.shutdown();
         }
@@ -82,7 +82,7 @@ public class StoreRegistrationTest {
             service.registerStore();
             Assert.assertThrows(ExecutionException.class, () -> restoreTask(service).get(5, TimeUnit.SECONDS));
             service.registerStore();
-            Mockito.verify(provider, Mockito.times(2)).registerStore(Mockito.any());
+            Mockito.verify(provider).registerStore(Mockito.any());
             Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
         } finally {
             service.shutdown();
@@ -101,7 +101,7 @@ public class StoreRegistrationTest {
         HeartbeatService service = service(engine, provider);
         try {
             registerRestored(service);
-            Assert.assertEquals(List.of("Offline", "Offline", "Up"), events);
+            Assert.assertEquals(List.of("Offline", "Up"), events);
             events.clear();
             CountDownLatch offline = new CountDownLatch(1);
             CountDownLatch up = new CountDownLatch(1);
@@ -128,7 +128,7 @@ public class StoreRegistrationTest {
     public void testFailedUpRegistrationRetriesWithoutRestoringAgain() throws Exception {
         HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
         PdProvider provider = Mockito.mock(PdProvider.class);
-        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L, 7L)
+        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L)
                .thenThrow(new PDException(1, "unavailable")).thenReturn(7L);
         HeartbeatService service = service(engine, provider);
         try {
@@ -268,13 +268,68 @@ public class StoreRegistrationTest {
             service.registerStore();
             Assert.assertFalse(service.isClusterReady());
             Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
-            Mockito.verify(provider, Mockito.times(2)).registerStore(Mockito.argThat(
+            Mockito.verify(provider).registerStore(Mockito.argThat(
                     store -> store.getState() == Metapb.StoreState.Offline));
             service.partitionHeartbeat();
             Mockito.verify(engine, Mockito.never()).getLeaderPartition();
             Mockito.verify(provider, Mockito.never()).partitionHeartbeat(Mockito.anyList());
         } finally {
             release.countDown();
+            service.shutdown();
+        }
+    }
+
+    @Test
+    public void testRefusedRegistrationIsRetriedBeforeStartingRestore() throws Exception {
+        HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
+        PdProvider provider = Mockito.mock(PdProvider.class);
+        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(0L);
+        HeartbeatService service = service(engine, provider);
+        service.getStoreInfo().setId(7);
+        try {
+            service.registerStore();
+            service.registerStore();
+            Assert.assertNull(restoreTask(service));
+            Mockito.verify(provider, Mockito.times(2)).registerStore(Mockito.any());
+            Mockito.verifyNoInteractions(engine);
+        } finally {
+            service.shutdown();
+        }
+    }
+
+    @Test
+    public void testRestoreRetryBackoffKeepsLeaseRenewalIndependent() throws Exception {
+        HgStoreEngine engine = Mockito.mock(HgStoreEngine.class);
+        PdProvider provider = Mockito.mock(PdProvider.class);
+        Mockito.when(provider.registerStore(Mockito.any())).thenReturn(7L);
+        Mockito.doThrow(new IllegalStateException("broken partition")).when(engine)
+               .stateChanged(Mockito.any(), Mockito.any(), Mockito.any());
+        HeartbeatService service = Mockito.spy(service(engine, provider));
+        Mockito.doReturn(1000L).when(service).monotonicTimeMillis();
+        try {
+            service.registerStore();
+            Assert.assertThrows(ExecutionException.class, () -> restoreTask(service).get(5, TimeUnit.SECONDS));
+            service.registerStore();
+            Assert.assertNull(restoreTask(service));
+            service.registerStore();
+            Assert.assertNull(restoreTask(service));
+            Mockito.verify(engine).stateChanged(Mockito.any(), Mockito.any(), Mockito.any());
+
+            Mockito.doReturn(2000L).when(service).monotonicTimeMillis();
+            service.registerStore();
+            Assert.assertThrows(ExecutionException.class, () -> restoreTask(service).get(5, TimeUnit.SECONDS));
+            service.registerStore();
+            Mockito.doReturn(3000L).when(service).monotonicTimeMillis();
+            service.registerStore();
+            Assert.assertNull(restoreTask(service));
+            Mockito.verify(engine, Mockito.times(2)).stateChanged(Mockito.any(), Mockito.any(), Mockito.any());
+
+            // Renewal remains due after five seconds, independently of the worker's retry deadline.
+            Mockito.doReturn(7000L).when(service).monotonicTimeMillis();
+            service.registerStore();
+            Mockito.verify(provider, Mockito.times(2)).registerStore(Mockito.any());
+            Assert.assertEquals(Metapb.StoreState.Offline, service.getStoreInfo().getState());
+        } finally {
             service.shutdown();
         }
     }

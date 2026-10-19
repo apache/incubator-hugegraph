@@ -219,6 +219,22 @@ when the cluster is not ready. Older PDs return `UNIMPLEMENTED`; updated Stores
 fall back to expiry, never to `SetStore`. Administrative `SetStore(Offline)` keeps
 its cluster-readiness guard and removes the active entry as before.
 
+Shutdown reporting requires a privileged internal Basic credential matching PD's
+`auth.secret-key`. Set the same `HG_PD_AUTH_SECRET_KEY` in each Store process;
+this shared credential authorizes internal callers across Store IDs, rather than
+identifying an individual Store. Keep it restricted to trusted internal services.
+Missing, invalid or unconfigured credentials refuse the RPC. Store still shuts
+down and PD retains its previous record until the existing lease expires if the
+report is refused, unreachable, or unsupported by an older PD.
+
+A live restoration lease is not placement readiness: new allocation, replica
+addition, balancing and capacity checks select only Stores whose canonical state
+is `Up`. Existing shard membership and liveness/expiry tracking remain separate.
+Offline renewal occurs at most every five seconds while restoration is polled;
+failed restore attempts back off from one second to the Store heartbeat interval,
+with a full failure trace only on the first or a changed partition failure set.
+
+
 **Request**:
 ```protobuf
 message RegisterStoreRequest {

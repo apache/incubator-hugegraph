@@ -22,8 +22,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.hugegraph.pd.StoreNodeService;
+import org.apache.hugegraph.pd.ConfigService;
+import org.apache.hugegraph.pd.PartitionService;
+import org.apache.hugegraph.pd.common.PDException;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.meta.StoreInfoMeta;
@@ -50,6 +55,7 @@ public class StoreRestoreRegistrationTest {
         Whitebox.setInternalState(service, "pdConfig", config);
         Whitebox.setInternalState(service, "storeInfoMeta", metadata);
         Whitebox.setInternalState(service, "statusListeners", List.of());
+        Whitebox.setInternalState(service, "shardGroupStatusListeners", List.of());
         Mockito.doNothing().when(service).checkStoreStatus();
         Mockito.when(metadata.storeExists(7L)).thenReturn(true);
         Mockito.when(metadata.getStore(7L)).thenAnswer(call -> current.get());
@@ -169,6 +175,90 @@ public class StoreRestoreRegistrationTest {
         service.updateStore(Metapb.Store.newBuilder().setId(7)
                 .addLabels(Metapb.StoreLabel.newBuilder().setKey("zone").setValue("a")).build());
         Mockito.verify(metadata, Mockito.never()).removeActiveStore(Mockito.any());
+    }
+
+    @Test
+    public void testLiveRestoreLeaseDoesNotPermitPlacementUntilUp() throws Exception {
+        Mockito.when(config.getMinStoreCount()).thenReturn(3);
+        PDConfig.Partition partition = config.new Partition();
+        partition.setShardCount(3);
+        Mockito.when(config.getPartition()).thenReturn(partition);
+        ConfigService configuration = Mockito.mock(ConfigService.class);
+        Mockito.when(config.getConfigService()).thenReturn(configuration);
+        Mockito.when(configuration.getPartitionCount()).thenReturn(1);
+        PartitionService partitions = Mockito.mock(PartitionService.class);
+        Whitebox.setInternalState(service, "partitionService", partitions);
+        Metapb.Store second = store(Metapb.StoreState.Up).toBuilder().setId(8).build();
+        Metapb.Store third = second.toBuilder().setId(9).build();
+        // The retained shutdown lease can still contain the previous Up snapshot.
+        AtomicLong clock = new AtomicLong();
+        AtomicLong leaseExpiry = new AtomicLong(300_000L);
+        Mockito.when(metadata.getActiveStores()).thenAnswer(call -> clock.get() < leaseExpiry.get() ?
+                List.of(store(Metapb.StoreState.Up), second, third) : List.of(second, third));
+        Mockito.doAnswer(call -> {
+            leaseExpiry.set(clock.get() + 300_000L);
+            return null;
+        }).when(metadata).keepStoreAlive(Mockito.any());
+        Mockito.when(metadata.getStore(8L)).thenReturn(second);
+        Mockito.when(metadata.getStore(9L)).thenReturn(third);
+        AtomicReference<Metapb.ShardGroup> group = new AtomicReference<>();
+        Mockito.when(metadata.getShardGroup(0)).thenAnswer(call -> group.get());
+        Mockito.doAnswer(call -> {
+            group.set(call.getArgument(0));
+            return null;
+        }).when(metadata).updateShardGroup(Mockito.any());
+        Metapb.ShardGroup underReplicated = Metapb.ShardGroup.newBuilder().setId(0)
+                .addShards(Metapb.Shard.newBuilder().setStoreId(8).setRole(Metapb.ShardRole.Leader))
+                .addShards(Metapb.Shard.newBuilder().setStoreId(9)).build();
+
+        // Controlled metadata clock: recovery lasts longer than the original five-minute lease.
+        for (int renewal = 0; renewal < 4; renewal++) {
+            clock.addAndGet(200_000L);
+            service.register(store(Metapb.StoreState.Offline));
+            Assert.assertEquals(3, service.getActiveStores().size());
+            Assert.assertEquals(2, service.getPlacementStores().size());
+            PDException allocation = Assert.assertThrows(PDException.class, () -> service.allocShards(null, 0));
+            Assert.assertEquals(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE, allocation.getErrorCode());
+            Assert.assertThrows(PDException.class, () -> service.reallocShards(underReplicated));
+        }
+        Mockito.verify(metadata, Mockito.never()).updateShardGroup(Mockito.any());
+        Mockito.verify(metadata, Mockito.times(4)).keepStoreAlive(Mockito.any());
+
+        service.register(store(Metapb.StoreState.Up));
+        Assert.assertEquals(3, service.getPlacementStores().size());
+        Assert.assertTrue(service.reallocShards(underReplicated).stream().anyMatch(shard -> shard.getStoreId() == 7));
+        group.set(null);
+        Assert.assertTrue(service.allocShards(null, 0).stream().anyMatch(shard -> shard.getStoreId() == 7));
+    }
+
+    @Test
+    public void testTemporaryOfflineDoesNotShrinkExistingGroup() throws Exception {
+        Mockito.when(config.getMinStoreCount()).thenReturn(1);
+        PDConfig.Partition partition = config.new Partition();
+        partition.setShardCount(3);
+        Mockito.when(config.getPartition()).thenReturn(partition);
+        current.set(store(Metapb.StoreState.Offline));
+        Metapb.Store second = store(Metapb.StoreState.Up).toBuilder().setId(8).build();
+        Mockito.when(metadata.getStore(8L)).thenReturn(second);
+        Metapb.Store third = second.toBuilder().setId(9).build();
+        Mockito.when(metadata.getStore(9L)).thenReturn(third);
+        Mockito.when(metadata.getActiveStores()).thenReturn(List.of(store(Metapb.StoreState.Up), second, third));
+        Metapb.ShardGroup group = Metapb.ShardGroup.newBuilder().setId(0)
+                .addShards(Metapb.Shard.newBuilder().setStoreId(7))
+                .addShards(Metapb.Shard.newBuilder().setStoreId(8))
+                .addShards(Metapb.Shard.newBuilder().setStoreId(9).setRole(Metapb.ShardRole.Leader)).build();
+        Assert.assertEquals(group.getShardsList(), service.reallocShards(group));
+        Mockito.verify(metadata, Mockito.never()).updateShardGroup(Mockito.any());
+    }
+
+    @Test
+    public void testOnlyRestoringStoreCannotReceiveInitialLeader() throws Exception {
+        Mockito.when(config.getMinStoreCount()).thenReturn(1);
+        current.set(store(Metapb.StoreState.Offline));
+        Mockito.when(metadata.getActiveStores()).thenReturn(List.of(store(Metapb.StoreState.Up)));
+        PDException failure = Assert.assertThrows(PDException.class, () -> service.allocShards(null, 0));
+        Assert.assertEquals(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE, failure.getErrorCode());
+        Mockito.verify(metadata, Mockito.never()).updateShardGroup(Mockito.any());
     }
 
     private static Metapb.Store store(Metapb.StoreState state) {

@@ -20,12 +20,14 @@ package org.apache.hugegraph.store;
 import static org.apache.hugegraph.pd.grpc.Pdpb.ErrorType.PD_UNREACHABLE_VALUE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.common.PDRuntimeException;
@@ -75,6 +77,10 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
     private boolean restored = false;
     private FutureTask<Void> restoreTask;
     private Thread restoreThread;
+    private long nextOfflineRegistration = Long.MIN_VALUE;
+    private long nextRestoreAttempt = Long.MIN_VALUE;
+    private long restoreRetryDelayMillis = 1000;
+    private String lastRestoreFailure;
     private volatile boolean pulseConnected;
     private final AtomicBoolean fatalExitRequested = new AtomicBoolean();
     private Thread storeHeartbeatThread;
@@ -211,9 +217,14 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
             // Recovery is needed once per process, not when an established stream reconnects.
             boolean restoring = !restored;
             this.storeInfo.setState(restoring ? Metapb.StoreState.Offline : Metapb.StoreState.Up);
-            long storeId;
+            long now = monotonicTimeMillis();
+            long storeId = storeInfo.getId();
             try {
-                storeId = pdProvider.registerStore(this.storeInfo);
+                if (!restoring || storeId == 0 || now >= nextOfflineRegistration) {
+                    storeId = pdProvider.registerStore(this.storeInfo);
+                    nextOfflineRegistration = storeId == 0 ? Long.MIN_VALUE :
+                                              now + Math.min(5000L, options.getStoreHBInterval() * 1000L);
+                }
             } finally {
                 // Retry registration after a failure instead of heartbeating an unregistered Store.
                 this.storeInfo.setState(Metapb.StoreState.Offline);
@@ -225,6 +236,9 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                     this.clusterStats = pdProvider.getClusterStats();
                     timerNextDelay = REGISTER_RETRY_INTERVAL * 1000;
                     if (restoreTask == null) {
+                        if (now < nextRestoreAttempt) {
+                            return;
+                        }
                         restoreTask = new FutureTask<>(() -> {
                             storeEngine.stateChanged(storeInfo, Metapb.StoreState.Offline, Metapb.StoreState.Up);
                             return null;
@@ -242,7 +256,19 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                         Thread.currentThread().interrupt();
                         return;
                     } catch (ExecutionException e) {
-                        log.error("Store {} remains Offline after partition restore failed", storeId, e);
+                        Throwable failure = e.getCause();
+                        String signature = failure.getMessage() + Arrays.stream(failure.getSuppressed())
+                                .map(Throwable::toString).sorted().collect(Collectors.joining(";"));
+                        if (!signature.equals(lastRestoreFailure)) {
+                            log.error("Store {} remains Offline after partition restore failed", storeId, failure);
+                            lastRestoreFailure = signature;
+                        } else {
+                            log.warn("Store {} partition restore still failing; retrying after {} ms",
+                                     storeId, restoreRetryDelayMillis);
+                        }
+                        nextRestoreAttempt = now + restoreRetryDelayMillis;
+                        restoreRetryDelayMillis = Math.min(restoreRetryDelayMillis * 2,
+                                                           options.getStoreHBInterval() * 1000L);
                         restoreTask = null;
                         return;
                     }
@@ -303,6 +329,10 @@ public class HeartbeatService implements Lifecycle<HgStoreEngineOptions>, Partit
                 return;
             }
         }
+    }
+
+    protected long monotonicTimeMillis() {
+        return System.nanoTime() / 1_000_000L;
     }
 
     protected void storeHeartbeat() {

@@ -430,6 +430,21 @@ public class StoreNodeService {
         return storeInfoMeta.getActiveStores();
     }
 
+    /**
+     * Placement requires both a live lease and the current canonical Up state.
+     * Shutdown reports deliberately retain the old TTL entry until expiry.
+     */
+    public List<Metapb.Store> getPlacementStores() throws PDException {
+        List<Metapb.Store> stores = new ArrayList<>();
+        for (Metapb.Store active : getActiveStores()) {
+            Metapb.Store current = storeInfoMeta.getStore(active.getId());
+            if (current != null && current.getState() == Metapb.StoreState.Up) {
+                stores.add(current);
+            }
+        }
+        return stores;
+    }
+
     public List<Metapb.Store> getTombStores() throws PDException {
         List<Metapb.Store> stores = new ArrayList<>();
         for (Metapb.Store store : this.getStores()) {
@@ -458,7 +473,7 @@ public class StoreNodeService {
         // number cannot exceed the number of raft groups
         if (storeInfoMeta.getShardGroup(partId) == null) {
             // Get active store key
-            List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
+            List<Metapb.Store> stores = getPlacementStores();
 
             if (stores.size() == 0) {
                 throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
@@ -518,7 +533,7 @@ public class StoreNodeService {
      */
     public synchronized List<Metapb.Shard> reallocShards(Metapb.ShardGroup shardGroup) throws
                                                                                        PDException {
-        List<Metapb.Store> stores = storeInfoMeta.getActiveStores();
+        List<Metapb.Store> stores = getPlacementStores();
 
         if (stores.size() == 0) {
             throw new PDException(Pdpb.ErrorType.NO_ACTIVE_STORE_VALUE,
@@ -532,7 +547,8 @@ public class StoreNodeService {
         }
 
         int shardCount = pdConfig.getPartition().getShardCount();
-        shardCount = Math.min(shardCount, stores.size());
+        // A leased but restoring member must not make an existing group shrink.
+        shardCount = Math.min(shardCount, getActiveStores().size());
         if (shardCount == 2 || shardCount < 1) {
             // Two shards could not elect a leader
             // It cannot be 0
@@ -543,6 +559,11 @@ public class StoreNodeService {
         shards.addAll(shardGroup.getShardsList());
 
         if (shardCount > shards.size()) {
+            long candidates = stores.stream().filter(store -> !isStoreInShards(shards, store.getId())).count();
+            if (candidates < shardCount - shards.size()) {
+                throw new PDException(Pdpb.ErrorType.LESS_ACTIVE_STORE_VALUE,
+                                      "Not enough restored stores to add replicas");
+            }
             // Need to add shards
             log.info("reallocShards ShardGroup {}, add shards from {} to {}",
                      shardGroup.getId(), shards.size(), shardCount);
@@ -604,7 +625,7 @@ public class StoreNodeService {
                                                                                     PDException {
         int sum = groups.stream().map(pair -> pair.getValue()).reduce(0, Integer::sum);
         // shard group is too big
-        if (sum > getActiveStores().size() * pdConfig.getPartition().getMaxShardsPerStore()) {
+        if (sum > getPlacementStores().size() * pdConfig.getPartition().getMaxShardsPerStore()) {
             throw new PDException(Pdpb.ErrorType.Too_Many_Partitions_Per_Store_VALUE,
                                   "can't satisfy target shard group count");
         }
@@ -942,7 +963,7 @@ public class StoreNodeService {
     public boolean checkStoreCanOffline(Metapb.Store currentStore) {
         try {
             long currentStoreId = currentStore.getId();
-            List<Metapb.Store> activeStores = this.getActiveStores();
+            List<Metapb.Store> activeStores = this.getPlacementStores();
             Map<Long, Metapb.Store> storeMap = new HashMap<>();
             activeStores.forEach(store -> {
                 if (store.getId() != currentStoreId) {

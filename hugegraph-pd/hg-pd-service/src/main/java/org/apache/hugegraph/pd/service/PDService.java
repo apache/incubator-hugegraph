@@ -1483,7 +1483,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
     private boolean checkShardCount(int newShardCount) {
         try {
             var maxCount = pdConfig.getPartition().getMaxShardsPerStore() *
-                           storeNodeService.getActiveStores().size() /
+                           storeNodeService.getPlacementStores().size() /
                            pdConfig.getConfigService().getPartitionCount();
 
             if (newShardCount > maxCount) {
@@ -1521,7 +1521,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
             // Estimate the storage space consumed after data bloat
             newDataSize = (long) Math.ceil(currentDataSize * expansionRatio);
             // Count the available space in all active stores
-            List<Metapb.Store> activeStores = storeNodeService.getActiveStores();
+            List<Metapb.Store> activeStores = storeNodeService.getPlacementStores();
             for (Metapb.Store store : activeStores) {
                 Metapb.StoreStats storeStats = store.getStats();
                 totalAvaible += storeStats.getAvailable();
