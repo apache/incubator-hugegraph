@@ -102,6 +102,7 @@ CONTRACT_SUITES = {
     TRAVIS + "test-codecov-upload-config.sh": {"struct"},
     TRAVIS + "test-riscv64-java-runtime.sh": {"server", "riscv64"},
     TRAVIS + "test-store-docker-entrypoint.sh": {"store"},
+    TRAVIS + "test-start-hugegraph-store.sh": {"store"},
     TRAVIS + "test-start-server.sh": {"server"},
 }
 
