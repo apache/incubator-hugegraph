@@ -776,7 +776,11 @@ anything else. When set it outranks `rocksdb.total_memory_size` in a mounted
 `application-pd.yml` that PD distributes to every Store. Leave it unset
 to let the Store size the budget from the container memory limit, provided the loaded config
 also has `total_memory_size: 0` or no value; a mounted `application-pd.yml` from an earlier
-release still has `32000000000` (see [Store Configuration](#store-configuration)).
+release still has `32000000000` (see [Store Configuration](#store-configuration)). A container
+limit bounds only the RocksDB budget: the launcher still picks `-Xmx` from the host's free
+memory (up to 2 GiB) and sets direct memory to the same size, so size both for the limit through
+`JAVA_OPTS`, for example `JAVA_OPTS: "-Xmx1g -XX:MaxDirectMemorySize=512m"` for a 4 GiB limit.
+With the defaults, heap and direct memory plus the 1.5 GiB reserve already exceed a 2 GiB limit.
 
 **Server environment variables**:
 
