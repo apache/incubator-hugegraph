@@ -57,15 +57,15 @@ public class CypherApiTest extends BaseApiTest {
         String schema = URL_PREFIX + "/schema/";
         for (String[] property : new String[][]{{"name", "TEXT"}, {"age", "INT"},
                                                 {"city", "TEXT"}, {"active", "BOOLEAN"},
-                                                {"note", "TEXT"}}) {
+                                                {"note", "TEXT"}, {"birthday", "DATE"}}) {
             createAndAssert(schema + "propertykeys", JsonUtil.toJson(ImmutableMap.of(
                     "name", property[0], "data_type", property[1],
                     "cardinality", "SINGLE")), 202);
         }
         createAndAssert(schema + "vertexlabels", "{\"name\":\"cypher_person\", " +
-                        "\"id_strategy\":\"PRIMARY_KEY\",\"primary_keys\":[\"name\"]," +
-                        "\"properties\":[\"name\",\"age\",\"city\",\"active\",\"note\"]," +
-                        "\"nullable_keys\":[\"active\",\"note\"]}");
+                        "\"id_strategy\":\"PRIMARY_KEY\",\"primary_keys\":[\"name\"], " +
+                        "\"properties\":[\"name\",\"age\",\"city\",\"active\",\"note\"," +
+                        "\"birthday\"],\"nullable_keys\":[\"active\",\"note\",\"birthday\"]}");
         createAndAssert(schema + "edgelabels", "{\"name\":\"cypher_knows\", " +
                         "\"source_label\":\"cypher_person\",\"target_label\":\"cypher_person\"," +
                         "\"frequency\":\"SINGLE\",\"properties\":[],\"nullable_keys\":[]}");
@@ -79,7 +79,7 @@ public class CypherApiTest extends BaseApiTest {
                     .put("fields", Collections.singletonList(index[0]))
                     .put("rebuild", false).build()), 202);
         }
-        addVertex("marko", 20, "Beijing", true);
+        addVertex("marko", 20, "Beijing", true, "2000-01-01");
         addVertex("peter", 30, "Beijing", false);
         addVertex("alice", 40, "Shanghai", true);
         addVertex("dave", 30, "Shanghai", false);
@@ -120,6 +120,19 @@ public class CypherApiTest extends BaseApiTest {
                        "RETURN n.name AS name";
         String content = this.testCypherQueryAndContains(query, "data");
         Assert.assertTrue(assertCypherSuccessData(content).isEmpty());
+    }
+
+    @Test
+    public void testDateFunctionMatchesDateProperty() {
+        assertColumn(query("MATCH (n:cypher_person) WHERE n.birthday = date('2000-01-01') " +
+                           "RETURN n.name AS name"), "name", "marko");
+    }
+
+    @Test
+    public void testDateFunctionYieldsNoMatchOnTextProperty() {
+        Map<?, ?> row = assertSingleMapRow(query(
+                "MATCH (n:cypher_person {note: date('2024-02-05')}) RETURN count(n) AS count"));
+        Assert.assertEquals(0L, ((Number) row.get("count")).longValue());
     }
 
     @Test
@@ -270,6 +283,41 @@ public class CypherApiTest extends BaseApiTest {
     }
 
     @Test
+    public void testOrderByNullableBooleanGroupingKey() {
+        // #3319: sorting a Boolean-or-null grouping key once crashed with a
+        // ClassCastException when the translator null marker met ordered values
+        createAndAssert(URL_PREFIX + "/graph/vertices", JsonUtil.toJson(ImmutableMap.of(
+                "label", "cypher_person",
+                "properties", ImmutableMap.of("name", "noactive", "age", 50,
+                                              "city", "Beijing"))));
+        String cypher = "MATCH (n:cypher_person) " +
+                        "OPTIONAL MATCH (n)-[r0:cypher_knows]->(n1 {city: 'Nowhere'}) " +
+                        "WITH n.active AS g, count(n1.name) AS c " +
+                        "RETURN g, c ORDER BY g ";
+        List<?> rows = query(cypher + "DESC");
+        Assert.assertEquals(3, rows.size());
+        assertGroupRow(rows.get(0), null);
+        assertGroupRow(rows.get(1), true);
+        assertGroupRow(rows.get(2), false);
+
+        rows = query(cypher + "ASC");
+        Assert.assertEquals(3, rows.size());
+        assertGroupRow(rows.get(0), false);
+        assertGroupRow(rows.get(1), true);
+        assertGroupRow(rows.get(2), null);
+
+        query("MATCH (n:cypher_person {name: 'noactive'}) DETACH DELETE n");
+        Assert.assertEquals(4, nativeVertices().size());
+    }
+
+    private static void assertGroupRow(Object row, Object groupKey) {
+        Map<?, ?> map = assertMapValue(Collections.singletonList(row), 0);
+        Assert.assertEquals(2, map.size());
+        Assert.assertEquals(groupKey, map.get("g"));
+        Assert.assertEquals(0L, ((Number) map.get("c")).longValue());
+    }
+
+    @Test
     public void testParameters() {
         assertColumn(bound("MATCH (n:cypher_person) WHERE n.name = $name AND " +
                            "n.age >= $age AND n.active = $active RETURN n.name AS name",
@@ -400,6 +448,76 @@ public class CypherApiTest extends BaseApiTest {
         assertExecutionError(response);
         assertColumn(query("MATCH (n:cypher_person) RETURN n.name AS name ORDER BY name"),
                      "name", "alice", "dave", "marko", "peter");
+    }
+
+    @Test
+    public void testRejectMissingAuthorization() {
+        RestClient anonymous = new RestClient(baseUrl(), false);
+        try {
+            assertResponseStatus(401, anonymous.get(PATH, ImmutableMap.of("cypher", "RETURN 1")));
+            assertResponseStatus(401, anonymous.post(PATH, "RETURN 1"));
+        } finally {
+            anonymous.close();
+        }
+    }
+
+    @Test
+    public void testReadOnlyUserCannotWriteOrReadAnotherGraph() {
+        assumeStandaloneMode();
+        String graph = "cypher_reader_other";
+        String graphPath = "graphspaces/DEFAULT/graphs/" + graph;
+        Deque<String[]> created = new ArrayDeque<>();
+        RestClient reader = null;
+        boolean graphCreated = false;
+        try {
+            String config = JsonUtil.toJson(ImmutableMap.of(
+                    "gremlin.graph", "org.apache.hugegraph.auth.HugeFactoryAuthProxy",
+                    "backend", "memory", "serializer", "text", "store", graph));
+            Response response = client().post(graphPath, Entity.json(config));
+            graphCreated = response.getStatus() == 201;
+            assertResponseStatus(201, response);
+            reader = new RestClient(baseUrl(), "cypher_reader", "cypher-reader-password");
+            String group = this.createAuth(created, "auth/groups",
+                                           "{\"group_name\":\"cypher_read_only_group\"}");
+            String target = this.createAuth(created, "graphspaces/DEFAULT/auth/targets",
+                                            "{\"target_name\":\"cypher_read_only_target\"," +
+                                            "\"target_graph\":\"hugegraph\"," +
+                                            "\"target_resources\":[{\"type\":\"ALL\"}]}");
+            for (String permission : ImmutableList.of("READ", "EXECUTE")) {
+                this.createAuth(created, "graphspaces/DEFAULT/auth/accesses", String.format(
+                        "{\"group\":\"%s\",\"target\":\"%s\",\"access_permission\":\"%s\"}",
+                        group, target, permission));
+            }
+            String user = this.createAuth(created, "graphspaces/DEFAULT/auth/users",
+                                          "{\"user_name\":\"cypher_reader\"," +
+                                          "\"user_password\":\"cypher-reader-password\"}");
+            this.createAuth(created, "graphspaces/DEFAULT/auth/belongs", String.format(
+                    "{\"user\":\"%s\",\"group\":\"%s\"}", user, group));
+
+            assertColumn(assertCypherSuccessData(assertResponseStatus(200, reader.post(PATH, QUERY))),
+                         "name", "marko", "peter");
+            assertPermissionDenied(reader.post(PATH,
+                    "CREATE (n:cypher_person {name:'cypher_denied',age:1,city:'Beijing'}) RETURN n"),
+                    "write", "hugegraph");
+            Assert.assertNull(this.nativeVertex("cypher_denied"));
+            // This existing graph is accessible to the administrator but not to the reader.
+            assertCypherSuccessData(assertResponseStatus(200, client().post(
+                    graphPath + "/cypher", "MATCH (n) RETURN n")));
+            assertPermissionDenied(reader.post(graphPath + "/cypher", "MATCH (n) RETURN n"),
+                                   "execute", graph);
+        } finally {
+            if (reader != null) {
+                reader.close();
+            }
+            try {
+                this.deleteAuth(created);
+            } finally {
+                if (graphCreated) {
+                    assertResponseStatus(204, client().delete(graphPath, ImmutableMap.of(
+                            "confirm_message", "I'm sure to drop the graph")));
+                }
+            }
+        }
     }
 
     @Test
@@ -536,10 +654,28 @@ public class CypherApiTest extends BaseApiTest {
         Assert.assertNull(assertMapValue(body, "result").get("data"));
     }
 
+    private static void assertPermissionDenied(Response response, String operation, String graph) {
+        String content = assertResponseStatus(200, response);
+        Map<?, ?> body = JsonUtil.fromJson(content, Map.class);
+        Map<?, ?> status = assertMapValue(body, "status");
+        Assert.assertEquals(400, ((Number) status.get("code")).intValue());
+        String message = String.valueOf(status.get("message"));
+        assertContains("Permission denied: " + operation, message);
+        assertContains("graph=" + graph + ",", message);
+        Assert.assertNull(assertMapValue(body, "result").get("data"));
+    }
+
     private void addVertex(String name, int age, String city, boolean active) {
         createAndAssert(URL_PREFIX + "/graph/vertices", JsonUtil.toJson(ImmutableMap.of(
                 "label", "cypher_person", "properties", ImmutableMap.of(
                         "name", name, "age", age, "city", city, "active", active))));
+    }
+
+    private void addVertex(String name, int age, String city, boolean active, String birthday) {
+        createAndAssert(URL_PREFIX + "/graph/vertices", JsonUtil.toJson(ImmutableMap.of(
+                "label", "cypher_person", "properties", ImmutableMap.of(
+                        "name", name, "age", age, "city", city, "active", active,
+                        "birthday", birthday))));
     }
 
     private void addEdge(String source, String target) {

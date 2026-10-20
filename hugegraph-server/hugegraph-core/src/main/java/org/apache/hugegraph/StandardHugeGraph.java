@@ -19,6 +19,7 @@ package org.apache.hugegraph;
 
 import org.apache.hugegraph.exception.HugeException;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -102,6 +103,7 @@ import org.apache.hugegraph.type.define.GraphMode;
 import org.apache.hugegraph.type.define.GraphReadMode;
 import org.apache.hugegraph.util.ConfigUtil;
 import org.apache.hugegraph.util.DateUtil;
+import org.apache.hugegraph.util.CloseFailure;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Events;
 import org.apache.hugegraph.util.LockUtil;
@@ -167,6 +169,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final EventHub schemaEventHub;
     private final EventHub graphEventHub;
     private final EventHub indexEventHub;
+    private final List<Runnable> rpcServiceCleanup = new ArrayList<>();
+    private final List<Runnable> closeResources = new ArrayList<>();
     private final LocalCounter localCounter;
     private final RateLimiter writeRateLimiter;
     private final RateLimiter readRateLimiter;
@@ -177,6 +181,8 @@ public class StandardHugeGraph implements HugeGraph {
     private final RamTable ramtable;
     private volatile boolean started;
     private volatile boolean closed;
+    private boolean closeCompleted;
+    private volatile boolean dropBackendCleared;
     private final LoadingMode loadingMode = new LoadingMode(this::spaceGraphName);
     private volatile GraphReadMode readMode;
     private volatile HugeVariables variables;
@@ -225,6 +231,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         this.started = false;
         this.closed = false;
+        this.closeCompleted = false;
         this.readMode = GraphReadMode.OLTP_ONLY;
 
         // Init process-wide static configs before lock, so that validation
@@ -429,8 +436,9 @@ public class StandardHugeGraph implements HugeGraph {
                 if (failure == null) {
                     throw error;
                 }
-                if (failure != error) {
-                    failure.addSuppressed(error);
+                Throwable combined = CloseFailure.collect(failure, error);
+                if (combined != failure) {
+                    throw (Error) combined;
                 }
             }
         }
@@ -1151,7 +1159,7 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public synchronized void close() throws Exception {
-        if (this.closed()) {
+        if (this.closed() && this.closeCompleted) {
             return;
         }
 
@@ -1165,11 +1173,7 @@ public class StandardHugeGraph implements HugeGraph {
             try {
                 close.run();
             } catch (RuntimeException | Error error) {
-                if (failure == null) {
-                    failure = error;
-                } else if (failure != error) {
-                    failure.addSuppressed(error);
-                }
+                failure = CloseFailure.collect(failure, error);
             }
         }
 
@@ -1182,29 +1186,26 @@ public class StandardHugeGraph implements HugeGraph {
             RuntimeException active = new IllegalStateException(String.format(
                     "Ensure scheduler and tx closed in all threads when closing graph '%s'",
                     this.spaceGraphName()));
-            if (failure == null) {
-                failure = active;
-            } else {
-                failure.addSuppressed(active);
-            }
+            failure = CloseFailure.collect(failure, active);
         }
         if (drained) {
             // Plain provider close only notifies listeners; the Raft wrapper also
             // stops its context. Owner-close errors do not imply native release.
-            this.closed = true;
-            for (Runnable close : new Runnable[]{
-                    () -> CachedGraphTransaction.closeGraph(this.params),
-                    () -> CachedSchemaTransaction.closeGraph(this.params),
-                    () -> CachedSchemaTransactionV2.closeGraph(this.params),
-                    this.storeProvider::close, () -> LockUtil.destroy(this.spaceGraphName())}) {
+            if (!this.closed) {
+                this.closeResources.addAll(Arrays.asList(
+                        this::unregisterRpcServices,
+                        () -> CachedGraphTransaction.closeGraph(this.params),
+                        () -> CachedSchemaTransaction.closeGraph(this.params),
+                        () -> CachedSchemaTransactionV2.closeGraph(this.params),
+                        this.storeProvider::close, () -> LockUtil.destroy(this.spaceGraphName())));
+                this.closed = true;
+            }
+            for (Iterator<Runnable> closes = this.closeResources.iterator(); closes.hasNext();) {
                 try {
-                    close.run();
+                    closes.next().run();
+                    closes.remove();
                 } catch (RuntimeException | Error error) {
-                    if (failure == null) {
-                        failure = error;
-                    } else if (failure != error) {
-                        failure.addSuppressed(error);
-                    }
+                    failure = CloseFailure.collect(failure, error);
                 }
             }
         }
@@ -1214,6 +1215,8 @@ public class StandardHugeGraph implements HugeGraph {
         if (failure != null) {
             throw (RuntimeException) failure;
         }
+        // Logical closure fences access before resources close; only success ends cleanup retries.
+        this.closeCompleted = true;
     }
 
     @Override
@@ -1229,39 +1232,35 @@ public class StandardHugeGraph implements HugeGraph {
 
     @Override
     public void drop() {
-        this.checkGraphNotClosed();
-        TaskScheduler scheduler = this.taskManager.getScheduler(this.params);
-        if (scheduler != null && !scheduler.close()) {
-            // Fence admission before waiting for actual task owners to exit.
-            try {
-                scheduler.waitUntilAllTasksCompleted(this.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT));
-            } catch (TimeoutException e) {
-                throw new HugeException("Tasks are still active in graph '%s'; task admission remains closed. " +
-                                        "Retry deletion after owners exit, or restart to resume task admission",
-                                        e, this.spaceGraphName());
+        if (!this.dropBackendCleared) {
+            this.checkGraphNotClosed();
+            TaskScheduler scheduler = this.taskManager.getScheduler(this.params);
+            if (scheduler != null && !scheduler.close()) {
+                // Fence admission before waiting for actual task owners to exit.
+                try {
+                    scheduler.waitUntilAllTasksCompleted(this.configuration().get(CoreOptions.TASK_WAIT_TIMEOUT));
+                } catch (TimeoutException e) {
+                    throw new HugeException("Tasks are still active in graph '%s'; task admission remains closed. " +
+                                            "Retry deletion after owners exit, or restart to resume task admission",
+                                            e, this.spaceGraphName());
+                }
+                E.checkState(scheduler.close(),
+                             "Tasks are still active in graph '%s'; task admission remains closed. " +
+                             "Retry deletion after owners exit, or restart to resume task admission",
+                             this.spaceGraphName());
             }
-            E.checkState(scheduler.close(),
-                         "Tasks are still active in graph '%s'; task admission remains closed. " +
-                         "Retry deletion after owners exit, or restart to resume task admission",
-                         this.spaceGraphName());
+            this.clearBackend();
+            // Only this same owner's successful drop clear permits cleanup after logical close.
+            this.dropBackendCleared = true;
         }
-        this.clearBackend();
 
         try {
-            /*
-             * It's hard to ensure all threads close the tx.
-             * TODO:
-             *  - schedule a tx-close to each thread,
-             *   or
-             *  - add forceClose() method to backend store.
-             */
             this.close();
-        } catch (Throwable e) {
-            if (!this.closed()) {
-                throw new HugeException("Failed to close graph '%s', please retry later",
-                                        e, this.spaceGraphName());
-            }
-            LOG.warn("Failed to close graph {} {}", this, e);
+        } catch (Error failure) {
+            throw failure;
+        } catch (Exception failure) {
+            throw new HugeException("Failed to close graph '%s', please retry later",
+                                    failure, this.spaceGraphName());
         }
         HugeConfig config = this.configuration();
         this.storeProvider.onDeleteConfig(config);
@@ -1395,26 +1394,85 @@ public class StandardHugeGraph implements HugeGraph {
     }
 
     @Override
-    public void registerRpcServices(RpcServiceConfig4Server serverConfig,
-                                    RpcServiceConfig4Client clientConfig) {
+    public synchronized void registerRpcServices(RpcServiceConfig4Server serverConfig,
+                                                 RpcServiceConfig4Client clientConfig) {
         /*
          * Skip register cache-rpc service if it's non-shared storage,
          * because we assume cache of non-shared storage is updated by raft.
          */
-        if (!this.backendStoreFeatures().supportsSharedStorage()) {
+        if (!this.rpcServiceCleanup.isEmpty()) {
             return;
         }
+        boolean opened = this.tx.isOpen();
+        boolean shared;
+        Throwable readFailure = null;
+        try {
+            shared = this.backendStoreFeatures().supportsSharedStorage();
+        } catch (RuntimeException | Error error) {
+            readFailure = error;
+            throw error;
+        } finally {
+            if (!opened && this.tx.isOpen()) {
+                try {
+                    this.closeCurrentThreadTransaction();
+                } catch (RuntimeException | Error cleanup) {
+                    if (readFailure == null) {
+                        throw cleanup;
+                    }
+                    if (readFailure != cleanup) {
+                        readFailure.addSuppressed(cleanup);
+                    }
+                }
+            }
+        }
+        if (!shared) {
+            return;
+        }
+        E.checkState(!this.closed(), "Can't register RPC services for a closed graph");
+        String graph = this.spaceGraphName();
+        try {
+            GraphCacheNotifier graphProxy = clientConfig.serviceProxy(graph, GraphCacheNotifier.class);
+            this.rpcServiceCleanup.add(() -> clientConfig.removeServiceProxy(
+                    graph, GraphCacheNotifier.class.getName(), graphProxy));
+            HugeGraphCacheNotifier graphNotifier = new HugeGraphCacheNotifier(this.graphEventHub, graphProxy);
+            this.rpcServiceCleanup.add(graphNotifier::close);
+            String graphService = serverConfig.addService(graph, GraphCacheNotifier.class, graphNotifier);
+            this.rpcServiceCleanup.add(() -> serverConfig.removeService(graphService, graphNotifier));
 
-        Class<GraphCacheNotifier> clazz1 = GraphCacheNotifier.class;
-        // The proxy is sometimes unavailable (issue #664)
-        CacheNotifier proxy = clientConfig.serviceProxy(this.spaceGraphName(), clazz1);
-        serverConfig.addService(this.spaceGraphName(), clazz1, new HugeGraphCacheNotifier(
-                this.graphEventHub, proxy));
+            SchemaCacheNotifier schemaProxy = clientConfig.serviceProxy(graph, SchemaCacheNotifier.class);
+            this.rpcServiceCleanup.add(() -> clientConfig.removeServiceProxy(
+                    graph, SchemaCacheNotifier.class.getName(), schemaProxy));
+            HugeSchemaCacheNotifier schemaNotifier = new HugeSchemaCacheNotifier(this.schemaEventHub, schemaProxy);
+            this.rpcServiceCleanup.add(schemaNotifier::close);
+            String schemaService = serverConfig.addService(graph, SchemaCacheNotifier.class, schemaNotifier);
+            this.rpcServiceCleanup.add(() -> serverConfig.removeService(schemaService, schemaNotifier));
+        } catch (RuntimeException | Error failure) {
+            try {
+                this.unregisterRpcServices();
+            } catch (RuntimeException | Error cleanup) {
+                failure.addSuppressed(cleanup);
+            }
+            throw failure;
+        }
+    }
 
-        Class<SchemaCacheNotifier> clazz2 = SchemaCacheNotifier.class;
-        proxy = clientConfig.serviceProxy(this.spaceGraphName(), clazz2);
-        serverConfig.addService(this.spaceGraphName(), clazz2, new HugeSchemaCacheNotifier(
-                this.schemaEventHub, proxy));
+    @Override
+    public synchronized void unregisterRpcServices() {
+        Throwable failure = null;
+        for (int i = this.rpcServiceCleanup.size() - 1; i >= 0; i--) {
+            try {
+                this.rpcServiceCleanup.get(i).run();
+                this.rpcServiceCleanup.remove(i);
+            } catch (RuntimeException | Error error) {
+                failure = CloseFailure.collect(failure, error);
+            }
+        }
+        if (failure instanceof Error) {
+            throw (Error) failure;
+        }
+        if (failure != null) {
+            throw (RuntimeException) failure;
+        }
     }
 
     private void waitUntilAllTasksCompleted() {
@@ -1458,11 +1516,7 @@ public class StandardHugeGraph implements HugeGraph {
                 try {
                     close.run();
                 } catch (RuntimeException | Error error) {
-                    if (failure == null) {
-                        failure = error;
-                    } else if (failure != error) {
-                        failure.addSuppressed(error);
-                    }
+                    failure = CloseFailure.collect(failure, error);
                 }
             }
             if (failure instanceof Error) {
@@ -1502,10 +1556,14 @@ public class StandardHugeGraph implements HugeGraph {
 
         private final EventHub hub;
         private final EventListener cacheEventListener;
+        private volatile boolean closed;
 
         public AbstractCacheNotifier(EventHub hub, CacheNotifier proxy) {
             this.hub = hub;
             this.cacheEventListener = event -> {
+                if (this.closed) {
+                    return false;
+                }
                 try {
                     LOG.info("Received event: {}", event);
                     Object[] args = event.args();
@@ -1549,6 +1607,7 @@ public class StandardHugeGraph implements HugeGraph {
 
         @Override
         public void close() {
+            this.closed = true;
             this.hub.unlisten(Events.CACHE, this.cacheEventListener);
         }
 
