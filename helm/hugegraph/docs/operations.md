@@ -97,8 +97,8 @@ Adopt new defaults only with reviewed values and `--reset-values`.
 
 PD, Store and Server images built from this version run as UID/GID `10001`. PD
 and Store need `podSecurityContext.fsGroup: 10001` to write PVCs created by older
-root images; `--reuse-values` does not add the new default, so set it explicitly
-(see [Upgrade and verify](../README.md#upgrade-and-verify)). With
+root images; the chart applies it unless `fsGroup` is set, including under
+`--reuse-values` (see [Upgrade and verify](../README.md#upgrade-and-verify)). With
 `fsGroupChangePolicy: OnRootMismatch` the kubelet fixes ownership only when the
 volume root does not match. If the release ran an older root image after
 `fsGroup` was already set, files that image created can stay unwritable: set

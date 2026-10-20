@@ -300,7 +300,7 @@ docker run --rm -u 0 --entrypoint chown -v <volume>:/data <new-image> -R 10001:1
 
 List the volumes with `docker volume ls`; Compose prefixes each name with the project name. Then start again with `docker compose ... up -d`. Do not upgrade running containers with a plain `up -d`: Compose reattaches the anonymous volume that holds the previous image's root-owned application directory. Run `down` first, or use `up -d --renew-anon-volumes`.
 
-On Kubernetes, set `fsGroup: 10001` (optionally with `fsGroupChangePolicy: OnRootMismatch`) in the pod security context so the user can write volumes created by older images. The [Helm chart](../helm/hugegraph) sets this for PD and Store by default on new installs; an existing release upgraded with `--reuse-values` must set it explicitly, see [Upgrade and verify](../helm/hugegraph/README.md#upgrade-and-verify).
+On Kubernetes, set `fsGroup: 10001` (optionally with `fsGroupChangePolicy: OnRootMismatch`) in the pod security context so the user can write volumes created by older images. The [Helm chart](../helm/hugegraph) sets this for PD and Store unless their `podSecurityContext` sets `fsGroup`, also on releases upgraded with `--reuse-values`; see [Upgrade and verify](../helm/hugegraph/README.md#upgrade-and-verify).
 
 </details>
 

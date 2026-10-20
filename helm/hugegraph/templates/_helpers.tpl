@@ -158,6 +158,22 @@ app.kubernetes.io/instance: {{ .Release.Name | quote }}
 {{- printf "%s-hubble-data" (include "hugegraph.fullname" . | trunc 51 | trimSuffix "-") }}
 {{- end }}
 
+{{/*
+PD and Store pod securityContext. The images run as UID/GID 10001, so their data
+volumes need fsGroup 10001. Apply it here as well as in values.yaml: --reuse-values
+keeps a pre-existing release's empty value. An explicit fsGroup is kept as set.
+*/}}
+{{- define "hugegraph.dataPodSecurityContext" -}}
+{{- $context := deepCopy (. | default dict) -}}
+{{- if not (hasKey $context "fsGroup") -}}
+{{- $_ := set $context "fsGroup" 10001 -}}
+{{- if not (hasKey $context "fsGroupChangePolicy") -}}
+{{- $_ := set $context "fsGroupChangePolicy" "OnRootMismatch" -}}
+{{- end -}}
+{{- end -}}
+{{- toYaml $context -}}
+{{- end }}
+
 {{- define "hugegraph.test.name" -}}
 {{- printf "%s-test-connection" (include "hugegraph.fullname" . | trunc 47 | trimSuffix "-") }}
 {{- end }}
