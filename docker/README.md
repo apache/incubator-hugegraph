@@ -50,6 +50,27 @@ A non-empty `HUGEGRAPH_ADMIN_PASSWORD` enables Server authentication, and Hubble
 
 `HUGEGRAPH_ADMIN_PASSWORD` initializes the built-in `admin` account on its first authenticated startup. Changing `.env` does not rotate an existing administrator password; use the HugeGraph user API for credential changes.
 
+The Server image writes `PASSWORD` to `auth.admin_pa` in the REST configuration.
+It writes `HG_SERVER_AUTH_TOKEN_SECRET` to `auth.token_secret` in both REST and
+graph configuration. An explicit signing key must be at least 32 bytes. Authentication
+string values retain spaces, tabs, backslashes and Unicode through the Server's
+properties reader; keep the same signing key on every replica. Use passwords
+compatible with the existing authentication protocol and the chart's documented
+password constraints. When the signing-key environment variable is omitted,
+the image reuses the configured key instead of rotating it.
+
+Older images could change signing keys containing spaces or Unicode, and a
+trailing space could hide the following configuration property. On upgrade,
+explicitly provide the intended key for those deployments. Tokens signed with
+the previous interpreted key require a new login after the correction.
+
+An older image could also initialize a Unicode administrator password incorrectly
+when the initializer inherited the C locale. Upgrading or setting `PASSWORD`
+again does not repair an existing account's stored password. A working
+administrator must rotate it through the user API. This fix provides no automatic
+recovery when no administrator identity is usable; preserve the existing data and
+arrange account recovery before upgrading.
+
 For the verification commands below, load `.env` into your current shell and set the password:
 
 ```bash
@@ -70,6 +91,22 @@ To regenerate Hubble configuration after modifying `.env`:
 ```bash
 ./set-hubble-pd-password.sh hstore      # or hstore-ha
 ```
+
+### Server heap sizing
+
+The Server launcher sizes its default heap from the smaller of host available memory
+and remaining memory under visible cgroup hard limits. It supports cgroup v1/v2,
+ancestor limits and custom controller mounts. Charged inactive file cache is counted
+as reclaimable when controller statistics are available and consistent. The default heap
+uses half that budget, with a 512 MiB minimum and a 32 GiB maximum; startup fails if the budget is below
+512 MiB. Native allocations, thread stacks and file caches also consume container
+memory, so the heap limit does not bound the process's total memory use.
+
+Explicit heap options still take precedence. For example, use `JAVA_OPTS=-Xmx2g`
+for a fixed Server heap in a Docker container, leaving room for other allocations
+within its memory limit. Replacing `JAVA_OPTS` also replaces the image's default
+options; repeat any defaults you need. JVM container-awareness flags cannot reduce
+an explicit `-Xmx` that exceeds the container's limit.
 
 ### Standalone
 
@@ -134,6 +171,22 @@ curl -fsS http://localhost:8088/about
 ```
 
 </details>
+
+### PD health and readiness
+
+PD's `/v1/ready` returns HTTP 503 while it cannot serve through a Raft quorum.
+`/v1/health` remains HTTP 200 during an election or temporary quorum loss, but
+returns HTTP 503 after a fatal Raft error or state-machine shutdown. Both health
+responses retain the empty text body. Probes read cached state without waiting
+for the Raft node lock.
+
+A failed snapshot, for example after the PD disk fills, leaves JRaft in a terminal
+error state. Free disk space before restarting the affected PD; freeing space
+alone does not reinitialize its Raft node. Configure liveness against `/v1/health`
+with an image containing this fix and gate traffic on `/v1/ready` using an external
+readiness gate. The shipped Compose `service_healthy` dependencies still use
+`/v1/health`; they do not wait for PD quorum readiness. Older images
+still need the single-PD readiness-based liveness workaround supplied by the Helm chart.
 
 ### Stop or remove a deployment
 
@@ -232,6 +285,49 @@ Standalone stores RocksDB data at `/hugegraph-server/rocksdb-data`. The HStore t
 
 `docker compose down` keeps named-volume data. `docker compose down -v` intentionally deletes it.
 
+### Server service identity
+
+Server image builds containing this configuration mapping accept
+`HG_SERVER_SERVICE_ID` and `HG_SERVER_GRAPHSPACE`, which write `server.service_id` and `server.graphspace`
+in `conf/rest-server.properties`. A property keeps its existing value when both
+its `HG_SERVER_*` variable and its older name are unset or empty; the shipped
+defaults are both `DEFAULT`.
+The older `SERVICE_ID` and `GRAPH_SPACE` variables emitted by the Kubernetes driver
+are also accepted. A non-empty `HG_SERVER_*` value takes precedence over its older name.
+These container identity inputs accept printable ASCII (bytes 0x20–0x7E);
+spaces and backslashes in service IDs round-trip unchanged. Non-ASCII and control
+characters are rejected before the entrypoint writes configuration, because the
+Server reads properties using ISO-8859-1. This is the container input's
+serialization limit; it does not change the core service-name contract.
+The full service ID, including `/` and `-`, is retained when service metadata is
+reloaded or its graph space is cleared.
+`HG_SERVER_GRAPHSPACE` and a migrated `GRAPH_SPACE` must also match the Server
+API graph-space rule: `DEFAULT`, or up to 48 lowercase letters, digits and
+underscores, starting with a letter. Invalid environment values are rejected
+before writing configuration; existing mounted properties are preserved.
+
+For a PD-backed Server, add the variables to the Server container's environment,
+for example `HG_SERVER_SERVICE_ID=analytics` and `HG_SERVER_GRAPHSPACE=team_a`.
+Create `team_a` in the existing cluster before starting the assigned Server;
+these settings do not create graph spaces. The Compose files do not pass these
+variables through from the host, so add explicit `environment:` entries to a
+local Compose override. The Helm chart exposes the same settings as
+[`server.serviceId` and `server.graphSpace`](../helm/hugegraph/README.md#server-service-identity).
+
+Use a chart and Server image from the same source version containing these
+mappings. Older release images without them do not apply these environment
+values; select the matching image build explicitly.
+The Server's existing `SERVICE_ID` normalization (`GraphManager.serviceId()`) is
+unchanged and can map different raw names to the same identifier. Select
+`GRAPHSPACE` and the complete raw `SERVICE_NAME` in discovery queries;
+identifier-only lookup does not provide a uniqueness or isolation guarantee.
+
+This selects the Server's PD service metadata. It does not change
+`server.path_graphspace` for REST paths that omit `/graphspaces/<name>`, or
+configure Hubble's chosen service. Actual non-default service discovery,
+authentication and graph-space isolation still require verification with a
+running Linux cluster.
+
 ### Server logs and crash files
 
 The Server container owns its foreground launcher and returns the JVM's exit status after startup,
@@ -256,7 +352,7 @@ Both Server images (`hugegraph/hugegraph` and `hugegraph/server`) write the Huge
 
 `/hugegraph-server/logs` holds `hugegraph-server.log`, JVM crash logs (`hs_err_pid<pid>_<host>_<launch time>.log`) and out-of-memory heap dumps (`heapdump_<host>_<launch time>/java_pid<pid>.hprof`), where `<launch time>` is the container's local time as `YYYYMMDD-HHMMSS`. Each start gets its own `heapdump_*` directory, so the Server and the JVMs it starts, such as computer jobs, write separate dumps. HotSpot names each dump and crash log after the JVM's PID, so a JVM that reuses the PID of an earlier one from the same start cannot write its dump, and its crash log replaces the earlier one's. The host name (on Kubernetes, the pod name, or `spec.hostname` when that is set) and a `-1`, `-2`, ... counter keep names from clashing; the counter also separates pods that share a host name. If the directory cannot be created, for example on a full volume, the Server still starts and dumps go to `logs/` itself as `java_pid<pid>.hprof`. That is best effort: a full volume may have no room for the dump either, and a restarted container that reuses a PID cannot write over an earlier dump with the same name. If the logs path contains a double quote or `%`, the launcher warns and heap dumps go to `logs/` itself, with no per-launch directory and no crash log default; the `JAVA_TOOL_OPTIONS` opt-out below still applies. A path that contains both quote characters gets no heap dump default at all.
 
-Both images declare `VOLUME /hugegraph-server`, so `docker restart` and a Compose recreate keep the files in that anonymous volume. `docker compose down` leaves the volume behind but the next `up` does not attach it, so the files become hard to reach and keep using disk until `docker compose down -v` deletes them; mount a named volume or a bind mount at `/hugegraph-server/logs` to keep them reachable. Kubernetes starts a new container on every restart and does not turn the image's `VOLUME` into a pod volume, so mount an `emptyDir` or a PersistentVolumeClaim at `/hugegraph-server/logs`. Give each pod its own volume, or a per-pod directory on a shared PVC: crash files get distinct names, but `hugegraph-server.log`, the audit log and the slow-query log have fixed names, and pods sharing them would roll them over for each other. For a per-pod directory, pass the pod name in through the Downward API and use it in `subPathExpr` (the Helm chart sets neither):
+Both images declare `VOLUME /hugegraph-server`, so `docker restart` and a Compose recreate keep the files in that anonymous volume. `docker compose down` leaves the volume behind but the next `up` does not attach it, so the files become hard to reach and keep using disk. A later `docker compose down -v` does not remove that orphaned volume either, since it only removes anonymous volumes of the containers it removes; note the volume name with `docker inspect` before `down` and delete it with `docker volume rm <name>`, or stop with `docker compose down -v` in the first place. Avoid `docker volume prune` for this: it deletes every unused anonymous volume on the Docker host, including other projects' data. Mount a named volume or a bind mount at `/hugegraph-server/logs` to keep the files reachable. Kubernetes starts a new container on every restart and does not turn the image's `VOLUME` into a pod volume, so mount an `emptyDir` or a PersistentVolumeClaim at `/hugegraph-server/logs`. Give each pod its own volume, or a per-pod directory on a shared PVC: crash files get distinct names, but `hugegraph-server.log`, the audit log and the slow-query log have fixed names, and pods sharing them would roll them over for each other. For a per-pod directory, pass the pod name in through the Downward API and use it in `subPathExpr` (the Helm chart sets neither):
 
 ```yaml
 env:
@@ -274,7 +370,7 @@ The Helm chart in [`helm/`](../helm/hugegraph) does not mount a logs volume yet,
 
 A heap dump can be as large as the JVM heap. Every start uses a new directory and the JVMs a Server starts can dump too, so a Server that keeps running out of memory fills the volume with heap-sized files. Size the volume for the dumps you want to keep plus the logs, and keep it within any `ephemeral-storage` limit or `emptyDir` `sizeLimit`: eviction deletes an `emptyDir` together with the dump in it. Do not use an `emptyDir` with `medium: Memory`, which counts against the memory limit. A liveness probe that restarts the pod while a large dump is being written leaves a truncated file.
 
-The launcher never deletes dumps or `heapdump_*` directories. Each start leaves a directory behind, empty unless something ran out of memory; the launcher keeps it because a computer-job JVM can go on using it after its Server exits. Move or delete old directories once no HugeGraph JVM from that launch is running, but never the newest one of a running Server: without its directory, the next dump is written as a file with that name and later dumps from that launch fail.
+The launcher never deletes dumps or `heapdump_*` directories. Each start that gets as far as starting Java leaves a directory behind, empty unless something ran out of memory; the launcher keeps it because a computer-job JVM can go on using it after its Server exits. Move or delete old directories once no HugeGraph JVM from that launch is running, but never the newest one of a running Server: without its directory, the next dump is written as a file with that name and later dumps from that launch fail.
 
 To turn heap dumps off for every JVM, set `JAVA_TOOL_OPTIONS=-XX:-HeapDumpOnOutOfMemoryError`, which also keeps the image's default `JAVA_OPTS`. Set it in the container's environment, not in the host shell: `docker run -e JAVA_TOOL_OPTIONS=...`, an `environment:` entry on the Server service in Compose (the shipped Compose files do not pass it through), or `env` on the container in Kubernetes. Putting the flag in `JAVA_OPTS` turns dumps off for the Server JVM only, because the JVMs it starts do not see its command line, and setting `JAVA_OPTS` replaces the image default (`-XX:+UseContainerSupport -XX:MaxRAMPercentage=50 ...`), so repeat those flags. Either way, each start still creates its empty `heapdump_*` directory, unless creating it failed or the logs path contains a double quote or `%`.
 

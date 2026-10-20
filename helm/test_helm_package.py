@@ -17,6 +17,7 @@
 """Validate the artifact shipped to Helm, beyond source template tests."""
 
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tarfile
@@ -37,6 +38,8 @@ class HelmPackageTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix="hugegraph-chart-")
         cls.addClassCleanup(temporary.cleanup)
         cls.directory = Path(temporary.name)
+        cls.version = re.search(r"(?m)^version: (.+)$",
+                                (CHART / "Chart.yaml").read_text()).group(1)
         subprocess.run(["helm", "package", str(CHART), "--destination", str(cls.directory)],
                        check=True, capture_output=True, text=True)
         packages = list(cls.directory.glob("*.tgz"))
@@ -47,8 +50,19 @@ class HelmPackageTest(unittest.TestCase):
             cls.files = {}
             for member in archive.getmembers():
                 if member.isfile():
-                    name = member.name.removeprefix("hugegraph/")
+                    name = member.name.removeprefix("hugegraph-helm/")
                     cls.files[name] = archive.extractfile(member).read()
+
+    def test_distribution_identity(self):
+        self.assertEqual(f"hugegraph-helm-{self.version}.tgz", self.package.name)
+        self.assertRegex(self.files["Chart.yaml"].decode(),
+                         r"(?m)^name: hugegraph-helm$")
+        rendered = subprocess.run(
+            ["helm", "template", "hugegraph", str(self.package)],
+            check=True, capture_output=True, text=True).stdout
+        self.assertIn("name: hugegraph-server\n", rendered)
+        self.assertIn('app.kubernetes.io/name: "hugegraph"', rendered)
+        self.assertIn(f"helm.sh/chart: hugegraph-helm-{self.version}", rendered)
 
     def test_archive_budget(self):
         self.assertLess(self.package.stat().st_size, PACKAGE_BUDGET,
@@ -63,7 +77,8 @@ class HelmPackageTest(unittest.TestCase):
 
     def test_required_configuration_is_preserved(self):
         required = ("Chart.yaml", "README.md", "values.yaml", "values.schema.json",
-                    "values-single.yaml", "values-cluster.yaml")
+                    "values-single.yaml", "values-cluster.yaml", "values-strict.yaml",
+                    "docs/operations.md", "docs/distribution.md", "examples/README.md")
         for name in required:
             with self.subTest(file=name):
                 self.assertIn(name, self.files)
@@ -79,8 +94,27 @@ class HelmPackageTest(unittest.TestCase):
                     self.assertIn(name, self.files)
                     self.assertEqual(source.read_bytes(), self.files[name])
 
+    def test_internal_inventory_covers_workloads_and_helpers(self):
+        example = (CHART / "examples" / "README.md").read_text()
+        inventory = example.split("## Internal images", 1)[1].split("`global.imageRegistry`", 1)[0]
+        images = set(re.findall(r"`(hugegraph/[^`]+:[^`]+)`", inventory))
+        self.assertEqual(4, len(images), "Document all four default component images")
+        registry = "registry.internal.example.com"
+        rendered = subprocess.run(
+            ["helm", "template", "inventory-check", str(self.package),
+             "--values", str(CHART / "examples" / "values-internal-registry.yaml")],
+            check=True, capture_output=True, text=True).stdout
+        selected = set(re.findall(r'^\s+image:\s*["\']?([^"\'\s]+)', rendered, re.MULTILINE))
+        self.assertEqual({f"{registry}/{image}" for image in images}, selected,
+                         "Mirror inventory must cover workloads, init containers and test hooks")
+        for name in ("README.md", "examples/values-internal-registry.yaml"):
+            text = (CHART / name).read_text()
+            for image in images:
+                self.assertIn(image.split(":", 1)[0], text,
+                              f"{name} omits a required image repository")
+
     def test_packaged_chart_renders_each_preset(self):
-        for preset in (None, "values-single.yaml", "values-cluster.yaml"):
+        for preset in (None, "values-single.yaml", "values-cluster.yaml", "values-strict.yaml"):
             with self.subTest(preset=preset or "default"):
                 command = ["helm", "template", "package-check", str(self.package)]
                 if preset:

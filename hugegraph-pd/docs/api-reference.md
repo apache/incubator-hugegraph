@@ -809,8 +809,12 @@ Two unauthenticated endpoints are meant for probes and startup gates:
 
 | Endpoint | Meaning | Status |
 |----------|---------|--------|
-| `GET /v1/health` | Liveness: the REST listener is up. Does not consult raft. | always `200` |
+| `GET /v1/health` | Liveness: the REST listener is up and Raft has no terminal error. Empty text body. | `503` for `STATE_ERROR` or `STATE_SHUTDOWN`, `200` otherwise |
 | `GET /v1/ready` | Readiness: the raft node is active and sees a leader, so this PD is inside a quorum. | `200` when ready, `503` otherwise |
+
+The health probe reads Raft state only; it does not verify metadata-store initialization.
+Metadata open failures propagate through startup; bounded LOCK retry remains tracked in
+[#3226](https://github.com/apache/hugegraph/issues/3226).
 
 ```bash
 curl -i http://localhost:8620/v1/ready
@@ -828,6 +832,11 @@ curl -i http://localhost:8620/v1/ready
 A follower reports `"state": "STATE_FOLLOWER"` with `"isLeader": false`. When the quorum is lost the PD keeps answering `/v1/health` with `200` but `/v1/ready` turns into `503` with `"ready": false`. Being unauthenticated, the body carries no cluster addresses; the leader's address stays on `/v1/members`.
 
 The answer is served from state the raft callbacks maintain rather than from the raft node, so it stays prompt while an election is running and never waits on the node lock. `state` is therefore the last change raft announced. A PD reports `STATE_UNINITIALIZED` with `"ready": false` from process start until its first raft callback, which is the ordinary startup window before a quorum first forms, and jraft emits no callback for candidacy or leadership transfer, so a candidate reports `STATE_FOLLOWER` with `"ready": false`.
+
+After a fatal snapshot error, `/v1/ready` retains `STATE_ERROR` even after the leader
+steps down, and `/v1/health` returns `503`. Fix the underlying disk or storage
+problem and restart the affected PD: freeing disk space alone does not restart
+JRaft's terminal state machine.
 
 Point Kubernetes readiness probes, `depends_on` healthchecks and any "wait for PD" script at `/v1/ready`; keep liveness probes on `/v1/health` so a PD that merely lost its leader is not restarted.
 
@@ -870,6 +879,19 @@ Exported on `/actuator/prometheus` for alerting on quorum loss:
 A cluster has lost its quorum when `sum(hg_raft_leader) == 0` or when `hg_raft_has_leader == 0` on every member. Both are briefly true during a normal election, so alert on them with a `for:` clause longer than the election timeout rather than on the instantaneous value.
 
 Do not aggregate `hg_raft_alive_peers` across instances: it is `NaN` on every node but the leader, and one `NaN` sample turns the result of `sum()` or `avg()` into `NaN` as well. Select the leader's series instead, for example `hg_raft_alive_peers and on(instance) (hg_raft_leader == 1)`.
+
+#### Store state gauges
+
+Exported on `/actuator/prometheus` for each store registered in PD, from the store and shard group metadata PD keeps:
+
+| Gauge | Value |
+|-------|-------|
+| `hg_store_state{store="<id>",state="<state>"}` | `1` for the store's current state, `0` for the others. `state` is one of `Unknown`, `Pending`, `Up`, `Offline`, `Exiting`, `Tombstone` |
+| `hg_store_leader_count{store="<id>"}` | Number of shard groups whose leader is on the store |
+
+A new store's series can take one extra scrape to appear, and they disappear once the store is removed from PD. Every PD member reads the same replicated metadata, so select one instance, such as the leader, before aggregating: `hg_store_leader_count and on(instance) (hg_raft_leader == 1)`.
+
+`hg_store_leader_count` shows where leadership sits during and after a Store recovery: a rebuilt store reports `0` until leaders move back to it, either through `/v1/task/balanceLeaders` or by raft elections.
 
 ### Partition API
 

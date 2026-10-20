@@ -36,7 +36,9 @@ import org.junit.runners.Suite;
         NodeTxSessionProxyTest.class,
         OrderedKvIteratorTest.class,
         CommonKvStreamObserverTest.class,
-        MultiStreamIteratorTest.class
+        MultiStreamIteratorTest.class,
+        HgAssertTest.class,
+        HgBufferProxyTest.class
 })
 public class ClientSuiteTest {
 }

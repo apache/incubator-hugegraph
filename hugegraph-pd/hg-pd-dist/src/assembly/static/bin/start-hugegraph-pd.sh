@@ -73,6 +73,14 @@ LOGS="${LOGS_OVERRIDE:-$TOP/logs}"
 OUTPUT=${LOGS}/hugegraph-pd-stdout.log
 GITHUB="https://github.com"
 PID_FILE="${PID_FILE_OVERRIDE:-$BIN/pid}"
+JVM_MODULE_OPTIONS="$BIN/jvm-module.options"
+
+if [[ ! -f "$JVM_MODULE_OPTIONS" || ! -r "$JVM_MODULE_OPTIONS" ]]; then
+    echo "Error: JVM module options file is missing or unreadable: $JVM_MODULE_OPTIONS" >&2
+    exit 1
+fi
+
+. "$BIN"/util.sh
 
 ensure_path_writable "$LOGS"
 ensure_path_writable "$PLUGINS"
@@ -205,10 +213,10 @@ fi
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphPDServer in daemon mode..."
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@" &
     else
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1 &
     fi
     PID="$!"
@@ -221,10 +229,10 @@ else
     echo "$$" > "$PID_FILE"
     echo "[+pid] $$"
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@"
     else
-        exec ${JAVA} -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphPD" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1
     fi
 fi

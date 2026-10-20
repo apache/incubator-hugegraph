@@ -3,14 +3,13 @@ name: "3rd-party"
 
 on:
   workflow_call:
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   dependency-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       USE_STAGE: 'false' # Whether to include the stage repository.
       SCRIPT_DEPENDENCY: install-dist/scripts/dependency
@@ -53,12 +52,12 @@ jobs:
             "$SCRIPT_DEPENDENCY/known-dependencies.txt" "$PWD/target/dependency/current-dependencies.txt"
 
   dependency-review:
-    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
     steps:
       - name: 'Checkout Repository'
         uses: actions/checkout@v7
       - name: 'Dependency Review'
-        if: github.event_name == 'pull_request'
         uses: actions/dependency-review-action@v5
         # Refer: https://github.com/actions/dependency-review-action
         with:

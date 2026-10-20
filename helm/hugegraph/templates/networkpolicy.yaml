@@ -15,15 +15,15 @@
 # limitations under the License.
 #
 
+{{ include "hugegraph.resolveValues" . }}
 {{- /*
 One NetworkPolicy per component. Each object isolates its own Pods in both
 directions and carries all of their allows, so no object ever denies a Pod
 before that Pod's allows exist, whatever order the objects are applied in.
 Peers match the release and component labels; ports are the values the
 containers bind. The helm test Pod is selected by no policy, so its egress
-stays open and the Server policy admits it. Nothing outside the release is
-admitted unless <component>.extraIngress names it; exposing a component
-without such rules fails in validateValues instead of opening its ports.
+stays open and the Server policy admits it. Outside clients require native extraIngress rules. An exposed Service or
+Ingress does not automatically change these rules.
 */}}
 {{- $np := get .Values "networkPolicy" | default dict }}
 {{- if get $np "enabled" }}

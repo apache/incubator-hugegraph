@@ -58,6 +58,10 @@ reused executor thread is not mistaken for the cancelled reader. Half-close does
 interrupt the reader. Queued cancelled tasks still execute their cleanup/accounting
 paths, and iterator close waits for an active read to leave the iterator.
 
+Batch-scan request state is published under its manager lock, while reader notification,
+worker scheduling and iterator cleanup run outside that lock. A half-close or receipt
+waiting for a slow read therefore does not block cancellation from interrupting the reader.
+
 Unary query and count requests share the query admission, worker and cleanup owner
 registry. Count keeps partition work parallel on the service executor. Iterator cleanup
 failure prevents successful completion and remains visible to request drain.
@@ -68,6 +72,15 @@ queued call-executor callback. Interruption is cooperative: a RocksDB native ope
 does not guarantee that it will return on Java thread interruption. The call remains
 registered until its read and iterator cleanup finish; cancellation does not permit
 another thread to close a native iterator that is still in use.
+
+### Server OLTP traversal batches
+
+Server OLTP traversal workers close each active batch iterator on completion,
+interruption or failure, then release their thread's graph transactions. A capacity
+stop also releases producers waiting on a full queue. Iterator cleanup errors remain
+visible when the capacity stop ends traversal normally; a business failure retains
+its cleanup errors as suppressed exceptions. Caller transactions remain with the
+request thread.
 
 ### Callback executor configuration
 

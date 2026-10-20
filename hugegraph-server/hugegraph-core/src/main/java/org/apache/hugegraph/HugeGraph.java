@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -216,6 +217,19 @@ public interface HugeGraph extends Graph, HugeGraphSupplier {
 
     void mode(GraphMode mode);
 
+    default Map<String, Object> loadingMode() {
+        throw new UnsupportedOperationException("Loading ownership is not supported by this graph implementation");
+    }
+
+    default Map<String, Object> loadingMode(String action, String instance, long epoch,
+                                            String token, String principal) {
+        throw new UnsupportedOperationException("Loading ownership is not supported by this graph implementation");
+    }
+
+    default Map<String, Object> recoverLoadingMode(String instance, long epoch, long revision) {
+        throw new UnsupportedOperationException("Loading recovery is not supported by this graph implementation");
+    }
+
     GraphReadMode readMode();
 
     void readMode(GraphReadMode readMode);
@@ -294,6 +308,11 @@ public interface HugeGraph extends Graph, HugeGraphSupplier {
 
     void registerRpcServices(RpcServiceConfig4Server serverConfig,
                              RpcServiceConfig4Client clientConfig);
+
+    default void unregisterRpcServices() {
+        // Legacy implementations do not participate in the owned RPC cleanup contract.
+        // Implementations owning graph-scoped RPC resources must override this hook.
+    }
 
     default List<String> mapPkId2Name(Collection<Id> ids) {
         List<String> names = new ArrayList<>(ids.size());

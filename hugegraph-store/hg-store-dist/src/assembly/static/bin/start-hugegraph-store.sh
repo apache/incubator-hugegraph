@@ -31,6 +31,12 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 LIB="$TOP/lib"
 GITHUB="https://github.com"
+JVM_MODULE_OPTIONS="$BIN/jvm-module.options"
+
+if [[ ! -f "$JVM_MODULE_OPTIONS" || ! -r "$JVM_MODULE_OPTIONS" ]]; then
+    echo "Error: JVM module options file is missing or unreadable: $JVM_MODULE_OPTIONS" >&2
+    exit 1
+fi
 
 . "$BIN"/util.sh
 
@@ -272,11 +278,11 @@ fi
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphStoreServer in daemon mode..."
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
             "${JAVA_MAIN[@]}" "$@" &
     else
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
             "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1 &
     fi
@@ -290,11 +296,11 @@ else
     echo "$$" > "$PID_FILE"
     echo "[+pid] $$"
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
             "${JAVA_MAIN[@]}" "$@"
     else
-        exec ${JAVA} -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
+        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
             -Dspring.config.location=${CONF}/application.yml \
             "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1
     fi

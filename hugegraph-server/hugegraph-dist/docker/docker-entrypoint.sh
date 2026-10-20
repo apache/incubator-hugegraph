@@ -26,18 +26,13 @@ mkdir -p "${DOCKER_FOLDER}"
 
 log() { echo "[hugegraph-server-entrypoint] $*"; }
 
-# TODO: write values so the Server reads them back unchanged. A space is escaped as "\ " here,
-# which java.util.Properties would unescape, but the Server reads these files through Commons
-# Configuration's PropertiesConfiguration, which keeps the backslash before a space: PASSWORD
-# "a b" becomes auth.admin_pa "a\ b" and the admin login with "a b" answers 401. Emit interior
-# spaces as-is (they round-trip) and add a write-then-read test through HugeConfig for the keys
-# this script sets. The Helm chart (helm/hugegraph) refuses admin passwords containing spaces in
-# its schema and Server wrapper; drop that guard once this is fixed.
+# Keep typed/list mappings on their existing encoder; auth strings use native-reader escapes below.
+# TODO: relax Helm's password-space guard once its minimum Server image includes this auth encoder.
 encode_prop_value() {
     local value="$1" encoded="" char
     local i
 
-    LC_ALL=C
+    local LC_ALL=C
     for ((i = 0; i < ${#value}; i++)); do
         char="${value:i:1}"
         case "${char}" in
@@ -75,6 +70,24 @@ set_prop() {
     set_prop_encoded "$key" "$(encode_prop_value "$val")" "$file"
 }
 
+# Auth values are strings, not typed/list options. Commons keeps escaped spaces
+# and trims a physical trailing space before detecting line continuation.
+encode_auth_prop_value() {
+    local value="$1" encoding=UTF-8
+    if (( $(printf '%s' "${value}" | LC_ALL=C tr -d '\040-\176' | wc -c) > 0 )); then
+        # Retain legacy byte values that the ISO-8859-1 reader already accepted.
+        if ! printf '%s' "${value}" | iconv -f UTF-8 -t UTF-8 >/dev/null 2>&1; then
+            encoding=ISO-8859-1
+        fi
+        # The Server properties reader is ISO-8859-1. Standard UTF-16 escapes
+        # preserve UTF-8 input and prevent trimming boundary control characters.
+        printf '%s' "${value}" | iconv -f "${encoding}" -t UTF-16BE | od -An -v -tx1 | \
+            tr -d ' \n' | sed 's/..../\\u&/g'
+    else
+        encode_prop_value "${value}" | sed 's/\\ /\\u0020/g'
+    fi
+}
+
 get_prop_encoded() {
     local key="$1" file="$2"
     local esc_key
@@ -96,10 +109,31 @@ migrate_env() {
 
 migrate_env "BACKEND"  "HG_SERVER_BACKEND"
 migrate_env "PD_PEERS" "HG_SERVER_PD_PEERS"
+migrate_env "SERVICE_ID" "HG_SERVER_SERVICE_ID"
+migrate_env "GRAPH_SPACE" "HG_SERVER_GRAPHSPACE"
+
+# The Server reads these properties as ISO-8859-1. Reject unsupported input
+# before writing UTF-8 bytes that would select a different service identity.
+for identity_name in HG_SERVER_SERVICE_ID HG_SERVER_GRAPHSPACE; do
+    if [[ -n "${!identity_name:-}" ]] &&
+       (( $(printf '%s' "${!identity_name}" | LC_ALL=C tr -d '\040-\176' | wc -c) > 0 )); then
+        log "ERROR: ${identity_name} must be printable ASCII (bytes 0x20-0x7E)"
+        exit 1
+    fi
+done
+
+# Match the Server API graph-space naming contract after legacy migration.
+if [[ -n "${HG_SERVER_GRAPHSPACE:-}" ]] && ! (
+    export LC_ALL=C
+    [[ "${HG_SERVER_GRAPHSPACE}" =~ ^(DEFAULT|[a-z][a-z0-9_]{0,47})$ ]]
+); then
+    log "ERROR: HG_SERVER_GRAPHSPACE must be DEFAULT or a name starting with" \
+        "a lowercase letter, followed by lowercase letters, digits or underscores (1-48 characters)"
+    exit 1
+fi
 
 if [[ -n "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
-    LC_ALL=C
-    if (( ${#HG_SERVER_AUTH_TOKEN_SECRET} < 32 )); then
+    if (( $(printf '%s' "${HG_SERVER_AUTH_TOKEN_SECRET}" | LC_ALL=C wc -c) < 32 )); then
         log "ERROR: HG_SERVER_AUTH_TOKEN_SECRET must be at least 32 bytes"
         exit 1
     fi
@@ -152,12 +186,36 @@ if [[ -n "${PASSWORD:-}" && -z "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
     fi
 fi
 
+# Encode authentication strings before changing either configuration file.
+if [[ -n "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
+    AUTH_TOKEN_SECRET_ENCODED=$(encode_auth_prop_value "${HG_SERVER_AUTH_TOKEN_SECRET}")
+fi
+AUTH_ADMIN_PASSWORD_ENCODED=""
+if [[ -n "${PASSWORD:-}" ]]; then
+    AUTH_ADMIN_PASSWORD_ENCODED=$(encode_auth_prop_value "${PASSWORD}")
+fi
+
+# Same accepted spellings as HG_SERVER_INIT_STORE_ENABLED below, checked
+# before the mapping so an invalid value leaves both conf files untouched.
+# URLs hold no whitespace, and the Server splits the list on bare commas, so
+# "a, b" would otherwise register an escaped space in front of the second URL.
+URLS_TO_PD=$(printf '%s' "${HG_SERVER_URLS_TO_PD:-}" | tr -d '[:space:]')
+# Only surrounding whitespace is trimmed, so a value such as "t rue" stays invalid.
+DEPLOY_IN_K8S="${HG_SERVER_DEPLOY_IN_K8S:-}"
+DEPLOY_IN_K8S="${DEPLOY_IN_K8S#"${DEPLOY_IN_K8S%%[![:space:]]*}"}"
+DEPLOY_IN_K8S="${DEPLOY_IN_K8S%"${DEPLOY_IN_K8S##*[![:space:]]}"}"
+DEPLOY_IN_K8S=$(printf '%s' "${DEPLOY_IN_K8S}" | tr '[:upper:]' '[:lower:]')
+case "${DEPLOY_IN_K8S}" in
+    "" | y | t | yes | on | true | n | f | no | off | false) ;;
+    *) log "ERROR: invalid HG_SERVER_DEPLOY_IN_K8S '${HG_SERVER_DEPLOY_IN_K8S}'"
+       exit 1 ;;
+esac
+
 # ── Map env → properties file ─────────────────────────────────────────
-# TODO: map server.urls_to_pd and server.deploy_in_k8s from the environment here, as PASSWORD is
-# mapped to auth.admin_pa below. Without them the Helm chart (helm/hugegraph) rewrites
-# rest-server.properties in a wrapper before exec'ing this script; drop that wrapper once both keys
-# have a mapping. A read-only root filesystem also needs the conf files on a writable path, since
-# set_prop in this script edits them in place; the chart refuses readOnlyRootFilesystem until then.
+# TODO: drop the Helm chart's (helm/hugegraph) rest-server.properties wrapper once its minimum
+# Server image has the server.urls_to_pd and server.deploy_in_k8s mappings below. A read-only root
+# filesystem also needs the conf files on a writable path, since set_prop in this script edits them
+# in place; the chart refuses readOnlyRootFilesystem until then.
 [[ -n "${HG_SERVER_BACKEND:-}"  ]] && set_prop "backend"  "${HG_SERVER_BACKEND}"  "${GRAPH_CONF}"
 [[ -n "${HG_SERVER_PD_PEERS:-}" ]] && set_prop "pd.peers" "${HG_SERVER_PD_PEERS}" "${GRAPH_CONF}"
 [[ -n "${HG_SERVER_USE_PD:-}" ]] && \
@@ -166,22 +224,32 @@ fi
     set_prop "pd.peers" "${HG_SERVER_PD_PEERS}" "${REST_SERVER_CONF}"
 [[ -n "${HG_SERVER_CLUSTER:-}" ]] && \
     set_prop "cluster" "${HG_SERVER_CLUSTER}" "${REST_SERVER_CONF}"
+if [[ -n "${HG_SERVER_SERVICE_ID:-}" ]]; then
+    # Service names can contain spaces. Commons Configuration keeps a backslash
+    # before a literal space, but decodes Unicode escapes, including at the edges.
+    service_id_encoded=$(encode_prop_value "${HG_SERVER_SERVICE_ID}" | sed 's/\\ /\\u0020/g')
+    set_prop_encoded "server.service_id" "${service_id_encoded}" "${REST_SERVER_CONF}"
+fi
+[[ -n "${HG_SERVER_GRAPHSPACE:-}" ]] && \
+    set_prop "server.graphspace" "${HG_SERVER_GRAPHSPACE}" "${REST_SERVER_CONF}"
 [[ -n "${HG_SERVER_REST_URL:-}" ]] && set_prop "restserver.url" \
     "${HG_SERVER_REST_URL}" "${REST_SERVER_CONF}"
+# The address list this Server registers in PD, read only when
+# server.deploy_in_k8s is true; otherwise it registers restserver.url.
+[[ -n "${URLS_TO_PD}" ]] && set_prop "server.urls_to_pd" \
+    "${URLS_TO_PD}" "${REST_SERVER_CONF}"
+[[ -n "${DEPLOY_IN_K8S}" ]] && set_prop "server.deploy_in_k8s" \
+    "${DEPLOY_IN_K8S}" "${REST_SERVER_CONF}"
 [[ -n "${HG_SERVER_MIN_FREE_MEMORY:-}" ]] && set_prop "restserver.min_free_memory" \
     "${HG_SERVER_MIN_FREE_MEMORY}" "${REST_SERVER_CONF}"
-if [[ -n "${HG_SERVER_AUTH_TOKEN_SECRET:-}" ]]; then
-    set_prop "auth.token_secret" "${HG_SERVER_AUTH_TOKEN_SECRET}" \
-        "${REST_SERVER_CONF}"
-    set_prop "auth.token_secret" "${HG_SERVER_AUTH_TOKEN_SECRET}" "${GRAPH_CONF}"
-elif [[ -n "${AUTH_TOKEN_SECRET_ENCODED}" ]]; then
+if [[ -n "${AUTH_TOKEN_SECRET_ENCODED}" ]]; then
     set_prop_encoded "auth.token_secret" "${AUTH_TOKEN_SECRET_ENCODED}" \
         "${REST_SERVER_CONF}"
     set_prop_encoded "auth.token_secret" "${AUTH_TOKEN_SECRET_ENCODED}" \
         "${GRAPH_CONF}"
 fi
 if [[ -n "${PASSWORD:-}" ]]; then
-    set_prop "auth.admin_pa" "${PASSWORD}" "${REST_SERVER_CONF}"
+    set_prop_encoded "auth.admin_pa" "${AUTH_ADMIN_PASSWORD_ENCODED}" "${REST_SERVER_CONF}"
     # This script is idempotent and must run outside the initialization guard:
     # an upgrade can preserve the marker from an unauthenticated deployment.
     ./bin/enable-auth.sh

@@ -141,6 +141,8 @@ assert_argument "--add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED" \
 assert_argument "--add-modules=jdk.unsupported" "$JVM_MODULE_OPTIONS"
 assert_argument "--add-exports=java.base/sun.nio.ch=ALL-UNNAMED" \
                 "$JVM_MODULE_OPTIONS"
+assert_argument "--add-opens=java.base/java.nio=ALL-UNNAMED" "$JVM_MODULE_OPTIONS"
+assert_argument "--add-opens=java.base/java.lang=ALL-UNNAMED" "$JVM_MODULE_OPTIONS"
 
 if [[ -n "$SOURCE_ROOT_INPUT" ]]; then
     if [[ ! -d "$SOURCE_ROOT_INPUT" ]]; then
@@ -185,7 +187,7 @@ if [[ -n "$SOURCE_ROOT_INPUT" ]]; then
     assert_surefire_arg_lines "$COMMONS_POM" \
         '@${project.parent.basedir}/../hugegraph-server/hugegraph-test/conf/jvm-test-module.options'
     assert_source_consumer "$CLUSTER_WRAPPER" \
-        '"@" + Paths.get(SERVER_PACKAGE_PATH, BIN_DIR,'
+        'moduleOptions(Paths.get(SERVER_PACKAGE_PATH, BIN_DIR,'
     assert_no_inline_module_options \
         "$SERVER_LAUNCHER_SOURCE" "$INIT_STORE_SOURCE" "$SUREFIRE_POM" \
         "$COMMONS_POM" "$CLUSTER_WRAPPER" "$SERVER_DOCKERFILE" \
