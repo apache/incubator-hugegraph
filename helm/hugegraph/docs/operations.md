@@ -130,7 +130,9 @@ deletion; reclamation/recovery needs explicit inspection.
 
 Store's init container waits for a majority of PD peers on `store.waitPath`
 (default `/v1/ready`) for up to `store.waitTimeoutSeconds` (default 900).
-PD readiness requires a Raft leader; `/v1/health` only confirms a live listener.
+PD readiness requires a Raft leader. Images with the fatal-health fix return
+`503` from `/v1/health` for terminal Raft errors or shutdown, while elections
+and temporary quorum loss remain healthy. Older images only check the listener.
 Store's own readiness does not prove every shard has recovered.
 
 Server waits for storage for `server.storageWaitTimeoutSeconds` (default 300),
