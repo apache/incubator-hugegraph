@@ -52,6 +52,18 @@ while getopts "d:c:g:i:j:l:o:y:" arg; do
     esac
 done
 
+. "$BIN"/util.sh
+
+# -c/-l/-o are validated only by start-hugegraph-store.sh, which runs *after*
+# the stop below. Check them here so an unusable override is rejected while the
+# Store is still up, instead of stopping it and then failing to start it again.
+# -i needs no check here: stop-hugegraph-store.sh validates it first, before it
+# touches the running process.
+reject_unsafe_path "$CONF_ARG" "-c conf dir" crlf || exit 1
+reject_unsafe_path "$LOGS_ARG" "-l logs dir" crlf || exit 1
+# The plugins dir is joined into ':'-separated classpath/agent settings
+reject_unsafe_path "$PLUGINS_ARG" "-o plugins dir" classpath || exit 1
+
 # stop-hugegraph-store.sh only understands -i (the pid file).Forward the -i flag to stop script
 STOP_ARGS=()
 [ -n "$PID_ARG" ] && STOP_ARGS+=(-i "$PID_ARG")
@@ -68,6 +80,8 @@ START_ARGS=()
 [ -n "$PLUGINS_ARG" ]   && START_ARGS+=(-o "$PLUGINS_ARG")
 [ -n "$TELEMETRY_ARG" ] && START_ARGS+=(-y "$TELEMETRY_ARG")
 
-# Run stop and start as separate processes so that:
-bash "$BIN"/stop-hugegraph-store.sh "${STOP_ARGS[@]}"
+# Run stop and start as separate processes, and check the stop exit code:
+# a failed stop leaves the old JVM running, so starting a new one anyway
+# would look like a successful restart while the stale process stays up.
+bash "$BIN"/stop-hugegraph-store.sh "${STOP_ARGS[@]}" || exit 1
 bash "$BIN"/start-hugegraph-store.sh "${START_ARGS[@]}"

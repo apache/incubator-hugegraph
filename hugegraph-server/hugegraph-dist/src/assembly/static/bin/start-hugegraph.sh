@@ -56,7 +56,7 @@ while getopts "c:d:g:i:j:l:m:o:p:s:t:y:" arg; do
          l) reject_unsafe_path "$OPTARG" "-l logs dir" crlf || exit 1
             LOGS_OVERRIDE="$OPTARG" ;;
          m) OPEN_MONITOR="$OPTARG" ;;
-         o) reject_unsafe_path "$OPTARG" "-o plugins dir" crlf || exit 1
+         o) reject_unsafe_path "$OPTARG" "-o plugins dir" classpath || exit 1
             PLUGINS_OVERRIDE="$OPTARG" ;;
          p) PRELOAD="$OPTARG" ;;
          s) OPEN_SECURITY_CHECK="$OPTARG" ;;
@@ -69,7 +69,7 @@ while getopts "c:d:g:i:j:l:m:o:p:s:t:y:" arg; do
 done
 
 # Canonicalize relative path overrides to absolute paths.
-CONF_OVERRIDE="$(canonicalize_dir "$CONF_OVERRIDE")" || exit 1
+CONF_OVERRIDE="$(canonicalize_dir "$CONF_OVERRIDE" nocreate)" || exit 1
 LOGS_OVERRIDE="$(canonicalize_dir "$LOGS_OVERRIDE")" || exit 1
 PLUGINS_OVERRIDE="$(canonicalize_dir "$PLUGINS_OVERRIDE")" || exit 1
 PID_FILE_OVERRIDE="$(canonicalize_file "$PID_FILE_OVERRIDE")" || exit 1
@@ -101,11 +101,20 @@ if [[ "$OPEN_SECURITY_CHECK" != "true" && "$OPEN_SECURITY_CHECK" != "false" ]]; 
     exit_with_usage_help
 fi
 
+# Verify the config files exist before reading them
+ensure_file_readable "$CONF/rest-server.properties" "REST server config" || exit 1
+ensure_file_readable "$CONF/gremlin-server.yaml" "Gremlin server config" || exit 1
+
 GREMLIN_SERVER_URL=$(read_property "$CONF/rest-server.properties" "gremlinserver.url")
 if [ -z "$GREMLIN_SERVER_URL" ]; then
     GREMLIN_SERVER_URL="http://127.0.0.1:8182"
 fi
 REST_SERVER_URL=$(read_property "$CONF/rest-server.properties" "restserver.url")
+
+# 'graphs' is read by HugeGraphServer/GraphManager relative to the working
+# directory (set to $TOP below), not relative to $CONF.
+GRAPHS_DIR=$(read_property "$CONF/rest-server.properties" "graphs")
+reject_relative_conf_path "$GRAPHS_DIR" "graphs" "$CONF/rest-server.properties" || exit 1
 
 check_port "$GREMLIN_SERVER_URL"
 check_port "$REST_SERVER_URL"

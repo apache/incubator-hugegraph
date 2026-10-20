@@ -16,30 +16,48 @@
 # limitations under the License.
 #
 # Local unit tests for canonicalize_dir / canonicalize_file in util.sh.
-# No cluster, Java, or CM needed. Run: bash test-canonicalize.sh
+# Runs the full suite against the Server, PD and Store copies of util.sh in
+# turn, since each module ships its own copy
+# No cluster or Java needed. Run: bash test-canonicalize.sh
 
 set -u
 
-UTIL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/util.sh"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Walk up to the repository root (the dir holding hugegraph-server/).
+ROOT="$SCRIPT_DIR"
+while [ "$ROOT" != "/" ] && [ ! -d "$ROOT/hugegraph-server" ]; do
+    ROOT="$(dirname "$ROOT")"
+done
 
-# We only want the helpers; source util.sh in a guarded way. util.sh has no
-# top-level side effects for these functions, so a plain source is fine.
-# shellcheck disable=SC1090
-. "$UTIL"
+MODULE_NAMES=(server pd store)
+MODULE_UTILS=(
+    "$ROOT/hugegraph-server/hugegraph-dist/src/assembly/static/bin/util.sh"
+    "$ROOT/hugegraph-pd/hg-pd-dist/src/assembly/static/bin/util.sh"
+    "$ROOT/hugegraph-store/hg-store-dist/src/assembly/static/bin/util.sh"
+)
 
 PASS=0
 FAIL=0
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+SKIP=0
 
-ok()   { echo "PASS: $1"; PASS=$((PASS+1)); }
-bad()  { echo "FAIL: $1"; FAIL=$((FAIL+1)); }
+ok()   { echo "PASS: ${CURRENT_MODULE:+[$CURRENT_MODULE] }$1"; PASS=$((PASS+1)); }
+bad()  { echo "FAIL: ${CURRENT_MODULE:+[$CURRENT_MODULE] }$1"; FAIL=$((FAIL+1)); }
+skip() { echo "SKIP: $1"; SKIP=$((SKIP+1)); }
 
 # Run a function in a subshell so its `exit 1` paths don't kill the harness.
 run_capture() { # usage: run_capture FUNC ARG ; sets OUT, RC
-    OUT="$("$@" 2>/tmp/_cz_err)"; RC=$?
-    ERR="$(cat /tmp/_cz_err)"
+    OUT="$("$@" 2>"$TMP/_cz_err")"; RC=$?
+    ERR="$(cat "$TMP/_cz_err")"
 }
+
+run_suite() { # usage: run_suite MODULE_NAME UTIL_PATH
+    local CURRENT_MODULE="$1"
+    local UTIL="$2"
+    # shellcheck disable=SC1090
+    . "$UTIL"
+    local TMP
+    TMP="$(mktemp -d)"
+    trap 'rm -rf "$TMP"' RETURN
 
 echo "== canonicalize_dir =="
 
@@ -75,6 +93,47 @@ else
         || bad "dir: unwritable parent (rc=$RC err='$ERR')"
 fi
 chmod 700 "$RO"
+
+echo "== canonicalize_dir nocreate (used for -c) =="
+
+# 5a. nocreate: empty input is still a no-op
+run_capture canonicalize_dir "" nocreate
+[ $RC -eq 0 ] && [ -z "$OUT" ] && ok "dir/nocreate: empty input returns empty, rc=0" \
+    || bad "dir/nocreate: empty input (rc=$RC out='$OUT')"
+
+# 5b. nocreate: an existing dir resolves exactly as in create mode
+run_capture canonicalize_dir "$TMP" nocreate
+[ "$OUT" = "$TMP" ] && ok "dir/nocreate: existing absolute path echoes itself" \
+    || bad "dir/nocreate: existing path (out='$OUT' want='$TMP')"
+
+# 5c. nocreate: a relative existing dir is still canonicalized to absolute
+mkdir -p "$TMP/exists"
+( cd "$TMP" && run_capture canonicalize_dir "exists" nocreate \
+    && [ "$OUT" = "$TMP/exists" ] ) \
+    && ok "dir/nocreate: relative existing path canonicalized" \
+    || bad "dir/nocreate: relative existing path (out='$OUT')"
+
+# 5d. THE POINT OF THE MODE: a missing dir must fail and must NOT be created.
+# In create mode this same call would silently mkdir -p and succeed, so a typo
+# like '-c /data/conf' would appear later as a missing file inside it.
+MISSING="$TMP/missing_parent/missing_child"
+run_capture canonicalize_dir "$MISSING" nocreate
+{ [ $RC -eq 1 ] && [ ! -d "$MISSING" ] && echo "$ERR" | grep -q "no such directory"; } \
+    && ok "dir/nocreate: missing dir -> exit 1, not created, clear message" \
+    || bad "dir/nocreate: missing dir (rc=$RC created=$([ -d "$MISSING" ] && echo yes || echo no) err='$ERR')"
+
+# 5e. the default mode must be unchanged (create), so -l/-o keep working
+run_capture canonicalize_dir "$TMP/default_mode_dir/subdir"
+[ "$OUT" = "$TMP/default_mode_dir/subdir" ] && [ -d "$TMP/default_mode_dir/subdir" ] \
+    && ok "dir: default mode still creates (regression guard for -l/-o)" \
+    || bad "dir: default mode (out='$OUT')"
+
+# 5f. an unrecognized mode string must behave as 'create', not silently as
+# nocreate -- a typo in a caller must not disable directory creation.
+run_capture canonicalize_dir "$TMP/unknown_mode_dir/subdir" nocrate
+[ "$OUT" = "$TMP/unknown_mode_dir/subdir" ] && [ -d "$TMP/unknown_mode_dir/subdir" ] \
+    && ok "dir: unknown mode falls back to create" \
+    || bad "dir: unknown mode (out='$OUT')"
 
 echo "== canonicalize_file =="
 
@@ -137,7 +196,19 @@ run_capture canonicalize_file "$TMP/startcreates/s.pid"
 run_capture canonicalize_file "" nocreate
 [ $RC -eq 0 ] && [ -z "$OUT" ] && ok "nocreate: empty input returns empty, rc=0" \
     || bad "nocreate: empty input (rc=$RC out='$OUT')"
+}
+
+for i in "${!MODULE_NAMES[@]}"; do
+    name="${MODULE_NAMES[$i]}"
+    util="${MODULE_UTILS[$i]}"
+    if [ ! -f "$util" ]; then
+        skip "$name: util.sh not found at $util"
+        continue
+    fi
+    echo "---- module: $name ($util) ----"
+    run_suite "$name" "$util"
+done
 
 echo "-----------------------------"
-echo "PASS=$PASS FAIL=$FAIL"
+echo "PASS=$PASS FAIL=$FAIL SKIP=$SKIP"
 [ $FAIL -eq 0 ]

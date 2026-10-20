@@ -45,6 +45,12 @@ TOP="$(cd $BIN/../ && pwd)"
 
 . "$BIN"/util.sh
 
+reject_unsafe_path "$PID_FILE_OVERRIDE" "-i pid file" crlf || exit 1
+
+# Resolve to the same absolute path start-hugegraph.sh wrote. "nocreate":
+# stop only reads the pid file
+PID_FILE_OVERRIDE="$(canonicalize_file "$PID_FILE_OVERRIDE" nocreate)" || exit 1
+
 PID_FILE="${PID_FILE_OVERRIDE:-$BIN/pid}"
 SERVER_SHUTDOWN_TIMEOUT_S=10
 

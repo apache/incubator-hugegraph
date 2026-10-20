@@ -119,12 +119,19 @@ fi
 
 while getopts "d:c:g:i:j:l:o:y:" arg; do
     case ${arg} in
-        c) CONF_OVERRIDE="$OPTARG" ;;
+        # Validate the RAW value before canonicalization: command substitution
+        # strips trailing newlines, which would hide an embedded CR/LF.
+        c) reject_unsafe_path "$OPTARG" "-c conf dir" crlf || exit 1
+           CONF_OVERRIDE="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
-        i) PID_FILE_OVERRIDE="$OPTARG" ;;
+        i) reject_unsafe_path "$OPTARG" "-i pid file" crlf || exit 1
+           PID_FILE_OVERRIDE="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
-        l) LOGS_OVERRIDE="$OPTARG" ;;
-        o) PLUGINS_OVERRIDE="$OPTARG" ;;
+        l) reject_unsafe_path "$OPTARG" "-l logs dir" crlf || exit 1
+           LOGS_OVERRIDE="$OPTARG" ;;
+        # The plugins dir is joined into ':'-separated classpath/agent settings
+        o) reject_unsafe_path "$OPTARG" "-o plugins dir" classpath || exit 1
+           PLUGINS_OVERRIDE="$OPTARG" ;;
         # Telemetry is used to collect metrics, traces and logs
         y) OPEN_TELEMETRY="$OPTARG" ;;
         d) DAEMON="$OPTARG" ;;
@@ -133,7 +140,7 @@ while getopts "d:c:g:i:j:l:o:y:" arg; do
 done
 
 # Canonicalize relative path overrides to absolute paths.
-CONF_OVERRIDE="$(canonicalize_dir "$CONF_OVERRIDE")" || exit 1
+CONF_OVERRIDE="$(canonicalize_dir "$CONF_OVERRIDE" nocreate)" || exit 1
 LOGS_OVERRIDE="$(canonicalize_dir "$LOGS_OVERRIDE")" || exit 1
 PLUGINS_OVERRIDE="$(canonicalize_dir "$PLUGINS_OVERRIDE")" || exit 1
 PID_FILE_OVERRIDE="$(canonicalize_file "$PID_FILE_OVERRIDE")" || exit 1
@@ -141,12 +148,26 @@ PID_FILE_OVERRIDE="$(canonicalize_file "$PID_FILE_OVERRIDE")" || exit 1
 CONF="${CONF_OVERRIDE:-$TOP/conf}"
 LOGS="${LOGS_OVERRIDE:-$TOP/logs}"
 PLUGINS="${PLUGINS_OVERRIDE:-$TOP/plugins}"
-OUTPUT=${LOGS}/hugegraph-store-server.log
+OUTPUT="${LOGS}/hugegraph-store-server.log"
 PID_FILE="${PID_FILE_OVERRIDE:-$BIN/pid}"
 
 ensure_path_writable "$LOGS"
 ensure_path_writable "$PLUGINS"
 ensure_path_writable "$(dirname "$PID_FILE")"
+
+# The file is handed to the JVM as -Dspring.config.location below. Spring Boot
+# would reject a missing location, but only after the JVM is up -- by which
+# point this script has written the PID file and exited 0, so a supervisor sees
+# a successful start and a process that dies moments later. Fail here instead,
+# while the exit code still means something.
+if [ -n "$CONF_OVERRIDE" ]; then
+    ensure_file_readable "${CONF}/application.yml" "Store config" || exit 1
+    # 'data-path' (and the commented-out 'raft-path') are the only relative
+    # path values store/application.yml may hold under 'app:'.
+    VALUE=$(sed -n "s/^[[:space:]]*data-path:[[:space:]]*//p" \
+            "${CONF}/application.yml" | head -1 | tr -d "'\"")
+    reject_relative_conf_path "$VALUE" "data-path" "${CONF}/application.yml" || exit 1
+fi
 
 # The maximum and minimum heap memory that service can use (for production env set it 36GB)
 MAX_MEM=$((2 * 1024))
@@ -154,7 +175,7 @@ MIN_MEM=$((1 * 512))
 EXPECT_JDK_VERSION=17
 
 # Change to $BIN's parent
-cd ${TOP} || exit
+cd "${TOP}" || exit
 
 # Find Java
 if [ "$JAVA_HOME" = "" ]; then
@@ -164,7 +185,7 @@ else
 fi
 
 # check jdk version
-JAVA_VERSION=$($JAVA -version 2>&1 |
+JAVA_VERSION=$("$JAVA" -version 2>&1 |
                awk -F'"' '/^(java|openjdk) version "/ {print $2; exit}' |
                sed 's/^1\.//' | cut -d'.' -f1)
 JAVA_VERSION="${JAVA_VERSION%%[!0-9]*}"
@@ -173,19 +194,32 @@ if [[ -z $JAVA_VERSION || $JAVA_VERSION -lt $EXPECT_JDK_VERSION ]]; then
     exit 1
 fi
 
-# Set Java options
-if [ "$JAVA_OPTIONS" = "" ]; then
+# Set Java options.
+# Script-generated options are kept in arrays so that paths containing spaces
+# (overridden CONF/LOGS/PLUGINS) stay a single argument when passed to java.
+# User-supplied strings ($JAVA_OPTIONS / $USER_OPTION) keep the historical
+# word-splitting contract.
+JAVA_OPTIONS_ENV="${JAVA_OPTIONS}"
+JAVA_OPTIONS=()
+if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
         echo "Failed to start HugeGraphStoreServer, requires at least ${MIN_MEM}m free memory" \
              >> "${OUTPUT}"
         exit 1
     fi
-     JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:MetaspaceSize=256M -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION} "
-    # JAVA_OPTIONS="-Xms${MIN_MEM}m -Xmx${XMX}m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${LOGS} ${USER_OPTION}"
+    JAVA_OPTIONS=("-Xms${MIN_MEM}m" "-Xmx${XMX}m" "-XX:MetaspaceSize=256M"
+                  "-XX:+HeapDumpOnOutOfMemoryError" "-XX:HeapDumpPath=${LOGS}")
+
+    # Split user-supplied options on whitespace (legacy behaviour)
+    USER_OPTIONS=()
+    read -r -a USER_OPTIONS <<< "${USER_OPTION}"
+    JAVA_OPTIONS+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
 
     # Rolling out detailed GC logs
-    JAVA_OPTIONS="${JAVA_OPTIONS} -Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m"
+    JAVA_OPTIONS+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
+else
+    read -r -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"
 fi
 
 # Keep JVM/caller GC selection by default; explicitly select G1 when requested.
@@ -193,26 +227,33 @@ case "$GC_OPTION" in
     ""|g1|G1)
         if [[ "$GC_OPTION" == g1 || "$GC_OPTION" == G1 ]]; then
             echo "Using G1GC"
-            JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseG1GC"
+            JAVA_OPTIONS+=("-XX:+UseG1GC")
         else
             echo "Using JVM garbage collector configuration"
         fi
-        JAVA_OPTIONS="-XX:+ParallelRefProcEnabled -XX:InitiatingHeapOccupancyPercent=50 \
-                      -XX:G1RSetUpdatingPauseTimePercent=5 ${JAVA_OPTIONS}"
+        JAVA_OPTIONS=("-XX:+ParallelRefProcEnabled" "-XX:InitiatingHeapOccupancyPercent=50"
+                      "-XX:G1RSetUpdatingPauseTimePercent=5"
+                      ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"})
         ;;
     zgc|ZGC)
         echo "Using ZGC as the default garbage collector (requires Java 17 or later)"
-        JAVA_OPTIONS="${JAVA_OPTIONS} -XX:+UseZGC -XX:+UnlockExperimentalVMOptions \
-                                      -XX:ConcGCThreads=2 -XX:ParallelGCThreads=6 \
-                                      -XX:ZCollectionInterval=120 -XX:ZAllocationSpikeTolerance=5 \
-                                      -XX:+UnlockDiagnosticVMOptions -XX:-ZProactive"
+        JAVA_OPTIONS+=("-XX:+UseZGC" "-XX:+UnlockExperimentalVMOptions"
+                       "-XX:ConcGCThreads=2" "-XX:ParallelGCThreads=6"
+                       "-XX:ZCollectionInterval=120" "-XX:ZAllocationSpikeTolerance=5"
+                       "-XX:+UnlockDiagnosticVMOptions" "-XX:-ZProactive")
         ;;
     *)
         echo "Unrecognized gc option: '$GC_OPTION', supported options: g1, ZGC" >> "${OUTPUT}"
         exit 1
 esac
 
-JVM_OPTIONS="-Dlog4j.configurationFile=${CONF}/log4j2.xml -Dfastjson.parser.safeMode=true -Dlogging.config=${CONF}/log4j2.xml -DLOG_PATH=${LOGS} -Dbolt.log.path=${LOGS} -Dlogging.path=${LOGS} -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager"
+JVM_OPTIONS=("-Dlog4j.configurationFile=${CONF}/log4j2.xml"
+             "-Dfastjson.parser.safeMode=true"
+             "-Dlogging.config=${CONF}/log4j2.xml"
+             "-DLOG_PATH=${LOGS}"
+             "-Dbolt.log.path=${LOGS}"
+             "-Dlogging.path=${LOGS}"
+             "-Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager")
 
 if [ "${OPEN_TELEMETRY}" == "true" ]; then
     OT_JAR="opentelemetry-javaagent.jar"
@@ -240,7 +281,18 @@ if [ "${OPEN_TELEMETRY}" == "true" ]; then
     fi
 
     # Note: check carefully if multi "javeagent" params are set
-    export JAVA_TOOL_OPTIONS="-javaagent:${PLUGINS}/${OT_JAR}"
+    # The JVM splits JAVA_TOOL_OPTIONS on whitespace, so an overridden $PLUGINS
+    # containing a space would turn the agent option into two arguments. The JVM
+    # honours quoted options, so wrap it in a quote the path does not contain.
+    if [[ ${OT_JAR_PATH} != *"'"* ]]; then
+        AGENT_QUOTE="'"
+    elif [[ ${OT_JAR_PATH} != *\"* ]]; then
+        AGENT_QUOTE='"'
+    else
+        echo "## Error: ${OT_JAR_PATH} contains both quote characters, which JAVA_TOOL_OPTIONS cannot carry." >>"${OUTPUT}"
+        exit 1
+    fi
+    export JAVA_TOOL_OPTIONS="${AGENT_QUOTE}-javaagent:${OT_JAR_PATH}${AGENT_QUOTE}"
     export OTEL_TRACES_EXPORTER=otlp
     export OTEL_METRICS_EXPORTER=none
     export OTEL_LOGS_EXPORTER=none
@@ -256,7 +308,7 @@ fi
 #  JAVA_OPTIONS="${JAVA_OPTIONS} -javaagent:${LIB}/jmx_prometheus_javaagent-0.16.1.jar=${JMX_EXPORT_PORT}:${CONF}/jmx_exporter.yml"
 #fi
 
-if [ "$(ps -ef | grep -v grep | grep java | grep -cE "${CONF}")" -ne 0 ]; then
+if [ "$(ps -ef | grep -v grep | grep java | grep -cF -- "${CONF}")" -ne 0 ]; then
    echo "HugeGraphStoreServer is already running..."
    exit 0
 fi
@@ -275,16 +327,22 @@ if [ -n "${TOPLING_RUNTIME_CLASSPATH:-}" ]; then
 fi
 
 # Turn on security check
+# NOTE: "$JVM_MODULE_OPTIONS" and "$OUTPUT" are passed/redirected as single
+# quoted arguments, and JVM_OPTIONS/JAVA_OPTIONS are expanded as arrays
+# ("${JVM_OPTIONS[@]}"), so an overridden CONF/LOGS/PLUGINS path containing a
+# space stays one argument instead of being split by word-splitting.
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphStoreServer in daemon mode..."
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
-            -Dspring.config.location=${CONF}/application.yml \
+        exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            -Dspring.config.location="${CONF}/application.yml" \
             "${JAVA_MAIN[@]}" "$@" &
     else
-        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
-            -Dspring.config.location=${CONF}/application.yml \
-            "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1 &
+        exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            -Dspring.config.location="${CONF}/application.yml" \
+            "${JAVA_MAIN[@]}" "$@" >> "${OUTPUT}" 2>&1 &
     fi
     PID="$!"
     # Write pid to file
@@ -296,12 +354,14 @@ else
     echo "$$" > "$PID_FILE"
     echo "[+pid] $$"
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
-        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
-            -Dspring.config.location=${CONF}/application.yml \
+        exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            -Dspring.config.location="${CONF}/application.yml" \
             "${JAVA_MAIN[@]}" "$@"
     else
-        exec ${JAVA} "@$JVM_MODULE_OPTIONS" -Dname="HugeGraphStore" ${JVM_OPTIONS} ${JAVA_OPTIONS} \
-            -Dspring.config.location=${CONF}/application.yml \
-            "${JAVA_MAIN[@]}" "$@" >> ${OUTPUT} 2>&1
+        exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            -Dspring.config.location="${CONF}/application.yml" \
+            "${JAVA_MAIN[@]}" "$@" >> "${OUTPUT}" 2>&1
     fi
 fi

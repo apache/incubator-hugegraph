@@ -18,23 +18,39 @@
 # Local regression tests for the cron serialization helpers in util.sh:
 #   shell_quote, reject_unsafe_path, cron_quote,
 #   crontab_append, crontab_remove.
+# Runs the full suite against the Server, PD and Store copies of util.sh in
+# turn, since each module ships its own copy
 # No cluster, Java, or real crontab needed: `crontab` is replaced by a stub that
 # reads/writes a temp file, so the invoking user's crontab is not touched.
 # Run: bash test-cron-quote.sh
 
 set -u
 
-UTIL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/util.sh"
-# shellcheck disable=SC1090
-. "$UTIL"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Walk up to the repository root (the dir holding hugegraph-server/).
+ROOT="$SCRIPT_DIR"
+while [ "$ROOT" != "/" ] && [ ! -d "$ROOT/hugegraph-server" ]; do
+    ROOT="$(dirname "$ROOT")"
+done
+
+MODULE_NAMES=(server pd store)
+MODULE_UTILS=(
+    "$ROOT/hugegraph-server/hugegraph-dist/src/assembly/static/bin/util.sh"
+    "$ROOT/hugegraph-pd/hg-pd-dist/src/assembly/static/bin/util.sh"
+    "$ROOT/hugegraph-store/hg-store-dist/src/assembly/static/bin/util.sh"
+)
 
 PASS=0
 FAIL=0
+SKIP=0
+
+ok()   { echo "PASS: ${CURRENT_MODULE:+[$CURRENT_MODULE] }$1"; PASS=$((PASS+1)); }
+bad()  { echo "FAIL: ${CURRENT_MODULE:+[$CURRENT_MODULE] }$1"; FAIL=$((FAIL+1)); }
+skip() { echo "SKIP: $1"; SKIP=$((SKIP+1)); }
+
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-ok()  { echo "PASS: $1"; PASS=$((PASS+1)); }
-bad() { echo "FAIL: $1"; FAIL=$((FAIL+1)); }
 
 # ---- stub crontab ---------------------------------------------------------
 STUB_DIR="$TMP/stubbin"
@@ -58,6 +74,13 @@ export PATH="$STUB_DIR:$PATH"
 SHELLS="/bin/sh"
 command -v dash >/dev/null 2>&1 && SHELLS="$SHELLS $(command -v dash)"
 [ -x /bin/bash ] && SHELLS="$SHELLS /bin/bash"
+
+run_suite() { # usage: run_suite MODULE_NAME UTIL_PATH
+    local CURRENT_MODULE="$1"
+    local UTIL="$2"
+    # shellcheck disable=SC1090
+    . "$UTIL"
+    : > "$CRON_FILE"
 
 # ---------------------------------------------------------------------------
 echo "== A. shell_quote round-trips through each shell =="
@@ -147,6 +170,13 @@ expect_rc "cron: '%' rejected"                   1 "/opt/100%/x" L cron
 expect_rc "cron: LF rejected"                    1 $'/opt/x\ny' L cron
 expect_rc "cron: apostrophe/space accepted"      0 "/data/team's logs" L cron
 expect_rc "cron: empty accepted"                 0 "" L cron
+expect_rc "classpath: plain path accepted"       0 "/opt/x" L classpath
+expect_rc "classpath: ':' rejected"              1 "/data/a:b/plugins" L classpath
+expect_rc "classpath: LF rejected"               1 $'/opt/x\ny' L classpath
+expect_rc "classpath: '%' accepted (not cron)"   0 "/opt/100%/x" L classpath
+expect_rc "classpath: space/apostrophe accepted" 0 "/data/team's plugins" L classpath
+expect_rc "crlf: ':' accepted "    0 "/data/a:b" L crlf
+expect_rc "cron: ':' accepted "    0 "/data/a:b" L cron
 
 expect_rc "message names the label" 1 "a%b" "CONF_OVERRIDE" cron
 case "$LAST_ERR" in *CONF_OVERRIDE*"%"*) ok "error mentions label and %" ;; *) bad "error text: $LAST_ERR" ;; esac
@@ -276,6 +306,8 @@ build_and_append $'/opt/x\n* * * * * evil'; rc=$?
 grep -q evil "$CRON_FILE" && bad "injected job reached crontab" || ok "no injected job in crontab"
 
 # start-monitor.sh itself: wrong order of validation must exit non-zero w/o touching cron.
+# Only Server ships start-monitor.sh; PD/Store have no monitor script, so this
+# check is naturally skipped for those modules via the -f guard below.
 SM="$(cd "$(dirname "$UTIL")" && pwd)/start-monitor.sh"
 if [ -f "$SM" ]; then
     out="$(JAVA_HOME=/usr CONF_OVERRIDE='/opt/100%/conf' bash "$SM" 2>&1)"; rc=$?
@@ -283,10 +315,22 @@ if [ -f "$SM" ]; then
         && ok "start-monitor.sh exits non-zero and leaves crontab unchanged on '%'" \
         || bad "start-monitor.sh with '%' (rc=$rc): $out"
 fi
+}
+
+for i in "${!MODULE_NAMES[@]}"; do
+    name="${MODULE_NAMES[$i]}"
+    util="${MODULE_UTILS[$i]}"
+    if [ ! -f "$util" ]; then
+        skip "$name: util.sh not found at $util"
+        continue
+    fi
+    echo "---- module: $name ($util) ----"
+    run_suite "$name" "$util"
+done
 
 # ---------------------------------------------------------------------------
 echo
 echo "Shells exercised: $SHELLS"
 command -v dash >/dev/null 2>&1 || echo "NOTE: dash not installed here; run on Debian/Ubuntu/CI to cover it."
-echo "Passed: $PASS  Failed: $FAIL"
+echo "Passed: $PASS  Failed: $FAIL  Skipped: $SKIP"
 [ "$FAIL" -eq 0 ]
