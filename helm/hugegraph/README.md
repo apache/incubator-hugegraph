@@ -246,7 +246,27 @@ helm test hugegraph -n hugegraph --logs --timeout 5m
 An easy-mode upgrade that inherits Server/Hubble entry types prints a short
 NodePort-default notice in NOTES; explicitly configured entry types are preserved.
 To adopt new defaults, use `--reset-values` with a reviewed values file retaining
-all settings your release needs. Older explicit helper images also remain under
+all settings your release needs.
+
+PD, Store and Server images built from this version run as UID/GID `10001`, and
+the chart now defaults `pd.podSecurityContext` and `store.podSecurityContext` to
+`fsGroup: 10001` so that user can write PVCs created by older images, which ran
+as root. `--reuse-values` keeps the old empty value. Because the default tag is
+`latest` with `pullPolicy: Always`, an existing release can pull the new image
+on any Pod restart, so set the value before that happens, or pin the old image
+tags until you upgrade:
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set pd.podSecurityContext.fsGroup=10001 \
+  --set pd.podSecurityContext.fsGroupChangePolicy=OnRootMismatch \
+  --set store.podSecurityContext.fsGroup=10001 \
+  --set store.podSecurityContext.fsGroupChangePolicy=OnRootMismatch \
+  --wait --timeout 15m
+```
+
+See [Storage and upgrades](docs/operations.md#storage-and-upgrades) if a Pod still
+reports `Permission denied`. Older explicit helper images also remain under
 value reuse; clear `store.waitImage` and `server.waitImage` to reuse component images.
 
 The admin Secret is an **initial credential**. Changing it alone does not rotate

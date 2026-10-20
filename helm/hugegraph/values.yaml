@@ -100,7 +100,9 @@ pd:
   resources: {}
   # Pod-level and container-level securityContext. The images run as the
   # non-root UID/GID 10001; fsGroup lets that user write the data volume,
-  # including one created by an older image that ran as root.
+  # including one created by an older image that ran as root. A restricted
+  # namespace also needs securityContext.runAsNonRoot: true, which is safe
+  # with images from this version only.
   podSecurityContext:
     fsGroup: 10001
     fsGroupChangePolicy: OnRootMismatch

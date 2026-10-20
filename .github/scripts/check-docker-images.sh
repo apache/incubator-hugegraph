@@ -30,13 +30,20 @@ for pair in \
         HC=$(docker image inspect --format '{{json .Config.Healthcheck}}' "$IMAGE_ID")
         [[ "$HC" != null ]] || { echo "Missing HEALTHCHECK: $dockerfile"; exit 1; }
 
-        # The images must run as the fixed non-root user and own their home
-        # directory, which the start scripts write to.
+        # The images must run as the fixed non-root user and own the directories
+        # the start scripts and default volumes write to.
+        case "$dockerfile" in
+            hugegraph-pd/*) OWNED_DIRS=". logs pd_data" ;;
+            hugegraph-store/*) OWNED_DIRS=". logs storage" ;;
+            hugegraph-server/Dockerfile) OWNED_DIRS=". logs rocksdb-data" ;;
+            *) OWNED_DIRS=". logs" ;;
+        esac
         IMAGE_USER=$(docker image inspect --format '{{.Config.User}}' "$IMAGE_ID")
         RUNTIME_IDS=$(docker run --rm --pull never --entrypoint sh "$IMAGE_ID" -c \
-            'echo "$(id -u):$(id -g):$(stat -c %u .)"')
-        [[ "$IMAGE_USER" == 10001:10001 && "$RUNTIME_IDS" == 10001:10001:10001 ]] || {
-            echo "ERROR: $dockerfile runs as '$IMAGE_USER' ($RUNTIME_IDS); expected 10001:10001 owning its workdir"
+            'echo "$(id -u):$(id -g)" $(stat -c %u "$@")' owners $OWNED_DIRS)
+        EXPECTED_IDS="10001:10001$(printf ' 10001%.0s' $OWNED_DIRS)"
+        [[ "$IMAGE_USER" == 10001:10001 && "$RUNTIME_IDS" == "$EXPECTED_IDS" ]] || {
+            echo "ERROR: $dockerfile runs as '$IMAGE_USER' ($RUNTIME_IDS); expected 10001:10001 owning $OWNED_DIRS"
             exit 1
         }
 
