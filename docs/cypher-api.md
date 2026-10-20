@@ -131,6 +131,22 @@ Parameterized POST requests are already provided by merged
 The earlier [bound-query fork #238](https://github.com/hugegraph/hugegraph/pull/238)
 is a historical reference; use the current request contract above.
 
+## Temporal functions
+
+The built-in translator has no temporal functions of its own. The Server folds
+the `date()`, `datetime()` and `localdatetime()` constructors into native date
+values before translation, so these calls work wherever a bound value is
+accepted, for example `MATCH (n) WHERE n.birthday = date('2000-01-01') RETURN n`.
+A constructor folds when it has no argument (the current date or date-time), a
+string literal argument, or a parameter bound to a string; `date()` uses the
+`yyyy-MM-dd` form and the other two use `yyyy-MM-ddTHH:mm:ss[.SSS]`. Arguments
+that are not foldable, other temporal forms such as map or duration arguments,
+and the remaining temporal functions (`time()`, `localtime()`, `duration()`)
+keep failing translation with `Unknown function` as before.
+Constructor names are case-insensitive like the rest of Cypher, and the bare
+constructors of one statement read the clock once. EXPLAIN prints a folded
+value as an explicit `new Date(...)` constructor instead of a stringified date.
+
 ## Regression checks
 
 Run the mapper, real-parser and envelope tests from the repository root:

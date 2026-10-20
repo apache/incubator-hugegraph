@@ -354,15 +354,16 @@ with chart-generated credentials, see README, Template-only pipelines.
 {{/*
 Path the PD startup and liveness probes hit.
 
-/v1/health answers 200 as soon as the REST listener is up and never consults
-raft, which is what a multi-PD deployment wants: losing leadership is normal
-during an election, and restarting a follower for it would turn one election
-into a rolling outage. Readiness carries the raft-aware signal instead.
+/v1/health stays 200 during elections and quorum loss, and images with the
+apache/hugegraph#3222 fix answer 503 on fatal raft errors or shutdown. Losing
+leadership alone must not restart followers and turn an election into a
+rolling outage. Readiness carries the leader-availability signal instead.
 
 A single PD has no election to lose. There, a PD that steps down and cannot
 recover, as after a failed snapshot on a full disk
-(apache/hugegraph#3222), keeps answering /v1/health forever and liveness
-never restarts it, so the default moves to /v1/ready when pd.replicas is 1.
+(apache/hugegraph#3222), keeps answering /v1/health forever on older images.
+For compatibility with those images, the default moves to /v1/ready when
+pd.replicas is 1.
 
 The startup probe follows this path as well. Kubernetes suppresses liveness
 until the startup probe succeeds, so leaving startup on /v1/health would give
@@ -371,8 +372,9 @@ readiness after a restart, and a slow log replay would crash-loop instead of
 booting. Following the same path puts that window inside the startup budget
 (300 s by default) instead.
 
-Setting pd.livenessPath overrides the choice in both places. If PD starts
-answering 503 from /v1/health in this state, this value stops being needed.
+Setting pd.livenessPath overrides the choice in both places. Drop the
+single-PD readiness derivation once the minimum supported image includes
+the /v1/health fatal raft error fix.
 */}}
 {{- define "hugegraph.pd.livenessPath" -}}
 {{- $explicit := get .Values.pd "livenessPath" | default "" -}}
@@ -618,9 +620,13 @@ without the property ignore the flag. Set pd.raftIpWhitelistEnabled=true to
 restore the image default.
 
 raft.rpc-timeout is a plain runtime property, applied on every start rather
-than seeded at bootstrap. It bounds how long the surviving PDs wait on a
-peer that stopped answering without closing its sockets, which is what a
-leader election waits on; empty preserves the image default.
+than seeded at bootstrap; empty preserves the image default. It bounds raft
+requests between PDs, and on images that wait for a raft ReadIndex before
+they read an id counter, that wait. Images that have raft.rpc-connect-timeout
+use that option for the Ping that opens a connection to a peer (default 1000,
+set through pd.javaOpts); it does not bound requests on a connection that is
+already open. On older images raft.rpc-timeout is the timeout of that Ping as
+well, which is what a leader election waited on.
 */}}
 {{- define "hugegraph.pd.effectiveJavaOpts" -}}
 {{- $pd := .Values.pd -}}
