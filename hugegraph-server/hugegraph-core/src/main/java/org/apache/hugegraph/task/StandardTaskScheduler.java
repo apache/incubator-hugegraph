@@ -428,6 +428,12 @@ public class StandardTaskScheduler implements TaskScheduler {
         task.scheduler(this);
         E.checkArgumentNotNull(task, "Task can't be null");
         this.call(() -> {
+            // Completion can save after deletion, while this exact
+            // execution owner is still retained for native cleanup.
+            if (task.status() == TaskStatus.DELETING && this.tasks.get(task.id()) == task &&
+                QueryResults.one(this.tx().queryTaskInfos(task.id())) == null) {
+                return null;
+            }
             // Construct vertex from task
             HugeVertex vertex = this.tx().constructVertex(task);
             // Delete index of old vertex to avoid stale index
@@ -509,7 +515,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         E.checkArgumentNotNull(id, "Parameter task id can't be null");
         @SuppressWarnings("unchecked")
         HugeTask<V> task = (HugeTask<V>) this.tasks.get(id);
-        if (task != null) {
+        if (task != null && task.status() != TaskStatus.DELETING) {
             return withResult ? task : task.copyWithoutResult();
         }
         return this.findTask(id, withResult);
@@ -528,7 +534,7 @@ public class StandardTaskScheduler implements TaskScheduler {
         for (Id id : ids) {
             @SuppressWarnings("unchecked")
             HugeTask<V> task = (HugeTask<V>) this.tasks.get(id);
-            if (task != null) {
+            if (task != null && task.status() != TaskStatus.DELETING) {
                 taskInMem.add(withResult ? task : task.copyWithoutResult());
             } else {
                 taskIdsNotInMem.add(id);
@@ -625,13 +631,17 @@ public class StandardTaskScheduler implements TaskScheduler {
          * when the database status is inconsistent.
          */
         if (running != null) {
-            E.checkArgument(force || running.completed(),
+            E.checkArgument(force || running.completed() ||
+                            (running.status() == TaskStatus.DELETING && task.completed()),
                             "Can't delete incomplete task '%s' in status %s" +
                             ", Please try to cancel the task first",
                             id, running.status());
-            if (force && !running.completed()) {
+            boolean completed = running.completed();
+            if (force) {
                 running.overwriteStatus(TaskStatus.DELETING);
-                running.cancel(true);
+                if (!completed) {
+                    running.cancel(true);
+                }
             }
             this.remove(running, force);
         } else if (task != null) {
@@ -652,6 +662,11 @@ public class StandardTaskScheduler implements TaskScheduler {
             E.checkState(force || result.completed(),
                          "Can't delete incomplete task '%s' in status %s",
                          id, result.status());
+            // A non-force request must pass the persisted completion check
+            // before its retained owner can be marked for deletion.
+            if (!force && running != null && this.tasks.get(id) == running) {
+                running.overwriteStatus(TaskStatus.DELETING);
+            }
             this.tx().removeTaskVertex(vertex);
             return result;
         });

@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -136,6 +137,8 @@ import org.apache.tinkerpop.gremlin.structure.Transaction;
 import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.slf4j.Logger;
 
+import com.alipay.sofa.jraft.NodeManager;
+import com.alipay.sofa.jraft.util.Endpoint;
 import com.alipay.sofa.rpc.config.ServerConfig;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -170,6 +173,11 @@ public final class GraphManager {
     private final Map<String, Graph> graphs;
     private final Set<String> localGraphs;
     private final Set<String> removingGraphs;
+    // Guarded by this manager monitor; placement-event tokens are consumed independently.
+    private final Set<HugeGraph> rpcRemovingOwners;
+    private final Set<String> pendingGraphAdds;
+    private final Set<HugeGraph> failedPeerRemovals;
+    private final Map<String, HugeGraph> clearedGraphs;
     private final Set<String> creatingGraphs;
     private final HugeAuthenticator authenticator;
     private final AuthManager authManager;
@@ -181,6 +189,8 @@ public final class GraphManager {
 
     private final RpcServer rpcServer;
     private final RpcClientProvider rpcClient;
+    private boolean rpcInitialized;
+    private volatile Endpoint raftRpcEndpoint;
     private final GlobalMasterInfo globalNodeRoleInfo;
     private final HugeConfig conf;
     private final EventHub eventHub;
@@ -216,6 +226,10 @@ public final class GraphManager {
         // key is graphSpaceName + "-" + graphName
         this.graphs = new ConcurrentHashMap<>();
         this.removingGraphs = ConcurrentHashMap.newKeySet();
+        this.rpcRemovingOwners = Collections.newSetFromMap(new IdentityHashMap<>());
+        this.pendingGraphAdds = new HashSet<>();
+        this.failedPeerRemovals = Collections.newSetFromMap(new IdentityHashMap<>());
+        this.clearedGraphs = new ConcurrentHashMap<>();
         this.creatingGraphs = ConcurrentHashMap.newKeySet();
         this.authenticator = HugeAuthenticator.loadAuthenticator(conf);
         this.serviceGraphSpace = conf.get(ServerOptions.SERVICE_GRAPH_SPACE);
@@ -702,7 +716,7 @@ public final class GraphManager {
         // Remove graphs from GraphManager
         for (String graph : this.graphs.keySet()) {
             String[] parts = graph.split(DELIMITER);
-            this.dropGraph(parts[0], parts[1], false);
+            this.dropGraph(parts[0], parts[1], false, false);
         }
         int count = 0;
         while (!this.graphs.isEmpty() && count++ < 10) {
@@ -1451,19 +1465,35 @@ public final class GraphManager {
             // Init graph and start it
             graph.create(this.graphsDir, this.globalNodeRoleInfo);
 
-            // Let gremlin server and rest server add graph to context
+            // Complete RPC registration before Gremlin listeners expose the graph.
+            this.publishGraph(graph);
             this.notifyEvent(Events.GRAPH_CREATE, graph);
         } catch (Throwable e) {
             LOG.error("Failed to create graph '{}' due to: {}",
                       name, e.getMessage(), e);
             if (graph != null) {
+                synchronized (this) {
+                    if (this.graphs.get(graph.spaceGraphName()) == graph) {
+                        this.rpcRemovingOwners.add(graph);
+                    }
+                }
                 try {
-                    this.dropGraphLocal(graph);
-                    this.graphs.remove(graph.spaceGraphName(), graph);
+                    this.unregisterRpcServices(graph);
+                    HugeGraph candidate = graph;
+                    HugeGraphAuthProxy.runAsAdmin(() -> this.dropGraphLocal(candidate));
+                    synchronized (this) {
+                        this.graphs.remove(graph.spaceGraphName(), graph);
+                        this.rpcRemovingOwners.remove(graph);
+                    }
                     this.notifyEventLenient(Events.GRAPH_DROP, graph);
                 } catch (Throwable cleanup) {
                     e.addSuppressed(cleanup);
-                    this.graphs.putIfAbsent(graph.spaceGraphName(), graph);
+                    synchronized (this) {
+                        this.graphs.putIfAbsent(graph.spaceGraphName(), graph);
+                        if (this.graphs.get(graph.spaceGraphName()) == graph) {
+                            this.rpcRemovingOwners.add(graph);
+                        }
+                    }
                 }
             }
             throw e;
@@ -1597,7 +1627,6 @@ public final class GraphManager {
         graph.updateTime(timeStamp);
 
         String graphName = spaceGraphName(graphSpace, name);
-        this.graphs.put(graphName, graph);
 
         /*
          * Let gremlin server and rest server context add graph before the
@@ -1605,16 +1634,10 @@ public final class GraphManager {
          * graph behind in meta for the other servers to converge on
          */
         try {
+            this.publishGraph(graph);
             this.notifyEvent(Events.GRAPH_CREATE, graph);
         } catch (Throwable e) {
-            try {
-                graph.close();
-                this.notifyEventLenient(Events.GRAPH_DROP, graph);
-                this.graphs.remove(graphName, graph);
-                HugeFactory.remove(graph);
-            } catch (Exception e1) {
-                e.addSuppressed(e1);
-            }
+            this.rollbackGraph(graphName, graph, e);
             throw e;
         }
 
@@ -1712,9 +1735,15 @@ public final class GraphManager {
     }
 
     public void close() {
-        for (Graph graph : this.graphs.values()) {
+        for (Map.Entry<String, Graph> entry : this.graphs.entrySet()) {
+            Graph graph = entry.getValue();
             try {
                 graph.close();
+                synchronized (this) {
+                    if (this.clearedGraphs.get(entry.getKey()) == graph) {
+                        this.clearedGraphs.remove(entry.getKey());
+                    }
+                }
             } catch (Throwable e) {
                 LOG.warn("Failed to close graph '{}'", graph, e);
             }
@@ -1723,7 +1752,7 @@ public final class GraphManager {
         this.unlistenChanges();
     }
 
-    private void startRpcServer() {
+    private synchronized void startRpcServer() {
         if (!this.rpcServer.enabled()) {
             LOG.info("RpcServer is not enabled, skip starting rpc service");
             return;
@@ -1737,20 +1766,50 @@ public final class GraphManager {
                                     this.authenticator.authManager());
         }
 
-        // Start graph rpc service if RPC_REMOTE_URL enabled
-        if (this.rpcClient.enabled()) {
-            RpcConsumerConfig clientConfig = this.rpcClient.config();
-
-            for (Graph graph : this.graphs.values()) {
-                HugeGraph hugegraph = (HugeGraph) graph;
-                hugegraph.registerRpcServices(serverConfig, clientConfig);
-            }
-        }
-
         try {
+            // Start graph rpc service if RPC_REMOTE_URL enabled
+            if (this.rpcClient.enabled()) {
+                RpcConsumerConfig clientConfig = this.rpcClient.config();
+
+                for (Graph graph : this.graphs.values()) {
+                    HugeGraph hugegraph = (HugeGraph) graph;
+                    HugeGraphAuthProxy.runAsAdmin(() -> {
+                        // Auth wrappers and the owner must use the same existing lifecycle monitor.
+                        synchronized (hugegraph.hugegraph()) {
+                            if (hugegraph.closed() || this.rpcRemovingOwners.contains(hugegraph)) {
+                                // Retained provider configs must be removed before exportAll.
+                                this.unregisterRpcServices(hugegraph);
+                                return;
+                            }
+                            hugegraph.registerRpcServices(serverConfig, clientConfig);
+                        }
+                    });
+                }
+            }
+
             this.rpcServer.exportAll();
+            this.rpcInitialized = true;
         } catch (Throwable e) {
-            this.rpcServer.destroy();
+            this.rpcInitialized = false;
+            for (Graph graph : this.graphs.values()) {
+                if (this.rpcRemovingOwners.contains(graph)) {
+                    continue;
+                }
+                try {
+                    this.unregisterRpcServices((HugeGraph) graph);
+                } catch (Throwable cleanup) {
+                    if (e != cleanup) {
+                        e.addSuppressed(cleanup);
+                    }
+                }
+            }
+            try {
+                this.rpcServer.destroy();
+            } catch (Throwable cleanup) {
+                if (e != cleanup) {
+                    e.addSuppressed(cleanup);
+                }
+            }
             throw e;
         }
     }
@@ -1765,8 +1824,10 @@ public final class GraphManager {
         if (!serverConfig.getServer().isStarted()) {
             serverConfig.getServer().start();
         }
-        return Whitebox.getInternalState(serverConfig.getServer(),
-                                         "remotingServer");
+        com.alipay.remoting.rpc.RpcServer server = Whitebox.getInternalState(serverConfig.getServer(),
+                                                                           "remotingServer");
+        this.raftRpcEndpoint = new Endpoint(server.ip(), server.port());
+        return server;
     }
 
     private void destroyRpcServer() {
@@ -1774,6 +1835,11 @@ public final class GraphManager {
             this.rpcClient.destroy();
         } finally {
             this.rpcServer.destroy();
+            Endpoint endpoint = this.raftRpcEndpoint;
+            if (endpoint != null) {
+                NodeManager.getInstance().removeAddress(endpoint);
+                this.raftRpcEndpoint = null;
+            }
         }
     }
 
@@ -1821,7 +1887,12 @@ public final class GraphManager {
         this.transferPdPeersConfig(config);
 
         Graph graph = GraphFactory.open(config);
-        this.graphs.put(defaultSpaceGraphName(name), graph);
+        try {
+            this.publishGraph(defaultSpaceGraphName(name), (HugeGraph) graph);
+        } catch (RuntimeException | Error failure) {
+            this.rollbackGraph(defaultSpaceGraphName(name), (HugeGraph) graph, failure);
+            throw failure;
+        }
 
         HugeConfig graphConfig = (HugeConfig) graph.configuration();
         // A graph Gremlin Server opened first from this path is cached without a file
@@ -1837,6 +1908,40 @@ public final class GraphManager {
             !(graph instanceof HugeGraphAuthProxy)) {
             LOG.warn("You may need to support access control for '{}' with {}",
                      graphConfPath, HugeFactoryAuthProxy.GRAPH_FACTORY);
+        }
+    }
+
+    private void rollbackGraph(String graphName, HugeGraph graph, Throwable failure) {
+        synchronized (this) {
+            if (this.graphs.get(graphName) == graph) {
+                this.rpcRemovingOwners.add(graph);
+            }
+        }
+        try {
+            HugeGraphAuthProxy.runAsAdmin(() -> {
+                try {
+                    graph.close();
+                } catch (Exception cleanup) {
+                    throw new HugeException("Failed to close unpublished graph '%s'", cleanup, graphName);
+                }
+            });
+            this.notifyEventLenient(Events.GRAPH_DROP, graph);
+            synchronized (this) {
+                HugeFactory.remove(graph);
+                this.graphs.remove(graphName, graph);
+                this.rpcRemovingOwners.remove(graph);
+            }
+        } catch (Throwable cleanup) {
+            if (cleanup != failure) {
+                failure.addSuppressed(cleanup);
+            }
+            // Pending owners must keep their graph/factory identity for cleanup retry.
+            synchronized (this) {
+                this.graphs.putIfAbsent(graphName, graph);
+                if (this.graphs.get(graphName) == graph) {
+                    this.rpcRemovingOwners.add(graph);
+                }
+            }
         }
     }
 
@@ -1987,16 +2092,63 @@ public final class GraphManager {
             LOG.debug("RestServer accepts event '{}'", event.name());
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
-            this.graphs.put(graph.spaceGraphName(), graph);
+            this.publishGraph(graph);
             return null;
         });
         this.eventHub.listen(Events.GRAPH_DROP, event -> {
             LOG.debug("RestServer accepts event '{}'", event.name());
             event.checkArgs(HugeGraph.class);
             HugeGraph graph = (HugeGraph) event.args()[0];
-            this.graphs.remove(graph.spaceGraphName(), graph);
+            this.unpublishGraph(graph);
             return null;
         });
+    }
+
+    private void publishGraph(HugeGraph graph) {
+        this.publishGraph(graph.spaceGraphName(), graph);
+    }
+
+    private synchronized void publishGraph(String name, HugeGraph graph) {
+        if (this.graphs.get(name) == graph) {
+            return;
+        }
+        this.registerRpcServices(graph);
+        this.graphs.put(name, graph);
+    }
+
+    private void registerRpcServices(HugeGraph graph) {
+        if (this.rpcInitialized && this.rpcServer.enabled() && this.rpcClient.enabled()) {
+            try {
+                HugeGraphAuthProxy.runAsAdmin(() -> graph.registerRpcServices(this.rpcServer.config(),
+                                                                             this.rpcClient.config()));
+                this.rpcServer.exportAll();
+            } catch (RuntimeException | Error failure) {
+                try {
+                    this.unregisterRpcServices(graph);
+                } catch (RuntimeException | Error cleanup) {
+                    failure.addSuppressed(cleanup);
+                }
+                throw failure;
+            }
+        }
+    }
+
+    private void unregisterRpcServices(HugeGraph graph) {
+        HugeGraphAuthProxy.runAsAdmin(graph::unregisterRpcServices);
+    }
+
+    private synchronized boolean unpublishGraph(HugeGraph graph) {
+        String name = graph.spaceGraphName();
+        if (this.graphs.get(name) != graph) {
+            return false;
+        }
+        // A failed cleanup keeps the owner published so that drop can retry.
+        this.unregisterRpcServices(graph);
+        boolean removed = this.graphs.remove(name, graph);
+        if (removed) {
+            this.rpcRemovingOwners.remove(graph);
+        }
+        return removed;
     }
 
     private void unlistenChanges() {
@@ -2236,7 +2388,6 @@ public final class GraphManager {
                                                     creator, config, false);
                 graph1.createTime(createTime);
                 graph1.updateTime(updateTime);
-                this.graphs.put(key, graph1);
                 return graph1;
             }
             throw new NotFoundException(String.format("Graph '%s' does not exist", name));
@@ -2257,21 +2408,44 @@ public final class GraphManager {
                         "The graph '%s' is the only one, not allowed to delete",
                         name);
 
-        this.dropGraphLocal(graph);
+        try {
+            this.dropGraphLocal(graph);
+        } catch (RuntimeException | Error failure) {
+            synchronized (this) {
+                if (graph.closed()) {
+                    this.rpcRemovingOwners.add(graph);
+                }
+            }
+            // Local clear failure leaves the still-open owner's existing RPC services untouched.
+            throw failure;
+        }
 
         // Let gremlin server and rest server context remove graph
         this.notifyEventLenient(Events.GRAPH_DROP, graph);
     }
 
     public void dropGraph(String graphSpace, String name, boolean clear) {
+        this.dropGraph(graphSpace, name, clear, true);
+    }
+
+    private void dropGraph(String graphSpace, String name, boolean clear, boolean replayPendingAdd) {
         if (!isPDEnabled()) {
             dropGraphLocal(name);
             return;
         }
 
+        HugeGraph graph = this.graph(graphSpace, name);
+        E.checkArgumentNotNull(graph, "The graph '%s' doesn't exist", name);
+        this.dropGraph(graphSpace, name, clear, graph, replayPendingAdd);
+    }
+
+    private void dropGraph(String graphSpace, String name, boolean clear, HugeGraph g, boolean replayPendingAdd) {
+        synchronized (this) {
+            if (g == null || this.graphs.get(spaceGraphName(graphSpace, name)) != g) {
+                return;
+            }
+        }
         boolean grpcThread = Thread.currentThread().getName().contains("grpc");
-        HugeGraph g = this.graph(graphSpace, name);
-        E.checkArgumentNotNull(g, "The graph '%s' doesn't exist", name);
         if (this.localGraphs.contains(name)) {
             throw new HugeException("Can't delete graph '%s' loaded from " +
                                     "local config. Please delete config file " +
@@ -2280,7 +2454,13 @@ public final class GraphManager {
         }
 
         String graphName = spaceGraphName(graphSpace, name);
-        if (clear) {
+        if (clear && g.closed() && this.clearedGraphs.get(graphName) != g) {
+            // A non-clearing close cannot certify that destructive deletion completed.
+            throw new HugeException("Graph '%s' is closed without a successful backend clear; " +
+                                    "retain its owner and complete backend cleanup before deletion", graphName);
+        }
+        // The same owner may await close after clear succeeded, even while a foreign tx remains open.
+        if (clear && !g.closed() && this.clearedGraphs.get(graphName) != g) {
             // The auth proxy checks ADMIN before the local deletion fence.
             TaskScheduler scheduler = g.taskScheduler();
             if (!scheduler.close()) {
@@ -2296,54 +2476,98 @@ public final class GraphManager {
                              "Retry deletion after owners exit, or restart to resume task admission",
                              graphName);
             }
-            this.removingGraphs.add(graphName);
+            // Cleanup failure must precede metadata removal and destructive clear.
+            synchronized (this) {
+                this.rpcRemovingOwners.add(g);
+                this.unregisterRpcServices(g);
+                this.removingGraphs.add(graphName);
+            }
+            boolean metadataRemoved = false;
             try {
                 this.metaManager.removeGraphConfig(graphSpace, name);
+                metadataRemoved = true;
                 this.metaManager.notifyGraphRemove(graphSpace, name);
             } catch (Exception e) {
+                // No backend clear has started; retain RPC for the same open local owner.
+                synchronized (this) {
+                    if (!metadataRemoved) {
+                        // No local REMOVE was sent; a later peer REMOVE must still be handled.
+                        this.removingGraphs.remove(graphName);
+                    }
+                    if (this.graphs.get(graphName) == g && !g.closed()) {
+                        try {
+                            this.registerRpcServices(g);
+                            this.rpcRemovingOwners.remove(g);
+                        } catch (RuntimeException | Error restoration) {
+                            if (e != restoration) {
+                                e.addSuppressed(restoration);
+                            }
+                        }
+                    }
+                }
                 throw new HugeException(
-                        "Failed to remove graph config of '%s'", name, e);
+                        "Failed to remove graph config of '%s'", e, name);
             }
 
             g.clearBackend();
-            try {
-                g.close();
-            } catch (Exception e) {
-                if (!g.closed()) {
-                    throw new HugeException("Failed to close graph '%s', please retry later", e, graphName);
+            synchronized (this) {
+                if (this.graphs.get(graphName) == g) {
+                    this.clearedGraphs.put(graphName, g);
                 }
-                LOG.warn("Failed to close graph", e);
             }
         }
-        GraphSpace gs = this.graphSpace(graphSpace);
-        if (!grpcThread) {
-            gs.recycleGraph();
-            LOG.info("The graph_number_used successfully decreased to {} " +
-                     "of graph space: {} for graph: {}",
-                     gs.graphNumberUsed(), gs.name(), name);
-            this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
+        try {
+            g.close();
+        } catch (Exception failure) {
+            // Logical closed does not certify native release; keep this owner until close succeeds.
+            throw new HugeException("Failed to close graph '%s', please retry later", failure, graphName);
+        }
+        // Serialize with publication, but leave graph close outside the manager gate.
+        boolean replayAdd = false;
+        synchronized (this) {
+            if (this.graphs.get(graphName) == g) {
+                this.unregisterRpcServices(g);
+                GraphSpace gs = this.graphSpace(graphSpace);
+                if (!grpcThread) {
+                    int used = gs.graphNumberUsed();
+                    gs.recycleGraph();
+                    LOG.info("The graph_number_used successfully decreased to {} " +
+                             "of graph space: {} for graph: {}",
+                             gs.graphNumberUsed(), gs.name(), name);
+                    try {
+                        this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
+                    } catch (RuntimeException | Error failure) {
+                        gs.graphNumberUsed(used);
+                        throw failure;
+                    }
+                }
+                // Remove the factory binding before permitting same-name creation.
+                HugeFactory.remove(g);
+                this.graphs.remove(graphName, g);
+                this.rpcRemovingOwners.remove(g);
+                this.failedPeerRemovals.remove(g);
+                if (replayPendingAdd) {
+                    replayAdd = this.pendingGraphAdds.contains(graphName);
+                } else {
+                    // Reload loads all current metadata after every old owner has been removed.
+                    this.pendingGraphAdds.remove(graphName);
+                }
+                if (this.clearedGraphs.get(graphName) == g) {
+                    this.clearedGraphs.remove(graphName);
+                }
+            }
         }
         // Let gremlin server and rest server context remove graph
         LOG.info("Notify remove graph {} by GRAPH_DROP event", name);
-        Graph graph = this.graphs.get(graphName);
-        if (graph != null) {
+        this.eventHub.notify(Events.GRAPH_DROP, g);
+        if (replayAdd) {
             try {
-                graph.close();
-            } catch (Exception e) {
-                if (!((HugeGraph) graph).closed()) {
-                    throw new HugeException("Failed to close graph '%s', please retry later", e, graphName);
-                }
-                LOG.warn("Failed to close graph", e);
-            }
-            this.graphs.remove(graphName, graph);
-            try {
-                // Delete alias graph in HugeFactory
-                HugeFactory.remove((HugeGraph) graph);
-            } catch (Exception e) {
-                LOG.warn("Failed to remove hugeFactory graph", e);
+                this.loadAddedGraph(graphName);
+            } catch (RuntimeException | Error failure) {
+                // The old DELETE succeeded; a replacement load failure must not invite deleting it again.
+                LOG.error("Failed to load received graph add after cleanup of {}", graphName, failure);
             }
         }
-        this.eventHub.notify(Events.GRAPH_DROP, g);
     }
 
     private void checkOptions(String graphSpace, HugeConfig config) {
@@ -2649,41 +2873,66 @@ public final class GraphManager {
                 continue;
             }
             LOG.info("Accept graph add signal from etcd for {}", graphName);
-            if (this.graphs.containsKey(graphName) ||
-                this.creatingGraphs.contains(graphName)) {
-                this.creatingGraphs.remove(graphName);
-                continue;
-            }
-
-            LOG.info("Not exist in cache, Starting construct graph {}",
-                     graphName);
-            Map<String, Object> config =
-                    this.metaManager.getGraphConfig(parts[0], parts[1]);
-            if (config == null) {
-                LOG.error("The graph config not exist: {}", graphName);
-                continue;
-            }
-            Object objc = config.get("creator");
-            String creator = null == objc ?
-                             GraphSpace.DEFAULT_CREATOR_NAME :
-                             String.valueOf(objc);
-
-            // Create graph without init
-            try {
-                HugeGraph graph;
-                // TODO: add alias graph
-                graph = this.createGraph(parts[0], parts[1], creator, config, false);
-                LOG.info("Add graph space:{} graph:{}", parts[0], parts[1]);
-                graph.started(true);
-                if (graph.tx().isOpen()) {
-                    graph.tx().close();
+            HugeGraph retryOwner = null;
+            synchronized (this) {
+                HugeGraph owner = (HugeGraph) this.graphs.get(graphName);
+                boolean retryPeerCleanup = owner != null && this.failedPeerRemovals.contains(owner);
+                if (this.creatingGraphs.remove(graphName) && !retryPeerCleanup) {
+                    // The acknowledgement of local creation is not a replacement ADD.
+                    continue;
                 }
+                if (owner != null) {
+                    // Independent key watches can deliver a replacement ADD before the old REMOVE.
+                    this.pendingGraphAdds.add(graphName);
+                    if (!retryPeerCleanup) {
+                        continue;
+                    }
+                    retryOwner = owner;
+                }
+            }
+            if (retryOwner != null) {
+                try {
+                    // Retry the exact peer owner; a concurrent replacement must never be closed here.
+                    this.dropGraph(parts[0], parts[1], false, retryOwner, true);
+                } catch (HugeException failure) {
+                    LOG.error("Failed to retry peer cleanup for graph '{}'", graphName, failure);
+                }
+                continue;
+            }
+            try {
+                this.loadAddedGraph(graphName);
             } catch (HugeException e) {
                 if (!this.startIgnoreSingleGraphError) {
                     throw e;
                 }
-                LOG.error(String.format(
-                        "Failed to create graph '%s'", graphName), e);
+                LOG.error(String.format("Failed to create graph '%s'", graphName), e);
+            }
+        }
+    }
+
+    private void loadAddedGraph(String graphName) {
+        String[] parts = graphName.split(DELIMITER);
+        LOG.info("Not exist in cache, Starting construct graph {}", graphName);
+        Map<String, Object> config = this.metaManager.getGraphConfig(parts[0], parts[1]);
+        HugeGraph graph = null;
+        if (config != null) {
+            Object objc = config.get("creator");
+            String creator = null == objc ? GraphSpace.DEFAULT_CREATOR_NAME : String.valueOf(objc);
+            // Create graph without init; reread metadata instead of keeping an old event's configuration.
+            graph = this.createGraph(parts[0], parts[1], creator, config, false);
+            LOG.info("Add graph space:{} graph:{}", parts[0], parts[1]);
+            graph.started(true);
+            if (graph.tx().isOpen()) {
+                graph.tx().close();
+            }
+        } else {
+            LOG.error("The graph config not exist: {}", graphName);
+        }
+        synchronized (this) {
+            if (this.graphs.get(graphName) == graph &&
+                (graph == null || (!graph.closed() && !this.rpcRemovingOwners.contains(graph)))) {
+                // Do not consume a notification newly retained by another cleanup owner.
+                this.pendingGraphAdds.remove(graphName);
             }
         }
     }
@@ -2704,9 +2953,15 @@ public final class GraphManager {
                 LOG.error("The graph name format is incorrect: {}", graphName);
                 continue;
             }
+            HugeGraph owner = (HugeGraph) this.graphs.get(graphName);
             try {
-                this.dropGraph(parts[0], parts[1], false);
+                this.dropGraph(parts[0], parts[1], false, owner, true);
             } catch (HugeException e) {
+                synchronized (this) {
+                    if (this.graphs.get(graphName) == owner) {
+                        this.failedPeerRemovals.add(owner);
+                    }
+                }
                 LOG.error(String.format(
                         "Failed to drop graph '%s'", graphName), e);
             }

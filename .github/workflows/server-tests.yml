@@ -77,6 +77,7 @@ jobs:
         if: inputs.backend == 'rocksdb'
         run: |
           "$TRAVIS_DIR/test-wait-storage.sh"
+          "$TRAVIS_DIR/test-start-server.sh"
           "$TRAVIS_DIR/test-riscv64-java-runtime.sh"
           bash "$TRAVIS_DIR/test-tinkerpop-reports.sh"
 
@@ -102,6 +103,13 @@ jobs:
           SERVER_DIR=hugegraph-server/apache-hugegraph-server-$VERSION/
           $TRAVIS_DIR/test-java-security-properties.sh \
             "$SERVER_DIR" "$GITHUB_WORKSPACE"
+
+      - name: Check bundled Arthas local CLI
+        if: ${{ env.BACKEND == 'rocksdb' }}
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          SERVER_DIR=hugegraph-server/apache-hugegraph-server-$VERSION
+          bash "$TRAVIS_DIR/test-arthas-cli.sh" "$SERVER_DIR"
 
       - name: Verify Surefire single-class routing
         if: ${{ env.BACKEND == 'rocksdb' }}

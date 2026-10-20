@@ -43,6 +43,7 @@ import org.apache.hugegraph.backend.page.PageInfo;
 import org.apache.hugegraph.backend.page.PageState;
 import org.apache.hugegraph.backend.page.SortByCountIdHolderList;
 import org.apache.hugegraph.backend.query.ConditionQueryFlatten;
+import org.apache.hugegraph.backend.query.QueryBatch;
 import org.apache.hugegraph.backend.query.QueryResults;
 import org.apache.hugegraph.backend.serializer.AbstractSerializer;
 import org.apache.hugegraph.backend.store.BackendEntry;
@@ -366,7 +367,31 @@ public class GraphIndexTransaction extends AbstractTransaction {
             query.conditionValues(HugeKeys.LABEL).isEmpty()) {
             return IdHolderList.empty(paging);
         }
-        Set<MatchedIndex> indexes = this.collectMatchedIndexes(query);
+        List<? extends SchemaLabel> schemaLabels = this.querySchemaLabels(query);
+        // Use the outer request's visibility, including flattened queries.
+        Query visibility = query.rootOriginQuery();
+        List<? extends SchemaLabel> visibleLabels = schemaLabels.stream().filter(label ->
+                (visibility.showHidden() || !label.hidden()) &&
+                (visibility.showDeleting() || !label.status().deleting()))
+                                                               .collect(Collectors.toList());
+        if (visibleLabels.size() != schemaLabels.size()) {
+            Set<Id> properties = this.requiredIndexProperties(query);
+            boolean hadCandidates = schemaLabels.stream().anyMatch(label ->
+                    isIndexQueryCandidate(label, properties));
+            boolean hasVisibleCandidates = visibleLabels.stream().anyMatch(label ->
+                    isIndexQueryCandidate(label, properties));
+            // Only visibility exclusions justify an empty result here. Visible
+            // candidates without usable indexes must still fail below.
+            if (hadCandidates && !hasVisibleCandidates) {
+                IdHolderList empty = new IdHolderList(paging);
+                if (paging) {
+                    // Keep a page slot so an empty first page is valid.
+                    empty.add(new PagingIdHolder(query, q -> PageIds.EMPTY));
+                }
+                return empty;
+            }
+        }
+        Set<MatchedIndex> indexes = this.collectMatchedIndexes(query, visibleLabels);
         if (indexes.isEmpty()) {
             Id label = query.singleConditionValueOrNull(HugeKeys.LABEL);
             throw noIndexException(this.graph(), query, label);
@@ -377,8 +402,10 @@ public class GraphIndexTransaction extends AbstractTransaction {
             return IdHolderList.empty(paging);
         }
 
-        // Do index query
-        IdHolderList holders = new IdHolderList(paging);
+        this.checkIndexCoverage(query, visibleLabels, indexes);
+
+        // Validate the whole plan before opening any backend iterators. A later
+        // label's unavailable index must not leave earlier iterators unowned.
         for (MatchedIndex index : indexes) {
             for (IndexLabel il : index.indexLabels()) {
                 validateIndexLabel(il);
@@ -386,28 +413,59 @@ public class GraphIndexTransaction extends AbstractTransaction {
             if (paging && index.indexLabels().size() > 1) {
                 throw new NotSupportException("joint index query in paging");
             }
-
-            if (index.containsSearchIndex()) {
-                // Do search-index query
-                holders.addAll(this.doSearchIndex(query, index));
-            } else {
-                // Do secondary-index, range-index or shard-index query
-                IndexQueries queries = constructIndexQueries(query, index);
-                assert !paging || queries.size() <= 1;
-                IdHolder holder = this.doSingleOrJointIndex(queries);
-                holders.add(holder);
-            }
-
-            /*
-             * NOTE: need to skip the offset if offset > 0, but can't handle
-             * it here because the query may a sub-query after flatten,
-             * so the offset will be handle in QueryList.IndexQuery
-             *
-             * TODO: finish early here if records exceeds required limit with
-             *       FixedIdHolder.
-             */
         }
-        return holders;
+
+        // Do index query
+        IdHolderList holders = new IdHolderList(paging);
+        try {
+            for (MatchedIndex index : indexes) {
+                ConditionQuery indexQuery = prepareIndexQuery(query, index);
+                if (index.containsSearchIndex()) {
+                    // Do search-index query
+                    holders.addAll(this.doSearchIndex(indexQuery, index));
+                } else {
+                    // Do secondary-index, range-index or shard-index query
+                    IndexQueries queries = constructIndexQueries(indexQuery, index);
+                    assert !paging || queries.size() <= 1;
+                    IdHolder holder = this.doSingleOrJointIndex(queries);
+                    holders.add(holder);
+                }
+
+                /*
+                 * NOTE: need to skip the offset if offset > 0, but can't handle
+                 * it here because the query may a sub-query after flatten,
+                 * so the offset will be handle in QueryList.IndexQuery
+                 *
+                 * TODO: finish early here if records exceeds required limit with
+                 *       FixedIdHolder.
+                 */
+            }
+            return holders;
+        } catch (Throwable failure) {
+            throw closeIndexHolders(failure, holders);
+        }
+    }
+
+    private static ConditionQuery prepareIndexQuery(ConditionQuery query, MatchedIndex index) {
+        Id label = query.singleConditionValueOrNull(HugeKeys.LABEL);
+        if (!query.resultType().isEdge() || label == null ||
+            index.schemaLabel().id().equals(label)) {
+            return query;
+        }
+        // BaseEdge exposes the parent as LABEL and the actual child as SUB_LABEL.
+        // Filter on the child after fetching from the shared parent index.
+        ConditionQuery filtered = query.copy();
+        filtered.unsetCondition(HugeKeys.LABEL);
+        filtered.eq(HugeKeys.SUB_LABEL, label);
+        filtered.optimized(OptimizedType.INDEX_FILTER);
+        if (!query.paging()) {
+            filtered.limit(Query.NO_LIMIT);
+        }
+        if (!index.containsSearchIndex()) {
+            // Search queries install their word-aware filter after rewriting.
+            filtered.registerResultsFilter(element -> filtered.test(element, null));
+        }
+        return filtered;
     }
 
     @Watched(prefix = "index")
@@ -417,18 +475,22 @@ public class GraphIndexTransaction extends AbstractTransaction {
         // Sorted by matched count
         IdHolderList holders = new SortByCountIdHolderList(query.paging());
         List<ConditionQuery> flatten = ConditionQueryFlatten.flatten(query);
-        for (ConditionQuery q : flatten) {
-            if (!q.noLimit() && flatten.size() > 1) {
-                // Increase limit for union operation
-                increaseLimit(q);
+        try {
+            for (ConditionQuery q : flatten) {
+                if (!q.noLimit() && flatten.size() > 1) {
+                    // Increase limit for union operation
+                    increaseLimit(q);
+                }
+                IndexQueries queries = constructIndexQueries(q, index);
+                assert !query.paging() || queries.size() <= 1;
+                IdHolder holder = this.doSingleOrJointIndex(queries);
+                // NOTE: ids will be merged into one IdHolder if not in paging
+                holders.add(holder);
             }
-            IndexQueries queries = constructIndexQueries(q, index);
-            assert !query.paging() || queries.size() <= 1;
-            IdHolder holder = this.doSingleOrJointIndex(queries);
-            // NOTE: ids will be merged into one IdHolder if not in paging
-            holders.add(holder);
+            return holders;
+        } catch (Throwable failure) {
+            throw closeIndexHolders(failure, holders);
         }
-        return holders;
     }
 
     @Watched(prefix = "index")
@@ -460,61 +522,79 @@ public class GraphIndexTransaction extends AbstractTransaction {
         Set<Id> intersectIds = null;
         boolean filtering = false;
         IdHolder resultHolder = null;
-        for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
-            IndexLabel indexLabel = e.getKey();
-            ConditionQuery query = e.getValue();
-            assert !query.paging();
-            if (!query.noLimit() && queries.size() > 1) {
-                // Unset limit for intersection operation
-                query.limit(Query.NO_LIMIT);
-            }
-            /*
-             * Try to query by joint indexes:
-             * 1 If there is any index exceeded the threshold, transform into
-             *   partial index query, then filter after back-table.
-             * 1.1 Return the holder of the first index that not exceeded the
-             *     threshold if there exists one index, this holder will be used
-             *     as the only query condition.
-             * 1.2 Return the holder of the first index if all indexes exceeded
-             *     the threshold.
-             * 2 Else intersect holders for all indexes, and return intersection
-             *   ids of all indexes.
-             */
-            IdHolder holder = this.doIndexQuery(indexLabel, query);
-            if (resultHolder == null) {
-                resultHolder = holder;
-                this.storeSelectedIndexField(indexLabel, query);
-            }
-            assert this.indexIntersectThresh > 0; // default value is 1000
-            Set<Id> ids = ((BatchIdHolder) holder).peekNext(
-                    this.indexIntersectThresh).ids();
-            if (ids.size() >= this.indexIntersectThresh) {
-                // Transform into filtering
-                filtering = true;
-                query.optimized(OptimizedType.INDEX_FILTER);
-            } else if (filtering) {
-                assert ids.size() < this.indexIntersectThresh;
-                resultHolder = holder;
-                this.storeSelectedIndexField(indexLabel, query);
-                break;
-            } else {
-                if (intersectIds == null) {
-                    intersectIds = ids;
-                } else {
-                    CollectionUtil.intersectWithModify(intersectIds, ids);
+        List<IdHolder> holders = new ArrayList<>(queries.size());
+        try {
+            for (Map.Entry<IndexLabel, ConditionQuery> e : queries.entrySet()) {
+                IndexLabel indexLabel = e.getKey();
+                ConditionQuery query = e.getValue();
+                assert !query.paging();
+                if (!query.noLimit() && queries.size() > 1) {
+                    // Unset limit for intersection operation
+                    query.limit(Query.NO_LIMIT);
                 }
-                if (intersectIds.isEmpty()) {
+                /*
+                 * Try to query by joint indexes:
+                 * 1 If there is any index exceeded the threshold, transform into
+                 *   partial index query, then filter after back-table.
+                 * 1.1 Return the holder of the first index that not exceeded the
+                 *     threshold if there exists one index, this holder will be used
+                 *     as the only query condition.
+                 * 1.2 Return the holder of the first index if all indexes exceeded
+                 *     the threshold.
+                 * 2 Else intersect holders for all indexes, and return intersection
+                 *   ids of all indexes.
+                 */
+                IdHolder holder = this.doIndexQuery(indexLabel, query);
+                holders.add(holder);
+                if (resultHolder == null) {
+                    resultHolder = holder;
+                    this.storeSelectedIndexField(indexLabel, query);
+                }
+                assert this.indexIntersectThresh > 0; // default value is 1000
+                Set<Id> ids = ((BatchIdHolder) holder).peekNext(
+                        this.indexIntersectThresh).ids();
+                if (ids.size() >= this.indexIntersectThresh) {
+                    // Transform into filtering
+                    filtering = true;
+                    query.optimized(OptimizedType.INDEX_FILTER);
+                } else if (filtering) {
+                    assert ids.size() < this.indexIntersectThresh;
+                    resultHolder = holder;
+                    this.storeSelectedIndexField(indexLabel, query);
                     break;
+                } else {
+                    if (intersectIds == null) {
+                        intersectIds = ids;
+                    } else {
+                        CollectionUtil.intersectWithModify(intersectIds, ids);
+                    }
+                    if (intersectIds.isEmpty()) {
+                        break;
+                    }
                 }
             }
-        }
 
-        if (filtering) {
-            return resultHolder;
-        } else {
-            assert intersectIds != null;
-            return new FixedIdHolder(queries.asJointQuery(), intersectIds);
+            IdHolder result = filtering ? resultHolder :
+                              new FixedIdHolder(queries.asJointQuery(), intersectIds);
+            // Transfer only the selected holder. Other lazy cursors may still
+            // be open when an index exceeded the intersection threshold.
+            QueryBatch.closeAll(holders.stream().filter(holder -> holder != result).toArray());
+            return result;
+        } catch (Throwable failure) {
+            throw closeIndexHolders(failure, holders);
         }
+    }
+
+    private static RuntimeException closeIndexHolders(Throwable failure,
+                                                      Collection<? extends IdHolder> holders) {
+        try {
+            QueryBatch.closeAll(holders.toArray());
+        } catch (Throwable closing) {
+            if (closing != failure) {
+                failure.addSuppressed(closing);
+            }
+        }
+        return QueryBatch.propagate(failure);
     }
 
     private void storeSelectedIndexField(IndexLabel indexLabel,
@@ -650,15 +730,14 @@ public class GraphIndexTransaction extends AbstractTransaction {
         }
     }
 
-    @Watched(prefix = "index")
-    private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
+    private List<? extends SchemaLabel> querySchemaLabels(ConditionQuery query) {
         ISchemaTransaction schema = this.params().schemaTransaction();
         Set<Object> labels = query.conditionValues(HugeKeys.LABEL);
 
         List<? extends SchemaLabel> schemaLabels;
         if (query.containsConditionValues(HugeKeys.LABEL) && labels.isEmpty()) {
             // An empty intersection is not an unrestricted label query.
-            return Collections.emptySet();
+            return Collections.emptyList();
         }
         if (labels.size() == 1) {
             Id label = (Id) labels.iterator().next();
@@ -674,6 +753,12 @@ public class GraphIndexTransaction extends AbstractTransaction {
                         query.resultType()));
             }
             schemaLabels = ImmutableList.of(schemaLabel);
+            if (schemaLabel instanceof EdgeLabel && ((EdgeLabel) schemaLabel).hasFather()) {
+                // Include the parent in visibility filtering and index matching;
+                // the original query label still filters out sibling edges.
+                EdgeLabel father = schema.getEdgeLabel(((EdgeLabel) schemaLabel).fatherId());
+                schemaLabels = ImmutableList.of(schemaLabel, father);
+            }
         } else {
             // Query doesn't have LABEL condition or it doesn't resolve
             // to a single label, so keep the conservative fallback.
@@ -688,15 +773,84 @@ public class GraphIndexTransaction extends AbstractTransaction {
             }
         }
 
+        return schemaLabels;
+    }
+
+    private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query) {
+        // Cleanup callers must still inspect invisible labels' indexes.
+        return this.collectMatchedIndexes(query, this.querySchemaLabels(query));
+    }
+
+    @Watched(prefix = "index")
+    private Set<MatchedIndex> collectMatchedIndexes(ConditionQuery query,
+                                                   List<? extends SchemaLabel> schemaLabels) {
         // Collect MatchedIndex for each SchemaLabel
         Set<MatchedIndex> matchedIndexes = InsertionOrderUtil.newSet();
         for (SchemaLabel schemaLabel : schemaLabels) {
             MatchedIndex index = this.collectMatchedIndex(schemaLabel, query);
             if (index != null) {
                 matchedIndexes.add(index);
+                // Prefer a compatible direct index for an explicit sub-label.
+                // Its parent, when present, follows it in querySchemaLabels().
+                if (schemaLabel.id().equals(query.singleConditionValueOrNull(HugeKeys.LABEL))) {
+                    break;
+                }
             }
         }
         return matchedIndexes;
+    }
+
+    private static boolean isIndexQueryCandidate(SchemaLabel label, Set<Id> properties) {
+        // Base edge labels describe sub-labels and have no direct records.
+        return label.properties().containsAll(properties) &&
+               !(label instanceof EdgeLabel && ((EdgeLabel) label).isFather());
+    }
+
+    private Set<Id> requiredIndexProperties(ConditionQuery query) {
+        Set<Id> requiredProperties = query.userpropKeys();
+        if (this.graph().readMode().showOlap()) {
+            // OLAP properties are shared rather than declared on every label.
+            requiredProperties.removeIf(id -> this.graph().propertyKey(id).olap());
+        }
+        return requiredProperties;
+    }
+
+    private void checkIndexCoverage(ConditionQuery query,
+                                    List<? extends SchemaLabel> labels,
+                                    Set<MatchedIndex> indexes) {
+        // Check at execution, before creating any lazy index iterator. Cleanup
+        // callers only need matching indexes and must not require full coverage.
+        Set<Id> requiredProperties = this.requiredIndexProperties(query);
+        if (requiredProperties.isEmpty()) {
+            // A shared OLAP index can match several labels, while MatchedIndex
+            // deduplicates those matches by index labels alone.
+            return;
+        }
+        Set<Id> covered = new HashSet<>();
+        for (MatchedIndex index : indexes) {
+            covered.add(index.schemaLabel().id());
+        }
+        for (SchemaLabel label : labels) {
+            if (covered.contains(label.id()) ||
+                !label.properties().containsAll(requiredProperties)) {
+                continue;
+            }
+            if (label instanceof EdgeLabel) {
+                EdgeLabel edgeLabel = (EdgeLabel) label;
+                // Base labels have no direct edges; their property indexes
+                // include edges of their sub-labels (see updateEdgeIndex()).
+                if (edgeLabel.isFather() ||
+                    edgeLabel.hasFather() && covered.contains(edgeLabel.fatherId())) {
+                    continue;
+                }
+            }
+            // Authorization filters elements after the backend query. Do not
+            // disclose an implicitly discovered schema label in this error.
+            throw new NoIndexException("Incomplete index coverage for properties %s; " +
+                                       "specify a label or create compatible indexes " +
+                                       "for every candidate label",
+                                       this.graph().mapPkId2Name(query.userpropKeys()));
+        }
     }
 
     /**
