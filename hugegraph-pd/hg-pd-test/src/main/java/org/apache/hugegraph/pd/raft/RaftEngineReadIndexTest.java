@@ -40,6 +40,7 @@ import com.alipay.sofa.jraft.closure.ReadIndexClosure;
 import com.alipay.sofa.jraft.error.RaftError;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -401,5 +402,19 @@ public class RaftEngineReadIndexTest {
         });
 
         Assert.assertEquals(Pdpb.ErrorType.NOT_LEADER_VALUE, e.getErrorCode());
+    }
+
+    @Test
+    public void testNoLeakedTaskPollerTouchesTheNodeMock() throws InterruptedException {
+        // A suite class that fails to stop its TaskScheduleService leaves a pool
+        // that polls RaftEngine.isLeader() every second, and a call from that
+        // thread while another test stubs this mock surfaces as Mockito's
+        // unfinished stubbing. No such call may reach the mock here.
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            verify(this.mockNode, never()).isLeader(anyBoolean());
+            Thread.sleep(20);
+        }
+        verify(this.mockNode, never()).isLeader(anyBoolean());
     }
 }
