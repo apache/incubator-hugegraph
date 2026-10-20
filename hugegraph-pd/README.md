@@ -291,7 +291,7 @@ docker/docker-compose-3pd-3store-3server.yml
 - PD uses Raft consensus for leader election and data replication
 - Cluster can tolerate up to `(N-1)/2` node failures (e.g., 1 failure in 3-node cluster)
 - Leader handles all write operations; followers handle read operations
-- After a restart, PD waits up to 30 seconds for a previous process to release the metadata RocksDB `LOCK`, then exits non-zero; never delete `LOCK` files to work around this (see [`pd.data-path`](docs/configuration.md#production-recommendations-pd-data-path))
+- Never delete RocksDB `LOCK` files under `pd.data-path` to get a restarted PD going; see [PD Core Settings](docs/configuration.md#pd-core-settings)
 
 ### Network Requirements
 

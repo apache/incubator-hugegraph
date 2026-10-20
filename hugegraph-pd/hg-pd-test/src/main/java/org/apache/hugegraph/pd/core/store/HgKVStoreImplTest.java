@@ -158,16 +158,21 @@ public class HgKVStoreImplTest {
                     Thread.currentThread().interrupt();
                 }
                 holder.close();
-            });
+            }, "test-lock-releaser");
+            releaser.setDaemon(true);
             releaser.start();
             try {
+                long start = System.nanoTime();
                 kvStore.init(config);
+                long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+                Assert.assertTrue("opened after " + elapsed + " ms", elapsed >= 500L);
                 byte[] key = "lock".getBytes(StandardCharsets.UTF_8);
                 kvStore.put(key, key);
                 Assert.assertArrayEquals(key, kvStore.get(key));
             } finally {
                 releaser.join();
                 kvStore.close();
+                FileUtils.deleteQuietly(new File(config.getDataPath()));
             }
         }
     }
@@ -190,6 +195,7 @@ public class HgKVStoreImplTest {
             Assert.assertTrue(e.getCause().getCause() instanceof RocksDBException);
         } finally {
             kvStore.close();
+            FileUtils.deleteQuietly(new File(config.getDataPath()));
         }
     }
 
@@ -203,9 +209,13 @@ public class HgKVStoreImplTest {
         HgKVStore kvStore = new HgKVStoreImpl();
         long start = System.nanoTime();
         try {
-            Assert.assertThrows(IllegalStateException.class, () -> kvStore.init(config));
+            IllegalStateException e = Assert.assertThrows(IllegalStateException.class,
+                                                          () -> kvStore.init(config));
+            String message = e.getCause().getCause().getMessage();
+            Assert.assertTrue(message, message.contains("is not a directory"));
         } finally {
             kvStore.close();
+            FileUtils.deleteQuietly(new File(config.getDataPath()));
         }
         long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         Assert.assertTrue("retried for " + elapsed + " ms", elapsed < 5000L);
