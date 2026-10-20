@@ -30,6 +30,16 @@ for pair in \
         HC=$(docker image inspect --format '{{json .Config.Healthcheck}}' "$IMAGE_ID")
         [[ "$HC" != null ]] || { echo "Missing HEALTHCHECK: $dockerfile"; exit 1; }
 
+        # The images must run as the fixed non-root user and own their home
+        # directory, which the start scripts write to.
+        IMAGE_USER=$(docker image inspect --format '{{.Config.User}}' "$IMAGE_ID")
+        RUNTIME_IDS=$(docker run --rm --pull never --entrypoint sh "$IMAGE_ID" -c \
+            'echo "$(id -u):$(id -g):$(stat -c %u .)"')
+        [[ "$IMAGE_USER" == 10001:10001 && "$RUNTIME_IDS" == 10001:10001:10001 ]] || {
+            echo "ERROR: $dockerfile runs as '$IMAGE_USER' ($RUNTIME_IDS); expected 10001:10001 owning its workdir"
+            exit 1
+        }
+
         # Helm reuses these images for tool containers instead of pulling curlimages/curl.
         # Check the same non-root/read-only tool environment as the Server test hook.
         if [[ "$dockerfile" == hugegraph-store/* || "$dockerfile" == hugegraph-server/* ]]; then
@@ -73,7 +83,9 @@ for pair in \
         if [[ "$dockerfile" == hugegraph-server/* ]]; then
             CHECK_DIR=$(mktemp -d)
             trap 'rm -rf "$CHECK_DIR"' EXIT
-            docker run --rm --pull never --entrypoint bash \
+            # The image user cannot write the runner-owned temp dir, so copy
+            # the jars out as the runner's own uid.
+            docker run --rm --pull never --user "$(id -u):$(id -g)" --entrypoint bash \
                 -v "$CHECK_DIR:/check" "$IMAGE_ID" -c \
                 'cp /hugegraph-server/lib/hugegraph-api-*.jar \
                     /hugegraph-server/lib/hugegraph-common-*.jar /check/'

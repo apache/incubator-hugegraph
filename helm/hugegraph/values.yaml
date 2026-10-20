@@ -98,9 +98,12 @@ pd:
     size: 10Gi
     storageClassName: ""
   resources: {}
-  # Pod-level and container-level securityContext. Empty by default because the
-  # published images run as root; set these to satisfy a restricted namespace.
-  podSecurityContext: {}
+  # Pod-level and container-level securityContext. The images run as the
+  # non-root UID/GID 10001; fsGroup lets that user write the data volume,
+  # including one created by an older image that ran as root.
+  podSecurityContext:
+    fsGroup: 10001
+    fsGroupChangePolicy: OnRootMismatch
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:
@@ -226,7 +229,10 @@ store:
     size: 50Gi
     storageClassName: ""
   resources: {}
-  podSecurityContext: {}
+  # Same as pd.podSecurityContext: lets UID 10001 write the data volume.
+  podSecurityContext:
+    fsGroup: 10001
+    fsGroupChangePolicy: OnRootMismatch
   securityContext:
     allowPrivilegeEscalation: false
     capabilities:

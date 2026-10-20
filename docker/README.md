@@ -285,6 +285,25 @@ Standalone stores RocksDB data at `/hugegraph-server/rocksdb-data`. The HStore t
 
 `docker compose down` keeps named-volume data. `docker compose down -v` intentionally deletes it.
 
+### Container user
+
+The PD, Store and Server images run as the non-root user `hugegraph`, UID/GID `10001:10001`. New named volumes are created with that owner automatically. A host directory used as a bind mount, for example for `/hugegraph-server/logs`, must be writable by UID `10001`; a mounted read-only file only needs to be world-readable.
+
+<details>
+<summary>Upgrading data written by an image that ran as root</summary>
+
+Images from 1.7.0 and earlier run as root, so their volumes are owned by root and the new image fails with `Permission denied` on its first write. Stop the topology with `docker compose ... down` (not `down -v`), then change the owner of each data volume once with the new image:
+
+```bash
+docker run --rm -u 0 --entrypoint chown -v <volume>:/data <new-image> -R 10001:10001 /data
+```
+
+List the volumes with `docker volume ls`; Compose prefixes each name with the project name. Then start again with `docker compose ... up -d`. Do not upgrade running containers with a plain `up -d`: Compose reattaches the anonymous volume that holds the previous image's root-owned application directory. Run `down` first, or use `up -d --renew-anon-volumes`.
+
+On Kubernetes, set `fsGroup: 10001` (optionally with `fsGroupChangePolicy: OnRootMismatch`) in the pod security context so the user can write volumes created by older images. The [Helm chart](../helm/hugegraph) sets this for PD and Store by default.
+
+</details>
+
 ### Server service identity
 
 Server image builds containing this configuration mapping accept
@@ -430,6 +449,7 @@ docker build -f hugegraph-server/Dockerfile -t hugegraph-standalone:local .
 | `MAVEN_PROJECTS` | Override the module selection; retain all three distributions required by the shared build and archive cleanup. |
 | `MAVEN_ARGS` | Pass other Maven options. |
 | `RUNTIME_DEPS_EPOCH` | Change the value to refresh cached OS packages without invalidating the Maven build stage. Default: `1`. |
+| `HG_UID`, `HG_GID` | UID and GID of the non-root `hugegraph` user that runs the image. Default: `10001`. The Helm chart's `fsGroup` default assumes `10001`. |
 
 <details>
 <summary>Custom modules, package refresh, and cache behavior</summary>
