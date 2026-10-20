@@ -539,6 +539,46 @@ class PolicyTest(unittest.TestCase):
                             self.assertIn("if: ${{ !cancelled() }}", step)
                     self.assertIn("Run hugegraph-struct test", host)
 
+    def test_store_upload_cannot_contaminate_later_maven_checks(self):
+        workflow = (Path(__file__).resolve().parents[1] / "workflows/pd-store-ci.yml").read_text()
+        store = workflow.split("\n  store:\n", 1)[1].split("\n  hstore:\n", 1)[0]
+        upload = store.index("      - name: Upload coverage to Codecov\n")
+        self.assertLess(store.index("      - name: Run hugegraph-struct test\n"), upload)
+        self.assertNotIn("mvn ", store[upload:])
+        self.assertIn("id: store-coverage", store)
+        condition = re.search(r"^        if: (.+)$", store[upload:], re.M).group(1)
+        self.assertIn("!cancelled()", condition)
+        for outcome in ["success", "failure", "skipped", ""]:
+            self.assertEqual(outcome == "success", self.workflow_expression(condition,
+                             {"steps.store-coverage.outcome": outcome}))
+
+    def test_rocksdb_created_ref_skips_comparison_but_rejects_invalid_revisions(self):
+        action = (Path(__file__).resolve().parents[1] / "actions/rocksdb-compatibility/action.yml").read_text()
+        steps = action.split("\n    - ")[1:]
+        code = textwrap.dedent(steps[0].split("      run: |\n", 1)[1])
+        zero, before, after = "0" * 40, "a" * 40, "b" * 40
+        cases = [("push", before, after, "true"), ("pull_request", before, after, "true"),
+                 ("push", zero, after, "false"), ("pull_request", zero, after, None),
+                 ("push", "0" * 39, after, None), ("push", "bad", after, None),
+                 ("push", zero, "bad", None), ("push", zero, zero, None),
+                 ("push", before, zero, None), ("push", before, "", None)]
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "output"
+            for event, base, head, compare in cases:
+                output.write_text("")
+                result = subprocess.run(["bash", "-e", "-c", code], capture_output=True, text=True,
+                                        env={**os.environ, "GITHUB_EVENT_NAME": event, "BEFORE_SHA": base,
+                                             "AFTER_SHA": head, "GITHUB_OUTPUT": str(output)})
+                with self.subTest(event=event, before=base, after=head):
+                    self.assertEqual(compare is not None, result.returncode == 0, result.stderr)
+                    self.assertEqual("" if compare is None else f"compare={compare}\n", output.read_text())
+                    self.assertEqual(compare == "false", "::notice::" in result.stdout)
+                    for step in steps[1:]:
+                        condition = re.search(r"^      if: (.+)$", step, re.M).group(1)
+                        enabled = self.workflow_expression(condition.replace("always()", "true"),
+                            {"steps.revisions.outputs.compare": compare or ""})
+                        self.assertEqual(compare == "true", enabled, step.splitlines()[0])
+
     def test_coordinator_reads_and_validates_real_java_input(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
         code = workflow.split("python3 - <<'PYTHON'\n", 1)[1].split("\n          PYTHON", 1)[0]

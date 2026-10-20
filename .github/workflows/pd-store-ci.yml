@@ -468,6 +468,7 @@ jobs:
             -DskipTests -Deditorconfig.skip=true -ntp
 
       - name: Validate aggregate coverage report
+        id: store-coverage
         run: |
           $TRAVIS_DIR/check-jacoco-report.sh \
             --require-test-report \
@@ -519,15 +520,6 @@ jobs:
             tail -n 120 "$report" || true
           done
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ env.REPORT_FILE }}
-          flags: store
-          disable_search: true
-          fail_ci_if_error: false
-
       - name: Verify Store stop failure propagation and PID retention
         if: ${{ !cancelled() }}
         run: bash hugegraph-server/hugegraph-dist/src/assembly/travis/test-stop-hugegraph-store.sh
@@ -561,6 +553,17 @@ jobs:
       - name: Check RocksDB version compatibility
         if: ${{ !cancelled() && !inputs.run-pd }}
         uses: ./.github/actions/rocksdb-compatibility
+
+      # Upload last: Codecov downloads unlicensed checksum files into the workspace.
+      - name: Upload coverage to Codecov
+        if: ${{ !cancelled() && steps.store-coverage.outcome == 'success' }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ env.REPORT_FILE }}
+          flags: store
+          disable_search: true
+          fail_ci_if_error: false
 
   hstore:
     if: inputs.run-hstore

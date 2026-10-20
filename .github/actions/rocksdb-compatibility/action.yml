@@ -21,19 +21,28 @@ runs:
   using: composite
   steps:
     - name: Require exact comparison revisions
+      id: revisions
       shell: bash
       env:
         BEFORE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
         AFTER_SHA: ${{ github.event.pull_request.head.sha || github.event.after || github.sha }}
       run: |
+        if [[ "$GITHUB_EVENT_NAME" == push && "$BEFORE_SHA" == 0000000000000000000000000000000000000000 &&
+              "$AFTER_SHA" =~ ^[0-9a-f]{40}$ && ! "$AFTER_SHA" =~ ^0+$ ]]; then
+          echo "::notice::Skipping RocksDB comparison for a newly created ref with no before revision"
+          echo "compare=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
         for revision in "$BEFORE_SHA" "$AFTER_SHA"; do
           if [[ ! "$revision" =~ ^[0-9a-f]{40}$ || "$revision" =~ ^0+$ ]]; then
             echo "Error: cannot determine the before/after revision for RocksDB compatibility" >&2
             exit 1
           fi
         done
+        echo "compare=true" >> "$GITHUB_OUTPUT"
 
     - name: Checkout before
+      if: steps.revisions.outputs.compare == 'true'
       uses: actions/checkout@v7
       with:
         ref: ${{ github.event.pull_request.base.sha || github.event.before || github.sha }}
@@ -41,6 +50,7 @@ runs:
         persist-credentials: false
 
     - name: Checkout after
+      if: steps.revisions.outputs.compare == 'true'
       uses: actions/checkout@v7
       with:
         repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
@@ -49,12 +59,14 @@ runs:
         persist-credentials: false
 
     - name: Install comparison JDK
+      if: steps.revisions.outputs.compare == 'true'
       uses: actions/setup-java@v6
       with:
         java-version-file: .ci-rocksdb/after/.github/workflows/.java-version
         distribution: 'zulu'
 
     - name: Test only changed RocksDB version pairs
+      if: steps.revisions.outputs.compare == 'true'
       shell: bash
       run: |
         bash .ci-rocksdb/after/hugegraph-server/hugegraph-test/src/test/rocksdb-compatibility/run.sh \
@@ -62,7 +74,7 @@ runs:
           "$RUNNER_TEMP/rocksdb-compatibility"
 
     - name: Preserve comparison and synthetic-data failure evidence
-      if: always()
+      if: always() && steps.revisions.outputs.compare == 'true'
       uses: actions/upload-artifact@v7
       with:
         name: rocksdb-compatibility-${{ github.sha }}

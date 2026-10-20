@@ -142,6 +142,8 @@ jobs:
         with:
           # TODO: reset critical to low before releasing
           fail-on-severity: critical
+          # No Scorecard gate is configured; avoid informational lookups for every package.
+          show-openssf-scorecard: false
           # Action will fail if dependencies don't match the list
           #allow-licenses: Apache-2.0, MIT
           #deny-licenses: GPL-3.0, AGPL-1.0, AGPL-3.0, LGPL-2.0, CC-BY-3.0

@@ -132,10 +132,15 @@ are no separate post-test aggregation runners or end-of-run metadata checks.
 Startup contracts run inside RocksDB validation. Struct tests and their shell contracts run
 inside the selected Store job, reusing its reactor build; a Struct-only selection retains
 its own runner. RocksDB version compatibility runs once inside the first selected PD, Store
-or HStore job, in that order. These added steps still execute after ordinary host-job failures;
+or HStore job, in that order. A push creating a branch has no previous revision; it
+reports this explicitly and skips only the before/after compatibility comparison. These added steps
+still execute after ordinary host-job failures;
 a host timeout or cancellation can stop them. Helm uses preflight, whose total budget is
 20 minutes. PR dependency review runs as the last step of the existing dependency job even
-if its build or inventory check failed. These mergers remove four runner allocations from
+if its build or inventory check failed. Informational OpenSSF Scorecard display is disabled;
+vulnerability checks and their failure threshold are unchanged. Store uploads Codecov data
+after all Maven checks so downloaded checksum files cannot contaminate a later RAT scan.
+These mergers remove four runner allocations from
 a complete mainline PR run, without dropping checks; heavy module suites remain separate.
 Docker's static checks, deployment contracts and current-image validation share one runner.
 The Docker job has a 90-minute total budget, with 25 minutes for deployment contracts and

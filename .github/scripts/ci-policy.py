@@ -39,7 +39,7 @@ PREFIXES = {
 WORKFLOWS = {
     "server": {"server-ci.yml": MAINLINE, "commons-ci.yml": {"commons"},
                "pd-store-ci.yml": {"struct", "pd", "store", "hstore"}, "cluster-test-ci.yml": {"cluster"},
-               "docker-build-ci.yml": {"docker"}, "helm-chart-ci.yml": {"helm"},
+               "docker-build-ci.yml": {"docker"},
                "codeql-analysis.yml": {"security"}, "server-memory-ci.yml": {"server"},
                "server-tests.yml": {"server", "hbase"},
                "server-compatibility-ci.yml": {"macos", "macos_full", "hbase", "riscv64"},
