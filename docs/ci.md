@@ -165,9 +165,10 @@ it does not guarantee a specific queue delay.
 ## Dependency baseline
 
 The main CI coordinator selects the [shared dependency job](../.github/workflows/check-dependencies.yml)
-for every trusted master push and manual `dependencies`, `mainline` or `full` run on master.
-Other manual presets keep their requested scope. The job installs the complete reactor
-once with Java 17 and `contents: read`, reusing `actions/setup-java`'s Maven cache. When the
+for baseline production on every trusted master push and manual `dependencies` run on master.
+Manual `mainline` and `full` runs keep all requested tests and inventory checks without
+producing a baseline, so master advancement cannot skip or fail those checks. The job installs
+the complete reactor once with Java 17 and `contents: read`, reusing `actions/setup-java`'s Maven cache. When the
 path classifier also selects dependency inventory checks, those checks and baseline
 production share this same installation instead of building the reactor twice. It generates
 each module's resolved graph with Ferstl 4.0.3. The repository's

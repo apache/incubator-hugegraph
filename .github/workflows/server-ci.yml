@@ -73,7 +73,7 @@ jobs:
       - name: Select trusted master baseline
         id: baseline
         env:
-          ENABLED: ${{ ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) || github.repository == 'hugegraph/hugegraph') && github.ref == 'refs/heads/master' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (inputs.test-set == 'mainline' || inputs.test-set == 'full' || inputs.test-set == 'dependencies'))) }}
+          ENABLED: ${{ ((github.repository == 'apache/hugegraph' && github.event.repository.fork == false) || github.repository == 'hugegraph/hugegraph') && github.ref == 'refs/heads/master' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.test-set == 'dependencies')) }}
         run: echo "enabled=$ENABLED" >> "$GITHUB_OUTPUT"
 
       - name: Read project Java runtime

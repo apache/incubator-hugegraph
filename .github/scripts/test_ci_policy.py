@@ -454,23 +454,25 @@ class PolicyTest(unittest.TestCase):
                     self.assertIn("-Dmaven.test.skip=true", commands[0])
                     self.assertEqual(not inventory, "-Dmaven.javadoc.skip=true" in commands[0])
 
-    def test_master_baseline_is_selected_only_for_trusted_full_runs(self):
+    def test_master_baseline_requires_push_or_explicit_dependency_run(self):
         workflow = (Path(__file__).resolve().parents[1] / "workflows/server-ci.yml").read_text()
         expression = re.search(r"^          ENABLED: (.+)$", workflow, re.M).group(1)
         values = {"github.repository": "apache/hugegraph", "github.event.repository.fork": False,
                   "github.ref": "refs/heads/master", "github.event_name": "push", "inputs.test-set": "mainline"}
-        for event in ["push", "workflow_dispatch"]:
-            with self.subTest(event=event):
-                self.assertTrue(self.workflow_expression(expression, dict(values, **{"github.event_name": event})))
+        self.assertTrue(self.workflow_expression(expression, values))
         for field, value in [("github.event_name", "schedule"), ("github.event_name", "pull_request"),
                              ("github.event_name", "pull_request_target"),
                              ("github.ref", "refs/heads/release-1.7"), ("github.repository", "unknown/fork"),
                              ("github.event.repository.fork", True)]:
             with self.subTest(field=field, value=value):
                 self.assertFalse(self.workflow_expression(expression, dict(values, **{field: value})))
-        for preset in ["distributed", "codeql", "macos-arm"]:
+        for preset in ["mainline", "full", "distributed", "codeql", "macos-arm", "hbase", "riscv64"]:
             self.assertFalse(self.workflow_expression(expression, dict(values, **{
                 "github.event_name": "workflow_dispatch", "inputs.test-set": preset})))
+        for preset in ["mainline", "full"]:
+            plan = self.plan_for([], "workflow_dispatch", {"inputs": {"test-set": preset}})
+            self.assertIn("dependency_license", self.coordinator_jobs(plan))
+            self.assertNotIn("dependency_baseline", self.coordinator_jobs(plan))
         self.assertTrue(self.workflow_expression(expression, dict(values, **{
             "github.repository": "hugegraph/hugegraph", "github.event.repository.fork": True})))
         dependencies = self.plan_for([], "workflow_dispatch", {"inputs": {"test-set": "dependencies"}})
