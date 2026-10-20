@@ -33,6 +33,26 @@ send `?parameters=...` to bind a GET query. Invalid binding values, including th
 reserved translator null marker, also fail before traversal execution; explicit
 JSON null values are accepted and normalized by the Server.
 
+## Authentication
+
+Cypher follows the Server authentication mode. When authentication is disabled,
+GET and POST requests do not require an `Authorization` header, and the Server
+uses an anonymous Gremlin connection. Both the request's `Authorization` header
+and credentials in `conf/remote-objects.yaml` are ignored. Mixed modes with REST
+authentication disabled and Gremlin authentication enabled are unsupported.
+When authentication is enabled, requests still need
+valid Basic or Bearer credentials and retain the caller's graph permissions.
+Use `bin/enable-auth.sh` to configure authentication consistently for both REST
+and Gremlin; enabling only the REST authenticator does not protect the Gremlin
+endpoint used to execute Cypher.
+
+The Gremlin host and port in `conf/remote-objects.yaml` must point to the same
+Server's Gremlin endpoint, including when using nondefault ports.
+
+The API test runner exercises anonymous GET and POST before enabling
+authentication, then runs the authenticated suite, including missing-header
+rejection and a read-only user's write and cross-graph rejection cases.
+
 ## Response envelope
 
 Responses retain the Gremlin-compatible top-level fields `requestId`, `status`
@@ -110,6 +130,22 @@ Parameterized POST requests are already provided by merged
 [Server #3289](https://github.com/apache/hugegraph/pull/3289).
 The earlier [bound-query fork #238](https://github.com/hugegraph/hugegraph/pull/238)
 is a historical reference; use the current request contract above.
+
+## Temporal functions
+
+The built-in translator has no temporal functions of its own. The Server folds
+the `date()`, `datetime()` and `localdatetime()` constructors into native date
+values before translation, so these calls work wherever a bound value is
+accepted, for example `MATCH (n) WHERE n.birthday = date('2000-01-01') RETURN n`.
+A constructor folds when it has no argument (the current date or date-time), a
+string literal argument, or a parameter bound to a string; `date()` uses the
+`yyyy-MM-dd` form and the other two use `yyyy-MM-ddTHH:mm:ss[.SSS]`. Arguments
+that are not foldable, other temporal forms such as map or duration arguments,
+and the remaining temporal functions (`time()`, `localtime()`, `duration()`)
+keep failing translation with `Unknown function` as before.
+Constructor names are case-insensitive like the rest of Cypher, and the bare
+constructors of one statement read the clock once. EXPLAIN prints a folded
+value as an explicit `new Date(...)` constructor instead of a stringified date.
 
 ## Regression checks
 

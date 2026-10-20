@@ -79,11 +79,138 @@ existing precedence; see [container heap sizing](../docker/README.md#server-heap
 
 ### Arthas diagnostics
 
-Server bundles Arthas 4.1.5. Activate the agent with `PUT /arthas` using the Server's
-configured authentication. The existing `arthas.ip`, `arthas.httpPort`,
-`arthas.telnetPort` and `arthas.disabledCommands` options still configure the agent.
-HugeGraph disables the bundled agent's optional MCP endpoint and keeps the existing
-activation response and diagnostic HTTP/telnet interfaces.
+Server and Store bundle Arthas 4.1.5, managed by the root POM. PD does not embed
+an Arthas agent. Diagnostic ports bind to `127.0.0.1` by default. Administrators
+can explicitly configure another valid address, including wildcard `0.0.0.0` or
+`::`; `localhost` is normalized to `127.0.0.1`. Wildcard listeners can accept both
+IPv4 and IPv6 depending on the OS/JVM configuration; restrict both in firewall
+rules. Server's `PUT /arthas`
+requires authentication to be enabled and the caller to be an authenticated administrator.
+Without authentication, the Server endpoint returns HTTP 403, including requests
+from localhost or through a reverse proxy. Store has no equivalent administrator
+authentication, so `GET /v1/arthasstart` always returns HTTP 403.
+
+For local diagnosis of either running service, use its distribution's bundled
+helper as the same OS user that owns the JVM:
+
+```bash
+bin/arthas.sh
+```
+
+The distribution prepares the agent in `lib/arthas` at build time. The helper
+requires JDK 17 and uses `bin/pid`, without downloads, runtime extraction, a user
+cache, service restarts or configuration edits. A new local agent listens on
+`127.0.0.1:3658`, with HTTP, MCP and reverse tunnels disabled. Use `--pid` or
+`--telnet-port` for another running instance, and `--command version` for a one-time
+command. Interactive mode requires a terminal; for pipes, scripts or `docker exec`
+without `-it`, use `--command` instead. Run `bin/arthas.sh --help` for usage.
+When the helper exits, including after `--command`, `quit`, or INT/TERM/HUP, it
+stops the agent and all its diagnostic sessions; the application JVM keeps running.
+SIGKILL or a host failure cannot run this cleanup: stop any surviving agent manually.
+For remote diagnosis, log in to the service host over SSH and run the same command,
+or explicitly configure a reachable listener with appropriate authentication and
+network access controls as described below.
+Official Server (including HStore) and Store images include JDK 17, so the same
+helper works inside the container, for example
+`docker exec -it <store-container> /hugegraph-store/bin/arthas.sh`.
+A JRE-only installation needs JDK 17 for this helper.
+If the Server API has already activated Arthas, connect to its existing telnet
+port instead: `bin/arthas.sh --telnet-port 8562` with the default configuration.
+Use `--target-ip` to select another bind address, for example
+`bin/arthas.sh --target-ip 0.0.0.0` or
+`bin/arthas.sh --target-ip ::1 --telnet-port 8562 --command version`.
+The default is `127.0.0.1`; `localhost` maps to `127.0.0.1`. Wildcard addresses
+`0.0.0.0` and `::` may accept both IPv4 and IPv6; the helper connects and cleans
+up through `127.0.0.1` for either wildcard. Remote clients connect
+to the service host's actual reachable address, not the wildcard address.
+An already running agent retains its listener and authentication settings;
+helper options do not reconfigure it. To switch to the helper's
+HTTP-disabled defaults, run `bin/arthas.sh --telnet-port 8562 --command stop`, then
+`bin/arthas.sh`; this stops only Arthas, and leaves the service JVM running.
+Arthas can execute code inside the JVM. OS attach permissions control initial
+activation; HugeGraph administrator authentication protects only the activation
+API, not subsequent diagnostic connections. We recommend enabling Arthas native
+authentication, especially when binding beyond loopback. However, native defaults
+allow connections from `127.0.0.1` to skip authentication even with credentials;
+other OS users or containers in the same Pod can still connect this way. To disable
+this bypass, set `-Darthas.localConnectionNonAuth=false` on the service JVM and
+restart it. Restrict host/Pod and port-forward access to trusted operators, and
+limit firewall rules, port mappings and SSH forwarding accordingly. Authentication
+does not encrypt telnet
+or ordinary HTTP traffic; use a protected network or encrypted transport for
+remote access. Avoid concurrent helper sessions because exiting one stops the
+shared agent. A disabled-command list is optional and is not access control.
+
+Pass native Arthas credentials when starting or reusing an agent:
+
+```bash
+bin/arthas.sh --target-ip 0.0.0.0 \
+    --username diagnostics --password '<arthas-password>'
+```
+
+Use single-line credentials; printable ASCII avoids the bundled Arthas 4.1.5
+telnet client's Unicode limitation. Password-only use defaults to username `arthas`.
+Native JVM credentials also apply to helper-started agents: if the target JVM has
+`-Darthas.username` or `-Darthas.password`, supply the effective credentials with
+`--username` / `--password` for authenticated commands and cleanup, especially
+when `-Darthas.localConnectionNonAuth=false` is set. The helper does not clear
+native credentials when the corresponding option is omitted.
+These credentials are separate from HugeGraph accounts. Batch commands and exit
+cleanup use the supplied credentials automatically. For interactive diagnosis,
+if prompted, enter `auth --username diagnostics <arthas-password>` in the Arthas
+console. Existing agents require their existing credentials; passing new values
+does not change them. Password arguments may appear in shell history and process
+listings, so handle them on a trusted host. With `--username` alone, native Arthas
+generates a password only when none is already configured in the target JVM's
+native settings; otherwise it uses that inherited password. Supply `--password` for
+authenticated batch commands and automatic cleanup. If cleanup fails, the helper
+returns nonzero and the agent may remain running; use the configured or generated credentials with
+native `auth`, then `stop`, to close it without stopping the service JVM.
+
+[Arthas native authentication](https://arthas.aliyun.com/en/doc/auth.html) remains
+optional and follows upstream defaults: `arthas.localConnectionNonAuth=true`
+allows connections from `127.0.0.1` to skip authentication. The helper uses a private
+configuration, so editing `lib/arthas/arthas.properties` does not configure it.
+If required, the target JVM property `-Darthas.localConnectionNonAuth=false` is
+honored after restarting the service JVM. Arthas 4.1.5 generates a password when
+binding `0.0.0.0` or `::` without an effective native password and prints it in the target
+JVM output and Arthas log; explicitly supplying credentials is more convenient
+for remote diagnosis and authenticated cleanup.
+
+Authenticated Server administrators can continue using `PUT /arthas` without an
+additional enable switch or restart. Its HTTP/telnet interfaces use the configured
+bind address; HugeGraph disables the optional MCP endpoint. The activation response
+still contains the same four Arthas configuration keys. For API activation with
+native credentials, add `-Darthas.username=diagnostics` and
+`-Darthas.password=<arthas-password>` to the Server JVM startup options and restart
+Server before activation. These are native JVM properties, not new REST
+configuration keys, and also apply to agents started by the local helper as described
+above. They may expose secrets in process listings. Without native
+credential settings, a specific non-loopback bind address does not require login; wildcard
+binds use the generated password described above. API activation alone
+leaves the agent running until an operator sends `stop`; connecting through the
+helper applies the helper's exit cleanup to that existing agent too.
+
+Before reusing an API-started agent, leave `session` and `stop` out of
+`arthas.disabled_commands` (or its legacy alias). `session` verifies the target
+PID; `stop` closes Arthas without stopping the service JVM. Existing configurations
+remain accepted, but failed PID verification or listener cleanup makes the helper
+print an error and exit nonzero; the agent may remain running. To recover from an
+agent with `stop` disabled, remove that restriction and restart the service before
+activating Arthas again. Newly attached local agents keep both commands available.
+
+No commands are disabled by default. Administrators can optionally set
+`arthas.disabled_commands=jad,mc` to restrict selected commands for API activation;
+new local agents do not inherit this list.
+
+The existing `arthas.ip`, `arthas.httpPort`, `arthas.telnetPort` and
+`arthas.disabledCommands` options configure the Server API-activated agent.
+The distribution uses `arthas.telnet_port`, `arthas.http_port` and
+`arthas.disabled_commands`. These snake_case keys take precedence over the legacy
+camelCase aliases when both are present, including explicit default values.
+Conflicting values produce a warning naming both keys and the effective key when
+the agent is activated. Remove the unused alias to avoid ambiguity. Store's legacy
+configuration fields are retained; the local helper does not read them.
 
 For a synchronous one-time command, POST `{"action":"exec","command":"version"}`
 to the agent's `/api` endpoint without a `sessionId`. Check `state=SUCCEEDED`, the
@@ -250,6 +377,43 @@ REST and Gremlin accept requests. A first label-filtered Gremlin query must succ
 without a preceding REST graph query, and subsequent REST queries must remain usable.
 Gremlin scripts still cannot read restricted system properties such as `java.version`
 or disable the security manager.
+
+### Property-query index coverage
+
+For type-compatible values, a global property-index query such as
+`g.V().has("name", "alice")` or `g.E().has("weight", 0.5)` requires compatible
+indexes on every visible candidate label. A candidate declares all queried non-OLAP
+properties; even a label with no records requires coverage. Base edge labels have no
+direct records; their indexes can cover sub-labels. An explicit sub-label query
+also uses a compatible query-visible parent index when no compatible direct index
+exists, while still filtering out sibling sub-labels. Shared OLAP indexes follow the graph read
+mode.
+
+| Candidate state | Query behavior |
+| --- | --- |
+| Every visible candidate has compatible indexes | The query combines the indexed results. Composite and joint index plans may serve different labels in the same query. |
+| A visible candidate lacks a compatible index and the values pass the property-type check | The query fails with `NoIndexException`, including when other candidates are hidden or deleting. |
+| Every candidate is excluded by visibility | The query returns an empty result, including after those labels' indexes have been removed. |
+
+When query-visible candidates remain, index matching precedes the property-type
+check. If at least one index matches but a value fails that check, the query returns
+an empty result before complete coverage is checked. If no index matches, it still
+raises `NoIndexException`, even for a type-mismatched value.
+
+Normal queries exclude hidden labels and labels in `DELETING` or `UNDELETED`
+status. Internal requests that enable `showHidden` or `showDeleting` include the
+corresponding labels and still require their indexes. Visibility follows the outer
+request when a query is split into subqueries. Each branch checks index state and
+complete coverage before opening its backend iterators. If branch construction
+fails, the query closes cursors from both the unfinished branch and earlier
+branches, preserving the original error. Joint index planning closes unselected
+cursors and transfers the selected cursor to the result. This does not provide a
+snapshot against concurrent schema changes.
+
+To fix incomplete coverage, specify an indexed label, for example
+`g.V().hasLabel("person").has("name", "alice")`, or add indexes compatible with the
+query predicates to every candidate label. Explicit-ID lookups and adjacency
+filtering do not introduce a global property-index coverage requirement.
 
 ### Predicate and value compatibility
 
@@ -481,6 +645,9 @@ Task database workers release their owned task and graph transactions on the wor
 thread. A failure while closing one owner must not skip cleanup of other owners or
 server-info resources. Cleanup retains the first exception and attaches later cleanup
 failures as suppressed exceptions.
+For the local Standard scheduler, a deleted task disappears from public lookup after its persisted record is
+removed, while its actual execution still counts toward drain until native cleanup finishes; late completion saves from
+that owner do not recreate the removed record.
 
 Synchronous task cancellation preserves a transaction already open on its caller,
 including uncommitted graph writes. Cancellation still runs the normal completion and
@@ -555,6 +722,84 @@ compatibility evidence. Run the read-only application examples against represent
 existing data and validate the serializers, client versions and authentication
 combinations actually used by the application.
 
+## Cache RPC graph lifecycle
+
+When cache RPC is enabled and a backend declares shared storage, Server registers both
+graph and schema cache notifiers for graphs loaded during startup and graphs created or
+loaded later. A new graph's RPC registration must succeed before its local publication.
+Graph services use the graph space and graph name together as their service identity.
+PD deletion and startup coordinate RPC removal for the same graph instance. Startup does not
+register an owner whose RPC removal is pending, even after its placement-event token is consumed,
+and checks logical closure under the actual owner's RPC lifecycle monitor before registration.
+Any retained provider configuration must be unregistered before startup can export services;
+a cleanup failure fails startup instead of re-exporting that owner. Graph clearing, task drains
+and full graph close remain outside this RPC publication gate.
+
+Internal graph loading registers RPC services in Server's administrative scope and
+restores the caller's identity afterward. Direct registration and cleanup remain
+administrative operations.
+
+Successful graph close releases that graph's notifier listeners, providers and consumer
+proxies. A failed task drain during ordinary close or non-clearing local removal retains
+the owner and its RPC resources. In PD-enabled deployments, RPC cleanup failures during
+graph DELETE retain the local owner and bindings for retry; partial cleanup does not imply
+a healthy service. This DELETE path first closes task admission and drains local executions,
+then cleans up RPC before metadata deletion and backend clearing. A failed drain or RPC
+cleanup can be retried with the same DELETE. Logical graph closure fences access before
+all resource cleanup completes. Any close failure retains the local owner and bindings;
+retrying the same DELETE retries cleanup without repeating backend clearing. A completed clear
+is remembered for that exact graph instance even if an external idle transaction delays close;
+retry after that transaction exits. A replacement graph with the same name is cleared independently.
+A graph closed by a non-clearing removal has no successful-clear certificate. A later clearing DELETE
+refuses that closed owner and keeps its binding, rather than reporting success while old backend data remains.
+Raft provider, node and an owned listener are closed independently. The first fatal Java Error takes
+priority over ordinary close failures; otherwise the first failure is retained. Other failures are
+reported as suppressed, with a repeated reference to the primary failure ignored.
+A graph using Server's shared Raft listener closes
+only its own node. Server releases that listener and its address registration on shutdown;
+deleting one graph keeps the listener available to other local graphs. An interrupted node
+join retains the graph owner and interrupt status so a later DELETE can finish cleanup.
+The context's backend, snapshot and optional read-index executors stop after node join and
+drain queued work before close completes. Their wait uses `task.wait_timeout`; timeout or
+interruption retains the graph for retry without cancelling queued operations.
+RPC cleanup can start before graph close finishes. Clearing PD DELETE unregisters RPC before
+metadata removal and backend clear. Factory, binding and quota removal require a successful graph close;
+a failed close retains their owner even if its RPC services have already been unregistered.
+One failing graph does not prevent other graphs in a PD removal batch from being processed.
+Fatal Java Errors retain their original identity and
+propagate out of the removal batch. Failures after backend clearing do not undo deletion;
+retries do not restore deleted data or placement metadata.
+
+For local deletion without PD, backend clearing precedes RPC cleanup during graph close.
+A close failure retains the same local graph, factory identity and configuration for DELETE retry,
+even when access has already been fenced by logical closure. Only a successful clear by that
+instance's local drop permits retry to skip clearing and finish its retained resource cleanup.
+An ordinary close does not provide that certificate. A failure before clearing keeps the open
+owner's existing RPC services. A later cleanup failure does not preserve or restore deleted data.
+
+Failed creation or local loading closes the candidate in Server's administrative scope.
+If rollback close fails, Server retains the local owner and factory identity for cleanup retry.
+Retained failed candidates are excluded from RPC startup even while they are still open.
+An old graph's cleanup cannot remove or re-export a replacement graph's services.
+A PD graph-add notification blocked by an existing owner is coalesced until that owner is
+released, including when independent watches deliver the new ADD before the old REMOVE.
+Duplicate ADD notifications alone keep the healthy owner. Server consumes the PD acknowledgement
+of its own local graph creation without retaining a replacement ADD unless that exact owner already
+has failed peer cleanup; the existing cleanup retry takes priority. A healthy creation acknowledgement
+cannot republish the graph during a later reload. After removal, Server rereads the latest configuration;
+a missing configuration creates nothing. Reload consumes pending ADDs only after each old owner is
+successfully removed, then loads current metadata together instead of replaying ADDs during removal.
+After a peer removal fails, a later same-name PD add retries non-clearing cleanup of that exact
+owner before loading its replacement. Another cleanup failure keeps the owner for the next add
+or normal reload; no background retry is scheduled. A replacement load failure is logged and
+remains pending for a later add or normal reload. The completed old-owner DELETE still succeeds.
+Events queued for a closed notifier are ignored; an RPC request already sent cannot be recalled.
+
+Cache RPC uses the configured peer addresses; local provider export does not establish
+that every remote consumer connection is ready. Notifications are asynchronous, and
+connection or delivery failures are logged. This lifecycle handling does not provide
+acknowledged delivery or a distributed cache consistency protocol. Validate actual DML
+and cache behavior against the deployment's shared backend and topology.
 
 ## Deleting a graph with local tasks
 

@@ -149,11 +149,18 @@ pd:
   # raft.ip-whitelist.enabled); k8s network policy/auth owns that layer.
   # Set true to restore the image default.
   raftIpWhitelistEnabled: false
-  # Raft RPC timeout in milliseconds, rendered as -Draft.rpc-timeout. A
-  # vanished (not crashed) leader is waited on for this long per attempt, so
-  # the image default of 10000 leaves the cluster leaderless for about a
-  # minute where 3000 elects a new leader in seconds. Empty preserves the
-  # image default.
+  # Raft RPC timeout in milliseconds, rendered as -Draft.rpc-timeout. It
+  # bounds raft requests between PDs. On images that wait for a raft
+  # ReadIndex before they read an id counter it is also the deadline of that
+  # wait: id allocation fails after this long while the leader cannot
+  # confirm a read, for example while a new leader commits its first entry.
+  # Images that have raft.rpc-connect-timeout (default 1000) use that option
+  # for the Ping that opens a connection to a peer; set it through
+  # pd.javaOpts, for example -Draft.rpc-connect-timeout=1000. It does not
+  # bound requests on a connection that is already open. On older images
+  # this timeout is also the timeout of that Ping: their default of 10000
+  # leaves the cluster leaderless for about a minute where 3000 elects a new
+  # leader in seconds. Empty preserves the image default.
   raftRpcTimeoutMs: 3000
   # Explicit rollout strategy instead of the implicit StatefulSet default.
   updateStrategy:
@@ -174,9 +181,11 @@ pd:
   # HTTP path the PD startup and liveness probes hit. Empty derives it from
   # the replica count: /v1/health with more than one PD, so a normal election
   # never restarts a follower, and /v1/ready with a single PD, which has no
-  # election to lose and would otherwise pass /v1/health forever after losing
-  # leadership for good (apache/hugegraph#3222). Startup follows liveness so
+  # election to lose. Older images otherwise pass /v1/health forever after
+  # losing leadership for good (apache/hugegraph#3222). Startup follows liveness so
   # the boot-to-ready window sits inside the startup budget.
+  # TODO: drop the single-PD readiness derivation once the minimum supported image
+  # includes the /v1/health fatal Raft error fix for apache/hugegraph#3222.
   livenessPath: ""
   probes:
     startup:

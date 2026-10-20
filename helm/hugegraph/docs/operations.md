@@ -4,6 +4,12 @@ Start with [installation and common settings](../README.md).
 [values.yaml](../values.yaml) documents every available parameter; this page
 covers settings that need coordination or diagnosis.
 
+Commands below use the local chart from the repository root. For a published
+Chart, replace `./helm/hugegraph` with
+`oci://ghcr.io/hugegraph/hugegraph-helm --version <published-version>`.
+Keep the installed version for configuration-only changes; choose and review a
+new version for upgrades. See [version selection](distribution.md#choose-a-version-and-registry).
+
 ## Credentials
 
 Normal Helm installations generate/reuse three kept Secrets:
@@ -124,7 +130,9 @@ deletion; reclamation/recovery needs explicit inspection.
 
 Store's init container waits for a majority of PD peers on `store.waitPath`
 (default `/v1/ready`) for up to `store.waitTimeoutSeconds` (default 900).
-PD readiness requires a Raft leader; `/v1/health` only confirms a live listener.
+PD readiness requires a Raft leader. Images with the fatal-health fix return
+`503` from `/v1/health` for terminal Raft errors or shutdown, while elections
+and temporary quorum loss remain healthy. Older images only check the listener.
 Store's own readiness does not prove every shard has recovered.
 
 Server waits for storage for `server.storageWaitTimeoutSeconds` (default 300),

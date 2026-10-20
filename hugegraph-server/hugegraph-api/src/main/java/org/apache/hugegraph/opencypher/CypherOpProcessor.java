@@ -200,6 +200,9 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
         ProcedureContext procedureContext = ProcedureContext.global();
         CypherAst ast = CypherAst.parse(cypher, parameters, procedureContext.getSignatures());
         validateParameters(ast, parameters);
+        // The translator has no temporal functions; fold the supported
+        // constructors into bound values before it rejects them.
+        parameters = CypherTemporalFunctions.fold(ast, parameters);
 
         String translatorDefinition = getTranslatorDefinition(context);
 
@@ -216,7 +219,9 @@ public class CypherOpProcessor extends AbstractEvalOpProcessor {
         Seq<GremlinStep> ir = ast.translate(strTranslator.flavor(),
                                             strTranslator.features(), procedureContext);
 
-        String gremlin = TranslationWriter.write(ir, strTranslator, parameters);
+        Map<String, Object> explainParameters =
+                CypherTemporalFunctions.explainParameters(parameters);
+        String gremlin = TranslationWriter.write(ir, strTranslator, explainParameters);
         logger.trace("Gremlin: {}", gremlin);
 
         if (ast.getOptions().contains(EXPLAIN)) {
