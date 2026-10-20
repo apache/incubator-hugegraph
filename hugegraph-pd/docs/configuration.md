@@ -192,8 +192,11 @@ pd:
 | `pd.initial-store-count` | Integer | `1` | Minimum number of Store nodes required for cluster to be operational. Set to expected initial store count. |
 | `pd.initial-store-list` | String | `127.0.0.1:8500` | Comma-separated list of Store gRPC addresses to auto-activate on startup. Useful for bootstrapping. |
 
+<a id="production-recommendations-pd-data-path"></a>
 **Production Recommendations**:
 - `pd.data-path`: Use dedicated SSD with at least 50GB free space
+  - PD opens its metadata RocksDB at `<pd.data-path>/rocksdb`. If its `LOCK` is still held, usually by a previous PD process that is still stopping, PD retries for up to 30 seconds and then fails startup with a non-zero exit so the supervisor can restart it.
+  - Never delete `LOCK` files under `pd.data-path` (`rocksdb/` or the Raft directories) to get past this: while the previous process is alive, two processes then write the same database. Stop or kill the old process instead.
 - `pd.patrol-interval`:
   - Development: `300` (5 minutes) for fast testing
   - Production: `1800` (30 minutes) to reduce overhead

@@ -19,7 +19,9 @@ package org.apache.hugegraph.pd.core.store;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.common.PDException;
@@ -28,9 +30,13 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.meta.MetadataKeyHelper;
 import org.apache.hugegraph.pd.store.HgKVStore;
 import org.apache.hugegraph.pd.store.HgKVStoreImpl;
+import org.apache.hugegraph.testutil.Whitebox;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.rocksdb.Options;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
 
 public class HgKVStoreImplTest {
 
@@ -134,5 +140,84 @@ public class HgKVStoreImplTest {
         Assert.assertEquals(200, kvStore.scanPrefix("k".getBytes()).size());
 
         kvStore.close();
+    }
+
+    @Test
+    public void testInitWaitsForHeldLock() throws Exception {
+        PDConfig config = newConfig("tmp/test-lock-released");
+        String dbPath = config.getDataPath() + "/rocksdb";
+        FileUtils.forceMkdir(new File(dbPath));
+        HgKVStore kvStore = new HgKVStoreImpl();
+        try (Options options = new Options().setCreateIfMissing(true)) {
+            RocksDB holder = RocksDB.open(options, dbPath);
+            // Release the LOCK the way a previous PD JVM does while it is still stopping
+            Thread releaser = new Thread(() -> {
+                try {
+                    Thread.sleep(1000L);
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                }
+                holder.close();
+            });
+            releaser.start();
+            try {
+                kvStore.init(config);
+                byte[] key = "lock".getBytes(StandardCharsets.UTF_8);
+                kvStore.put(key, key);
+                Assert.assertArrayEquals(key, kvStore.get(key));
+            } finally {
+                releaser.join();
+                kvStore.close();
+            }
+        }
+    }
+
+    @Test
+    public void testInitFailsWhenLockIsNeverReleased() throws Exception {
+        PDConfig config = newConfig("tmp/test-lock-held");
+        String dbPath = config.getDataPath() + "/rocksdb";
+        FileUtils.forceMkdir(new File(dbPath));
+        HgKVStoreImpl kvStore = new HgKVStoreImpl();
+        Whitebox.setInternalState(kvStore, "lockWaitTimeoutMs", 1000L);
+        try (Options options = new Options().setCreateIfMissing(true);
+             RocksDB ignored = RocksDB.open(options, dbPath)) {
+            long start = System.nanoTime();
+            IllegalStateException e = Assert.assertThrows(IllegalStateException.class,
+                                                          () -> kvStore.init(config));
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            Assert.assertTrue("gave up after " + elapsed + " ms", elapsed >= 1000L);
+            Assert.assertTrue(e.getCause() instanceof PDException);
+            Assert.assertTrue(e.getCause().getCause() instanceof RocksDBException);
+        } finally {
+            kvStore.close();
+        }
+    }
+
+    @Test
+    public void testInitDoesNotRetryOtherOpenFailures() throws Exception {
+        PDConfig config = newConfig("tmp/test-lock-not-a-dir");
+        // A regular file where the RocksDB directory belongs is not a lock conflict
+        File dbFile = new File(config.getDataPath() + "/rocksdb");
+        FileUtils.forceMkdir(dbFile.getParentFile());
+        FileUtils.touch(dbFile);
+        HgKVStore kvStore = new HgKVStoreImpl();
+        long start = System.nanoTime();
+        try {
+            Assert.assertThrows(IllegalStateException.class, () -> kvStore.init(config));
+        } finally {
+            kvStore.close();
+        }
+        long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        Assert.assertTrue("retried for " + elapsed + " ms", elapsed < 5000L);
+    }
+
+    private static PDConfig newConfig(String path) throws IOException {
+        File dir = new File(path);
+        if (dir.exists()) {
+            FileUtils.deleteDirectory(dir);
+        }
+        return new PDConfig() {{
+            setDataPath(path);
+        }};
     }
 }

@@ -43,6 +43,7 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.Slice;
+import org.rocksdb.Status;
 
 import com.alipay.sofa.jraft.util.Utils;
 import com.google.common.cache.CacheBuilder;
@@ -55,10 +56,17 @@ public class HgKVStoreImpl implements HgKVStore {
 
     private static final ConcurrentHashMap<String,
             ConcurrentMap<String, Object>> CACHE = new ConcurrentHashMap();
+    /*
+     * A restarted PD can start before the previous JVM has released the RocksDB LOCK.
+     * Wait about as long as stop-hugegraph-pd.sh waits for that JVM, then fail startup.
+     */
+    private static final long LOCK_WAIT_TIMEOUT_MS = 30_000L;
+    private static final long LOCK_RETRY_INTERVAL_MS = 500L;
     private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
     private RocksDB db;
     private String dbPath;
     private Options dbOptions;
+    private long lockWaitTimeoutMs = LOCK_WAIT_TIMEOUT_MS;
 
     @Override
     public void init(PDConfig config) {
@@ -75,10 +83,8 @@ public class HgKVStoreImpl implements HgKVStore {
                     log.warn("Failed to create data file,{}", e);
                 }
             }
-            openRocksDB(dbPath);
+            openRocksDBWaitingForLock(this.dbPath);
         } catch (PDException | RuntimeException | Error e) {
-            // TODO: retry opening a held RocksDB LOCK before failing PD startup.
-            // https://github.com/apache/hugegraph/issues/3226
             if (this.dbOptions != null) {
                 this.dbOptions.close();
                 this.dbOptions = null;
@@ -345,6 +351,51 @@ public class HgKVStoreImpl implements HgKVStore {
             this.db.close();
             this.db = null;
         }
+    }
+
+    private void openRocksDBWaitingForLock(String dbPath) throws PDException {
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.lockWaitTimeoutMs);
+        boolean waited = false;
+        while (true) {
+            try {
+                this.db = RocksDB.open(this.dbOptions, dbPath);
+                if (waited) {
+                    log.info("Opened RocksDB at {} after its LOCK was released", dbPath);
+                }
+                return;
+            } catch (RocksDBException e) {
+                if (!isLockConflict(e) || System.nanoTime() - deadline >= 0) {
+                    log.error("Failed to open RocksDB from {}", dbPath, e);
+                    throw new PDException(Pdpb.ErrorType.ROCKSDB_LOAD_SNAPSHOT_ERROR_VALUE, e);
+                }
+                if (!waited) {
+                    log.warn("RocksDB LOCK at {} is held, probably by a previous PD that is " +
+                             "still stopping; retrying for up to {} ms: {}",
+                             dbPath, this.lockWaitTimeoutMs, e.getMessage());
+                    waited = true;
+                }
+                try {
+                    Thread.sleep(LOCK_RETRY_INTERVAL_MS);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    e.addSuppressed(ie);
+                    throw new PDException(Pdpb.ErrorType.ROCKSDB_LOAD_SNAPSHOT_ERROR_VALUE, e);
+                }
+            }
+        }
+    }
+
+    /**
+     * The LOCK is held by another process ("While lock file") or by another handle in this
+     * JVM ("lock hold by current process"). Other open failures, including a LOCK file that
+     * cannot be created, are not transient and are not retried.
+     */
+    private static boolean isLockConflict(RocksDBException e) {
+        Status status = e.getStatus();
+        String message = e.getMessage();
+        return status != null && status.getCode() == Status.Code.IOError && message != null &&
+               (message.contains("While lock file") ||
+                message.contains("lock hold by current process"));
     }
 
     private void openRocksDB(String dbPath) throws PDException {

@@ -813,8 +813,9 @@ Two unauthenticated endpoints are meant for probes and startup gates:
 | `GET /v1/ready` | Readiness: the raft node is active and sees a leader, so this PD is inside a quorum. | `200` when ready, `503` otherwise |
 
 The health probe reads Raft state only; it does not verify metadata-store initialization.
-Metadata open failures propagate through startup; bounded LOCK retry remains tracked in
-[#3226](https://github.com/apache/hugegraph/issues/3226).
+Metadata open failures fail PD startup instead. While the metadata RocksDB LOCK is still held,
+PD retries for up to 30 seconds first; see
+[`pd.data-path`](configuration.md#production-recommendations-pd-data-path).
 
 ```bash
 curl -i http://localhost:8620/v1/ready
