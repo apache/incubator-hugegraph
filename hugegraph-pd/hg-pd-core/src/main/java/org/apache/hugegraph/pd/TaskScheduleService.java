@@ -631,15 +631,16 @@ public class TaskScheduleService {
     }
 
     /**
-     * The periodic entry of leader balancing. Calls balancePartitionLeader only when the
-     * leader count per store has drifted further apart than pd.balance-leader-max-skew and does
-     * not already match the planner's targets, so a balanced cluster sees no transfers. Skipped while a shard group is not Normal, has no
-     * recent partition heartbeat or has a shard that is neither Leader nor Follower, or while a
-     * store that holds a shard is not active, because the target distribution would include a
-     * replica that cannot take a leader. The plan uses the groups checked here; a group keeps
-     * its leader when this PD is no longer the leader, the group changed, the target or leader
-     * store has not reported for BALANCE_LEADER_REPORT_MAX_AGE, or the target trails the leader
-     * by the time the transfer would be sent.
+     * The periodic entry of leader balancing. Calls balancePartitionLeader only when the leader
+     * count per store has drifted further apart than pd.balance-leader-max-skew and does not
+     * already match the planner's targets, so a balanced cluster sees no transfers. Skipped while
+     * a shard group is not Normal, has no recent partition heartbeat or has a shard that is
+     * neither Leader nor Follower, or while a store that holds a shard is not active, because the
+     * target distribution would include a replica that cannot take a leader. The plan uses the
+     * groups checked here; a group keeps its leader when this PD is no longer the leader, the
+     * group changed, the target or leader store has not reported for
+     * BALANCE_LEADER_REPORT_MAX_AGE, or the target trails the leader by the time the transfer
+     * would be sent.
      *
      * @return shard group id -> the store id its leader was moved to; empty when skipped
      */
