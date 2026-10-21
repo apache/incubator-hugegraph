@@ -212,16 +212,18 @@ pd:
   membership change in progress); while a Store that holds a shard is not in the active-store list,
   which it leaves `store.keepAlive-timeout` after its last heartbeat; and while a split, move or
   shard balance task is running. A planned transfer is not sent if this PD is no longer the leader,
-  if its shard group changed after the check, or if the target's applied index trails the leader's
-  by more than an estimated 1000 entries. The indexes come from each Store's last heartbeat, and a
-  transfer is not sent when the target's or the leader Store's heartbeat is more than 60 seconds
-  old (two Store heartbeats). PD estimates the leader's index at the time of the target's report
-  from its average rate since an earlier heartbeat of the same leader Store, which it keeps across
-  checks that see the same heartbeat; when there is no such sample, PD compares the indexes as
-  reported. The leader stays where it is until a later check. The estimate is best effort, not a
-  strict bound: a write burst late in the interval can keep a caught-up Store waiting for later
-  checks, and a burst early in it can let a Store that fell behind through, in which case JRaft
-  ends the transfer after its timeout and the old leader takes writes again.
+  if its shard group changed after the check, if the target Store's persisted state is not `Up`
+  (for example `Exiting` while PD drains it, though it stays in the active-store list), or if the
+  target's applied index trails the leader's by more than an estimated 1000 entries. The indexes
+  come from each Store's last heartbeat, and a transfer is not sent when the target's or the leader
+  Store's heartbeat is more than 60 seconds old (two Store heartbeats). PD estimates the leader's
+  index at the time of the target's report from its average rate since an earlier heartbeat of the
+  same leader Store, which it keeps across checks that see the same heartbeat; when there is no
+  such sample, PD compares the indexes as reported. The leader stays where it is until a later
+  check. The estimate is best effort, not a strict bound: a write burst late in the interval can
+  keep a caught-up Store waiting for later checks, and a burst early in it can let a Store that
+  fell behind through, in which case JRaft ends the transfer after its timeout and the old leader
+  takes writes again.
 
 ### Store Management Settings
 

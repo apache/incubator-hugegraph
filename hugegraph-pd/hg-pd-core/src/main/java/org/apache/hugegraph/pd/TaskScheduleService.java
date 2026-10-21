@@ -659,6 +659,13 @@ public class TaskScheduleService {
         }
 
         List<Metapb.Store> stores = storeService.getActiveStores();
+        // The active list is TTL-backed and keeps a Store PD has set to Exiting, so the
+        // persisted state decides which Stores can take a leader
+        Set<Long> upStores = storeService.getStores().stream()
+                                         .filter(store -> store.getState() ==
+                                                          Metapb.StoreState.Up)
+                                         .map(Metapb.Store::getId)
+                                         .collect(Collectors.toSet());
         Set<Long> activeStores = stores.stream()
                                        .map(Metapb.Store::getId)
                                        .collect(Collectors.toSet());
@@ -763,7 +770,7 @@ public class TaskScheduleService {
         log.info("leader count by store: {}, skew {} exceeds {}, balancing leaders",
                  leaderCount, skew, maxSkew);
         return balancePartitionLeader(false, shardGroups, (group, storeId) ->
-                canTakeLeader(group, storeId, indexReports, previousLeaderReports));
+                canTakeLeader(group, storeId, upStores, indexReports, previousLeaderReports));
     }
 
     /**
@@ -820,14 +827,15 @@ public class TaskScheduleService {
 
     /**
      * Checks a periodic transfer right before it is sent: this PD must still be the leader, the
-     * group must be unchanged since autoBalancePartitionLeader checked it, and the target's
-     * applied index must trail the leader's by at most BALANCE_LEADER_MAX_INDEX_GAP. That gap is
-     * estimated from store heartbeats taken at different times, with the leader's progress in
-     * between taken as its average rate since the previous run, so it is not a strict bound:
-     * a burst late in that time makes a caught-up target look behind, and a burst early in it
-     * hides a target that fell behind.
+     * group must be unchanged since autoBalancePartitionLeader checked it, the target store must
+     * be Up both in the run's snapshot and in its persisted state now, and the target's applied
+     * index must trail the leader's by at most BALANCE_LEADER_MAX_INDEX_GAP. That gap is estimated
+     * from store heartbeats taken at different times, with the leader's progress in between taken
+     * as its average rate since the previous run, so it is not a strict bound: a burst late in
+     * that time makes a caught-up target look behind, and a burst early in it hides a target that
+     * fell behind.
      */
-    private boolean canTakeLeader(Metapb.ShardGroup group, long storeId,
+    private boolean canTakeLeader(Metapb.ShardGroup group, long storeId, Set<Long> upStores,
                                   Map<Integer, Map<Long, IndexReport>> indexReports,
                                   Map<Integer, IndexReport> previousLeaderReports) throws
                                                                                    PDException {
@@ -840,6 +848,16 @@ public class TaskScheduleService {
         if (!group.equals(storeService.getShardGroup(group.getId()))) {
             log.info("periodic leader balance keeps the leader of shard group {}, the group " +
                      "changed after the check", group.getId());
+            return false;
+        }
+        // A Store being drained (Exiting) or otherwise not Up must not get a leader back; read
+        // its state again, as PD can change it while the run plans
+        Metapb.Store targetStore = storeService.getStoreInfoMeta().getStore(storeId);
+        if (!upStores.contains(storeId) || targetStore == null ||
+            targetStore.getState() != Metapb.StoreState.Up) {
+            log.info("periodic leader balance keeps the leader of shard group {}, store {} is " +
+                     "{}", group.getId(), storeId,
+                     targetStore == null ? "not registered" : targetStore.getState());
             return false;
         }
         Long leaderStore = getLeaderStore(group);

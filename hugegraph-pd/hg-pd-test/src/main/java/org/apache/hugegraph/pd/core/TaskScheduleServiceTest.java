@@ -23,11 +23,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.ToLongBiFunction;
 import java.util.function.ToLongFunction;
 import java.util.function.UnaryOperator;
@@ -107,6 +109,31 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         // store 3 holds shards but sends no heartbeat, so it cannot take a leader
         var rst = autoBalance(new long[]{1, 1, 1, 1, 1, 1}, 1, 2);
         assertTrue(rst.isEmpty());
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithExitingStore() throws PDException {
+        // PD is draining store 3: it is still in the active list and still holds Follower
+        // shards in Normal groups, but no leader may move to it. Store 2 still takes its two.
+        for (var state : List.of(Metapb.StoreState.Exiting, Metapb.StoreState.Offline)) {
+            var rst = new Balance(1, 1, 1, 1, 1, 1)
+                    .storeState(storeId -> storeId == 3 ? state : Metapb.StoreState.Up)
+                    .run();
+            assertEquals(state.name(), 2, rst.size());
+            assertTrue(state.name(), rst.values().stream().allMatch(storeId -> storeId == 2L));
+        }
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWithStoreExitingAfterRead() throws PDException {
+        // Store 3 is Up when the run reads the stores and turns Exiting before the transfers
+        // are sent: the recheck keeps its two leaders where they are
+        var rst = new Balance(1, 1, 1, 1, 1, 1)
+                .storeStateAfterRead(storeId -> storeId == 3 ? Metapb.StoreState.Exiting :
+                                                Metapb.StoreState.Up)
+                .run();
+        assertEquals(2, rst.size());
+        assertTrue(rst.values().stream().allMatch(storeId -> storeId == 2L));
     }
 
     @Test
@@ -504,6 +531,8 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         private ToLongBiFunction<Long, Integer> appliedIndex = (storeId, groupId) -> 10_000;
         private ToLongFunction<Long> reportAge = storeId -> 0;
         private ToLongFunction<Long> reportTime;
+        private Function<Long, Metapb.StoreState> storeState = storeId -> Metapb.StoreState.Up;
+        private Function<Long, Metapb.StoreState> storeStateAfterRead;
         private UnaryOperator<Metapb.ShardGroup> afterRead;
         private TaskScheduleService service;
 
@@ -540,6 +569,19 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         // the same heartbeat
         Balance reportTime(ToLongFunction<Long> reportTime) {
             this.reportTime = reportTime;
+            return this;
+        }
+
+        // The state PD has persisted for each store, Up by default
+        Balance storeState(Function<Long, Metapb.StoreState> storeState) {
+            this.storeState = storeState;
+            return this;
+        }
+
+        // The persisted state each store changes to right after the balance reads the store
+        // list, like an Exiting change landing while the run plans. Runs on a fresh service.
+        Balance storeStateAfterRead(Function<Long, Metapb.StoreState> storeStateAfterRead) {
+            this.storeStateAfterRead = storeStateAfterRead;
             return this;
         }
 
@@ -584,6 +626,11 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                 }
                 partitions.add(genPartition(i));
             }
+            // Set aside stores 1-3 as other tests left them, to restore afterwards
+            var otherStores = new HashMap<Long, Metapb.Store>();
+            for (long storeId = 1; storeId <= 3; storeId++) {
+                otherStores.put(storeId, storeMeta.getStore(storeId));
+            }
             for (long storeId = 1; storeId <= 3; storeId++) {
                 var stats = Metapb.StoreStats.newBuilder();
                 for (int i = 0; i < leaderStores.length; i++) {
@@ -597,7 +644,9 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                                  now - reportAge.applyAsLong(storeId);
                 var store = Metapb.Store.newBuilder().setId(storeId).setStats(stats)
                                         .setLastHeartbeat(heartbeat)
+                                        .setState(storeState.apply(storeId))
                                         .build();
+                storeMeta.updateStore(store);
                 if (Arrays.stream(activeStores).anyMatch(id -> id == store.getId())) {
                     storeMeta.keepStoreAlive(store);
                 } else {
@@ -610,15 +659,30 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                 var balanceService = service;
                 if (balanceService == null) {
                     StoreNodeService storeService = getStoreNodeService();
-                    if (afterRead != null) {
+                    if (afterRead != null || storeStateAfterRead != null) {
                         storeService = new StoreNodeService(getPdConfig()) {
                             @Override
                             public List<Metapb.ShardGroup> getShardGroups() throws PDException {
                                 var groups = super.getShardGroups();
-                                for (var group : groups) {
-                                    storeMeta.updateShardGroup(afterRead.apply(group));
+                                if (afterRead != null) {
+                                    for (var group : groups) {
+                                        storeMeta.updateShardGroup(afterRead.apply(group));
+                                    }
                                 }
                                 return groups;
+                            }
+
+                            @Override
+                            public List<Metapb.Store> getStores() throws PDException {
+                                var stores = super.getStores();
+                                if (storeStateAfterRead != null) {
+                                    for (var store : stores) {
+                                        storeMeta.updateStore(store.toBuilder().setState(
+                                                storeStateAfterRead.apply(store.getId()))
+                                                                   .build());
+                                    }
+                                }
+                                return stores;
                             }
                         };
                     }
@@ -638,6 +702,13 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                 }
                 for (var group : otherGroups) {
                     storeMeta.updateShardGroup(group);
+                }
+                for (var entry : otherStores.entrySet()) {
+                    if (entry.getValue() == null) {
+                        storeMeta.removeStore(entry.getKey());
+                    } else {
+                        storeMeta.updateStore(entry.getValue());
+                    }
                 }
             }
         }
