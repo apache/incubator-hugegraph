@@ -314,8 +314,9 @@ public class KvService {
 
     /**
      * Deletes a key whose TTL marker expired, and the marker, while the key still holds the
-     * value the marker names. The value the cleanup read must carry the marker's expiry, so a
-     * value written after the marker (with another TTL, or none) is kept and only the stale
+     * value the marker names. A marker whose time has not passed is left alone with its value,
+     * which a read still returns. The value the cleanup read must carry the marker's expiry, so
+     * a value written after the marker (with another TTL, or none) is kept and only the stale
      * marker goes. Right before the delete, the key must still hold the bytes the cleanup read:
      * a renewal writes another expiry, so its bytes differ even for the same string. The check
      * and the delete are separate store operations, so a renewal that lands between them is
@@ -326,6 +327,12 @@ public class KvService {
      * @param stored what the cleanup read under the key, null if it is absent
      */
     public void removeExpired(String key, String marker, byte[] stored) throws PDException {
+        int timeEnd = marker.indexOf(KV_DELIMITER, TTL_PREFIX.length() + 1);
+        long expireAt = Long.parseLong(marker.substring(TTL_PREFIX.length() + 1, timeEnd));
+        if (expireAt >= System.currentTimeMillis()) {
+            // The scan compares bytes, so a longer time can sort below now: not due yet
+            return;
+        }
         byte[] storeKey = getStoreKey(key);
         byte[] markerKey = getStoreKey(marker);
         if (stored == null) {
@@ -341,8 +348,6 @@ public class KvService {
             meta.remove(markerKey);
             return;
         }
-        int timeEnd = marker.indexOf(KV_DELIMITER, TTL_PREFIX.length() + 1);
-        long expireAt = Long.parseLong(marker.substring(TTL_PREFIX.length() + 1, timeEnd));
         if (read.getTtl() != expireAt) {
             // Written after the marker, with another TTL or none: not the value it names
             meta.remove(markerKey);

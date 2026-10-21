@@ -88,6 +88,8 @@ public class KvServiceTest extends PDCoreTestBase {
         service.put("ttl-test/b", "new", 100_000L);
         String renewed = marker(service, "ttl-test/b");
         byte[] read = service.getMeta().getOne(service.getStoreKey("ttl-test/b"));
+        // The cleanup scans only markers whose time has passed
+        Thread.sleep(20L);
         service.removeExpired("ttl-test/b", marker, read);
         Assert.assertEquals("new", service.get("ttl-test/b"));
         Assert.assertNull(service.getMeta().getOne(service.getStoreKey(marker)));
@@ -106,6 +108,7 @@ public class KvServiceTest extends PDCoreTestBase {
         String marker = marker(service, "ttl-test/c");
         byte[] scanned = service.getMeta().getOne(service.getStoreKey("ttl-test/c"));
         service.put("ttl-test/c", "same", 100_000L);
+        Thread.sleep(20L);
         service.removeExpired("ttl-test/c", marker, scanned);
         Assert.assertEquals("same", service.get("ttl-test/c"));
         Assert.assertNull(service.getMeta().getOne(service.getStoreKey(marker)));
@@ -118,18 +121,18 @@ public class KvServiceTest extends PDCoreTestBase {
     @Test
     public void testTtlCleanupKeepsALeaseAKeepAliveRenewedAfterItsRead() throws Exception {
         KvService service = new KvService(getPdConfig());
-        service.put("ttl-test/d", "lease", 100_000L);
+        service.put("ttl-test/d", "lease", 1L);
         String marker = marker(service, "ttl-test/d");
         byte[] scanned = service.getMeta().getOne(service.getStoreKey("ttl-test/d"));
         long expireAt = V.parseFrom(scanned).getTtl();
-        // A later millisecond, so the renewed lease carries another expiry
-        Thread.sleep(5L);
+        // The marker is due, and the renewed lease carries a later expiry
+        Thread.sleep(20L);
         Assert.assertTrue(service.keepAlive("ttl-test/d"));
         service.removeExpired("ttl-test/d", marker, scanned);
         byte[] kept = service.getMeta().getOne(service.getStoreKey("ttl-test/d"));
         Assert.assertNotNull(kept);
+        Assert.assertEquals("lease", V.parseFrom(kept).getValue());
         Assert.assertTrue(V.parseFrom(kept).getTtl() > expireAt);
-        Assert.assertEquals("lease", service.get("ttl-test/d"));
     }
 
     /**
@@ -162,6 +165,21 @@ public class KvServiceTest extends PDCoreTestBase {
         Assert.assertNull(service.getMeta().getOne(service.getStoreKey("ttl-test/f")));
         service.clearTTLData();
         Assert.assertNull(service.getMeta().getOne(service.getStoreKey(marker)));
+    }
+
+    /**
+     * The cleanup scans markers by bytes, so a marker whose time has more digits than now can
+     * sort below now: a TTL of 10^13 ms is selected today. Its value has not expired, so the
+     * cleanup keeps the value and the marker
+     */
+    @Test
+    public void testTtlCleanupKeepsAValueThatHasNotExpired() throws Exception {
+        KvService service = new KvService(getPdConfig());
+        service.put("ttl-test/g", "kept", 10_000_000_000_000L);
+        String marker = marker(service, "ttl-test/g");
+        service.clearTTLData();
+        Assert.assertEquals("kept", service.get("ttl-test/g"));
+        Assert.assertNotNull(service.getMeta().getOne(service.getStoreKey(marker)));
     }
 
     /**
