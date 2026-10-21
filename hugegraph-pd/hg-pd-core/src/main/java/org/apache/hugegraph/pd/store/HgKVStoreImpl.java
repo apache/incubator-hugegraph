@@ -59,8 +59,9 @@ public class HgKVStoreImpl implements HgKVStore {
     /*
      * A restarted PD can start before the previous JVM has released the RocksDB LOCK.
      * Wait about as long as stop-hugegraph-pd.sh waits for that JVM, then fail startup.
-     * Every attempt rotates the RocksDB info LOG, so back off between attempts. This
-     * covers the metadata store only; PD opens it before the raft log store.
+     * Every attempt rotates the RocksDB info LOG, so back off between attempts. Only the
+     * metadata store waits: RaftStartup opens it before the raft log store, and a stopping
+     * PD releases the raft log LOCK before this one.
      */
     private static final long LOCK_WAIT_TIMEOUT_MS = 30_000L;
     private static final long LOCK_RETRY_MIN_INTERVAL_MS = 500L;

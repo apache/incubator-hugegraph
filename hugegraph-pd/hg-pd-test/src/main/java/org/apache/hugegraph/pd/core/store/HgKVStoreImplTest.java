@@ -17,8 +17,10 @@
 
 package org.apache.hugegraph.pd.core.store;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
@@ -219,6 +221,72 @@ public class HgKVStoreImplTest {
         }
         long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         Assert.assertTrue("retried for " + elapsed + " ms", elapsed < 5000L);
+    }
+
+    @Test(timeout = 60_000L)
+    public void testInitWaitsForLockHeldByAnotherProcess() throws Exception {
+        PDConfig config = newConfig("tmp/test-process-lock-released");
+        String dbPath = config.getDataPath() + "/rocksdb";
+        FileUtils.forceMkdir(new File(dbPath));
+        HgKVStore kvStore = new HgKVStoreImpl();
+        Process holder = startLockHolder(dbPath, 1000L);
+        try {
+            long start = System.nanoTime();
+            kvStore.init(config);
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            Assert.assertTrue("opened after " + elapsed + " ms", elapsed >= 500L);
+            byte[] key = "lock".getBytes(StandardCharsets.UTF_8);
+            kvStore.put(key, key);
+            Assert.assertArrayEquals(key, kvStore.get(key));
+            Assert.assertEquals(0, holder.waitFor());
+        } finally {
+            holder.destroyForcibly().waitFor();
+            kvStore.close();
+            FileUtils.deleteQuietly(new File(config.getDataPath()));
+        }
+    }
+
+    @Test(timeout = 60_000L)
+    public void testInitFailsWhenAnotherProcessKeepsLock() throws Exception {
+        PDConfig config = newConfig("tmp/test-process-lock-held");
+        String dbPath = config.getDataPath() + "/rocksdb";
+        FileUtils.forceMkdir(new File(dbPath));
+        HgKVStoreImpl kvStore = new HgKVStoreImpl();
+        Whitebox.setInternalState(kvStore, "lockWaitTimeoutMs", 1000L);
+        Process holder = startLockHolder(dbPath, -1L);
+        try {
+            long start = System.nanoTime();
+            IllegalStateException e = Assert.assertThrows(IllegalStateException.class,
+                                                          () -> kvStore.init(config));
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+            Assert.assertTrue("gave up after " + elapsed + " ms", elapsed >= 1000L);
+            Throwable cause = e.getCause().getCause();
+            Assert.assertTrue(cause instanceof RocksDBException);
+            Assert.assertTrue(cause.getMessage(), cause.getMessage().contains("While lock file"));
+        } finally {
+            holder.destroyForcibly().waitFor();
+            kvStore.close();
+            FileUtils.deleteQuietly(new File(config.getDataPath()));
+        }
+    }
+
+    private static Process startLockHolder(String dbPath, long holdMs) throws Exception {
+        String java = Paths.get(System.getProperty("java.home"), "bin", "java").toString();
+        Process process = new ProcessBuilder(java, "-cp", System.getProperty("java.class.path"),
+                                             RocksDBLockHolder.class.getName(), dbPath,
+                                             String.valueOf(holdMs))
+                .redirectErrorStream(true)
+                .start();
+        BufferedReader output = new BufferedReader(
+                new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
+        String line;
+        do {
+            line = output.readLine();
+        } while (line != null && !RocksDBLockHolder.LOCKED.equals(line));
+        if (line == null) {
+            Assert.fail("Lock holder exited with " + process.waitFor());
+        }
+        return process;
     }
 
     private static PDConfig newConfig(String path) throws IOException {

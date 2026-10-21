@@ -44,6 +44,7 @@ import lombok.extern.slf4j.Slf4j;
         IdMetaStoreReadIndexTest.class,
         HgKVStoreImplTest.class,
         PDNativeOwnerTest.class,
+        RaftStartupTest.class,
         PDConfigTest.class,
         ConfigServiceTest.class,
         IdServiceTest.class,

@@ -199,7 +199,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
 
         RaftEngine.getInstance().addStateListener(this);
         RaftEngine.getInstance().addStateListener(configService);
-        RaftEngine.getInstance().init(pdConfig.getRaft());
+        RaftStartup.init(pdConfig);
         //pdConfig = configService.loadConfig(); onLeaderChanged
         storeNodeService = new StoreNodeService(pdConfig);
         partitionService = new PartitionService(pdConfig, storeNodeService);
