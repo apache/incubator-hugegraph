@@ -20,6 +20,7 @@ package org.apache.hugegraph.pd.service;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.raft.RaftEngine;
+import org.apache.hugegraph.pd.store.HgKVStore;
 
 /**
  * Starts the shared {@link RaftEngine} from any service's startup callback.
@@ -33,10 +34,29 @@ public final class RaftStartup {
      * Open the metadata store before Raft. Its open waits for a LOCK still held by a stopping
      * PD, and that PD closes Raft before metadata, so the raft log LOCK is free once the
      * metadata store is open. Spring runs the service callbacks in no fixed order, so each of
-     * them starts Raft through here.
+     * them starts Raft through here. If Raft then fails to start, a metadata store this call
+     * opened is closed again, since a callback other than PDService has no owner to close it.
      */
     public static void init(PDConfig pdConfig) {
-        MetadataFactory.getStore(pdConfig);
-        RaftEngine.getInstance().init(pdConfig.getRaft());
+        HgKVStore opened = MetadataFactory.openStore(pdConfig);
+        try {
+            RaftEngine.getInstance().init(pdConfig.getRaft());
+        } catch (RuntimeException | Error failure) {
+            // Only a store this call opened is ours to release; PDService and the
+            // shutdown hook own the rest
+            if (opened != null) {
+                try {
+                    // Join Raft before closing metadata, as on shutdown; a failed join
+                    // keeps the database open
+                    RaftEngine.getInstance().shutDown();
+                    MetadataFactory.discardStore(opened);
+                } catch (RuntimeException | Error cleanup) {
+                    if (cleanup != failure) {
+                        failure.addSuppressed(cleanup);
+                    }
+                }
+            }
+            throw failure;
+        }
     }
 }
