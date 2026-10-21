@@ -103,8 +103,10 @@ root images; the chart applies it unless `fsGroup` is set, including under
 volume root does not match, so switch to the `10001` images in the same rollout
 that first applies `fsGroup`. If the release ran a root image after `fsGroup`
 was already set, files that image created can stay unwritable: roll out the
-first `10001` image with `fsGroupChangePolicy: Always`, then return to
-`OnRootMismatch`, or change the owner once with `chown -R 10001:10001`. Volumes
+first `10001` image with `fsGroupChangePolicy: Always`, then set it back to
+`OnRootMismatch` explicitly, because `--reuse-values` keeps it (see
+[Upgrade and verify](../README.md#upgrade-and-verify)), or change the owner once
+with `chown -R 10001:10001`. Volumes
 whose CSI driver ignores `fsGroup` (for example many NFS drivers) and
 `hostPath` volumes need that `chown` too.
 Restricted Pod Security also needs `securityContext.runAsNonRoot: true`, which

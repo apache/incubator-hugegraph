@@ -263,14 +263,26 @@ so it does not fix them later. Pin `pd.image` and `store.image` to a build from
 this version rather than relying on `latest`.
 
 If a release already ran root images with `fsGroup` set, roll out the first
-`10001` image with a one-time recursive ownership change, then return to
-`OnRootMismatch` on the next upgrade, because `Always` walks the whole volume on
-every Pod start:
+`10001` image together with a one-time recursive ownership change. Set the image
+tags in the same command, so the recursive change runs for the `10001` image
+rather than for a pinned root image:
 
 ```bash
 helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set pd.image.tag=<this-version> \
+  --set store.image.tag=<this-version> \
   --set pd.podSecurityContext.fsGroupChangePolicy=Always \
   --set store.podSecurityContext.fsGroupChangePolicy=Always \
+  --wait --timeout 15m
+```
+
+`--reuse-values` keeps `Always`, which walks the whole volume on every Pod
+start, so set the policy back once those Pods are running:
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set pd.podSecurityContext.fsGroupChangePolicy=OnRootMismatch \
+  --set store.podSecurityContext.fsGroupChangePolicy=OnRootMismatch \
   --wait --timeout 15m
 ```
 
