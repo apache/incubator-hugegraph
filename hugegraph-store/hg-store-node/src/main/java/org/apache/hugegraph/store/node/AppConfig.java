@@ -665,15 +665,22 @@ public class AppConfig {
      *     s3:                   # all keys here are forwarded as-is to the S3 provider
      *       bucket: my-bucket
      *       region: us-east-1
-     *       access-key: ${AWS_ACCESS_KEY_ID}
-     *       secret-key: ${AWS_SECRET_ACCESS_KEY}
+     *       access-key: ${AWS_ACCESS_KEY_ID:}
+     *       secret-key: ${AWS_SECRET_ACCESS_KEY:}
      * </pre>
+     *
+     * <p>Provider-specific properties are bound only when {@code cloud.storage.enabled=true}: a
+     * disabled node must start even if a provider placeholder (e.g. the example above without the
+     * trailing {@code :} default) cannot be resolved. Give placeholders an empty default
+     * ({@code ${VAR:}}) so an unset variable also does not fail an enabled node at bind time.
      */
     static CloudStorageConfig bindCloudStorageConfig(Environment environment) {
         Binder binder = Binder.get(environment);
         CloudStorageConfig cfg = binder.bind("cloud.storage", CloudStorageConfig.class)
                                        .orElseGet(CloudStorageConfig::new);
-        cfg.setProviderProperties(readProviderProperties(binder, cfg.getProvider()));
+        if (cfg.isEnabled()) {
+            cfg.setProviderProperties(readProviderProperties(binder, cfg.getProvider()));
+        }
         return cfg;
     }
 

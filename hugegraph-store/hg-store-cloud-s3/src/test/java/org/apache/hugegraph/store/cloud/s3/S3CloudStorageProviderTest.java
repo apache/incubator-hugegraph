@@ -35,12 +35,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hugegraph.store.cloud.CloudStorageConfig;
 import org.apache.hugegraph.store.cloud.CloudStorageNonRetryableException;
+import org.junit.Assume;
 import org.junit.Test;
 
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
@@ -202,6 +204,70 @@ public class S3CloudStorageProviderTest {
                        staleAsyncClosed.get());
             assertTrue("init() must close the previous transfer manager on re-init",
                        staleTransferManagerClosed.get());
+        } finally {
+            provider.close();
+        }
+    }
+
+    // =========================================================================
+    // Region defaulting for S3-compatible endpoints
+    // =========================================================================
+
+    @Test
+    public void testResolveRegionKeepsConfiguredRegion() {
+        assertEquals("eu-west-1",
+                     S3CloudStorageProvider.resolveRegion("eu-west-1", "http://minio:9000"));
+        assertEquals("eu-west-1", S3CloudStorageProvider.resolveRegion("eu-west-1", null));
+    }
+
+    @Test
+    public void testResolveRegionDefaultsWhenEndpointSetWithoutRegion() {
+        assertEquals("us-east-1", S3CloudStorageProvider.resolveRegion(null, "http://minio:9000"));
+        assertEquals("us-east-1", S3CloudStorageProvider.resolveRegion("", "http://minio:9000"));
+        assertEquals("us-east-1", S3CloudStorageProvider.resolveRegion("  ", "http://minio:9000"));
+    }
+
+    @Test
+    public void testResolveRegionLeavesBlankWithoutEndpoint() {
+        assertEquals(null, S3CloudStorageProvider.resolveRegion(null, null));
+        assertEquals("", S3CloudStorageProvider.resolveRegion("", ""));
+    }
+
+    @Test
+    public void testInitWithEndpointAndNoRegionSucceeds() {
+        S3CloudStorageProvider provider = new S3CloudStorageProvider();
+        CloudStorageConfig cfg = newInitConfig();
+        cfg.getProviderProperties().put("endpoint", "http://localhost:9000");
+        cfg.getProviderProperties().put("access-key", "ak");
+        cfg.getProviderProperties().put("secret-key", "sk");
+        try {
+            provider.init(cfg);
+        } finally {
+            provider.close();
+        }
+    }
+
+    @Test
+    public void testInitWithoutRegionOrEndpointNamesRegionKey() {
+        // Only meaningful when the environment cannot supply a region (env, system property,
+        // ~/.aws/config, EC2 metadata); skip otherwise.
+        boolean sdkResolvesRegion;
+        try {
+            DefaultAwsRegionProviderChain.builder().build().getRegion();
+            sdkResolvesRegion = true;
+        } catch (SdkClientException e) {
+            sdkResolvesRegion = false;
+        }
+        Assume.assumeFalse("environment provides an AWS region", sdkResolvesRegion);
+
+        S3CloudStorageProvider provider = new S3CloudStorageProvider();
+        CloudStorageConfig cfg = newInitConfig();
+        cfg.getProviderProperties().put("access-key", "ak");
+        cfg.getProviderProperties().put("secret-key", "sk");
+        try {
+            IllegalArgumentException e =
+                    assertThrows(IllegalArgumentException.class, () -> provider.init(cfg));
+            assertTrue(e.getMessage(), e.getMessage().contains("cloud.storage.s3.region"));
         } finally {
             provider.close();
         }
@@ -574,6 +640,15 @@ public class S3CloudStorageProviderTest {
     // =========================================================================
     // Helpers
     // =========================================================================
+
+    private static CloudStorageConfig newInitConfig() {
+        CloudStorageConfig cfg = new CloudStorageConfig();
+        cfg.setEnabled(true);
+        cfg.setProvider("s3");
+        cfg.setPathPrefix("");
+        cfg.getProviderProperties().put("bucket", "test-bucket");
+        return cfg;
+    }
 
     private static S3CloudStorageConfig newPopulatedConfig() {
         S3CloudStorageConfig c = new S3CloudStorageConfig();

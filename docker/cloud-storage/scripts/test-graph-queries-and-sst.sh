@@ -53,6 +53,12 @@ DELETE_CALLBACK_STATUS="NOT_RUN"
 SMOKE_STATUS="NOT_RUN"
 INFRA_READY="false"
 NETWORK=""
+# Tombstone evidence captured by run_db_recreation_no_orphan_test (a real partition delete)
+# and asserted by run_tombstone_sibling_key_test.
+DELETE_TOMBSTONE_BUCKET=""
+DELETE_TOMBSTONE_KEY=""
+DELETE_TOMBSTONE_INNER_KEY=""
+DELETE_TOMBSTONE_SEEN="no"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -373,12 +379,30 @@ trap on_exit EXIT
 # Total-loss recovery E2E helpers
 # -----------------------------------------------------------------------------
 
-# Current vertex count via the server graph API (0 if the query fails).
+# Exact vertex count via Gremlin g.V().count() (0 if the query fails). The REST
+# /graph/vertices listing is capped by a default limit (100), so it cannot count 150 vertices.
+# The traversal-source alias is __g_<graph key>; the key is "<graphspace>-<graph>" on
+# graph-space aware servers and plain "<graph>" otherwise, so try both.
 graph_vertex_count() {
-    curl -s --compressed "${GRAPH_API_BASE}/graph/vertices" 2>/dev/null \
-        | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('vertices',[])))" \
-              2>/dev/null || echo 0
+    local base graph key payload out count
+    base="${GRAPH_API_BASE%/graphs/*}"
+    graph="${GRAPH_API_BASE##*/}"
+    for key in "${GRAPH_SPACE:-DEFAULT}-${graph}" "${graph}"; do
+        payload="{\"gremlin\":\"g.V().count()\",\"bindings\":{},\"language\":\"gremlin-groovy\",\"aliases\":{\"g\":\"__g_${key}\"}}"
+        out=$(curl -s --compressed -X POST "${base}/gremlin" \
+                  -H 'Content-Type: application/json' -d "$payload" 2>/dev/null || true)
+        count=$(printf '%s' "$out" | python3 -c "import sys,json; print(int(json.load(sys.stdin)['result']['data'][0]))" \
+                    2>/dev/null || true)
+        if [[ "$count" =~ ^[0-9]+$ ]]; then
+            echo "$count"
+            return 0
+        fi
+    done
+    echo 0
 }
+
+# Number of vertices the last load_test_data call inserted successfully (HTTP 2xx).
+LOADED_VERTEX_COUNT=0
 
 # Create a minimal schema and insert enough vertices to generate SST files.
 load_test_data() {
@@ -426,8 +450,16 @@ load_test_data() {
         return 1
     fi
 
-    log "  ✓ inserted ${insert_ok} vertices (count now = $(graph_vertex_count))"
-    record_phase "graph-load" "PASS" "inserted=${insert_ok};failed=${insert_fail};vertex_count=$(graph_vertex_count)"
+    LOADED_VERTEX_COUNT="$insert_ok"
+    local loaded_count
+    loaded_count="$(graph_vertex_count)"
+    log "  ✓ inserted ${insert_ok} vertices (count now = ${loaded_count})"
+    if [[ "$loaded_count" != "$insert_ok" ]]; then
+        record_phase "graph-load" "FAIL" "inserted=${insert_ok};failed=${insert_fail};vertex_count=${loaded_count}"
+        echo "ERROR: Gremlin vertex count (${loaded_count}) != successfully inserted (${insert_ok})" >&2
+        return 1
+    fi
+    record_phase "graph-load" "PASS" "inserted=${insert_ok};failed=${insert_fail};vertex_count=${loaded_count}"
 }
 
 # Assert every bucket holds a consistent {CURRENT, MANIFEST, OPTIONS, SST} set.
@@ -756,6 +788,10 @@ run_recovery_test() {
          echo "ERROR: no data to recover (baseline is 0); load data first" >&2
          return 1
      fi
+     if [[ "$before" != "$LOADED_VERTEX_COUNT" ]]; then
+         echo "ERROR: baseline vertex count (${before}) != successfully inserted (${LOADED_VERTEX_COUNT})" >&2
+         return 1
+     fi
 
      log "forcing flush + compaction (restart stores) so data lands in SST files..."
      docker restart cloud-storage-store0 cloud-storage-store1 cloud-storage-store2 >/dev/null
@@ -812,10 +848,10 @@ run_recovery_test() {
 
      after=$(graph_vertex_count)
      log "recovered vertex count = ${after} (baseline was ${before})"
-     if [[ "$after" == "$before" ]]; then
+     if [[ "$after" == "$before" && "$after" == "$LOADED_VERTEX_COUNT" ]]; then
          log "✓ RECOVERY SUCCESS: data fully recovered from cloud after local state loss"
      else
-         echo "ERROR: recovery mismatch (before=${before}, after=${after})" >&2
+         echo "ERROR: recovery mismatch (before=${before}, after=${after}, inserted=${LOADED_VERTEX_COUNT})" >&2
          return 1
      fi
  }
@@ -824,86 +860,55 @@ run_recovery_test() {
  # data prefix (e.g. store-X/hugegraph/db_DELETED) and NOT inside it
  # (store-X/hugegraph/db/_DELETED). The sibling placement is critical: it ensures the
  # tombstone survives a partial deletePrefix run and prevents stale-data re-hydration.
+ #
+ # This phase consumes the evidence of a REAL delete: run_db_recreation_no_orphan_test issues
+ # raftDelete and records the tombstone key it expects. The tombstone is removed again after a
+ # successful purge, so the positive assertion is: the sibling key was observed in MinIO during
+ # the delete, or the store logs show it was written under exactly that key. Fails if no delete
+ # was exercised, if no evidence of the sibling key exists, or if an inner-path key appears.
+ # Return codes: 0 = pass, 1 = fail, 2 = skipped (reason in TOMBSTONE_SKIP_REASON).
+ TOMBSTONE_SKIP_REASON=""
  run_tombstone_sibling_key_test() {
      log "=== Tombstone sibling-key E2E ==="
-     local graph_name db_cloud_prefix tombstone_key inside_key found_sibling found_inside found_inside_before
+     local tombstone_key inside_key written_logs sibling_logged="no" inside_found
 
-     graph_name="${GRAPH_API_BASE##*/}"
-
-     # Detect the DB cloud prefix for this graph in store0's bucket.
-     db_cloud_prefix=$(find_graph_db_prefix "$S3_BUCKET_STORE0" "$graph_name" || true)
-     if [[ -z "$db_cloud_prefix" ]]; then
-         log "  WARNING: could not detect DB cloud prefix for '${graph_name}' in ${S3_BUCKET_STORE0}; skipping tombstone test"
-         return 0
+     if [[ -z "$DELETE_TOMBSTONE_KEY" || -z "$DELETE_TOMBSTONE_BUCKET" ]]; then
+         echo "ERROR: no delete was exercised before the tombstone check; run_db_recreation_no_orphan_test must run first" >&2
+         return 1
      fi
-     # Strip trailing slash for key construction.
-     local prefix_no_slash="${db_cloud_prefix%/}"
-     tombstone_key="${prefix_no_slash}_DELETED"   # sibling — what we expect
-     inside_key="${prefix_no_slash}/_DELETED"     # child  — what we do NOT want
+     tombstone_key="$DELETE_TOMBSTONE_KEY"
+     inside_key="$DELETE_TOMBSTONE_INNER_KEY"
+     log "  expected tombstone key (sibling): ${DELETE_TOMBSTONE_BUCKET}/${tombstone_key}"
+     log "  forbidden tombstone key (child):  ${DELETE_TOMBSTONE_BUCKET}/${inside_key}"
 
-     log "  expected tombstone key (sibling): ${tombstone_key}"
-     log "  forbidden tombstone key (child):  ${inside_key}"
-
-     # Check MinIO: neither key should exist yet (no delete triggered yet).
-     found_sibling=$(object_exists_exact "$S3_BUCKET_STORE0" "$tombstone_key")
-     if [[ "$found_sibling" == "yes" ]]; then
-         log "  WARNING: tombstone already present before delete (leftover from earlier test run)"
-     fi
-
-     # If the old inner-path tombstone exists from a prior run, remove it so this check
-     # validates newly produced behavior instead of stale state.
-     found_inside_before=$(object_exists_exact "$S3_BUCKET_STORE0" "$inside_key")
-     if [[ "$found_inside_before" == "yes" ]]; then
-         log "  WARNING: old inner-path tombstone already present before check; removing stale key '${inside_key}'"
-         docker run --rm --entrypoint /bin/sh --network "$NETWORK" "$MINIO_MC_IMAGE" -c '
-             mc alias set local http://minio:9000 '"$MINIO_ROOT_USER $MINIO_ROOT_PASSWORD"' >/dev/null 2>&1
-             mc rm --recursive --force "local/'"$S3_BUCKET_STORE0"'/'"$inside_key"'" >/dev/null 2>&1 || true
-         ' 2>/dev/null || true
-     fi
-
-     # Now check store logs for any existing tombstone-write log lines to understand current key format.
-     local log_tombstone_lines
-     log_tombstone_lines=$(docker compose -f "$COMPOSE_FILE" logs store0 store1 store2 2>/dev/null \
+     written_logs=$(docker compose -f "$COMPOSE_FILE" logs store0 store1 store2 2>/dev/null \
          | grep -i "Cloud DB tombstone written" || true)
-
-     if [[ -n "$log_tombstone_lines" ]]; then
-         log "  existing tombstone-write log entries:"
-         echo "$log_tombstone_lines" | while IFS= read -r line; do log "    ${line}"; done
-         # Assert no log entry contains the old inner-path pattern "/_DELETED".
-         if echo "$log_tombstone_lines" | grep -q "/_DELETED"; then
+     if [[ -n "$written_logs" ]]; then
+         echo "$written_logs" | while IFS= read -r line; do log "    ${line}"; done
+         # The old inner-path format must never appear.
+         if echo "$written_logs" | grep -q "/_DELETED"; then
              echo "ERROR: tombstone log shows old inner-path format '/_DELETED'; expected sibling '_DELETED'" >&2
              return 1
          fi
-         log "  ✓ tombstone log uses sibling-key format (no '/_DELETED' patterns found)"
-     else
-         log "  (no tombstone-write log entries yet; the deletion step below will trigger them)"
+         # Positive: this exact sibling key was written.
+         if echo "$written_logs" | grep -qF "key=${tombstone_key}"; then
+             sibling_logged="yes"
+         fi
      fi
 
-     # Trigger a graph clear() which calls onDBTruncateBegin/onDBTruncated — this does NOT
-     # write a tombstone. Instead, verify via store logs that when truncation purges the prefix
-     # it does not affect sibling keys. Then induce a store restart to exercise onDBOpening,
-     # which would incorrectly re-hydrate stale data if the tombstone were missing.
-     #
-     # Note: a full graph DELETE would write the tombstone but requires a second graph to exist
-     # in a single-graph deployment. We instead verify the key format by inspecting the log
-     # entries already captured above (from the delete test, if it ran) and by checking that
-     # no sibling-path key was accidentally purged during the truncation test.
-     log "  verifying no sibling tombstone key was deleted during prefix purge operations..."
-     local purge_log
-     purge_log=$(docker compose -f "$COMPOSE_FILE" logs store0 store1 store2 2>/dev/null \
-         | grep -i "Cloud DB purge completed\|Cloud DB tombstone" || true)
-     if [[ -n "$purge_log" ]]; then
-         echo "$purge_log" | while IFS= read -r line; do log "    ${line}"; done
+     if [[ "$DELETE_TOMBSTONE_SEEN" != "yes" && "$sibling_logged" != "yes" ]]; then
+         echo "ERROR: sibling tombstone '${tombstone_key}' was neither observed in MinIO during the delete nor logged as written" >&2
+         return 1
      fi
 
-     # Verify the sibling key is absent (for clean state) or present only as an intentional tombstone.
-     found_inside=$(object_exists_exact "$S3_BUCKET_STORE0" "$inside_key")
-     if [[ "$found_inside" == "yes" ]]; then
+     # Negative: the inner-path key must not exist now.
+     inside_found=$(object_exists_exact "$DELETE_TOMBSTONE_BUCKET" "$inside_key")
+     if [[ "$inside_found" == "yes" ]]; then
          echo "ERROR: tombstone written inside data prefix at '${inside_key}' — sibling-key fix not effective" >&2
          return 1
      fi
      log "  ✓ no tombstone found at inner path '${inside_key}'"
-     log "✓ TOMBSTONE SIBLING-KEY PASS: tombstone uses sibling path and was not found inside data prefix"
+     log "✓ TOMBSTONE SIBLING-KEY PASS: tombstone written at sibling '${tombstone_key}' (observed=${DELETE_TOMBSTONE_SEEN};logged=${sibling_logged}) and not inside data prefix"
  }
 
  # Verifies the DURABILITY of a genuine DB deletion against total local-state loss. A partition
@@ -957,6 +962,22 @@ run_recovery_test() {
          return 1
      fi
      log "  raftDelete issued; waiting for cloud prefix purge (destroy watcher ticks ~60s)..."
+
+     # 3b) The delete tombstone is written by onDBDeleteBegin as a SIBLING of the data prefix
+     #     (<prefix>_DELETED) and removed again once the prefix purge succeeds, so it is only
+     #     observable between raftDelete and the purge. Record what is seen for the dedicated
+     #     tombstone-sibling-key phase.
+     DELETE_TOMBSTONE_BUCKET="$db_bucket"
+     DELETE_TOMBSTONE_KEY="${db_prefix%/}_DELETED"
+     DELETE_TOMBSTONE_INNER_KEY="${db_prefix%/}/_DELETED"
+     DELETE_TOMBSTONE_SEEN="no"
+     for i in $(seq 1 15); do
+         if [[ "$(object_exists_exact "$db_bucket" "$DELETE_TOMBSTONE_KEY")" == "yes" ]]; then
+             DELETE_TOMBSTONE_SEEN="yes"
+             break
+         fi
+     done
+     log "  sibling tombstone '${DELETE_TOMBSTONE_KEY}' observed in MinIO during delete: ${DELETE_TOMBSTONE_SEEN}"
 
      # 4) Wait for the purge to empty the prefix.
      for i in $(seq 1 60); do
@@ -1175,14 +1196,8 @@ ensure_image "$HG_STORE_IMAGE"
 ensure_image "$HG_SERVER_IMAGE"
 mkdir -p "$GENERATED_DIR"
 mkdir -p "$SERVER_GRAPHS_DIR"
-cat > "$SERVER_GRAPH_CONF" << 'PROPS'
-gremlin.graph=org.apache.hugegraph.HugeFactory
-backend=hstore
-serializer=binary
-store=hugegraph
-task.scheduler_type=local
-pd.peers=pd:8686
-PROPS
+# Same HStore graph config the static docker-compose.yml mounts (backend=hstore, pd.peers=pd:8686).
+cp "${STACK_DIR}/conf/graphs/hugegraph.properties" "$SERVER_GRAPH_CONF"
 mkdir -p "$(dirname "$COMPOSE_FILE")"
 docker compose -f "$COMPOSE_FILE" down -v 2>/dev/null || true
 log "generating docker-compose.yml..."
@@ -1425,9 +1440,14 @@ else
     exit 1
 fi
 
-if run_tombstone_sibling_key_test; then
+tombstone_rc=0
+run_tombstone_sibling_key_test || tombstone_rc=$?
+if [[ "$tombstone_rc" -eq 0 ]]; then
     TOMBSTONE_STATUS="PASS"
-    record_phase "tombstone-sibling-key" "PASS" "tombstone key uses sibling path, not inner path"
+    record_phase "tombstone-sibling-key" "PASS" "tombstone written at sibling key ${DELETE_TOMBSTONE_KEY}, not inner path"
+elif [[ "$tombstone_rc" -eq 2 ]]; then
+    TOMBSTONE_STATUS="SKIPPED"
+    record_phase "tombstone-sibling-key" "SKIPPED" "${TOMBSTONE_SKIP_REASON:-skipped}"
 else
     TOMBSTONE_STATUS="FAIL"
     record_phase "tombstone-sibling-key" "FAIL" "tombstone sibling-key check failed"
@@ -1446,5 +1466,10 @@ else
 fi
 
 SMOKE_STATUS="PASS"
-record_phase "smoke-tests" "PASS" "all cloud storage E2E tests passed"
-log "✓ SUCCESS: all cloud storage E2E tests passed"
+if [[ "$TOMBSTONE_STATUS" == "SKIPPED" ]]; then
+    record_phase "smoke-tests" "PASS" "all executed cloud storage E2E tests passed (tombstone-sibling-key SKIPPED)"
+    log "✓ SUCCESS: all executed cloud storage E2E tests passed (tombstone-sibling-key SKIPPED)"
+else
+    record_phase "smoke-tests" "PASS" "all cloud storage E2E tests passed"
+    log "✓ SUCCESS: all cloud storage E2E tests passed"
+fi

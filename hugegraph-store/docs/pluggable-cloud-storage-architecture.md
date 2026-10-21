@@ -88,10 +88,13 @@ Notes:
 - If `provider` is not found on classpath, initialization fails fast in `AppConfig`.
 - Upload retry uses a two-layer model: S3 part-level retries (inside one `uploadFile()` call) are handled by the provider; whole-file retries are handled by `CloudUploadRetryQueue` when `upload-retry-max-attempts > 0` (default `3`).
 - `CloudStorageNonRetryableException` thrown by a provider bypasses immediate retries. The file remains unconfirmed and is automatically retried on the next compaction via the delete guard.
-- Failed uploads are tracked via metrics (`cloud_storage_upload_failures_total`) and structured logs. Automatic retry occurs on subsequent compactions; no manual recovery needed.
+- Failed uploads are tracked via metrics (`cloud_storage_upload_failures_total`) and structured logs. Automatic retry occurs through the whole-file retry queue, the deferred SST-delete retry, and startup SST backfill; no manual recovery needed.
+- Provider-specific properties (`cloud.storage.<provider>.*`) are bound only when `cloud.storage.enabled=true`; with cloud storage disabled they are never read, so a disabled node needs no bucket or credential settings. Credential placeholders in `application.yml` use empty defaults (for example `${AWS_ACCESS_KEY_ID:}`), so an unset variable resolves to blank and falls back to the AWS default credentials chain instead of failing placeholder resolution.
 - Metadata sync publishes a consistent `CURRENT`/`MANIFEST`/`OPTIONS` snapshot so a full-disk-loss node can reopen from cloud. Capture forces a MemTable flush so the un-flushed tail is persisted into an SST and mirrored (the RocksDB WAL is disabled under Raft — the Raft log is the tail's durability source — so a flush is the only path that pushes recent writes to cloud).
 - Metadata sync is always enabled when cloud storage is enabled.
-- Metadata sync is triggered by storage events. Each SST upload marks its DB dirty, and a fixed-delay drain (`metadata-sync-debounce-ms`) publishes each dirty DB once per interval; event-driven publishes (delete guard, compaction, DB open) are never coalesced.
+- Metadata sync is triggered by storage events. Each SST upload marks its DB dirty, and a fixed-delay drain (`metadata-sync-debounce-ms`) publishes each dirty DB once per interval; event-driven publishes (delete guard, DB open) are never coalesced.
+- Compaction completion (`onCompacted`) only marks the DB metadata-dirty; the publish runs on the single `cloud-metadata-sync` thread. `onTableFileDeleted` still publishes metadata and then deletes the remote SST inline on the RocksDB callback thread, to preserve publish-before-delete ordering. A failed publish backs off exponentially **per DB** (base `max(1s, metadata-sync-debounce-ms)`, doubling per consecutive failure, capped at 5 minutes) instead of redoing a checkpoint + upload every interval; a success clears the backoff.
+- The whole-file retry queue dedupes by `(db, remoteKey)`: a publish that re-checks an already-queued upload does not enqueue a second retry for the same object.
 - Uploads that exhaust whole-file retries are given up on: logged at ERROR, counted in `cloud_storage_uploads_given_up_total`, and re-uploaded by startup SST backfill.
 - Set a stable `cloud.storage.node-id` for production so the cloud key scope survives IP/hostname changes and local disk loss (see "Cloud key scope resolution").
 - Provider-specific properties (e.g., bucket, region, credentials) are configured under `cloud.storage.<provider>.*` namespace.
@@ -149,10 +152,14 @@ For provider `s3`, configure these properties under `cloud.storage.s3`:
 | Configuration                                           | Default   | Description                                                                                          |
 |---------------------------------------------------------|-----------|------------------------------------------------------------------------------------------------------|
 | `cloud.storage.s3.bucket`                               | _(none)_  | Target S3 bucket name. Required when S3 provider is enabled.                                         |
-| `cloud.storage.s3.region`                               | _(none)_  | AWS region (for example `us-east-1`).                                                                |
+| `cloud.storage.s3.region`                               | _(none)_  | AWS region (for example `us-east-1`). Blank with `endpoint` set defaults to `us-east-1` (signing region only). Blank with no `endpoint` falls back to the AWS region chain (`AWS_REGION`, `aws.region`, profile, instance metadata); if none resolves, startup fails with an error naming `cloud.storage.s3.region`. |
 | `cloud.storage.s3.endpoint`                             | _(none)_  | Optional custom endpoint for S3-compatible stores (MinIO/Ceph).                                      |
-| `cloud.storage.s3.access-key`                           | _(none)_  | Access key / AWS Access ID credential. Omit to use AWS default credentials chain.                    |
-| `cloud.storage.s3.secret-key`                           | _(none)_  | Secret key credential. Omit to use AWS default credentials chain.                                    |
+| `cloud.storage.s3.access-key`                           | _(none)_  | Access key / AWS Access ID credential. Omit or leave blank to use AWS default credentials chain.     |
+| `cloud.storage.s3.secret-key`                           | _(none)_  | Secret key credential. Omit or leave blank to use AWS default credentials chain.                     |
+
+Request and response checksums use the AWS SDK `WHEN_REQUIRED` mode, so checksums are computed or
+validated only for operations that mandate them, which keeps S3-compatible stores that reject the
+SDK's default trailer checksums working.
 
 ### Sample `application.yml` (`cloud.storage`)
 
@@ -199,7 +206,7 @@ Notes:
 - In this docker stack, each Store node uses its own bucket (`hugegraph-store0/1/2`).
 - For local MinIO, endpoint is typically `http://minio:9000` inside the docker network.
 - Provider-specific properties are configured under `cloud.storage.<provider>.*` namespace.
-- **Monitor these metrics**: `cloud_storage_unconfirmed_files_total` (should trend to 0), `cloud_storage_upload_failures_total` (should be low), `cloud_storage_sync_latency_ms` (should be sub-second for typical files).
+- **Monitor these metrics**: `cloud_storage_confirmed_files_total` (per-DB gauge; should track the live SST count), `cloud_storage_upload_failures_total` (should stay flat), `cloud_storage_sync_latency_ms_seconds` (the Prometheus name of the sync-latency timer; should be sub-second for typical files).
 
 
 ## 3) Write Path
@@ -246,7 +253,7 @@ CloudStorageEventListener
 ### 3b) SST Delete Flow
 
 ```text
-SST DELETE (onTableFileDeleted) — runs on the RocksDB compaction thread
+SST DELETE (onTableFileDeleted) — runs inline on the RocksDB callback thread
 
 RocksDB compaction completes: SST1 + SST2 -> MERGED_SST
   |
@@ -273,6 +280,9 @@ CloudStorageEventListener
   | 4) [MANIFEST published] provider.deleteFile(remoteKey)  <- safe to remove old SST
   v
 Object Storage: old SST deleted
+
+Any "hold" above queues the delete as a deferred task, retried on the
+cloud-metadata-sync thread every 500 ms.
 ```
 
 ### Write-path notes
@@ -294,6 +304,8 @@ Object Storage: old SST deleted
   (replacement files) are durable. Only when every live file is confirmed does the delete proceed.
 - MANIFEST/CURRENT is published to cloud **before** the old SST is deleted, so that a recovery attempt
   always has a consistent metadata + data state to restore from.
+
+- The native RocksDB event listener is attached to `DBOptions` only when at least one registered `RocksdbChangedListener` reports `managesRemoteState()` (the cloud listener does). Nodes without cloud storage keep the pre-cloud behaviour. Only four native callbacks are enabled: `ON_COMPACTION_BEGIN`, `ON_COMPACTION_COMPLETED`, `ON_TABLE_FILE_CREATED` and `ON_TABLE_FILE_DELETED`, so other event kinds never cross the JNI boundary.
 
 ### Cloud key scope resolution
 
@@ -365,6 +377,11 @@ Read request result
 ```text
 onDBOpening(dbName)
   |
+  | 0) pending-delete marker present for this prefix?
+  |      -> up to 3 bounded synchronous cleanup attempts (tryCompletePendingDelete)
+  |      -> still failing: throw IllegalStateException("Cloud open blocked ..."),
+  |         async purge retry re-armed. Runs even with startup-hydration-enabled=false.
+  |
   | 1) listFiles(<path-prefix>/<store-scope-prefix>/<dbName>/)
   |    -> remoteFiles (scoped to this store node)
   |
@@ -379,6 +396,9 @@ onDBOpening(dbName)
 
 ### Read-path notes
 
+- **Open blocked by a pending delete.** If a pending-delete marker exists for the DB's prefix, `onDBOpening` makes three bounded synchronous cleanup attempts. If the purge still cannot complete, the open fails with `IllegalStateException("Cloud open blocked ...")` and the asynchronous retry is re-armed; opening is never allowed to proceed over a prefix that still holds the deleted generation. This check runs even when `startup-hydration-enabled=false`.
+- **Known limitation: version-suffixed local paths.** The node opens a DB at the local path chosen by `RocksDBSession` (which may carry a version suffix `<name>_<ver>`). The cloud plugin does not redirect the open to a remote version-suffixed sibling: a node that lost its disk hydrates only the prefix of the default path, so a DB previously stored under a suffixed path is not restored from its sibling prefix automatically.
+- **Sweeps on open.** Leftover `<db>_cloudmeta_*` metadata checkpoint directories (from a crash during a snapshot capture) and `.hyd-tmp-*` partial hydration download files are deleted when the DB is opened.
 - All `listFiles` calls use the **`<path-prefix>/<store-scope-prefix>/`** namespace so each store node
   only sees and downloads its own SST files, even when multiple nodes share the same bucket.
 - A guard window (`read-miss-guard-window-ms`) throttles repeated hydration attempts for the same db/table pair.
@@ -396,6 +416,7 @@ onDBOpening(dbName)
   1. **First** persists a local *pending-delete marker* — this is the durable guard. If the marker cannot be durably written, the delete is **held** (`deleteMarkerHealthy` flips to `0`) rather than risking a re-hydration after a crash.
   2. Writes a sibling *tombstone* object (`<scope>/<path-prefix>/<db>_DELETED`) alongside the data prefix, then purges the remote DB prefix (SSTs, metadata, tombstone).
   - If the provider is unavailable, the purge/tombstone is deferred but the local pending-delete marker still blocks re-hydration (`onDBOpening`/`preHydrateDbFiles` detect the deleted generation and skip hydration), and an async retry completes the tombstone + purge once a provider returns.
+- **Epoch-guarded purge retries.** The asynchronous pending-delete retry is tied to a per-prefix epoch and the truncate-purge retry to a per-DB write epoch, both captured when the retry is scheduled and re-checked under the per-prefix lock. If the prefix is opened or created (delete retry) or the DB writes again (truncate retry) in the meantime, the retry is abandoned rather than purging objects that now belong to the new DB; an abandoned truncate retry also removes its on-disk truncate marker so a restart does not re-drive it.
 - Store tracks the last successfully published RocksDB **generation** per DB, so a re-create during a provider outage still cannot re-hydrate the deleted generation.
 - If a local DB directory is removed **outside** the managed flow, no delete callback is emitted; hydration may still restore data from cloud for the same DB path — this remains an accepted scope tradeoff prioritizing accidental local-loss recovery.
 
@@ -420,7 +441,7 @@ The default `upload-retry-max-attempts=3` enables whole-file retries for transie
 - The AWS SDK retries individual requests and multipart parts internally.
 - If `uploadFile()` still throws a regular `IOException`, `CloudUploadRetryQueue.submit()` enqueues the task for up to `upload-retry-max-attempts` whole-file retries with exponential backoff.
 - If `uploadFile()` throws `CloudStorageNonRetryableException`, the task bypasses retries and skips the upload queue.
-- After all retry attempts are exhausted (or if non-retryable), the file remains unconfirmed in the bitmap. The file stays on disk and is **automatically retried on the next compaction** via the delete guard (`ensureLiveSetUploaded`).
+- After all retry attempts are exhausted (or if non-retryable), the file remains unconfirmed in the bitmap. The file stays on disk and is retried by the delete guard (`ensureLiveSetUploaded`), which runs in the deferred SST-delete pass and on every metadata publish.
 
 #### Observability: Metrics & Logs
 
@@ -428,12 +449,14 @@ The system provides real-time observability through metrics and structured logs:
 
 **Metrics (exposed to Prometheus/monitoring):**
 
-- `cloud_storage_unconfirmed_files_total` (gauge, labeled by `db_name`) — Count of SST files not yet confirmed in cloud bitmap. High value → uploads are failing or slow.
-- `cloud_storage_upload_failures_total` (counter, labeled by `db_name`, `cf_name`, `error_type`) — Total upload failures (transient + permanent). Tracks upload problem frequency.
+Names below are the Prometheus exposition names (Micrometer Prometheus naming: counters end in `_total`, timers export in seconds).
+
+- `cloud_storage_confirmed_files_total` (gauge, label `db_name`) — Number of SST files confirmed present in cloud for that DB (the bitmap size). Despite the `_total` suffix it is a gauge and can go down after compaction. A value well below the DB's live SST count means uploads are failing or slow.
+- `cloud_storage_upload_failures_total` (counter, no labels) — Total upload failures (transient + permanent) across all DBs. Tracks upload problem frequency; use logs to identify the DB or file.
 - `cloud_storage_retry_queue_size` (gauge) — Files waiting in the upload retry queue. Bound to the live queue (`retryQueue.getInFlightCount()`), so it reflects the real backlog rather than a constant `0`.
 - `cloud_storage_uploads_given_up_total` (counter) — Uploads the retry queue gave up on (retries exhausted, `CloudStorageNonRetryableException`, or shutdown). Each file stays unconfirmed in the sync tracker and is re-uploaded by the next metadata sync, the delete guard, or startup SST backfill. Alert on a sustained increase.
-- `cloud_storage_sync_latency_ms` (histogram, labeled by `db_name`) — Time from SST file creation (onTableFileCreated) to bitmap confirmation (markConfirmed). Measures sync speed.
-- `cloud_storage_delete_guard_reupload_count` (counter, labeled by `db_name`) — Number of files re-uploaded by the delete guard when live set was not fully durable. Indicates frequent upload failures.
+- `cloud_storage_sync_latency_ms_seconds` (summary, no labels; series `{quantile="0.5|0.95|0.99"}`, `_count`, `_sum`, `_max`) — Time from SST file creation (`onTableFileCreated`) to bitmap confirmation (`markConfirmed`). The timer is registered as `cloud_storage_sync_latency_ms`; the Prometheus registry appends the `_seconds` base unit, so values are in seconds.
+- `cloud_storage_delete_guard_reupload_count` (gauge, label `db_name`) — Cumulative number of files re-uploaded by the delete guard for that DB when the live set was not fully durable. Use `increase(...)` over a window; a rising value indicates frequent upload failures.
 - `cloud_storage_delete_marker_healthy` (gauge, `1`=healthy / `0`=degraded) — Health of pending-delete marker persistence. `0` means a marker could not be durably written, so a DB delete whose remote cleanup fails may not be guarded against re-hydration after a crash. This is a hard error state: **delete progression is held while degraded.** Alert on `0`.
 
 **Structured Logs:**
@@ -466,11 +489,11 @@ Log entries provide visibility into sync progress and failures:
 Query metrics in your monitoring system:
 
 ```promql
-# Find databases with unconfirmed files
-cloud_storage_unconfirmed_files_total > 0
+# Delete-guard re-uploads per database over the last hour (live set was not durable)
+increase(cloud_storage_delete_guard_reupload_count[1h]) > 0
 
-# Alert if unconfirmed count grows over time
-rate(cloud_storage_unconfirmed_files_total[5m]) > 0
+# Uploads abandoned by the retry queue (re-uploaded later by backfill / delete guard)
+increase(cloud_storage_uploads_given_up_total[1h]) > 0
 ```
 
 Or search logs:
@@ -494,7 +517,7 @@ kubectl logs -l app=hugegraph-store | grep "filePath=/path/to/000123.sst"
 **Automatic retry (delete guard, no manual replay):**
 
 - Files that fail to upload remain unconfirmed in the bitmap.
-- On the next compaction that touches the same DB, the delete guard calls `ensureLiveSetUploaded`, which:
+- On the next deferred delete pass for the same DB (triggered by a compaction deleting an SST, retried every 500 ms while held), the delete guard calls `ensureLiveSetUploaded`, which:
   1. Checks bitmap for all current live files
   2. For any unconfirmed file, attempts upload again (idempotent PUT)
   3. On success, updates bitmap; on failure, logs and holds delete
@@ -539,22 +562,22 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 
 - Providers can signal a permanently failed upload by throwing `CloudStorageNonRetryableException` from `uploadFile()`.
 - This exception bypasses the whole-file retry loop and marks the file as unconfirmed (no bitmap entry).
-- The file remains on disk and is **automatically retried on the next compaction** via the delete guard's re-upload logic.
+- The file remains on disk and is retried by the delete guard's re-upload logic.
 - The S3 provider throws it for permanent service-side errors (e.g. auth, permission, not-found, validation), so a request that cannot succeed is not retried as a whole file.
 - Metrics (`cloud_storage_upload_failures_total`) and logs track the failure for operational visibility.
 
 ### Delete guard failure (live set not fully durable)
 
 - Before deleting a superseded SST from cloud, `onTableFileDeleted` verifies the entire current live SST set is confirmed present in cloud (`ensureLiveSetUploaded`).
-- If any live SST cannot be confirmed durable (e.g. a prior upload failed), the delete is skipped with a warning log.
-- The unconfirmed file remains on disk. On the next compaction, the delete guard will re-attempt upload for all unconfirmed files.
-- **Observability**: Metrics `cloud_storage_unconfirmed_files_total` and `cloud_storage_delete_guard_reupload_count` track the frequency. Logs show which files are unconfirmed and why the delete was held.
+- If any live SST cannot be confirmed durable (e.g. a prior upload failed), the delete is held with a warning log and stays queued.
+- The unconfirmed file remains on disk. The deferred delete is retried every 500 ms on the `cloud-metadata-sync` thread, and each attempt re-attempts upload for all unconfirmed files.
+- **Observability**: Metrics `cloud_storage_delete_guard_reupload_count` (per DB) and `cloud_storage_confirmed_files_total` track the frequency and sync state. Logs show which files are unconfirmed and why the delete was held.
 - **Impact**: Orphaned (but safe) old object may remain in cloud temporarily. Data integrity is preserved because the replacement files are not yet confirmed durable.
 
 ### Metadata snapshot capture failure
 
 - `syncMetadataSnapshotInline` calls `RocksDBFactory.captureMetadataSnapshot()`. If this returns `null` (e.g. the DB is not open or the checkpoint could not be acquired), the metadata sync is skipped and returns `false`.
-- When called from `onTableFileDeleted`, a `null` snapshot causes the delete to be held with a warning log, preserving the old SST in cloud until a valid snapshot can be published.
+- When called from the deferred SST-delete pass, a `null` snapshot causes the delete to be held with a warning log, preserving the old SST in cloud until a valid snapshot can be published.
 
 ### Metadata publish failure (SST durability check fails)
 
@@ -572,7 +595,7 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 ### Local file compacted away during retry
 
 - When a local SST file is compacted into a new merged SST (e.g., SST1 → MERGED_SST), the old SST1 may still be unconfirmed in the bitmap if its upload failed.
-- On the next compaction involving MERGED_SST, the delete guard checks if MERGED_SST is confirmed. If not, it re-attempts upload.
+- On the next deferred delete pass involving MERGED_SST, the delete guard checks if MERGED_SST is confirmed. If not, it re-attempts upload.
 - If SST1 was compacted away, its local file no longer exists, so no retry is attempted for SST1 itself.
 - However, the data from SST1 is now present in MERGED_SST in cloud (or will be on next attempt). Once MERGED_SST is confirmed, SST1 can be safely deleted from cloud.
 - Metrics track `cloud_storage_delete_guard_reupload_count` to monitor how often the delete guard needs to re-upload files.
@@ -608,12 +631,20 @@ Cloud storage health is exposed through metrics and logs. Set up monitoring for:
 **Alerts (suggest these thresholds):**
 
 ```yaml
-# Alert if any database has unconfirmed files for > 5 minutes (sync is stuck)
-- alert: CloudStorageUnsyncedFilesHigh
-  expr: cloud_storage_unconfirmed_files_total > 0 and increase(cloud_storage_unconfirmed_files_total[5m]) > 0
+# Alert if the delete guard keeps re-uploading files for a database (uploads are not sticking)
+- alert: CloudStorageDeleteGuardReuploads
+  expr: increase(cloud_storage_delete_guard_reupload_count[15m]) > 0
+  for: 15m
   annotations:
-    summary: "Store node {{ $labels.instance }} has {{ $value }} unconfirmed files in {{ $labels.db_name }}"
+    summary: "Store node {{ $labels.instance }} delete guard is re-uploading files in {{ $labels.db_name }}"
     action: "Check upload logs for permission errors or network issues"
+
+# Alert if the retry queue is giving up on uploads
+- alert: CloudStorageUploadsGivenUp
+  expr: increase(cloud_storage_uploads_given_up_total[15m]) > 0
+  annotations:
+    summary: "Store node {{ $labels.instance }} gave up on {{ $value }} uploads"
+    action: "Given-up files are re-uploaded by backfill / delete guard; check provider status and credentials"
 
 # Alert if upload failures are increasing (transient or persistent failures)
 - alert: CloudStorageUploadFailuresIncreasing
@@ -631,9 +662,9 @@ Cloud storage health is exposed through metrics and logs. Set up monitoring for:
 
 # Alert if sync latency is high (uploads taking too long)
 - alert: CloudStorageSyncLatencyHigh
-  expr: histogram_quantile(0.95, cloud_storage_sync_latency_ms) > 30000
+  expr: cloud_storage_sync_latency_ms_seconds{quantile="0.95"} > 30
   annotations:
-    summary: "Store node {{ $labels.instance }} 95th percentile sync latency is {{ $value }}ms"
+    summary: "Store node {{ $labels.instance }} 95th percentile sync latency is {{ $value }}s"
     action: "Check network link to cloud provider; consider tuning upload concurrency"
 
 # Alert if a pending-delete marker could not be persisted (DB delete progression is held)
@@ -662,7 +693,7 @@ kubectl logs -f -l app=hugegraph-store | grep "filePath=/path/to/000123.sst"
 
 ### Troubleshooting
 
-**Symptom: `cloud_storage_unconfirmed_files_total` stays > 0**
+**Symptom: `cloud_storage_delete_guard_reupload_count` keeps increasing, or `cloud_storage_confirmed_files_total` stays below the DB's live SST count**
 
 - **Cause**: Uploads are failing and not recovering.
 - **Action**:
@@ -670,7 +701,7 @@ kubectl logs -f -l app=hugegraph-store | grep "filePath=/path/to/000123.sst"
   2. Verify cloud provider credentials and connectivity: `curl https://s3-endpoint/bucket-name`
   3. Check if bucket exists and Store node has put/get/delete permissions.
   4. Verify `cloud.storage.path-prefix` matches actual S3 prefix where Store expects to write.
-  5. If a specific file is stuck, manually trigger sync via admin API or wait for next compaction.
+  5. If a specific file is stuck, wait for the next deferred delete pass / metadata publish (both re-attempt unconfirmed live files) or restart the node to run startup SST backfill.
 
 **Symptom: Delete operations are slow or stalling**
 
@@ -679,7 +710,7 @@ kubectl logs -f -l app=hugegraph-store | grep "filePath=/path/to/000123.sst"
   1. Check logs for "Re-uploading M unconfirmed files" — how many?
   2. Monitor `cloud_storage_retry_queue_size`. Once it drains, delete resumes.
 
-**Symptom: High `cloud_storage_sync_latency_ms`**
+**Symptom: High `cloud_storage_sync_latency_ms_seconds`**
 
 - **Cause**: Uploads are slow. Could be network, object size, or cloud provider latency.
 - **Action**:
@@ -693,7 +724,7 @@ kubectl logs -f -l app=hugegraph-store | grep "filePath=/path/to/000123.sst"
 - Keep plugin JAR versions aligned with Store version to avoid SPI/API mismatch.
 - Track logs around upload, hydration, and provider init to detect divergence early.
 - For DR drills, test both node-level restart and full-cluster restart with cloud hydration enabled.
-- Set up alerts on the key metrics (`unconfirmed_files_total`, `upload_failures_total`, `sync_latency_ms`) to catch issues early.
+- Set up alerts on the key metrics (`delete_guard_reupload_count`, `uploads_given_up_total`, `upload_failures_total`, `sync_latency_ms_seconds`) to catch issues early.
 
 ## Plugin Development: Adding Custom Cloud Storage Providers
 
@@ -931,7 +962,7 @@ Use one of these runtime models:
 Notes:
 
 - Simply copying a provider jar without its runtime dependencies can cause `ClassNotFoundException` during SPI loading.
-- Store does not scan a `plugins/` directory. `AppConfig` calls
+- The stock distribution does not scan a `plugins/` directory (the test harness image under `docker/cloud-storage` is the exception: it launches Spring `PropertiesLauncher` with `-Dloader.path=/hugegraph-store/plugins`, which is a harness-only arrangement). `AppConfig` calls
   `ServiceLoader.load(CloudStorageProvider.class)` once at startup, which only sees jars inside the
   `hg-store-node` boot jar (`BOOT-INF/lib`, i.e. Option A) or on the JVM launch classpath.
 - The shipped `bin/start-hugegraph-store.sh` builds the launch classpath from only the rocksdbjni
@@ -942,6 +973,8 @@ Notes:
   inside `BOOT-INF/lib`), so loading the provider fails with `NoClassDefFoundError`. The
   `hg-store-common` jar would have to be on `-cp` as well.
 - The provider is resolved once, so adding or replacing a provider jar requires a restart.
+- To ship S3 in the stock distribution, build `hg-store-node` with the opt-in `-Ps3-cloud-storage` profile, which bundles `hg-store-cloud-s3` and the AWS SDK into the node fat jar (Option A). See "Enabling S3 on the stock distribution" in the [Store README](../README.md).
+- For the harness plugin directory, the build stages only the SDK runtime closure in `hg-store-cloud-s3/target/dependency`: `hg-store-common` is `provided` scope there, because the node boot jar already supplies it and a second copy on `loader.path` would split `CloudStorageProvider` across classloaders.
 
 ### Step 6: Configure and Activate
 

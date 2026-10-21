@@ -34,13 +34,16 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -57,6 +60,8 @@ import org.apache.hugegraph.rocksdb.access.RocksDBFactory.RocksdbChangedListener
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentMatchers;
+import org.rocksdb.AbstractEventListener.EnabledEventCallback;
+import org.rocksdb.DBOptions;
 import org.rocksdb.LiveFileMetaData;
 import org.rocksdb.RocksDB;
 import org.rocksdb.Status;
@@ -800,10 +805,18 @@ public class RocksDBFactoryTest {
         }
     }
 
+    /** A live DB at the SAME path as the stale watcher must be protected from its delete. */
     @Test
-    public void testProcessPendingDestroysDiscardsWatcherWhenDbWasRecreated() throws Exception {
-        Path parent = Files.createTempDirectory("hg-destroy-recreate-");
-        String dbName = "destroyrecreate";
+    public void testProcessPendingDestroysDiscardsWatcherWhenDbRecreatedAtSamePath()
+            throws Exception {
+        Path dir = Files.createTempDirectory("hg-destroy-samepath-");
+        String dbName = "destroysamepath-" + System.nanoTime();
+        RocksDBSession stale = mock(RocksDBSession.class);
+        when(stale.getRefCount()).thenReturn(0);
+        when(stale.getGraphName()).thenReturn(dbName);
+        when(stale.getDbPath()).thenReturn(dir.toString());
+        RocksDBSession live = mock(RocksDBSession.class);
+        when(live.getDbPath()).thenReturn(dir.toString());
         List<String> deleted = new CopyOnWriteArrayList<>();
         RocksdbChangedListener recorder = new RocksdbChangedListener() {
             @Override
@@ -813,25 +826,66 @@ public class RocksDBFactoryTest {
         };
 
         RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, RocksDBSession> sessions = sessionMap(factory);
+        factory.addRocksdbChangedListener(recorder);
+        sessions.put(dbName, live);
+        RocksDBFactory.DBSessionWatcher watcher = factory.addDestroyWatcher(stale);
+        try {
+            factory.processPendingDestroys();
+
+            assertFalse("the stale watcher must be discarded", factory.isDestroyPending(watcher));
+            verify(stale, never()).shutdown();
+            assertTrue("the live DB's files must not be deleted", dir.toFile().exists());
+            assertFalse("onDBDeleted must not fire for a superseded watcher",
+                        deleted.contains(dbName));
+        } finally {
+            sessions.remove(dbName, live);
+            factory.removeRocksdbChangedListener(recorder);
+            deleteRecursively(dir.toFile());
+        }
+    }
+
+    /**
+     * A DB recreated under the same name at a DIFFERENT path (a version-suffixed sibling) must not
+     * stop the stale directory from being deleted and reported through {@code onDBDeleted}.
+     */
+    @Test
+    public void testProcessPendingDestroysDeletesStaleDirWhenDbRecreatedAtDifferentPath()
+            throws Exception {
+        Path parent = Files.createTempDirectory("hg-destroy-recreate-");
+        String dbName = "destroyrecreate";
+        List<String> deleted = new CopyOnWriteArrayList<>();
+        RocksdbChangedListener recorder = new RocksdbChangedListener() {
+            @Override
+            public void onDBDeleted(String db, String dbPath) {
+                deleted.add(dbPath);
+            }
+        };
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
         factory.addRocksdbChangedListener(recorder);
         try {
             RocksDBSession first = factory.createGraphDB(parent.toString(), dbName, 0);
-            String dbPath = first.getDbPath();
+            String stalePath = first.getDbPath();
             first.close();
             factory.destroyGraphDB(dbName);
-            assertTrue(factory.findPathInRemovedList(dbPath));
+            assertTrue(factory.findPathInRemovedList(stalePath));
 
-            // Recreate under the same name before the cleanup pass runs.
+            // Recreate under the same name before the cleanup pass runs; the removed path is
+            // skipped so the new DB lives at a version-suffixed sibling.
             RocksDBSession second = factory.createGraphDB(parent.toString(), dbName, 0);
+            String livePath = second.getDbPath();
             second.close();
+            assertFalse(stalePath.equals(livePath));
 
             factory.processPendingDestroys();
 
-            assertFalse("the stale watcher must be discarded",
-                        factory.findPathInRemovedList(dbPath));
-            assertTrue("the recreated DB's files must not be deleted", new File(dbPath).exists());
-            assertFalse("onDBDeleted must not fire for a superseded watcher",
-                        deleted.contains(dbName));
+            assertFalse("the stale watcher must be completed",
+                        factory.findPathInRemovedList(stalePath));
+            assertFalse("the stale directory must be deleted", new File(stalePath).exists());
+            assertTrue("the recreated DB's files must not be deleted", new File(livePath).exists());
+            assertTrue("onDBDeleted must fire with the stale path", deleted.contains(stalePath));
+            assertFalse("onDBDeleted must not fire for the live path", deleted.contains(livePath));
             assertTrue(factory.getGraphNames().contains(dbName));
         } finally {
             factory.removeRocksdbChangedListener(recorder);
@@ -1213,12 +1267,12 @@ public class RocksDBFactoryTest {
     }
 
     /**
-     * A stale destroy watcher must also be discarded when a creation of the same DB name is
-     * in flight (reserved in {@code pendingCreations} but not yet in the session map) — the
-     * cleanup pass must not delete the directory the in-flight creation is about to open.
+     * While a creation of the same DB name is in flight (slot reserved in {@code pendingCreations}
+     * but its path not yet known) the stale watcher must be kept and retried later: it must
+     * neither delete the directory the creation may be about to open nor be dropped.
      */
     @Test
-    public void testProcessPendingDestroysDiscardsWatcherWhileSameDbCreationInFlight()
+    public void testProcessPendingDestroysDefersWatcherWhileSameDbCreationInFlight()
             throws Exception {
         Path dir = Files.createTempDirectory("hg-destroy-inflight-");
         String dbName = "destroyinflight-" + System.nanoTime();
@@ -1228,16 +1282,22 @@ public class RocksDBFactoryTest {
         when(session.getDbPath()).thenReturn(dir.toString());
 
         RocksDBFactory factory = RocksDBFactory.getInstance();
-        Set<String> pending = pendingCreations(factory);
+        Map<String, CompletableFuture<Void>> pending = pendingCreations(factory);
         RocksDBFactory.DBSessionWatcher watcher = factory.addDestroyWatcher(session);
-        pending.add(dbName);
+        pending.put(dbName, new CompletableFuture<>());
         try {
             factory.processPendingDestroys();
 
-            assertFalse("the superseded watcher must be discarded",
-                        factory.isDestroyPending(watcher));
+            assertTrue("the watcher must be kept for a later round",
+                       factory.isDestroyPending(watcher));
             verify(session, never()).shutdown();
             assertTrue("the in-flight DB's directory must not be deleted", dir.toFile().exists());
+
+            // Once the creation slot is gone the deferred cleanup proceeds.
+            pending.remove(dbName);
+            factory.processPendingDestroys();
+            assertFalse(factory.isDestroyPending(watcher));
+            assertFalse(dir.toFile().exists());
         } finally {
             pending.remove(dbName);
             deleteRecursively(dir.toFile());
@@ -1503,6 +1563,267 @@ public class RocksDBFactoryTest {
     }
 
     // =========================================================================
+    // Remote-state gating: native listener and event mask
+    // =========================================================================
+
+    @Test
+    public void testNativeListenerAttachedOnlyWhenRemoteStateListenerRegistered()
+            throws Exception {
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        assumeTrue("another test leaked a remote-state listener",
+                   !factory.hasRemoteStateListeners());
+        Path parent = Files.createTempDirectory("hg-native-listener-");
+        RocksdbChangedListener plain = new RocksdbChangedListener() {
+        };
+        RocksdbChangedListener remote = remoteStateListener();
+        RocksDBSession withoutRemote = null;
+        RocksDBSession withRemote = null;
+        factory.addRocksdbChangedListener(plain);
+        try {
+            withoutRemote = factory.createGraphDB(parent.toString(), "nolistener", 0);
+            assertFalse(factory.hasRemoteStateListeners());
+            assertTrue("no native listener may be attached without a remote-state listener",
+                       nativeListeners(withoutRemote).isEmpty());
+
+            factory.addRocksdbChangedListener(remote);
+            withRemote = factory.createGraphDB(parent.toString(), "withlistener", 0);
+            assertTrue(factory.hasRemoteStateListeners());
+            assertEquals("the native listener must be attached with a remote-state listener",
+                         1, nativeListeners(withRemote).size());
+        } finally {
+            factory.removeRocksdbChangedListener(remote);
+            factory.removeRocksdbChangedListener(plain);
+            closeQuietly(withoutRemote);
+            closeQuietly(withRemote);
+            destroyAndCleanup(factory, parent, "nolistener", "withlistener");
+        }
+    }
+
+    /** The native event mask must enable exactly the callbacks RocksdbEventListener overrides. */
+    @Test
+    public void testEventListenerEnablesExactlyTheOverriddenCallbacks() {
+        Set<String> overridden = new HashSet<>();
+        for (Method method : RocksDBFactory.RocksdbEventListener.class.getDeclaredMethods()) {
+            if (method.getName().startsWith("on") && !method.isSynthetic()) {
+                overridden.add(method.getName());
+            }
+        }
+        Set<String> enabled = new HashSet<>();
+        for (EnabledEventCallback callback : RocksDBFactory.ENABLED_EVENT_CALLBACKS) {
+            StringBuilder name = new StringBuilder("on");
+            for (String part : callback.name().substring("ON_".length()).split("_")) {
+                name.append(part.charAt(0)).append(part.substring(1).toLowerCase());
+            }
+            enabled.add(name.toString());
+        }
+        assertFalse(overridden.isEmpty());
+        assertEquals("enabled native callbacks must match the overridden on* methods",
+                     overridden, enabled);
+    }
+
+    // =========================================================================
+    // Stale checkpoint sweep, metadata capture, createGraphDB lifecycle
+    // =========================================================================
+
+    @Test
+    public void testOpenSweepsStaleCloudMetaDirsOfSameGraphOnly() throws Exception {
+        Path parent = Files.createTempDirectory("hg-sweep-");
+        String dbName = "sweepdb";
+        File stale = Files.createDirectories(parent.resolve(dbName + "_cloudmeta_123")).toFile();
+        File staleVersioned = Files.createDirectories(parent.resolve(dbName + "_5_cloudmeta_9"))
+                                   .toFile();
+        File otherGraph = Files.createDirectories(parent.resolve(dbName + "x_cloudmeta_1")).toFile();
+
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = null;
+        try {
+            session = factory.createGraphDB(parent.toString(), dbName, 0);
+            assertFalse("stale checkpoint dir must be swept", stale.exists());
+            assertFalse("stale versioned checkpoint dir must be swept", staleVersioned.exists());
+            assertTrue("another graph's checkpoint dir must be kept", otherGraph.exists());
+        } finally {
+            closeQuietly(session);
+            destroyAndCleanup(factory, parent, dbName);
+        }
+    }
+
+    @Test
+    public void testCaptureMetadataCheckpointOnClosedSessionFailsCleanly() throws Exception {
+        Path parent = Files.createTempDirectory("hg-capture-closed-");
+        try {
+            RocksDBSession session = new RocksDBSession(
+                    RocksDBFactory.getInstance().getHugeConfig(), parent.toString(),
+                    "captureclosed", 0);
+            session.close();
+            try {
+                session.captureMetadataCheckpoint();
+                throw new AssertionError("capture on a closed session must fail");
+            } catch (DBStoreException expected) {
+                assertTrue(expected.getMessage().contains("closed"));
+            }
+        } finally {
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
+    public void testCaptureMetadataSnapshotReleasesSessionReference() throws Exception {
+        Path parent = Files.createTempDirectory("hg-capture-ref-");
+        String dbName = "captureref";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksDBSession session = null;
+        try {
+            session = factory.createGraphDB(parent.toString(), dbName, 0);
+            int before = session.getRefCount();
+            RocksDBFactory.MetadataSnapshot snap = factory.captureMetadataSnapshot(dbName);
+            assertNotNull(snap);
+            snap.cleanup();
+            assertEquals("the capture must release its session reference",
+                         before, session.getRefCount());
+        } finally {
+            closeQuietly(session);
+            destroyAndCleanup(factory, parent, dbName);
+        }
+    }
+
+    @Test
+    public void testCreateGraphDbDiscardsSessionWhenFactoryClosesDuringCreation()
+            throws Exception {
+        Path parent = Files.createTempDirectory("hg-create-closing-");
+        String dbName = "createclosing";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        RocksdbChangedListener closer = new RocksdbChangedListener() {
+            @Override
+            public void onDBOpening(String db, String dbPath) {
+                if (dbName.equals(db)) {
+                    try {
+                        setClosing(factory, true);
+                    } catch (Exception e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+            }
+        };
+        factory.addRocksdbChangedListener(closer);
+        try {
+            try {
+                factory.createGraphDB(parent.toString(), dbName, 0);
+                throw new AssertionError("createGraphDB must fail once the factory is closing");
+            } catch (DBStoreException expected) {
+                assertTrue(expected.getMessage().contains("closed"));
+            }
+            assertFalse("the discarded session must not be registered",
+                        factory.getGraphNames().contains(dbName));
+            assertFalse("the creation slot must be cleared",
+                        pendingCreations(factory).containsKey(dbName));
+        } finally {
+            factory.removeRocksdbChangedListener(closer);
+            setClosing(factory, false);
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
+    public void testCreateGraphDbWaiterTimesOutOnStuckCreation() throws Exception {
+        String dbName = "createstuck-" + System.nanoTime();
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, CompletableFuture<Void>> pending = pendingCreations(factory);
+        long originalTimeout = factory.creationWaitTimeoutMs;
+        pending.put(dbName, new CompletableFuture<>());
+        factory.creationWaitTimeoutMs = 200;
+        try {
+            try {
+                factory.createGraphDB("unused", dbName, 0);
+                throw new AssertionError("a waiter must time out on a stuck creation");
+            } catch (DBStoreException expected) {
+                assertTrue(expected.getMessage().contains("Timed out"));
+            }
+            // The global write lock must have been released: other DBs remain usable.
+            assertNull(factory.queryGraphDB("no-such-db"));
+        } finally {
+            factory.creationWaitTimeoutMs = originalTimeout;
+            pending.remove(dbName);
+        }
+    }
+
+    @Test
+    public void testCreateGraphDbWaiterWakesWhenCreatorFailsAndRecreates() throws Exception {
+        Path parent = Files.createTempDirectory("hg-create-waiter-retry-");
+        String dbName = "createwaiterretry";
+        CountDownLatch hydrating = new CountDownLatch(1);
+        CountDownLatch failNow = new CountDownLatch(1);
+        AtomicInteger openings = new AtomicInteger();
+        RocksdbChangedListener gate = new RocksdbChangedListener() {
+            @Override
+            public void onDBOpening(String db, String dbPath) {
+                if (!dbName.equals(db) || openings.incrementAndGet() > 1) {
+                    return;
+                }
+                hydrating.countDown();
+                try {
+                    failNow.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                throw new RuntimeException("simulated hydration failure");
+            }
+        };
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        factory.addRocksdbChangedListener(gate);
+        AtomicReference<RocksDBSession> waited = new AtomicReference<>();
+        try {
+            Thread creator = new Thread(() -> {
+                try {
+                    factory.createGraphDB(parent.toString(), dbName, 0);
+                } catch (RuntimeException expected) {
+                    // simulated failure
+                }
+            });
+            creator.start();
+            assertTrue(hydrating.await(30, TimeUnit.SECONDS));
+            Thread waiter = new Thread(
+                    () -> waited.set(factory.createGraphDB(parent.toString(), dbName, 0)));
+            waiter.start();
+            while (waiter.getState() != Thread.State.TIMED_WAITING && waiter.isAlive()) {
+                Thread.sleep(5);
+            }
+            failNow.countDown();
+            creator.join(30_000);
+            waiter.join(30_000);
+            assertNotNull("the waiter must re-check and create the DB itself", waited.get());
+        } finally {
+            failNow.countDown();
+            factory.removeRocksdbChangedListener(gate);
+            closeQuietly(waited.get());
+            destroyAndCleanup(factory, parent, dbName);
+        }
+    }
+
+    @Test
+    public void testAwaitPendingCreationsDrainedWaitsForInFlightCreation() throws Exception {
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, CompletableFuture<Void>> pending = pendingCreations(factory);
+        String dbName = "drain-" + System.nanoTime();
+        CompletableFuture<Void> creation = new CompletableFuture<>();
+        pending.put(dbName, creation);
+        try {
+            AtomicBoolean returned = new AtomicBoolean();
+            Thread drainer = new Thread(() -> {
+                factory.awaitPendingCreationsDrained();
+                returned.set(true);
+            });
+            drainer.start();
+            Thread.sleep(200);
+            assertFalse("must wait while a creation is in flight", returned.get());
+            creation.complete(null);
+            drainer.join(10_000);
+            assertTrue("must return once the creation completes", returned.get());
+        } finally {
+            pending.remove(dbName);
+        }
+    }
+
+    // =========================================================================
     // Helpers
     // =========================================================================
 
@@ -1540,10 +1861,46 @@ public class RocksDBFactoryTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static Set<String> pendingCreations(RocksDBFactory factory) throws Exception {
+    private static Map<String, CompletableFuture<Void>> pendingCreations(RocksDBFactory factory)
+            throws Exception {
         Field field = RocksDBFactory.class.getDeclaredField("pendingCreations");
         field.setAccessible(true);
-        return (Set<String>) field.get(factory);
+        return (Map<String, CompletableFuture<Void>>) field.get(factory);
+    }
+
+    private static List<?> nativeListeners(RocksDBSession session) throws Exception {
+        Field field = RocksDBSession.class.getDeclaredField("dbOptions");
+        field.setAccessible(true);
+        return ((DBOptions) field.get(session)).listeners();
+    }
+
+    private static RocksdbChangedListener remoteStateListener() {
+        return new RocksdbChangedListener() {
+            @Override
+            public boolean managesRemoteState() {
+                return true;
+            }
+        };
+    }
+
+    private static void closeQuietly(RocksDBSession session) {
+        if (session != null) {
+            session.close();
+        }
+    }
+
+    private static void destroyAndCleanup(RocksDBFactory factory, Path parent, String... dbNames) {
+        for (String dbName : dbNames) {
+            factory.destroyGraphDB(dbName);
+        }
+        factory.processPendingDestroys();
+        deleteRecursively(parent.toFile());
+    }
+
+    private static void setClosing(RocksDBFactory factory, boolean value) throws Exception {
+        Field field = RocksDBFactory.class.getDeclaredField("closing");
+        field.setAccessible(true);
+        ((AtomicBoolean) field.get(factory)).set(value);
     }
 
     @SuppressWarnings("unchecked")

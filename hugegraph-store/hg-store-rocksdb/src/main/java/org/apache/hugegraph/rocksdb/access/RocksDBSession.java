@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -461,6 +462,27 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         return this.tables.containsKey(table);
     }
 
+    /**
+     * Deletes leftover {@code <graph>[_v1[_v2]]_cloudmeta_<nanos>} checkpoint dirs from a previous
+     * run that crashed mid-capture. They hold only metadata copies and SST hard-links, so deleting
+     * them never touches live data.
+     */
+    private void sweepStaleCloudMetaDirs() {
+        File parent = new File(this.dbPath).getParentFile();
+        File[] children = parent == null ? null : parent.listFiles(File::isDirectory);
+        if (children == null) {
+            return;
+        }
+        Pattern stale = Pattern.compile(Pattern.quote(this.graphName) + "(_\\d+){0,2}"
+                                        + Pattern.quote(cloudMetaTempMarker) + "\\d+");
+        for (File child : children) {
+            if (stale.matcher(child.getName()).matches()) {
+                FileUtils.deleteQuietly(child);
+                log.info("{} removed stale metadata checkpoint dir {}", this.graphName, child);
+            }
+        }
+    }
+
     private void openRocksDB(String dbDataPath, long version, PreOpenHook preOpenHook) {
 
         if (dbDataPath.endsWith(File.separator)) {
@@ -473,6 +495,8 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
         Asserts.isTrue((dbPath != null),
                        () -> new DBStoreException("the data-path of RocksDB is null"));
+
+        sweepStaleCloudMetaDirs();
 
         //makedir for rocksdb
         createDirectory(dbPath);
@@ -489,14 +513,14 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
         RocksDBSession.initOptions(hugeConfig, opts, opts, opts, opts);
         dbOptions = new DBOptions(opts);
         dbOptions.setStatistics(rocksDbStats);
-        // Only register the factory-level event listener when a RocksdbChangedListener is
-        // actually registered (e.g. a cloud storage provider). RocksDB's native callbacks
-        // (onTableFileCreated/onTableFileDeleted/onCompactionCompleted) run on RocksDB's own
-        // native threads and resolve classes via the plain system classloader; when this module
-        // is loaded from a Spring Boot fat jar's nested BOOT-INF/lib, that classloader cannot see
-        // the listener classes, causing a NoClassDefFoundError storm on every callback. Skipping
-        // the registration when there is nothing to notify avoids the callback entirely.
-        if (RocksDBFactory.getInstance().hasRocksdbChangedListeners()) {
+        // Only register the factory-level event listener when a listener manages remote state
+        // (e.g. a cloud storage provider); other listeners only use the Java-side hooks. RocksDB's
+        // native callbacks (onTableFileCreated/onTableFileDeleted/onCompactionCompleted) run on
+        // RocksDB's own native threads and resolve classes via the plain system classloader; when
+        // this module is loaded from a Spring Boot fat jar's nested BOOT-INF/lib, that classloader
+        // cannot see the listener classes, causing a NoClassDefFoundError storm on every callback.
+        // Skipping the registration when nothing needs the events avoids the callbacks entirely.
+        if (RocksDBFactory.getInstance().hasRemoteStateListeners()) {
             dbOptions.setListeners(
                     Collections.singletonList(RocksDBFactory.getInstance().getEventListener()));
         }
@@ -797,23 +821,32 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
      * @throws DBStoreException if the checkpoint cannot be created
      */
     RocksDBFactory.MetadataSnapshot captureMetadataCheckpoint() throws DBStoreException {
-        String tempDir = this.dbPath + "_cloudmeta_" + System.nanoTime();
+        String tempDir = this.dbPath + cloudMetaTempMarker + System.nanoTime();
+        // Everything that touches the native DB (checkpoint, sequence number) stays under the read
+        // lock: shutdown() takes the write lock before closing rocksDB, so the handle cannot be
+        // closed underneath this capture.
         cfHandleLock.readLock().lock();
-        try (final Checkpoint checkpoint = Checkpoint.create(this.rocksDB)) {
-            final File tempFile = new File(tempDir);
-            // Clean any stale temp checkpoint dir from a previous failed/interrupted attempt.
-            // If it exists, RocksDB checkpoint creation can fail on pre-existing files.
-            FileUtils.deleteDirectory(tempFile);
-            checkpoint.createCheckpoint(tempDir);
-        } catch (final Exception e) {
-            // best-effort cleanup of a partial checkpoint
-            FileUtils.deleteQuietly(new File(tempDir));
-            log.error("Fail to create metadata checkpoint at {}", tempDir, e);
-            throw new DBStoreException("Fail to create metadata checkpoint at %s", e, tempDir);
+        try {
+            if (this.closed || this.shutdown.get() || this.rocksDB == null) {
+                throw new DBStoreException("Fail to create metadata checkpoint at %s: "
+                                           + "db %s is closed", tempDir, this.graphName);
+            }
+            try (final Checkpoint checkpoint = Checkpoint.create(this.rocksDB)) {
+                final File tempFile = new File(tempDir);
+                // Clean any stale temp checkpoint dir from a previous failed/interrupted attempt.
+                // If it exists, RocksDB checkpoint creation can fail on pre-existing files.
+                FileUtils.deleteDirectory(tempFile);
+                checkpoint.createCheckpoint(tempDir);
+            } catch (final Exception e) {
+                // best-effort cleanup of a partial checkpoint
+                FileUtils.deleteQuietly(new File(tempDir));
+                log.error("Fail to create metadata checkpoint at {}", tempDir, e);
+                throw new DBStoreException("Fail to create metadata checkpoint at %s", e, tempDir);
+            }
+            return categoriseCheckpoint(tempDir);
         } finally {
             cfHandleLock.readLock().unlock();
         }
-        return categoriseCheckpoint(tempDir);
     }
 
     /** Classifies the files a checkpoint materialized into the metadata snapshot descriptor. */

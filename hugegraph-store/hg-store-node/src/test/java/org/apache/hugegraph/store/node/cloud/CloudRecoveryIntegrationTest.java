@@ -212,10 +212,11 @@ public class CloudRecoveryIntegrationTest {
                 List.of(this.baseDir.toString()), false, 0L, this.retryQueue);
 
         // The listener must be registered BEFORE the DB is opened: RocksDBSession#openRocksDB
-        // only wires the native RocksdbChangedListener into dbOptions when
-        // RocksDBFactory#hasRocksdbChangedListeners() is true AT OPEN TIME (a one-time decision,
-        // to avoid ever exercising the native callback — and its classloading — when no listener
-        // feature is enabled). The provider is still healthy at this point, so onDBOpening and
+        // only arms the native RocksdbChangedListener in dbOptions when
+        // RocksDBFactory#hasRemoteStateListeners() is true AT OPEN TIME, i.e. when a listener
+        // whose managesRemoteState() is true is registered (a one-time decision, to avoid ever
+        // exercising the native callback — and its classloading — when no listener feature is
+        // enabled). The provider is still healthy at this point, so onDBOpening and
         // onDBCreated succeed; only the flush below exercises the injected failure.
         factory.addRocksdbChangedListener(this.listener);
 

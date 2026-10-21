@@ -145,6 +145,7 @@ public class AppConfigCloudStorageTest {
      */
     @Test
     public void testProviderNamespaceIsDynamic() {
+        mockEnv.setProperty("cloud.storage.enabled", "true");
         mockEnv.setProperty("cloud.storage.provider", "gcs");
         mockEnv.setProperty("cloud.storage.gcs.bucket", "gcs-bucket");
         mockEnv.setProperty("cloud.storage.gcs.credentials-file-path", "/path/creds.json");
@@ -170,6 +171,7 @@ public class AppConfigCloudStorageTest {
     @Test
     public void testProviderPropertiesResolveFromEnvVarStyleNames() {
         Map<String, Object> envVarProps = new HashMap<>();
+        envVarProps.put("CLOUD_STORAGE_ENABLED", "true");
         envVarProps.put("CLOUD_STORAGE_S3_SECRET_KEY", "env-var-secret");
         envVarProps.put("CLOUD_STORAGE_S3_ACCESS_KEY", "env-var-access");
         mockEnv.getPropertySources().addFirst(new SystemEnvironmentPropertySource(
@@ -179,6 +181,38 @@ public class AppConfigCloudStorageTest {
 
         assertEquals("env-var-secret", cfg.getProviderProperties().get("secret-key"));
         assertEquals("env-var-access", cfg.getProviderProperties().get("access-key"));
+    }
+
+    /**
+     * Provider properties are only bound (and their placeholders only resolved) when cloud storage
+     * is enabled: a disabled node must start even if the provider namespace references an
+     * unresolvable placeholder such as a missing credential env var.
+     */
+    @Test
+    public void testDisabledDoesNotResolveProviderProperties() {
+        mockEnv.setProperty("cloud.storage.enabled", "false");
+        mockEnv.setProperty("cloud.storage.provider", "s3");
+        mockEnv.setProperty("cloud.storage.s3.bucket", "${UNSET_BUCKET_FOR_TEST}");
+        mockEnv.setProperty("cloud.storage.s3.access-key", "${UNSET_ACCESS_KEY_FOR_TEST}");
+
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
+
+        assertFalse(cfg.isEnabled());
+        assertNotNull(cfg.getProviderProperties());
+        assertTrue(cfg.getProviderProperties().isEmpty(),
+                   "provider properties must not be bound while cloud storage is disabled");
+    }
+
+    /** When enabled, the same provider namespace is bound. */
+    @Test
+    public void testEnabledBindsProviderProperties() {
+        mockEnv.setProperty("cloud.storage.enabled", "true");
+        mockEnv.setProperty("cloud.storage.provider", "s3");
+        mockEnv.setProperty("cloud.storage.s3.bucket", "enabled-bucket");
+
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
+
+        assertEquals("enabled-bucket", cfg.getProviderProperties().get("bucket"));
     }
 
     /**

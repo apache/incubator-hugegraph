@@ -41,10 +41,17 @@
     </properties>
 
     <dependencies>
-        <!-- Cloud storage SPI interface -->
+        <!--
+          Cloud storage SPI interface. provided: Store (hg-store-node) always has it on its own
+          classpath, and keeping it out of this module's runtime closure stops
+          copy-plugin-runtime-deps from staging its transitive HugeGraph tree
+          (hugegraph-struct, gremlin, guava, tokenizers, ...) next to the plugin jar.
+          Still on the compile and test classpath.
+          -->
         <dependency>
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hg-store-common</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <!--
@@ -114,8 +121,14 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <!-- Already ships inside hg-store-node's fat jar; don't duplicate. -->
+                            <!--
+                              Defensive: hg-store-common is provided-scope (so its transitive tree is
+                              not staged); this also keeps any other HugeGraph artifact out, since
+                              they already ship inside hg-store-node's fat jar.
+                              -->
                             <excludeGroupIds>org.apache.hugegraph</excludeGroupIds>
+                            <!-- Runtime closure only; provided/test-scope jars are not staged. -->
+                            <includeScope>runtime</includeScope>
                             <!--
                               rocksdbjni: kept off the plugin jar's own dependency set — it's
                               already on Store's runtime classpath independent of cloud storage.

@@ -1973,4 +1973,295 @@ public class CloudStorageEventListenerTest {
         }
     }
 
+    // -----------------------------------------------------------------------
+    // PR review fixes: pending-delete / truncate purge safety, open ordering, backoff
+    // -----------------------------------------------------------------------
+
+    /** Provider whose {@code deletePrefix} can be switched to fail (simulated cloud outage). */
+    static class ToggleablePurgeProvider extends CapturingProvider {
+
+        volatile boolean failPurge;
+
+        @Override
+        public int deletePrefix(String remoteDirPrefix) throws IOException {
+            if (failPurge) {
+                throw new IOException("simulated purge failure");
+            }
+            return super.deletePrefix(remoteDirPrefix);
+        }
+
+        @Override
+        public synchronized void putRemoteFile(String key, byte[] content) {
+            super.putRemoteFile(key, content);
+        }
+    }
+
+    @Test
+    public void managesRemoteState_isTrue() {
+        assertTrue(listener.managesRemoteState());
+    }
+
+    @Test
+    public void staleDeletePurgeRetry_standsDownOnceTheDbIsCreatedAgain() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-stale-delete-retry");
+        Path dbDir = tmpRoot.resolve("g1");
+        Files.createDirectories(dbDir);
+        ToggleablePurgeProvider provider = new ToggleablePurgeProvider();
+        provider.putRemoteFile("g1/000001.sst", "old".getBytes());
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), false);
+        try {
+            provider.failPurge = true;
+            l.onDBDeleteBegin("g1", dbDir.toString());
+            l.onDBDeleted("g1", dbDir.toString());
+            assertTrue(l.hasPendingDeleteMarker("g1"), "failed purge must leave the marker");
+            long epochAtDelete = l.prefixEpoch("g1");
+
+            // The graph is re-created at the same prefix and uploads new data; the cloud is back.
+            l.onDBCreated("g1", dbDir.toString());
+            assertTrue(l.prefixEpoch("g1") > epochAtDelete,
+                       "creating a DB must invalidate scheduled purges for the prefix");
+            provider.failPurge = false;
+            provider.putRemoteFile("g1/000002.sst", "new".getBytes());
+
+            // The first retry fires after ~500ms: it must NOT purge the new DB's objects.
+            LockSupport.parkNanos(1_500_000_000L);
+            assertTrue(provider.remoteFiles.containsKey("g1/000002.sst"),
+                       "A stale delete-purge retry must not delete a re-created DB's data");
+            assertTrue(provider.remoteFiles.containsKey("g1/000001.sst"),
+                       "The cancelled retry must not purge at all");
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    @Test
+    public void onDBOpening_blocksWhileDeleteCleanupFails_evenWithHydrationDisabled()
+            throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-open-blocked");
+        Path dbDir = tmpRoot.resolve("g2");
+        Files.createDirectories(dbDir);
+        ToggleablePurgeProvider provider = new ToggleablePurgeProvider();
+        provider.putRemoteFile("g2/000001.sst", "old".getBytes());
+        // Hydration disabled: the pending-delete guard must still run.
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), false);
+        try {
+            provider.failPurge = true;
+            l.onDBDeleteBegin("g2", dbDir.toString());
+            l.onDBDeleted("g2", dbDir.toString());
+
+            try {
+                l.onDBOpening("g2", dbDir.toString());
+                fail("Open must be blocked while the remote delete cleanup is unconfirmed");
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.getMessage().contains("g2"), expected.getMessage());
+            }
+            assertTrue(l.hasPendingDeleteMarker("g2"), "marker must persist while blocked");
+
+            // Cloud recovers: the next open finishes the cleanup first, then proceeds.
+            provider.failPurge = false;
+            l.onDBOpening("g2", dbDir.toString());
+            assertFalse(l.hasPendingDeleteMarker("g2"));
+            assertFalse(provider.remoteFiles.containsKey("g2/000001.sst"));
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    @Test
+    public void truncatePurgeRetry_isAbandonedOnceTheDbWritesAgain() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-truncate-retry");
+        Path dbDir = tmpRoot.resolve("g3");
+        Files.createDirectories(dbDir);
+        Path newSst = Files.write(dbDir.resolve("000010.sst"), "new".getBytes());
+        ToggleablePurgeProvider provider = new ToggleablePurgeProvider();
+        provider.putRemoteFile("g3/000001.sst", "stale".getBytes());
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+                provider, List.of(tmpRoot.toString()), false, 0L, null, new CloudSyncTracker(),
+                null, 60_000L);
+        try {
+            provider.failPurge = true;
+            l.onDBTruncated("g3", dbDir.toString());
+            assertTrue(l.hasPendingTruncateMarker("g3"));
+
+            // The DB resumes writing before the retry fires.
+            l.onTableFileCreated("g3", "default", newSst.toString(), Files.size(newSst));
+            provider.failPurge = false;
+            provider.putRemoteFile("g3/000010.sst", "new".getBytes());
+
+            waitForCondition(() -> !l.hasPendingTruncateMarker("g3"),
+                             "abandoned retry must drop the pending-truncate marker");
+            assertTrue(provider.remoteFiles.containsKey("g3/000010.sst"),
+                       "A truncate purge retry must not delete objects written after the truncate");
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    @Test
+    public void onDBOpening_completesPendingTruncatePurge_evenWithHydrationDisabled()
+            throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-open-truncate");
+        Path dbDir = tmpRoot.resolve("g4");
+        Files.createDirectories(dbDir);
+        ToggleablePurgeProvider provider = new ToggleablePurgeProvider();
+        provider.putRemoteFile("g4/000001.sst", "stale".getBytes());
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), false);
+        try {
+            provider.failPurge = true;
+            l.onDBTruncated("g4", dbDir.toString());
+            assertTrue(l.hasPendingTruncateMarker("g4"));
+
+            provider.failPurge = false;
+            l.onDBOpening("g4", dbDir.toString());
+
+            assertFalse(l.hasPendingTruncateMarker("g4"));
+            assertFalse(provider.remoteFiles.containsKey("g4/000001.sst"));
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    @Test
+    public void onDBOpening_sweepsStaleHydrationTempsEvenWhenHydrationIsDisabled()
+            throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-hyd-sweep");
+        Path dbDir = tmpRoot.resolve("g5");
+        Files.createDirectories(dbDir);
+        Path stale = Files.write(dbDir.resolve("000001.sst.hyd-tmp-1-123"), "partial".getBytes());
+        Path keep = Files.write(dbDir.resolve("000002.sst"), "live".getBytes());
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+                new CapturingProvider(), List.of(tmpRoot.toString()), false);
+        try {
+            l.onDBOpening("g5", dbDir.toString());
+
+            assertFalse(Files.exists(stale), "stale download temp must be swept on every open");
+            assertTrue(Files.exists(keep), "real files must be untouched");
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    @Test
+    public void onDBOpening_registersLogicalName_beforeOnDBCreated() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-open-record");
+        Path dbDir = tmpRoot.resolve("g6");
+        Files.createDirectories(dbDir);
+        AtomicReference<String> observed = new AtomicReference<>();
+        CloudStorageEventListener l = new CloudStorageEventListener(new CapturingProvider(),
+                List.of(tmpRoot.toString()), false, 0L, null, new CloudSyncTracker(), null,
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
+            @Override
+            boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
+                observed.set(dbName);
+                return true;
+            }
+
+            @Override
+            List<LiveSstFile> currentLiveSstFiles(String dbName) {
+                return List.of();
+            }
+        };
+        try {
+            // Native events can arrive between onDBOpening and onDBCreated, with the path form.
+            l.onDBOpening("logical-g6", dbDir.toString());
+            l.onTableFileDeleted(dbDir.toString(), "default", dbDir.resolve("000001.sst").toString());
+
+            assertEquals("logical-g6", observed.get());
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    @Test
+    public void onCompacted_onlyMarksMetadataDirty() throws Exception {
+        List<String> syncs = Collections.synchronizedList(new ArrayList<>());
+        CloudStorageEventListener l = new CloudStorageEventListener(new CapturingProvider(),
+                List.of(DATA_ROOT), false, 0L, null, new CloudSyncTracker(), null, 60_000L) {
+            @Override
+            boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
+                syncs.add(dbName);
+                return true;
+            }
+        };
+        try {
+            l.onCompacted("db-compact");
+            assertTrue(syncs.isEmpty(), "compaction callback must not publish inline");
+        } finally {
+            l.close();
+        }
+        assertEquals(List.of("db-compact"), syncs, "close() must flush the dirty mark");
+    }
+
+    @Test
+    public void metadataPublishFailures_backOffPerDb_andResetOnSuccess() throws Exception {
+        AtomicInteger captures = new AtomicInteger();
+        AtomicBoolean healthy = new AtomicBoolean(false);
+        CloudStorageEventListener l = new CloudStorageEventListener(new CapturingProvider(),
+                List.of(DATA_ROOT), false, 0L, null, new CloudSyncTracker(), null, 20L) {
+            @Override
+            boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
+                captures.incrementAndGet();
+                return healthy.get();
+            }
+        };
+        try {
+            // Exponential, capped, with a floor so tiny debounce intervals cannot hot-loop.
+            assertEquals(1_000L, l.publishBackoffMs(1));
+            assertEquals(2_000L, l.publishBackoffMs(2));
+            assertEquals(4_000L, l.publishBackoffMs(3));
+            assertEquals(CloudStorageEventListener.MAX_PUBLISH_BACKOFF_MS, l.publishBackoffMs(60));
+
+            l.markMetadataDirty("db-bo");
+            waitForCondition(() -> l.publishFailureCount("db-bo") == 1, "first failure recorded");
+            // Many drain ticks (every 20ms) pass inside the 1s backoff window: no more attempts.
+            LockSupport.parkNanos(500_000_000L);
+            assertEquals(1, captures.get(), "a failing DB must not be retried every drain tick");
+
+            healthy.set(true);
+            waitForCondition(() -> l.publishFailureCount("db-bo") == 0 && captures.get() == 2,
+                             "retry after backoff must succeed and clear the failure state");
+        } finally {
+            l.close();
+        }
+    }
+
+    @Test
+    public void dirtyMark_keptWhileTruncating_butDroppedWhenDbDeleted() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-dirty-truncate");
+        Path dbDir = tmpRoot.resolve("g7");
+        Files.createDirectories(dbDir);
+        AtomicInteger syncs = new AtomicInteger();
+        CloudStorageEventListener l = new CloudStorageEventListener(new CapturingProvider(),
+                List.of(tmpRoot.toString()), false, 0L, null, new CloudSyncTracker(), null,
+                20L) {
+            @Override
+            boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
+                syncs.incrementAndGet();
+                return true;
+            }
+        };
+        try {
+            l.onDBTruncateBegin("g7", dbDir.toString());
+            l.markMetadataDirty("g7");
+            LockSupport.parkNanos(200_000_000L);
+            assertEquals(0, syncs.get(), "no publish while the DB is truncating");
+
+            // The DB is deleted outright: the retained mark must not publish metadata for it.
+            l.onDBDeleted("g7", dbDir.toString());
+            LockSupport.parkNanos(300_000_000L);
+            assertEquals(0, syncs.get(), "a deleted DB's dirty mark must be dropped");
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
 }

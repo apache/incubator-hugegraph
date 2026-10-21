@@ -324,6 +324,95 @@ public class CloudUploadRetryQueueTest {
     }
 
     // -----------------------------------------------------------------------
+    // De-duplication of pending retries per (db, remoteKey)
+    // -----------------------------------------------------------------------
+
+    @Test
+    public void submit_duplicateForSameDbAndKey_isSkippedWhileRetryPending() throws Exception {
+        Path sstFile = Files.createFile(tmpRoot.resolve("000020.sst"));
+        CapturingProvider provider = new CapturingProvider();
+
+        // Long initial delay keeps the first retry pending for the whole test.
+        CloudUploadRetryQueue queue =
+                CloudStorageTestFactory.newRetryQueue(provider, 3, 30_000L, 30_000L);
+        try {
+            assertFalse(queue.isRetryPending("db-dup", "db-dup/000020.sst"));
+
+            queue.submit("db-dup", "default", sstFile.toString(), "db-dup/000020.sst",
+                         new IOException("first"));
+            assertTrue(queue.isRetryPending("db-dup", "db-dup/000020.sst"));
+
+            queue.submit("db-dup", "default", sstFile.toString(), "db-dup/000020.sst",
+                         new IOException("second"));
+            // A different key is independent.
+            assertFalse(queue.isRetryPending("db-dup", "db-dup/000021.sst"));
+            assertFalse(queue.isRetryPending("other-db", "db-dup/000020.sst"));
+        } finally {
+            queue.close();
+        }
+        // Only the single pending task is given up at shutdown: the duplicate was never queued.
+        assertEquals(1L, queue.getGivenUpCount(),
+                     "A duplicate submit must not create a second pending retry");
+        assertFalse(queue.isRetryPending("db-dup", "db-dup/000020.sst"),
+                    "Giving up must release the dedupe key");
+    }
+
+    @Test
+    public void submitPinned_duplicate_releasesItsOwnStagingPinButKeepsSource() throws Exception {
+        Path source = Files.writeString(tmpRoot.resolve("000030.sst"), "sst");
+        Path pin1 = Files.createLink(tmpRoot.resolve("000030.sst.upload-1"), source);
+        Path pin2 = Files.createLink(tmpRoot.resolve("000030.sst.upload-2"), source);
+
+        CloudUploadRetryQueue queue =
+                CloudStorageTestFactory.newRetryQueue(new CapturingProvider(), 3, 30_000L, 30_000L);
+        try {
+            queue.submitPinned("db", "cf", pin1.toString(), source.toString(), "db/000030.sst",
+                               1L, new IOException("outage"));
+            queue.submitPinned("db", "cf", pin2.toString(), source.toString(), "db/000030.sst",
+                               1L, new IOException("outage"));
+
+            assertTrue(Files.exists(pin1), "The pending retry keeps its own staging pin");
+            assertFalse(Files.exists(pin2), "The duplicate must release its own staging pin");
+            assertTrue(Files.exists(source), "The source SST is never touched");
+        } finally {
+            queue.close();
+        }
+    }
+
+    @Test
+    public void retrySuccess_releasesDedupeKeyAllowingResubmit() throws Exception {
+        Path sstFile = Files.createFile(tmpRoot.resolve("000040.sst"));
+        AtomicInteger uploadCount = new AtomicInteger();
+        CapturingProvider provider = new CapturingProvider() {
+            @Override
+            public void uploadFile(String localPath, String remoteKey) {
+                uploadCount.incrementAndGet();
+            }
+        };
+
+        try (CloudUploadRetryQueue queue =
+                     CloudStorageTestFactory.newRetryQueue(provider, 3, 50L, 100L)) {
+            queue.submit("db-rel", "default", sstFile.toString(), "db-rel/000040.sst",
+                         new IOException("outage"));
+            awaitTrue(() -> uploadCount.get() == 1);
+            awaitTrue(() -> !queue.isRetryPending("db-rel", "db-rel/000040.sst"));
+
+            queue.submit("db-rel", "default", sstFile.toString(), "db-rel/000040.sst",
+                         new IOException("outage again"));
+            awaitTrue(() -> uploadCount.get() == 2);
+        }
+    }
+
+    private static void awaitTrue(java.util.function.BooleanSupplier condition)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 3_000L;
+        while (!condition.getAsBoolean() && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20L);
+        }
+        assertTrue(condition.getAsBoolean(), "condition not reached within 3s");
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 

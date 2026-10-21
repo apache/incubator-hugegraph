@@ -144,6 +144,16 @@ public class CloudUploadRetryQueue implements Closeable {
      */
     private final Set<RetryContext> inFlightRetries = ConcurrentHashMap.newKeySet();
 
+    /**
+     * Keys ({@code db + NUL + remoteKey}) of retries that are scheduled or executing, mapped to the
+     * local path the live retry uploads from. Used to dedupe submissions: a publish that re-checks
+     * an SST which is already waiting for retry must not stack another retry chain for the same
+     * object (each would burn its own attempts and staging hard-link). Removed on success, drop
+     * and give-up.
+     */
+    private final java.util.concurrent.ConcurrentMap<String, String> pendingKeys =
+            new ConcurrentHashMap<>();
+
     /** Background thread pool used to schedule retries. */
     private final ScheduledExecutorService scheduler;
 
@@ -247,6 +257,22 @@ public class CloudUploadRetryQueue implements Closeable {
                       cause.getMessage() != null ? cause.getMessage() : "non-retryable");
             return;
         }
+        String key = retryKey(dbName, remoteKey);
+        String existing = pendingKeys.putIfAbsent(key, pinnedPath);
+        if (existing != null) {
+            // Already waiting for (or running) a retry; the live chain will upload this object.
+            // Release the duplicate's own staging pin, which nothing else will ever consume.
+            if (!pinnedPath.equals(sourceSstPath) && !pinnedPath.equals(existing)) {
+                try {
+                    Files.deleteIfExists(Paths.get(pinnedPath));
+                } catch (IOException e) {
+                    log.debug("Failed to release duplicate staging file: {}", pinnedPath);
+                }
+            }
+            log.debug("Cloud upload retry already pending, skipping duplicate: db={}, key={}",
+                      dbName, remoteKey);
+            return;
+        }
         // This method is invoked from RocksDB flush/compaction callbacks (via
         // CloudStorageEventListener). It must never throw back across that JNI/event boundary.
         // When the scheduler is shutting down, scheduler.schedule(...) throws
@@ -255,6 +281,7 @@ public class CloudUploadRetryQueue implements Closeable {
             scheduleRetry(dbName, cfName, pinnedPath, sourceSstPath, remoteKey, uploadEpoch,
                           1);
         } catch (RejectedExecutionException e) {
+            pendingKeys.remove(key);
             log.warn("Cloud upload retry scheduling rejected (scheduler shutting down); "
                      + "giving up: db={}, cf={}, path={}",
                      dbName, cfName, pinnedPath);
@@ -262,6 +289,15 @@ public class CloudUploadRetryQueue implements Closeable {
                       "retry scheduling rejected during shutdown: "
                       + (cause.getMessage() != null ? cause.getMessage() : cause.toString()));
         }
+    }
+
+    /** Returns true when a retry for {@code (dbName, remoteKey)} is scheduled or executing. */
+    public boolean isRetryPending(String dbName, String remoteKey) {
+        return pendingKeys.containsKey(retryKey(dbName, remoteKey));
+    }
+
+    private static String retryKey(String dbName, String remoteKey) {
+        return dbName + '\u0000' + remoteKey;
     }
 
     /** Returns the number of uploads given up on since startup. */
@@ -355,6 +391,7 @@ public class CloudUploadRetryQueue implements Closeable {
             if (!set.remove(ctx)) {
                 continue; // raced with the task itself removing it; it will handle its own outcome
             }
+            pendingKeys.remove(retryKey(ctx.dbName, ctx.remoteKey));
             giveUp(ctx.dbName, ctx.cfName, ctx.filePath, ctx.sourceSstPath, ctx.remoteKey,
                       ctx.uploadEpoch, ctx.attempt, reason);
             rescued++;
@@ -433,10 +470,13 @@ public class CloudUploadRetryQueue implements Closeable {
             if (!Files.exists(Paths.get(filePath))) {
                 log.info("Cloud upload retry: local file no longer exists (compacted?), "
                          + "dropping: db={}, cf={}, path={}", dbName, cfName, filePath);
+                pendingKeys.remove(retryKey(dbName, remoteKey));
                 return;
             }
 
             provider.uploadFile(filePath, remoteKey);
+            // Durable: a later submission for this key is legitimate again.
+            pendingKeys.remove(retryKey(dbName, remoteKey));
             // Confirm using the original *.sst path so CloudSyncTracker can parse the file number.
             // Pass the epoch so markConfirmedIfEpoch can drop stale callbacks after DB recreation.
             try {
@@ -468,11 +508,13 @@ public class CloudUploadRetryQueue implements Closeable {
             log.warn("Cloud upload retry failed: db={}, cf={}, path={}, attempt={}/{}, reason={}",
                      dbName, cfName, filePath, attempt, maxAttempts, e.getMessage());
             if (e instanceof CloudStorageNonRetryableException) {
+                pendingKeys.remove(retryKey(dbName, remoteKey));
                 giveUp(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
                           attempt, e.getMessage() != null ? e.getMessage() : "non-retryable");
                 return;
             }
             if (attempt >= maxAttempts) {
+                pendingKeys.remove(retryKey(dbName, remoteKey));
                 giveUp(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
                           attempt, e.getMessage());
             } else {
@@ -486,6 +528,7 @@ public class CloudUploadRetryQueue implements Closeable {
                     // Give up instead; startup backfill re-uploads it if still live.
                     log.warn("Cloud upload retry reschedule rejected (scheduler shutting down); "
                              + "giving up: db={}, cf={}, path={}", dbName, cfName, filePath);
+                    pendingKeys.remove(retryKey(dbName, remoteKey));
                     giveUp(dbName, cfName, filePath, sourceSstPath, remoteKey, uploadEpoch,
                               attempt, "retry reschedule rejected during shutdown");
                 }

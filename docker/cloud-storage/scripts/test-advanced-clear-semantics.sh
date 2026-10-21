@@ -77,9 +77,24 @@ $cmd
 "
 }
 
+# Exact count via Gremlin: the REST /graph/vertices listing is capped by a default limit (100).
+# The traversal-source alias key is "<graphspace>-<graph>" on graph-space aware servers and plain
+# "<graph>" otherwise, so try both.
 vertex_count() {
-    curl -s --compressed "http://localhost:8080/graphs/${GRAPH_NAME}/graph/vertices" \
-        | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('vertices',[])))"
+    local key payload out count
+    for key in "${GRAPH_SPACE:-DEFAULT}-${GRAPH_NAME}" "${GRAPH_NAME}"; do
+        payload="{\"gremlin\":\"g.V().count()\",\"bindings\":{},\"language\":\"gremlin-groovy\",\"aliases\":{\"g\":\"__g_${key}\"}}"
+        out=$(curl -s --compressed -X POST "http://localhost:8080/gremlin" \
+                  -H 'Content-Type: application/json' -d "$payload" 2>/dev/null || true)
+        count=$(printf '%s' "$out" | python3 -c "import sys,json; print(int(json.load(sys.stdin)['result']['data'][0]))" \
+                    2>/dev/null || true)
+        if [[ "$count" =~ ^[0-9]+$ ]]; then
+            echo "$count"
+            return 0
+        fi
+    done
+    echo "ERROR: Gremlin vertex count query failed for graph '${GRAPH_NAME}'" >&2
+    return 1
 }
 
 main() {

@@ -226,14 +226,18 @@ services:
     environment:
       GREMLIN_SERVER_HOST: 0.0.0.0
       GREMLIN_SERVER_PORT: "8182"
+      # Used by the entrypoint's post-startup partition check (hstore backend)
+      STORE_REST: store0:8520
     ports:
       - "8080:8080"
       - "8182:8182"
     volumes:
       - ./logs/server:/hugegraph-server/logs
+      # HStore backend + PD peers (pd:8686); same graph config the generated test stack mounts
+      - ./conf/graphs:/hugegraph-server/conf/graphs
     networks: [hg-net]
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/gremlin >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/versions >/dev/null || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 40

@@ -23,10 +23,12 @@ The goal is to validate that:
 From repo root, build all modules:
 
 ```bash
-mvn clean package -DskipTests
+mvn clean package -DskipTests -Ps3-cloud-storage
 ```
 
-This builds the necessary artifacts for the Docker images.
+This builds the necessary artifacts for the Docker images. `-Ps3-cloud-storage` is the opt-in
+profile that bundles the S3 provider (`hg-store-cloud-s3` + AWS SDK) with the Store node; the
+harness image stages the provider jar and its dependencies under `/hugegraph-store/plugins/`.
 
 ## Quick Start
 
@@ -255,11 +257,13 @@ echo "✓ Inserted 150+ test vertices (sufficient for RocksDB compaction)"
 
 **Why 150+ vertices?** Smaller datasets may not trigger RocksDB compaction. 150+ vertices across 3 store nodes ensures enough write activity to generate SST files.
 
-Optional quick sanity check before flush:
+Optional quick sanity check before flush (uses Gremlin because the REST `/graph/vertices` listing
+is capped at 100 vertices by default):
 
 ```bash
-curl -s --compressed http://localhost:8080/graphs/hugegraph/graph/vertices \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('Total vertices:', len(d.get('vertices',[])))"
+curl -s -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
+  -d '{"gremlin":"g.V().count()","bindings":{},"language":"gremlin-groovy","aliases":{"g":"__g_DEFAULT-hugegraph"}}' \
+  | python3 -c "import sys,json; print('Total vertices:', json.load(sys.stdin)['result']['data'][0])"
 ```
 
 ### Step 5: Manual Flush + MinIO UI Verification
@@ -508,15 +512,17 @@ docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
 
 ```bash
 echo "Vertex count immediately after clear (expected 0):"
-curl -s --compressed "http://localhost:8080/graphs/${GRAPH_NAME}/graph/vertices" \
-  | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('vertices',[])))"
+curl -s -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
+  -d "{\"gremlin\":\"g.V().count()\",\"bindings\":{},\"language\":\"gremlin-groovy\",\"aliases\":{\"g\":\"__g_DEFAULT-${GRAPH_NAME}\"}}" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['data'][0])"
 
 docker restart cloud-storage-store0 cloud-storage-store1 cloud-storage-store2
 sleep 20
 
 echo "Vertex count after store restart (must remain 0):"
-curl -s --compressed "http://localhost:8080/graphs/${GRAPH_NAME}/graph/vertices" \
-  | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('vertices',[])))"
+curl -s -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
+  -d "{\"gremlin\":\"g.V().count()\",\"bindings\":{},\"language\":\"gremlin-groovy\",\"aliases\":{\"g\":\"__g_DEFAULT-${GRAPH_NAME}\"}}" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['data'][0])"
 ```
 
 If the post-restart count is non-zero, stale data was re-hydrated (unexpected).
@@ -547,7 +553,7 @@ GRAPH_NAME=hugegraph RESTART_WAIT_SECONDS=20 \
 
 This step validates the DB-destroy lifecycle callbacks (not truncate/clear):
 
-- `onDBDeleteBegin` writes a tombstone object (`_DELETED`) for the DB prefix
+- `onDBDeleteBegin` writes a tombstone object as a **sibling** of the DB prefix (`<prefix>_DELETED`, never `<prefix>/_DELETED`); it is removed again once the purge succeeds
 - `onDBDeleted` purges the DB prefix from cloud storage
 
 It uses the **test-only** Store endpoint `/test/raftDelete/{groupId}` to destroy one partition
@@ -574,7 +580,7 @@ What this phase does:
 5. verifies the prefix is fully purged.
 
 **Success criteria:**
-- ✅ Logs include `Cloud DB tombstone written` (from `onDBDeleteBegin`)
+- ✅ Logs include `Cloud DB tombstone written` (from `onDBDeleteBegin`); the `tombstone-sibling-key` phase asserts the sibling key `<prefix>_DELETED` was observed or logged and that `<prefix>/_DELETED` never exists
 - ✅ Logs include `Cloud DB purge completed` (from `onDBDeleted`, may appear up to ~60s later)
 - ✅ `Objects after db delete` is `0` for the detected DB prefix
 
@@ -653,14 +659,15 @@ docker rmi \
 
 - **Entrypoints**: Store containers inject `cloud.storage.*` config via `SPRING_APPLICATION_JSON` in `entrypoints/store-entrypoint.sh`.
 - **Config precedence**: values injected by `SPRING_APPLICATION_JSON` override defaults in `/hugegraph-store/conf/application.yml`.
-- **Plugin Loading**: Store startup uses `PropertiesLauncher` with `-Dloader.path=/hugegraph-store/plugins` to discover S3 provider JAR via `ServiceLoader`
+- **Plugin Loading (test-harness image only)**: `entrypoints/store-entrypoint.sh` starts the Store with `PropertiesLauncher` and `-Dloader.path=/hugegraph-store/plugins` so the S3 provider JAR staged by this harness is discovered via `ServiceLoader`. This is specific to the harness image; the stock Store distribution does not scan a `plugins/` directory (see "Enabling S3 on the stock distribution" in the [Store README](../../hugegraph-store/README.md))
 - **Logging**: Store containers run with `DEBUG` level for:
   - `org.apache.hugegraph.store.node.cloud`
   - `org.apache.hugegraph.rocksdb.access`
 - **Networking**: Containers run on `cloud-storage-net` (static compose) or `cloud-storage-test_hg-net` (default generated test stack)
 - **Storage**: Local bind mounts under `data/` and `logs/` for inspection
+- **Server backend**: the `server` service runs on the `hstore` backend with PD peers `pd:8686`, configured by `conf/graphs/hugegraph.properties` (mounted over `/hugegraph-server/conf/graphs`). The generated test stack copies the same file, so both stacks use the same graph config; `STORE_REST=store0:8520` lets the server entrypoint wait for partition assignment
 - **Bucket layout**: each Store node writes SSTs to a dedicated bucket (`store0 -> hugegraph-store0`, `store1 -> hugegraph-store1`, `store2 -> hugegraph-store2`)
-Can- **Cloud key scope and `HG_CLOUD_STORAGE_NODE_ID`**: Each node scopes its remote objects under a key prefix derived from `cloud.storage.node-id` (env `HG_CLOUD_STORAGE_NODE_ID`). This value is already set per-node in `docker-compose.yml` (e.g. `store0_8510`). After a full disk wipe the local `.cloud-store-scope` marker file is lost; the node falls back to the runtime network address to re-seed the scope and logs a WARN. Recovery succeeds here because the node-id and the network address both resolve to the same string. **In production, always set `cloud.storage.node-id`** to a deployment-stable value so the scope survives both disk wipes and address changes. See the [architecture doc](../../hugegraph-store/docs/pluggable-cloud-storage-architecture.md) for details.
+- **Cloud key scope and `HG_CLOUD_STORAGE_NODE_ID`**: Each node scopes its remote objects under a key prefix derived from `cloud.storage.node-id` (env `HG_CLOUD_STORAGE_NODE_ID`). This value is already set per-node in `docker-compose.yml` (e.g. `store0_8510`). After a full disk wipe the local `.cloud-store-scope` marker file is lost; the node falls back to the runtime network address to re-seed the scope and logs a WARN. Recovery succeeds here because the node-id and the network address both resolve to the same string. **In production, always set `cloud.storage.node-id`** to a deployment-stable value so the scope survives both disk wipes and address changes. See the [architecture doc](../../hugegraph-store/docs/pluggable-cloud-storage-architecture.md) for details.
 
 ### Troubleshooting Manual Verification Steps
 
@@ -728,7 +735,7 @@ This is the most common issue. Debug step-by-step:
    docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | \
      grep -i "S3CloudStorageProvider\|cloud storage" | head -5
    ```
-   If no output, plugin didn't load. Check `/hugegraph-store/plugins/` for `hg-store-cloud-s3.jar`.
+   If no output, plugin didn't load. In this harness image, check `/hugegraph-store/plugins/` for `hg-store-cloud-s3.jar`.
 
 3. **Check for S3 upload errors:**
    ```bash
@@ -891,7 +898,7 @@ $REPO_ROOT/docker/cloud-storage/scripts/test-graph-queries-and-sst.sh --keep-sta
 
 ## Notes
 
-- S3 provider JAR must be in `/hugegraph-store/plugins/` for `ServiceLoader` discovery
+- In this test-harness image the S3 provider JAR must be in `/hugegraph-store/plugins/` for `ServiceLoader` discovery (the stock distribution instead bundles it into the node jar via `-Ps3-cloud-storage`)
 - Plugin dependency staging filters extra SLF4J binding jars to avoid duplicate binding warnings at runtime
 - Cloud settings are read from environment variables at store startup time
 - **Minimum data size:** 150+ vertices is recommended to trigger RocksDB SST file generation. Very small datasets may not create any SST files.

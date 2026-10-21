@@ -34,13 +34,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -210,6 +211,49 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      */
     private final Map<String, Object> pendingDeleteLocks = new ConcurrentHashMap<>();
 
+    /**
+     * Per-remote-prefix generation, bumped every time a DB is opened or created at that prefix.
+     * An asynchronous pending-delete purge captures the value when it is scheduled and aborts
+     * (without purging) if it changed, so a retry can never delete objects that a re-created DB
+     * has since taken over the prefix with. Entries are never removed: dropping one would reset
+     * the counter and let a stale retry match again.
+     */
+    private final Map<String, AtomicLong> prefixEpochs = new ConcurrentHashMap<>();
+
+    /**
+     * Per-DB write generation, bumped when the DB is opened/created and on every SST creation. A
+     * truncate purge retry captures it when it is scheduled and aborts if the DB has resumed
+     * writing (new objects would be purged along with the stale ones). Never removed, see above.
+     */
+    private final Map<String, AtomicLong> dbWriteEpochs = new ConcurrentHashMap<>();
+
+    /** Per-DB metadata-publish failure state used to back off a persistently failing publish. */
+    private final Map<String, PublishBackoff> publishBackoffs = new ConcurrentHashMap<>();
+
+    /** Cap for the exponential publish-retry backoff. */
+    static final long MAX_PUBLISH_BACKOFF_MS = 5 * 60 * 1000L;
+    /** Minimum base for the publish-retry backoff, so a tiny debounce does not hot-loop failures. */
+    static final long MIN_PUBLISH_BACKOFF_BASE_MS = 1_000L;
+
+    /** Bounded synchronous attempts at completing a pending delete while a DB is being opened. */
+    private static final int OPEN_PENDING_DELETE_ATTEMPTS = 3;
+    private static final long OPEN_PENDING_DELETE_BACKOFF_MS = 200L;
+    /** Bounded attempts at flushing dirty metadata on close(). */
+    private static final int CLOSE_FLUSH_ATTEMPTS = 3;
+    private static final long CLOSE_FLUSH_BACKOFF_MS = 200L;
+
+    /** Consecutive publish failures and the earliest time the next attempt is allowed. */
+    private static final class PublishBackoff {
+
+        final int failures;
+        final long nextAttemptAtMs;
+
+        PublishBackoff(int failures, long nextAttemptAtMs) {
+            this.failures = failures;
+            this.nextAttemptAtMs = nextAttemptAtMs;
+        }
+    }
+
     /** Last successfully published RocksDB generation per DB. */
     private final Map<String, Long> lastPublishedMetadataGeneration = new ConcurrentHashMap<>();
 
@@ -300,11 +344,16 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                 new ArrayBlockingQueue<>(ASYNC_UPLOAD_QUEUE_CAPACITY),
                 newUploadThreadFactory(),
                 new ThreadPoolExecutor.AbortPolicy());
-        this.metadataSyncScheduler = Executors.newScheduledThreadPool(1, r -> {
+        ScheduledThreadPoolExecutor syncScheduler = new ScheduledThreadPoolExecutor(1, r -> {
             Thread t = new Thread(r, "cloud-metadata-sync");
             t.setDaemon(true);
             return t;
         });
+        // close() uses a graceful shutdown() so an in-flight publish completes; not-yet-due delayed
+        // tasks (purge/delete retries) are cancelled instead of holding close() open. Their intent
+        // is crash-durable (local markers) and is re-driven by the next startup scan.
+        syncScheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+        this.metadataSyncScheduler = syncScheduler;
         this.metadataSyncDebounceMs = metadataSyncDebounceMs;
         if (metadataSyncDebounceMs > 0) {
             this.metadataSyncScheduler.scheduleWithFixedDelay(this::drainDirtyMetadata,
@@ -365,14 +414,61 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             handoffDroppedUploadTasks(uploadExecutor.shutdownNow());
             Thread.currentThread().interrupt();
         }
-        metadataSyncScheduler.shutdownNow();
-        // Flush dirty DBs once so uploads that completed during the drain are referenced by the
+        // Graceful stop: an in-flight drain/publish finishes instead of being interrupted mid-upload,
+        // and the final flush below runs only after the drain thread is gone so the two cannot
+        // publish the same DB concurrently.
+        metadataSyncScheduler.shutdown();
+        try {
+            if (!metadataSyncScheduler.awaitTermination(timeout, unit)) {
+                log.warn("CloudStorageEventListener: metadata-sync scheduler did not terminate "
+                         + "within {}{}; forcing shutdown", timeout, unit);
+                metadataSyncScheduler.shutdownNow();
+                metadataSyncScheduler.awaitTermination(1, TimeUnit.SECONDS);
+            }
+        } catch (InterruptedException e) {
+            metadataSyncScheduler.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        // Flush dirty DBs so uploads that completed during the drain are referenced by the
         // mirrored CURRENT/MANIFEST. Later requests (e.g. retry-queue completions) see the
         // scheduler shut down in markMetadataDirty and publish inline.
-        for (String dbName : new ArrayList<>(dirtyMetadataDbs)) {
-            if (dirtyMetadataDbs.remove(dbName)) {
-                publishDirtyMetadata(dbName);
+        flushDirtyMetadataOnClose();
+    }
+
+    /**
+     * Final bounded flush of every dirty DB. A failed publish is retried a few times; DBs that
+     * still cannot be published (or are mid-truncate) are logged so the gap is visible.
+     */
+    private void flushDirtyMetadataOnClose() {
+        List<String> remaining = new ArrayList<>(dirtyMetadataDbs);
+        for (int attempt = 1; attempt <= CLOSE_FLUSH_ATTEMPTS && !remaining.isEmpty(); attempt++) {
+            for (String dbName : new ArrayList<>(remaining)) {
+                if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
+                    continue; // the purge supersedes it; keep it reported below
+                }
+                dirtyMetadataDbs.remove(dbName);
+                if (publishDirtyMetadata(dbName)) {
+                    remaining.remove(dbName);
+                } else {
+                    dirtyMetadataDbs.add(dbName);
+                }
             }
+            if (remaining.isEmpty() || attempt == CLOSE_FLUSH_ATTEMPTS
+                || remaining.stream().allMatch(db -> isActivelyTruncating(db)
+                                                     || isInTruncationGracePeriod(db))) {
+                break;
+            }
+            try {
+                Thread.sleep(CLOSE_FLUSH_BACKOFF_MS * attempt);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        if (!remaining.isEmpty()) {
+            log.error("CloudStorageEventListener: closed with metadata NOT published for {} DB(s): "
+                      + "{} — the mirrored CURRENT/MANIFEST may lag the uploaded SSTs until the next "
+                      + "start publishes them.", remaining.size(), remaining);
         }
     }
 
@@ -430,26 +526,118 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     // -----------------------------------------------------------------------
 
     @Override
+    public boolean managesRemoteState() {
+        return true;
+    }
+
+    @Override
     public void onDBOpening(String dbName, String dbPath) {
+        // Register the dir -> logical-name mapping first: native events that arrive before
+        // onDBCreated (or on a disabled-hydration node) must resolve to the logical name.
+        recordDb(dbName, dbPath);
+        // Stale hydration temp files can only be left by a crashed download; sweep them from the
+        // local dir on every open, not just when something is about to be hydrated.
+        sweepStaleHydrationTemps(Paths.get(dbPath));
+
+        String prefix = dbPrefix(dbPath);
+        // Invalidate every async purge scheduled for the previous generation at this prefix BEFORE
+        // anything below can write to it. Retries compare against this epoch under the prefix lock.
+        bumpEpoch(prefixEpochs, prefix);
+        bumpEpoch(dbWriteEpochs, dbName);
+
+        // Pending-delete guard, independent of hydration: a prior delete's remote cleanup may not
+        // be confirmed, so the reopened DB must not upload into (or hydrate from) a prefix that
+        // still holds the deleted generation and a delete marker.
+        if (hasPendingDeleteMarker(prefix)) {
+            completePendingDeleteOrBlockOpen(dbName, prefix);
+        }
+        boolean truncatePurgeConfirmed = true;
+        if (hasPendingTruncateMarker(prefix)) {
+            truncatePurgeConfirmed = tryCompletePendingTruncate(dbName, prefix);
+        }
         if (!startupHydrationEnabled) {
             return;
         }
-        // Pending-delete guard: a prior delete's remote cleanup may not be confirmed (the purge
-        // failed and is being retried), so a re-create must not re-hydrate the deleted generation.
-        String prefix = dbPrefix(dbPath);
-        if (hasPendingDeleteMarker(prefix)) {
-            // Finish cleanup inline (under the per-prefix lock) BEFORE the open proceeds, so the
-            // re-created DB's later uploads cannot be purged by the async retry. If it succeeds
-            // the marker is removed and it is safe to hydrate (the prefix is now empty).
-            tryCompletePendingDelete(provider, dbName, prefix);
-            if (hasPendingDeleteMarker(prefix)) {
-                log.warn("Cloud pre-hydration skipped for db={}: remote-delete cleanup not yet "
-                         + "confirmed — opening fresh and blocking re-hydration of deleted data.",
-                         dbName);
-                return;
-            }
+        if (!truncatePurgeConfirmed) {
+            log.warn("Cloud pre-hydration skipped for db={}: remote truncate purge not yet "
+                     + "confirmed — opening without re-hydrating cleared data.", dbName);
+            return;
         }
         preHydrateDbFiles(provider, dbName, dbPath);
+    }
+
+    /**
+     * Finishes a pending remote delete synchronously (bounded attempts) before the open proceeds.
+     * If it cannot be completed the open is BLOCKED: the marker means the prefix still holds the
+     * deleted generation, and opening anyway would let the new DB upload into it while the async
+     * retry (or a restart) later purges the new data. The async retry is re-armed so the delete
+     * finishes when the cloud recovers, and a subsequent open attempt simply tries again.
+     */
+    private void completePendingDeleteOrBlockOpen(String dbName, String prefix) {
+        for (int attempt = 1; attempt <= OPEN_PENDING_DELETE_ATTEMPTS; attempt++) {
+            if (tryCompletePendingDelete(provider, dbName, prefix, null)) {
+                return;
+            }
+            if (attempt < OPEN_PENDING_DELETE_ATTEMPTS) {
+                try {
+                    Thread.sleep(OPEN_PENDING_DELETE_BACKOFF_MS * attempt);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        scheduleDeletePurgeRetry(dbName, prefix, 1);
+        throw new IllegalStateException(String.format(
+                "Cloud open blocked for db=%s: remote-delete cleanup of prefix '%s' is not yet "
+                + "confirmed. Opening now would let the new DB upload into a prefix still holding "
+                + "the deleted generation; the cleanup is being retried in the background.",
+                dbName, prefix));
+    }
+
+    /** Best-effort inline purge of a pending truncate at open; re-arms the async retry on failure. */
+    private boolean tryCompletePendingTruncate(String dbName, String prefix) {
+        Object lock = pendingDeleteLocks.computeIfAbsent(prefix, k -> new Object());
+        synchronized (lock) {
+            if (!hasPendingTruncateMarker(prefix)) {
+                return true;
+            }
+            if (purgeRemotePrefix(provider, dbName, prefix)) {
+                removeMarker(pendingTruncateDir(), prefix);
+                return true;
+            }
+        }
+        scheduleTruncatePurgeRetry(dbName, prefix);
+        return false;
+    }
+
+    /** Deletes stale {@code .hyd-tmp-} download temp files left under a local DB dir by a crash. */
+    private void sweepStaleHydrationTemps(Path root) {
+        if (!Files.isDirectory(root)) {
+            return;
+        }
+        try (Stream<Path> stale = Files.walk(root, 10)) {
+            stale.filter(p -> p.getFileName() != null
+                              && p.getFileName().toString().contains(HYDRATION_TEMP_MARKER))
+                 .forEach(p -> deleteIfExistsQuietly(p, "stale hydration temp cleanup"));
+        } catch (IOException e) {
+            log.debug("Failed to scan stale hydration temp files under {}: {}",
+                      root, e.getMessage());
+        }
+    }
+
+    private static long bumpEpoch(Map<String, AtomicLong> epochs, String key) {
+        return epochs.computeIfAbsent(key, k -> new AtomicLong()).incrementAndGet();
+    }
+
+    private static long epochOf(Map<String, AtomicLong> epochs, String key) {
+        AtomicLong epoch = epochs.get(key);
+        return epoch == null ? 0L : epoch.get();
+    }
+
+    /** Current open/create generation of {@code prefix} (package-private for tests). */
+    long prefixEpoch(String prefix) {
+        return epochOf(prefixEpochs, prefix);
     }
 
     /**
@@ -538,6 +726,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     @Override
     public void onDBCreated(String dbName, String dbPath) {
         recordDb(dbName, dbPath);
+        // The DB is live at this prefix now: cancel any purge scheduled for an earlier generation.
+        bumpEpoch(prefixEpochs, dbPrefix(dbPath));
+        bumpEpoch(dbWriteEpochs, dbName);
         // Do not propagate upload failures: the session is already live in dbSessionMap at
         // this point, so throwing here would cause the createGraphDB caller to receive an
         // error while the DB is actually open and usable by other threads (split-brain).
@@ -641,6 +832,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         truncatingDbs.remove(dbName);
         deferredSstDeletes.removeIf(t -> dbName.equals(t.dbName));
         dirtyMetadataDbs.remove(dbName);
+        publishBackoffs.remove(dbName);
         // Remove per-DB meters so meter cardinality does not grow without bound as DBs churn.
         CloudStorageMetrics.unregisterDatabaseMetrics(dbName);
 
@@ -742,10 +934,12 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      * then require manual cleanup, but the failure is at least visible rather than silent.
      */
     private void scheduleTruncatePurgeRetry(String dbName, String prefix) {
-        scheduleTruncatePurgeRetry(dbName, prefix, 1);
+        // Capture the write generation now: the purge is only valid for the cleared generation.
+        scheduleTruncatePurgeRetry(dbName, prefix, 1, epochOf(dbWriteEpochs, dbName));
     }
 
-    private void scheduleTruncatePurgeRetry(String dbName, String prefix, int attempt) {
+    private void scheduleTruncatePurgeRetry(String dbName, String prefix, int attempt,
+                                            long writeEpoch) {
         if (attempt > MAX_TRUNCATE_PURGE_RETRIES) {
             log.error("Cloud truncate purge for db={} still failing after {} attempt(s) — remote "
                       + "prefix '{}' may retain stale objects that could be re-hydrated on restore. "
@@ -759,12 +953,32 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         truncationTimes.put(dbName, System.currentTimeMillis());
         try {
             metadataSyncScheduler.schedule(() -> {
-                if (purgeRemotePrefix(provider, dbName, prefix)) {
-                    removeMarker(pendingTruncateDir(), prefix);
-                    log.info("Cloud truncate purge succeeded on retry for db={} (attempt {})",
-                             dbName, attempt);
-                } else {
-                    scheduleTruncatePurgeRetry(dbName, prefix, attempt + 1);
+                boolean retryAgain = false;
+                // Same per-prefix lock as the delete purge, so the epoch check and the purge are
+                // atomic with respect to an open/create at this prefix.
+                Object lock = pendingDeleteLocks.computeIfAbsent(prefix, k -> new Object());
+                synchronized (lock) {
+                    if (epochOf(dbWriteEpochs, dbName) != writeEpoch) {
+                        // The DB resumed writing after the truncate: the prefix now holds live
+                        // objects, which a purge would destroy. The stale ones are unreferenced
+                        // by the freshly published CURRENT/MANIFEST, so drop the purge intent
+                        // (also from disk, or a restart would re-drive it).
+                        removeMarker(pendingTruncateDir(), prefix);
+                        log.warn("Cloud truncate purge for db={} abandoned: the DB wrote new data "
+                                 + "after the truncate, so purging prefix '{}' would delete live "
+                                 + "objects.", dbName, prefix);
+                        return;
+                    }
+                    if (purgeRemotePrefix(provider, dbName, prefix)) {
+                        removeMarker(pendingTruncateDir(), prefix);
+                        log.info("Cloud truncate purge succeeded on retry for db={} (attempt {})",
+                                 dbName, attempt);
+                    } else {
+                        retryAgain = true;
+                    }
+                }
+                if (retryAgain) {
+                    scheduleTruncatePurgeRetry(dbName, prefix, attempt + 1, writeEpoch);
                 }
             }, delay, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
@@ -917,21 +1131,33 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         return Files.exists(markerPath(pendingDeleteDir(), prefix));
     }
 
+    /** Whether a local pending-remote-truncate marker exists for {@code prefix}. */
+    boolean hasPendingTruncateMarker(String prefix) {
+        return Files.exists(markerPath(pendingTruncateDir(), prefix));
+    }
+
     /**
      * Completes a pending remote delete under a per-prefix lock: if the marker is still present,
      * ensure the tombstone exists, purge the prefix, and on success drop the tombstone + marker.
-     * Returns {@code true} when cleanup is confirmed complete (marker absent after this call).
+     * Returns {@code true} when cleanup is confirmed complete (marker absent after this call) or
+     * the call was cancelled, {@code false} when the purge failed and should be retried.
      *
      * <p>The lock + marker re-check make the purge run at most once and ONLY while the marker is
-     * present. A re-created DB's {@link #onDBOpening} calls this before returning (so the open
-     * blocks until cleanup finishes), and its uploads happen only afterwards — so the async retry,
-     * which also takes the lock and skips when the marker is gone, can never purge freshly-written
-     * data for the re-created generation.
+     * present. {@code expectedEpoch} (non-null for the async retry) is the {@link #prefixEpoch}
+     * captured when the retry was scheduled: a DB opened or created at the prefix since then bumped
+     * it, so the retry stands down without purging — the prefix may already hold the new DB's
+     * objects. An open never passes an epoch: it bumped the epoch itself and runs the cleanup
+     * inline, before its DB can upload anything.
      */
     private boolean tryCompletePendingDelete(CloudStorageProvider provider, String dbName,
-                                             String prefix) {
+                                             String prefix, Long expectedEpoch) {
         Object lock = pendingDeleteLocks.computeIfAbsent(prefix, k -> new Object());
         synchronized (lock) {
+            if (expectedEpoch != null && prefixEpoch(prefix) != expectedEpoch) {
+                log.info("Cloud pending-delete purge cancelled for db={} (prefix={}): the prefix "
+                         + "was opened/created since it was scheduled.", dbName, prefix);
+                return true;
+            }
             if (!hasPendingDeleteMarker(prefix)) {
                 return true; // already cleaned up by another caller
             }
@@ -939,7 +1165,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             if (purgeRemotePrefix(provider, dbName, prefix)) {
                 deleteTombstoneBestEffort(provider, dbName, prefix);
                 removeMarker(pendingDeleteDir(), prefix);
-                pendingDeleteLocks.remove(prefix);
                 log.info("Cloud pending-delete cleanup completed for db={} (prefix={})",
                          dbName, prefix);
                 return true;
@@ -956,6 +1181,11 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      * re-hydration stays blocked until manual cleanup.
      */
     private void scheduleDeletePurgeRetry(String dbName, String prefix, int attempt) {
+        scheduleDeletePurgeRetry(dbName, prefix, attempt, prefixEpoch(prefix));
+    }
+
+    private void scheduleDeletePurgeRetry(String dbName, String prefix, int attempt,
+                                          long prefixEpochAtSchedule) {
         if (attempt > MAX_DELETE_PURGE_RETRIES) {
             log.error("Cloud DB delete purge for db={} still failing after {} attempt(s) — remote "
                       + "prefix '{}' may retain stale objects. The local pending-delete marker and "
@@ -966,11 +1196,11 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         long delay = Math.min(DELETE_PURGE_RETRY_BASE_MS * (1L << (attempt - 1)), 8_000L);
         try {
             metadataSyncScheduler.schedule(() -> {
-                // tryCompletePendingDelete is a no-op (returns true) if the marker was already
-                // cleared (e.g. by an inline open-time cleanup), so the retry never purges a prefix
-                // a re-created DB may have taken over.
-                if (!tryCompletePendingDelete(provider, dbName, prefix)) {
-                    scheduleDeletePurgeRetry(dbName, prefix, attempt + 1);
+                // Cancelled (returns true) when the marker is already cleared OR a DB was opened /
+                // created at the prefix since this retry was scheduled, so the retry never purges a
+                // prefix a re-created DB has taken over.
+                if (!tryCompletePendingDelete(provider, dbName, prefix, prefixEpochAtSchedule)) {
+                    scheduleDeletePurgeRetry(dbName, prefix, attempt + 1, prefixEpochAtSchedule);
                 }
             }, delay, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
@@ -1179,6 +1409,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                                    String filePath, long fileSize) {
         String dbName = resolveDbName(dbNameOrPath, filePath);
         recordDb(dbName, parentDir(filePath));
+        // New data is being written under this DB: a truncate purge scheduled earlier must no
+        // longer run, or it would delete this SST's remote object.
+        bumpEpoch(dbWriteEpochs, dbName);
         CloudStorageMetrics.registerDatabaseMetrics(dbName);
         String remoteKey = toRelativeKey(filePath);
 
@@ -1635,7 +1868,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     }
 
     /**
-     * A compaction changed this DB's live SST set; mirror metadata immediately (event-driven).
+     * A compaction changed this DB's live SST set; schedule a (coalesced) metadata publish.
      *
      * <p>Note: RocksDB delivers the DB <em>directory path</em> here (from {@code db.getName()}),
      * not the logical name, so we resolve it against {@link #dbNameByDir}.
@@ -1643,10 +1876,10 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     @Override
     public void onCompacted(String dbNameOrPath) {
         String dbName = resolveDbName(dbNameOrPath, null);
-        // Skip metadata sync during truncation or grace period to allow purge to complete cleanly
-        if (!isActivelyTruncating(dbName) && !isInTruncationGracePeriod(dbName)) {
-            syncMetadataSnapshotInline(provider, dbName);
-        }
+        // Runs on a RocksDB compaction thread: only mark the DB dirty, the coalesced drain does
+        // the checkpoint + upload. markMetadataDirty keeps the mark across truncation/grace so the
+        // publish happens afterwards.
+        markMetadataDirty(dbName);
     }
 
     // -----------------------------------------------------------------------
@@ -1706,6 +1939,13 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      */
     void markMetadataDirty(String dbName) {
         if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
+            // Keep the mark: the drain skips this DB while it truncates and publishes once the
+            // grace period ends. (Dropping it would leave the SSTs written right after the clear
+            // unreferenced by the mirrored CURRENT/MANIFEST until an unrelated sync fires.)
+            dirtyMetadataDbs.add(dbName);
+            if (metadataSyncDebounceMs <= 0) {
+                scheduleGraceDrain();
+            }
             return;
         }
         if (metadataSyncDebounceMs <= 0) {
@@ -1716,6 +1956,18 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         // Re-check after adding so a mark racing close()'s final flush is not stranded.
         if (metadataSyncScheduler.isShutdown() && dirtyMetadataDbs.remove(dbName)) {
             publishDirtyMetadata(dbName);
+        }
+    }
+
+    /** With no periodic drain (inline mode), schedules a one-shot drain after the grace period. */
+    private void scheduleGraceDrain() {
+        try {
+            metadataSyncScheduler.schedule(this::drainDirtyMetadata,
+                                           TRUNCATION_GRACE_PERIOD_MS + 100L,
+                                           TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException e) {
+            log.debug("Grace-period metadata drain not scheduled (scheduler shut down): {}",
+                      e.getMessage());
         }
     }
 
@@ -1735,31 +1987,74 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     }
 
     /**
-     * Periodic drain on {@link #metadataSyncScheduler}: publishes each dirty DB once, re-marking
-     * it when the publish fails so the next run retries.
+     * Periodic drain on {@link #metadataSyncScheduler}: publishes each dirty DB once. A DB that is
+     * truncating (or in the post-truncate grace period) keeps its mark and is skipped. A failed
+     * publish re-marks the DB and backs off exponentially per DB (see {@link #publishBackoffMs}),
+     * so a persistently failing DB does not redo a checkpoint + upload every interval.
      */
     private void drainDirtyMetadata() {
+        boolean skippedForTruncation = false;
+        long now = System.currentTimeMillis();
         for (String dbName : new ArrayList<>(dirtyMetadataDbs)) {
-            if (dirtyMetadataDbs.remove(dbName) && !publishDirtyMetadata(dbName)) {
+            if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
+                skippedForTruncation = true;
+                continue;
+            }
+            PublishBackoff backoff = publishBackoffs.get(dbName);
+            if (backoff != null && now < backoff.nextAttemptAtMs) {
+                continue;
+            }
+            if (!dirtyMetadataDbs.remove(dbName)) {
+                continue;
+            }
+            if (publishDirtyMetadata(dbName)) {
+                publishBackoffs.remove(dbName);
+            } else {
                 dirtyMetadataDbs.add(dbName);
             }
         }
+        if (skippedForTruncation && metadataSyncDebounceMs <= 0) {
+            scheduleGraceDrain();
+        }
+    }
+
+    /** Backoff before the next publish attempt after {@code failures} consecutive failures. */
+    long publishBackoffMs(int failures) {
+        long base = Math.max(MIN_PUBLISH_BACKOFF_BASE_MS, metadataSyncDebounceMs);
+        int exp = Math.min(Math.max(failures - 1, 0), 30);
+        long delay = base * (1L << exp);
+        return delay <= 0L || delay > MAX_PUBLISH_BACKOFF_MS ? MAX_PUBLISH_BACKOFF_MS : delay;
+    }
+
+    /** Consecutive publish failures currently recorded for {@code dbName} (test seam). */
+    int publishFailureCount(String dbName) {
+        PublishBackoff backoff = publishBackoffs.get(dbName);
+        return backoff == null ? 0 : backoff.failures;
     }
 
     /**
-     * Publishes metadata for a dirty DB. Returns {@code true} when published or when the DB is
-     * truncating (the purge supersedes the publish); {@code false} when the publish failed.
+     * Publishes metadata for a dirty DB. Returns {@code true} when published, {@code false} when
+     * the publish failed (the failure is recorded for backoff; success clears it). Callers decide
+     * whether a truncating DB is skipped; this method does not.
      */
     private boolean publishDirtyMetadata(String dbName) {
-        if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
-            return true;
-        }
+        boolean published;
         try {
-            return syncMetadataSnapshotInline(provider, dbName);
+            published = syncMetadataSnapshotInline(provider, dbName);
         } catch (Exception e) {
             log.warn("Deferred cloud metadata-sync failed for db={}: {}", dbName, e.getMessage());
-            return false;
+            published = false;
         }
+        if (published) {
+            publishBackoffs.remove(dbName);
+        } else {
+            publishBackoffs.compute(dbName, (k, prev) -> {
+                int failures = prev == null ? 1 : prev.failures + 1;
+                return new PublishBackoff(failures, System.currentTimeMillis()
+                                                    + publishBackoffMs(failures));
+            });
+        }
+        return published;
     }
 
     /**
@@ -1907,9 +2202,12 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                 allDurable = false;
                 log.warn("Cloud metadata-sync: failed to confirm SST db={}, key={}, reason={}",
                          dbName, remoteKey, e.getMessage());
-                if (retryQueue != null && Files.exists(Paths.get(realPath))) {
+                if (retryQueue != null && Files.exists(Paths.get(realPath))
+                    && !retryQueue.isRetryPending(dbName, remoteKey)) {
                     // Epoch captured now so a successful retry confirms via the epoch-guarded
-                    // callback (plain submit() uses epoch 0 → dropped).
+                    // callback (plain submit() uses epoch 0 → dropped). Skipped when a retry for
+                    // this object is already queued, so every failed publish does not stack
+                    // another retry chain.
                     retryQueue.submit(dbName, null, realPath, remoteKey, uploadEpoch, e);
                 }
             }
@@ -2121,15 +2419,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             return;
         }
 
-        // Clean up any stale temp files left by a previous crashed download before
-        // deciding whether a local file is complete.
-        try (Stream<Path> stale = Files.walk(root, 10)) {
-            stale.filter(p -> p.getFileName().toString().contains(HYDRATION_TEMP_MARKER))
-                 .forEach(p -> deleteIfExistsQuietly(p, "pre-hydration stale-temp cleanup"));
-        } catch (IOException e) {
-            log.debug("Failed to scan stale hydration temp files under {}: {}",
-                      root, e.getMessage());
-        }
+        // Stale hydration temp files were already swept at the start of onDBOpening.
 
         int downloaded = 0;
         for (String remoteKey : remoteFiles) {

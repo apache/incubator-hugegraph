@@ -40,7 +40,10 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.core.retry.RetryMode;
 import software.amazon.awssdk.regions.Region;
@@ -117,6 +120,9 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
      */
     static final long MULTIPART_THRESHOLD_BYTES = 512L * 1024 * 1024;   // 512 MB
 
+    /** Signing region used when only a custom endpoint is configured. */
+    static final String DEFAULT_ENDPOINT_REGION = "us-east-1";
+
     private S3Client s3Client;
     private S3AsyncClient s3AsyncClient;
     private S3TransferManager transferManager;
@@ -151,8 +157,15 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
         String region = props.get(S3CloudStorageConfig.KEY_REGION);
         String endpoint = props.get(S3CloudStorageConfig.KEY_ENDPOINT);
 
+        region = resolveRegion(region, endpoint);
+
         S3ClientBuilder builder = S3Client.builder();
         builder.overrideConfiguration(buildRetryOverride());
+        // Only compute/validate checksums when the operation requires it. SDK 2.30+ defaults to
+        // WHEN_SUPPORTED, which adds CRC32 trailer/aws-chunked payloads that many S3-compatible
+        // endpoints (MinIO, Ceph, older gateways) reject on PutObject / multipart uploads.
+        builder.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED);
+        builder.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
         applyCredentials(builder::credentialsProvider, ak, sk);
         if (region != null && !region.isEmpty()) {
             builder.region(Region.of(region));
@@ -166,6 +179,8 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
         // Java-based multipart async client (no native CRT dependency); backs S3TransferManager.
         S3AsyncClientBuilder asyncBuilder = S3AsyncClient.builder().multipartEnabled(true);
         asyncBuilder.overrideConfiguration(buildRetryOverride());
+        asyncBuilder.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED);
+        asyncBuilder.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
         applyCredentials(asyncBuilder::credentialsProvider, ak, sk);
         if (region != null && !region.isEmpty()) {
             asyncBuilder.region(Region.of(region));
@@ -180,11 +195,41 @@ public class S3CloudStorageProvider implements CloudStorageProvider {
         // clients' connection pools and SDK threads.
         closeQuietly();
 
-        this.s3Client = builder.build();
-        this.s3AsyncClient = asyncBuilder.build();
+        try {
+            this.s3Client = builder.build();
+            this.s3AsyncClient = asyncBuilder.build();
+        } catch (SdkClientException e) {
+            closeQuietly();
+            if (e.getMessage() != null && e.getMessage().contains("region")) {
+                throw new IllegalArgumentException(
+                        "Cannot determine the S3 region: set cloud.storage.s3.region (or "
+                        + "AWS_REGION / aws.region), or set cloud.storage.s3.endpoint for an "
+                        + "S3-compatible store. Cause: " + e.getMessage(), e);
+            }
+            throw e;
+        }
         this.transferManager = S3TransferManager.builder().s3Client(this.s3AsyncClient).build();
         log.info("S3CloudStorageProvider initialized: bucket='{}', region='{}', endpoint='{}'",
                  bucket, region, endpoint);
+    }
+
+    /**
+     * Resolves the region to configure on the SDK clients. A configured region is used as-is. With
+     * a custom endpoint and no region, defaults to {@link #DEFAULT_ENDPOINT_REGION} because
+     * S3-compatible stores ignore it but the SDK still requires one for request signing. With
+     * neither, returns the (blank) input so the SDK's own region provider chain applies.
+     */
+    static String resolveRegion(String region, String endpoint) {
+        if (region != null && !region.isBlank()) {
+            return region.trim();
+        }
+        if (endpoint != null && !endpoint.isBlank()) {
+            log.info("cloud.storage.s3.region is not set; defaulting to '{}' for custom endpoint "
+                     + "'{}' (S3-compatible stores ignore the region)",
+                     DEFAULT_ENDPOINT_REGION, endpoint);
+            return DEFAULT_ENDPOINT_REGION;
+        }
+        return region;
     }
 
     @Override

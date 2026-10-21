@@ -19,6 +19,7 @@ package org.apache.hugegraph.store.node.cloud;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -949,11 +950,14 @@ public class CloudStorageIntegrationTest {
         assertTrue(markerDirHasEntry(markerDir),
                    "A pending-delete marker must guard the delete while the purge is failing");
 
-        // Re-open while the purge still fails: hydration stays blocked (marker persists, no
-        // exception).
-        listener.onDBOpening("provdown/db", dbDir.toString());
+        // Re-open while the purge still fails: the open is BLOCKED (fails loudly) rather than
+        // proceeding fresh, because stale remote state would otherwise be purged over new data
+        // later. The marker persists.
+        assertThrows(IllegalStateException.class,
+                     () -> listener.onDBOpening("provdown/db", dbDir.toString()),
+                     "Open must be blocked while pending-delete cleanup is unconfirmed");
         assertTrue(markerDirHasEntry(markerDir),
-                   "Marker must persist (hydration blocked) while cleanup is unconfirmed");
+                   "Marker must persist while cleanup is unconfirmed");
 
         // Purge recovers: opening completes the cleanup inline (purge + marker removal).
         store.setPrefixDeleteFailure(false);
@@ -1094,40 +1098,51 @@ public class CloudStorageIntegrationTest {
     }
 
     @Test
-    public void metadataSync_failedPublishIsRetriedOnNextDrain() throws Exception {
+    public void metadataSync_failedPublishIsRetriedWithBackoffUntilItSucceeds() throws Exception {
         AtomicInteger syncCount = new AtomicInteger(0);
-        // First two publishes fail; the DB must stay dirty until the third succeeds.
+        // First two publishes fail; the DB must stay dirty until the third succeeds. Failures back
+        // off exponentially (base >= 1s), so the retries are spaced out instead of every drain.
         CloudStorageEventListener listener =
                 countingListener(50L, syncCount, () -> syncCount.get() >= 3);
         try {
             listener.markMetadataDirty("hugegraph");
-            assertTrue(awaitCondition(() -> syncCount.get() >= 3, 3_000),
-                       "A failed publish must be retried on the next drain");
+            assertTrue(awaitCondition(() -> syncCount.get() >= 1, 3_000),
+                       "The first publish attempt must run");
+            // With a 50ms drain and no backoff there would be ~20 attempts in 600ms.
+            Thread.sleep(600L);
+            assertEquals(1, syncCount.get(), "A failed publish must back off before retrying");
+            assertEquals(1, listener.publishFailureCount("hugegraph"));
+
+            assertTrue(awaitCondition(() -> syncCount.get() >= 3, 8_000),
+                       "A failed publish must be retried until it succeeds");
             Thread.sleep(200L);
             assertEquals(3, syncCount.get(), "Retries must stop once a publish succeeds");
+            assertEquals(0, listener.publishFailureCount("hugegraph"),
+                         "Success must clear the backoff state");
         } finally {
             listener.close();
         }
     }
 
     @Test
-    public void metadataSync_skipsDirtyDbWhileTruncating() throws Exception {
+    public void metadataSync_defersDirtyDbWhileTruncating_thenPublishesAfterAbort()
+            throws Exception {
         Path dbDir = mkdirs("hugegraph/db");
         AtomicInteger syncCount = new AtomicInteger(0);
         CloudStorageEventListener listener = countingListener(50L, syncCount, () -> true);
         try {
             listener.markMetadataDirty("hugegraph");
             listener.onDBTruncateBegin("hugegraph", dbDir.toString());
-            // Marks requested during the truncate are ignored outright.
+            // Marks requested during the truncate are kept (not dropped), but not published.
             listener.markMetadataDirty("hugegraph");
             Thread.sleep(250L);
             assertEquals(0, syncCount.get(),
                          "A truncating DB must not republish metadata over the purge");
 
-            // The drained mark was dropped, not deferred: aborting the truncate publishes nothing.
+            // The mark was deferred, not dropped: once the truncate ends it is published.
             listener.onDBTruncateAbort("hugegraph", dbDir.toString());
-            Thread.sleep(250L);
-            assertEquals(0, syncCount.get(), "The dropped mark must not be retried later");
+            assertTrue(awaitCondition(() -> syncCount.get() >= 1, 3_000),
+                       "The deferred mark must be published after the truncate ends");
         } finally {
             listener.close();
         }
