@@ -252,11 +252,30 @@ PD, Store and Server images built from this version run as UID/GID `10001`. The
 PD and Store pods get `fsGroup: 10001` (with `fsGroupChangePolicy: OnRootMismatch`)
 unless their `podSecurityContext` sets `fsGroup`, also when `--reuse-values` keeps
 an older release's empty value, so that user can write PVCs created by older
-images, which ran as root. Because the default tag is `latest` with
-`pullPolicy: Always`, an existing release can pull the new image on any Pod
-restart: upgrade the chart before that happens, or pin the old image tags until
-you do. See [Storage and upgrades](docs/operations.md#storage-and-upgrades) if a
-Pod still reports `Permission denied`. Older explicit helper images also remain under
+images, which ran as root.
+
+Switch PD and Store to images from this version in the same rollout that first
+applies `fsGroup`, so the kubelet changes the volume ownership right before the
+`10001` image starts. Do not run images that still run as root with this chart
+first, for example the published `latest` before it moves to this version: files
+they create stay owned by root, and `OnRootMismatch` checks only the volume root,
+so it does not fix them later. Pin `pd.image` and `store.image` to a build from
+this version rather than relying on `latest`.
+
+If a release already ran root images with `fsGroup` set, roll out the first
+`10001` image with a one-time recursive ownership change, then return to
+`OnRootMismatch` on the next upgrade, because `Always` walks the whole volume on
+every Pod start:
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set pd.podSecurityContext.fsGroupChangePolicy=Always \
+  --set store.podSecurityContext.fsGroupChangePolicy=Always \
+  --wait --timeout 15m
+```
+
+See [Storage and upgrades](docs/operations.md#storage-and-upgrades) for volumes
+the kubelet cannot change. Older explicit helper images also remain under
 value reuse; clear `store.waitImage` and `server.waitImage` to reuse component images.
 
 The admin Secret is an **initial credential**. Changing it alone does not rotate

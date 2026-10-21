@@ -52,3 +52,15 @@ tests:
       - equal:
           path: spec.template.spec.securityContext.runAsNonRoot
           value: true
+  - it: keeps an explicit fsGroupChangePolicy
+    set:
+      pd.podSecurityContext:
+        fsGroupChangePolicy: Always
+      store.podSecurityContext:
+        fsGroupChangePolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext
+          value:
+            fsGroup: 10001
+            fsGroupChangePolicy: Always
