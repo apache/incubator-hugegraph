@@ -111,6 +111,14 @@ public class ServerOptions extends OptionHolder {
                     "http://127.0.0.1:8182"
             ).withUrlNormalization("http://");
 
+    public static final ConfigOption<String> GREMLIN_REST_EXECUTION_MODE =
+            new ConfigOption<>(
+                    "gremlinserver.rest_execution_mode",
+                    "Execution path for REST /gremlin: forward or same-process embedded.",
+                    allowValues("forward", "embedded"),
+                    "forward"
+            );
+
     public static final ConfigOption<Integer> GREMLIN_SERVER_TIMEOUT =
             new ConfigOption<>(
                     "gremlinserver.timeout",
