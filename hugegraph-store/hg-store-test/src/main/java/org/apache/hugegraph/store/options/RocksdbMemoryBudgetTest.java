@@ -368,6 +368,42 @@ public class RocksdbMemoryBudgetTest {
     }
 
     @Test
+    public void testNamespaceRootViewWithoutLimitIsFlagged() throws IOException {
+        Path root = Files.createTempDirectory("cgroup-v2-ns-root");
+        try {
+            // A private cgroup namespace: the process is at "/", the cgroup2 mount made
+            // inside the namespace is rooted at "/", and its own memory.max is "max". A
+            // stricter limit on the parent of the namespace root can't be seen from here
+            Path mount = root.resolve("sys-fs-cgroup");
+            write(mount, "memory.max", "max");
+            Path proc = write(root, "proc-self-cgroup", "0::/\n");
+            Path mountinfo = write(root, "mountinfo",
+                                   "30 25 0:26 / " + mount + " rw - cgroup2 cgroup2 rw\n");
+            RocksdbMemoryBudget.CgroupLimit limit =
+                    RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
+            assertEquals(-1L, limit.bytes);
+            assertTrue(limit.incomplete);
+
+            // A visible limit at the namespace root still bounds the Store
+            write(mount, "memory.max", String.valueOf(2 * GIB));
+            limit = RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
+            assertEquals(2 * GIB, limit.bytes);
+            assertFalse(limit.incomplete);
+
+            // v1 reports the whole hierarchy in hierarchical_memory_limit, so it isn't flagged
+            Path v1 = root.resolve("memory");
+            write(v1, "memory.limit_in_bytes", "9223372036854771712");
+            write(v1, "memory.stat", "hierarchical_memory_limit 9223372036854771712\n");
+            Path proc1 = write(root, "proc-v1", "4:memory:/\n");
+            Path mountinfo1 = write(root, "mountinfo-v1",
+                                    "45 25 0:30 / " + v1 + " rw - cgroup cgroup rw,memory\n");
+            assertFalse(RocksdbMemoryBudget.cgroupLimit(proc1, mountinfo1, root).incomplete);
+        } finally {
+            FileUtils.deleteQuietly(root.toFile());
+        }
+    }
+
+    @Test
     public void testMatchedOrMissingMountsAreNotFlagged() throws IOException {
         Path root = Files.createTempDirectory("cgroup-v2-flag");
         try {

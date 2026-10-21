@@ -404,6 +404,14 @@ or a tarball install that kept its `conf/` from an earlier release, still has `3
 keeps that fixed budget; the Store logs a warning naming the old value at startup. Set the key
 to `0` or remove it, or set `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE` in Docker.
 
+PD can also hold the old value. When PD has no shared copy yet, the first Store to start uploads
+its local `application-pd.yml` to PD (KV key `S:FS`), and every Store whose local file is not
+newer than PD's `S:Timestamp` loads that copy and writes it over its local file. Updating the
+Store package or a local file therefore does not help while PD's copy still sets
+`32000000000`: change `rocksdb.total_memory_size` to `0` or remove it in the copy PD keeps, or
+set `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE` (or `-Drocksdb.total_memory_size`) on every Store, which
+the Store keeps above PD's copy.
+
 ### Server Configuration
 
 File: `hugegraph-server/conf/graphs/hugegraph.properties`

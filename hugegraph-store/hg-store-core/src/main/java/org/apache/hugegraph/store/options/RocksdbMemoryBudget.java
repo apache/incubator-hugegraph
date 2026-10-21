@@ -245,6 +245,7 @@ public final class RocksdbMemoryBudget {
             List<String[]> mounts = v2 ? v2Mounts : v1Mounts;
             boolean matched = false;
             boolean fullView = false;
+            long lineLimit = -1L;
             for (String[] mount : mounts) {
                 if (!contains(mount[0], parts[2])) {
                     // A mount of another subtree says nothing about this cgroup
@@ -256,8 +257,15 @@ public final class RocksdbMemoryBudget {
                 // A full-hierarchy mount only covers the ancestors if this process's own
                 // directory is actually reachable through it
                 fullView |= mount[0].equals("/") && visible(point, relative);
-                limit = lowest(limit, v2 ? cgroupV2Limit(point, relative) :
-                                      cgroupV1Limit(point, relative));
+                lineLimit = lowest(lineLimit, v2 ? cgroupV2Limit(point, relative) :
+                                              cgroupV1Limit(point, relative));
+            }
+            limit = lowest(limit, lineLimit);
+            if (v2 && matched && parts[2].equals("/") && lineLimit <= 0) {
+                // The process sits at the root of the hierarchy it can see, which inside a
+                // private cgroup namespace is the namespace root: a stricter memory.max
+                // above it is hidden, and "max" here doesn't mean the Store is unlimited
+                incomplete = true;
             }
             if (v2 && matched && !fullView) {
                 // Every matching cgroup2 mount is a subtree such as /kubepods, so the walk
