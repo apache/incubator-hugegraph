@@ -366,7 +366,8 @@ rocksdb:
 
 `total_memory_size` bounds the memtables (`write_buffer_ratio` of it) and the block cache
 (the rest). Both live outside the Java heap, so `-Xmx` does not limit them. A fixed 1 GiB
-cache for the Raft log comes on top of this budget.
+cache for the Raft log comes on top of this budget; the Raft log memtables of all partitions
+share a 256 MiB write buffer charged to that cache, so they don't add to it.
 
 With `total_memory_size: 0`, or the key unset, the Store sizes the budget at startup as half
 of what is left after the heap, the maximum direct memory and a 1.5 GiB reserve, clamped to
@@ -374,7 +375,7 @@ of what is left after the heap, the maximum direct memory and a 1.5 GiB reserve,
 limit set only on a parent cgroup when the Store can see that cgroup; inside a private cgroup
 namespace, or when only a subtree of the cgroup2 hierarchy is mounted, a limit above it is not
 visible, so pin the value there if only the pod or slice is limited (the Store logs a warning
-when it detects such a mount). A Store with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
+when it can't see the whole hierarchy, even if the limit it does see is finite). A Store with a 4 GiB limit, `-Xmx1g` and `-XX:MaxDirectMemorySize=512m` gets 512 MiB. Without
 `-XX:MaxDirectMemorySize` the JVM allows as much direct memory as heap, and the budget counts
 it that way. `bin/start-hugegraph-store.sh` sets the flag to the heap it picks; when `-j` sets
 `-Xmx`, `-XX:MaxHeapSize` or `-XX:MaxDirectMemorySize` itself, the launcher leaves the flag out and the JVM's
