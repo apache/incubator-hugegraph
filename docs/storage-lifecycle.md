@@ -159,6 +159,11 @@ lock RPC, preserves the interrupt flag and leaves the initialization permit with
 owner. Successful leader discovery binds subsequent PD calls to the discovered leader,
 including when the configured peer used for discovery is a follower.
 
+PD watch notifications isolate runtime failures from individual business listeners.
+The failure is logged and the remaining listeners still receive the event on the same
+callback thread. Cache updates retain their existing order and errors still propagate;
+failed listener work is not retried automatically.
+
 PD snapshot compression finishes the ZIP central directory before flushing and syncing
 the archive. An unreadable source directory fails with an I/O error. Archive entries
 and the checksum format remain compatible with existing snapshots.

@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.apache.hugegraph.pd.client.impl.PDPulseImpl2;
 import org.apache.hugegraph.pd.client.interceptor.Authentication;
@@ -52,6 +53,7 @@ import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionRequest;
 import org.apache.hugegraph.pd.grpc.Pdpb.GetPartitionResponse;
 import org.apache.hugegraph.pd.grpc.Pdpb.GraphStatsResponse;
 import org.apache.hugegraph.pd.grpc.watch.WatchResponse;
+import org.apache.hugegraph.pd.grpc.watch.WatchType;
 import org.apache.hugegraph.pd.watch.NodeEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent;
 import org.apache.hugegraph.pd.watch.PartitionEvent.ChangeType;
@@ -165,7 +167,8 @@ public class PDClient {
                 if (response.getChangeType() == ChangeType.DEL) {
                     cache.removeAll(response.getGraph());
                 }
-                listeners.forEach(listener -> listener.onPartitionChanged(response));
+                notifyListeners(WatchType.WATCH_TYPE_PARTITION_CHANGE,
+                                listener -> listener.onPartitionChanged(response));
             }
 
             @Override
@@ -200,7 +203,8 @@ public class PDClient {
                     }
                 }
 
-                listeners.forEach(listener -> listener.onStoreChanged(response));
+                notifyListeners(WatchType.WATCH_TYPE_STORE_NODE_CHANGE,
+                                listener -> listener.onStoreChanged(response));
             }
 
             @Override
@@ -214,7 +218,8 @@ public class PDClient {
         graphWatcher = pdWatch.watchGraph(new PDWatch.Listener<>() {
             @Override
             public void onNext(WatchResponse response) {
-                listeners.forEach(listener -> listener.onGraphChanged(response));
+                notifyListeners(WatchType.WATCH_TYPE_GRAPH_CHANGE,
+                                listener -> listener.onGraphChanged(response));
             }
 
             @Override
@@ -245,7 +250,8 @@ public class PDClient {
                             break;
                     }
                 }
-                listeners.forEach(listener -> listener.onShardGroupChanged(response));
+                notifyListeners(WatchType.WATCH_TYPE_SHARD_GROUP_CHANGE,
+                                listener -> listener.onShardGroupChanged(response));
             }
 
             @Override
@@ -254,6 +260,17 @@ public class PDClient {
             }
         });
 
+    }
+
+    private void notifyListeners(WatchType eventType, Consumer<PDEventListener> action) {
+        for (PDEventListener listener : this.listeners) {
+            try {
+                action.accept(listener);
+            } catch (RuntimeException e) {
+                String listenerClass = listener == null ? "null" : listener.getClass().getName();
+                log.error("PD watch listener {} failed to handle {} event", listenerClass, eventType, e);
+            }
+        }
     }
 
     private synchronized void closeStub(boolean closeWatcher) {
