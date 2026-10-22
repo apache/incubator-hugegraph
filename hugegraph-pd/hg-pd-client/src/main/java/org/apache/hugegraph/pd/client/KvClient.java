@@ -580,7 +580,7 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
         }
     }
 
-    private void acquire(AtomicLong clientId, Semaphore semaphore) {
+    private void acquire(AtomicLong clientId, Semaphore semaphore) throws PDException {
         if (clientId.get() == 0L) {
             try {
                 semaphore.acquire();
@@ -589,7 +589,9 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
                 }
                 log.info("wait for client starting....");
             } catch (InterruptedException e) {
-                log.error("get semaphore with error:", e);
+                Thread.currentThread().interrupt();
+                throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE,
+                                      "Interrupted while waiting for lock client initialization", e);
             }
         }
     }
@@ -704,8 +706,8 @@ public class KvClient<T extends WatchResponse> extends AbstractClient implements
             return;
         }
         reconnectScheduler.shutdownNow();
-        if (reconnectExecutor instanceof ExecutorService) {
-            ((ExecutorService) reconnectExecutor).shutdownNow();
+        if (reconnectExecutor instanceof ExecutorService executor) {
+            executor.shutdownNow();
         }
         release(lockSemaphore);
         for (WatchSubscription subscription : subscriptions) {

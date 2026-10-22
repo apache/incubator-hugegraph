@@ -314,7 +314,7 @@ public class PDClient {
                 var leaderIp = getLeaderIp(stub);
                 if (!leaderIp.equalsIgnoreCase(host)) {
                     leaderHost = leaderIp;
-                    proxy.set(getStub(PDGrpc.newBlockingStub(channel)));
+                    proxy.set(getStub(PDGrpc.newBlockingStub(getChannel(leaderIp))));
                 } else {
                     proxy.set(stub);
                     leaderHost = host;
