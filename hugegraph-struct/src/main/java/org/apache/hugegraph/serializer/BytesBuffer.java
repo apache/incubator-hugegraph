@@ -228,8 +228,9 @@ public class BytesBuffer extends OutputStream {
                             requiredCapacity, maxCapacity);
         }
 
-        // Extra capacity as buffer
-        long newCapacity = Math.min(requiredCapacity + DEFAULT_CAPACITY,
+        // Avoid copying the entire buffer for every small appended block.
+        long newCapacity = Math.min(Math.max(requiredCapacity + DEFAULT_CAPACITY,
+                                            (long) this.buffer.capacity() * 2),
                                     maxCapacity);
         ByteBuffer newBuffer = ByteBuffer.allocate((int) newCapacity);
         this.buffer.flip();
