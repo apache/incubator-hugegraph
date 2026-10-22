@@ -21,23 +21,39 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hugegraph.HugeGraph;
 import org.apache.hugegraph.api.space.GraphSpaceAPI;
+import org.apache.hugegraph.config.CoreOptions;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.event.EventHub;
+import org.apache.hugegraph.event.EventHub.NotifyResult;
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.meta.MetaManager;
+import org.apache.hugegraph.pd.client.PDClient;
+import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.space.GraphSpace;
 import org.apache.hugegraph.space.Service;
 import org.apache.hugegraph.task.TaskScheduler;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.tinkerpop.gremlin.structure.Graph;
+import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -162,6 +178,162 @@ public class GraphManagerClearGraphSpaceTest {
     }
 
     @Test
+    public void testDelayedRemoveCannotOverwriteInPlaceApiUpdate() throws Exception {
+        MetaManager meta = Mockito.mock(MetaManager.class);
+        GraphManager manager = new GraphManager(
+                new HugeConfig(new PropertiesConfiguration()), Mockito.mock(EventHub.class));
+        Whitebox.setInternalState(manager, "metaManager", meta);
+        Whitebox.setInternalState(manager, "PDExist", true);
+        GraphSpace cached = new GraphSpace("gs");
+        cached.maxGraphNumber(100);
+        cached.graphNumberUsed(1);
+        Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+        spaces.put("gs", cached);
+        AtomicReference<GraphSpace> metadata = new AtomicReference<>(
+                JsonUtil.fromJson(JsonUtil.toJson(cached), GraphSpace.class));
+        CountDownLatch snapshotRead = new CountDownLatch(1);
+        CountDownLatch releaseSnapshot = new CountDownLatch(1);
+        AtomicInteger reads = new AtomicInteger();
+        Mockito.when(meta.extractGraphSpacesFromResponse(Mockito.any())).thenReturn(List.of("gs"));
+        Mockito.when(meta.graphSpace("gs")).thenAnswer(call -> {
+            GraphSpace snapshot = metadata.get();
+            if (reads.incrementAndGet() == 1) {
+                snapshotRead.countDown();
+                Assert.assertTrue(releaseSnapshot.await(5, TimeUnit.SECONDS));
+            }
+            return snapshot;
+        });
+        Mockito.doAnswer(call -> {
+            metadata.set(JsonUtil.fromJson(JsonUtil.toJson(call.getArgument(1)), GraphSpace.class));
+            return null;
+        }).when(meta).addGraphSpaceConfig(Mockito.eq("gs"), Mockito.any(GraphSpace.class));
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (MockedStatic<PDClient> clients = Mockito.mockStatic(PDClient.class)) {
+            clients.when(() -> PDClient.create(Mockito.any(PDConfig.class))).thenReturn(Mockito.mock(PDClient.class));
+            Future<?> removal = executor.submit(() ->
+                    Whitebox.invoke(GraphManager.class, "graphSpaceRemoveHandler", manager, new Object()));
+            Assert.assertTrue(snapshotRead.await(5, TimeUnit.SECONDS));
+            updateApiGraphSpace(manager, cached, Map.of("max_graph_number", 1, "storage_limit", 200));
+            Assert.assertSame(cached, manager.graphSpace("gs"));
+            Assert.assertEquals(1, metadata.get().maxGraphNumber());
+            releaseSnapshot.countDown();
+            removal.get(5, TimeUnit.SECONDS);
+            GraphSpace current = manager.graphSpace("gs");
+            Assert.assertEquals(1, current.maxGraphNumber());
+            Assert.assertEquals(200, current.storageLimit());
+            Assert.assertEquals(1, current.graphNumberUsed());
+            Assert.assertFalse(current.tryOfferGraph());
+            Mockito.when(meta.graphConfigs("gs")).thenReturn(Map.of("gs-existing", Map.of()));
+            Assert.assertThrows(HugeException.class, () -> manager.createGraph(
+                    "gs", "over_limit", "admin", new HashMap<>(), true),
+                    failure -> Assert.assertTrue(failure.getMessage().contains("reach graph limit")));
+            Mockito.verify(meta, Mockito.times(2)).graphSpace("gs");
+        } finally {
+            releaseSnapshot.countDown();
+            executor.shutdownNow();
+            manager.close();
+        }
+    }
+
+    @Test
+    public void testDelayedRemoveCannotUndoCreatedGraphCount() throws Exception {
+        MetaManager meta = Mockito.mock(MetaManager.class);
+        EventHub hub = Mockito.mock(EventHub.class);
+        NotifyResult notified = Mockito.mock(NotifyResult.class);
+        Mockito.when(notified.success()).thenReturn(true);
+        Mockito.when(hub.notifySync(Mockito.anyString(), Mockito.any(HugeGraph.class))).thenReturn(notified);
+        GraphManager manager = new GraphManager(new HugeConfig(new PropertiesConfiguration()), hub);
+        Whitebox.setInternalState(manager, "metaManager", meta);
+        Whitebox.setInternalState(manager, "PDExist", true);
+        GraphSpace cached = new GraphSpace("gs");
+        Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+        spaces.put("gs", cached);
+        AtomicReference<GraphSpace> metadata = new AtomicReference<>(
+                JsonUtil.fromJson(JsonUtil.toJson(cached), GraphSpace.class));
+        CountDownLatch snapshotRead = new CountDownLatch(1);
+        CountDownLatch releaseSnapshot = new CountDownLatch(1);
+        AtomicInteger reads = new AtomicInteger();
+        Mockito.when(meta.extractGraphSpacesFromResponse(Mockito.any())).thenReturn(List.of("gs"));
+        Mockito.when(meta.graphSpace("gs")).thenAnswer(call -> {
+            GraphSpace snapshot = metadata.get();
+            if (reads.incrementAndGet() == 1) {
+                snapshotRead.countDown();
+                Assert.assertTrue(releaseSnapshot.await(5, TimeUnit.SECONDS));
+            }
+            return snapshot;
+        });
+        Mockito.doAnswer(call -> {
+            metadata.set(JsonUtil.fromJson(JsonUtil.toJson(call.getArgument(1)), GraphSpace.class));
+            return null;
+        }).when(meta).updateGraphSpaceConfig(Mockito.eq("gs"), Mockito.any(GraphSpace.class));
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (MockedStatic<GraphFactory> factory = Mockito.mockStatic(GraphFactory.class)) {
+            HugeGraph graph = mockGraph("gs-created");
+            factory.when(() -> GraphFactory.open(Mockito.any(Configuration.class))).thenReturn(graph);
+            Future<?> removal = executor.submit(() ->
+                    Whitebox.invoke(GraphManager.class, "graphSpaceRemoveHandler", manager, new Object()));
+            Assert.assertTrue(snapshotRead.await(5, TimeUnit.SECONDS));
+            manager.createGraph("gs", "created", "admin",
+                                new HashMap<>(Map.of(CoreOptions.STORE.name(), "created")), true);
+            Assert.assertSame(cached, manager.graphSpace("gs"));
+            Assert.assertEquals(1, metadata.get().graphNumberUsed());
+            releaseSnapshot.countDown();
+            removal.get(5, TimeUnit.SECONDS);
+            Assert.assertEquals(1, manager.graphSpace("gs").graphNumberUsed());
+            Mockito.verify(meta, Mockito.times(3)).graphSpace("gs");
+        } finally {
+            releaseSnapshot.countDown();
+            executor.shutdownNow();
+            manager.close();
+        }
+    }
+
+    @Test
+    public void testCacheMissRespectsConcurrentCreationAndDeletion() throws Exception {
+        for (boolean deletion : new boolean[]{false, true}) {
+            MetaManager meta = Mockito.mock(MetaManager.class);
+            GraphManager manager = new GraphManager(
+                    new HugeConfig(new PropertiesConfiguration()), Mockito.mock(EventHub.class));
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            AtomicReference<GraphSpace> metadata = new AtomicReference<>(new GraphSpace("gs"));
+            CountDownLatch snapshotRead = new CountDownLatch(1);
+            CountDownLatch releaseSnapshot = new CountDownLatch(1);
+            Mockito.when(meta.graphSpace("gs")).thenAnswer(call -> {
+                GraphSpace snapshot = metadata.get();
+                snapshotRead.countDown();
+                Assert.assertTrue(releaseSnapshot.await(5, TimeUnit.SECONDS));
+                return snapshot;
+            });
+            Mockito.doAnswer(call -> {
+                metadata.set(null);
+                return null;
+            }).when(meta).removeGraphSpaceConfig("gs");
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            try (MockedStatic<PDClient> clients = Mockito.mockStatic(PDClient.class)) {
+                clients.when(() -> PDClient.create(Mockito.any(PDConfig.class)))
+                       .thenReturn(Mockito.mock(PDClient.class));
+                Future<GraphSpace> lookup = executor.submit(() -> manager.graphSpace("gs"));
+                Assert.assertTrue(snapshotRead.await(5, TimeUnit.SECONDS));
+                GraphSpace updated = new GraphSpace("gs");
+                updated.maxGraphNumber(1);
+                if (deletion) {
+                    new GraphSpaceAPI().delete(manager, "gs");
+                } else {
+                    manager.createGraphSpace(updated);
+                }
+                releaseSnapshot.countDown();
+                Assert.assertSame(deletion ? null : updated, lookup.get(5, TimeUnit.SECONDS));
+                Assert.assertEquals(!deletion, manager.graphSpaces().contains("gs"));
+            } finally {
+                releaseSnapshot.countDown();
+                executor.shutdownNow();
+                manager.close();
+            }
+        }
+    }
+
+    @Test
     public void testDefaultSpaceUsesFiniteDefaultsWithoutMigratingExistingSpace() {
         GraphManager manager = Mockito.mock(GraphManager.class, Mockito.CALLS_REAL_METHODS);
         MetaManager meta = Mockito.mock(MetaManager.class);
@@ -247,6 +419,11 @@ public class GraphManagerClearGraphSpaceTest {
         Mockito.when(manager.graphSpace(space.name())).thenReturn(space);
         Mockito.when(manager.createGraphSpace(Mockito.any(GraphSpace.class)))
                .thenAnswer(call -> call.getArgument(0));
+        return updateApiGraphSpace(manager, space, changes);
+    }
+
+    private static Map<String, Object> updateApiGraphSpace(GraphManager manager, GraphSpace space,
+                                                        Map<String, Object> changes) {
         Map<String, Object> update = new HashMap<>(Map.of(
                 "name", space.name(), "max_graph_number", space.maxGraphNumber(),
                 "max_role_number", space.maxRoleNumber(), "cpu_limit", space.cpuLimit(),

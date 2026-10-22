@@ -908,7 +908,10 @@ After a graph space is deleted, each Server evicts its cached space and service
 entries on the metadata removal event. Peers do not repeat destructive backend
 cleanup or delete shared metadata when handling that notification. A delayed event
 for a name already recreated in metadata refreshes the space from metadata and evicts
-its old service cache, so callers see the recreated configuration.
+its old service cache, so callers see the recreated configuration. Refreshes and
+cache misses retry when a local space change completes during the read, including
+graph and service counter updates. Older reads cannot replace a newer local quota
+or counter, or return a discarded snapshot after local creation or deletion.
 
 New graph spaces, including a newly bootstrapped `DEFAULT` space, use finite
 resource defaults: 128 CPU cores, 128 GB memory, 128 compute CPU cores, 128 GB
