@@ -18,12 +18,14 @@
 package org.apache.hugegraph.unit.core;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hugegraph.HugeGraph;
+import org.apache.hugegraph.api.space.GraphSpaceAPI;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.event.EventHub;
@@ -187,30 +189,70 @@ public class GraphManagerClearGraphSpaceTest {
 
     @Test
     public void testApiComputeDefaultsInheritRequestedResources() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        Class<?> type = Class.forName("org.apache.hugegraph.api.space.GraphSpaceAPI$JsonGraphSpace");
         for (int cpu : new int[]{4, 128, 256}) {
-            Object request = mapper.readValue(String.format(
-                    "{\"name\":\"gs\",\"cpu_limit\":%d,\"memory_limit\":%d}", cpu, cpu * 2), type);
-            Whitebox.invoke(type, "checkCreate", request, false);
-            GraphSpace space = Whitebox.invoke(type, "toGraphSpace", request, "admin");
-            Assert.assertEquals(cpu, space.computeCpuLimit());
-            Assert.assertEquals(cpu * 2, space.computeMemoryLimit());
+            GraphSpace space = apiGraphSpace(String.format(
+                    "{\"name\":\"gs\",\"cpu_limit\":%d,\"memory_limit\":%d}", cpu, cpu * 2));
+            Assert.assertEquals(cpu, space.cpuLimit());
+            Assert.assertEquals(cpu * 2, space.memoryLimit());
+            Assert.assertEquals(0, space.computeCpuLimit());
+            Assert.assertEquals(0, space.computeMemoryLimit());
         }
-        Object request = mapper.readValue("{\"name\":\"gs\"}", type);
-        Whitebox.invoke(type, "checkCreate", request, false);
-        GraphSpace defaults = Whitebox.invoke(type, "toGraphSpace", request, "admin");
-        Assert.assertEquals(128, defaults.computeCpuLimit());
-        Assert.assertEquals(128, defaults.computeMemoryLimit());
+        GraphSpace defaults = apiGraphSpace("{\"name\":\"gs\"}");
+        Assert.assertEquals(128, defaults.cpuLimit());
+        Assert.assertEquals(128, defaults.memoryLimit());
+        Assert.assertEquals(0, defaults.computeCpuLimit());
+        Assert.assertEquals(0, defaults.computeMemoryLimit());
         Assert.assertEquals(10240, defaults.storageLimit());
-        request = mapper.readValue("{\"name\":\"gs\",\"compute_cpu_limit\":16,\"compute_memory_limit\":32}", type);
-        GraphSpace explicit = Whitebox.invoke(type, "toGraphSpace", request, "admin");
-        Assert.assertEquals(16, explicit.computeCpuLimit());
-        Assert.assertEquals(32, explicit.computeMemoryLimit());
-        request = mapper.readValue("{\"name\":\"gs\",\"compute_cpu_limit\":0,\"compute_memory_limit\":0}", type);
-        GraphSpace inherit = Whitebox.invoke(type, "toGraphSpace", request, "admin");
-        Assert.assertEquals(0, inherit.computeCpuLimit());
-        Assert.assertEquals(0, inherit.computeMemoryLimit());
+    }
+
+    @Test
+    public void testApiComputeInheritanceSurvivesCpuAndMemoryUpdates() throws Exception {
+        GraphSpace space = apiGraphSpace("{\"name\":\"gs\",\"cpu_limit\":4,\"memory_limit\":8}");
+        Map<String, Object> result = updateApiGraphSpace(space,
+                Map.of("cpu_limit", 8, "memory_limit", 16));
+        Assert.assertEquals(8, result.get("cpu_limit"));
+        Assert.assertEquals(16, result.get("memory_limit"));
+        Assert.assertEquals(0, result.get("compute_cpu_limit"));
+        Assert.assertEquals(0, result.get("compute_memory_limit"));
+    }
+
+    @Test
+    public void testApiComputeUpdatesDistinguishOmissionFromExplicitZero() throws Exception {
+        GraphSpace space = apiGraphSpace(
+                "{\"name\":\"gs\",\"compute_cpu_limit\":16,\"compute_memory_limit\":32}");
+        updateApiGraphSpace(space, Map.of("cpu_limit", 8, "memory_limit", 16));
+        Assert.assertEquals(16, space.computeCpuLimit());
+        Assert.assertEquals(32, space.computeMemoryLimit());
+        updateApiGraphSpace(space, Map.of("compute_cpu_limit", 0, "compute_memory_limit", 0));
+        Assert.assertEquals(0, space.computeCpuLimit());
+        Assert.assertEquals(0, space.computeMemoryLimit());
+        updateApiGraphSpace(space, Map.of("compute_cpu_limit", 5));
+        Assert.assertEquals(5, space.computeCpuLimit());
+        Assert.assertEquals(0, space.computeMemoryLimit());
+        updateApiGraphSpace(space, Map.of("cpu_limit", 16, "memory_limit", 32));
+        Assert.assertEquals(5, space.computeCpuLimit());
+        Assert.assertEquals(0, space.computeMemoryLimit());
+    }
+
+    private static GraphSpace apiGraphSpace(String json) throws Exception {
+        Class<?> type = Class.forName("org.apache.hugegraph.api.space.GraphSpaceAPI$JsonGraphSpace");
+        Object request = new ObjectMapper().readValue(json, type);
+        Whitebox.invoke(type, "checkCreate", request, false);
+        return Whitebox.invoke(type, "toGraphSpace", request, "admin");
+    }
+
+    private static Map<String, Object> updateApiGraphSpace(GraphSpace space, Map<String, Object> changes) {
+        GraphManager manager = Mockito.mock(GraphManager.class);
+        Mockito.when(manager.isPDEnabled()).thenReturn(true);
+        Mockito.when(manager.graphSpace(space.name())).thenReturn(space);
+        Mockito.when(manager.createGraphSpace(Mockito.any(GraphSpace.class)))
+               .thenAnswer(call -> call.getArgument(0));
+        Map<String, Object> update = new HashMap<>(Map.of(
+                "name", space.name(), "max_graph_number", space.maxGraphNumber(),
+                "max_role_number", space.maxRoleNumber(), "cpu_limit", space.cpuLimit(),
+                "memory_limit", space.memoryLimit(), "storage_limit", space.storageLimit()));
+        update.putAll(changes);
+        return new GraphSpaceAPI().manage(manager, space.name(), Map.of("action", "update", "update", update));
     }
 
     private static HugeGraph mockGraph(String spaceGraphName) {

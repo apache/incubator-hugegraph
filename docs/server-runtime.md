@@ -914,10 +914,17 @@ New graph spaces, including a newly bootstrapped `DEFAULT` space, use finite
 resource defaults: 128 CPU cores, 128 GB memory, 128 compute CPU cores, 128 GB
 compute memory, 10240 GB storage, 100 graphs and 100 roles. Existing graph-space
 configurations are preserved on restart; this change does not migrate their quotas.
-For `POST /graphspaces`, omitted compute limits inherit the request's CPU and memory
-limits: requesting 4 cores / 8 GB without compute fields yields compute 4 cores / 8 GB.
-Omitting all resource fields gives 128 cores / 128 GB for both. Explicit compute
-values are retained; an explicit zero keeps the Kubernetes inheritance rule.
+For `POST /graphspaces`, omitted compute limits are stored as `0`, meaning continuously
+inherit the space's CPU and memory limits. Zero is neither unlimited nor a zero-sized
+allocation. A request for 4 cores / 8 GB without compute fields therefore has effective
+compute limits of 4 cores / 8 GB; after updating CPU/memory to 8 cores / 16 GB, compute
+also becomes 8 cores / 16 GB. Omitting all resource fields gives effective limits of
+128 cores / 128 GB for both. Explicit positive compute values remain independent.
+`PUT /graphspaces/{name}` with `action=update` preserves omitted compute fields;
+explicit `compute_cpu_limit: 0` or `compute_memory_limit: 0` restores inheritance for
+that field. Responses retain the raw zero marker so editing clients can preserve it.
+The bootstrapped `DEFAULT` space keeps explicit compute limits of 128 cores / 128 GB;
+existing positive compute limits are not converted to inheritance.
 When OLTP and OLAP share a Kubernetes namespace, their quotas are added together;
 separate namespaces receive the respective resource limits.
 

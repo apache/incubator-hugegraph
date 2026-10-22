@@ -415,15 +415,11 @@ public class GraphSpaceAPI extends API {
                     exist.storageLimit = storageLimit;
                 }
 
-                int computeCpuLimit = (int) graphSpaceMap
-                        .getOrDefault("compute_cpu_limit", 0);
-                if (computeCpuLimit != 0) {
-                    exist.computeCpuLimit(computeCpuLimit);
+                if (graphSpaceMap.containsKey("compute_cpu_limit")) {
+                    exist.computeCpuLimit((int) graphSpaceMap.get("compute_cpu_limit"));
                 }
-                int computeMemoryLimit = (int) graphSpaceMap
-                        .getOrDefault("compute_memory_limit", 0);
-                if (computeMemoryLimit != 0) {
-                    exist.computeMemoryLimit(computeMemoryLimit);
+                if (graphSpaceMap.containsKey("compute_memory_limit")) {
+                    exist.computeMemoryLimit((int) graphSpaceMap.get("compute_memory_limit"));
                 }
 
                 String oltpNamespace =
@@ -538,11 +534,12 @@ public class GraphSpaceAPI extends API {
         public int storageLimit = GraphSpace.DEFAULT_STORAGE_LIMIT;
 
         @JsonProperty("compute_cpu_limit")
-        @Schema(description = "The compute CPU limit; omitted or zero inherits the CPU limit")
-        public Integer computeCpuLimit;
+        @Schema(description = "The compute CPU limit; omitted or zero continuously inherits the current CPU limit")
+        public int computeCpuLimit;
         @JsonProperty("compute_memory_limit")
-        @Schema(description = "The compute memory limit; omitted or zero inherits the memory limit")
-        public Integer computeMemoryLimit;
+        @Schema(description = "The compute memory limit; omitted or zero continuously " +
+                              "inherits the current memory limit")
+        public int computeMemoryLimit;
 
         @JsonProperty("oltp_namespace")
         @Schema(description = "The OLTP namespace for the graph space")
@@ -626,8 +623,8 @@ public class GraphSpaceAPI extends API {
             graphSpace.oltpNamespace(this.oltpNamespace);
             graphSpace.olapNamespace(this.olapNamespace);
             graphSpace.storageNamespace(this.storageNamespace);
-            graphSpace.computeCpuLimit(this.computeCpuLimit == null ? this.cpuLimit : this.computeCpuLimit);
-            graphSpace.computeMemoryLimit(this.computeMemoryLimit == null ? this.memoryLimit : this.computeMemoryLimit);
+            graphSpace.computeCpuLimit(this.computeCpuLimit);
+            graphSpace.computeMemoryLimit(this.computeMemoryLimit);
             graphSpace.operatorImagePath(this.operatorImagePath);
             graphSpace.internalAlgorithmImageUrl(this.internalAlgorithmImageUrl);
             if (this.configs != null) {
