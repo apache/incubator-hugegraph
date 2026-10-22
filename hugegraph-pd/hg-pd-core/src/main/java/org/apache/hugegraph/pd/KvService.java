@@ -303,6 +303,10 @@ public class KvService {
             for (KV kv : kvList) {
                 String key = new String(kv.getKey());
                 int index = key.indexOf(KV_DELIMITER, timeStart);
+                if (!isMarkerTime(key, timeStart, index)) {
+                    // An ordinary key that sorts among the markers, such as T@12ab@x: not one
+                    continue;
+                }
                 String delKey = key.substring(index + 1);
                 byte[] stored = meta.getOne(getStoreKey(delKey));
                 removeExpired(delKey, key.substring(KV_PREFIX_DELIMITER.length()), stored);
@@ -310,6 +314,21 @@ public class KvService {
         } catch (Exception e) {
             log.error("clear ttl data with error :", e);
         }
+    }
+
+    /**
+     * Whether key[start, end) is the time of a marker: a non-empty run of decimal digits
+     */
+    private static boolean isMarkerTime(String key, int start, int end) {
+        if (end <= start || end - start > 19) {
+            return false;
+        }
+        for (int i = start; i < end; i++) {
+            if (key.charAt(i) < '0' || key.charAt(i) > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -183,6 +183,24 @@ public class KvServiceTest extends PDCoreTestBase {
     }
 
     /**
+     * An ordinary key can look like a marker, and one with a time that is not a number sorts
+     * inside the scanned range: the cleanup skips it, keeps it, and still deletes the expired
+     * key after it
+     */
+    @Test
+    public void testTtlCleanupSkipsAnOrdinaryKeyInTheMarkerRange() throws Exception {
+        KvService service = new KvService(getPdConfig());
+        service.put("T@123abc@foo", "ordinary");
+        service.put("ttl-test/h", "old", 1L);
+        String marker = marker(service, "ttl-test/h");
+        Thread.sleep(20L);
+        service.clearTTLData();
+        Assert.assertEquals("ordinary", service.get("T@123abc@foo"));
+        Assert.assertNull(service.getMeta().getOne(service.getStoreKey("ttl-test/h")));
+        Assert.assertNull(service.getMeta().getOne(service.getStoreKey(marker)));
+    }
+
+    /**
      * The marker key of a TTL value, without the K@ prefix
      */
     private static String marker(KvService service, String key) throws Exception {
