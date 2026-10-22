@@ -33,8 +33,8 @@ export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-cloud-storage-test}"
 HG_PD_IMAGE="${HG_PD_IMAGE:-hugegraph/pd:cloud-storage-local}"
 HG_STORE_IMAGE="${HG_STORE_IMAGE:-hugegraph/store:cloud-storage-local}"
 HG_SERVER_IMAGE="${HG_SERVER_IMAGE:-hugegraph/server:1.7.0}"
-MINIO_IMAGE="${MINIO_IMAGE:-pgsty/minio:latest}"
-MINIO_MC_IMAGE="${MINIO_MC_IMAGE:-pgsty/mc:latest}"
+MINIO_IMAGE="${MINIO_IMAGE:-pgsty/minio:RELEASE.2026-08-04T00-00-00Z}"
+MINIO_MC_IMAGE="${MINIO_MC_IMAGE:-pgsty/mc:RELEASE.2026-10-18T00-00-00Z}"
 MINIO_ROOT_USER="${MINIO_ROOT_USER:-minioadmin}"
 MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-minioadmin}"
 S3_BUCKET_STORE0="${S3_BUCKET_STORE0:-hugegraph-store0}"
@@ -1204,7 +1204,7 @@ log "generating docker-compose.yml..."
 cat > "$COMPOSE_FILE" << 'YAML'
 services:
   minio:
-    image: pgsty/minio:latest
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: cloud-storage-minio
     command: server /data --console-address ":9001"
     environment:

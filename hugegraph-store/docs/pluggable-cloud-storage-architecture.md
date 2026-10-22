@@ -306,6 +306,7 @@ cloud-metadata-sync thread every 500 ms.
   always has a consistent metadata + data state to restore from.
 
 - The native RocksDB event listener is attached to `DBOptions` only when at least one registered `RocksdbChangedListener` reports `managesRemoteState()` (the cloud listener does). Nodes without cloud storage keep the pre-cloud behaviour. Only four native callbacks are enabled: `ON_COMPACTION_BEGIN`, `ON_COMPACTION_COMPLETED`, `ON_TABLE_FILE_CREATED` and `ON_TABLE_FILE_DELETED`, so other event kinds never cross the JNI boundary.
+- Destroy timing changed for every node, with or without cloud storage. A destroyed DB that still has live references now waits up to 30 minutes before its references are force-released and the directory is deleted. Earlier releases did this one to two minutes after the destroy. See [Operations Guide](operations-guide.md#issue-2-partition-imbalance) for details.
 
 ### Cloud key scope resolution
 

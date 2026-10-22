@@ -21,7 +21,7 @@
 set -euo pipefail
 
 GRAPH_NAME="${GRAPH_NAME:-hugegraph}"
-MC_IMAGE="${MC_IMAGE:-pgsty/mc:latest}"
+MC_IMAGE="${MC_IMAGE:-pgsty/mc:RELEASE.2026-10-18T00-00-00Z}"
 MINIO_USER="${MINIO_USER:-minioadmin}"
 MINIO_PASS="${MINIO_PASS:-minioadmin}"
 RESTART_WAIT_SECONDS="${RESTART_WAIT_SECONDS:-20}"

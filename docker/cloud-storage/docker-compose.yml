@@ -27,7 +27,7 @@ volumes:
 
 services:
   minio:
-    image: pgsty/minio:latest
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     container_name: cloud-storage-minio
     command: server /data --console-address ':9001'
     environment:
@@ -46,7 +46,7 @@ services:
       retries: 20
 
   minio-init:
-    image: pgsty/mc:latest
+    image: pgsty/mc:RELEASE.2026-10-18T00-00-00Z
     container_name: cloud-storage-minio-init
     depends_on:
       minio:

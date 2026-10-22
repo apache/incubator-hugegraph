@@ -321,7 +321,7 @@ type resolve_hg_net >/dev/null 2>&1 || { echo "Run Core Step 1 helper first"; ex
 resolve_hg_net
 
 echo "=== Assert bucket object + SST counts ==="
-docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:latest \
+docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -343,7 +343,7 @@ docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:latest \
       exit "$fail"'
 
 echo "=== Assert metadata set (CURRENT / MANIFEST-* / OPTIONS-*) ==="
-docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:latest \
+docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -410,7 +410,7 @@ BUCKET=""
 DB_PREFIX=""
 for CANDIDATE_BUCKET in hugegraph-store0 hugegraph-store1 hugegraph-store2; do
   MATCH=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-    pgsty/mc:latest \
+    pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
     -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
           :; \
         elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -440,7 +440,7 @@ echo "Detected DB prefix: bucket=${BUCKET}, prefix=${DB_PREFIX}"
 
 ```bash
 BEFORE_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  pgsty/mc:latest \
+  pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -454,7 +454,7 @@ BEFORE_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
 echo "Objects before clear: ${BEFORE_COUNT}"
 
 docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  pgsty/mc:latest \
+  pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -482,7 +482,7 @@ sleep 5
 
 ```bash
 AFTER_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  pgsty/mc:latest \
+  pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -496,7 +496,7 @@ AFTER_COUNT=$(docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
 echo "Objects after clear (expected non-zero): ${AFTER_COUNT}"
 
 docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
-  pgsty/mc:latest \
+  pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
   -c 'if mc alias set local http://minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
         :; \
       elif mc alias set local http://cloud-storage-minio:9000 minioadmin minioadmin >/dev/null 2>&1; then \
@@ -753,7 +753,7 @@ This is the most common issue. Debug step-by-step:
    ```bash
    type resolve_hg_net >/dev/null 2>&1 || { echo "Run Core Step 1 helper first"; exit 1; }
    resolve_hg_net
-   docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:latest \
+   docker run --rm --entrypoint /bin/sh --network "$HG_NET" pgsty/mc:RELEASE.2026-10-18T00-00-00Z \
      -c 'mc alias set local http://minio:9000 minioadmin minioadmin && mc ls local/'
    ```
 
