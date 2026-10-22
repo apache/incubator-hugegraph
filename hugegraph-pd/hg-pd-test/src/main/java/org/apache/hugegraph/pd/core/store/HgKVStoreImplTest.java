@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.common.PDException;
@@ -229,12 +231,15 @@ public class HgKVStoreImplTest {
         String dbPath = config.getDataPath() + "/rocksdb";
         FileUtils.forceMkdir(new File(dbPath));
         HgKVStore kvStore = new HgKVStoreImpl();
-        Process holder = startLockHolder(dbPath, 1000L);
+        Process holder = startLockHolder(dbPath);
         try {
-            long start = System.nanoTime();
-            kvStore.init(config);
-            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-            Assert.assertTrue("opened after " + elapsed + " ms", elapsed >= 500L);
+            CompletableFuture<Void> init = CompletableFuture.runAsync(() -> kvStore.init(config));
+            // The helper keeps the LOCK until told otherwise, so init() can only be retrying
+            // here; this wait spans the first 500 ms retry interval
+            Assert.assertThrows(TimeoutException.class,
+                                () -> init.get(1500L, TimeUnit.MILLISECONDS));
+            holder.getOutputStream().close();
+            init.get(30L, TimeUnit.SECONDS);
             byte[] key = "lock".getBytes(StandardCharsets.UTF_8);
             kvStore.put(key, key);
             Assert.assertArrayEquals(key, kvStore.get(key));
@@ -253,7 +258,7 @@ public class HgKVStoreImplTest {
         FileUtils.forceMkdir(new File(dbPath));
         HgKVStoreImpl kvStore = new HgKVStoreImpl();
         Whitebox.setInternalState(kvStore, "lockWaitTimeoutMs", 1000L);
-        Process holder = startLockHolder(dbPath, -1L);
+        Process holder = startLockHolder(dbPath);
         try {
             long start = System.nanoTime();
             IllegalStateException e = Assert.assertThrows(IllegalStateException.class,
@@ -270,11 +275,10 @@ public class HgKVStoreImplTest {
         }
     }
 
-    private static Process startLockHolder(String dbPath, long holdMs) throws Exception {
+    private static Process startLockHolder(String dbPath) throws Exception {
         String java = Paths.get(System.getProperty("java.home"), "bin", "java").toString();
         Process process = new ProcessBuilder(java, "-cp", System.getProperty("java.class.path"),
-                                             RocksDBLockHolder.class.getName(), dbPath,
-                                             String.valueOf(holdMs))
+                                             RocksDBLockHolder.class.getName(), dbPath)
                 .redirectErrorStream(true)
                 .start();
         BufferedReader output = new BufferedReader(

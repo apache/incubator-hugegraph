@@ -177,6 +177,9 @@ public class RaftKVStore implements HgKVStore, RaftTaskHandler {
 
     @Override
     public void close() {
+        // A store reopened after a failed start registers a new handler; this one must not
+        // keep receiving entries for a closed database
+        this.engine.removeTaskHandler(this);
         store.close();
     }
 

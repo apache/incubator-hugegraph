@@ -17,13 +17,17 @@
 
 package org.apache.hugegraph.pd.core.store;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 
 /**
  * Holds a RocksDB LOCK from a separate JVM, the way a previous PD process does while it is
- * still stopping. Prints {@link #LOCKED} once the database is open, then releases it after
- * the given number of milliseconds, or holds it until killed when the number is negative.
+ * still stopping. Prints {@link #LOCKED} once the database is open, then holds it until a line
+ * or end of input arrives on stdin, or until killed.
  */
 public final class RocksDBLockHolder {
 
@@ -34,13 +38,13 @@ public final class RocksDBLockHolder {
 
     public static void main(String[] args) throws Exception {
         String dbPath = args[0];
-        long holdMs = Long.parseLong(args[1]);
         RocksDB.loadLibrary();
         try (Options options = new Options().setCreateIfMissing(true);
              RocksDB ignored = RocksDB.open(options, dbPath)) {
             System.out.println(LOCKED);
             System.out.flush();
-            Thread.sleep(holdMs < 0 ? Long.MAX_VALUE : holdMs);
+            new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))
+                    .readLine();
         }
     }
 }

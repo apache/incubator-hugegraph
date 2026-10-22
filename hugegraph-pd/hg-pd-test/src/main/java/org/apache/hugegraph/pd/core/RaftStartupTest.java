@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.hugegraph.pd.config.PDConfig;
@@ -30,6 +31,7 @@ import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.raft.RaftEngine;
 import org.apache.hugegraph.pd.service.RaftStartup;
 import org.apache.hugegraph.pd.store.HgKVStore;
+import org.apache.hugegraph.testutil.Whitebox;
 import org.junit.Assert;
 import org.junit.Test;
 import org.rocksdb.Options;
@@ -63,6 +65,7 @@ public class RaftStartupTest {
             Assert.assertThrows(IllegalArgumentException.class, () -> RaftStartup.init(config));
             Assert.assertNull(factoryStore());
             Assert.assertNull(RaftEngine.getInstance().getRaftNode());
+            Assert.assertNull(Whitebox.getInternalState(RaftEngine.getInstance(), "raftRpcClient"));
             // The metadata LOCK is free again
             try (Options options = new Options();
                  RocksDB ignored = RocksDB.open(options, dataPath + "/rocksdb")) {
@@ -79,6 +82,25 @@ public class RaftStartupTest {
             Assert.assertThrows(IllegalArgumentException.class, () -> RaftStartup.init(config));
             Assert.assertSame(shared, factoryStore());
             verify(shared, never()).close();
+            // Raft built its rpc client before failing on the address; it is stopped even
+            // though the metadata store belongs to someone else
+            Assert.assertNull(Whitebox.getInternalState(RaftEngine.getInstance(), "raftRpcClient"));
+        });
+    }
+
+    @Test
+    public void testRaftFailureUnregistersMetadataHandler() throws Exception {
+        PDConfig config = newConfig("tmp/test-raft-startup-handler", "not-a-peer");
+        // With Raft enabled the metadata store registers itself as a raft task handler
+        config.getRaft().setEnable(true);
+        config.getRaft().setPeersList("not-a-peer");
+        Object stateMachine = Whitebox.getInternalState(RaftEngine.getInstance(), "stateMachine");
+        List<?> handlers = Whitebox.getInternalState(stateMachine, "taskHandlers");
+        int before = handlers.size();
+        withFactoryStore(null, () -> {
+            Assert.assertThrows(IllegalArgumentException.class, () -> RaftStartup.init(config));
+            Assert.assertNull(factoryStore());
+            Assert.assertEquals(before, handlers.size());
         });
     }
 
@@ -124,6 +146,7 @@ public class RaftStartupTest {
                 FileUtils.deleteQuietly(new File("tmp/test-raft-startup"));
                 FileUtils.deleteQuietly(new File("tmp/test-raft-startup-owned"));
                 FileUtils.deleteQuietly(new File("tmp/test-raft-startup-shared"));
+                FileUtils.deleteQuietly(new File("tmp/test-raft-startup-handler"));
             }
         }
     }
