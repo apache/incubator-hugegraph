@@ -965,14 +965,14 @@ public class PDClient {
         } catch (Exception e) {
             log.error(method.getFullMethodName() + " exception, {}", e.getMessage());
             if (e instanceof StatusRuntimeException) {
-                StatusRuntimeException se = (StatusRuntimeException) e;
                 if (retry < proxy.getHostCount()) {
                     closeStub(true);
                     return blockingUnaryCall(method, req, ++retry);
                 }
             }
+            throw new PDException(ErrorType.PD_UNREACHABLE_VALUE,
+                                  "RPC blocking call failed: " + method.getFullMethodName(), e);
         }
-        return null;
     }
 
     private void handleResponseError(Pdpb.ResponseHeader header) throws

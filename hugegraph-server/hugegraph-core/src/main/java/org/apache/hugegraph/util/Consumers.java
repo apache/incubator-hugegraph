@@ -271,7 +271,8 @@ public final class Consumers<V> {
                     throw new StopExecution("Consumer stopped");
                 }
             } catch (InterruptedException e) {
-                LOG.warn("Interrupt while queuing QUEUE_END", e);
+                Thread.currentThread().interrupt();
+                throw e;
             }
         }
     }
@@ -377,8 +378,8 @@ public final class Consumers<V> {
         if (e instanceof RuntimeException) {
             throw (RuntimeException) e;
         }
-        throw new HugeException("Error when running task: %s",
-                                HugeException.rootCause(e).getMessage(), e);
+        throw new HugeException("Error when running task: %s", e,
+                                HugeException.rootCause(e).getMessage());
     }
 
     public static class ExecutorPool {
