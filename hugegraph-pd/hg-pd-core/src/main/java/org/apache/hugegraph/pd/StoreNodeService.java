@@ -1006,13 +1006,6 @@ public class StoreNodeService {
         for (Map.Entry<String, Long> item : storages.entrySet()) {
             String spaceName = item.getKey();
             long size = item.getValue();
-            Metapb.GraphSpace.Builder spaceBuilder = Metapb.GraphSpace.newBuilder().setName(spaceName);
-            for (Metapb.GraphSpace current : configService.getGraphSpace(spaceName)) {
-                if (spaceName.equals(current.getName())) {
-                    spaceBuilder = current.toBuilder();
-                    break;
-                }
-            }
             String value = kvService.get(graphSpaceConfPrefix + spaceName);
             boolean limited = false;
             if (!StringUtils.isEmpty(value)) {
@@ -1020,12 +1013,11 @@ public class StoreNodeService {
                 int limit = ((Double) config.get("storage_limit")).intValue();
                 // Store statistics and PD graph-space usage are in KB; configuration is in GB.
                 long limitKb = limit * 1024L * 1024L;
-                spaceBuilder.setStorageLimit(limitKb);
                 limited = size > limitKb;
             }
             // Statistics must also advance when no Server config exists under the default cluster.
             try {
-                configService.setGraphSpace(spaceBuilder.setUsedSize(size).build());
+                configService.setGraphSpaceUsage(spaceName, size);
             } catch (PDException e) {
                 log.error("Failed to update usage of graph space '{}'", spaceName, e);
             }

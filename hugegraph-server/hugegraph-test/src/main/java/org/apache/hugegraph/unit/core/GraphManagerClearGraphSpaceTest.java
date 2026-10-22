@@ -38,6 +38,8 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class GraphManagerClearGraphSpaceTest {
 
     /**
@@ -134,15 +136,24 @@ public class GraphManagerClearGraphSpaceTest {
         MetaManager meta = Mockito.mock(MetaManager.class);
         Object response = new Object();
         Mockito.when(meta.extractGraphSpacesFromResponse(response)).thenReturn(List.of("gs"));
-        Mockito.when(meta.graphSpace("gs")).thenReturn(new GraphSpace("gs"));
+        GraphSpace recreated = new GraphSpace("gs");
+        recreated.storageLimit = 200;
+        Mockito.when(meta.graphSpace("gs")).thenReturn(recreated);
         GraphManager manager = new GraphManager(
                 new HugeConfig(new PropertiesConfiguration()), Mockito.mock(EventHub.class));
         try {
             Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
             Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
-            spaces.put("gs", new GraphSpace("gs"));
+            GraphSpace deleted = new GraphSpace("gs");
+            deleted.storageLimit = 50;
+            spaces.put("gs", deleted);
+            Map<String, Service> services = Whitebox.getInternalState(manager, "services");
+            services.put("gs-s", Mockito.mock(Service.class));
             Whitebox.invoke(GraphManager.class, "graphSpaceRemoveHandler", manager, response);
-            Assert.assertTrue(manager.graphSpaces().contains("gs"));
+            Assert.assertSame(recreated, manager.graphSpace("gs"));
+            Assert.assertEquals(200, manager.graphSpace("gs").storageLimit());
+            Assert.assertFalse(services.containsKey("gs-s"));
         } finally {
             manager.close();
         }
@@ -172,6 +183,34 @@ public class GraphManagerClearGraphSpaceTest {
         Whitebox.invoke(GraphManager.class, "createDefaultGraphSpaceIfNeeded", manager,
                         new HugeConfig(new PropertiesConfiguration()));
         Mockito.verify(manager, Mockito.times(1)).createGraphSpace(Mockito.any(GraphSpace.class));
+    }
+
+    @Test
+    public void testApiComputeDefaultsInheritRequestedResources() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        Class<?> type = Class.forName("org.apache.hugegraph.api.space.GraphSpaceAPI$JsonGraphSpace");
+        for (int cpu : new int[]{4, 128, 256}) {
+            Object request = mapper.readValue(String.format(
+                    "{\"name\":\"gs\",\"cpu_limit\":%d,\"memory_limit\":%d}", cpu, cpu * 2), type);
+            Whitebox.invoke(type, "checkCreate", request, false);
+            GraphSpace space = Whitebox.invoke(type, "toGraphSpace", request, "admin");
+            Assert.assertEquals(cpu, space.computeCpuLimit());
+            Assert.assertEquals(cpu * 2, space.computeMemoryLimit());
+        }
+        Object request = mapper.readValue("{\"name\":\"gs\"}", type);
+        Whitebox.invoke(type, "checkCreate", request, false);
+        GraphSpace defaults = Whitebox.invoke(type, "toGraphSpace", request, "admin");
+        Assert.assertEquals(128, defaults.computeCpuLimit());
+        Assert.assertEquals(128, defaults.computeMemoryLimit());
+        Assert.assertEquals(10240, defaults.storageLimit());
+        request = mapper.readValue("{\"name\":\"gs\",\"compute_cpu_limit\":16,\"compute_memory_limit\":32}", type);
+        GraphSpace explicit = Whitebox.invoke(type, "toGraphSpace", request, "admin");
+        Assert.assertEquals(16, explicit.computeCpuLimit());
+        Assert.assertEquals(32, explicit.computeMemoryLimit());
+        request = mapper.readValue("{\"name\":\"gs\",\"compute_cpu_limit\":0,\"compute_memory_limit\":0}", type);
+        GraphSpace inherit = Whitebox.invoke(type, "toGraphSpace", request, "admin");
+        Assert.assertEquals(0, inherit.computeCpuLimit());
+        Assert.assertEquals(0, inherit.computeMemoryLimit());
     }
 
     private static HugeGraph mockGraph(String spaceGraphName) {

@@ -2943,11 +2943,13 @@ public final class GraphManager {
 
     private <T> void graphSpaceRemoveHandler(T response) {
         for (String name : this.metaManager.extractGraphSpacesFromResponse(response)) {
-            // A delayed REMOVE must not evict a space recreated under the same name.
-            if (this.metaManager.graphSpace(name) != null) {
-                continue;
+            GraphSpace current = this.metaManager.graphSpace(name);
+            if (current == null) {
+                this.graphSpaces.remove(name);
+            } else {
+                // A delayed REMOVE must refresh the recreated space rather than retain its old cache.
+                this.graphSpaces.put(name, current);
             }
-            this.graphSpaces.remove(name);
             this.services.keySet().removeIf(key -> key.startsWith(name + DELIMITER));
         }
     }

@@ -896,6 +896,8 @@ PD refreshes graph-space usage from Store heartbeat statistics, counting the lea
 copy of each partition. Usage is approximate and advances on the quota check cycle;
 it is not a synchronous count of every write. Changing a storage limit preserves
 the latest usage, and a space with no remaining graphs reports zero on the next cycle.
+PD stores limits in GB and usage in KB. Usage refreshes update only usage and preserve
+concurrent limit changes across the REST, gRPC and quota-check service instances.
 
 Server graph-space responses retain the integer GB `storage_used` field and add
 `storage_used_kb` for consumers that need to display usage below one GB. The
@@ -905,9 +907,35 @@ to whole percentage points. Older clients can continue reading `storage_used`.
 After a graph space is deleted, each Server evicts its cached space and service
 entries on the metadata removal event. Peers do not repeat destructive backend
 cleanup or delete shared metadata when handling that notification. A delayed event
-for a name already recreated in metadata leaves the new space intact.
+for a name already recreated in metadata refreshes the space from metadata and evicts
+its old service cache, so callers see the recreated configuration.
 
 New graph spaces, including a newly bootstrapped `DEFAULT` space, use finite
 resource defaults: 128 CPU cores, 128 GB memory, 128 compute CPU cores, 128 GB
 compute memory, 10240 GB storage, 100 graphs and 100 roles. Existing graph-space
 configurations are preserved on restart; this change does not migrate their quotas.
+For `POST /graphspaces`, omitted compute limits inherit the request's CPU and memory
+limits: requesting 4 cores / 8 GB without compute fields yields compute 4 cores / 8 GB.
+Omitting all resource fields gives 128 cores / 128 GB for both. Explicit compute
+values are retained; an explicit zero keeps the Kubernetes inheritance rule.
+When OLTP and OLAP share a Kubernetes namespace, their quotas are added together;
+separate namespaces receive the respective resource limits.
+
+The graph-count limit is enforced: after 100 graphs, creating another graph fails with
+`reach graph limit`. Storage enforcement currently reads Server configuration only under
+`HUGEGRAPH/hg/GRAPHSPACE/CONF/` (Server `cluster=hg`; its default is `hg-test`). When
+usage exceeds the configured storage limit there, PD marks the space's graphs
+`ReadOnly`; the next check restores `ReadWrite` once usage is within the limit.
+CPU and memory limits configure Kubernetes namespace quotas when `server.use_k8s=true`;
+they do not impose process limits in other deployments.
+
+An administrator can raise limits with `PUT /graphspaces/DEFAULT`, for example:
+
+```json
+{"action":"update","update":{"name":"DEFAULT","max_graph_number":200,"max_role_number":100,
+"cpu_limit":128,"memory_limit":128,"storage_limit":20480}}
+```
+
+Read the current space first and preserve the fields that are not being changed. The
+example raises graph count to 200 and storage to 20480 GB. This changes configuration;
+it does not remove existing graphs or migrate other spaces.

@@ -528,21 +528,21 @@ public class GraphSpaceAPI extends API {
         public String description;
 
         @JsonProperty("cpu_limit")
-        @Schema(description = "The CPU limit for the graph space", required = true)
-        public int cpuLimit;
+        @Schema(description = "The CPU limit for the graph space")
+        public int cpuLimit = GraphSpace.DEFAULT_CPU_LIMIT;
         @JsonProperty("memory_limit")
-        @Schema(description = "The memory limit for the graph space", required = true)
-        public int memoryLimit;
+        @Schema(description = "The memory limit for the graph space")
+        public int memoryLimit = GraphSpace.DEFAULT_MEMORY_LIMIT;
         @JsonProperty("storage_limit")
-        @Schema(description = "The storage limit for the graph space", required = true)
-        public int storageLimit;
+        @Schema(description = "The storage limit for the graph space")
+        public int storageLimit = GraphSpace.DEFAULT_STORAGE_LIMIT;
 
         @JsonProperty("compute_cpu_limit")
-        @Schema(description = "The compute CPU limit for the graph space")
-        public int computeCpuLimit = GraphSpace.DEFAULT_CPU_LIMIT;
+        @Schema(description = "The compute CPU limit; omitted or zero inherits the CPU limit")
+        public Integer computeCpuLimit;
         @JsonProperty("compute_memory_limit")
-        @Schema(description = "The compute memory limit for the graph space")
-        public int computeMemoryLimit = GraphSpace.DEFAULT_MEMORY_LIMIT;
+        @Schema(description = "The compute memory limit; omitted or zero inherits the memory limit")
+        public Integer computeMemoryLimit;
 
         @JsonProperty("oltp_namespace")
         @Schema(description = "The OLTP namespace for the graph space")
@@ -555,11 +555,11 @@ public class GraphSpaceAPI extends API {
         public String storageNamespace = "";
 
         @JsonProperty("max_graph_number")
-        @Schema(description = "The maximum number of graphs allowed in the space", required = true)
-        public int maxGraphNumber;
+        @Schema(description = "The maximum number of graphs allowed in the space")
+        public int maxGraphNumber = GraphSpace.DEFAULT_MAX_GRAPH_NUMBER;
         @JsonProperty("max_role_number")
         @Schema(description = "The maximum number of roles allowed in the space")
-        public int maxRoleNumber;
+        public int maxRoleNumber = GraphSpace.DEFAULT_MAX_ROLE_NUMBER;
 
         @JsonProperty("dp_username")
         @Schema(description = "The data platform username for the graph space")
@@ -626,8 +626,8 @@ public class GraphSpaceAPI extends API {
             graphSpace.oltpNamespace(this.oltpNamespace);
             graphSpace.olapNamespace(this.olapNamespace);
             graphSpace.storageNamespace(this.storageNamespace);
-            graphSpace.computeCpuLimit(this.computeCpuLimit);
-            graphSpace.computeMemoryLimit(this.computeMemoryLimit);
+            graphSpace.computeCpuLimit(this.computeCpuLimit == null ? this.cpuLimit : this.computeCpuLimit);
+            graphSpace.computeMemoryLimit(this.computeMemoryLimit == null ? this.memoryLimit : this.computeMemoryLimit);
             graphSpace.operatorImagePath(this.operatorImagePath);
             graphSpace.internalAlgorithmImageUrl(this.internalAlgorithmImageUrl);
             if (this.configs != null) {

@@ -20,6 +20,12 @@ package org.apache.hugegraph.pd.core;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.pd.ConfigService;
 import org.apache.hugegraph.pd.KvService;
@@ -29,7 +35,6 @@ import org.apache.hugegraph.pd.grpc.Metapb;
 import org.apache.hugegraph.pd.meta.ConfigMetaStore;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 public class GraphSpaceUsageTest {
@@ -48,12 +53,12 @@ public class GraphSpaceUsageTest {
         setField(service, "meta", meta);
         Metapb.GraphSpace stored = Metapb.GraphSpace.newBuilder().setName("shop")
                                                 .setStorageLimit(100).setUsedSize(512).build();
-        Mockito.when(meta.getGraphSpace("shop")).thenReturn(List.of(stored));
+        Mockito.when(meta.getGraphSpaceExact("shop")).thenReturn(stored);
         Mockito.when(meta.setGraphSpace(Mockito.any())).thenAnswer(call -> call.getArgument(0));
         Metapb.GraphSpace update = stored.toBuilder().setStorageLimit(200).setUsedSize(0).build();
         Assert.assertEquals(512, service.setGraphSpaceLimit(update).getUsedSize());
         Assert.assertEquals(200, service.setGraphSpaceLimit(update).getStorageLimit());
-        Assert.assertEquals(0, service.setGraphSpace(update).getUsedSize());
+        Assert.assertEquals(0, service.setGraphSpaceUsage("shop", 0).getUsedSize());
     }
 
     @Test
@@ -67,10 +72,9 @@ public class GraphSpaceUsageTest {
         Metapb.GraphSpace stored = Metapb.GraphSpace.newBuilder().setName("shop")
                                                 .setStorageLimit(100).setUsedSize(512).build();
         Mockito.when(config.getGraphSpace("")).thenReturn(List.of(stored));
-        Mockito.when(config.getGraphSpace("shop")).thenReturn(List.of(stored));
         Mockito.when(partitions.getGraphs()).thenReturn(Collections.emptyList());
         service.getQuota();
-        Mockito.verify(config).setGraphSpace(stored.toBuilder().setUsedSize(0).build());
+        Mockito.verify(config).setGraphSpaceUsage("shop", 0);
     }
 
     @Test
@@ -91,11 +95,85 @@ public class GraphSpaceUsageTest {
                 .addGraphStats(leader).addGraphStats(leader.toBuilder().setRole(Metapb.ShardRole.Follower)))
                                           .build();
         Mockito.doReturn(List.of(store)).when(service).getStores("shop/g/g");
-        Mockito.when(config.getGraphSpace("shop")).thenReturn(Collections.emptyList());
         service.getQuota();
-        ArgumentCaptor<Metapb.GraphSpace> written = ArgumentCaptor.forClass(Metapb.GraphSpace.class);
-        Mockito.verify(config).setGraphSpace(written.capture());
-        Assert.assertEquals("shop", written.getValue().getName());
-        Assert.assertEquals(512, written.getValue().getUsedSize());
+        Mockito.verify(config).setGraphSpaceUsage("shop", 512);
     }
+
+    @Test
+    public void testQuotaCheckKeepsLimitInGb() throws Exception {
+        StoreNodeService service = Mockito.mock(StoreNodeService.class, Mockito.CALLS_REAL_METHODS);
+        ConfigService config = Mockito.mock(ConfigService.class, Mockito.CALLS_REAL_METHODS);
+        ConfigMetaStore meta = Mockito.mock(ConfigMetaStore.class);
+        PartitionService partitions = Mockito.mock(PartitionService.class);
+        KvService kv = Mockito.mock(KvService.class);
+        setField(config, "meta", meta);
+        setField(service, "configService", config);
+        setField(service, "partitionService", partitions);
+        setField(service, "kvService", kv);
+        Metapb.GraphSpace stored = Metapb.GraphSpace.newBuilder().setName("shop")
+                                                .setStorageLimit(100).setUsedSize(512).build();
+        Mockito.when(meta.getGraphSpace("")).thenReturn(List.of(stored));
+        Mockito.when(meta.getGraphSpaceExact("shop")).thenReturn(stored);
+        Mockito.when(meta.setGraphSpace(Mockito.any())).thenAnswer(call -> call.getArgument(0));
+        Mockito.when(kv.get(Mockito.anyString())).thenReturn("{\"storage_limit\":100}");
+        Mockito.when(partitions.getGraphs()).thenReturn(Collections.emptyList());
+        Assert.assertEquals(false, service.getQuota().get("shop"));
+        Mockito.verify(meta, Mockito.never()).getGraphSpace("shop");
+        Mockito.verify(meta).setGraphSpace(Mockito.argThat(space ->
+                space.getStorageLimit() == 100 && space.getUsedSize() == 0));
+    }
+
+    @Test
+    public void testConcurrentFacadesPreserveLimitAndUsage() throws Exception {
+        ConfigService usage = Mockito.mock(ConfigService.class, Mockito.CALLS_REAL_METHODS);
+        ConfigService quota = Mockito.mock(ConfigService.class, Mockito.CALLS_REAL_METHODS);
+        ConfigMetaStore meta = Mockito.mock(ConfigMetaStore.class);
+        setField(usage, "meta", meta);
+        setField(quota, "meta", meta);
+        AtomicReference<Metapb.GraphSpace> stored = new AtomicReference<>(
+                Metapb.GraphSpace.newBuilder().setName("shop").setStorageLimit(100).build());
+        CountDownLatch writingUsage = new CountDownLatch(1);
+        CountDownLatch releaseUsage = new CountDownLatch(1);
+        CountDownLatch quotaStarted = new CountDownLatch(1);
+        CountDownLatch quotaWrite = new CountDownLatch(1);
+        Mockito.when(meta.getGraphSpaceExact("shop")).thenAnswer(call -> stored.get());
+        Mockito.doAnswer(call -> {
+            quotaWrite.countDown();
+            return call.callRealMethod();
+        }).when(quota).setGraphSpace(Mockito.any());
+        Mockito.when(meta.setGraphSpace(Mockito.any())).thenAnswer(call -> {
+            Metapb.GraphSpace value = call.getArgument(0);
+            if (value.getStorageLimit() == 100) {
+                writingUsage.countDown();
+                Assert.assertTrue(releaseUsage.await(5, TimeUnit.SECONDS));
+            }
+            stored.set(value);
+            return value;
+        });
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> usageResult = executor.submit(() -> usage.setGraphSpaceUsage("shop", 512));
+            Assert.assertTrue(writingUsage.await(5, TimeUnit.SECONDS));
+            Future<?> quotaResult = executor.submit(() -> {
+                quotaStarted.countDown();
+                return quota.setGraphSpaceLimit(Metapb.GraphSpace.newBuilder()
+                        .setName("shop").setStorageLimit(200).build());
+            });
+            Assert.assertTrue(quotaStarted.await(5, TimeUnit.SECONDS));
+            Assert.assertFalse("Quota must wait for the other facade's read/write transaction",
+                               quotaWrite.await(200, TimeUnit.MILLISECONDS));
+            releaseUsage.countDown();
+            usageResult.get(5, TimeUnit.SECONDS);
+            quotaResult.get(5, TimeUnit.SECONDS);
+            Assert.assertEquals(200, stored.get().getStorageLimit());
+            Assert.assertEquals(512, stored.get().getUsedSize());
+            usage.setGraphSpaceUsage("shop", 1024);
+            Assert.assertEquals(200, stored.get().getStorageLimit());
+            Assert.assertEquals(1024, stored.get().getUsedSize());
+        } finally {
+            releaseUsage.countDown();
+            executor.shutdownNow();
+        }
+    }
+
 }
