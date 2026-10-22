@@ -329,6 +329,7 @@ public abstract class AbstractAlgorithm implements Algorithm {
                                                           consumer, done);
             consumers.start("task-" + this.job.task().id());
             long total = 0L;
+            Throwable failure = null;
             try {
                 while (vertices.hasNext()) {
                     this.updateProgress(++this.progress);
@@ -339,12 +340,40 @@ public abstract class AbstractAlgorithm implements Algorithm {
             } catch (StopExecution e) {
                 // pass
             } catch (Throwable e) {
-                throw Consumers.wrapException(e);
+                failure = e;
             } finally {
-                consumers.await();
-                CloseableIterator.closeIterator(vertices);
+                awaitConsumers(consumers, vertices, failure);
             }
             return total;
+        }
+
+        protected static void awaitConsumers(Consumers<?> consumers,
+                                             Iterator<?> vertices,
+                                             Throwable failure) {
+            try {
+                consumers.await();
+            } catch (Throwable e) {
+                if (failure == null) {
+                    failure = e;
+                } else if (failure != e) {
+                    failure.addSuppressed(e);
+                }
+            }
+            try {
+                CloseableIterator.closeIterator(vertices);
+            } catch (Throwable e) {
+                if (failure == null) {
+                    failure = e;
+                } else if (failure != e) {
+                    failure.addSuppressed(e);
+                }
+            }
+            if (failure instanceof Error error) {
+                throw error;
+            }
+            if (failure != null) {
+                throw Consumers.wrapException(failure);
+            }
         }
 
         protected Iterator<Vertex> vertices() {
