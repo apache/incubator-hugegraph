@@ -972,6 +972,9 @@ public class StoreNodeService {
         List<Metapb.Graph> graphs = partitionService.getGraphs();
         String delimiter = String.valueOf(MetadataKeyHelper.DELIMITER);
         HashMap<String, Long> storages = new HashMap<>();
+        for (Metapb.GraphSpace space : configService.getGraphSpace("")) {
+            storages.put(space.getName(), 0L);
+        }
         for (Metapb.Graph g : graphs) {
             String graphName = g.getGraphName();
             String[] splits = graphName.split(delimiter);
@@ -999,31 +1002,34 @@ public class StoreNodeService {
             storages.put(graphSpace, size);
 
         }
-        Metapb.GraphSpace.Builder spaceBuilder = Metapb.GraphSpace.newBuilder();
         HashMap<String, Boolean> limits = new HashMap<>();
         for (Map.Entry<String, Long> item : storages.entrySet()) {
             String spaceName = item.getKey();
-            String value = kvService.get(graphSpaceConfPrefix + spaceName);
-            if (!StringUtils.isEmpty(value)) {
-                HashMap config = new Gson().fromJson(value, HashMap.class);
-                Long size = item.getValue();
-                int limit = ((Double) config.get("storage_limit")).intValue();
-                long limitByLong = limit * 1024L * 1024L;
-                try {
-                    spaceBuilder.setName(spaceName).setStorageLimit(limitByLong).setUsedSize(size);
-                    Metapb.GraphSpace graphSpace = spaceBuilder.build();
-                    configService.setGraphSpace(graphSpace);
-                } catch (Exception e) {
-                    log.error("update graph space with error:", e);
-                }
-                // KB and GB * 1024L * 1024L
-                if (size > limitByLong) {
-                    limits.put(spaceName, true);
-                    continue;
+            long size = item.getValue();
+            Metapb.GraphSpace.Builder spaceBuilder = Metapb.GraphSpace.newBuilder().setName(spaceName);
+            for (Metapb.GraphSpace current : configService.getGraphSpace(spaceName)) {
+                if (spaceName.equals(current.getName())) {
+                    spaceBuilder = current.toBuilder();
+                    break;
                 }
             }
-            limits.put(spaceName, false);
-
+            String value = kvService.get(graphSpaceConfPrefix + spaceName);
+            boolean limited = false;
+            if (!StringUtils.isEmpty(value)) {
+                HashMap config = new Gson().fromJson(value, HashMap.class);
+                int limit = ((Double) config.get("storage_limit")).intValue();
+                // Store statistics and PD graph-space usage are in KB; configuration is in GB.
+                long limitKb = limit * 1024L * 1024L;
+                spaceBuilder.setStorageLimit(limitKb);
+                limited = size > limitKb;
+            }
+            // Statistics must also advance when no Server config exists under the default cluster.
+            try {
+                configService.setGraphSpace(spaceBuilder.setUsedSize(size).build());
+            } catch (PDException e) {
+                log.error("Failed to update usage of graph space '{}'", spaceName, e);
+            }
+            limits.put(spaceName, limited);
         }
         GraphState.Builder stateBuilder = GraphState.newBuilder()
                                                     .setMode(GraphMode.ReadOnly)

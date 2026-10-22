@@ -904,9 +904,9 @@ public final class GraphManager {
         graphSpace = this.createGraphSpace(DEFAULT_GRAPH_SPACE_SERVICE_NAME,
                                            GraphSpace.DEFAULT_NICKNAME,
                                            DEFAULT_GRAPH_SPACE_DESCRIPTION,
-                                           Integer.MAX_VALUE, Integer.MAX_VALUE,
-                                           Integer.MAX_VALUE, Integer.MAX_VALUE,
-                                           Integer.MAX_VALUE, oltpNs, olapNs,
+                                           GraphSpace.DEFAULT_CPU_LIMIT, GraphSpace.DEFAULT_MEMORY_LIMIT,
+                                           GraphSpace.DEFAULT_STORAGE_LIMIT, GraphSpace.DEFAULT_MAX_GRAPH_NUMBER,
+                                           GraphSpace.DEFAULT_MAX_ROLE_NUMBER, oltpNs, olapNs,
                                            false, User.ADMIN.getName(),
                                            ImmutableMap.of());
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
@@ -1113,9 +1113,12 @@ public final class GraphManager {
         assert metaDriver instanceof PdMetaDriver;
         PDClient pdClient = ((PdMetaDriver) metaDriver).pdClient();
         try {
-            Metapb.GraphSpace spaceMeta = pdClient.getGraphSpace(graphSpace).get(0);
-            Long usedGb = (spaceMeta.getUsedSize() / (1024 * 1024));
-            gs.setStorageUsed(usedGb.intValue());
+            for (Metapb.GraphSpace spaceMeta : pdClient.getGraphSpace(graphSpace)) {
+                if (graphSpace.equals(spaceMeta.getName())) {
+                    gs.setStorageUsedKb(spaceMeta.getUsedSize());
+                    break;
+                }
+            }
         } catch (PDException e) {
             LOG.error("Get graph space '{}' storage information meet error {}",
                       graphSpace, e);
@@ -2157,6 +2160,7 @@ public final class GraphManager {
     }
 
     private void listenMetaChanges() {
+        this.metaManager.listenGraphSpaceRemove(ConsumerWrapper.wrap(this::graphSpaceRemoveHandler));
         this.metaManager.listenGraphAdd(ConsumerWrapper.wrap(this::graphAddHandler));
         this.metaManager.listenGraphRemove(ConsumerWrapper.wrap(this::graphRemoveHandler));
         this.metaManager.listenGraphUpdate(ConsumerWrapper.wrap(this::graphUpdateHandler));
@@ -2934,6 +2938,17 @@ public final class GraphManager {
                 // Do not consume a notification newly retained by another cleanup owner.
                 this.pendingGraphAdds.remove(graphName);
             }
+        }
+    }
+
+    private <T> void graphSpaceRemoveHandler(T response) {
+        for (String name : this.metaManager.extractGraphSpacesFromResponse(response)) {
+            // A delayed REMOVE must not evict a space recreated under the same name.
+            if (this.metaManager.graphSpace(name) != null) {
+                continue;
+            }
+            this.graphSpaces.remove(name);
+            this.services.keySet().removeIf(key -> key.startsWith(name + DELIMITER));
         }
     }
 

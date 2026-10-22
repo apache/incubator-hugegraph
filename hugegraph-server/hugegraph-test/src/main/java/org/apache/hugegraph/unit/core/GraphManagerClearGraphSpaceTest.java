@@ -18,7 +18,9 @@
 package org.apache.hugegraph.unit.core;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.hugegraph.HugeGraph;
@@ -33,6 +35,7 @@ import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 public class GraphManagerClearGraphSpaceTest {
@@ -90,6 +93,85 @@ public class GraphManagerClearGraphSpaceTest {
         } finally {
             manager.close();
         }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testRemoveEventEvictsOnlyDeletedSpaceOnEveryReplica() {
+        MetaManager meta = Mockito.mock(MetaManager.class);
+        Object response = new Object();
+        Mockito.when(meta.extractGraphSpacesFromResponse(response)).thenReturn(List.of("gs"));
+        for (int replica = 0; replica < 2; replica++) {
+            GraphManager manager = new GraphManager(
+                    new HugeConfig(new PropertiesConfiguration()), Mockito.mock(EventHub.class));
+            try {
+                Whitebox.setInternalState(manager, "metaManager", meta);
+                Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+                spaces.put("gs", new GraphSpace("gs"));
+                spaces.put("gs2", new GraphSpace("gs2"));
+                Map<String, Service> services = Whitebox.getInternalState(manager, "services");
+                services.put("gs-s", Mockito.mock(Service.class));
+                services.put("gs2-s", Mockito.mock(Service.class));
+                Whitebox.invoke(GraphManager.class, "listenMetaChanges", manager);
+                ArgumentCaptor<Consumer> listener = ArgumentCaptor.forClass(Consumer.class);
+                Mockito.verify(meta, Mockito.atLeastOnce()).listenGraphSpaceRemove(listener.capture());
+                listener.getValue().accept(response);
+                listener.getValue().accept(response);
+                Assert.assertFalse(manager.graphSpaces().contains("gs"));
+                Assert.assertTrue(manager.graphSpaces().contains("gs2"));
+                Assert.assertFalse(services.containsKey("gs-s"));
+                Assert.assertTrue(services.containsKey("gs2-s"));
+            } finally {
+                manager.close();
+            }
+        }
+        Mockito.verify(meta, Mockito.never()).removeGraphSpaceConfig(Mockito.anyString());
+        Mockito.verify(meta, Mockito.never()).notifyGraphSpaceRemove(Mockito.anyString());
+    }
+
+    @Test
+    public void testDelayedRemoveKeepsRecreatedSpace() {
+        MetaManager meta = Mockito.mock(MetaManager.class);
+        Object response = new Object();
+        Mockito.when(meta.extractGraphSpacesFromResponse(response)).thenReturn(List.of("gs"));
+        Mockito.when(meta.graphSpace("gs")).thenReturn(new GraphSpace("gs"));
+        GraphManager manager = new GraphManager(
+                new HugeConfig(new PropertiesConfiguration()), Mockito.mock(EventHub.class));
+        try {
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Map<String, GraphSpace> spaces = Whitebox.getInternalState(manager, "graphSpaces");
+            spaces.put("gs", new GraphSpace("gs"));
+            Whitebox.invoke(GraphManager.class, "graphSpaceRemoveHandler", manager, response);
+            Assert.assertTrue(manager.graphSpaces().contains("gs"));
+        } finally {
+            manager.close();
+        }
+    }
+
+    @Test
+    public void testDefaultSpaceUsesFiniteDefaultsWithoutMigratingExistingSpace() {
+        GraphManager manager = Mockito.mock(GraphManager.class, Mockito.CALLS_REAL_METHODS);
+        MetaManager meta = Mockito.mock(MetaManager.class);
+        Whitebox.setInternalState(manager, "metaManager", meta);
+        Mockito.when(meta.graphSpaceConfigs()).thenReturn(Collections.emptyMap());
+        Mockito.doAnswer(invocation -> invocation.getArgument(0))
+               .when(manager).createGraphSpace(Mockito.any(GraphSpace.class));
+        Whitebox.invoke(GraphManager.class, "createDefaultGraphSpaceIfNeeded", manager,
+                        new HugeConfig(new PropertiesConfiguration()));
+        ArgumentCaptor<GraphSpace> created = ArgumentCaptor.forClass(GraphSpace.class);
+        Mockito.verify(manager).createGraphSpace(created.capture());
+        GraphSpace space = created.getValue();
+        Assert.assertEquals(128, space.cpuLimit());
+        Assert.assertEquals(128, space.memoryLimit());
+        Assert.assertEquals(128, space.computeCpuLimit());
+        Assert.assertEquals(128, space.computeMemoryLimit());
+        Assert.assertEquals(10240, space.storageLimit());
+        Assert.assertEquals(100, space.maxGraphNumber());
+        Assert.assertEquals(100, space.maxRoleNumber());
+        Mockito.when(meta.graphSpaceConfigs()).thenReturn(Map.of("DEFAULT", space));
+        Whitebox.invoke(GraphManager.class, "createDefaultGraphSpaceIfNeeded", manager,
+                        new HugeConfig(new PropertiesConfiguration()));
+        Mockito.verify(manager, Mockito.times(1)).createGraphSpace(Mockito.any(GraphSpace.class));
     }
 
     private static HugeGraph mockGraph(String spaceGraphName) {

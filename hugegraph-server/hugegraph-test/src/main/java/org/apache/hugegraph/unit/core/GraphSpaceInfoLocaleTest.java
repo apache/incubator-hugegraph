@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.hugegraph.space.GraphSpace;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.unit.BaseUnitTest;
+import org.apache.hugegraph.util.JsonUtil;
 import org.junit.Test;
 
 /**
@@ -46,6 +47,21 @@ public class GraphSpaceInfoLocaleTest extends BaseUnitTest {
             Locale.setDefault(Locale.Category.FORMAT, savedFormat);
             Locale.setDefault(Locale.Category.DISPLAY, savedDisplay);
         }
+    }
+
+    @Test
+    public void testUsageBelowOneGbRetainsPrecision() {
+        GraphSpace space = new GraphSpace("small");
+        space.storageLimit(100);
+        space.setStorageUsedKb(512 * 1024);
+        Map<String, Object> info = space.info();
+        Assert.assertEquals(0, info.get("storage_used"));
+        Assert.assertEquals(512L * 1024L, info.get("storage_used_kb"));
+        Assert.assertEquals(0.005f, (Float) info.get("storage_percent"), 0.000001f);
+        GraphSpace restored = JsonUtil.fromJson(JsonUtil.toJson(space), GraphSpace.class);
+        Assert.assertEquals(512L * 1024L, restored.info().get("storage_used_kb"));
+        space.setStorageUsedKb(0);
+        Assert.assertEquals(0L, space.info().get("storage_used_kb"));
     }
 
     @Test

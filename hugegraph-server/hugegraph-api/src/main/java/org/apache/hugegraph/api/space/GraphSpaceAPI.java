@@ -539,10 +539,10 @@ public class GraphSpaceAPI extends API {
 
         @JsonProperty("compute_cpu_limit")
         @Schema(description = "The compute CPU limit for the graph space")
-        public int computeCpuLimit = 0;
+        public int computeCpuLimit = GraphSpace.DEFAULT_CPU_LIMIT;
         @JsonProperty("compute_memory_limit")
         @Schema(description = "The compute memory limit for the graph space")
-        public int computeMemoryLimit = 0;
+        public int computeMemoryLimit = GraphSpace.DEFAULT_MEMORY_LIMIT;
 
         @JsonProperty("oltp_namespace")
         @Schema(description = "The OLTP namespace for the graph space")

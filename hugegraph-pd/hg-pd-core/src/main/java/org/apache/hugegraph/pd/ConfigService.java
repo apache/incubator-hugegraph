@@ -63,10 +63,22 @@ public class ConfigService implements RaftStateListener {
         return this.meta.getGraphSpace(graphSpaceName);
     }
 
-    public Metapb.GraphSpace setGraphSpace(Metapb.GraphSpace graphSpace) throws PDException {
+    public synchronized Metapb.GraphSpace setGraphSpace(Metapb.GraphSpace graphSpace) throws PDException {
         return this.meta.setGraphSpace(graphSpace.toBuilder()
                                                  .setTimestamp(System.currentTimeMillis())
                                                  .build());
+    }
+
+    public synchronized Metapb.GraphSpace setGraphSpaceLimit(Metapb.GraphSpace graphSpace)
+            throws PDException {
+        Metapb.GraphSpace.Builder builder = graphSpace.toBuilder();
+        for (Metapb.GraphSpace current : this.getGraphSpace(graphSpace.getName())) {
+            if (graphSpace.getName().equals(current.getName())) {
+                builder.setUsedSize(current.getUsedSize());
+                break;
+            }
+        }
+        return this.setGraphSpace(builder.build());
     }
 
     /**

@@ -889,3 +889,25 @@ return 400 and unauthorized recovery is rejected by the authentication layer.
 Loaders retain historical ordinary-import and restore behavior with Servers that do
 not provide this API. Concurrent owner protection applies only when this API is
 supported; RESTORING keeps its existing enum mode path.
+
+## Graph-space storage reporting and removal
+
+PD refreshes graph-space usage from Store heartbeat statistics, counting the leader
+copy of each partition. Usage is approximate and advances on the quota check cycle;
+it is not a synchronous count of every write. Changing a storage limit preserves
+the latest usage, and a space with no remaining graphs reports zero on the next cycle.
+
+Server graph-space responses retain the integer GB `storage_used` field and add
+`storage_used_kb` for consumers that need to display usage below one GB. The
+`storage_percent` ratio is calculated from that precise usage, without rounding it
+to whole percentage points. Older clients can continue reading `storage_used`.
+
+After a graph space is deleted, each Server evicts its cached space and service
+entries on the metadata removal event. Peers do not repeat destructive backend
+cleanup or delete shared metadata when handling that notification. A delayed event
+for a name already recreated in metadata leaves the new space intact.
+
+New graph spaces, including a newly bootstrapped `DEFAULT` space, use finite
+resource defaults: 128 CPU cores, 128 GB memory, 128 compute CPU cores, 128 GB
+compute memory, 10240 GB storage, 100 graphs and 100 roles. Existing graph-space
+configurations are preserved on restart; this change does not migrate their quotas.
