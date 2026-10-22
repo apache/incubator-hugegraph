@@ -812,7 +812,9 @@ The request has three parts:
 
 - **Compares.** Each names a key and a kind: `ABSENT` holds while the key does not exist (an
   empty value is a value), `EQUALS` while its value equals the given one. If one fails, nothing
-  is written and the failure is `COMPARE_FAILED`, with the failed compare.
+  is written and the failure is `COMPARE_FAILED`, with the failed compare. Compares and ops see
+  the stored value, so a value put with a TTL counts as present until the TTL cleanup removes
+  it, even after `get` stops returning it; TXN is meant for keys written without a TTL.
 - **Ops.** In order: `PUT` a key and value, `DELETE` a key, `DELETE_PREFIX` every key under a
   prefix. An op or compare with an empty key, or whose kind, type or record op was left at the
   zero value `UNSPECIFIED`, is rejected before the TXN is proposed. A value that was put with a
