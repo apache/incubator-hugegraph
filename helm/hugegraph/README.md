@@ -260,20 +260,34 @@ applies `fsGroup`, so the kubelet changes the volume ownership right before the
 first, for example the published `latest` before it moves to this version: files
 they create stay owned by root, and `OnRootMismatch` checks only the volume root,
 so it does not fix them later. Pin `pd.image` and `store.image` to a build from
-this version rather than relying on `latest`.
+this version rather than relying on `latest`. A non-empty `image.digest` wins
+over `image.tag`, and `--reuse-values` keeps an existing digest, so a release
+pinned by digest must change the digest, not only the tag.
 
 If a release already ran root images with `fsGroup` set, roll out the first
-`10001` image together with a one-time recursive ownership change. Set the image
-tags in the same command, so the recursive change runs for the `10001` image
-rather than for a pinned root image:
+`10001` image together with a one-time recursive ownership change. Set the images
+in the same command, so the recursive change runs for the `10001` image rather
+than for a pinned root image. The example clears any reused digest so the tag
+applies; a release pinned by digest sets `pd.image.digest` and
+`store.image.digest` to the digests of this version's images instead:
 
 ```bash
 helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
   --set pd.image.tag=<this-version> \
   --set store.image.tag=<this-version> \
+  --set-string pd.image.digest= \
+  --set-string store.image.digest= \
   --set pd.podSecurityContext.fsGroupChangePolicy=Always \
   --set store.podSecurityContext.fsGroupChangePolicy=Always \
   --wait --timeout 15m
+```
+
+Before switching the policy back, check that every PD and Store Pod runs the
+`10001` image you set, not an older root image:
+
+```bash
+kubectl get pods -n hugegraph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}'
 ```
 
 `--reuse-values` keeps `Always`, which walks the whole volume on every Pod

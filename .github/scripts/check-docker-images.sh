@@ -40,8 +40,8 @@ for pair in \
         esac
         IMAGE_USER=$(docker image inspect --format '{{.Config.User}}' "$IMAGE_ID")
         RUNTIME_IDS=$(docker run --rm --pull never --entrypoint sh "$IMAGE_ID" -c \
-            'echo "$(id -u):$(id -g)" $(stat -c %u "$@")' owners $OWNED_DIRS)
-        EXPECTED_IDS="10001:10001$(printf ' 10001%.0s' $OWNED_DIRS)"
+            'echo "$(id -u):$(id -g)" $(stat -c %u:%g "$@")' owners $OWNED_DIRS)
+        EXPECTED_IDS="10001:10001$(printf ' 10001:10001%.0s' $OWNED_DIRS)"
         [[ "$IMAGE_USER" == 10001:10001 && "$RUNTIME_IDS" == "$EXPECTED_IDS" ]] || {
             echo "ERROR: $dockerfile runs as '$IMAGE_USER' ($RUNTIME_IDS); expected 10001:10001 owning $OWNED_DIRS"
             exit 1
