@@ -368,7 +368,7 @@ public class RocksdbMemoryBudgetTest {
     }
 
     @Test
-    public void testNamespaceRootViewWithoutLimitIsFlagged() throws IOException {
+    public void testNamespaceRootViewIsFlagged() throws IOException {
         Path root = Files.createTempDirectory("cgroup-v2-ns-root");
         try {
             // A private cgroup namespace: the process is at "/", the cgroup2 mount made
@@ -384,11 +384,12 @@ public class RocksdbMemoryBudgetTest {
             assertEquals(-1L, limit.bytes);
             assertTrue(limit.incomplete);
 
-            // A visible limit at the namespace root still bounds the Store
+            // A finite limit at the namespace root still applies, but a stricter one on a
+            // hidden ancestor (say 1 GiB above this 2 GiB) can't be ruled out
             write(mount, "memory.max", String.valueOf(2 * GIB));
             limit = RocksdbMemoryBudget.cgroupLimit(proc, mountinfo, root);
             assertEquals(2 * GIB, limit.bytes);
-            assertFalse(limit.incomplete);
+            assertTrue(limit.incomplete);
 
             // v1 reports the whole hierarchy in hierarchical_memory_limit, so it isn't flagged
             Path v1 = root.resolve("memory");
@@ -407,9 +408,13 @@ public class RocksdbMemoryBudgetTest {
     public void testMatchedOrMissingMountsAreNotFlagged() throws IOException {
         Path root = Files.createTempDirectory("cgroup-v2-flag");
         try {
+            // A host service: the full hierarchy is mounted and every ancestor is readable
             Path mount = root.resolve("sys-fs-cgroup");
-            write(mount, "memory.max", String.valueOf(4 * GIB));
-            Path proc = write(root, "proc-self-cgroup", "0::/\n");
+            write(mount, "memory.max", "max");
+            write(mount.resolve("system.slice"), "memory.max", "max");
+            write(mount.resolve("system.slice/hg.service"), "memory.max",
+                  String.valueOf(4 * GIB));
+            Path proc = write(root, "proc-self-cgroup", "0::/system.slice/hg.service\n");
             Path mountinfo = write(root, "mountinfo",
                                    "30 25 0:26 / " + mount + " rw - cgroup2 cgroup2 rw\n");
             RocksdbMemoryBudget.CgroupLimit limit =

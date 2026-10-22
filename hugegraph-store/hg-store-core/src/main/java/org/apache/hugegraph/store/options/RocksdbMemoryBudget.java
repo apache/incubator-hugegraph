@@ -43,8 +43,9 @@ public final class RocksdbMemoryBudget {
     public static final String KEY = "total_memory_size";
 
     static final long MIB = 1024L * 1024L;
-    // The 1 GiB raft log block cache (RaftRocksdbOptions) plus thread stacks, metaspace
-    // and other native allocations that sit outside the budget
+    // The 1 GiB raft log block cache (RaftRocksdbOptions), which the raft log memtables are
+    // charged to, plus thread stacks, metaspace and other native allocations that sit
+    // outside the budget
     static final long RESERVED = 1024 * MIB + 512 * MIB;
     static final long MIN_AUTO = 256 * MIB;
     // RaftRocksdbOptions gives the write buffer manager 2/3 of the budget, and a 0-byte
@@ -99,9 +100,9 @@ public final class RocksdbMemoryBudget {
                  "(physical={}, heap={}, direct={})", budget, physical, heap, direct);
         if (cgroup.incomplete) {
             log.warn("The cgroup mounts in /proc/self/mountinfo don't show this process's " +
-                     "whole cgroup hierarchy (an inherited mount in a cgroup namespace, or " +
-                     "only cgroup2 subtree mounts), so a tighter limit on the process's " +
-                     "cgroup or above the mounted subtree may be missed; set " +
+                     "whole cgroup hierarchy (a cgroup namespace root, an inherited mount in " +
+                     "a cgroup namespace, or only cgroup2 subtree mounts), so a tighter limit " +
+                     "on the process's cgroup or above the mounted subtree may be missed; set " +
                      "rocksdb.total_memory_size or HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE " +
                      "explicitly");
         }
@@ -261,10 +262,10 @@ public final class RocksdbMemoryBudget {
                                               cgroupV1Limit(point, relative));
             }
             limit = lowest(limit, lineLimit);
-            if (v2 && matched && parts[2].equals("/") && lineLimit <= 0) {
+            if (v2 && matched && parts[2].equals("/")) {
                 // The process sits at the root of the hierarchy it can see, which inside a
-                // private cgroup namespace is the namespace root: a stricter memory.max
-                // above it is hidden, and "max" here doesn't mean the Store is unlimited
+                // private cgroup namespace is the namespace root: a stricter memory.max on
+                // an ancestor is hidden, whether the visible limit is finite or "max"
                 incomplete = true;
             }
             if (v2 && matched && !fullView) {
