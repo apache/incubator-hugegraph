@@ -168,6 +168,8 @@ public final class GraphManager {
     private final Boolean graphLoadFromLocalConfig;
     private final Boolean k8sApiEnabled;
     private final Map<String, GraphSpace> graphSpaces;
+    // Guarded by the graphSpaces monitor; advances even when PUT mutates the same cached object.
+    private long graphSpaceCacheVersion;
     private final Map<String, Service> services;
     //FIXME: add one class like graphKey as key,which contains graphSpace and graphName
     private final Map<String, Graph> graphs;
@@ -792,7 +794,7 @@ public final class GraphManager {
     private void loadGraphSpaces() {
         Map<String, GraphSpace> graphSpaceConfigs =
                 this.metaManager.graphSpaceConfigs();
-        this.graphSpaces.putAll(graphSpaceConfigs);
+        graphSpaceConfigs.forEach(this::publishGraphSpace);
         for (Map.Entry<String, GraphSpace> entry : graphSpaceConfigs.entrySet()) {
             if (this.serviceGraphSpace.equals(entry.getKey())) {
                 overwriteAlgorithmImageUrl(entry.getValue().internalAlgorithmImageUrl());
@@ -904,9 +906,9 @@ public final class GraphManager {
         graphSpace = this.createGraphSpace(DEFAULT_GRAPH_SPACE_SERVICE_NAME,
                                            GraphSpace.DEFAULT_NICKNAME,
                                            DEFAULT_GRAPH_SPACE_DESCRIPTION,
-                                           Integer.MAX_VALUE, Integer.MAX_VALUE,
-                                           Integer.MAX_VALUE, Integer.MAX_VALUE,
-                                           Integer.MAX_VALUE, oltpNs, olapNs,
+                                           GraphSpace.DEFAULT_CPU_LIMIT, GraphSpace.DEFAULT_MEMORY_LIMIT,
+                                           GraphSpace.DEFAULT_STORAGE_LIMIT, GraphSpace.DEFAULT_MAX_GRAPH_NUMBER,
+                                           GraphSpace.DEFAULT_MAX_ROLE_NUMBER, oltpNs, olapNs,
                                            false, User.ADMIN.getName(),
                                            ImmutableMap.of());
         boolean useK8s = config.get(ServerOptions.SERVER_USE_K8S);
@@ -1023,16 +1025,14 @@ public final class GraphManager {
         this.metaManager.appendGraphSpaceList(name);
         this.metaManager.notifyGraphSpaceAdd(name);
 
-        this.graphSpaces.put(name, space);
-        return space;
+        return this.publishGraphSpace(name, space);
     }
 
     private GraphSpace updateGraphSpace(GraphSpace space) {
         String name = space.name();
         this.metaManager.addGraphSpaceConfig(name, space);
         this.metaManager.notifyGraphSpaceUpdate(name);
-        this.graphSpaces.put(name, space);
-        return space;
+        return this.publishGraphSpace(name, space);
     }
 
     /**
@@ -1113,9 +1113,12 @@ public final class GraphManager {
         assert metaDriver instanceof PdMetaDriver;
         PDClient pdClient = ((PdMetaDriver) metaDriver).pdClient();
         try {
-            Metapb.GraphSpace spaceMeta = pdClient.getGraphSpace(graphSpace).get(0);
-            Long usedGb = (spaceMeta.getUsedSize() / (1024 * 1024));
-            gs.setStorageUsed(usedGb.intValue());
+            for (Metapb.GraphSpace spaceMeta : pdClient.getGraphSpace(graphSpace)) {
+                if (graphSpace.equals(spaceMeta.getName())) {
+                    gs.setStorageUsedKb(spaceMeta.getUsedSize());
+                    break;
+                }
+            }
         } catch (PDException e) {
             LOG.error("Get graph space '{}' storage information meet error {}",
                       graphSpace, e);
@@ -1153,7 +1156,7 @@ public final class GraphManager {
         this.metaManager.removeGraphSpaceConfig(name);
         this.metaManager.clearGraphSpaceList(name);
         this.metaManager.notifyGraphSpaceRemove(name);
-        this.graphSpaces.remove(name);
+        this.publishGraphSpace(name, null);
     }
 
     private void registerServiceToPd(String graphSpace, Service service) {
@@ -1648,6 +1651,7 @@ public final class GraphManager {
         }
         if (!grpcThread) {
             this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
+            this.publishGraphSpace(graphSpace, gs);
         }
 
         if (init) {
@@ -2157,6 +2161,7 @@ public final class GraphManager {
     }
 
     private void listenMetaChanges() {
+        this.metaManager.listenGraphSpaceRemove(ConsumerWrapper.wrap(this::graphSpaceRemoveHandler));
         this.metaManager.listenGraphAdd(ConsumerWrapper.wrap(this::graphAddHandler));
         this.metaManager.listenGraphRemove(ConsumerWrapper.wrap(this::graphRemoveHandler));
         this.metaManager.listenGraphUpdate(ConsumerWrapper.wrap(this::graphUpdateHandler));
@@ -2212,6 +2217,7 @@ public final class GraphManager {
         lock = this.metaManager.lock(this.cluster, graphSpace);
         gs.recycleResourceFor(service);
         this.metaManager.updateGraphSpaceConfig(graphSpace, gs);
+        this.publishGraphSpace(graphSpace, gs);
         this.metaManager.notifyGraphSpaceUpdate(graphSpace);
         this.metaManager.unlock(lock, this.cluster, graphSpace);
 
@@ -2540,6 +2546,7 @@ public final class GraphManager {
                         gs.graphNumberUsed(used);
                         throw failure;
                     }
+                    this.publishGraphSpace(graphSpace, gs);
                 }
                 // Remove the factory binding before permitting same-name creation.
                 HugeFactory.remove(g);
@@ -2635,17 +2642,41 @@ public final class GraphManager {
             return new GraphSpace("DEFAULT");
         }
         GraphSpace space = this.graphSpaces.get(name);
-        if (space == null) {
-            // Cache miss: try to load from etcd and populate the local cache
-            // so that subsequent calls (e.g. validGraphSpace checks) don't fail
-            // due to a race between the graphspace-create event and the listener
-            // updating this.graphSpaces.
-            space = this.metaManager.graphSpace(name);
-            if (space != null) {
-                this.graphSpaces.putIfAbsent(name, space);
+        return space == null ? this.readGraphSpace(name, false) : space;
+    }
+
+    private GraphSpace publishGraphSpace(String name, GraphSpace space) {
+        synchronized (this.graphSpaces) {
+            if (space == null) {
+                this.graphSpaces.remove(name);
+            } else {
+                this.graphSpaces.put(name, space);
+            }
+            this.graphSpaceCacheVersion++;
+            return space;
+        }
+    }
+
+    private GraphSpace readGraphSpace(String name, boolean refresh) {
+        while (true) {
+            long version;
+            synchronized (this.graphSpaces) {
+                GraphSpace cached = this.graphSpaces.get(name);
+                if (!refresh && cached != null) {
+                    return cached;
+                }
+                version = this.graphSpaceCacheVersion;
+            }
+            // Never hold the cache lock across metadata IO or notification callbacks.
+            GraphSpace current = this.metaManager.graphSpace(name);
+            synchronized (this.graphSpaces) {
+                if (version != this.graphSpaceCacheVersion) {
+                    // A completed local mutation may have changed the same object's fields.
+                    continue;
+                }
+                return current == null && !refresh ? null : this.publishGraphSpace(name, current);
             }
         }
-        return space;
     }
 
     public Serializer serializer() {
@@ -2934,6 +2965,14 @@ public final class GraphManager {
                 // Do not consume a notification newly retained by another cleanup owner.
                 this.pendingGraphAdds.remove(graphName);
             }
+        }
+    }
+
+    private <T> void graphSpaceRemoveHandler(T response) {
+        for (String name : this.metaManager.extractGraphSpacesFromResponse(response)) {
+            // Refresh recreated spaces, but retry snapshots superseded by a local mutation.
+            this.readGraphSpace(name, true);
+            this.services.keySet().removeIf(key -> key.startsWith(name + DELIMITER));
         }
     }
 

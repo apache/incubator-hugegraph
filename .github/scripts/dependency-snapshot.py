@@ -90,7 +90,9 @@ def manifest(graph, pom):
             raise ValueError(f'Duplicate artifact ID: {identifier}')
         ids[identifier] = purl
         packages.setdefault(purl, [])
-        scopes[purl] = 'development' if set(artifact.get('scopes') or []) == {'test'} else 'runtime'
+        # All aliases must be test-only for the shared package to be development-only.
+        if scopes.get(purl) != 'runtime':
+            scopes[purl] = 'development' if set(artifact.get('scopes') or []) == {'test'} else 'runtime'
     children, incoming = {}, set()
     for edge in edges:
         if not isinstance(edge, dict) or any(not isinstance(edge.get(key), str) for key in ['from', 'to']):

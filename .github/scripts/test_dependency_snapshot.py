@@ -210,6 +210,20 @@ class SnapshotTest(unittest.TestCase):
                     self.run_writer()
                     self.assertEqual([self.snapshot], self.posts)
 
+    def test_alias_scope_is_independent_of_artifact_order(self):
+        for scopes in [['compile'], ['runtime'], ['provided'], ['system'], [], ['test']]:
+            for first, second in [(scopes, ['test']), (['test'], scopes)]:
+                with self.subTest(first=first, second=second):
+                    graph = {'graphName': 'module', 'artifacts': [artifact('root'),
+                        artifact('one', scopes=first), dict(artifact('one', scopes=second), id='alias'),
+                        artifact('test-only', scopes=['test'])],
+                        'dependencies': [{'from': 'root', 'to': name} for name in ['one', 'alias', 'test-only']]}
+                    resolved = producer.manifest(graph, 'pom.xml')['resolved']
+                    expected = 'development' if scopes == ['test'] else 'runtime'
+                    self.assertEqual(expected, resolved['pkg:maven/org.example/one@1.0?type=jar']['scope'])
+                    self.assertEqual('development',
+                                     resolved['pkg:maven/org.example/test-only@1.0?type=jar']['scope'])
+
     def test_transitive_only_package_is_indirect(self):
         graph = {'graphName': 'module', 'artifacts': [artifact('root'), artifact('parent'), artifact('leaf')],
                  'dependencies': [{'from': 'root', 'to': 'parent'}, {'from': 'parent', 'to': 'leaf'}]}
