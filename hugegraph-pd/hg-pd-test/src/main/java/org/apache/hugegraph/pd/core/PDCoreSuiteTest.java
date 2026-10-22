@@ -25,6 +25,7 @@ import org.apache.hugegraph.pd.core.store.RaftKVStoreTest;
 import org.apache.hugegraph.pd.raft.IpAuthHandlerTest;
 import org.apache.hugegraph.pd.raft.KVOperationTest;
 import org.apache.hugegraph.pd.raft.PeerUtilTest;
+import org.apache.hugegraph.pd.raft.RaftEngineCliProcessorsTest;
 import org.apache.hugegraph.pd.raft.RaftEngineIpAuthIntegrationTest;
 import org.apache.hugegraph.pd.raft.RaftEngineLeaderAddressTest;
 import org.apache.hugegraph.pd.raft.RaftEngineReadIndexTest;
@@ -41,6 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        GraphSpaceUsageTest.class,
         RaftStateMachineTest.class,
         MetadataKeyHelperTest.class,
         IdMetaStoreReadIndexTest.class,
@@ -58,6 +60,7 @@ import lombok.extern.slf4j.Slf4j;
         StoreServiceTest.class,
         TaskScheduleServiceTest.class,
         IpAuthHandlerTest.class,
+        RaftEngineCliProcessorsTest.class,
         RaftEngineIpAuthIntegrationTest.class,
         RaftEngineLeaderAddressTest.class,
         RaftEngineReadinessTest.class,

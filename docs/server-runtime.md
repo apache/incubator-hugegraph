@@ -889,3 +889,85 @@ return 400 and unauthorized recovery is rejected by the authentication layer.
 Loaders retain historical ordinary-import and restore behavior with Servers that do
 not provide this API. Concurrent owner protection applies only when this API is
 supported; RESTORING keeps its existing enum mode path.
+
+## Graph-space storage reporting and removal
+
+PD refreshes graph-space usage from Store heartbeat statistics, counting the leader
+copy of each partition. Usage is approximate and advances on the quota check cycle;
+it is not a synchronous count of every write. Changing a storage limit preserves
+the latest usage, and a space with no remaining graphs reports zero on the next cycle.
+PD stores limits in GB and usage in KB. Usage refreshes update only usage and preserve
+concurrent limit changes across the REST, gRPC and quota-check service instances.
+
+Server graph-space responses retain the integer GB `storage_used` field and add
+`storage_used_kb` for consumers that need to display usage below one GB. The
+`storage_percent` ratio is calculated from that precise usage, without rounding it
+to whole percentage points. Older clients can continue reading `storage_used`.
+Older Servers, including 1.7, preserve the additional `storage_used_kb` field as a
+string when rewriting a space. This Server accepts both its integer and string
+forms, allowing metadata to survive a rolling upgrade or rollback and re-upgrade.
+Missing, negative or invalid precision values fall back to the original GB usage.
+
+Older PD quota cycles stored some `storage_limit` values in KB. These untagged
+records are not automatically converted: the same number could be a legitimate GB
+quota. After **all PD replicas** are upgraded, an administrator can normalize each
+affected space with one ordinary Server `PUT /graphspaces/{name}` update. First read
+the current **Server** space configuration, then submit the unchanged quotas,
+including its `storage_limit` in GB and existing compute limits, using the update
+format below. Do not copy or divide the raw PD limit to infer the intended quota.
+This rewrites the PD limit in GB while preserving usage; it is an explicit
+configuration write, not a required automatic migration. Until then PD
+`GET /graph-spaces` can report mixed limit units. Storage enforcement reads the
+Server configuration and is unaffected by the stale PD reporting field.
+
+After a graph space is deleted, each Server evicts its cached space and service
+entries on the metadata removal event. Peers do not repeat destructive backend
+cleanup or delete shared metadata when handling that notification. A delayed event
+for a name already recreated in metadata refreshes the space from metadata and evicts
+its old service cache, so callers see the recreated configuration. Refreshes and
+cache misses retry when a local space change completes during the read, including
+graph and service counter updates. Older reads cannot replace a newer local quota
+or counter, or return a discarded snapshot after local creation or deletion.
+
+New graph spaces, including a newly bootstrapped `DEFAULT` space, use finite
+resource defaults: 128 CPU cores, 128 GB memory, 128 compute CPU cores, 128 GB
+compute memory, 10240 GB storage, 100 graphs and 100 roles. Existing graph-space
+configurations are preserved on restart; this change does not migrate their quotas.
+For `POST /graphspaces`, omitted compute limits are stored as `0`, meaning continuously
+inherit the space's CPU and memory limits. Zero is neither unlimited nor a zero-sized
+allocation. A request for 4 cores / 8 GB without compute fields therefore has effective
+compute limits of 4 cores / 8 GB; after updating CPU/memory to 8 cores / 16 GB, compute
+also becomes 8 cores / 16 GB. Omitting all resource fields gives effective limits of
+128 cores / 128 GB for both. Explicit positive compute values remain independent.
+`PUT /graphspaces/{name}` with `action=update` preserves omitted compute fields;
+explicit `compute_cpu_limit: 0` or `compute_memory_limit: 0` restores inheritance for
+that field. Responses retain the raw zero marker so editing clients can preserve it.
+The bootstrapped `DEFAULT` space keeps explicit compute limits of 128 cores / 128 GB;
+existing positive compute limits are not converted to inheritance.
+Upgrade the Java client together with the Server before sending partial space
+updates (paired [Toolchain change](https://github.com/apache/hugegraph-toolchain/pull/834)).
+Older clients send zero for omitted compute fields; the new Server interprets an
+explicit zero as restoring inheritance and cannot distinguish that from an omitted
+SDK property. Until clients are upgraded, use read-modify-write and explicitly send
+the current compute limits to preserve independent positive values.
+When OLTP and OLAP share a Kubernetes namespace, their quotas are added together;
+separate namespaces receive the respective resource limits.
+
+The graph-count limit is enforced: after 100 graphs, creating another graph fails with
+`reach graph limit`. Storage enforcement currently reads Server configuration only under
+`HUGEGRAPH/hg/GRAPHSPACE/CONF/` (Server `cluster=hg`; its default is `hg-test`). When
+usage exceeds the configured storage limit there, PD marks the space's graphs
+`ReadOnly`; the next check restores `ReadWrite` once usage is within the limit.
+CPU and memory limits configure Kubernetes namespace quotas when `server.use_k8s=true`;
+they do not impose process limits in other deployments.
+
+An administrator can raise limits with `PUT /graphspaces/DEFAULT`, for example:
+
+```json
+{"action":"update","update":{"name":"DEFAULT","max_graph_number":200,"max_role_number":100,
+"cpu_limit":128,"memory_limit":128,"storage_limit":20480}}
+```
+
+Read the current space first and preserve the fields that are not being changed. The
+example raises graph count to 200 and storage to 20480 GB. This changes configuration;
+it does not remove existing graphs or migrate other spaces.

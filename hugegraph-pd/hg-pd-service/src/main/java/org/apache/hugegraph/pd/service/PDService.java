@@ -1138,7 +1138,7 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
         }
         Pdpb.SetGraphSpaceResponse response = null;
         try {
-            configService.setGraphSpace(request.getGraphSpace());
+            configService.setGraphSpaceLimit(request.getGraphSpace());
             response = Pdpb.SetGraphSpaceResponse.newBuilder().setHeader(okHeader).build();
         } catch (PDException e) {
             response = Pdpb.SetGraphSpaceResponse.newBuilder().setHeader(newErrorHeader(e)).build();

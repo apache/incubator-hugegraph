@@ -12,6 +12,8 @@ atomic restore across all databases in a graph.
 
 - [RPC and Scan ownership](#rpc-and-scan-ownership): final batches, half-close,
   cancellation, iterator cleanup and callback dispatch.
+- [PD client and snapshot I/O](#pd-client-and-snapshot-io): interrupted waits and
+  complete snapshot archives.
 - [Shutdown coordination](#shutdown-coordination): admission, worker drain, TTL cleanup
   and [Store node shutdown](#store-node-shutdown).
 - [Standalone snapshot recovery](#standalone-snapshot-recovery): pending records,
@@ -82,6 +84,38 @@ visible when the capacity stop ends traversal normally; a business failure retai
 its cleanup errors as suppressed exceptions. Caller transactions remain with the
 request thread.
 
+### Server asynchronous algorithms
+
+Algorithm jobs share the traversal consumer implementation. Waiting for workers reports
+worker and completion-callback failures, including a failure on the last input record.
+A failed worker releases producers waiting on a full queue, and each worker invokes its
+completion callback once. Algorithm source iterators close even when waiting fails;
+an explicit algorithm stop remains normal control flow. The first failure is retained,
+with later worker or iterator-close failures attached as suppressed exceptions.
+Interrupted waits request worker cancellation and preserve the caller's interrupt flag.
+Interrupting a producer blocked on a full queue fails that submission and preserves
+the interrupt flag; input that never entered the queue cannot be reported as accepted.
+
+Ephemeral jobs retain their negative task IDs and existing wraparound rule. Concurrent
+schedulers allocate these IDs atomically, avoiding duplicate IDs caused by lost updates.
+
+### Store sort and shuffle iterators
+
+Sort/shuffle applies the requested comparator both in memory and after spilling to
+disk. Repeated `hasNext()` calls preserve the pending record, and `next()` also works
+without a preceding probe. File iterators close at EOF or on a read failure; closing
+the owning shuffle also closes unfinished readers before deleting spill files.
+Union and intersection iterators release their shuffle even if closing the source
+iterator fails, retaining the source failure and suppressing any later close failure.
+Truncated records and I/O failures fail the query instead of appearing as normal EOF.
+The spill record format is unchanged.
+
+Type-conversion iterators preserve pending records across repeated probes and forward
+closure to their owned source, including through the Java `Iterator` adapter. Closing
+them is terminal and discards pending values and completion markers. The source is
+closed once; a failed close remains visible on later close calls. ORDER BY propagates
+sort failures to the query's existing error and cleanup path with the original cause.
+
 ### Callback executor configuration
 
 The gRPC application callback queue is always unbounded (`Integer.MAX_VALUE`), matching
@@ -92,6 +126,21 @@ registered after the transport has closed. `thread.pool.grpc.core` and `.max` st
 configure the same executor; an unbounded queue normally keeps dispatch at the core
 thread count. Bound expensive scan/query work and admission at their worker queues;
 sustained overload can otherwise increase callback backlog and memory use.
+
+## PD client and snapshot I/O
+
+An interrupted wait for PD connection work cancels its submitted task and preserves
+the caller's interrupt flag. The existing failure result and timeout remain unchanged;
+cancellation does not close shared channels.
+
+Blocking PD calls report exhausted transport retries as `PD_UNREACHABLE`, including
+the RPC method and original cause. Existing retry budgets and response-header error
+codes are preserved, so registration and metadata callers receive a PD error rather
+than a missing response.
+
+PD snapshot compression finishes the ZIP central directory before flushing and syncing
+the archive. An unreadable source directory fails with an I/O error. Archive entries
+and the checksum format remain compatible with existing snapshots.
 
 ## Shutdown coordination
 
